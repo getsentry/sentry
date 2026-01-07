@@ -5,6 +5,8 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -646,7 +648,11 @@ function GroupDetailsContentError({
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
-      return <MissingProjectMembership organization={organization} project={project} />;
+      return (
+        <Container padding="lg">
+          <MissingProjectMembership organization={organization} project={project} />
+        </Container>
+      );
     default:
       return <StyledLoadingError onRetry={onRetry} />;
   }
