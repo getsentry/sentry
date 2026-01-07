@@ -15,6 +15,10 @@ inputs:
     description: 'Mode to bring up by new devservices'
     required: false
     default: 'default'
+  skip-devservices:
+    description: 'Skip bringing up devservices'
+    required: false
+    default: 'false'
 
 outputs:
   matrix-instance-number:
@@ -38,7 +42,7 @@ runs:
         # isn't right because job-total will be 3x larger and you'd never run 2/3 of the tests.
         # MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
-        echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
+        echo "SENTRY_SKIP_SERVICE_VALIDATION=1" >> $GITHUB_ENV
 
         # for actions/setup-python which always runs pip install
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
@@ -122,6 +126,7 @@ runs:
         python3 -m tools.fast_editable --path .
 
     - name: Start new devservices
+      if: ${{ inputs.skip-devservices != 'true' }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         WORKDIR: ${{ inputs.workdir }}
