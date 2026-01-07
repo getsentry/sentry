@@ -75,7 +75,6 @@ function buildRoutes() {
           {
             path: ':broadcastId/',
             component: BroadcastDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },
