@@ -32,6 +32,7 @@ export type SeerExplorerResponse = {
     blocks: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    owner_user_id?: number;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
     run_id?: number;

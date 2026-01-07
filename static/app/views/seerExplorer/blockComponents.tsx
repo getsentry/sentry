@@ -26,6 +26,7 @@ import {
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  editEnabled?: boolean;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
   isFocused?: boolean;
@@ -130,6 +131,7 @@ function getToolStatus(
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
+  editEnabled = true,
   isAwaitingFileApproval,
   isAwaitingQuestion,
   isLast,
@@ -275,7 +277,11 @@ function BlockComponent({
   };
 
   const showActions =
-    isFocused && !block.loading && !isAwaitingFileApproval && !isAwaitingQuestion;
+    isFocused &&
+    !block.loading &&
+    !isAwaitingFileApproval &&
+    !isAwaitingQuestion &&
+    editEnabled; // move this check to inside button bar once there are more actions
 
   return (
     <Block
