@@ -209,6 +209,7 @@ def get_anomaly_threshold_data_from_seer(
             connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             path=SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
             body=json.dumps(payload).encode("utf-8"),
+            retries=SEER_RETRIES,
         )
     except (TimeoutError, MaxRetryError):
         logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
