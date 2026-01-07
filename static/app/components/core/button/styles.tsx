@@ -301,7 +301,7 @@ function getButtonTheme(type: ButtonType, theme: Theme) {
       return {
         surface: 'transparent',
         background: 'transparent',
-        color: theme.linkColor,
+        color: theme.tokens.interactive.link.accent.rest,
       };
     default:
       return {};
