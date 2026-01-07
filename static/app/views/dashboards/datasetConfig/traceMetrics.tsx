@@ -15,7 +15,6 @@ import {
   RateUnit,
   type AggregationOutputType,
   type DataUnit,
-  type ParsedFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -256,11 +255,6 @@ export const TraceMetricsConfig: DatasetConfig<
     return data.timeSeries.map(timeSeries => {
       // The function should always be defined when dealing with a successful
       // time series response
-      const func = parseFunction(timeSeries.yAxis);
-      let yAxis = timeSeries.yAxis;
-      if (func) {
-        yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
-      }
       return {
         data: timeSeries.values.map(value => ({
           name: value.timestamp,
@@ -269,8 +263,7 @@ export const TraceMetricsConfig: DatasetConfig<
 
         seriesName: formatMetricsTimeseriesLabel({
           widgetQuery,
-          func,
-          timeSeries: {...timeSeries, yAxis},
+          timeSeries,
         }),
       };
     });
@@ -292,15 +285,9 @@ export const TraceMetricsConfig: DatasetConfig<
   getSeriesResultType(data, widgetQuery) {
     return data.timeSeries.reduce(
       (acc, timeSeries) => {
-        const func = parseFunction(timeSeries.yAxis);
-        let yAxis = timeSeries.yAxis;
-        if (func) {
-          yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
-        }
         const label = formatMetricsTimeseriesLabel({
           widgetQuery,
-          func,
-          timeSeries: {...timeSeries, yAxis},
+          timeSeries,
         });
         acc[label] = timeSeries.meta.valueType as AggregationOutputType;
         return acc;
@@ -311,15 +298,9 @@ export const TraceMetricsConfig: DatasetConfig<
   getSeriesResultUnit: (data, widgetQuery) => {
     return data.timeSeries.reduce(
       (acc, timeSeries) => {
-        const func = parseFunction(timeSeries.yAxis);
-        let yAxis = timeSeries.yAxis;
-        if (func) {
-          yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
-        }
         const label = formatMetricsTimeseriesLabel({
           widgetQuery,
-          func,
-          timeSeries: {...timeSeries, yAxis},
+          timeSeries,
         });
 
         if (label.includes('per_second(')) {
@@ -473,20 +454,31 @@ function filterSeriesSortOptions(columns: Set<string>) {
 
 function formatMetricsTimeseriesLabel({
   widgetQuery,
-  func,
   timeSeries,
 }: {
-  func: ParsedFunction | null;
   timeSeries: TimeSeries;
   widgetQuery: WidgetQuery;
 }): string {
+  const func = parseFunction(timeSeries.yAxis);
+  const formattedYAxis = func
+    ? `${func.name}(${func.arguments[1] ?? '…'})`
+    : timeSeries.yAxis;
+
   const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
   const hasGroupings = new Set(widgetQuery.columns).size > 0;
-  // The series name needs to distinctively refer to the yAxis it belongs to
-  // when multiple yAxes and groupings are present, otherwise the response
-  // returns each series with its grouping but they overlap each other in the
-  // legend
-  return multiYAxis && hasGroupings && func
-    ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
-    : formatTimeSeriesLabel(timeSeries);
+
+  let baseName = formatTimeSeriesLabel({...timeSeries, yAxis: formattedYAxis});
+
+  // When we have both multiple aggregates and groupings, append function name for uniqueness
+  if (multiYAxis && hasGroupings && func) {
+    baseName = `${baseName} : ${func.name}(…)`;
+  }
+
+  // Add query name prefix with appropriate separator if an alias is present
+  if (widgetQuery.name) {
+    const separator = multiYAxis && hasGroupings ? ' > ' : ' : ';
+    return `${widgetQuery.name}${separator}${baseName}`;
+  }
+
+  return baseName;
 }
