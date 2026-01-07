@@ -36,6 +36,7 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
+import {getBuildCompareUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 function getMainComparison(
   response: SizeComparisonApiResponse | undefined
@@ -106,7 +107,12 @@ export function SizeCompareMainContent() {
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/`
+        getBuildCompareUrl({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId,
+          baseArtifactId,
+        })
       );
     },
     onError: error => {
@@ -258,7 +264,11 @@ export function SizeCompareMainContent() {
         isComparing={false}
         onClearBaseBuild={() => {
           navigate(
-            `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
+            getBuildCompareUrl({
+              organizationSlug: organization.slug,
+              projectId,
+              headArtifactId,
+            })
           );
         }}
       />

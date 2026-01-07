@@ -7,6 +7,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getInstallBuildUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 import {
   FullRowLink,
@@ -32,7 +33,12 @@ export function PreprodBuildsDistributionTable({
   showProjectColumn,
 }: PreprodBuildsDistributionTableProps) {
   const rows = builds.map(build => {
-    const linkUrl = `/organizations/${organizationSlug}/preprod/${build.project_id}/${build.id}/install/`;
+    const linkUrl =
+      getInstallBuildUrl({
+        organizationSlug,
+        projectId: build.project_id.toString(),
+        baseArtifactId: build.id,
+      }) ?? '';
     const isInstallable = build.distribution_info?.is_installable ?? false;
     const isRowDisabled = !isInstallable;
     const downloadCount = build.distribution_info?.download_count ?? 0;

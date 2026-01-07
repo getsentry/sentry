@@ -9,6 +9,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconQuestion} from 'sentry/icons';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getSizeBuildUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -41,7 +42,12 @@ export function PreprodBuildsSizeTable({
   showProjectColumn,
 }: PreprodBuildsSizeTableProps) {
   const rows = builds.map(build => {
-    const linkUrl = `/organizations/${organizationSlug}/preprod/${build.project_id}/${build.id}`;
+    const linkUrl =
+      getSizeBuildUrl({
+        organizationSlug,
+        projectId: build.project_id.toString(),
+        baseArtifactId: build.id,
+      }) ?? '';
     return (
       <SimpleTable.Row key={build.id}>
         <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
