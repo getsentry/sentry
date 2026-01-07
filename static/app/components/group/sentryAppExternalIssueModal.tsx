@@ -8,11 +8,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {
-  PlatformExternalIssue,
-  SentryAppComponent,
-  SentryAppInstallation,
-} from 'sentry/types/integrations';
+import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -20,7 +16,6 @@ import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 interface OpenSentryAppIssueModalProps
   extends Omit<Props, keyof ModalRenderProps | 'disabled'> {
-  externalIssue: PlatformExternalIssue | undefined;
   organization: Organization;
 }
 
@@ -28,15 +23,9 @@ export const openSentryAppIssueModal = ({
   organization,
   group,
   event,
-  externalIssue,
   sentryAppComponent,
   sentryAppInstallation,
 }: OpenSentryAppIssueModalProps) => {
-  // Only show the modal when we don't have a linked issue
-  if (externalIssue) {
-    return;
-  }
-
   trackAnalytics('issue_details.external_issue_modal_opened', {
     organization,
     ...getAnalyticsDataForGroup(group),

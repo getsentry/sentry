@@ -58,7 +58,6 @@ describe('openSentryAppIssueModal', () => {
       organization,
       group,
       event,
-      externalIssue: undefined,
       sentryAppComponent: component,
       sentryAppInstallation: install,
     });
@@ -93,7 +92,6 @@ describe('openSentryAppIssueModal', () => {
       organization,
       group,
       event,
-      externalIssue: undefined,
       sentryAppComponent: component,
       sentryAppInstallation: install,
     });
@@ -129,7 +127,6 @@ describe('openSentryAppIssueModal', () => {
       organization,
       group,
       event,
-      externalIssue: undefined,
       sentryAppComponent: component,
       sentryAppInstallation: install,
     });
