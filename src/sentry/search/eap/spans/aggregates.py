@@ -36,8 +36,12 @@ def count_processor(count_value: int | None) -> int:
         return count_value
 
 
-def resolve_attribute_value(attribute: AttributeKey, value: str) -> AttributeValue:
+def resolve_attribute_value(
+    attribute: AttributeKey, value: str, invalid_parameter_message: str | None = None
+) -> AttributeValue:
     attr_value = None
+    if invalid_parameter_message is None:
+        invalid_parameter_message = f"Invalid parameter '{value}'"
 
     try:
         if attribute.type == AttributeKey.TYPE_DOUBLE:
@@ -56,13 +60,13 @@ def resolve_attribute_value(attribute: AttributeKey, value: str) -> AttributeVal
             expected_type = "number"
         if attribute.type == AttributeKey.TYPE_INT:
             expected_type = "integer"
-        raise InvalidSearchQuery(f"Invalid parameter '{value}'. Must be of type {expected_type}.")
+        raise InvalidSearchQuery(f"{invalid_parameter_message}. Must be of type {expected_type}.")
 
     if attribute.type == AttributeKey.TYPE_BOOLEAN:
         lower_value = value.lower()
         if lower_value not in ["true", "false"]:
             raise InvalidSearchQuery(
-                f"Invalid parameter {value}. Must be one of {["true", "false"]}"
+                f"{invalid_parameter_message}. Must be one of {["true", "false"]}"
             )
         attr_value = AttributeValue(val_bool=value == "true")
 
@@ -100,12 +104,12 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
         value, str
     ), "Value must be a String"  # This should always be a string. Assertion to deal with typing errors.
 
-    attr_value = resolve_attribute_value(key, value)
+    attr_value = resolve_attribute_value(key, value, f"Invalid third parameter {value}")
 
     if operator == "between":
         value2 = args[4]
 
-        assert isinstance(value2, str), "Second value must be a String"
+        assert isinstance(value2, str), "Third parameter must be a String"
 
         # TODO: A bit of a hack here, the default arg is set to an empty string so it's not treated as a required argument.
         # We check against the default arg to determine if the second value is missing.
@@ -115,12 +119,12 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
         try:
             if float(value2) <= float(value):
                 raise InvalidSearchQuery(
-                    f"Invalid parameter {value2}. Must be greater than {value}"
+                    f"Fourth parameter {value2} must be greater than third parameter {value}"
                 )
         except ValueError:
             raise InvalidSearchQuery("between operator requires two numbers")
 
-        attr_value2 = resolve_attribute_value(key, value2)
+        attr_value2 = resolve_attribute_value(key, value2, f"Invalid fourth parameter {value2}")
         trace_filter = TraceItemFilter(
             and_filter=AndFilter(
                 filters=[

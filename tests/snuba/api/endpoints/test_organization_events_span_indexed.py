@@ -6312,7 +6312,10 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             }
         )
         assert response.status_code == 400, response.content
-        assert "Invalid Parameter " in response.data["detail"].title()
+        assert (
+            "Fourth Parameter 299 Must Be Greater Than Third Parameter 300"
+            in response.data["detail"].title()
+        )
 
     def test_count_if_numeric_raises_invalid_search_query_with_bad_value(self) -> None:
         response = self.do_request(
@@ -6326,7 +6329,10 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         assert response.status_code == 400, response.content
-        assert "Invalid Parameter " in response.data["detail"].title()
+        assert (
+            "Invalid Third Parameter Three. Must Be Of Type Number"
+            in response.data["detail"].title()
+        )
 
     def test_count_if_integer(self) -> None:
         self.store_spans(
