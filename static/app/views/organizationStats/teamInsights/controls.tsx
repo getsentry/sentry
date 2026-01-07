@@ -27,7 +27,7 @@ import {dataDatetime} from './utils';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
-const relativeOptions = {
+const relativeOptions: Record<string, string> = {
   '2w': t('Last 2 weeks'),
   '4w': t('Last 4 weeks'),
   [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
@@ -208,9 +208,9 @@ function TeamStatsControls({
         })}
         trigger={triggerProps => (
           <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
-            {period &&
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              (relativeOptions[period] || getArbitraryRelativePeriod(period)[period])}
+            {period
+              ? relativeOptions[period] || getArbitraryRelativePeriod(period)[period]
+              : triggerProps.children}
           </TimeRangeSelectTrigger>
         )}
       />

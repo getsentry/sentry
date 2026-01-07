@@ -123,7 +123,7 @@ export default function MetricDetailsBody({
     dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
       ? query
       : (query ? `(${query}) AND (${eventType})` : eventType).trim();
-  const relativeOptions = {
+  const relativeOptions: Record<string, string> = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
     ...(rule.detectionType === AlertRuleComparisonType.DYNAMIC
@@ -203,8 +203,7 @@ export default function MetricDetailsBody({
                 <TimeRangeSelectTrigger {...triggerProps}>
                   {timePeriod.custom
                     ? timePeriod.label
-                    : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      relativeOptions[timePeriod.period ?? '']}
+                    : (relativeOptions[timePeriod.period ?? ''] ?? triggerProps.children)}
                 </TimeRangeSelectTrigger>
               )}
             />

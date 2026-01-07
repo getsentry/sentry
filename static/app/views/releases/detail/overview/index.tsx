@@ -327,7 +327,7 @@ function ReleaseOverview() {
               menuTitle={t('Filter Time Range')}
               trigger={triggerProps => (
                 <TimeRangeSelectTrigger {...triggerProps}>
-                  {defaultDateTimeSelected ? releaseBoundsLabel : null}
+                  {defaultDateTimeSelected ? releaseBoundsLabel : triggerProps.children}
                 </TimeRangeSelectTrigger>
               )}
               relativeOptions={({defaultOptions, arbitraryOptions}) =>

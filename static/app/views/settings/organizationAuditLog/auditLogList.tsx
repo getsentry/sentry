@@ -326,7 +326,7 @@ function AuditLogList({
         maxPickableDays={getDaysSinceDate(organization.dateCreated)}
         trigger={triggerProps => (
           <TimeRangeSelectTrigger {...triggerProps}>
-            {displayLabel}
+            {displayLabel ?? triggerProps.children}
           </TimeRangeSelectTrigger>
         )}
       />
