@@ -91,12 +91,12 @@ describe('OrgDashboards', () => {
       {initialRouterConfig, organization}
     );
 
-    await waitFor(() => {
-      expect(router.location.query).toEqual({
-        project: ['1', '2'],
-        environment: 'alpha',
-        statsPeriod: '7d',
-      });
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(router.location.query).toEqual({
+      project: ['1', '2'],
+      environment: 'alpha',
+      statsPeriod: '7d',
     });
   });
 
@@ -148,17 +148,17 @@ describe('OrgDashboards', () => {
       {initialRouterConfig: routerConfigWithSort, organization}
     );
 
-    await waitFor(() => {
-      expect(router.location.query).toEqual({
-        project: ['1', '2'],
-        environment: 'alpha',
-        statsPeriod: '7d',
-        sort: 'recentlyViewed',
-      });
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(router.location.query).toEqual({
+      project: ['1', '2'],
+      environment: 'alpha',
+      statsPeriod: '7d',
+      sort: 'recentlyViewed',
     });
   });
 
-  it('does not add query params for page filters if one of the filters is defined', () => {
+  it('does not add query params for page filters if one of the filters is defined', async () => {
     const mockDashboardWithFilters = {
       dateCreated: '2021-08-10T21:20:46.798237Z',
       id: '1',
@@ -207,10 +207,12 @@ describe('OrgDashboards', () => {
       {initialRouterConfig: routerConfigWithProject, organization}
     );
 
-    expect(router.location.query.project).toBe('1');
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(router.location.query).toEqual({});
   });
 
-  it('does not add query params for page filters if none are saved', () => {
+  it('does not add query params for page filters if none are saved', async () => {
     const {router} = render(
       <OrgDashboards>
         {({dashboard, dashboards}) => {
@@ -227,6 +229,8 @@ describe('OrgDashboards', () => {
       </OrgDashboards>,
       {initialRouterConfig, organization}
     );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(router.location.query).toEqual({});
   });
@@ -290,6 +294,7 @@ describe('OrgDashboards', () => {
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    await waitFor(() => expect(router.location.query).toEqual({}));
+
+    expect(router.location.query).toEqual({});
   });
 });
