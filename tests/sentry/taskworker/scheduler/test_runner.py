@@ -243,10 +243,10 @@ def test_schedulerunner_tick_key_exists_no_spawn(
 
     # Our scheduler would wakeup and tick again.
     # The key exists in run_storage so we should not spawn a task.
-    # last_run time should synchronize with run_storage state, and count down from 14:30
+    # last_run time is set to now to prevent tight loops with stale values
     with freeze_time("2025-01-24 14:30:02"):
         sleep_time = schedule_set.tick()
-        assert sleep_time == 298
+        assert sleep_time == 300
         assert mock_send.call_count == 1
 
 
@@ -425,6 +425,99 @@ def test_schedulerunner_tick_fast_and_slow(
 
 def extract_sent_tasks(mock: Mock) -> list[str]:
     return [call[0][0].taskname for call in mock.call_args_list]
+
+
+@pytest.mark.django_db
+def test_schedulerunner_tick_stale_lock_no_tight_loop(
+    task_app: TaskworkerApp, run_storage: RunStorage
+) -> None:
+    """
+    Test that a stale lock with long TTL doesn't cause a tight loop.
+
+    This test reproduces the January 2, 2025 outage where a task's schedule
+    was shortened (10h -> 10min) but the old Redis key still existed with
+    a long TTL. The scheduler would get stuck in a tight loop because
+    remaining_seconds() returned 0 for the "overdue" task.
+
+    The fix sets last_run to now (instead of the stale Redis value) when
+    we can't spawn, so remaining_seconds() returns the correct value.
+    """
+    run_storage_mock = Mock(spec=RunStorage)
+    schedule_set = ScheduleRunner(app=task_app, run_storage=run_storage_mock)
+    schedule_set.add(
+        "valid",
+        {
+            "task": "test:valid",
+            "schedule": crontab(minute="*/10"),
+        },
+    )
+
+    run_storage_mock.read_many.return_value = {
+        "test:valid": datetime(2025, 1, 2, 10, 0, 0, tzinfo=UTC),
+    }
+    run_storage_mock.set.return_value = False
+    run_storage_mock.read.return_value = datetime(2025, 1, 2, 10, 0, 0, tzinfo=UTC)
+
+    namespace = task_app.taskregistry.get("test")
+    with freeze_time("2025-01-02 12:10:00"), patch.object(namespace, "send_task") as mock_send:
+        sleep_time = schedule_set.tick()
+        assert sleep_time == 600
+        assert mock_send.call_count == 0
+        assert run_storage_mock.set.call_count == 1
+
+
+@pytest.mark.django_db
+def test_schedulerunner_tick_stale_lock_doesnt_starve_other_tasks(
+    task_app: TaskworkerApp, run_storage: RunStorage
+) -> None:
+    """
+    Test that a task with a stale lock doesn't prevent other tasks from running.
+
+    This test verifies that when one task can't spawn due to a stale lock,
+    other tasks on different schedules can still run. This was a key symptom
+    of the January 2, 2025 outage where tasks with */7 schedules kept working
+    while */10 tasks were blocked.
+    """
+    run_storage_mock = Mock(spec=RunStorage)
+    schedule_set = ScheduleRunner(app=task_app, run_storage=run_storage_mock)
+    schedule_set.add(
+        "blocked",
+        {
+            "task": "test:valid",
+            "schedule": crontab(minute="*/10"),
+        },
+    )
+    schedule_set.add(
+        "working",
+        {
+            "task": "test:second",
+            "schedule": crontab(minute="*/7"),
+        },
+    )
+
+    def mock_set(taskname: str, next_runtime: datetime) -> bool:
+        if taskname == "test:valid":
+            return False
+        return True
+
+    def mock_read(taskname: str) -> datetime | None:
+        if taskname == "test:valid":
+            return datetime(2025, 1, 2, 10, 0, 0, tzinfo=UTC)
+        return datetime(2025, 1, 2, 12, 0, 0, tzinfo=UTC)
+
+    run_storage_mock.read_many.return_value = {
+        "test:valid": datetime(2025, 1, 2, 10, 0, 0, tzinfo=UTC),
+        "test:second": datetime(2025, 1, 2, 12, 0, 0, tzinfo=UTC),
+    }
+    run_storage_mock.set.side_effect = mock_set
+    run_storage_mock.read.side_effect = mock_read
+
+    namespace = task_app.taskregistry.get("test")
+    with freeze_time("2025-01-02 12:07:00"), patch.object(namespace, "send_task") as mock_send:
+        schedule_set.tick()
+        assert mock_send.call_count == 1
+        called = extract_sent_tasks(mock_send)
+        assert called == ["second"]
 
 
 @pytest.mark.django_db
