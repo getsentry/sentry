@@ -1253,7 +1253,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    * Link color indicates that something is clickable
    */
   linkHoverColor: tokens.interactive.link.accent.hover,
-  linkUnderline: tokens.interactive.link.accent.rest,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
