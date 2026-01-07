@@ -170,10 +170,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Retrieves explore data for a given organization.
+        Retrieves explore data for a given organization as a timeseries.
 
-        This endpoint can return timeseries for 1-many axis, and the top grouped results depending on the parameters
-        passed
+        This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
+        on the parameters passed
         """
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
