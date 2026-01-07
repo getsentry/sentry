@@ -213,4 +213,3 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
         assert response.status_code == 200, response.content
         data = [attrs for time, attrs in response.data["data"]]
         assert data[0] == [{"count": 3000000}]
-
