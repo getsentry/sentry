@@ -1089,7 +1089,7 @@ urlpatterns += [
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/events/(?P<client_event_id>[^/]+)/$",
                     ProjectEventRedirect.as_view(),
-                    name="sentry-project-event-redirect",
+                    name="sentry-organization-project-event-redirect",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/api-keys/$",
