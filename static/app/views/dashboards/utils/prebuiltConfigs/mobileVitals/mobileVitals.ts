@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = 'transaction.op:[ui.load,navigation]';
 
@@ -27,8 +28,8 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(measurements.app_start_cold)'],
-          aggregates: ['avg(measurements.app_start_cold)'],
+          fields: [`avg(${SpanFields.APP_START_COLD})`],
+          aggregates: [`avg(${SpanFields.APP_START_COLD})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_OP_CONDITION,
@@ -60,8 +61,8 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(measurements.app_start_warm)'],
-          aggregates: ['avg(measurements.app_start_warm)'],
+          fields: [`avg(${SpanFields.APP_START_WARM})`],
+          aggregates: [`avg(${SpanFields.APP_START_WARM})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_OP_CONDITION,
@@ -87,8 +88,8 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(measurements.time_to_initial_display)'],
-          aggregates: ['avg(measurements.time_to_initial_display)'],
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_OP_CONDITION,
@@ -114,8 +115,8 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(measurements.time_to_full_display)'],
-          aggregates: ['avg(measurements.time_to_full_display)'],
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_OP_CONDITION,
@@ -141,8 +142,8 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(mobile.frames_delay)'],
-          aggregates: ['avg(mobile.frames_delay)'],
+          fields: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
+          aggregates: [`avg(${SpanFields.MOBILE_FRAMES_DELAY})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_OP_CONDITION,
@@ -169,14 +170,14 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           fields: [
-            'avg(mobile.frozen_frames)',
-            'avg(mobile.total_frames)',
-            'equation|( avg(mobile.frozen_frames) / avg(mobile.total_frames) )',
+            `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|( avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
           ],
           aggregates: [
-            'avg(mobile.frozen_frames)',
-            'avg(mobile.total_frames)',
-            'equation|( avg(mobile.frozen_frames) / avg(mobile.total_frames) )',
+            `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|( avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
           ],
           columns: [],
           fieldAliases: ['', '', ''],
@@ -204,14 +205,14 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           fields: [
-            'avg(mobile.slow_frames)',
-            'avg(mobile.total_frames)',
-            'equation|( avg(mobile.slow_frames) / avg(mobile.total_frames) )',
+            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
           ],
           aggregates: [
-            'avg(mobile.slow_frames)',
-            'avg(mobile.total_frames)',
-            'equation|( avg(mobile.slow_frames) / avg(mobile.total_frames) )',
+            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
           ],
           columns: [],
           fieldAliases: ['', '', ''],
@@ -240,16 +241,16 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: '',
           fields: [
             'transaction',
-            'avg(measurements.app_start_cold)',
-            'avg(measurements.app_start_warm)',
-            'count(span.duration)',
+            `avg(${SpanFields.APP_START_COLD})`,
+            `avg(${SpanFields.APP_START_WARM})`,
+            `count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
-            'avg(measurements.app_start_cold)',
-            'avg(measurements.app_start_warm)',
-            'count(span.duration)',
+            `avg(${SpanFields.APP_START_COLD})`,
+            `avg(${SpanFields.APP_START_WARM})`,
+            `count(${SpanFields.SPAN_DURATION})`,
           ],
-          columns: ['transaction'],
+          columns: [`${SpanFields.TRANSACTION}`],
           fieldAliases: ['Screen', 'Cold Start', 'Warm Start', 'Screen Loads'],
           conditions: '',
           orderby: '-count(span.duration)',
@@ -282,25 +283,25 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           fields: [
-            'transaction',
-            'avg(mobile.slow_frames)',
-            'avg(mobile.frozen_frames)',
-            'avg(mobile.total_frames)',
-            'equation|avg(mobile.slow_frames) / avg(mobile.total_frames)',
-            'equation|avg(mobile.frozen_frames) / avg(mobile.total_frames)',
-            'avg(tags[frames_delay,number])',
-            'count(span.duration)',
+            SpanFields.TRANSACTION,
+            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+            `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `avg(tags[frames_delay,number])`,
+            `count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
-            'avg(mobile.slow_frames)',
-            'avg(mobile.frozen_frames)',
-            'avg(mobile.total_frames)',
-            'equation|avg(mobile.slow_frames) / avg(mobile.total_frames)',
-            'equation|avg(mobile.frozen_frames) / avg(mobile.total_frames)',
-            'avg(tags[frames_delay,number])',
-            'count(span.duration)',
+            `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
+            `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+            `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+            `avg(tags[frames_delay,number])`,
+            `count(${SpanFields.SPAN_DURATION})`,
           ],
-          columns: ['transaction'],
+          columns: [SpanFields.TRANSACTION],
           fieldAliases: [
             'Screen',
             'Slow Frames',
@@ -342,17 +343,17 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           fields: [
-            'transaction',
-            'avg(measurements.time_to_initial_display)',
-            'avg(span.duration)',
-            'count(span.duration)',
+            SpanFields.TRANSACTION,
+            `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
+            `avg(${SpanFields.SPAN_DURATION})`,
+            `count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
-            'avg(measurements.time_to_initial_display)',
-            'avg(span.duration)',
-            'count(span.duration)',
+            `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
+            `avg(${SpanFields.SPAN_DURATION})`,
+            `count(${SpanFields.SPAN_DURATION})`,
           ],
-          columns: ['transaction'],
+          columns: [SpanFields.TRANSACTION],
           fieldAliases: ['Screen', 'TTID', 'TTFD', 'Screen Loads'],
           conditions: '',
           orderby: '-count(span.duration)',

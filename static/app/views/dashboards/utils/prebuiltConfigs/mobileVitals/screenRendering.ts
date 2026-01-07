@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const SPAN_OPERATIONS_CONDITION =
   'span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
@@ -22,18 +23,18 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
         {
           name: '',
           fields: [
-            'span.op',
-            'span.description',
-            'avg(measurements.frames_slow_rate)',
-            'avg(measurements.frames_frozen_rate)',
-            'avg(mobile.frames_delay)',
+            SpanFields.SPAN_OP,
+            SpanFields.SPAN_DESCRIPTION,
+            `avg(${SpanFields.SLOW_FRAMES_RATE})`,
+            `avg(${SpanFields.FROZEN_FRAMES_RATE})`,
+            `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
           ],
           aggregates: [
-            'avg(measurements.frames_slow_rate)',
-            'avg(measurements.frames_frozen_rate)',
-            'avg(mobile.frames_delay)',
+            `avg(${SpanFields.SLOW_FRAMES_RATE})`,
+            `avg(${SpanFields.FROZEN_FRAMES_RATE})`,
+            `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
           ],
-          columns: ['span.op', 'span.description'],
+          columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
           fieldAliases: ['Operation', 'Span Description', 'Slow', 'Frozen', 'Delay'],
           conditions: SPAN_OPERATIONS_CONDITION,
           orderby: '-avg(mobile.frames_delay)',
@@ -62,8 +63,8 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.op',
-          name: 'span.op',
+          key: SpanFields.SPAN_OP,
+          name: SpanFields.SPAN_OP,
           kind: FieldKind.TAG,
         },
         value: '',
@@ -71,8 +72,8 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'device.class',
-          name: 'device.class',
+          key: SpanFields.DEVICE_CLASS,
+          name: SpanFields.DEVICE_CLASS,
           kind: FieldKind.TAG,
         },
         value: '',

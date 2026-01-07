@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_CONDITION = 'is_transaction:true transaction.op:[ui.load,navigation]';
 const SPAN_OPERATIONS_CONDITION =
@@ -23,9 +24,12 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['device.class', 'avg(measurements.time_to_initial_display)'],
-          aggregates: ['avg(measurements.time_to_initial_display)'],
-          columns: ['device.class'],
+          fields: [
+            SpanFields.DEVICE_CLASS,
+            `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
+          ],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          columns: [SpanFields.DEVICE_CLASS],
           fieldAliases: ['Device Class', 'AVG TTID'],
           conditions: TRANSACTION_CONDITION,
           orderby: '-device.class',
@@ -50,9 +54,12 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['device.class', 'avg(measurements.time_to_full_display)'],
-          aggregates: ['avg(measurements.time_to_full_display)'],
-          columns: ['device.class'],
+          fields: [
+            SpanFields.DEVICE_CLASS,
+            `avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`,
+          ],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+          columns: [SpanFields.DEVICE_CLASS],
           fieldAliases: ['Device Class', 'AVG TTFD'],
           conditions: TRANSACTION_CONDITION,
           orderby: '-device.class',
@@ -77,8 +84,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: 'TTID',
-          fields: ['avg(measurements.time_to_initial_display)'],
-          aggregates: ['avg(measurements.time_to_initial_display)'],
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
           columns: [],
           fieldAliases: [],
           conditions: TRANSACTION_CONDITION,
@@ -104,8 +111,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: 'TTFD',
-          fields: ['avg(measurements.time_to_full_display)'],
-          aggregates: ['avg(measurements.time_to_full_display)'],
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
           columns: [],
           fieldAliases: [],
           conditions: TRANSACTION_CONDITION,
@@ -131,12 +138,12 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['count(span.duration)'],
-          aggregates: ['count(span.duration)'],
+          fields: [`count(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
           fieldAliases: [],
           conditions: TRANSACTION_CONDITION,
-          orderby: 'count(span.duration)',
+          orderby: `count(${SpanFields.SPAN_DURATION})`,
         },
       ],
       layout: {
@@ -158,8 +165,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(measurements.time_to_initial_display)'],
-          aggregates: ['avg(measurements.time_to_initial_display)'],
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_CONDITION,
@@ -185,8 +192,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(measurements.time_to_full_display)'],
-          aggregates: ['avg(measurements.time_to_full_display)'],
+          fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+          aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_CONDITION,
@@ -212,8 +219,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['count(span.duration)'],
-          aggregates: ['count(span.duration)'],
+          fields: [`count(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
           fieldAliases: [''],
           conditions: TRANSACTION_CONDITION,
@@ -240,13 +247,16 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           fields: [
-            'span.op',
-            'span.description',
-            'avg(span.self_time)',
-            'sum(span.self_time)',
+            SpanFields.SPAN_OP,
+            SpanFields.SPAN_DESCRIPTION,
+            `avg(${SpanFields.SPAN_SELF_TIME})`,
+            `sum(${SpanFields.SPAN_SELF_TIME})`,
           ],
-          aggregates: ['avg(span.self_time)', 'sum(span.self_time)'],
-          columns: ['span.op', 'span.description'],
+          aggregates: [
+            `avg(${SpanFields.SPAN_SELF_TIME})`,
+            `sum(${SpanFields.SPAN_SELF_TIME})`,
+          ],
+          columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
           fieldAliases: ['Operation', '', '', ''],
           conditions: SPAN_OPERATIONS_CONDITION,
           orderby: '-sum(span.self_time)',
@@ -272,17 +282,17 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           fields: [
-            'trace',
-            'id',
-            'measurements.time_to_initial_display',
-            'measurements.time_to_initial_display',
+            SpanFields.TRACE,
+            SpanFields.ID,
+            SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
+            SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
           ],
           aggregates: [],
           columns: [
-            'trace',
-            'id',
-            'measurements.time_to_initial_display',
-            'measurements.time_to_initial_display',
+            SpanFields.TRACE,
+            SpanFields.ID,
+            SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
+            SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY,
           ],
           fieldAliases: ['', '', '', ''],
           conditions: 'span.op:[ui.load,navigation] is_transaction:true',
@@ -312,8 +322,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.op',
-          name: 'span.op',
+          key: SpanFields.SPAN_OP,
+          name: SpanFields.SPAN_OP,
           kind: FieldKind.TAG,
         },
         value: '',

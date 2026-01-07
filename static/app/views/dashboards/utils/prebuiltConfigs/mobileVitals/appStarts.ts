@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const COLD_START_CONDITION =
   'span.op:app.start.cold span.description:["Cold Start","Cold App Start"]';
@@ -26,12 +27,12 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(span.duration)'],
-          aggregates: ['avg(span.duration)'],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           fieldAliases: [],
           conditions: COLD_START_CONDITION,
-          orderby: 'avg(span.duration)',
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
       layout: {
@@ -53,12 +54,12 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['avg(span.duration)'],
-          aggregates: ['avg(span.duration)'],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           fieldAliases: [],
           conditions: WARM_START_CONDITION,
-          orderby: 'avg(span.duration)',
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
       layout: {
@@ -80,9 +81,9 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['device.class', 'avg(measurements.app_start_cold)'],
-          aggregates: ['avg(measurements.app_start_cold)'],
-          columns: ['device.class'],
+          fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_COLD})`],
+          aggregates: [`avg(${SpanFields.APP_START_COLD})`],
+          columns: [SpanFields.DEVICE_CLASS],
           fieldAliases: ['', ''],
           conditions: '',
           orderby: '-avg(measurements.app_start_cold)',
@@ -107,9 +108,9 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['device.class', 'avg(measurements.app_start_warm)'],
-          aggregates: ['avg(measurements.app_start_warm)'],
-          columns: ['device.class'],
+          fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_WARM})`],
+          aggregates: [`avg(${SpanFields.APP_START_WARM})`],
+          columns: [SpanFields.DEVICE_CLASS],
           fieldAliases: ['', ''],
           conditions: '',
           orderby: '-avg(measurements.app_start_warm)',
@@ -134,9 +135,13 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['span.op', 'span.description', 'avg(span.self_time)'],
-          aggregates: ['avg(span.self_time)'],
-          columns: ['span.op', 'span.description'],
+          fields: [
+            SpanFields.SPAN_OP,
+            SpanFields.SPAN_DESCRIPTION,
+            `avg(${SpanFields.SPAN_SELF_TIME})`,
+          ],
+          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
           fieldAliases: ['Operation', 'Description', 'AVG Duration'],
           conditions: OPERATIONS_CONDITION,
           orderby: '-avg(span.self_time)',
@@ -161,9 +166,9 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['id', 'span.duration', 'span.duration'],
+          fields: [SpanFields.ID, SpanFields.SPAN_DURATION, SpanFields.SPAN_DURATION],
           aggregates: [],
-          columns: ['id', 'span.duration', 'span.duration'],
+          columns: [SpanFields.ID, SpanFields.SPAN_DURATION, SpanFields.SPAN_DURATION],
           fieldAliases: ['Transaction id', 'Profile', ''],
           conditions: '',
           orderby: '-id',
@@ -192,8 +197,8 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.op',
-          name: 'span.op',
+          key: SpanFields.SPAN_OP,
+          name: SpanFields.SPAN_OP,
           kind: FieldKind.TAG,
         },
         value: '',
@@ -201,8 +206,8 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'device.class',
-          name: 'device.class',
+          key: SpanFields.DEVICE_CLASS,
+          name: SpanFields.DEVICE_CLASS,
           kind: FieldKind.TAG,
         },
         value: '',
