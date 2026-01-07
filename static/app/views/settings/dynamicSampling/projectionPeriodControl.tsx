@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
@@ -13,7 +15,7 @@ interface Props {
 
 export function ProjectionPeriodControl({period, onChange}: Props) {
   return (
-    <Wrapper>
+    <Flex as="label" align="center" gap="md" marginBottom="0">
       <Tooltip
         showUnderline
         title={t('The time period for which the estimated sample rates are calculated.')}
@@ -30,16 +32,9 @@ export function ProjectionPeriodControl({period, onChange}: Props) {
           ['30d', t('30d')],
         ]}
       />
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  margin-bottom: 0;
-`;
 
 const StyledRadioGroup = styled(RadioGroup<ProjectionSamplePeriod>)`
   gap: ${space(1)};
