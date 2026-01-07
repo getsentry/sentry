@@ -979,28 +979,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         )
 
 
-class PullRequestReviewEventWebhook(GitHubWebhook):
-    """
-    Handles GitHub pull_request_review webhook events.
-    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review
-    """
-
-    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW
-    # XXX: Once we port the Overwatch feature, we can add the processor here.
-    WEBHOOK_EVENT_PROCESSORS = ()
-
-
-class PullRequestReviewCommentEventWebhook(GitHubWebhook):
-    """
-    Handles GitHub pull_request_review_comment webhook events.
-    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment
-    """
-
-    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_COMMENT
-    # XXX: Once we port the Overwatch feature, we can add the processor here.
-    WEBHOOK_EVENT_PROCESSORS = ()
-
-
 class CheckRunEventWebhook(GitHubWebhook):
     """
     Handles GitHub check_run webhook events.
@@ -1042,8 +1020,6 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.ISSUE: IssuesEventWebhook,
         GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
-        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
-        GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
     }
 
