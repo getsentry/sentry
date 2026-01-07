@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1014_add_pkce_to_apigrant"),
+        ("sentry", "1016_remove_on_command_phrase_trigger"),
     ]
 
     operations = [
