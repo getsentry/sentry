@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaRadioProps} from '@react-aria/radio';
@@ -174,7 +174,17 @@ function Segment<Value extends string>({
 }: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
 
+  const [state, setState] = useState(0);
+
   const {inputProps} = useRadio(props, state, ref);
+
+  const Foo = {
+    test: true,
+  };
+
+  useEffect(() => {
+    setState(s => s + 1);
+  }, [Foo]);
 
   const isSelected = state.selectedValue === props.value;
 
