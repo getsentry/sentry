@@ -30,6 +30,36 @@ class SeerEndpoint(StrEnum):
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
 
 
+def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint:
+    """
+    Get the appropriate Seer endpoint for a given GitHub webhook event.
+
+    Args:
+        github_event: The GitHub webhook event type
+
+    Returns:
+        The SeerEndpoint to use for the event
+    """
+    if github_event == GithubWebhookType.CHECK_RUN:
+        return SeerEndpoint.PR_REVIEW_RERUN
+    return SeerEndpoint.OVERWATCH_REQUEST
+
+
+def get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
+    """
+    Get the option key for a given GitHub webhook type.
+
+    Args:
+        webhook_type: The GitHub webhook event type
+
+    Returns:
+        The option key string if the webhook type has an associated option, None otherwise
+    """
+    from .webhooks.config import WEBHOOK_TYPE_TO_OPTION_KEY
+
+    return WEBHOOK_TYPE_TO_OPTION_KEY.get(webhook_type)
+
+
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     """
     Make a request to the Seer API and return the response data.
