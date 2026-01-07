@@ -171,6 +171,7 @@ function GroupList({
     [computedQueryParams.query]
   );
 
+  // Issues API does not support AND/OR statements
   const hasLogicBoolean = useMemo(
     () =>
       parsedQuery
