@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any
 
 import orjson
 from django.conf import settings
@@ -14,6 +14,11 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+
+
+class RequestType(StrEnum):
+    PR_REVIEW = "pr-review"
+    PR_CLOSED = "pr-closed"
 
 
 class ClientError(Exception):
@@ -210,7 +215,7 @@ def transform_webhook_to_codegen_request(
     """
     # Determine request_type based on event_type
     # For now, we only support pr-review for these webhook types
-    request_type: Literal["pr-review", "pr-closed"] = "pr-review"
+    request_type: RequestType = RequestType.PR_REVIEW
 
     # Extract pull request number
     # Different event types have PR info in different locations
@@ -244,9 +249,10 @@ def transform_webhook_to_codegen_request(
 
     trigger_metadata = _get_trigger_metadata(github_event, event_payload)
 
+    # XXX: How can we share classes between Sentry and Seer?
     # Build CodecovTaskRequest
     return {
-        "request_type": request_type,
+        "request_type": request_type.value,
         "external_owner_id": repo.external_id,
         "data": {
             "repo": repo_definition,

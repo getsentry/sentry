@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
+from .pull_request import handle_pull_request_event
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ METRICS_PREFIX = "seer.code_review.webhook"
 EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, WebhookProcessor] = {
     GithubWebhookType.CHECK_RUN: handle_check_run_event,
     GithubWebhookType.ISSUE_COMMENT: handle_issue_comment_event,
+    GithubWebhookType.PULL_REQUEST: handle_pull_request_event,
 }
 
 

@@ -801,7 +801,10 @@ class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = (_handle_pr_webhook_for_autofix_processor,)
+    WEBHOOK_EVENT_PROCESSORS = (
+        _handle_pr_webhook_for_autofix_processor,
+        code_review_handle_webhook_event,
+    )
 
     def _handle(
         self,
@@ -896,8 +899,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "github.webhook.pull_request.created",
                     sample_rate=1.0,
                     tags={
-                        "organization_id": organization.id,
-                        "repository_id": repo.id,
                         "is_private": pr_repo_private,
                     },
                 )
@@ -929,10 +930,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                         metrics.incr(
                             "github.webhook.organization_contributor.should_create",
                             sample_rate=1.0,
-                            tags={
-                                "organization_id": organization.id,
-                                "repository_id": repo.id,
-                            },
                         )
 
                         locked_contributor = None
