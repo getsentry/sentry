@@ -562,7 +562,7 @@ const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
   ${p =>
     p.isHighlighted &&
     `
-    color: ${p.theme.linkHoverColor};
+    color: ${p.theme.tokens.interactive.link.accent.hover};
   `}
 `;
 
@@ -581,8 +581,8 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
   &:hover {
     /* Apply highlighted styles and underline to ToolCallText on hover */
     ${ToolCallText} {
-      color: ${p => p.theme.linkHoverColor};
-      text-decoration-color: ${p => p.theme.linkHoverColor};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.hover};
     }
   }
 `;
@@ -590,7 +590,7 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
 const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
   display: inline-block;
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.linkHoverColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.hover};
   flex-shrink: 0;
   margin-left: ${p => p.theme.space.xs};
   visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
@@ -599,7 +599,8 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
 `;
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
-  color: ${p => (p.isHighlighted ? p.theme.linkHoverColor : p.theme.subText)};
+  color: ${p =>
+    p.isHighlighted ? p.theme.tokens.interactive.link.accent.hover : p.theme.subText};
   flex-shrink: 0;
 `;
 
