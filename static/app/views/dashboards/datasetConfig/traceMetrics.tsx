@@ -257,8 +257,9 @@ export const TraceMetricsConfig: DatasetConfig<
       // The function should always be defined when dealing with a successful
       // time series response
       const func = parseFunction(timeSeries.yAxis);
+      let yAxis = timeSeries.yAxis;
       if (func) {
-        timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
+        yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
       }
       return {
         data: timeSeries.values.map(value => ({
@@ -269,7 +270,7 @@ export const TraceMetricsConfig: DatasetConfig<
         seriesName: formatMetricsTimeseriesLabel({
           widgetQuery,
           func,
-          timeSeries,
+          timeSeries: {...timeSeries, yAxis},
         }),
       };
     });
@@ -292,13 +293,14 @@ export const TraceMetricsConfig: DatasetConfig<
     return data.timeSeries.reduce(
       (acc, timeSeries) => {
         const func = parseFunction(timeSeries.yAxis);
+        let yAxis = timeSeries.yAxis;
         if (func) {
-          timeSeries.yAxis = `${func.name}(${func.arguments[0] ?? '…'})`;
+          yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
         }
         const label = formatMetricsTimeseriesLabel({
           widgetQuery,
           func,
-          timeSeries,
+          timeSeries: {...timeSeries, yAxis},
         });
         acc[label] = timeSeries.meta.valueType as AggregationOutputType;
         return acc;
@@ -310,13 +312,14 @@ export const TraceMetricsConfig: DatasetConfig<
     return data.timeSeries.reduce(
       (acc, timeSeries) => {
         const func = parseFunction(timeSeries.yAxis);
+        let yAxis = timeSeries.yAxis;
         if (func) {
-          timeSeries.yAxis = `${func.name}(${func.arguments[0] ?? '…'})`;
+          yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
         }
         const label = formatMetricsTimeseriesLabel({
           widgetQuery,
           func,
-          timeSeries,
+          timeSeries: {...timeSeries, yAxis},
         });
 
         if (label.includes('per_second(')) {
