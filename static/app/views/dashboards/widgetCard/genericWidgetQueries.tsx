@@ -309,13 +309,13 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       transformedData.title = widget.queries[i]?.name ?? '';
 
       const meta = transformedData.meta;
-      const widgetUnits = widget?.queries?.[i]?.units;
-      if (widgetUnits && meta) {
-        widgetUnits.forEach((unit, index) => {
+      const fieldMeta = widget?.queries?.[i]?.fieldMeta;
+      if (fieldMeta && meta) {
+        fieldMeta.forEach((m, index) => {
           const field = widget.queries?.[i]?.fields?.[index];
-          if (unit && field) {
-            meta.units![field] = unit.valueUnit ?? '';
-            meta.fields![field] = unit.valueType;
+          if (m && field) {
+            meta.units![field] = m.valueUnit ?? '';
+            meta.fields![field] = m.valueType;
           }
         });
       }
