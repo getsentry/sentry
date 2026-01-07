@@ -11,7 +11,10 @@ import type {Node} from '@react-types/shared';
 import type {CollectionChildren} from '@react-types/shared/src/collections';
 import {LayoutGroup} from 'framer-motion';
 
-import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles';
+import {
+  Chonky,
+  DO_NOT_USE_getChonkButtonStyles,
+} from 'sentry/components/core/button/styles';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
@@ -189,6 +192,7 @@ function Segment<Value extends string>({
       aria-checked={isSelected}
       aria-disabled={isDisabled}
     >
+      <Chonky />
       <SegmentInput {...inputProps} ref={ref} />
 
       <LabelWrap
