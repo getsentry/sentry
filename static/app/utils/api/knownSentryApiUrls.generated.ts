@@ -735,7 +735,6 @@ export type KnownSentryApiUrls =
   | '/relays/$relayId/'
   | '/relays/live/'
   | '/relays/projectconfigs/'
-  | '/relays/projectids/'
   | '/relays/publickeys/'
   | '/relays/register/challenge/'
   | '/relays/register/response/'
