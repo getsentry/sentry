@@ -223,7 +223,9 @@ describe('DetectorEdit', () => {
       expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
 
       // Can add an automation and save
-      await userEvent.click(screen.getByRole('button', {name: 'Connect an Alert'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Connect Existing Alerts'})
+      );
       const drawer = await screen.findByRole('complementary', {
         name: 'Connect Alerts',
       });

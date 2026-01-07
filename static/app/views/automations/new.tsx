@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
@@ -34,6 +34,7 @@ import {EditableAutomationName} from 'sentry/views/automations/components/editab
 import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
+import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -79,15 +80,11 @@ export default function AutomationNewSettings() {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
 
-  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, any>
-  >({});
-  const removeError = useCallback((errorId: string) => {
-    setAutomationBuilderErrors(prev => {
-      const {[errorId]: _removedError, ...remainingErrors} = prev;
-      return remainingErrors;
-    });
-  }, []);
+  const {
+    errors: automationBuilderErrors,
+    setErrors: setAutomationBuilderErrors,
+    removeError,
+  } = useAutomationBuilderErrors();
 
   const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
@@ -119,6 +116,7 @@ export default function AutomationNewSettings() {
           trackAnalytics('automation.created', {
             organization,
             ...getAutomationAnalyticsPayload(newAutomationData),
+            source: 'full',
             success: true,
           });
           navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
@@ -127,6 +125,7 @@ export default function AutomationNewSettings() {
           trackAnalytics('automation.created', {
             organization,
             ...getAutomationAnalyticsPayload(newAutomationData),
+            source: 'full',
             success: false,
           });
         }
@@ -134,11 +133,12 @@ export default function AutomationNewSettings() {
         trackAnalytics('automation.created', {
           organization,
           ...getAutomationAnalyticsPayload(newAutomationData),
+          source: 'full',
           success: false,
         });
       }
     },
-    [createAutomation, state, navigate, organization]
+    [createAutomation, state, navigate, organization, setAutomationBuilderErrors]
   );
 
   return (

@@ -223,6 +223,7 @@ describe('AutomationNewSettings', () => {
       trigger_conditions_count: expect.any(Number),
       success: true,
       actions_count: expect.any(Number),
+      source: 'full',
     });
   });
 });
