@@ -47,7 +47,7 @@ def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
 
 class RepositorySerializer(CamelSnakeSerializer):
     provider = serializers.CharField(required=True)
-    owner = serializers.CharField(required=False)
+    owner = serializers.CharField(required=False, allow_null=True)
     name = serializers.CharField(required=True)
     external_id = serializers.CharField(required=True)
     organization_id = serializers.IntegerField(required=False, allow_null=True)
