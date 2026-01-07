@@ -15,6 +15,8 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint
 from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.cache import cache
@@ -35,7 +37,8 @@ logger = logging.getLogger(__name__)
 # The cache here will not stop entrypoints from triggering autofixupdates, it only affects the
 # entrypoint's ability to receive updates from those triggers. So 12 is plenty, even accounting for
 # incidents, since a run should not take nearly that long to complete.
-AUTOFIX_CACHE_TIMEOUT = 60 * 60 * 12  # 12 hours
+AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
+PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 
 
 class SeerOperator[CachePayloadT]:
@@ -124,31 +127,37 @@ class SeerOperator[CachePayloadT]:
                 entrypoint_key=str(self.entrypoint.key), run_id=run_id
             )
             self.logging_ctx["cache_key"] = cache_key
-            cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT)
+            cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
         logger.info("operator.trigger_autofix_success", extra=self.logging_ctx)
 
-    @classmethod
-    def process_autofix_updates(
-        cls, *, run_id: int, event_type: SentryAppEventType, event_payload: dict[str, Any]
-    ) -> None:
-        """
-        Use the registry to iterate over all entrypoints and check if this run_id has been cached.
-        If so, call the entrypoint's handler with the payload it had previously cached.
-        """
-        logging_ctx = {"event_type": event_type, "run_id": run_id}
 
-        if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
-            logger.info("operator.skipping_update", extra=logging_ctx)
-            return
+@instrumented_task(
+    name="sentry.seer.entrypoints.operator.process_autofix_updates",
+    namespace=seer_tasks,
+    processing_deadline_duration=PROCESS_AUTOFIX_TIMEOUT_SECONDS,
+    retry=None,
+)
+def process_autofix_updates(
+    run_id: int, event_type: SentryAppEventType, event_payload: dict[str, Any]
+) -> None:
+    """
+    Use the registry to iterate over all entrypoints and check if this run_id has been cached.
+    If so, call the entrypoint's handler with the payload it had previously cached.
+    """
+    logging_ctx = {"event_type": event_type, "run_id": run_id}
 
-        for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
-            cache_key = cls.get_autofix_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
-            logging_ctx["cache_key"] = cache_key
-            cache_payload = cache.get(cache_key)
-            if not cache_payload:
-                logger.info("operator.no_cache_payload", extra=logging_ctx)
-                continue
+    if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
+        logger.info("operator.skipping_update", extra=logging_ctx)
+        return
 
-            entrypoint_cls.on_autofix_update(
-                event_type=event_type, event_payload=event_payload, cache_payload=cache_payload
-            )
+    for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+        cache_key = SeerOperator.get_autofix_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
+        logging_ctx["cache_key"] = cache_key
+        cache_payload = cache.get(cache_key)
+        if not cache_payload:
+            logger.info("operator.no_cache_payload", extra=logging_ctx)
+            continue
+
+        entrypoint_cls.on_autofix_update(
+            event_type=event_type, event_payload=event_payload, cache_payload=cache_payload
+        )

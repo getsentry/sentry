@@ -76,7 +76,7 @@ from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.endpoints.utils import validate_date_params
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -852,10 +852,12 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         if not run_id:
             logger.error("seer.webhook_run_id_not_found", extra={"payload": payload})
         else:
-            SeerOperator.process_autofix_updates(
-                run_id=run_id,
-                event_type=sentry_app_event_type,
-                event_payload=payload,
+            process_autofix_updates.apply_async(
+                kwargs={
+                    "run_id": run_id,
+                    "event_type": sentry_app_event_type,
+                    "event_payload": payload,
+                }
             )
 
     if not features.has("organizations:seer-webhooks", organization):

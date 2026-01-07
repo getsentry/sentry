@@ -5,7 +5,11 @@ from unittest.mock import ANY, Mock, patch
 from rest_framework.response import Response
 
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.entrypoints.operator import AUTOFIX_CACHE_TIMEOUT, SeerOperator
+from sentry.seer.entrypoints.operator import (
+    AUTOFIX_CACHE_TIMEOUT_SECONDS,
+    SeerOperator,
+    process_autofix_updates,
+)
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import TestCase
@@ -142,12 +146,12 @@ class SeerOperatorTest(TestCase):
         mock_cache_set.assert_called_with(
             self.operator.get_autofix_cache_key(entrypoint_key=self.entrypoint.key, run_id=RUN_ID),
             self.entrypoint.create_autofix_cache_payload(),
-            timeout=AUTOFIX_CACHE_TIMEOUT,
+            timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS,
         )
 
     @patch("sentry.seer.entrypoints.operator.logger.info")
     def test_process_autofix_updates_ignore_non_seer_events(self, mock_logger_info):
-        SeerOperator.process_autofix_updates(
+        process_autofix_updates(
             run_id=RUN_ID,
             event_type=SentryAppEventType.ISSUE_CREATED,
             event_payload={},
@@ -161,7 +165,7 @@ class SeerOperatorTest(TestCase):
     @patch("sentry.seer.entrypoints.operator.logger.info")
     @patch("sentry.seer.entrypoints.operator.cache.get", return_value=None)
     def test_process_autofix_updates_cache_miss(self, mock_cache_get, mock_logger_info):
-        SeerOperator.process_autofix_updates(
+        process_autofix_updates(
             run_id=RUN_ID,
             event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
             event_payload={},
@@ -183,7 +187,7 @@ class SeerOperatorTest(TestCase):
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
             {MockEntrypoint.key: mock_entrypoint_cls},
         ):
-            SeerOperator.process_autofix_updates(
+            process_autofix_updates(
                 run_id=RUN_ID,
                 event_type=event_type,
                 event_payload=event_payload,
