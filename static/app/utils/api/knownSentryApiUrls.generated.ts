@@ -205,6 +205,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/available-actions/'
   | '/organizations/$organizationIdOrSlug/avatar/'
   | '/organizations/$organizationIdOrSlug/broadcasts/'
+  | '/organizations/$organizationIdOrSlug/builds/'
   | '/organizations/$organizationIdOrSlug/builtin-symbol-sources/'
   | '/organizations/$organizationIdOrSlug/chunk-upload/'
   | '/organizations/$organizationIdOrSlug/code-mappings/'
