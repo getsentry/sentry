@@ -566,6 +566,7 @@ function ExplorerPanel() {
                 }}
                 block={block}
                 blockIndex={index}
+                getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}

@@ -23,12 +23,12 @@ import {
   getToolsStringFromBlock,
   getValidToolLinks,
   postProcessLLMMarkdown,
-  usePageReferrer,
 } from './utils';
 
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  getPageReferrer?: () => string;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
   isFocused?: boolean;
@@ -133,6 +133,7 @@ function getToolStatus(
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
+  getPageReferrer,
   isAwaitingFileApproval,
   isAwaitingQuestion,
   isLast,
@@ -197,12 +198,11 @@ function BlockComponent({
     }
   }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
-  const {getPageReferrer} = usePageReferrer();
   // Tool link navigation, with analytics and onNavigate hook.
   const navigateToToolLink = useCallback(
     (url: LocationDescriptor, toolKind: string) => {
       trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
-        referrer: getPageReferrer(),
+        referrer: getPageReferrer?.() ?? '',
         organization,
         tool_kind: toolKind,
       });
