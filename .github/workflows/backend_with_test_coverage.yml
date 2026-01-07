@@ -20,7 +20,7 @@ jobs:
       - name: run shard 18
         id: run_shard_18
         run: |
-          TOTAL_TEST_GROUPS=22 TEST_GROUP=18 COVERAGE_CORE=sysmon python3 -b -m pytest \
+          TOTAL_TEST_GROUPS=21 TEST_GROUP=18 COVERAGE_CORE=sysmon python3 -b -m pytest \
             tests \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
