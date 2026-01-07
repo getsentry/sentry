@@ -21,7 +21,7 @@ from sentry.models.organization import Organization
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
-    SPAN_ATTRIBUTE_DEFINITIONS,
+    SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -54,7 +54,7 @@ class TraceItemStatsPaginator:
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
         data = self.data_fn(offset=offset, limit=limit)
-        has_more = data[1] >= limit + 1
+        has_more = data[1] >= offset + limit + 1
 
         return CursorResult(
             data,
@@ -170,21 +170,23 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
 
             preflight_stats = run_stats_query_with_span_ids(f"id:[{span_id_list}]")
             try:
-                attr_keys = list(preflight_stats[0]["attribute_distributions"]["data"].keys())
+                internal_alias_attr_keys = list(
+                    preflight_stats[0]["attribute_distributions"]["data"].keys()
+                )
             except (IndexError, KeyError):
                 return {"data": []}, 0
 
             sanitized_keys = set()
-            for key in attr_keys:
-                if key in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
+            for internal_name in internal_alias_attr_keys:
+                if internal_name in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
                     continue
 
-                internal_name = key
-                if key in SPAN_ATTRIBUTE_DEFINITIONS:
-                    internal_name = SPAN_ATTRIBUTE_DEFINITIONS[key].internal_name
+                substring_match_name = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string").get(
+                    internal_name, internal_name
+                )
 
                 if value_substring_match:
-                    if value_substring_match in key:
+                    if value_substring_match in substring_match_name:
                         sanitized_keys.add(internal_name)
                     continue
 
