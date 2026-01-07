@@ -147,6 +147,23 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         except SlackApiError as e:
             translate_slack_api_error(e)
 
+    def update_message(
+        self,
+        *,
+        channel_id: str,
+        message_ts: str,
+        renderable: SlackRenderable,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_update(
+                channel=channel_id,
+                ts=message_ts,
+                blocks=renderable["blocks"],
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
 
 class SlackIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SLACK.value

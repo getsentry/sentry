@@ -8,6 +8,7 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixSuccess,
@@ -109,6 +110,12 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 stopping_point=self.autofix_stopping_point or AutofixStoppingPoint.ROOT_CAUSE,
             ),
             ephemeral_user_id=self.slack_request.user_id,
+        )
+        _update_existing_message(
+            request=self.slack_request,
+            install=self.install,
+            channel_id=self.channel_id,
+            message_ts=self.thread_ts,
         )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
@@ -273,3 +280,45 @@ def _send_thread_update(
             thread_ts=thread_ts,
             renderable=renderable,
         )
+
+
+def _update_existing_message(
+    *,
+    request: SlackActionRequest,
+    install: SlackIntegration,
+    channel_id: str,
+    message_ts: str,
+) -> None:
+    """
+    Removes the autofix button from the existing message, replaces it with a link to Sentry
+    """
+    from sentry.integrations.slack.message_builder.types import SlackAction
+
+    raw_blocks = request.data["message"]["blocks"]
+    non_autofix_action_blocks = []
+    # This is very brute force, but we don't have a better way to parse BlockKit at the moment.
+    # It iterates until it hits a block with the type "actions", then iterates through its elements
+    # and removes any that start with the autofix action id. ¯\_(ツ)_/¯
+    for block in raw_blocks:
+        if block["type"] != "actions":
+            non_autofix_action_blocks.append(block)
+            continue
+        action_blocks = block["elements"]
+        clean_inner_blocks = []
+        for inner_block in action_blocks:
+            if inner_block.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
+                continue
+            clean_inner_blocks.append(inner_block)
+        clean_action_block = {**block, "elements": clean_inner_blocks}
+        non_autofix_action_blocks.append(clean_action_block)
+
+    renderable = SlackRenderable(
+        blocks=non_autofix_action_blocks,
+        text=request.data["message"]["text"],
+    )
+
+    install.update_message(
+        channel_id=channel_id,
+        message_ts=message_ts,
+        renderable=renderable,
+    )
