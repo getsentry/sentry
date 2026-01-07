@@ -63,7 +63,6 @@ const settingsRoutes = (): SentryRouteObject => ({
           path: 'details/',
           name: 'Billing Information',
           component: make(() => import('../views/subscriptionPage/billingInformation')),
-          deprecatedRouteProps: true,
         },
         // TODO(sub-v3): We're keeping both routes for now, but we should remove the usage-log route once we're confident in keeping the new name
         {
