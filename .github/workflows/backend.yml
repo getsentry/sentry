@@ -91,6 +91,7 @@ jobs:
         id: setup
         with:
           mode: backend-ci
+          skip-devservices: true
 
       - name: Calculate test shards
         id: calculate-shards
