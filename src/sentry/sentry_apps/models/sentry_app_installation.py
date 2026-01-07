@@ -8,6 +8,7 @@ from django.db import models, router, transaction
 from django.utils import timezone
 from jsonschema import ValidationError
 
+from sentry import options
 from sentry.api.exceptions import BadRequest
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.scopes import RelocationScope
@@ -128,6 +129,14 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryAppInstallation))):
             for outbox in self.outboxes_for_delete():
                 outbox.save()
+
+            if options.get("sentry-apps.hard-delete"):
+                # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
+                for update_outbox in self.outboxes_for_update():
+                    update_outbox.save()  # mimics ControlOutboxProducingModel
+
+                return models.Model.delete(self, *args, **kwargs)
+
             return super().delete(*args, **kwargs)
 
     @property
