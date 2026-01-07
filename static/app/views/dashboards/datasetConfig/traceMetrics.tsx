@@ -1,12 +1,25 @@
+import type {ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {ApiResult, Client} from 'sentry/api';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {
+  parseFunction,
+  RateUnit,
+  type AggregationOutputType,
+  type DataUnit,
+  type ParsedFunction,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
+import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
@@ -21,12 +34,15 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
+  transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -154,15 +170,21 @@ function useTraceMetricsSearchBarDataProvider(
   };
 }
 
-function prettifySortOption(option: SelectValue<string>) {
-  const parsedFunction = parseFunction(option.value);
+export function formatTraceMetricsFunction(
+  valueToParse: string,
+  defaultValue?: string | ReactNode
+) {
+  const parsedFunction = parseFunction(valueToParse);
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
-  return option.label;
+  return defaultValue ?? valueToParse;
 }
 
-export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> = {
+export const TraceMetricsConfig: DatasetConfig<
+  EventsTimeSeriesResponse,
+  EventsTableData
+> = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -176,15 +198,64 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
     getTableSortOptions(organization, widgetQuery).map(option => ({
-      label: prettifySortOption(option),
+      label: formatTraceMetricsFunction(option.value, option.label),
       value: option.value,
     })),
   getGroupByFieldOptions,
-  supportedDisplayTypes: [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE],
+  supportedDisplayTypes: [
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.LINE,
+    DisplayType.BIG_NUMBER,
+  ],
+  getTableRequest: (
+    api: Client,
+    _widget: Widget,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    _onDemandControlContext?: OnDemandControlContext,
+    limit?: number,
+    cursor?: string,
+    referrer?: string,
+    _mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
+  ) => {
+    return getEventsRequest(
+      api,
+      query,
+      organization,
+      pageFilters,
+      limit,
+      cursor,
+      referrer,
+      undefined,
+      undefined,
+      samplingMode
+    );
+  },
   getSeriesRequest,
-  transformTable: () => ({data: []}),
-  transformSeries: (data, _widgetQuery) =>
-    data.timeSeries.map(timeSeries => {
+  transformTable: (data, widgetQuery) => {
+    const transformedData = transformEventsResponseToTable(data, widgetQuery);
+
+    // Inject the rate units for per_second and per_minute functions explicitly
+    // because the response does not include these units
+    if (transformedData.meta?.units) {
+      Object.keys(transformedData.meta.units).forEach(key => {
+        const parsedFunction = parseFunction(key);
+        if (parsedFunction?.name === 'per_second') {
+          transformedData.meta!.units![key] = RateUnit.PER_SECOND;
+        } else if (parsedFunction?.name === 'per_minute') {
+          transformedData.meta!.units![key] = RateUnit.PER_MINUTE;
+        }
+      });
+    }
+    return transformedData;
+  },
+  transformSeries: (data, widgetQuery) => {
+    return data.timeSeries.map(timeSeries => {
+      // The function should always be defined when dealing with a successful
+      // time series response
       const func = parseFunction(timeSeries.yAxis);
       if (func) {
         timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
@@ -194,9 +265,72 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
           name: value.timestamp,
           value: value.value ?? 0,
         })),
-        seriesName: formatTimeSeriesLabel(timeSeries),
+
+        seriesName: formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        }),
       };
-    }),
+    });
+  },
+  getCustomFieldRenderer: (field, meta, _organization) => {
+    return getFieldRenderer(field, meta, false);
+  },
+  getFieldHeaderMap: widgetQuery => {
+    return (
+      widgetQuery?.aggregates.reduce(
+        (acc, aggregate) => {
+          acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
+          return acc;
+        },
+        {} as Record<string, string>
+      ) ?? {}
+    );
+  },
+  getSeriesResultType(data, widgetQuery) {
+    return data.timeSeries.reduce(
+      (acc, timeSeries) => {
+        const func = parseFunction(timeSeries.yAxis);
+        if (func) {
+          timeSeries.yAxis = `${func.name}(${func.arguments[0] ?? '…'})`;
+        }
+        const label = formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        });
+        acc[label] = timeSeries.meta.valueType as AggregationOutputType;
+        return acc;
+      },
+      {} as Record<string, AggregationOutputType>
+    );
+  },
+  getSeriesResultUnit: (data, widgetQuery) => {
+    return data.timeSeries.reduce(
+      (acc, timeSeries) => {
+        const func = parseFunction(timeSeries.yAxis);
+        if (func) {
+          timeSeries.yAxis = `${func.name}(${func.arguments[0] ?? '…'})`;
+        }
+        const label = formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        });
+
+        if (label.includes('per_second(')) {
+          acc[label] = RateUnit.PER_SECOND;
+        } else if (label.includes('per_minute(')) {
+          acc[label] = RateUnit.PER_MINUTE;
+        } else {
+          acc[label] = timeSeries.meta.valueUnit as DataUnit;
+        }
+        return acc;
+      },
+      {} as Record<string, DataUnit>
+    );
+  },
 };
 
 function getPrimaryFieldOptions(
@@ -274,6 +408,56 @@ function getSeriesRequest(
   >;
 }
 
+function getEventsRequest(
+  api: Client,
+  query: WidgetQuery,
+  organization: Organization,
+  pageFilters: PageFilters,
+  limit?: number,
+  cursor?: string,
+  referrer?: string,
+  _mepSetting?: MEPState | null,
+  _queryExtras?: any,
+  samplingMode?: SamplingMode
+) {
+  const url = `/organizations/${organization.slug}/events/`;
+  const eventView = eventViewFromWidget('', query, pageFilters);
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const params: DiscoverQueryRequestParams = {
+    per_page: limit,
+    cursor,
+    referrer,
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  };
+
+  if (query.orderby) {
+    params.sort = toArray(query.orderby);
+  }
+
+  return doDiscoverQuery<EventsTableData>(
+    api,
+    url,
+    {
+      ...eventView.generateQueryStringObject(),
+      ...params,
+      ...(samplingMode ? {sampling: samplingMode} : {}),
+    },
+    // Tries events request up to 10 times on rate limit
+    {
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
+    }
+  );
+}
+
 function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (option.value.kind === FieldValueKind.FUNCTION) {
@@ -282,4 +466,24 @@ function filterSeriesSortOptions(columns: Set<string>) {
 
     return columns.has(option.value.meta.name);
   };
+}
+
+function formatMetricsTimeseriesLabel({
+  widgetQuery,
+  func,
+  timeSeries,
+}: {
+  func: ParsedFunction | null;
+  timeSeries: TimeSeries;
+  widgetQuery: WidgetQuery;
+}): string {
+  const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
+  const hasGroupings = new Set(widgetQuery.columns).size > 0;
+  // The series name needs to distinctively refer to the yAxis it belongs to
+  // when multiple yAxes and groupings are present, otherwise the response
+  // returns each series with its grouping but they overlap each other in the
+  // legend
+  return multiYAxis && hasGroupings && func
+    ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
+    : formatTimeSeriesLabel(timeSeries);
 }

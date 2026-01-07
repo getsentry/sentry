@@ -1,6 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
-
-import oxfordizeArray, {Oxfordize} from 'sentry/utils/oxfordizeArray';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 describe('oxfordizeArray', () => {
   it('correctly formats lists of strings', () => {
@@ -15,32 +13,5 @@ describe('oxfordizeArray', () => {
     expect(oxfordizeArray(two)).toBe('A and B');
     expect(oxfordizeArray(three)).toBe('A, B, and C');
     expect(oxfordizeArray(four)).toBe('A, B, C, and D');
-  });
-});
-
-describe('Oxfordize', () => {
-  it('correctly formats lists of elements', () => {
-    const items = [<i key="1">one</i>, <i key="2">two</i>, <i key="3">three</i>];
-    render(<Oxfordize>{items}</Oxfordize>);
-
-    expect(screen.getByText('one')).toBeInTheDocument();
-    expect(screen.getByText('two')).toBeInTheDocument();
-    expect(screen.getByText('three')).toBeInTheDocument();
-    expect(screen.getByText(/, and/)).toBeInTheDocument();
-  });
-
-  it('correctly formats one element', () => {
-    const items = ['one'];
-    render(<Oxfordize>{items}</Oxfordize>);
-
-    expect(screen.getByText('one')).toBeInTheDocument();
-  });
-
-  it('correctly formats two elements', () => {
-    const items = ['one', <i key="2">two</i>];
-    render(<Oxfordize>{items}</Oxfordize>);
-
-    expect(screen.getByText(/one and/)).toBeInTheDocument();
-    expect(screen.getByText(/two/)).toBeInTheDocument();
   });
 });

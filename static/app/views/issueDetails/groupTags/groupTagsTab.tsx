@@ -86,7 +86,7 @@ export function GroupTagsTab() {
     <Layout.Body>
       <Layout.Main width="full">
         <Alert.Container>
-          <Alert type="info" showIcon={false}>
+          <Alert variant="info" showIcon={false}>
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
               {
@@ -182,7 +182,7 @@ const StyledPanel = styled(Panel)`
 const TagHeading = styled('h5')`
   font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const UnstyledUnorderedList = styled('ul')`

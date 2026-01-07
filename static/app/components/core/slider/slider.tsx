@@ -1,8 +1,8 @@
+import {useState, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {withChonk} from 'sentry/utils/theme/withChonk';
-
-import {Slider as ChonkSlider} from './slider.chonk';
+import {chonkFor} from 'sentry/components/core/chonk';
+import {space} from 'sentry/styles/space';
 
 interface BaseProps
   extends Omit<
@@ -26,130 +26,265 @@ interface UncontrolledProps extends BaseProps {
   value?: never;
 }
 
-export type SliderProps = ControlledProps | UncontrolledProps;
+type SliderProps = ControlledProps | UncontrolledProps;
 
-function LegacySlider({ref, ...props}: SliderProps) {
+export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) {
+  const step = toNumber(props.step ?? -1);
+  const {value: resolvedValue, min, max} = resolveMinMaxValue(props);
+  const [valueAsNumber, setValueAsNumber] = useState(resolvedValue);
+
+  const value = props.onChange ? resolvedValue : valueAsNumber;
+
+  const progress = getProgress(value, min, max);
+  const numSteps = Math.abs(max - min) / step;
+  const formattedLabel = formatLabel(value);
+
   return (
-    <StyledSlider
-      ref={ref}
-      type="range"
-      {...props}
-      onChange={e => props.onChange?.(e.currentTarget.valueAsNumber, e)}
-    />
+    <SliderContainer
+      aria-disabled={props.disabled}
+      style={{'--p': `${progress.toFixed(0)}%`, '--steps': `${value}`} as CSSProperties}
+    >
+      {props.step ? <SliderTicks progress={progress} numSteps={numSteps} /> : null}
+      <StyledSlider
+        ref={ref}
+        type="range"
+        {...props}
+        onChange={e => {
+          const newValue = e.currentTarget.valueAsNumber;
+          setValueAsNumber(newValue);
+          props.onChange?.(newValue, e);
+        }}
+      />
+      {props.disabled ||
+      formattedLabel === null ||
+      formattedLabel === undefined ? null : (
+        <SliderOutput htmlFor={props.id}>
+          <SliderLabel>{formattedLabel}</SliderLabel>
+        </SliderOutput>
+      )}
+    </SliderContainer>
   );
 }
 
-export const Slider = withChonk(LegacySlider, ChonkSlider);
+function SliderTicks({progress, numSteps}: {numSteps: number; progress: number}) {
+  const filledSteps = Math.floor((numSteps * progress) / 100);
+  return (
+    <StepsContainer role="presentation">
+      {Array.from({length: numSteps}, (_, i) => {
+        return <StepMark key={i} filled={i <= filledSteps} />;
+      })}
+    </StepsContainer>
+  );
+}
 
-const StyledSlider = styled('input')<React.InputHTMLAttributes<HTMLInputElement>>`
-  /* stylelint-disable-next-line property-no-vendor-prefix */
+const passthrough = (n: number | '') => n;
+
+const StepsContainer = styled('div')`
+  pointer-events: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: row;
+  height: 14px;
+  width: calc(100% - 16px);
+  margin-inline: auto;
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    height: 12px;
+    width: 2px;
+    border-radius: ${p => p.theme.radius.lg};
+    background: ${p => p.theme.colors.surface100};
+  }
+`;
+
+const StepMark = styled('span')<{filled?: boolean}>`
+  box-sizing: border-box;
+  position: relative;
+  flex-grow: 1;
+  height: 100%;
+
+  &::before {
+    content: '';
+    position: absolute;
+    height: 12px;
+    width: 2px;
+    border-radius: ${p => p.theme.radius.lg};
+    background: ${p =>
+      p.filled ? p.theme.colors.chonk.blue400 : p.theme.colors.surface100};
+  }
+`;
+
+function toNumber(value: number | string) {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (value === '') {
+    return 0;
+  }
+  return Number.parseInt(value, 10);
+}
+function getProgress(n: number, min: number | string, max: number | string) {
+  return (Math.abs(n - toNumber(min)) / Math.abs(toNumber(max) - toNumber(min))) * 100;
+}
+function resolveMinMaxValue(props: SliderProps) {
+  const min = toNumber(props.min ?? 0);
+  const max = toNumber(props.max ?? 100);
+  const mid = min + Math.abs(max - min) / 2;
+  const _value = props.value ?? props.defaultValue ?? mid;
+  const value = _value === '' ? mid : _value;
+  return {value, min, max};
+}
+
+const StyledSlider = styled('input')`
   -webkit-appearance: none;
   appearance: none;
+  position: relative;
   width: 100%;
+  height: 16px;
   background: transparent;
+  border-radius: ${p => p.theme.radius['2xs']};
+  transition: box-shadow ${p => p.theme.motion.smooth.fast};
+  box-shadow:
+    0 0 0 8px transparent,
+    0 0 0 10px transparent;
 
-  &::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 3px;
-    cursor: pointer;
-    background: ${p => p.theme.border};
-    border-radius: 3px;
-    border: 0;
-  }
-
-  &::-moz-range-track {
-    width: 100%;
-    height: 3px;
-    cursor: pointer;
-    background: ${p => p.theme.border};
-    border-radius: 3px;
-    border: 0;
-  }
-
-  &::-webkit-slider-thumb {
-    box-shadow: 0 0 0 3px ${p => p.theme.tokens.background.primary};
-    height: 17px;
-    width: 17px;
-    border-radius: 50%;
-    background: ${p => p.theme.active};
-    cursor: pointer;
-    /* stylelint-disable-next-line property-no-vendor-prefix */
-    -webkit-appearance: none;
-    appearance: none;
-    margin-top: -7px;
-    border: 0;
-    transition:
-      background 0.1s,
-      box-shadow 0.1s;
-  }
-
-  &::-moz-range-thumb {
-    box-shadow: 0 0 0 3px ${p => p.theme.tokens.background.primary};
-    height: 17px;
-    width: 17px;
-    border-radius: 50%;
-    background: ${p => p.theme.active};
-    cursor: pointer;
-    /* stylelint-disable-next-line property-no-vendor-prefix */
-    -webkit-appearance: none;
-    appearance: none;
-    margin-top: -7px;
-    border: 0;
-    transition:
-      background 0.1s,
-      box-shadow 0.1s;
-  }
-  &:focus {
-    outline: none;
-
-    &::-webkit-slider-runnable-track {
-      background: ${p => p.theme.border};
-    }
+  &:focus-visible {
+    ${p => p.theme.focusRing()};
   }
 
   &[disabled] {
-    &::-webkit-slider-thumb {
-      background: ${p => p.theme.border};
-      cursor: default;
-    }
-    &::-moz-range-thumb {
-      background: ${p => p.theme.border};
-      cursor: default;
-    }
+    cursor: not-allowed;
 
     &::-webkit-slider-runnable-track {
-      cursor: default;
+      cursor: not-allowed;
     }
-    &::-moz-range-track {
-      cursor: default;
+
+    &::-webkit-slider-thumb {
+      cursor: not-allowed;
+      border-bottom-width: 1px;
     }
   }
 
-  &:not([disabled])::-webkit-slider-runnable-track:hover {
-    background: ${p => p.theme.activeHover};
-  }
-  &:not([disabled])::-moz-range-track:hover {
-    background: ${p => p.theme.activeHover};
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto 0;
+    min-width: calc(${p => p.theme.radius['2xs']} * 6);
+    width: var(--p, 50%);
+    height: 4px;
+    background: ${p => p.theme.colors.chonk.blue400};
+    border: 1px solid ${p => p.theme.colors.chonk.blue400};
+    border-radius: ${p => p.theme.radius['2xs']};
   }
 
-  &:focus::-webkit-slider-thumb {
-    box-shadow:
-      ${p => p.theme.tokens.background.primary} 0 0 0 3px,
-      ${p => p.theme.focus} 0 0 0 6px;
+  /* Chrome styling */
+  &::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    background: ${p => p.theme.colors.surface100};
+    border: 1px solid ${p => p.theme.colors.surface100};
+    border-radius: ${p => p.theme.radius['2xs']};
   }
-  &:focus-visible::-webkit-slider-thumb {
-    box-shadow:
-      ${p => p.theme.tokens.background.primary} 0 0 0 3px,
-      ${p => p.theme.focus} 0 0 0 6px;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: ${p => p.theme.colors.white};
+    border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-radius: ${p => p.theme.radius.sm};
+    transform: translateY(-7px);
+    z-index: 10;
   }
-  &:focus::-moz-range-thumb {
-    box-shadow:
-      ${p => p.theme.tokens.background.primary} 0 0 0 3px,
-      ${p => p.theme.focus} 0 0 0 6px;
+
+  /* Firefox styling */
+  &::-moz-range-track {
+    width: 100%;
+    height: 4px;
+    background: ${p => p.theme.colors.surface100};
+    border: 1px solid ${p => p.theme.colors.surface100};
+    border-radius: ${p => p.theme.radius['2xs']};
   }
-  &:focus-visible::-moz-range-thumb {
-    box-shadow:
-      ${p => p.theme.tokens.background.primary} 0 0 0 3px,
-      ${p => p.theme.focus} 0 0 0 6px;
+
+  &::-moz-range-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: ${p => p.theme.colors.white};
+    border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-radius: ${p => p.theme.radius.sm};
+    transform: translateY(-7px);
+    z-index: 1;
+  }
+`;
+
+const SliderOutput = styled('output')`
+  --tx: clamp(-50%, calc(-50% + var(--p, 0)), 50%);
+  --ty: var(--label-ty);
+  --o: var(--label-opacity);
+
+  /* disable interactions */
+  pointer-events: none;
+  user-select: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${p => p.theme.font.size.sm};
+  position: absolute;
+  height: 24px;
+  width: calc(100% - 16px);
+  margin-inline: auto;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  text-align: center;
+
+  opacity: var(--o);
+  transform: translate(var(--tx), var(--ty));
+  transition:
+    opacity ${p => p.theme.motion.exit.fast},
+    transform ${p => p.theme.motion.smooth.fast};
+`;
+
+const SliderLabel = styled('span')`
+  font-size: inherit;
+  display: block;
+  min-width: calc(3ch + ${space(0.5)});
+  padding-inline: ${space(0.5)};
+  width: min-content;
+  text-align: center;
+  background: ${p => p.theme.colors.chonk.blue400};
+  border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+  color: ${p => p.theme.white};
+  border-radius: ${p => p.theme.radius['2xs']};
+  z-index: ${p => p.theme.zIndex.tooltip};
+`;
+
+const SliderContainer = styled('div')`
+  position: relative;
+  width: 100%;
+  flex-grow: 1;
+  --label-opacity: 0;
+  --label-ty: 100%;
+
+  &:focus-within,
+  &:hover,
+  &:active {
+    --label-opacity: 1;
+    --label-ty: 0;
+  }
+
+  &[aria-disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;

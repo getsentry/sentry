@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {loadPrismLanguage} from 'sentry/utils/prism';
+import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
 
@@ -110,7 +110,8 @@ export function CodeBlock({
       return;
     }
 
-    if (!language) {
+    // Skip if no language or if language is not a valid Prism language (e.g. "text")
+    if (!language || !getPrismLanguage(language)) {
       return;
     }
 
@@ -240,7 +241,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.mono.medium};
   z-index: 2;
 
   ${p =>

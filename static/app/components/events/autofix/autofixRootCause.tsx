@@ -22,6 +22,7 @@ import {
   makeAutofixQueryKey,
   useCodingAgentIntegrations,
   useLaunchCodingAgent,
+  type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -246,12 +247,6 @@ function CopyRootCauseButton({
     </Button>
   );
 }
-
-type CodingAgentIntegration = {
-  id: string;
-  name: string;
-  provider: string;
-};
 
 function SolutionActionButton({
   cursorIntegrations,
@@ -515,7 +510,7 @@ function AutofixRootCauseDisplay({
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No root cause available.')}</Alert>
+        <Alert variant="danger">{t('No root cause available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -526,9 +521,9 @@ function AutofixRootCauseDisplay({
         <CustomRootCausePadding>
           <HeaderWrapper>
             <HeaderText>
-              <IconWrapper ref={iconFocusRef}>
-                <IconFocus size="md" color="pink400" />
-              </IconWrapper>
+              <Flex justify="center" align="center" ref={iconFocusRef}>
+                <IconFocus size="md" variant="promotion" />
+              </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
           </HeaderWrapper>
@@ -558,9 +553,9 @@ function AutofixRootCauseDisplay({
     <CausesContainer>
       <HeaderWrapper>
         <HeaderText>
-          <IconWrapper ref={iconFocusRef}>
-            <IconFocus size="md" color="pink400" />
-          </IconWrapper>
+          <Flex justify="center" align="center" ref={iconFocusRef}>
+            <IconFocus size="md" variant="promotion" />
+          </Flex>
           {t('Root Cause')}
           <Button
             size="zero"
@@ -650,7 +645,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
               </Alert>
             </Alert.Container>
@@ -698,12 +693,6 @@ const HeaderWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   flex-wrap: wrap;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const HeaderText = styled('div')`

@@ -190,7 +190,7 @@ export function AutomationsTableActions({
         </ActionsBarWrapper>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <FullWidthAlert type="warning" system showIcon={false}>
+        <FullWidthAlert variant="warning" system showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               tct('Selected all [count] alerts that match this search query.', {

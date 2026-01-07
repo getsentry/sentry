@@ -29,8 +29,8 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import FilterBar from 'sentry/views/alerts/filterBar';
 import AlertHeader from 'sentry/views/alerts/list/header';
 import type {CombinedAlerts} from 'sentry/views/alerts/types';
@@ -59,9 +59,9 @@ const DataConsentBanner = HookOrDefault({
   defaultComponent: null,
 });
 
-function AlertRulesList() {
+export default function AlertRulesList() {
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -89,7 +89,7 @@ function AlertRulesList() {
 
   const handleChangeFilter = (activeFilters: string[]) => {
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...currentQuery,
@@ -100,7 +100,7 @@ function AlertRulesList() {
 
   const handleChangeSearch = (name: string) => {
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...currentQuery,
@@ -111,7 +111,7 @@ function AlertRulesList() {
 
   const handleChangeType = (alertType: CombinedAlertType[]) => {
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...currentQuery,
@@ -192,7 +192,7 @@ function AlertRulesList() {
   const isAlertRuleSort =
     sort.field.includes('incident_status') || sort.field.includes('date_triggered');
   const sortArrow = (
-    <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
+    <IconArrow variant="muted" size="xs" direction={sort.asc ? 'up' : 'down'} />
   );
 
   return (
@@ -307,7 +307,7 @@ function AlertRulesList() {
                   team = '';
                 }
 
-                router.push({
+                navigate({
                   pathname: path,
                   query: {...currentQuery, team, cursor},
                 });
@@ -319,8 +319,6 @@ function AlertRulesList() {
     </Fragment>
   );
 }
-
-export default AlertRulesList;
 
 const StyledLoadingError = styled(LoadingError)`
   grid-column: 1 / -1;

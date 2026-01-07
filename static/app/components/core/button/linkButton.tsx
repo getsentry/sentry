@@ -7,8 +7,10 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 // eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
-import {DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES} from './styles';
-import {DO_NOT_USE_getChonkButtonStyles as getChonkButtonStyles} from './styles.chonk';
+import {
+  DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
+  DO_NOT_USE_getButtonStyles as getButtonStyles,
+} from './styles';
 import type {
   DO_NOT_USE_CommonButtonProps as CommonButtonProps,
   DO_NOT_USE_LinkButtonProps as LinkButtonProps,
@@ -93,19 +95,19 @@ const StyledLinkButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<LinkButtonProps>`
-  ${p => getChonkLinkButtonStyles(p)}
+  ${p => getLinkButtonStyles(p)}
   &:focus-visible {
     box-shadow: none;
   }
 `;
 
-const getChonkLinkButtonStyles = (p: LinkButtonProps) => {
-  const chonkStyles = getChonkButtonStyles(p as any);
+const getLinkButtonStyles = (p: LinkButtonProps) => {
+  const buttonStyles = getButtonStyles(p as any);
   return {
     ...(p.disabled || p.busy
-      ? {color: chonkStyles.color, ':hover': {color: chonkStyles.color}}
+      ? {color: buttonStyles.color, ':hover': {color: buttonStyles.color}}
       : undefined),
-    ...chonkStyles,
+    ...buttonStyles,
   };
 };
 

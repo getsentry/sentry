@@ -94,7 +94,6 @@ jobs:
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
-      # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
       MATRIX_INSTANCE_TOTAL: 22
       TEST_GROUP_STRATEGY: roundrobin
 
@@ -129,18 +128,6 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: backend
-
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -167,18 +154,6 @@ jobs:
           if command -v devservices; then
             devservices logs
           fi
-
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: backend-migration
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -230,9 +205,8 @@ jobs:
         with:
           version: '0.8.2'
 
-      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
-          python-version: 3.13.1
           cache-dependency-path: uv.lock
           install-cmd: echo
 
@@ -351,18 +325,6 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: monolith-dbs
-
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -378,9 +340,8 @@ jobs:
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
-      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
-          python-version: 3.13.1
           cache-dependency-path: uv.lock
           install-cmd: uv sync --frozen --active
 
