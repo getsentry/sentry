@@ -9,9 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import DashboardDetail from 'sentry/views/dashboards/detail';
 import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
-import {DashboardState} from 'sentry/views/dashboards/types';
 
 describe('OrgDashboards', () => {
   const organization = OrganizationFixture({
@@ -26,6 +24,10 @@ describe('OrgDashboards', () => {
       query: {},
     },
     route: '/organizations/:orgId/dashboard/:dashboardId/',
+  };
+
+  const renderChildFn = () => {
+    return <div>Test</div>;
   };
 
   beforeEach(() => {
@@ -74,22 +76,10 @@ describe('OrgDashboards', () => {
       url: '/organizations/org-slug/dashboards/',
       body: [mockDashboardWithFilters],
     });
-    const {router} = render(
-      <OrgDashboards>
-        {({dashboard, dashboards}) => {
-          return dashboard ? (
-            <DashboardDetail
-              initialState={DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-            />
-          ) : (
-            <div>loading</div>
-          );
-        }}
-      </OrgDashboards>,
-      {initialRouterConfig, organization}
-    );
+    const {router} = render(<OrgDashboards>{renderChildFn}</OrgDashboards>, {
+      initialRouterConfig,
+      organization,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -131,22 +121,10 @@ describe('OrgDashboards', () => {
         },
       },
     };
-    const {router} = render(
-      <OrgDashboards>
-        {({dashboard, dashboards}) => {
-          return dashboard ? (
-            <DashboardDetail
-              initialState={DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-            />
-          ) : (
-            <div>loading</div>
-          );
-        }}
-      </OrgDashboards>,
-      {initialRouterConfig: routerConfigWithSort, organization}
-    );
+    const {router} = render(<OrgDashboards>{renderChildFn}</OrgDashboards>, {
+      initialRouterConfig: routerConfigWithSort,
+      organization,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -190,45 +168,23 @@ describe('OrgDashboards', () => {
       },
     };
 
-    const {router} = render(
-      <OrgDashboards>
-        {({dashboard, dashboards}) => {
-          return dashboard ? (
-            <DashboardDetail
-              initialState={DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-            />
-          ) : (
-            <div>loading</div>
-          );
-        }}
-      </OrgDashboards>,
-      {initialRouterConfig: routerConfigWithProject, organization}
-    );
+    const {router} = render(<OrgDashboards>{renderChildFn}</OrgDashboards>, {
+      initialRouterConfig: routerConfigWithProject,
+      organization,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(router.location.query).toEqual({});
+    expect(router.location.query).toEqual({
+      project: '1',
+    });
   });
 
   it('does not add query params for page filters if none are saved', async () => {
-    const {router} = render(
-      <OrgDashboards>
-        {({dashboard, dashboards}) => {
-          return dashboard ? (
-            <DashboardDetail
-              initialState={DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-            />
-          ) : (
-            <div>loading</div>
-          );
-        }}
-      </OrgDashboards>,
-      {initialRouterConfig, organization}
-    );
+    const {router} = render(<OrgDashboards>{renderChildFn}</OrgDashboards>, {
+      initialRouterConfig,
+      organization,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -254,22 +210,10 @@ describe('OrgDashboards', () => {
       body: [mockDashboardWithFilters],
     });
 
-    const {rerender, router} = render(
-      <OrgDashboards>
-        {({dashboard, dashboards}) => {
-          return dashboard ? (
-            <DashboardDetail
-              initialState={DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-            />
-          ) : (
-            <div>loading</div>
-          );
-        }}
-      </OrgDashboards>,
-      {initialRouterConfig, organization}
-    );
+    const {rerender, router} = render(<OrgDashboards>{renderChildFn}</OrgDashboards>, {
+      initialRouterConfig,
+      organization,
+    });
 
     await waitFor(() => expect(router.location.query.project).toBe('1'));
 
@@ -277,21 +221,7 @@ describe('OrgDashboards', () => {
 
     await waitFor(() => expect(router.location.query).toEqual({}));
 
-    rerender(
-      <OrgDashboards>
-        {({dashboard, dashboards}) => {
-          return dashboard ? (
-            <DashboardDetail
-              initialState={DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-            />
-          ) : (
-            <div>loading</div>
-          );
-        }}
-      </OrgDashboards>
-    );
+    rerender(<OrgDashboards>{renderChildFn}</OrgDashboards>);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
