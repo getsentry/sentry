@@ -97,11 +97,33 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
+    def test_skips_when_code_review_direct_to_seer_flag_disabled(self) -> None:
+        """Test that processing is skipped when code-review-direct-to-seer flag is disabled."""
+        with (
+            self.code_review_setup(
+                features={"organizations:gen-ai-features", "organizations:code-review-beta"}
+            ),
+            self.tasks(),
+        ):
+            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
+            response = self._send_issue_comment_event(event)
+            assert response.status_code == 204
+
+            self.mock_seer.assert_not_called()
+
     def test_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
         self,
     ) -> None:
         """Test that processing runs with gen-ai-features flag alone when org option is enabled."""
-        with self.code_review_setup(features={"organizations:gen-ai-features"}), self.tasks():
+        with (
+            self.code_review_setup(
+                features={
+                    "organizations:gen-ai-features",
+                    "organizations:code-review-direct-to-seer",
+                }
+            ),
+            self.tasks(),
+        ):
             event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
 
             response = self._send_issue_comment_event(event)

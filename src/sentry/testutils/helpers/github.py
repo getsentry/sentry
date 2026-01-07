@@ -137,7 +137,11 @@ class GitHubWebhookTestCase(APITestCase):
 
 
 class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
-    CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+    CODE_REVIEW_FEATURES = {
+        "organizations:gen-ai-features",
+        "organizations:code-review-beta",
+        "organizations:code-review-direct-to-seer",
+    }
 
     @contextmanager
     def code_review_setup(

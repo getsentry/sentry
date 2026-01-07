@@ -9,7 +9,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import options
+from sentry import features, options
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
@@ -103,7 +103,9 @@ def handle_issue_comment_event(
     if not is_pr_review_command(comment_body or ""):
         return
 
-    if not options.get("github.webhook.issue-comment"):
+    if not options.get("github.webhook.issue-comment") and features.has(
+        "organizations:code-review-direct-to-seer", organization
+    ):
         if comment_id:
             _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
 

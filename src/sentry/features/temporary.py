@@ -74,6 +74,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:code-review-run-per-commit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enabled for orgs that participated in the code review beta
     manager.add("organizations:code-review-beta", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables using sentry to forward directly to seer (instead of overwatch)
+    manager.add("organizations:code-review-direct-to-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables Prevent Test Analytics
     manager.add("organizations:prevent-test-analytics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the improved command menu (Cmd+K)
