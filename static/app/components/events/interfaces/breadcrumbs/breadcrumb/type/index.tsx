@@ -38,7 +38,8 @@ const Wrapper = styled('div')<Pick<Props, 'error'>>`
     left: 50%;
     transform: translate(-50%);
     position: absolute;
-    background: ${p => (p.error ? p.theme.colors.red400 : p.theme.innerBorder)};
+    background: ${p =>
+      p.error ? p.theme.colors.red400 : p.theme.tokens.border.secondary};
   }
 `;
 

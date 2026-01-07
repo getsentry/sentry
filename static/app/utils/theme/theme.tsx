@@ -175,7 +175,7 @@ const generateThemeUtils = (
   aliases: Aliases
 ) => ({
   tooltipUnderline: (
-    underlineColor: ColorOrAlias | 'warning' | 'danger' | 'success' = 'gray300'
+    underlineColor: ColorOrAlias | 'warning' | 'danger' | 'success' | 'muted' = 'gray300'
   ) => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
@@ -187,8 +187,10 @@ const generateThemeUtils = (
           ? tokens.content.danger
           : underlineColor === 'success'
             ? tokens.content.success
-            : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              (colors[underlineColor] ?? aliases[underlineColor]),
+            : underlineColor === 'muted'
+              ? tokens.content.secondary
+              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                (colors[underlineColor] ?? aliases[underlineColor]),
     textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
@@ -1198,8 +1200,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    */
   border: tokens.border.primary,
   translucentBorder: tokens.border.transparent.neutral.muted,
-
-  innerBorder: tokens.border.secondary,
 
   /**
    * A color that denotes a "success", or something good
