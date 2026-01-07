@@ -142,15 +142,6 @@ export function SearchQueryBuilderProvider({
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
-  const {state, dispatch} = useQueryBuilderState({
-    initialQuery,
-    getFieldDefinition: fieldDefinitionGetter,
-    disabled,
-    displayAskSeerFeedback,
-    setDisplayAskSeerFeedback,
-    replaceRawSearchKeys,
-  });
-
   const stableFieldDefinitionGetter = useMemo(
     () => fieldDefinitionGetter,
     [fieldDefinitionGetter]
@@ -189,6 +180,17 @@ export function SearchQueryBuilderProvider({
       filterKeyAliases,
     ]
   );
+
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+    displayAskSeerFeedback,
+    setDisplayAskSeerFeedback,
+    replaceRawSearchKeys,
+    parseQuery,
+  });
+
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
   const previousQuery = usePrevious(state.query);
