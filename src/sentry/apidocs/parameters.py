@@ -643,7 +643,7 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         description="Which dataset to query, changing datasets changes the available fields that can be queried",
         # Hardcoding this since our full list of datasets includes some that probably will get deprecated as more stuff
         # moves to EAP
-        enum=["profile_functions", "logs", "spans", "trace_metrics", "uptime_results"],
+        enum=["profile_functions", "logs", "spans", "uptime_results"],
     )
     INTERVAL = OpenApiParameter(
         name="interval",

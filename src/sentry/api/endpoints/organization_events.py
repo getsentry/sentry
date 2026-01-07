@@ -83,7 +83,7 @@ class EventsApiResponse(TypedDict):
     meta: EventsMeta
 
 
-@extend_schema(tags=["Discover"])
+@extend_schema(tags=["Explore"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -150,6 +150,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.PER_PAGE,
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
+            VisibilityParams.DATASET,
         ],
         responses={
             200: inline_sentry_response_serializer(
