@@ -138,7 +138,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         return all_features
 
     @extend_schema(
-        operation_id="Query Discover Events in Table Format",
+        operation_id="Query Explore Events in Table Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -163,7 +163,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Retrieves discover (also known as events) data for a given organization.
+        Retrieves explore data for a given organization.
 
         **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
         Sentry.
