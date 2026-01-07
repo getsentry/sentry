@@ -286,7 +286,7 @@ export const SpansConfig: DatasetConfig<
       widgetQuery.columns?.length > 0
     ) {
       Object.keys(data).forEach(seriesName => {
-        resultTypes[seriesName] = firstMeta.valueType;
+        resultTypes[seriesName] = firstMeta.valueType as AggregationOutputType;
       });
     }
     return resultTypes;
