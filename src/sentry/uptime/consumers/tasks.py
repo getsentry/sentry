@@ -12,7 +12,13 @@ from sentry.uptime.consumers.results_consumer import (
     process_result_internal,
 )
 from sentry.uptime.models import UptimeSubscription, get_detector
-from sentry.uptime.utils import build_backlog_key, build_last_update_key, get_cluster
+from sentry.uptime.utils import (
+    build_backlog_key,
+    build_backlog_schedule_lock_key,
+    build_backlog_task_scheduled_key,
+    build_last_update_key,
+    get_cluster,
+)
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models.detector import Detector
 
@@ -36,8 +42,8 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
     """
     cluster = get_cluster()
     backlog_key = build_backlog_key(subscription_id)
-    task_scheduled_key = f"uptime:backlog_task_scheduled:{subscription_id}"
-    schedule_lock_key = f"uptime:backlog_schedule_lock:{subscription_id}"
+    task_scheduled_key = build_backlog_task_scheduled_key(subscription_id)
+    schedule_lock_key = build_backlog_schedule_lock_key(subscription_id)
 
     try:
         subscription = UptimeSubscription.objects.get(id=subscription_id)
@@ -91,6 +97,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
         cluster.zrem(backlog_key, result_json)
         metrics.incr("uptime.backlog.removed", amount=1, sample_rate=1.0, tags=metric_tags)
         expected_next_ms += subscription_interval_ms
+        last_update_ms = result["scheduled_check_time_ms"]
         processed_count += 1
 
     # If we've hit max attempts process all remaining with backfill
@@ -130,6 +137,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
             cluster.zrem(backlog_key, result_json)
             metrics.incr("uptime.backlog.removed", amount=1, sample_rate=1.0, tags=metric_tags)
             last_update_ms = result["scheduled_check_time_ms"]
+            processed_count += 1
 
     schedule_lock = locks.get(schedule_lock_key, duration=10, name="uptime.backlog.schedule")
     with schedule_lock.acquire():

@@ -27,9 +27,14 @@ def build_backlog_key(subscription_id: str) -> str:
     return f"uptime:backlog:{subscription_id}"
 
 
-def build_backlog_task_flag_key(subscription_id: str) -> str:
+def build_backlog_task_scheduled_key(subscription_id: str) -> str:
     """Redis flag key tracking if retry task is scheduled."""
-    return f"uptime:backlog_task:{subscription_id}"
+    return f"uptime:backlog_task_scheduled:{subscription_id}"
+
+
+def build_backlog_schedule_lock_key(subscription_id: str) -> str:
+    """Redis lock key for coordinating backlog task scheduling."""
+    return f"uptime:backlog_schedule_lock:{subscription_id}"
 
 
 def get_cluster() -> RedisCluster | StrictRedis:
