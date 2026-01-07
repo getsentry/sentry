@@ -26,6 +26,10 @@ def task_app() -> TaskworkerApp:
     def second_func() -> None:
         pass
 
+    @namespace.register(name="third")
+    def third_func() -> None:
+        pass
+
     return app
 
 
@@ -474,24 +478,29 @@ def test_schedulerunner_tick_stale_lock_doesnt_starve_other_tasks(
     Test that a task with a stale lock doesn't prevent other tasks from running.
 
     This test verifies that when one task can't spawn due to a stale lock,
-    other tasks on different schedules can still run. This was a key symptom
-    of the January 2, 2025 outage where tasks with */7 schedules kept working
-    while */10 tasks were blocked.
+    other tasks (including those on the same schedule) can still run.
     """
     run_storage_mock = Mock(spec=RunStorage)
     schedule_set = ScheduleRunner(app=task_app, run_storage=run_storage_mock)
     schedule_set.add(
-        "blocked",
+        "blocked-10min",
         {
             "task": "test:valid",
             "schedule": crontab(minute="*/10"),
         },
     )
     schedule_set.add(
-        "working",
+        "working-7min",
         {
             "task": "test:second",
             "schedule": crontab(minute="*/7"),
+        },
+    )
+    schedule_set.add(
+        "working-10min",
+        {
+            "task": "test:third",
+            "schedule": crontab(minute="*/10"),
         },
     )
 
@@ -503,21 +512,24 @@ def test_schedulerunner_tick_stale_lock_doesnt_starve_other_tasks(
     def mock_read(taskname: str) -> datetime | None:
         if taskname == "test:valid":
             return datetime(2025, 1, 2, 10, 0, 0, tzinfo=UTC)
-        return datetime(2025, 1, 2, 12, 0, 0, tzinfo=UTC)
+        return None
 
     run_storage_mock.read_many.return_value = {
         "test:valid": datetime(2025, 1, 2, 10, 0, 0, tzinfo=UTC),
-        "test:second": datetime(2025, 1, 2, 12, 0, 0, tzinfo=UTC),
+        "test:second": datetime(2025, 1, 2, 11, 56, 0, tzinfo=UTC),
+        "test:third": datetime(2025, 1, 2, 11, 50, 0, tzinfo=UTC),
     }
     run_storage_mock.set.side_effect = mock_set
     run_storage_mock.read.side_effect = mock_read
 
     namespace = task_app.taskregistry.get("test")
-    with freeze_time("2025-01-02 12:07:00"), patch.object(namespace, "send_task") as mock_send:
+    with freeze_time("2025-01-02 12:00:00"), patch.object(namespace, "send_task") as mock_send:
         schedule_set.tick()
-        assert mock_send.call_count == 1
+        assert mock_send.call_count == 2
         called = extract_sent_tasks(mock_send)
-        assert called == ["second"]
+        assert "second" in called
+        assert "third" in called
+        assert "valid" not in called
 
 
 @pytest.mark.django_db
