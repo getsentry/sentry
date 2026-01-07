@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.urls import re_path
 
+from sentry.preprod.api.endpoints.builds import BuildsEndpoint
 from sentry.preprod.api.endpoints.project_preprod_artifact_image import (
     ProjectPreprodArtifactImageEndpoint,
 )
@@ -141,6 +142,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/pr-comments/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
         OrganizationPrCommentsEndpoint.as_view(),
         name="sentry-api-0-organization-pr-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/builds/$",
+        BuildsEndpoint.as_view(),
+        name="sentry-api-0-organization-builds",
     ),
 ]
 

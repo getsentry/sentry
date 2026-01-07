@@ -2577,11 +2577,12 @@ class Factories:
         commit_comparison: CommitComparison | None = None,
         file_id: int | None = None,
         installable_app_file_id: int | None = None,
+        date_added: datetime | None = None,
         build_configuration: PreprodBuildConfiguration | None = None,
         extras: dict | None = None,
         **kwargs,
     ) -> PreprodArtifact:
-        return PreprodArtifact.objects.create(
+        artifact = PreprodArtifact.objects.create(
             project=project,
             state=state,
             artifact_type=artifact_type,
@@ -2596,6 +2597,9 @@ class Factories:
             extras=extras,
             **kwargs,
         )
+        if date_added is not None:
+            artifact.update(date_added=date_added)
+        return artifact
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
