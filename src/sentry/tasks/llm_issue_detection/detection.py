@@ -36,6 +36,7 @@ NUM_TRANSACTIONS_TO_PROCESS = 20
 seer_issue_detection_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
     timeout=SEER_TIMEOUT_S,
+    retries=0,
     maxsize=10,
 )
 
