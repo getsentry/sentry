@@ -372,11 +372,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         task_scheduled_key = build_backlog_task_scheduled_key(subscription_id)
         schedule_lock_key = build_backlog_schedule_lock_key(subscription_id)
         schedule_lock = locks.get(schedule_lock_key, duration=10, name="uptime.backlog.schedule")
-        lock_acquired = False
+        lock_ctx = None
 
         try:
-            schedule_lock.blocking_acquire(0.1, 3).__enter__()
-            lock_acquired = True
+            lock_ctx = schedule_lock.blocking_acquire(0.1, 3)
+            lock_ctx.__enter__()
         except UnableToAcquireLock:
             # The lock shouldn't fail, but if it does we'd prefer to try and put this in the queue
             # regardless, so that we don't have to drop it
@@ -421,8 +421,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     tags=metric_tags,
                 )
         finally:
-            if lock_acquired:
-                schedule_lock.release()
+            if lock_ctx is not None:
+                lock_ctx.__exit__(None, None, None)
 
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
         if random.random() < 0.01:
