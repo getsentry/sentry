@@ -80,9 +80,13 @@ WHITELISTED_ACTIONS = {
 
 
 def _get_trigger_for_action(action: PullRequestAction) -> CodeReviewTrigger:
-    if action == PullRequestAction.READY_FOR_REVIEW:
-        return CodeReviewTrigger.ON_READY_FOR_REVIEW
-    return CodeReviewTrigger.ON_NEW_COMMIT
+    match action:
+        case PullRequestAction.READY_FOR_REVIEW:
+            return CodeReviewTrigger.ON_READY_FOR_REVIEW
+        case PullRequestAction.SYNCHRONIZE:
+            return CodeReviewTrigger.ON_NEW_COMMIT
+        case _:
+            raise ValueError(f"Unsupported pull request action: {action}")
 
 
 def _warn_and_increment_metric(
