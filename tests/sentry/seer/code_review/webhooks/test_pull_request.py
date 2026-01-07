@@ -43,12 +43,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     def test_pull_request_opened(self) -> None:
         """Test that opened action triggers Seer request."""
         with self.code_review_setup(), self.tasks():
-            self._send_webhook_event(
-                GithubWebhookType.PULL_REQUEST,
-                PULL_REQUEST_OPENED_EVENT_EXAMPLE,
-            )
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             assert event["action"] == "opened"
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
 
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
@@ -136,6 +138,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "ready_for_review"
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
 
             self._send_webhook_event(
                 GithubWebhookType.PULL_REQUEST,
@@ -162,6 +165,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "synchronize"
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
 
             self._send_webhook_event(
                 GithubWebhookType.PULL_REQUEST,
@@ -211,4 +215,31 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
 
             assert response.status_code == 204
+            self.mock_seer.assert_not_called()
+
+    def test_pull_request_processes_whitelisted_github_org(self) -> None:
+        """Test that whitelisted GitHub organizations are processed."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_called_once()
+
+    def test_pull_request_skips_non_whitelisted_github_org(self) -> None:
+        """Test that non-whitelisted GitHub organizations are skipped."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            # "baxterthehacker" is the default in the fixture and is not whitelisted
+            assert event["repository"]["owner"]["login"] == "baxterthehacker"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
             self.mock_seer.assert_not_called()
