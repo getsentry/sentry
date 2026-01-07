@@ -162,7 +162,7 @@ function BreadcrumbsContainer({
       if (foundFilterType === -1) {
         filterTypes.push({
           value: `type-${breadcrumb.type}`,
-          leadingItems: <Type type={breadcrumb.type} color={breadcrumb.color} />,
+          leadingItems: <Type type={breadcrumb.type} variant={breadcrumb.variant} />,
           label: breadcrumb.description,
           levels: breadcrumb.level ? [breadcrumb.level] : [],
         });

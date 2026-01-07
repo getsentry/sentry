@@ -53,73 +53,73 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
 
 function getCrumbDescriptionAndColor(
   type: BreadcrumbType
-): Pick<Crumb, 'color' | 'description'> {
+): Pick<Crumb, 'variant' | 'description'> {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
       return {
-        color: 'purple300',
+        variant: 'accent',
         description: t('User Action'),
       };
 
     case BreadcrumbType.NAVIGATION:
       return {
-        color: 'green300',
+        variant: 'success',
         description: t('Navigation'),
       };
 
     case BreadcrumbType.DEBUG:
       return {
-        color: 'purple300',
+        variant: 'accent',
         description: t('Debug'),
       };
 
     case BreadcrumbType.INFO:
       return {
-        color: 'blue300',
+        variant: 'accent',
         description: t('Info'),
       };
 
     case BreadcrumbType.ERROR:
       return {
-        color: 'red300',
+        variant: 'danger',
         description: t('Error'),
       };
 
     case BreadcrumbType.HTTP:
       return {
-        color: 'green300',
+        variant: 'success',
         description: t('HTTP request'),
       };
 
     case BreadcrumbType.WARNING:
       return {
-        color: 'yellow300',
+        variant: 'warning',
         description: t('Warning'),
       };
     case BreadcrumbType.QUERY:
       return {
-        color: 'blue300',
+        variant: 'accent',
         description: t('Query'),
       };
     case BreadcrumbType.SYSTEM:
       return {
-        color: 'pink300',
+        variant: 'promotion',
         description: t('System'),
       };
     case BreadcrumbType.SESSION:
       return {
-        color: 'pink300',
+        variant: 'promotion',
         description: t('Session'),
       };
     case BreadcrumbType.TRANSACTION:
       return {
-        color: 'pink300',
+        variant: 'promotion',
         description: t('Transaction'),
       };
     default:
       return {
-        color: 'gray300',
+        variant: 'muted',
         description: t('Default'),
       };
   }
@@ -128,11 +128,11 @@ function getCrumbDescriptionAndColor(
 export function transformCrumbs(breadcrumbs: RawCrumb[]): Crumb[] {
   return breadcrumbs.map((breadcrumb, index) => {
     const convertedCrumbType = convertCrumbType(breadcrumb);
-    const {color, description} = getCrumbDescriptionAndColor(convertedCrumbType.type);
+    const {variant, description} = getCrumbDescriptionAndColor(convertedCrumbType.type);
     return {
       ...convertedCrumbType,
       id: index,
-      color,
+      variant,
       description,
       level: convertedCrumbType.level ?? BreadcrumbLevelType.UNDEFINED,
     };

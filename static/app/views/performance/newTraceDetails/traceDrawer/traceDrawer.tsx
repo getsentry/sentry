@@ -11,7 +11,6 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -455,7 +454,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >
-      <StyledIconCircleFilled size="xs" color={node.makeBarColor(props.theme) as Color} />
+      <StyledIconCircleFilled size="xs" fill={node.makeBarColor(props.theme)} />
       <TabButton>{node.drawerTabsTitle}</TabButton>
       <TabPinButton
         pinned={props.pinned}
@@ -504,8 +503,9 @@ const CloseButton = styled(Button)`
   }
 `;
 
-const StyledIconCircleFilled = styled(IconCircleFill)`
+const StyledIconCircleFilled = styled(IconCircleFill)<{fill: string}>`
   margin-right: ${space(0.25)};
+  fill: ${p => p.fill};
 `;
 
 const ResizeableHandle = styled('div')<{
