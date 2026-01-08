@@ -63,10 +63,10 @@ class OrganizationUptimeAlertPreviewCheckEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
     ) -> Response:
-        validation_enabled = features.has(
+        assertions_enabled = features.has(
             "organizations:uptime-runtime-assertions", organization, actor=request.user
         )
-        validator = UptimeCheckPreviewValidator(validation_enabled, data=request.data)
+        validator = UptimeCheckPreviewValidator(assertions_enabled, data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 

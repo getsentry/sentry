@@ -191,11 +191,13 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
             attrs.get("body", None),
         )
         region_config = get_region_config(attrs["region"])
-        check_config = checker_api.create_check(attrs, region_config)
+        check_config = checker_api.create_preview_check(attrs, region_config)
 
-        api_endpoint = region_config.api_endpoint
-
-        checker_api.invoke_checker_validator(self.validation_enabled, check_config, api_endpoint)
+        result = checker_api.invoke_checker_validator(
+            self.validation_enabled, check_config, region_config
+        )
+        if result is not None and result.status_code >= 400:
+            raise serializers.ValidationError({"assertion": result.json()})
         return attrs
 
     def validate_url(self, url):
@@ -205,7 +207,9 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
         return _validate_headers(headers)
 
     def create(self, validated_data):
-        return checker_api.create_check(validated_data, get_region_config(validated_data["region"]))
+        return checker_api.create_preview_check(
+            validated_data, get_region_config(validated_data["region"])
+        )
 
 
 @extend_schema_serializer()
@@ -289,10 +293,10 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         )
 
         region = get_region_config(get_active_regions()[0].slug)
-        check_config = checker_api.create_check(attrs, region)
-        checker_api.invoke_checker_validator(
-            self.validation_enabled, check_config, region.api_endpoint
-        )
+        check_config = checker_api.create_preview_check(attrs, region)
+        result = checker_api.invoke_checker_validator(self.validation_enabled, check_config, region)
+        if result is not None and result.status_code >= 400:
+            raise serializers.ValidationError({"assertion": result.json()})
 
         return attrs
 

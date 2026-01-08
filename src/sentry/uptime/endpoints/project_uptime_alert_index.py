@@ -46,11 +46,11 @@ class ProjectUptimeAlertIndexEndpoint(ProjectEndpoint):
         """
         Create a new monitor.
         """
-        validation_enabled = features.has(
+        assertions_enabled = features.has(
             "organizations:uptime-runtime-assertions", project.organization, actor=request.user
         )
         validator = UptimeMonitorValidator(
-            validation_enabled,
+            assertions_enabled,
             data=request.data,
             context={
                 "organization": project.organization,
