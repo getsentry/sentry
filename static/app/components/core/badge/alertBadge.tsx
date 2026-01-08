@@ -95,7 +95,11 @@ function getDiamondTheme(
       icon: IconExclamation,
     };
   }
-  return {text: t('Resolved'), backgroundColor: theme.successText, icon: IconCheckmark};
+  return {
+    text: t('Resolved'),
+    backgroundColor: theme.tokens.content.success,
+    icon: IconCheckmark,
+  };
 }
 
 function makeAlertBadgeDiamondBackgroundTheme(

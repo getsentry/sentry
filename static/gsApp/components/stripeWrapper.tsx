@@ -46,7 +46,7 @@ function StripeWrapper({
             borderRadius: theme.radius.md,
             colorText: theme.tokens.content.primary,
             colorDanger: theme.tokens.content.danger,
-            colorSuccess: theme.success,
+            colorSuccess: theme.tokens.content.success,
             colorWarning: theme.tokens.content.warning,
             iconColor: theme.tokens.content.primary,
           },
