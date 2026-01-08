@@ -30,10 +30,9 @@ class RepositorySettingsSerializer(Serializer):
     def serialize(
         self, obj: RepositorySettings, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> RepositorySettingsSerializerResponse:
-        code_review_settings = obj.get_code_review_settings()
         return {
-            "enabledCodeReview": code_review_settings.enabled,
-            "codeReviewTriggers": [trigger.value for trigger in code_review_settings.triggers],
+            "enabledCodeReview": obj.enabled_code_review,
+            "codeReviewTriggers": list(obj.code_review_triggers),
         }
 
 
