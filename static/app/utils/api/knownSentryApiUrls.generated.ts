@@ -369,6 +369,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/invited-members/'
   | '/organizations/$organizationIdOrSlug/invited-members/$memberInviteId/'
   | '/organizations/$organizationIdOrSlug/invited-members/$memberInviteId/reinvite/'
+  | '/organizations/$organizationIdOrSlug/issue-view-title/generate/'
   | '/organizations/$organizationIdOrSlug/issues-count/'
   | '/organizations/$organizationIdOrSlug/issues-metrics/'
   | '/organizations/$organizationIdOrSlug/issues-stats/'
