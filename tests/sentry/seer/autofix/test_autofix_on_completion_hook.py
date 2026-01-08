@@ -146,9 +146,13 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
 
         mock_trigger.assert_not_called()
 
+    @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
-    def test_maybe_continue_pipeline_continues_to_next_step(self, mock_trigger):
+    def test_maybe_continue_pipeline_continues_to_next_step(self, mock_trigger, mock_get_prefs):
         """Continues to next step when not at stopping point."""
+        # No handoff configured - should continue with normal pipeline
+        mock_get_prefs.return_value = None
+
         state = MagicMock()
         state.metadata = {
             "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
