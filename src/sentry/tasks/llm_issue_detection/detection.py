@@ -44,7 +44,6 @@ seer_issue_detection_connection_pool = connection_from_url(
 
 
 class DetectedIssue(BaseModel):
-    # LLM generated fields
     explanation: str
     impact: str
     evidence: str
@@ -54,16 +53,13 @@ class DetectedIssue(BaseModel):
     subcategory: str
     category: str
     verification_reason: str | None = None
-
-
-class DetectedIssueResponse(DetectedIssue):
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
 
 
 class IssueDetectionResponse(BaseModel):
-    issues: list[DetectedIssueResponse]
+    issues: list[DetectedIssue]
     traces_analyzed: int
 
 
@@ -98,7 +94,7 @@ def get_base_platform(platform: str | None) -> str | None:
 
 
 def create_issue_occurrence_from_detection(
-    detected_issue: DetectedIssueResponse,
+    detected_issue: DetectedIssue,
     project_id: int,
 ) -> None:
     """
@@ -198,7 +194,7 @@ def run_llm_issue_detection() -> None:
     for index, project_id in enumerate(enabled_project_ids):
         detect_llm_issues_for_project.apply_async(
             args=[project_id],
-            countdown=index * 120,
+            countdown=index * 60,
         )
 
 
@@ -296,7 +292,6 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
         try:
             raw_response_data = response.json()
-            # Add debug logging to see raw response
             logger.info(
                 "Raw Seer response",
                 extra={
