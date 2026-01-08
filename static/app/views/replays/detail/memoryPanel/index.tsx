@@ -70,7 +70,7 @@ const Grid = styled('div')`
 `;
 
 const ChartWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${space(0.5)};
   padding: ${space(1)};
   overflow: hidden;

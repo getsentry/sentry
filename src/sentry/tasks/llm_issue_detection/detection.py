@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from django.conf import settings
 from pydantic import BaseModel, ValidationError
-from urllib3 import Retry
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -29,8 +28,7 @@ logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 180
-SEER_RETRIES = Retry(total=1, backoff_factor=2, status_forcelist=[408, 429, 502, 503, 504])
-START_TIME_DELTA_MINUTES = 30
+START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 100
 NUM_TRANSACTIONS_TO_PROCESS = 20
 
@@ -38,7 +36,7 @@ NUM_TRANSACTIONS_TO_PROCESS = 20
 seer_issue_detection_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
     timeout=SEER_TIMEOUT_S,
-    retries=SEER_RETRIES,
+    retries=0,
     maxsize=10,
 )
 
@@ -195,7 +193,8 @@ def run_llm_issue_detection() -> None:
     for index, project_id in enumerate(enabled_project_ids):
         detect_llm_issues_for_project.apply_async(
             args=[project_id],
-            countdown=index * 60,
+            countdown=index * 120,
+            headers={"sentry-propagate-traces": False},
         )
 
 
