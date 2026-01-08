@@ -97,7 +97,7 @@ const SliderThumbWrap = styled('div')<{
     p.isFocused &&
     css`
       box-shadow: 0 0 0 2px
-        ${p.error ? p.theme.tokens.border.danger : p.theme.tokens.border.accent.vibrant};
+        ${p.error ? p.theme.tokens.focus.invalid : p.theme.tokens.focus.default};
       z-index: 1;
     `}
 

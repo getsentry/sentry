@@ -95,15 +95,15 @@ const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>
     p.state === 'valid'
       ? css`
           :focus-within {
-            border: 1px solid ${p.theme.tokens.border.accent.vibrant};
-            box-shadow: 0 0 0 1px ${p.theme.tokens.border.accent.vibrant};
+            border: 1px solid ${p.theme.tokens.focus.default};
+            box-shadow: 0 0 0 1px ${p.theme.tokens.focus.default};
           }
         `
       : p.state === 'invalid'
         ? css`
             :focus-within {
-              border: 1px solid ${p.theme.tokens.border.danger};
-              box-shadow: 0 0 0 1px ${p.theme.tokens.border.danger};
+              border: 1px solid ${p.theme.tokens.focus.invalid};
+              box-shadow: 0 0 0 1px ${p.theme.tokens.focus.invalid};
             }
           `
         : ''}

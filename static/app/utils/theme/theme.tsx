@@ -232,8 +232,8 @@ const generateButtonTheme = (
     border: alias.border,
     borderActive: alias.border,
     borderTranslucent: alias.translucentBorder,
-    focusBorder: tokens.border.accent.vibrant,
-    focusShadow: tokens.border.accent.vibrant,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   primary: {
     color: colors.white,
@@ -243,8 +243,8 @@ const generateButtonTheme = (
     border: colors.blue400,
     borderActive: colors.blue400,
     borderTranslucent: colors.blue400,
-    focusBorder: tokens.border.accent.vibrant,
-    focusShadow: tokens.border.accent.vibrant,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   danger: {
     color: colors.white,
@@ -265,8 +265,8 @@ const generateButtonTheme = (
     border: 'transparent',
     borderActive: 'transparent',
     borderTranslucent: 'transparent',
-    focusBorder: tokens.border.accent.vibrant,
-    focusShadow: tokens.border.accent.vibrant,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   disabled: {
     color: tokens.content.disabled,
@@ -1360,7 +1360,7 @@ const lightThemeDefinition = {
   tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.border.accent.vibrant}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
@@ -1409,7 +1409,7 @@ export const darkTheme: SentryTheme = {
   tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.border.accent.vibrant}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported

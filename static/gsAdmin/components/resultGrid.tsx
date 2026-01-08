@@ -579,7 +579,7 @@ export const SearchInput = styled(Input)`
   height: 100%;
 
   &:focus-visible {
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 

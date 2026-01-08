@@ -367,7 +367,7 @@ const NavLink = styled(Link, {
   &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.tokens.border.accent.vibrant};
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
       background-color: ${p => p.theme.colors.blue100};
     }
   }

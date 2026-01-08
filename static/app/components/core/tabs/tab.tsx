@@ -120,7 +120,7 @@ const innerWrapStyles = ({
 
   li:focus-visible & {
     outline: none;
-    box-shadow: inset 0 0 0 2px ${theme.tokens.border.accent.vibrant};
+    box-shadow: inset 0 0 0 2px ${theme.tokens.focus.default};
   }
 
   li:not([aria-disabled]):hover & {
