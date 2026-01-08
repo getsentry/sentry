@@ -4,7 +4,7 @@ import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
@@ -26,11 +26,13 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {
+  GroupIntegration,
   Integration,
   IntegrationExternalIssue,
   IntegrationIssueConfig,
   IssueConfigField,
 } from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {
@@ -41,6 +43,32 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+
+export const openExternalIssueModal = ({
+  group,
+  integration,
+  onChange,
+  organization,
+}: {
+  group: Group;
+  integration: GroupIntegration;
+  onChange: () => void;
+  organization: Organization;
+}) => {
+  trackAnalytics('issue_details.external_issue_modal_opened', {
+    organization,
+    ...getAnalyticsDataForGroup(group),
+    external_issue_provider: integration.provider.key,
+    external_issue_type: 'first_party',
+  });
+
+  openModal(
+    deps => (
+      <ExternalIssueForm {...deps} {...{group, onChange, integration, organization}} />
+    ),
+    {closeEvents: 'escape-key'}
+  );
+};
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -75,7 +103,7 @@ function makeIntegrationIssueConfigQueryKey({
   ];
 }
 
-export default function ExternalIssueForm({
+export function ExternalIssueForm({
   group,
   integration,
   onChange,

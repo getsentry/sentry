@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -19,22 +19,16 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
   return (
     <SidebarFoldSection
       data-test-id="linked-issues"
-      title={<Title>{t('Issue Tracking')}</Title>}
+      title={
+        <Heading as="h3" size="md">
+          {t('Issue Tracking')}
+        </Heading>
+      }
       sectionKey={SectionKey.EXTERNAL_ISSUES}
     >
-      <Separator>
+      <Flex direction="column" gap="md">
         <StreamlinedExternalIssueList group={group} event={event} project={project} />
-      </Separator>
+      </Flex>
     </SidebarFoldSection>
   );
 }
-
-const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const Separator = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;

@@ -1,6 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
