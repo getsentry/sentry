@@ -7,7 +7,13 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
-from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
+from sentry.seer.explorer.client_models import (
+    Artifact,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 
@@ -285,7 +291,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             ],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
-            repo_pr_states={"owner/repo": MagicMock(repo_name="owner/repo")},
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo")},
         )
 
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
