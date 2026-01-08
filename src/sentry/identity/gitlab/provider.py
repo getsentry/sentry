@@ -36,6 +36,12 @@ def get_oauth_data(payload):
         data["token_type"] = payload["token_type"]
     if "created_at" in payload:
         data["created_at"] = int(payload["created_at"])
+    # Preserve client_id and client_secret if present in payload
+    # These are needed for token refresh operations
+    if "client_id" in payload:
+        data["client_id"] = payload["client_id"]
+    if "client_secret" in payload:
+        data["client_secret"] = payload["client_secret"]
     return data
 
 
@@ -129,5 +135,17 @@ class GitlabIdentityProvider(OAuth2Provider):
             )
             payload = {}
 
+        # Preserve client_id and client_secret from existing identity data
+        # as they are not returned in the refresh token response
+        client_id = identity.data.get("client_id")
+        client_secret = identity.data.get("client_secret")
+        
         identity.data.update(get_oauth_data(payload))
+        
+        # Restore client_id and client_secret if they were present
+        if client_id is not None:
+            identity.data["client_id"] = client_id
+        if client_secret is not None:
+            identity.data["client_secret"] = client_secret
+        
         identity_service.update_data(identity_id=identity.id, data=identity.data)
