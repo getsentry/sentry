@@ -22,7 +22,8 @@ from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
 )
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils import json
+from sentry.utils import json, metrics
+from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
@@ -31,6 +32,18 @@ SEER_TIMEOUT_S = 180
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 100
 NUM_TRANSACTIONS_TO_PROCESS = 20
+TRACE_PROCESSING_TTL_SECONDS = 7200
+
+
+def mark_trace_as_processed(trace_id: str) -> bool:
+    """
+    Mark trace as processed for LLM issue detection to prevent duplicate analysis.
+    Returns True if successfully marked, False if already marked.
+    """
+    cluster = redis_clusters.get("default")
+    key = f"llm_detection:processed:{trace_id}"
+    result = cluster.set(key, "1", nx=True, ex=TRACE_PROCESSING_TTL_SECONDS)
+    return bool(result)
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -244,6 +257,10 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     for trace in evidence_traces:
         if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
             break
+
+        if not mark_trace_as_processed(trace.trace_id):
+            metrics.incr("llm_issue_detection.trace.skipped")
+            continue
 
         logger.info(
             "Sending Seer Request for Detection",
