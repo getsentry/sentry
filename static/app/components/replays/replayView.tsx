@@ -56,7 +56,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
 
   return (
     <Fragment>
-      <Flex flexGrow="1" gap="md">
+      <Flex flexGrow={1} gap="md">
         <PlayerContainer>
           <ContextContainer>
             {isLoading ? (

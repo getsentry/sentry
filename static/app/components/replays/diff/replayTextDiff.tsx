@@ -29,7 +29,7 @@ export function ReplayTextDiff() {
   );
 
   return (
-    <Stack flexGrow="1" gap="md" height="0">
+    <Stack flexGrow={1} gap="md" height="0">
       {!isLoading && leftBody === rightBody ? <DiffFeedbackBanner /> : null}
       <ContentSliderDiff.Header>
         <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs}>
@@ -49,7 +49,7 @@ export function ReplayTextDiff() {
           />
         </After>
       </ContentSliderDiff.Header>
-      <Flex flexGrow="1" height="0" overflow="auto">
+      <Flex flexGrow={1} height="0" overflow="auto">
         <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="lines" />
       </Flex>
     </Stack>
