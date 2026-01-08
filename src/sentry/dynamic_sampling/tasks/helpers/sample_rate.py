@@ -32,16 +32,6 @@ def get_org_sample_rate(
     has_dynamic_sampling_custom = features.has("organizations:dynamic-sampling-custom", org)
     if has_dynamic_sampling_custom:
         sample_rate = org.get_option("sentry:target_sample_rate") if org else None
-        if features.has("organizations:log-project-config", org):
-            logger.info(
-                "log-project-config: org.get_option: %s",
-                sample_rate,
-                extra={
-                    "org": org.id if org else None,
-                    "target_sample_rate": sample_rate,
-                    "default_sample_rate": default_sample_rate,
-                },
-            )
         if sample_rate is not None:
             return float(sample_rate), True
         if default_sample_rate is not None:
@@ -50,16 +40,6 @@ def get_org_sample_rate(
 
     # fallback to sliding window calculation
     sample_rate, is_custom = _get_sliding_window_org_sample_rate(org_id, default_sample_rate)
-    if features.has("organizations:log-project-config", org):
-        logger.info(
-            "log-project-config: _get_sliding_window_org_sample_rate for org %s",
-            org_id,
-            extra={
-                "sample_rate": sample_rate,
-                "is_custom": is_custom,
-                "default_sample_rate": default_sample_rate,
-            },
-        )
     return sample_rate, is_custom
 
 
