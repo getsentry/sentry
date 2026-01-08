@@ -170,8 +170,8 @@ export default function FeedbackListPage() {
                       flexGrow={1}
                       gap="md"
                       area="top"
-                      direction={{sm: 'column', md: 'row'}}
-                      align={{sm: 'stretch', md: undefined}}
+                      direction={{xs: 'column', sm: 'row'}}
+                      align={{xs: 'stretch', sm: undefined}}
                     >
                       <FeedbackFilters />
                       <SearchContainer>
