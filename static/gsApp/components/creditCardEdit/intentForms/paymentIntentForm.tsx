@@ -71,7 +71,6 @@ function PaymentIntentForm(props: IntentFormProps) {
         trackGetsentryAnalytics('billing_failure.paid_now', {
           organization,
           referrer: decodeScalar(referrer),
-          isStripeComponent: true,
         });
         addSuccessMessage(t('Payment sent successfully.'));
         onSuccess?.();
