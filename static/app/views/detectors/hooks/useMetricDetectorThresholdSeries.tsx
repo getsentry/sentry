@@ -15,6 +15,8 @@ import type {
   MetricCondition,
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return MarkLine({
@@ -79,8 +81,45 @@ function createPercentThresholdSeries(
   };
 }
 
+/**
+ * Checks if an aggregate function is a SESSIONS_OPERATION with percentage output type.
+ */
+function isSessionPercentageOperation(aggregate: string): boolean {
+  // Extract function name from aggregate (e.g., "crash_free_rate" from "crash_free_rate(session)")
+  const match = aggregate.match(/^([^(]+)/);
+  const functionName = match?.[1];
+
+  if (!functionName) {
+    return false;
+  }
+
+  const sessionOp = SESSIONS_OPERATIONS[functionName as keyof typeof SESSIONS_OPERATIONS];
+  return sessionOp?.outputType === 'percentage';
+}
+
+/**
+ * Normalizes percentage threshold values to 0-1 scale for consistent display.
+ * - SESSIONS_OPERATIONS percentages (crash_free_rate, crash_rate, anr_rate, etc.) store values as percentages (5 for 5%)
+ * - Other percentage operations like failure_rate() store values as 0-1 (0.05 = 5%)
+ */
+function normalizePercentageThreshold(aggregate: string, value: number): number {
+  const outputType = aggregateOutputType(aggregate);
+  if (outputType !== 'percentage') {
+    return value;
+  }
+
+  // Session operations store as percentage (5 for 5%), needs conversion to 0-1
+  if (isSessionPercentageOperation(aggregate)) {
+    return value / 100;
+  }
+
+  // Other operations like failure_rate store as decimal (0.05 for 5%), already in 0-1 scale
+  return value;
+}
+
 function extractThresholdsFromConditions(
-  conditions: Array<Omit<MetricCondition, 'id'>>
+  conditions: Array<Omit<MetricCondition, 'id'>>,
+  aggregate: string
 ): {
   thresholds: Array<{
     priority: DetectorPriorityLevel;
@@ -96,7 +135,7 @@ function extractThresholdsFromConditions(
         typeof condition.comparison === 'number'
     )
     .map(condition => ({
-      value: Number(condition.comparison),
+      value: normalizePercentageThreshold(aggregate, Number(condition.comparison)),
       priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
       type: condition.type,
     }))
@@ -108,13 +147,23 @@ function extractThresholdsFromConditions(
 
   const resolution =
     resolutionCondition && typeof resolutionCondition.comparison === 'number'
-      ? {type: resolutionCondition.type, value: Number(resolutionCondition.comparison)}
+      ? {
+          type: resolutionCondition.type,
+          value: normalizePercentageThreshold(
+            aggregate,
+            Number(resolutionCondition.comparison)
+          ),
+        }
       : undefined;
 
   return {thresholds, resolution};
 }
 
 interface UseMetricDetectorThresholdSeriesProps {
+  /**
+   * The aggregate function to determine if thresholds should be scaled for percentage display
+   */
+  aggregate: string;
   conditions: Array<Omit<MetricCondition, 'id'>> | undefined;
   detectionType: MetricDetectorConfig['detectionType'];
   comparisonSeries?: Series[];
@@ -134,6 +183,7 @@ interface UseMetricDetectorThresholdSeriesResult {
 export function useMetricDetectorThresholdSeries({
   conditions,
   detectionType,
+  aggregate,
   comparisonSeries = [],
 }: UseMetricDetectorThresholdSeriesProps): UseMetricDetectorThresholdSeriesResult {
   const theme = useTheme();
@@ -143,7 +193,10 @@ export function useMetricDetectorThresholdSeries({
       return {maxValue: undefined, additionalSeries: []};
     }
 
-    const {thresholds, resolution} = extractThresholdsFromConditions(conditions);
+    const {thresholds, resolution} = extractThresholdsFromConditions(
+      conditions,
+      aggregate
+    );
     const additional: LineSeriesOption[] = [];
 
     if (detectionType === 'percent') {
@@ -216,7 +269,7 @@ export function useMetricDetectorThresholdSeries({
             ? theme.colors.red400
             : theme.colors.yellow400;
         const areaColor = lineColor;
-        // Thresholds are already in correct scale (0-1 for percentages, e.g., 0.05 = 5%)
+        // Thresholds are normalized to correct scale via normalizePercentageThreshold()
         const displayThreshold = threshold.value;
 
         return {
@@ -233,7 +286,7 @@ export function useMetricDetectorThresholdSeries({
         resolution && !thresholds.some(threshold => threshold.value === resolution.value)
       );
       if (resolution && isResolutionManual) {
-        // Thresholds are already in correct scale (0-1 for percentages, e.g., 0.05 = 5%)
+        // Resolution value is normalized to correct scale via normalizePercentageThreshold()
         const displayResolution = resolution.value;
         const resolutionSeries: LineSeriesOption = {
           type: 'line',
@@ -260,5 +313,5 @@ export function useMetricDetectorThresholdSeries({
 
     // Other detection types not supported yet
     return {maxValue: undefined, additionalSeries: additional};
-  }, [conditions, detectionType, comparisonSeries, theme]);
+  }, [aggregate, conditions, detectionType, comparisonSeries, theme]);
 }

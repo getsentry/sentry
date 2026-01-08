@@ -194,6 +194,7 @@ export function useMetricDetectorChart({
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
+      aggregate,
       conditions: detector.conditionGroup?.conditions,
       detectionType,
       comparisonSeries,
