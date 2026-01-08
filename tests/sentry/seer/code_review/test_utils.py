@@ -229,14 +229,14 @@ class TestTransformWebhookToCodegenRequest:
             organization,
             repo,
             "def456sha",
-            CodeReviewTrigger.ON_COMMAND_PHRASE,
+            CodeReviewTrigger.ON_NEW_COMMIT,
         )
 
         assert isinstance(result, dict)
         data = result["data"]
         config = data["config"]
         assert data["pr_id"] == 42
-        assert config["trigger"] == CodeReviewTrigger.ON_COMMAND_PHRASE.value
+        assert config["trigger"] == CodeReviewTrigger.ON_NEW_COMMIT.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"
@@ -256,7 +256,7 @@ class TestTransformWebhookToCodegenRequest:
             organization,
             repo,
             "somesha",
-            CodeReviewTrigger.ON_COMMAND_PHRASE,
+            CodeReviewTrigger.ON_NEW_COMMIT,
         )
         assert result is None
 
