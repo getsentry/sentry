@@ -35,3 +35,25 @@ class GithubCopilotJobResponse(BaseModel):
     actor: GithubCopilotActor
     created_at: datetime
     updated_at: datetime
+
+
+class GithubCopilotPullRequest(BaseModel):
+    id: int
+    number: int
+
+
+class GithubCopilotJobStatusResponse(BaseModel):
+    job_id: str
+    session_id: str
+    status: str
+    actor: GithubCopilotActor
+    created_at: datetime
+    updated_at: datetime
+    pull_request: GithubCopilotPullRequest | None = None
+    problem_statement: str | None = None
+
+
+class GithubPRDetails(BaseModel):
+    title: str
+    body: str | None = None
+    state: str

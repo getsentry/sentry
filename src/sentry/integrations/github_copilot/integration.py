@@ -16,7 +16,6 @@ from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
     CodingAgentIntegrationProvider,
 )
-from sentry.pipeline.views.base import PipelineView
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.models.integration import Integration
@@ -44,16 +43,10 @@ metadata = IntegrationMetadata(
 )
 
 
-class GithubCopilotSetupView(PipelineView):
-    def dispatch(self, request, pipeline):
-        pipeline.bind_state("installation_complete", True)
-        return pipeline.next_step()
-
-
 class GithubCopilotAgentIntegrationProvider(CodingAgentIntegrationProvider):
     key = "github_copilot"
     name = "GitHub Copilot"
-    can_add = True
+    can_add = False
     metadata = metadata
     setup_dialog_config = {"width": 600, "height": 700}
     requires_feature_flag = True
@@ -65,7 +58,7 @@ class GithubCopilotAgentIntegrationProvider(CodingAgentIntegrationProvider):
     )
 
     def get_pipeline_views(self):
-        return [GithubCopilotSetupView()]
+        return []
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         return {
@@ -88,6 +81,14 @@ class GithubCopilotAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
 
 class GithubCopilotAgentIntegration(CodingAgentIntegration):
+
+    def __init__(
+        self,
+        model: RpcIntegration | Integration | None,
+        organization_id: int,
+    ) -> None:
+        self.model = model  # type: ignore[assignment]
+        self.organization_id = organization_id
 
     def get_client(self) -> GithubCopilotAgentClient:
         raise NotImplementedError(

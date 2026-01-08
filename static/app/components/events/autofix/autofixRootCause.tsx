@@ -268,7 +268,7 @@ function SolutionActionButton({
 }: {
   codingAgentIntegrations: CodingAgentIntegration[];
   findSolutionTitle: string;
-  handleLaunchCodingAgent: (integrationId: string, integrationName: string) => void;
+  handleLaunchCodingAgent: (integration: CodingAgentIntegration) => void;
   isLaunchingAgent: boolean;
   isLoadingAgents: boolean;
   isSelectingRootCause: boolean;
@@ -277,7 +277,10 @@ function SolutionActionButton({
   submitFindSolution: () => void;
 }) {
   const preferredIntegration = preferredAction.startsWith('agent:')
-    ? codingAgentIntegrations.find(i => i.id === preferredAction.replace('agent:', ''))
+    ? codingAgentIntegrations.find(i => {
+        const key = preferredAction.replace('agent:', '');
+        return i.id === key || (i.id === null && i.provider === key);
+      })
     : null;
 
   const effectivePreference =
@@ -318,9 +321,12 @@ function SolutionActionButton({
           },
         ]),
     ...codingAgentIntegrations
-      .filter(integration => `agent:${integration.id}` !== effectivePreference)
+      .filter(
+        integration =>
+          `agent:${integration.id ?? integration.provider}` !== effectivePreference
+      )
       .map(integration => ({
-        key: `agent:${integration.id}`,
+        key: `agent:${integration.id ?? integration.provider}`,
         label: (
           <Flex gap="md" align="center">
             <PluginIcon
@@ -329,11 +335,13 @@ function SolutionActionButton({
             />
             <div>{t('Send to %s', integration.name)}</div>
             {hasDuplicateNames && (
-              <SmallIntegrationIdText>({integration.id})</SmallIntegrationIdText>
+              <SmallIntegrationIdText>
+                ({integration.id ?? integration.provider})
+              </SmallIntegrationIdText>
             )}
           </Flex>
         ),
-        onAction: () => handleLaunchCodingAgent(integration.id, integration.name),
+        onAction: () => handleLaunchCodingAgent(integration),
         disabled: isLoadingAgents || isLaunchingAgent,
       })),
   ];
@@ -341,7 +349,11 @@ function SolutionActionButton({
   const primaryButtonLabel = isSeerPreferred
     ? t('Find Solution with Seer')
     : hasDuplicateNames
-      ? t('Send to %s (%s)', preferredIntegration!.name, preferredIntegration!.id)
+      ? t(
+          'Send to %s (%s)',
+          preferredIntegration!.name,
+          preferredIntegration!.id ?? preferredIntegration!.provider
+        )
       : t('Send to %s', preferredIntegration!.name);
 
   const primaryButtonProps = isSeerPreferred
@@ -352,8 +364,7 @@ function SolutionActionButton({
         children: primaryButtonLabel,
       }
     : {
-        onClick: () =>
-          handleLaunchCodingAgent(preferredIntegration!.id, preferredIntegration!.name),
+        onClick: () => handleLaunchCodingAgent(preferredIntegration!),
         busy: isLaunchingAgent,
         icon: (
           <PluginIcon
@@ -474,24 +485,19 @@ function AutofixRootCauseDisplay({
     });
   };
 
-  const handleLaunchCodingAgent = (integrationId: string, integrationName: string) => {
-    const targetIntegration = codingAgentIntegrations.find(i => i.id === integrationId);
+  const handleLaunchCodingAgent = (integration: CodingAgentIntegration) => {
+    setPreferredAction(`agent:${integration.id ?? integration.provider}`);
 
-    if (!targetIntegration) {
-      return;
-    }
-
-    setPreferredAction(`agent:${integrationId}`);
-
-    addLoadingMessage(t('Launching %s...', integrationName), {
+    addLoadingMessage(t('Launching %s...', integration.name), {
       duration: 60000,
     });
 
     const instruction = solutionText.trim();
 
     launchCodingAgent({
-      integrationId: targetIntegration.id,
-      agentName: targetIntegration.name,
+      integrationId: integration.id,
+      provider: integration.provider,
+      agentName: integration.name,
       triggerSource: 'root_cause',
       instruction: instruction || undefined,
     });

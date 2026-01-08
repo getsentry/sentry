@@ -310,9 +310,10 @@ export const useAiAutofix = (
 };
 
 export type CodingAgentIntegration = {
-  id: string;
+  id: string | null;
   name: string;
   provider: string;
+  requires_identity?: boolean;
 };
 
 export function useCodingAgentIntegrations() {
@@ -327,7 +328,8 @@ export function useCodingAgentIntegrations() {
 
 interface LaunchCodingAgentParams {
   agentName: string;
-  integrationId: string;
+  integrationId: string | null;
+  provider: string;
   instruction?: string;
   triggerSource?: 'root_cause' | 'solution';
 }
@@ -367,15 +369,22 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
 
   return useMutation<LaunchCodingAgentResponse, RequestError, LaunchCodingAgentParams>({
     mutationFn: (params: LaunchCodingAgentParams) => {
+      const data: Record<string, string | number | undefined> = {
+        run_id: parseInt(runId, 10),
+        trigger_source: params.triggerSource,
+        instruction: params.instruction,
+      };
+
+      if (params.integrationId === null) {
+        data.provider = params.provider;
+      } else {
+        data.integration_id = parseInt(params.integrationId, 10);
+      }
+
       return fetchMutation({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         method: 'POST',
-        data: {
-          integration_id: parseInt(params.integrationId, 10),
-          run_id: parseInt(runId, 10),
-          trigger_source: params.triggerSource,
-          instruction: params.instruction,
-        },
+        data,
       });
     },
     onSuccess: (data, params) => {

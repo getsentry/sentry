@@ -63,6 +63,7 @@ export enum CodingAgentStatus {
 
 export enum CodingAgentProvider {
   CURSOR_BACKGROUND_AGENT = 'cursor_background_agent',
+  GITHUB_COPILOT_AGENT = 'github_copilot_agent',
 }
 
 export interface CodingAgentState {

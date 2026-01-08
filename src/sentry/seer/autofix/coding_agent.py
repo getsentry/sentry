@@ -357,8 +357,9 @@ def _launch_agents_for_repos(
 
 def launch_coding_agents_for_run(
     organization_id: int,
-    integration_id: int,
     run_id: int,
+    integration_id: int | None = None,
+    provider: str | None = None,
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
     instruction: str | None = None,
     user_id: int | None = None,
@@ -368,8 +369,9 @@ def launch_coding_agents_for_run(
 
     Args:
         organization_id: The organization ID
-        integration_id: The coding agent integration ID
         run_id: The autofix run ID
+        integration_id: The coding agent integration ID (for integration-based agents like Cursor)
+        provider: The coding agent provider key (for provider-based agents like GitHub Copilot)
         trigger_source: The trigger source (ROOT_CAUSE or SOLUTION)
         instruction: Optional custom instruction to append to the prompt
         user_id: The user ID (required for per-user token integrations like GitHub Copilot)
@@ -391,7 +393,17 @@ def launch_coding_agents_for_run(
     if not features.has("organizations:seer-coding-agent-integrations", organization):
         raise PermissionDenied("Feature not available")
 
-    integration, installation = _validate_and_get_integration(organization, integration_id)
+    integration = None
+    installation: CodingAgentIntegration
+
+    if provider == "github_copilot":
+        if not features.has("organizations:integrations-github-copilot", organization):
+            raise PermissionDenied("GitHub Copilot is not enabled for this organization")
+        installation = GithubCopilotAgentIntegration(model=None, organization_id=organization.id)
+    elif integration_id is not None:
+        integration, installation = _validate_and_get_integration(organization, integration_id)
+    else:
+        raise ValidationError("Either integration_id or provider must be provided")
 
     autofix_state = _get_autofix_state(run_id, organization)
     if autofix_state is None:
@@ -401,7 +413,8 @@ def launch_coding_agents_for_run(
         "coding_agent.launch_request",
         extra={
             "organization_id": organization.id,
-            "integration_id": integration.id,
+            "integration_id": integration.id if integration else None,
+            "provider": provider or (integration.provider if integration else None),
             "run_id": run_id,
         },
     )
@@ -434,8 +447,8 @@ def launch_coding_agents_for_run(
         "coding_agent.launch_result",
         extra={
             "organization_id": organization.id,
-            "integration_id": integration.id,
-            "provider": integration.provider,
+            "integration_id": integration.id if integration else None,
+            "provider": provider or (integration.provider if integration else None),
             "run_id": run_id,
             "repos_succeeded": len(results["successes"]),
             "repos_failed": len(results["failures"]),
@@ -443,3 +456,114 @@ def launch_coding_agents_for_run(
     )
 
     return results
+
+
+def poll_github_copilot_agents(
+    autofix_state: AutofixState,
+    user_id: int,
+) -> None:
+    from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+    from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
+    from sentry.seer.autofix.utils import (
+        CodingAgentProviderType,
+        CodingAgentResult,
+        CodingAgentStatus,
+        update_coding_agent_state,
+    )
+
+    if not autofix_state.coding_agents:
+        return
+
+    user_access_token: str | None = None
+
+    for agent_id, agent_state in autofix_state.coding_agents.items():
+        if agent_state.provider != CodingAgentProviderType.GITHUB_COPILOT_AGENT:
+            continue
+
+        if agent_state.status != CodingAgentStatus.RUNNING:
+            continue
+
+        decoded = GithubCopilotAgentClient.decode_agent_id(agent_id)
+        if not decoded:
+            logger.warning(
+                "coding_agent.github_copilot.invalid_agent_id",
+                extra={"agent_id": agent_id},
+            )
+            continue
+
+        owner, repo, job_id = decoded
+
+        if user_access_token is None:
+            user_access_token = github_copilot_identity_service.get_access_token_for_user(
+                user_id=user_id
+            )
+            if not user_access_token:
+                logger.warning(
+                    "coding_agent.github_copilot.no_user_token",
+                    extra={"user_id": user_id, "agent_id": agent_id},
+                )
+                return
+
+        try:
+            client = GithubCopilotAgentClient(user_access_token)
+            job_status = client.get_job_status(owner, repo, job_id)
+
+            if job_status.pull_request:
+                pr_number = job_status.pull_request.number
+                pr_url = f"https://github.com/{owner}/{repo}/pull/{pr_number}"
+
+                description = "GitHub Copilot fix"
+                try:
+                    pr_details = client.get_pr_details(owner, repo, pr_number)
+                    description = pr_details.title
+                    if pr_details.body:
+                        description = f"{pr_details.title}\n\n{pr_details.body}"
+                except Exception:
+                    logger.exception(
+                        "coding_agent.github_copilot.pr_details_error",
+                        extra={"owner": owner, "repo": repo, "pr_number": pr_number},
+                    )
+
+                result = CodingAgentResult(
+                    description=description,
+                    repo_provider="github",
+                    repo_full_name=f"{owner}/{repo}",
+                    pr_url=pr_url,
+                )
+
+                is_job_done = job_status.status in ("completed", "succeeded")
+                new_status = (
+                    CodingAgentStatus.COMPLETED if is_job_done else CodingAgentStatus.RUNNING
+                )
+
+                update_coding_agent_state(
+                    agent_id=agent_id,
+                    status=new_status,
+                    result=result,
+                )
+
+                logger.info(
+                    "coding_agent.github_copilot.pr_update",
+                    extra={
+                        "agent_id": agent_id,
+                        "pr_url": pr_url,
+                        "job_status": job_status.status,
+                        "is_job_done": is_job_done,
+                    },
+                )
+
+            elif job_status.status in ("failed", "error"):
+                update_coding_agent_state(
+                    agent_id=agent_id,
+                    status=CodingAgentStatus.FAILED,
+                )
+                logger.info(
+                    "coding_agent.github_copilot.job_failed",
+                    extra={"agent_id": agent_id, "job_status": job_status.status},
+                )
+
+        except Exception:
+            logger.exception(
+                "coding_agent.github_copilot.poll_error",
+                extra={"agent_id": agent_id, "owner": owner, "repo": repo, "job_id": job_id},
+            )

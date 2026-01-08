@@ -7,7 +7,9 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.models import (
     GithubCopilotJobRequest,
     GithubCopilotJobResponse,
+    GithubCopilotJobStatusResponse,
     GithubCopilotPRConfig,
+    GithubPRDetails,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
 
@@ -27,6 +29,17 @@ class GithubCopilotAgentClient(CodingAgentClient):
             "Authorization": f"Bearer {self.token}",
             "User-Agent": "sentry",
         }
+
+    @staticmethod
+    def encode_agent_id(owner: str, repo: str, job_id: str) -> str:
+        return f"{owner}:{repo}:{job_id}"
+
+    @staticmethod
+    def decode_agent_id(agent_id: str) -> tuple[str, str, str] | None:
+        parts = agent_id.split(":", 2)
+        if len(parts) != 3:
+            return None
+        return parts[0], parts[1], parts[2]
 
     def launch(self, *, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         owner = request.repository.owner
@@ -63,7 +76,6 @@ class GithubCopilotAgentClient(CodingAgentClient):
             timeout=60,
         )
 
-        print(f"GitHub Copilot API Response: status={api_response.status_code}, body={api_response.json}, text={api_response.text}")
         logger.info(
             "coding_agent.github_copilot.response",
             extra={
@@ -76,12 +88,59 @@ class GithubCopilotAgentClient(CodingAgentClient):
         )
 
         job_response = GithubCopilotJobResponse.validate(api_response.json)
+        agent_id = self.encode_agent_id(owner, repo, job_response.job_id)
 
         return CodingAgentState(
-            id=job_response.job_id,
+            id=agent_id,
             status=CodingAgentStatus.RUNNING,
             provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
-            name=f"GitHub Copilot Job {job_response.job_id}",
+            name="GitHub Copilot",
             started_at=job_response.created_at,
             agent_url=None,
+        )
+
+    def get_job_status(self, owner: str, repo: str, job_id: str) -> GithubCopilotJobStatusResponse:
+        api_response = self.get(
+            f"/agents/swe/v1/jobs/{owner}/{repo}/{job_id}",
+            headers=self._get_auth_headers(),
+            timeout=30,
+        )
+
+        logger.info(
+            "coding_agent.github_copilot.get_job_status",
+            extra={
+                "owner": owner,
+                "repo": repo,
+                "job_id": job_id,
+                "status_code": api_response.status_code,
+            },
+        )
+
+        return GithubCopilotJobStatusResponse.validate(api_response.json)
+
+    def get_pr_details(self, owner: str, repo: str, pr_number: int) -> GithubPRDetails:
+        api_response = self.get(
+            f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
+            headers={
+                **self._get_auth_headers(),
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            timeout=30,
+        )
+
+        logger.info(
+            "coding_agent.github_copilot.get_pr_details",
+            extra={
+                "owner": owner,
+                "repo": repo,
+                "pr_number": pr_number,
+                "status_code": api_response.status_code,
+            },
+        )
+
+        return GithubPRDetails(
+            title=api_response.json["title"],
+            body=api_response.json.get("body"),
+            state=api_response.json["state"],
         )

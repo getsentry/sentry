@@ -35,6 +35,7 @@ from sentry.seer.autofix.autofix_agent import (
     get_autofix_explorer_state,
     trigger_autofix_explorer,
 )
+from sentry.seer.autofix.coding_agent import poll_github_copilot_agents
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
 from sentry.seer.models import SeerPermissionError
@@ -271,6 +272,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             )
 
             raise PermissionDenied("You are not authorized to access this autofix state")
+
+        if autofix_state and autofix_state.coding_agents and request.user.id:
+            poll_github_copilot_agents(autofix_state, user_id=request.user.id)
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
