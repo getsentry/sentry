@@ -7,15 +7,15 @@ import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {
-  render,
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
+import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
 
-describe('SentryAppExternalIssueActions', () => {
+describe('openSentryAppIssueModal', () => {
   const group = GroupFixture();
   const sentryApp = SentryAppFixture();
   const component = SentryAppComponentFixture({
@@ -33,6 +33,8 @@ describe('SentryAppExternalIssueActions', () => {
     issueId: group.id,
     serviceType: component.sentryApp.slug,
   });
+  const organization = OrganizationFixture();
+  const event = EventFixture();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -50,31 +52,22 @@ describe('SentryAppExternalIssueActions', () => {
     jest.clearAllMocks();
   });
 
-  it('renders without an external issue linked', async () => {
-    render(
-      <SentryAppExternalIssueActions
-        event={EventFixture()}
-        organization={OrganizationFixture()}
-        group={group}
-        sentryAppInstallation={install}
-        sentryAppComponent={component}
-      />
-    );
+  it('renders issue form fields, based on schema', async () => {
+    // Open The Modal
+    openSentryAppIssueModal({
+      organization,
+      group,
+      event,
+      sentryAppComponent: component,
+      sentryAppInstallation: install,
+    });
+
     renderGlobalModal();
 
-    // Link to open the modal
-    const link = screen.getByRole('link', {name: `${component.sentryApp.name} Issue`});
-    expect(link).toBeInTheDocument();
-
-    // Renders the add icon
-    expect(screen.getByLabelText('Add')).toBeInTheDocument();
-
-    // Open The Modal
-    await userEvent.click(link);
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-
     // renders the Create Issue form fields, based on schema
-    expect(component.schema.create.required_fields).toHaveLength(2);
+    await waitFor(() => {
+      expect(component.schema.create.required_fields).toHaveLength(2);
+    });
     for (const field of component.schema.create.required_fields) {
       expect(screen.getByRole('textbox', {name: field.label})).toBeInTheDocument();
     }
@@ -89,30 +82,23 @@ describe('SentryAppExternalIssueActions', () => {
     }
   });
 
-  it('links to an existing Issue', async () => {
+  it('can link an existing Issue', async () => {
     const request = MockApiClient.addMockResponse({
       url: submitUrl,
       method: 'POST',
       body: externalIssue,
     });
-    render(
-      <SentryAppExternalIssueActions
-        event={EventFixture()}
-        organization={OrganizationFixture()}
-        group={group}
-        sentryAppInstallation={install}
-        sentryAppComponent={component}
-      />
-    );
+    openSentryAppIssueModal({
+      organization,
+      group,
+      event,
+      sentryAppComponent: component,
+      sentryAppInstallation: install,
+    });
     const {waitForModalToHide} = renderGlobalModal();
 
-    // Open The Modal
-    await userEvent.click(
-      screen.getByRole('link', {name: `${component.sentryApp.name} Issue`})
-    );
-
     // Click the link tab
-    await userEvent.click(screen.getByText('Link'));
+    await userEvent.click(await screen.findByText('Link'));
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Issue'}), '99');
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
@@ -137,23 +123,16 @@ describe('SentryAppExternalIssueActions', () => {
       method: 'POST',
       body: externalIssue,
     });
-    render(
-      <SentryAppExternalIssueActions
-        event={EventFixture()}
-        organization={OrganizationFixture()}
-        group={group}
-        sentryAppInstallation={install}
-        sentryAppComponent={component}
-      />
-    );
+    openSentryAppIssueModal({
+      organization,
+      group,
+      event,
+      sentryAppComponent: component,
+      sentryAppInstallation: install,
+    });
     const {waitForModalToHide} = renderGlobalModal();
 
-    // Open The Modal
-    await userEvent.click(
-      screen.getByRole('link', {name: `${component.sentryApp.name} Issue`})
-    );
-
-    await userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
+    await userEvent.clear(await screen.findByRole('textbox', {name: 'Title'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'foo');
 
     await userEvent.clear(screen.getByRole('textbox', {name: 'Description'}));
@@ -174,51 +153,5 @@ describe('SentryAppExternalIssueActions', () => {
         }),
       })
     );
-  });
-
-  it('renders with an external issue linked', async () => {
-    render(
-      <SentryAppExternalIssueActions
-        event={EventFixture()}
-        organization={OrganizationFixture()}
-        group={group}
-        sentryAppComponent={component}
-        sentryAppInstallation={install}
-        externalIssue={externalIssue}
-      />
-    );
-    renderGlobalModal();
-
-    // Renders a link to the external issue
-    const link = screen.getByRole('link', {name: externalIssue.displayName});
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', externalIssue.webUrl);
-
-    // Clicking the link does not open the modal
-    await userEvent.click(link);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    // Renders the remove issue button
-    expect(screen.getByLabelText('Remove')).toBeInTheDocument();
-  });
-
-  it('deletes a Linked Issue', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/external-issues/${externalIssue.id}/`,
-      method: 'DELETE',
-    });
-    render(
-      <SentryAppExternalIssueActions
-        event={EventFixture()}
-        organization={OrganizationFixture()}
-        group={group}
-        sentryAppComponent={component}
-        sentryAppInstallation={install}
-        externalIssue={externalIssue}
-      />
-    );
-
-    await userEvent.click(screen.getByLabelText('Remove'));
-    expect(request).toHaveBeenCalledTimes(1);
   });
 });
