@@ -320,6 +320,7 @@ function ExplorerPanel() {
     [runId, langfuseUrl]
   );
 
+  // Generic feedback handler. Block components have separate thumbs up/down buttons.
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
       openFeedbackForm({
