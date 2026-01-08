@@ -529,7 +529,7 @@ class EnhancementsConfig:
 
         stacktrace_component = StacktraceGroupingComponent(
             values=frame_components,
-            hint=rust_stacktrace_results.hint,
+            hint=_get_hint_for_stacktrace(rust_stacktrace_results, self.custom_rule_strings),
             contributes=rust_stacktrace_results.contributes,
         )
 
