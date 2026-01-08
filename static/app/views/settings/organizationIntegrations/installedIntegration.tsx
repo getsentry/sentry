@@ -222,7 +222,7 @@ function IntegrationStatus(
 ) {
   const theme = useTheme();
   const {status, hideTooltip, ...p} = props;
-  const color = status === 'active' ? theme.success : theme.colors.gray400;
+  const color = status === 'active' ? theme.tokens.content.success : theme.colors.gray400;
   const inner = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />

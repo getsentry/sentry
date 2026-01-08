@@ -270,7 +270,7 @@ const Title = styled('p')`
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
-  color: ${p => p.theme.success};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const Features = styled('div')`

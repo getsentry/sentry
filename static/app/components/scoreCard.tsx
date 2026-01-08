@@ -63,7 +63,7 @@ export function ScoreCard({
 function getTrendColor(p: TrendProps & {theme: Theme}) {
   switch (p.trendStatus) {
     case 'good':
-      return p.theme.successText;
+      return p.theme.tokens.content.success;
     case 'bad':
       return p.theme.errorText;
     default:

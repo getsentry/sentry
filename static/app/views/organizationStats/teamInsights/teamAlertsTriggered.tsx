@@ -113,7 +113,7 @@ function TeamAlertsTriggered({
     }
 
     return (
-      <SubText color={diff <= 0 ? theme.successText : theme.errorText}>
+      <SubText color={diff <= 0 ? theme.tokens.content.success : theme.errorText}>
         {formatPercentage(Math.abs(diff / weeklyAvg), 0)}
         <PaddedIconArrow direction={diff <= 0 ? 'down' : 'up'} size="xs" />
       </SubText>

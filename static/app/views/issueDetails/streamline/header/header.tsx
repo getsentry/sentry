@@ -364,7 +364,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     background: linear-gradient(
       to right,
       ${p => p.theme.tokens.background.primary},
-      ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
+      ${p => Color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
     );
   }
   &:after {
