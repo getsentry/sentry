@@ -47,7 +47,7 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
         response = self.get_error_response(
             self.organization.slug,
         )
-        assert response.data["detail"] == "Missing required parameter 'project_id'"
+        assert response.data["detail"] == "Invalid project_id"
 
     def test_endpoint_return_correct_counts(self) -> None:
         response_data = self.do_success_request()
@@ -84,3 +84,21 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
             "totalOnDemandAlertSpecs": 53,
             "maxAllowed": 50,
         }
+
+    def test_idor_project_from_different_org(self) -> None:
+        """Regression test: Cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug, project_id=other_project.id, status_code=403
+            )
+
+    def test_negative_project_id_rejected(self) -> None:
+        """Regression test: project_id=-1 (ALL_ACCESS_PROJECT_ID) should be rejected."""
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug, project_id=-1, status_code=400
+            )
+            assert response.data["detail"] == "Invalid project_id"
