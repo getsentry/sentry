@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("preprod", "0019_add_tooling_version_fields"),
+        ("preprod", "0020_add_preprod_artifact_date_added_index"),
     ]
 
     operations = [
