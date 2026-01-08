@@ -11,7 +11,7 @@ import {
 import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTERS,
-  DASHBOARD_TITLE,
+  DETAILS_DASHBOARD_TITLE,
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
@@ -309,7 +309,7 @@ const TRANSACTIONS_TABLE: Widget = {
 export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: DASHBOARD_TITLE,
+  title: DETAILS_DASHBOARD_TITLE,
   filters: {
     globalFilter: [
       {
