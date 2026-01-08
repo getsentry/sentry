@@ -54,10 +54,10 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
           <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="last-triggered">
+          <SimpleTable.RowCell data-column-name="action-filters">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="action-filters">
+          <SimpleTable.RowCell data-column-name="triggered-by">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
