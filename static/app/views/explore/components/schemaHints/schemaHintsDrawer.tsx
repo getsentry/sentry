@@ -245,7 +245,11 @@ const CheckboxLabelContainer = styled('div')`
 const CheckboxLabel = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledMultipleCheckbox = styled(MultipleCheckbox)`
@@ -278,8 +282,11 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   }
 
   & > label > span {
+    display: block;
     width: 100%;
-    ${p => p.theme.overflowEllipsis};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 

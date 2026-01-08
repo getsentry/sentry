@@ -162,12 +162,20 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
 const IssueTitle = styled('div')`
   font-size: 1.1em;
   font-weight: ${p => p.theme.fontWeight.bold};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IssueDescription = styled('div')`
   margin-top: ${space(1)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Wrapper = styled('div')`

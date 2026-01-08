@@ -265,7 +265,10 @@ const Header = styled('div')<{isFloating: boolean}>`
 `;
 
 const FileName = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

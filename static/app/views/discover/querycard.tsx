@@ -102,7 +102,11 @@ const QueryCardHeader = styled('div')`
 
 const QueryTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
@@ -116,7 +120,11 @@ const QueryDetail = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   line-height: 1.5;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const QueryCardBody = styled('div')`
@@ -135,9 +143,12 @@ const QueryCardFooter = styled('div')`
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  display: grid;
   grid-column-gap: ${space(1)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.primary};
 `;
 

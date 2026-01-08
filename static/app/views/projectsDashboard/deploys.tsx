@@ -94,5 +94,9 @@ const DeployRows = styled('div')`
 
 const DeployTime = styled('div')`
   color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

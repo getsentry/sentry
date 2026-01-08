@@ -142,7 +142,11 @@ const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
   text-decoration-color: ${p => p.theme.tokens.border.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 SavedEntityTable.CellName = function CellName({
@@ -297,5 +301,9 @@ const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
 `;
 
 const OverflowEllipsis = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

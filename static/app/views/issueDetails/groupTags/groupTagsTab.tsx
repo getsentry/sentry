@@ -226,12 +226,15 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
 `;
 
 const TagBarLabel = styled('div')`
-  display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSize.md};
   position: relative;
   flex-grow: 1;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TagBarCount = styled('div')`

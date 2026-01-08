@@ -144,7 +144,11 @@ const TooltipWrapper = styled('div')`
 const StyledText = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   max-width: 114px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledTag = styled(Tag)`

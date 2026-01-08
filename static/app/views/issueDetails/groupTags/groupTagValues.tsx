@@ -411,13 +411,19 @@ function RightAlignColumn(props: FlexProps) {
 }
 
 const NameColumn = styled(Column)`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   min-width: 320px;
 `;
 
 const NameWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

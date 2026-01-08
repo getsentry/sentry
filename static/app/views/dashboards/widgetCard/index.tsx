@@ -550,6 +550,10 @@ const ErrorCard = styled(Placeholder)`
 `;
 
 export const WidgetDescription = styled('small')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.subText};
 `;
