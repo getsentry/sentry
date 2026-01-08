@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.constants import SEER_DEFAULT_CODE_REVIEW_TRIGGERS, DataCategory, ObjectStatus
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, DataCategory, ObjectStatus
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.prevent.models import PreventAIConfiguration
@@ -574,7 +574,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp.status_code == 200
         assert resp.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": SEER_DEFAULT_CODE_REVIEW_TRIGGERS,
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS + ["on_command_phrase"],
         }
 
     @patch(
@@ -598,7 +598,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp.status_code == 200
         assert resp.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": SEER_DEFAULT_CODE_REVIEW_TRIGGERS,
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS + ["on_command_phrase"],
         }
 
     @patch(

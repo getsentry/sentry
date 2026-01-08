@@ -16,7 +16,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.constants import SEER_DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -216,7 +216,7 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
                 return Response(
                     {
                         "enabledCodeReview": True,
-                        "codeReviewTriggers": SEER_DEFAULT_CODE_REVIEW_TRIGGERS,
+                        "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS + ["on_command_phrase"],
                     }
                 )
 
