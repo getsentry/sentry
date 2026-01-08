@@ -30,7 +30,7 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
     >
       <SimpleTable.RowCell>
         <Flex gap="md">
-          <Flex align="center" flexShrink="0" width="20px" height="20px">
+          <Flex align="center" flexShrink={0} width="20px" height="20px">
             <Checkbox
               checked={selected}
               onChange={() => onSelect(detector.id)}
@@ -68,7 +68,7 @@ export function DetectorListRowSkeleton() {
     <DetectorSimpleTableRow>
       <SimpleTable.RowCell>
         <Flex gap="md" width="100%">
-          <Flex align="center" flexShrink="0" width="20px" height="20px" />
+          <Flex align="center" flexShrink={0} width="20px" height="20px" />
           <Container width="100%">
             <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
             <Placeholder height="16px" width="20%" />

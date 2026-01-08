@@ -19,7 +19,7 @@ export function SelectAllHeaderCheckbox({
   return (
     <Flex
       align="center"
-      flexShrink="0"
+      flexShrink={0}
       width="20px"
       height="20px"
       className={className}

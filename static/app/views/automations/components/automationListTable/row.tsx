@@ -47,7 +47,7 @@ export function AutomationListRow({
       <SimpleTable.RowCell>
         <Flex gap="md" align="center">
           {canEditAutomations && (
-            <Flex align="center" flexShrink="0" width="20px" height="20px">
+            <Flex align="center" flexShrink={0} width="20px" height="20px">
               <Checkbox
                 checked={selected}
                 onChange={() => onSelect(automation.id)}
