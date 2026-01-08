@@ -226,6 +226,10 @@ def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
     )
 
 
+class SpecificDetectorNotFound(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class EventDetectors:
     issue_stream_detector: Detector | None = None
@@ -291,7 +295,7 @@ def get_detectors_for_event_data(
     if detector is None and isinstance(event_data.event, GroupEvent):
         try:
             detector = _get_detector_for_event(event_data.event)
-        except Detector.DoesNotExist:
+        except (Detector.DoesNotExist, SpecificDetectorNotFound):
             pass
 
     try:
@@ -309,9 +313,11 @@ def _get_detector_for_event(event: GroupEvent) -> Detector:
 
     try:
         if issue_occurrence is not None:
-            detector = Detector.objects.get(
+            detector = Detector.objects.filter(
                 id=issue_occurrence.evidence_data.get("detector_id", None)
-            )
+            ).first()
+            if detector is None:
+                raise SpecificDetectorNotFound
         else:
             detector = Detector.get_error_detector_for_project(event.group.project_id)
     except Detector.DoesNotExist:

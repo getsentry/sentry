@@ -2,7 +2,7 @@ import unittest
 import uuid
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.utils import timezone
@@ -895,7 +895,8 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.detectors == {self.issue_stream_detector, self.detector}
 
     @override_options({"workflow_engine.exclude_issue_stream_detector": False})
-    def test_event_without_detector(self) -> None:
+    @patch("sentry.workflow_engine.processors.detector.logger")
+    def test_event_without_detector(self, mock_logger: MagicMock) -> None:
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=1,
@@ -918,6 +919,9 @@ class TestGetDetectorsForEvent(TestCase):
         assert result is not None
         assert result.preferred_detector == self.issue_stream_detector
         assert result.detectors == {self.issue_stream_detector}
+
+        # assert no exception is logged
+        mock_logger.exception.assert_not_called()
 
     def test_no_detectors(self) -> None:
         self.issue_stream_detector.delete()
