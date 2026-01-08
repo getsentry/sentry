@@ -7,9 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', () => {
-  let endpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
-    filteredEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
-    newIssuesEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>;
+  let mockFetchIssues: ReturnType<typeof MockApiClient.addMockResponse>;
 
   const organization = OrganizationFixture({
     features: ['discover-basic'],
@@ -17,18 +15,8 @@ describe('ProjectDetail > ProjectIssues', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    endpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
-      body: [GroupFixture(), GroupFixture({id: '2'})],
-    });
-
-    filteredEndpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=7d`,
-      body: [GroupFixture(), GroupFixture({id: '2'})],
-    });
-
-    newIssuesEndpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=5&query=is%3Aunresolved%20is%3Afor_review&sort=freq&statsPeriod=14d`,
+    mockFetchIssues = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
       body: [GroupFixture(), GroupFixture({id: '2'})],
     });
 
@@ -55,7 +43,7 @@ describe('ProjectDetail > ProjectIssues', () => {
 
   it('renders a list', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
+      url: '/organizations/org-slug/issues/',
       body: [GroupFixture(), GroupFixture({id: '2'})],
     });
     render(
@@ -125,7 +113,14 @@ describe('ProjectDetail > ProjectIssues', () => {
     await userEvent.click(newIssuesSegment);
     await waitFor(() => expect(newIssuesSegment).toBeChecked());
 
-    expect(newIssuesEndpointMock).toHaveBeenCalled();
+    expect(mockFetchIssues).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'error.unhandled:true is:unresolved',
+        }),
+      })
+    );
   });
 
   it('renders a link to Discover', async () => {
@@ -176,8 +171,16 @@ describe('ProjectDetail > ProjectIssues', () => {
       }
     );
 
-    expect(endpointMock).toHaveBeenCalledTimes(0);
-    expect(filteredEndpointMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockFetchIssues).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'error.unhandled:true is:unresolved',
+          }),
+        })
+      );
+    });
 
     const link = screen.getByLabelText('Open in Issues');
     expect(link).toBeInTheDocument();

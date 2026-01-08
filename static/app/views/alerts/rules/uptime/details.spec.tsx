@@ -28,7 +28,7 @@ describe('UptimeAlertDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?limit=1&project=2&query=detector%3A3`,
+      url: '/organizations/org-slug/issues/',
       body: [],
     });
     MockApiClient.addMockResponse({

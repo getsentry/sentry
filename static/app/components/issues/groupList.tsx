@@ -1,10 +1,8 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
-import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
@@ -17,9 +15,15 @@ import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
+import type {Group, PriorityLevel} from 'sentry/types/group';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -110,23 +114,8 @@ function GroupList({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [errorData, setErrorData] = useState<{detail: string} | null>(null);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [pageLinks, setPageLinks] = useState<string | null>(null);
   const [memberList, setMemberList] = useState<
     ReturnType<typeof indexMembersByProject> | undefined
-  >(undefined);
-
-  const previousPropsRef = useRef<
-    | {
-        orgSlug: string;
-        endpointPath?: string;
-        query?: string;
-        queryParams?: Record<string, number | string | string[] | undefined | null>;
-      }
-    | undefined
   >(undefined);
 
   const getQueryParams = useCallback(() => {
@@ -142,13 +131,6 @@ function GroupList({
     () => queryParams ?? getQueryParams(),
     [getQueryParams, queryParams]
   );
-
-  const getGroupListEndpoint = useCallback(() => {
-    // TODO: Split up the query parameters and the URL. This will make it much easier to mock the endpoint.
-    const path = endpointPath ?? `/organizations/${organization.slug}/issues/`;
-
-    return `${path}?${qs.stringify(computedQueryParams)}`;
-  }, [computedQueryParams, endpointPath, organization.slug]);
 
   const handleCursorChange = useCallback(
     (
@@ -178,136 +160,142 @@ function GroupList({
     [navigate]
   );
 
-  const onGroupChange = useCallback(() => {
-    const storeGroups = GroupStore.getAllItems() as Group[];
-    setGroups(prevGroups =>
-      isEqual(storeGroups, prevGroups) ? prevGroups : storeGroups
-    );
-  }, []);
-
-  const fetchData = useCallback(async () => {
-    GroupStore.loadInitialData([]);
-    api.clear();
-
-    setLoading(true);
-    setError(false);
-    setErrorData(null);
-
+  useEffect(() => {
     fetchOrgMembers(api, organization.slug).then(members => {
       setMemberList(indexMembersByProject(members));
     });
+  }, [api, organization.slug]);
 
-    const endpoint = getGroupListEndpoint();
-    const parsedQuery = parseSearch(String(computedQueryParams.query ?? ''));
-    const hasLogicBoolean = parsedQuery
-      ? treeResultLocator<boolean>({
-          tree: parsedQuery,
-          noResultValue: false,
-          visitorTest: ({token, returnResult}) => {
-            return token.type === Token.LOGIC_BOOLEAN ? returnResult(true) : null;
-          },
-        })
-      : false;
+  const parsedQuery = useMemo(
+    () => parseSearch(String(computedQueryParams.query ?? '')),
+    [computedQueryParams.query]
+  );
 
-    // Check if the alert rule query has AND or OR
-    // logic queries haven't been implemented for issue search yet
-    if (hasLogicBoolean) {
-      setError(true);
-      setErrorData({detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR});
-      setLoading(false);
-      return;
-    }
+  // Issues API does not support AND/OR statements
+  const hasLogicBoolean = useMemo(
+    () =>
+      parsedQuery
+        ? treeResultLocator<boolean>({
+            tree: parsedQuery,
+            noResultValue: false,
+            visitorTest: ({token, returnResult}) => {
+              return token.type === Token.LOGIC_BOOLEAN ? returnResult(true) : null;
+            },
+          })
+        : false,
+    [parsedQuery]
+  );
 
-    try {
-      const [data, , jqXHR] = await api.requestPromise(endpoint, {
-        includeAllArgs: true,
+  const queryClient = useQueryClient();
+  const queryKey: ApiQueryKey = [
+    endpointPath ?? `/organizations/${organization.slug}/issues/`,
+    {query: computedQueryParams},
+  ];
+  const {
+    data: groupsData,
+    dataUpdatedAt,
+    isPending,
+    isError: isQueryError,
+    isSuccess: isQuerySuccess,
+    error: queryError,
+    getResponseHeader,
+    refetch,
+  } = useApiQuery<Group[]>(queryKey, {
+    staleTime: 0,
+    enabled: !hasLogicBoolean,
+  });
+
+  const updateQueryCacheAssigneeChange = (
+    groupId: string,
+    newAssignee: AssignableEntity | null
+  ) => {
+    setApiQueryData<Group[]>(queryClient, queryKey, oldData => {
+      return oldData?.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            assignedTo: newAssignee
+              ? {
+                  id: newAssignee.id,
+                  name: newAssignee.assignee.name,
+                  type: newAssignee.type,
+                }
+              : null,
+          };
+        }
+        return group;
       });
+    });
+  };
 
-      GroupStore.add(data);
-      const nextGroups = GroupStore.getAllItems() as Group[];
-      const nextPageLinks = jqXHR?.getResponseHeader('Link') ?? null;
+  const updateQueryCachePriorityChange = (
+    groupId: string,
+    newPriority: PriorityLevel
+  ) => {
+    setApiQueryData<Group[]>(queryClient, queryKey, oldData => {
+      return oldData?.map(group => {
+        if (group.id === groupId) {
+          return {...group, priority: newPriority};
+        }
+        return group;
+      });
+    });
+  };
 
-      setGroups(prevGroups =>
-        isEqual(prevGroups, nextGroups) ? prevGroups : nextGroups
-      );
-      setError(false);
-      setErrorData(null);
-      setLoading(false);
-      setPageLinks(nextPageLinks);
+  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const groups = groupsData ?? [];
+  const errorDetail = hasLogicBoolean
+    ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
+    : (() => {
+        const detail = (queryError as RequestError | undefined)?.responseJSON?.detail;
+        if (typeof detail === 'string') {
+          return detail;
+        }
+        if (detail?.message) {
+          return detail.message;
+        }
+        return (queryError as RequestError | undefined)?.message ?? null;
+      })();
+  const errorData = errorDetail ? {detail: errorDetail} : null;
+  const hasError = hasLogicBoolean || isQueryError;
+  const loading = !hasLogicBoolean && isPending;
 
-      onFetchSuccess?.(
-        {
-          error: false,
-          errorData: null,
-          groups: nextGroups,
-          loading: false,
-          pageLinks: nextPageLinks,
-          memberList,
-        },
-        handleCursorChange
-      );
-    } catch (fetchError: any) {
-      setError(true);
-      setErrorData(fetchError.responseJSON);
-      setLoading(false);
+  const notifyFetchSuccess = useEffectEvent(() => {
+    onFetchSuccess?.(
+      {
+        error: false,
+        errorData: null,
+        groups: groupsData ?? [],
+        loading: false,
+        pageLinks,
+        memberList,
+      },
+      handleCursorChange
+    );
+  });
+
+  useEffect(() => {
+    if (isQuerySuccess) {
+      notifyFetchSuccess();
     }
   }, [
-    api,
-    computedQueryParams.query,
-    getGroupListEndpoint,
-    handleCursorChange,
-    memberList,
-    onFetchSuccess,
-    organization.slug,
+    isQuerySuccess,
+    // Sometimes data is already cached, so we need to include this in order to
+    // trigger onFetchSuccess when new data is shown
+    dataUpdatedAt,
   ]);
-
-  useEffect(() => {
-    const ignoredQueryParams = ['end'];
-    const prev = previousPropsRef.current;
-    const queryChanged =
-      !prev ||
-      !isEqual(
-        omit(prev.queryParams ?? {}, ignoredQueryParams),
-        omit(computedQueryParams ?? {}, ignoredQueryParams)
-      );
-    const shouldFetch =
-      !prev ||
-      prev.orgSlug !== organization.slug ||
-      prev.endpointPath !== endpointPath ||
-      prev.query !== query ||
-      queryChanged;
-
-    if (shouldFetch) {
-      fetchData();
-      previousPropsRef.current = {
-        orgSlug: organization.slug,
-        endpointPath,
-        query,
-        queryParams: computedQueryParams,
-      };
-    }
-  }, [computedQueryParams, endpointPath, fetchData, organization.slug, query]);
-
-  useEffect(() => {
-    const unsubscribe = GroupStore.listen(onGroupChange, undefined);
-
-    return () => {
-      unsubscribe();
-      GroupStore.reset();
-    };
-  }, [onGroupChange]);
 
   const columns: GroupListColumn[] = useMemo(
     () => [...withColumns, 'firstSeen', 'lastSeen'],
     [withColumns]
   );
 
-  if (error) {
+  if (hasError) {
     if (typeof renderErrorMessage === 'function' && errorData) {
-      return renderErrorMessage(errorData, fetchData);
+      return renderErrorMessage(errorData, refetch);
     }
 
-    return <LoadingError onRetry={fetchData} />;
+    return <LoadingError onRetry={refetch} />;
   }
 
   if (!loading && groups.length === 0) {
@@ -341,15 +329,16 @@ function GroupList({
                   <Placeholder height="50px" />
                 </GroupPlaceholder>
               ))
-            : groups.map(({id, project}) => {
-                const members = memberList?.hasOwnProperty(project.slug)
-                  ? memberList[project.slug]
+            : groups.map(group => {
+                const members = memberList?.hasOwnProperty(group.project.slug)
+                  ? memberList[group.project.slug]
                   : undefined;
 
                 return (
                   <StreamGroup
-                    key={id}
-                    id={id}
+                    key={group.id}
+                    id={group.id}
+                    group={group}
                     canSelect={canSelectGroups}
                     withChart={withChart}
                     withColumns={columns}
@@ -361,6 +350,12 @@ function GroupList({
                     queryFilterDescription={queryFilterDescription}
                     source={source}
                     query={query}
+                    onAssigneeChange={newAssignee =>
+                      updateQueryCacheAssigneeChange(group.id, newAssignee)
+                    }
+                    onPriorityChange={newPriority =>
+                      updateQueryCachePriorityChange(group.id, newPriority)
+                    }
                   />
                 );
               })}
