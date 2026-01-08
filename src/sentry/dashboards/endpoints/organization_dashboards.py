@@ -474,9 +474,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         render_pre_built_dashboard = True
         if (
             filter_by
-            and filter_by in {"onlyFavorites", "owned"}
+            and filter_by in {"onlyFavorites", "owned", "excludePrebuilt"}
             or should_filter_by_prebuilt_ids
-            or filter_by == "excludePrebuilt"
         ):
             render_pre_built_dashboard = False
         elif pin_by and pin_by == "favorites":
