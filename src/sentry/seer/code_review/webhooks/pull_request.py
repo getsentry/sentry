@@ -14,10 +14,9 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.utils import metrics
 
-from ..utils import _get_target_commit_sha
+from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha
 from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
@@ -79,12 +78,12 @@ WHITELISTED_ACTIONS = {
 }
 
 
-def _get_trigger_for_action(action: PullRequestAction) -> CodeReviewTrigger:
+def _get_trigger_for_action(action: PullRequestAction) -> SeerCodeReviewTrigger:
     match action:
         case PullRequestAction.OPENED | PullRequestAction.READY_FOR_REVIEW:
-            return CodeReviewTrigger.ON_READY_FOR_REVIEW
+            return SeerCodeReviewTrigger.ON_READY_FOR_REVIEW
         case PullRequestAction.SYNCHRONIZE:
-            return CodeReviewTrigger.ON_NEW_COMMIT
+            return SeerCodeReviewTrigger.ON_NEW_COMMIT
         case _:
             raise ValueError(f"Unsupported pull request action: {action}")
 

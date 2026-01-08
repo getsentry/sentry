@@ -620,7 +620,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase", "on_ready_for_review"],
+            code_review_triggers=["on_new_commit"],
         )
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -632,10 +632,11 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == {
-            "enabledCodeReview": True,
-            "codeReviewTriggers": ["on_command_phrase", "on_ready_for_review"],
-        }
+        assert resp.data["enabledCodeReview"] is True
+        triggers = resp.data["codeReviewTriggers"]
+        assert "on_new_commit" in triggers
+        assert "on_command_phrase" in triggers
+        assert len(triggers) == 2
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -658,7 +659,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -715,10 +716,11 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params1, "test-secret")
         resp1 = self.client.get(url, params1, HTTP_AUTHORIZATION=auth)
         assert resp1.status_code == 200
-        assert resp1.data == {
-            "enabledCodeReview": True,
-            "codeReviewTriggers": ["on_new_commit"],
-        }
+        assert resp1.data["enabledCodeReview"] is True
+        triggers = resp1.data["codeReviewTriggers"]
+        assert "on_new_commit" in triggers
+        assert "on_command_phrase" in triggers
+        assert len(triggers) == 2
 
         # Request for org2 should return defaults (no settings created)
         params2 = {
@@ -864,7 +866,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-eligibility")
@@ -905,7 +907,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         OrganizationContributors.objects.create(
@@ -954,7 +956,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         contributor = OrganizationContributors.objects.create(
@@ -1021,7 +1023,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo2,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
         OrganizationContributors.objects.create(
             organization=org2,
