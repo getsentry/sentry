@@ -23,7 +23,11 @@ describe('DatasetSelector', () => {
       </WidgetBuilderProvider>
     );
 
-    await userEvent.click(await screen.findByLabelText('Issues'));
+    // Open the CompactSelect menu
+    await userEvent.click(await screen.findByText('Dataset'));
+
+    // Find and click on the Issues option
+    await userEvent.click(await screen.findByRole('option', {name: 'Issues'}));
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -50,17 +54,21 @@ describe('DatasetSelector', () => {
       }
     );
 
-    const transactionsRadio = screen.getByRole('radio', {name: /transactions/i});
-    expect(transactionsRadio).toBeDisabled();
+    // Open the CompactSelect menu
+    await userEvent.click(await screen.findByText('Dataset'));
+
+    // Find the Transactions option and verify it's disabled
+    const transactionsOption = await screen.findByText('Transactions');
+    expect(transactionsOption.closest('[aria-disabled="true"]')).not.toBeNull();
 
     // Hover on the disabled transactions dataset to show tooltip
-    await userEvent.hover(transactionsRadio);
+    await userEvent.hover(transactionsOption);
 
     expect(
       await screen.findByText(/This dataset is no longer supported./i)
     ).toBeInTheDocument();
 
-    // Click on the "Spans" link in the tooltip
+    // Click on the "spans" link in the tooltip
     const spansLink = screen.getByRole('link', {name: 'spans'});
     await userEvent.click(spansLink);
 
@@ -90,11 +98,15 @@ describe('DatasetSelector', () => {
       }
     );
 
-    const transactionsRadio = screen.getByRole('radio', {name: /transactions/i});
-    expect(transactionsRadio).toBeEnabled();
+    // Open the CompactSelect menu
+    await userEvent.click(await screen.findByText('Dataset'));
 
-    // Verify transactions dataset can be selected
-    await userEvent.click(transactionsRadio);
+    // Find the Transactions option and verify it's not disabled
+    const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
+    expect(transactionsOption.closest('[aria-disabled="true"]')).toBeNull();
+
+    // Select transactions dataset
+    await userEvent.click(transactionsOption);
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
