@@ -74,10 +74,12 @@ export function IssueListSeerComboBox() {
     ?.join(' ')
     ?.trim();
 
-  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
-  } else if (queryDetails?.queryToUse) {
+  } else if (!inputValue && queryDetails?.queryToUse) {
     initialSeerQuery = queryDetails.queryToUse;
   }
 

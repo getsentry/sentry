@@ -3,6 +3,7 @@ import {
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import {SavedSearchType} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -48,18 +49,18 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
     organization.features.includes('gen-ai-features') &&
     organization.features.includes('gen-ai-search-agent-translate');
 
-  const providerProps = {
-    initialQuery: query || '',
-    filterKeys: getFilterKeys(),
-    filterKeySections: getFilterKeySections(),
-    getTagValues,
-    searchSource: 'main_search' as const,
-    enableAISearch: areAiFeaturesAllowed,
-    onSearch,
-  };
-
   return (
-    <SearchQueryBuilderProvider {...providerProps}>
+    <SearchQueryBuilderProvider
+      initialQuery={query || ''}
+      filterKeys={getFilterKeys()}
+      filterKeySections={getFilterKeySections()}
+      getTagValues={getTagValues}
+      searchSource="main_search"
+      enableAISearch={areAiFeaturesAllowed}
+      onSearch={onSearch}
+      recentSearches={SavedSearchType.ISSUE}
+      disallowLogicalOperators
+    >
       <IssueSearchBar query={query} onSearch={onSearch} className={className} />
     </SearchQueryBuilderProvider>
   );
