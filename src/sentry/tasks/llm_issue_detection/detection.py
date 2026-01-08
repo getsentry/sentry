@@ -23,7 +23,7 @@ from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
 )
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
@@ -260,6 +260,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             break
 
         if not mark_trace_as_processed(trace.trace_id):
+            metrics.incr("llm_issue_detection.trace.skipped")
             continue
 
         logger.info(
