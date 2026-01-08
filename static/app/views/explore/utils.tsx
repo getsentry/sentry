@@ -666,6 +666,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
   [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
+  [TraceItemDataset.PREPROD]: undefined,
 };
 
 /**
