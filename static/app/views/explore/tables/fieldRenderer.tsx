@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import {Text} from '@sentry/scraps/text';
 
@@ -38,8 +37,10 @@ import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
+import {
+  getSimilarEventsUrl,
+  isPartialSpanOrTraceData,
+} from 'sentry/views/explore/tables/tracesTable/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -134,11 +135,7 @@ function BaseExploreFieldRenderer({
     );
   }, [projects]);
 
-  const olderThan30Days = useMemo(() => {
-    const currentDate = moment();
-    const timestampDate = moment(data.timestamp);
-    return currentDate.diff(timestampDate, 'days') > 30;
-  }, [data.timestamp]);
+  const project = projectsMap[data.project];
 
   if (!defined(column)) {
     return nullableValue(null);
@@ -162,7 +159,7 @@ function BaseExploreFieldRenderer({
   }
 
   if (field === 'trace') {
-    if (olderThan30Days) {
+    if (isPartialSpanOrTraceData(data.timestamp)) {
       const queryString = new MutableSearch('');
 
       if (data?.['span.name']) {
@@ -172,23 +169,6 @@ function BaseExploreFieldRenderer({
       if (data?.['span.description']) {
         queryString.addFilterValue('span.description', data['span.description']);
       }
-
-      const project = projectsMap[data.project];
-      const target = getExploreUrl({
-        organization,
-        mode: Mode.SAMPLES,
-        query: queryString.formatString(),
-        table: 'trace',
-        selection: {
-          ...selection,
-          projects: defined(project?.id)
-            ? [parseInt(project.id, 10)]
-            : selection.projects,
-          datetime: {start: null, end: null, utc: null, period: '24h'},
-        },
-        referrer: 'partial-trace',
-      });
-
       return (
         <Tooltip
           isHoverable
@@ -196,7 +176,21 @@ function BaseExploreFieldRenderer({
           title={
             <Text>
               {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
-                similarTraces: <Link to={target}>{t('View similar traces')}</Link>,
+                similarTraces: (
+                  <Link
+                    to={getSimilarEventsUrl({
+                      queryString: queryString.formatString(),
+                      table: 'trace',
+                      organization,
+                      projectIds: defined(project?.id)
+                        ? [parseInt(project.id, 10)]
+                        : selection.projects,
+                      selection,
+                    })}
+                  >
+                    {t('View similar traces')}
+                  </Link>
+                ),
               })}
             </Text>
           }
@@ -221,7 +215,7 @@ function BaseExploreFieldRenderer({
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
 
-    if (olderThan30Days) {
+    if (isPartialSpanOrTraceData(data.timestamp)) {
       const queryString = new MutableSearch('');
 
       if (field === 'transaction.id') {
@@ -236,22 +230,6 @@ function BaseExploreFieldRenderer({
         queryString.addFilterValue('span.description', data['span.description']);
       }
 
-      const project = projectsMap[data.project];
-
-      const target = getExploreUrl({
-        organization,
-        mode: Mode.SAMPLES,
-        query: queryString.formatString(),
-        selection: {
-          ...selection,
-          projects: defined(project?.id)
-            ? [parseInt(project.id, 10)]
-            : selection.projects,
-          datetime: {start: null, end: null, utc: null, period: '24h'},
-        },
-        referrer: 'partial-trace',
-      });
-
       return (
         <Tooltip
           isHoverable
@@ -259,7 +237,20 @@ function BaseExploreFieldRenderer({
           title={
             <Text>
               {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
-                similarSpans: <Link to={target}>{t('View similar spans')}</Link>,
+                similarSpans: (
+                  <Link
+                    to={getSimilarEventsUrl({
+                      queryString: queryString.formatString(),
+                      organization,
+                      projectIds: defined(project?.id)
+                        ? [parseInt(project.id, 10)]
+                        : selection.projects,
+                      selection,
+                    })}
+                  >
+                    {t('View similar spans')}
+                  </Link>
+                ),
               })}
             </Text>
           }

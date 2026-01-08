@@ -1,8 +1,7 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment-timezone';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -28,17 +27,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import type {Field} from './data';
-import {getShortenedSdkName, getStylingSliceName} from './utils';
+import {
+  getShortenedSdkName,
+  getSimilarEventsUrl,
+  getStylingSliceName,
+  isPartialSpanOrTraceData,
+} from './utils';
 
 export const ProjectBadgeWrapper = styled('span')`
   /**
@@ -421,20 +423,12 @@ export function SpanIdRenderer({
 
   const shortSpanId = getShortEventId(spanId);
 
-  const olderThan30Days = useMemo(() => {
-    const currentDate = moment();
-    const timestampDate = moment(timestamp);
-    return currentDate.diff(timestampDate, 'days') > 30;
-  }, [timestamp]);
-
   const {projects} = useProjects({slugs: [spanProject]});
   const projectIds = projects
     .filter(project => defined(project.id))
     .map(project => parseInt(project.id, 10));
 
-  const queryString = useMemo(() => {
-    if (!olderThan30Days) return undefined;
-
+  if (isPartialSpanOrTraceData(timestamp)) {
     const search = new MutableSearch('');
     if (spanOp) {
       search.addFilterValue('span.op', spanOp);
@@ -444,31 +438,29 @@ export function SpanIdRenderer({
       search.addFilterValue('span.description', spanDescription);
     }
 
-    return search.formatString();
-  }, [olderThan30Days, spanDescription, spanOp]);
-
-  if (olderThan30Days) {
-    const similarTraces = getExploreUrl({
-      organization,
-      mode: Mode.SAMPLES,
-      query: queryString,
-      selection: {
-        ...selection,
-        projects: projectIds,
-        datetime: {start: null, end: null, utc: null, period: '24h'},
-      },
-      referrer: 'partial-trace',
-    });
-
     return (
       <Tooltip
         showUnderline
         isHoverable
-        disabled={!queryString}
         title={
           <Text>
             {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
-              similarSpans: <Link to={similarTraces}>{t('View similar spans')}</Link>,
+              similarSpans: (
+                <Link
+                  to={getSimilarEventsUrl({
+                    queryString: search.formatString(),
+                    organization,
+                    projectIds,
+                    selection: {
+                      ...selection,
+                      projects: projectIds,
+                      datetime: {start: null, end: null, utc: null, period: '24h'},
+                    },
+                  })}
+                >
+                  {t('View similar spans')}
+                </Link>
+              ),
             })}
           </Text>
         }
@@ -519,22 +511,13 @@ export function TraceIdRenderer({
 
   const shortId = getShortEventId(traceId);
 
-  const olderThan30Days = useMemo(() => {
-    const currentDate = moment();
-    const timestampDate = moment(timestamp);
-    return currentDate.diff(timestampDate, 'days') > 30;
-  }, [timestamp]);
-
   const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
   const projectIds = projects
     .filter(project => defined(project.id))
     .map(project => parseInt(project.id, 10));
 
-  const queryString = useMemo(() => {
-    if (!olderThan30Days) return undefined;
-
+  if (isPartialSpanOrTraceData(timestamp)) {
     const search = new MutableSearch('');
-
     if (traceName) {
       search.addOp('(');
       search.addFilterValue('transaction', traceName);
@@ -545,32 +528,26 @@ export function TraceIdRenderer({
       search.addOp(')');
     }
 
-    return search.formatString();
-  }, [olderThan30Days, traceName]);
-
-  if (olderThan30Days) {
-    const similarTraces = getExploreUrl({
-      organization,
-      mode: Mode.SAMPLES,
-      table: 'trace',
-      query: queryString,
-      selection: {
-        ...selection,
-        projects: projectIds,
-        datetime: {start: null, end: null, utc: null, period: '24h'},
-      },
-      referrer: 'partial-trace',
-    });
-
     return (
       <Tooltip
         showUnderline
         isHoverable
-        disabled={!queryString}
         title={
           <Text>
             {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
-              similarTraces: <Link to={similarTraces}>{t('View similar traces')}</Link>,
+              similarTraces: (
+                <Link
+                  to={getSimilarEventsUrl({
+                    queryString: search.formatString(),
+                    table: 'trace',
+                    organization,
+                    projectIds,
+                    selection,
+                  })}
+                >
+                  {t('View similar traces')}
+                </Link>
+              ),
             })}
           </Text>
         }
