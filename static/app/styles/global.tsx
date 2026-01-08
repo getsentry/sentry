@@ -422,7 +422,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
         }
         .rdrDayDisabled {
           background-color: ${theme.backgroundSecondary};
-          color: ${theme.disabled};
+          color: ${theme.tokens.content.disabled};
         }
         .rdrMonthAndYearPickers select {
           color: ${theme.tokens.content.primary};
