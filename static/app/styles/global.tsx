@@ -3,15 +3,88 @@ import {css, Global} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
 
+// Prism colors
+// @TODO(jonasbadalic): are these final?
+const prismLight = {
+  /**
+   * NOTE: Missing Palette All together
+   * COMPONENTS AFFECTED: Unknown
+   * TODO: Nothing yet, Low Prio
+   */
+  '--prism-base': '#332B3B',
+  '--prism-inline-code': '#332B3B',
+  '--prism-inline-code-background': '#F5F3F7',
+  '--prism-highlight-background': '#5C78A31C',
+  '--prism-highlight-accent': '#5C78A344',
+  '--prism-comment': '#80708F',
+  '--prism-punctuation': '#332B3B',
+  '--prism-property': '#18408B',
+  '--prism-selector': '#177861',
+  '--prism-operator': '#235CC8',
+  '--prism-variable': '#332B3B',
+  '--prism-function': '#235CC8',
+  '--prism-keyword': '#BB3A3D',
+};
+
+// @TODO(jonasbadalic): are these final?
+const prismDark = {
+  /**
+   * NOTE: Missing Palette All together
+   * COMPONENTS AFFECTED: Unknown
+   * TODO: Nothing yet, Low Prio
+   */
+  '--prism-base': '#D6D0DC',
+  '--prism-inline-code': '#D6D0DC',
+  '--prism-inline-code-background': '#18121C',
+  '--prism-highlight-background': '#A8A2C31C',
+  '--prism-highlight-accent': '#A8A2C344',
+  '--prism-comment': '#998DA5',
+  '--prism-punctuation': '#D6D0DC',
+  '--prism-property': '#70A2FF',
+  '--prism-selector': '#1DCDA4',
+  '--prism-operator': '#70A2FF',
+  '--prism-variable': '#D6D0DC',
+  '--prism-function': '#70A2FF',
+  '--prism-keyword': '#F8777C',
+};
+
+const generateThemePrismVariables = (
+  prismColors: typeof prismLight,
+  blockBackground: string
+) => ({
+  // block background differs based on light/dark mode
+  '--prism-block-background': blockBackground,
+  ...prismColors,
+});
+
+const getPrismThemeStyles = (theme: Theme) => {
+  if (theme.type === 'dark') {
+    return {
+      prismVariables: generateThemePrismVariables(prismDark, theme.backgroundSecondary),
+      prismDarkVariables: generateThemePrismVariables(
+        prismDark,
+        theme.tokens.background.primary
+      ),
+    };
+  }
+  return {
+    prismVariables: generateThemePrismVariables(prismLight, theme.backgroundSecondary),
+    prismDarkVariables: generateThemePrismVariables(
+      prismDark,
+      theme.tokens.background.primary
+    ),
+  };
+};
+
 const prismStyles = (theme: Theme) => css`
   :root {
-    ${theme.prismVariables};
+    ${getPrismThemeStyles(theme).prismVariables};
   }
 
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
   .gatsby-highlight,
   .prism-dark {
-    ${theme.prismDarkVariables};
+    ${getPrismThemeStyles(theme).prismVariables};
   }
 
   pre[class*='language-'] {
