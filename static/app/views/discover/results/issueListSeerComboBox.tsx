@@ -9,6 +9,7 @@ import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -206,9 +207,13 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         query: queryToUse,
       };
 
-      // Apply sort if provided
+      // Apply sort if provided - convert to aliased format for Discover
+      // e.g., "-count()" -> "-count"
       if (sort) {
-        newQueryParams.sort = sort;
+        const isDescending = sort.startsWith('-');
+        const sortField = isDescending ? sort.substring(1) : sort;
+        const aliasedSortField = getAggregateAlias(sortField);
+        newQueryParams.sort = isDescending ? `-${aliasedSortField}` : aliasedSortField;
       }
 
       // Apply yAxis if provided
