@@ -1,0 +1,132 @@
+name: backend (selective)
+
+on:
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  #   files-changed:
+  #     name: detect what files changed
+  #     runs-on: ubuntu-24.04
+  #     timeout-minutes: 3
+  #     # Map a step output to a job output
+  #     outputs:
+  #       api_docs: ${{ steps.changes.outputs.api_docs }}
+  #       backend: ${{ steps.changes.outputs.backend_all }}
+  #       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+  #       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
+  #       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+  #       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+  #     steps:
+  #       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #
+  #       - name: Check for backend file changes
+  #         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+  #         id: changes
+  #         with:
+  #           token: ${{ github.token }}
+  #           filters: .github/file-filters.yml
+
+  select-tests:
+    #if: needs.files-changed.outputs.backend == 'true'
+    #needs: files-changed
+    name: select tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
+      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          # fetching changed files in select-tests.py requires a full checkout for github.base_ref?
+          fetch-depth: 0
+
+      # TODO: Replace with Gcloud download
+      # Download coverage artifact from a previous workflow run
+      # actions/download-artifact doesn't support cross-run downloads, so we use alternatives
+      - name: Download coverage database from run 20529759656
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        id: download-coverage
+        with:
+          run_id: 20529759656
+          name: pycoverage-sqlite-combined-20529759656
+          path: .coverage
+          github_token: ${{ github.token }}
+
+      - name: Select Tests
+        id: select-tests
+        env:
+          GITHUB_PR_BASE_REF: ${{ github.base_ref }}
+          COVERAGE_DB_PATH: .coverage/.coverage.combined
+        run: |
+          python3 .github/workflows/scripts/select-tests.py
+
+      - name: Upload selected tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-tests
+          path: selected-tests
+
+  backend-test-selective:
+    #if: needs.files-changed.outputs.backend == 'true'
+    #needs: files-changed
+    needs: select-tests
+    name: backend test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+      actions: read # used for DIM metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: ${{ fromJSON(needs.select-tests.outputs.shard-indices) }}
+
+    env:
+      MATRIX_INSTANCE_TOTAL: ${{ needs.select-tests.outputs.shard-count }}
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Download selected tests
+        uses: actions/download-artifact@v4
+        with:
+          name: selected-tests
+
+      - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        id: run_backend_tests
+        run: |
+          python .github/workflows/scripts/pytest-args-wrapper.py selected-tests
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+    #   - name: Collect test data
+    #     uses: ./.github/actions/collect-test-data
+    #     if: ${{ !cancelled() }}
+    #     with:
+    #       artifact_path: .artifacts/pytest.json # TODO
+    #       gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+    #       gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+    #       workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+    #       service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+    #       matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
