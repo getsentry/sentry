@@ -11,8 +11,8 @@ from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.utils import (
+    SeerCodeReviewTrigger,
     get_webhook_option_key,
     transform_webhook_to_codegen_request,
 )
@@ -42,7 +42,7 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    trigger: CodeReviewTrigger,
+    trigger: SeerCodeReviewTrigger,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event

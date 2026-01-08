@@ -6,8 +6,8 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.utils import (
+    SeerCodeReviewTrigger,
     _get_target_commit_sha,
     _get_trigger_metadata,
     transform_webhook_to_codegen_request,
@@ -179,7 +179,7 @@ class TestTransformWebhookToCodegenRequest:
             organization,
             repo,
             "abc123sha",
-            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            SeerCodeReviewTrigger.ON_READY_FOR_REVIEW,
         )
 
         expected_repo = {
@@ -203,7 +203,7 @@ class TestTransformWebhookToCodegenRequest:
         }
         assert result["data"]["config"] == {
             "features": {"bug_prediction": True},
-            "trigger": CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+            "trigger": SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value,
         } | {k: v for k, v in result["data"]["config"].items() if k not in ("features", "trigger")}
 
     def test_issue_comment_on_pr(
@@ -229,14 +229,14 @@ class TestTransformWebhookToCodegenRequest:
             organization,
             repo,
             "def456sha",
-            CodeReviewTrigger.ON_NEW_COMMIT,
+            SeerCodeReviewTrigger.ON_NEW_COMMIT,
         )
 
         assert isinstance(result, dict)
         data = result["data"]
         config = data["config"]
         assert data["pr_id"] == 42
-        assert config["trigger"] == CodeReviewTrigger.ON_NEW_COMMIT.value
+        assert config["trigger"] == SeerCodeReviewTrigger.ON_NEW_COMMIT.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"
@@ -256,7 +256,7 @@ class TestTransformWebhookToCodegenRequest:
             organization,
             repo,
             "somesha",
-            CodeReviewTrigger.ON_NEW_COMMIT,
+            SeerCodeReviewTrigger.ON_NEW_COMMIT,
         )
         assert result is None
 
@@ -280,5 +280,5 @@ class TestTransformWebhookToCodegenRequest:
                 organization,
                 bad_repo,
                 "sha123",
-                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+                SeerCodeReviewTrigger.ON_READY_FOR_REVIEW,
             )
