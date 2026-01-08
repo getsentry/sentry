@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 class TestCodeReviewSettings(TestCase):
     def test_initialization(self) -> None:
-        triggers = [CodeReviewTrigger.ON_COMMAND_PHRASE, CodeReviewTrigger.ON_NEW_COMMIT]
+        triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW, CodeReviewTrigger.ON_NEW_COMMIT]
         settings = CodeReviewSettings(enabled=True, triggers=triggers)
 
         assert settings.enabled is True
@@ -31,14 +31,14 @@ class TestRepositorySettings(TestCase):
         settings = repo_settings.get_code_review_settings()
 
         assert settings.enabled is False
-        assert settings.triggers == [CodeReviewTrigger.ON_COMMAND_PHRASE]
+        assert settings.triggers == []
 
     def test_get_code_review_settings_with_enabled_and_triggers(self) -> None:
         repo_settings = RepositorySettings.objects.create(
             repository=self.repo,
             enabled_code_review=True,
             code_review_triggers=[
-                CodeReviewTrigger.ON_COMMAND_PHRASE.value,
+                CodeReviewTrigger.ON_NEW_COMMIT.value,
                 CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
             ],
         )
@@ -47,7 +47,7 @@ class TestRepositorySettings(TestCase):
 
         assert settings.enabled is True
         assert len(settings.triggers) == 2
-        assert CodeReviewTrigger.ON_COMMAND_PHRASE in settings.triggers
+        assert CodeReviewTrigger.ON_NEW_COMMIT in settings.triggers
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW in settings.triggers
 
     def test_get_code_review_settings_converts_string_triggers_to_enum(self) -> None:
@@ -59,10 +59,7 @@ class TestRepositorySettings(TestCase):
 
         settings = repo_settings.get_code_review_settings()
 
-        assert settings.triggers == [
-            CodeReviewTrigger.ON_NEW_COMMIT,
-            CodeReviewTrigger.ON_COMMAND_PHRASE,
-        ]
+        assert settings.triggers == [CodeReviewTrigger.ON_NEW_COMMIT]
         assert isinstance(settings.triggers[0], CodeReviewTrigger)
 
     def test_repository_settings_unique_per_repository(self) -> None:
