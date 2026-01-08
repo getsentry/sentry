@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo} from 'react';
+import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -10,45 +10,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {ConversationUserCell} from 'sentry/views/insights/pages/conversations/components/conversationUserCell';
 import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversation';
-import type {ConversationUser} from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 import {useUrlConversationDrawer} from 'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
-import {SpanFields} from 'sentry/views/insights/types';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-
-/**
- * Extract user data from the first node in the conversation.
- * Nodes are sorted by timestamp, so the first node represents the earliest span.
- */
-function extractUserFromNodes(nodes: AITraceSpanNode[]): ConversationUser | null {
-  for (const node of nodes) {
-    if (isEAPSpanNode(node)) {
-      const attrs = node.value.additional_attributes;
-      const userId = attrs?.[SpanFields.USER_ID] as string | undefined;
-      const userEmail = attrs?.[SpanFields.USER_EMAIL] as string | undefined;
-      const userUsername = attrs?.[SpanFields.USER_USERNAME] as string | undefined;
-      const userIp = attrs?.[SpanFields.USER_IP] as string | undefined;
-
-      if (userId || userEmail || userUsername || userIp) {
-        return {
-          id: userId ?? null,
-          email: userEmail ?? null,
-          username: userUsername ?? null,
-          ip_address: userIp ?? null,
-        };
-      }
-    }
-  }
-  return null;
-}
 
 const CONVERSATION_PANEL_WIDTH = 350;
 const TRACE_PANEL_WIDTH = 350;
@@ -86,8 +56,6 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
     getDefaultSelectedNode(nodes);
 
-  const user = useMemo(() => extractUserFromNodes(nodes), [nodes]);
-
   return (
     <DrawerWrapper>
       <StyledDrawerHeader>
@@ -97,7 +65,6 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
             {conversation.conversationId.slice(0, 8)}
           </ConversationIdLabel>
           <HeaderDivider />
-          <ConversationUserCell user={user} />
         </HeaderContent>
       </StyledDrawerHeader>
       <StyledDrawerBody>
