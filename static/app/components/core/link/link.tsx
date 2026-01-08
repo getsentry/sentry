@@ -42,10 +42,10 @@ const getLinkStyles = ({
   /* @TODO(jonasbadalic) This was defined on theme and only used here */
   border-radius: 2px;
   pointer-events: ${disabled ? 'none' : undefined};
-  color: ${disabled ? theme.disabled : undefined};
+  color: ${disabled ? theme.tokens.content.disabled : undefined};
 
   &:hover {
-    color: ${disabled ? theme.disabled : undefined};
+    color: ${disabled ? theme.tokens.content.disabled : undefined};
   }
 
   &:focus-visible {

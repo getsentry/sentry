@@ -87,7 +87,7 @@ const List = styled('ul')`
   background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   transform: translateY(-20px);
 `;
@@ -95,7 +95,7 @@ const List = styled('ul')`
 const ListItem = styled('li')`
   font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   cursor: pointer;
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
