@@ -1123,8 +1123,7 @@ const TraceStylingWrapper = styled('div')`
     --row-background-odd: ${p => p.theme.tokens.background.secondary};
     --row-background-hover: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
-    --row-background-focused: ${p =>
-      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    --row-background-focused: ${p => p.theme.tokens.background.tertiary};
     --row-outline: ${p => p.theme.tokens.focus.default};
     --row-children-button-border-color: ${p => p.theme.tokens.border.neutral.muted};
 
