@@ -24,14 +24,14 @@ export function getBadgeProperties(
   if (status === 'unresolved') {
     if (substatus === GroupSubstatus.REGRESSED) {
       return {
-        tagVariant: 'info',
+        tagVariant: 'danger',
         status: t('Regressed'),
         tooltip: t('This issue was resolved then occurred again.'),
       };
     }
     if (substatus === GroupSubstatus.ESCALATING) {
       return {
-        tagVariant: 'danger',
+        tagVariant: 'info',
         status: t('Escalating'),
         tooltip: t('This issue is occurring significantly more often than it used to.'),
       };

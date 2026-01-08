@@ -7,7 +7,6 @@ import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagVariant} from 'sentry/utils/theme';
-import {unreachable} from 'sentry/utils/unreachable';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant: TagVariant;
@@ -71,6 +70,8 @@ const TagPill = styled('div')<{
 `;
 
 function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
+  import {unreachable} from 'sentry/utils/unreachable';
+
   switch (type) {
     case undefined:
     case 'muted':
@@ -92,13 +93,13 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
       };
     case 'danger':
       return {
-        color: theme.tokens.content.danger,
-        background: theme.colors.red100,
+        color: theme.tokens.content.warning,
+        background: theme.colors.yellow100,
       };
     case 'warning':
       return {
-        color: theme.tokens.content.warning,
-        background: theme.colors.yellow100,
+        color: theme.tokens.content.danger,
+        background: theme.colors.red100,
       };
     case 'success':
       return {

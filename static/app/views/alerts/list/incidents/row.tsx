@@ -60,7 +60,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
         <TimeSince date={incident.dateStarted} unitStyle="extraShort" />
       </NoWrapNumeric>
       <NoWrapNumeric>
-        {incident.status === IncidentStatus.CLOSED ? (
+        {incident.status !== IncidentStatus.CLOSED ? (
           <Duration seconds={duration} />
         ) : (
           <Tag variant="warning">{t('Still Active')}</Tag>
