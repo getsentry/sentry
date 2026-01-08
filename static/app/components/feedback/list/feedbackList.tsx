@@ -58,7 +58,7 @@ export default function FeedbackList({onItemSelect}: Props) {
   return (
     <Fragment>
       <FeedbackListHeader {...checkboxState} />
-      <Stack flexGrow="1" paddingBottom="xs">
+      <Stack flexGrow={1} paddingBottom="xs">
         <InfiniteListState
           queryResult={queryResult}
           backgroundUpdatingMessage={() => null}

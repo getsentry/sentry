@@ -65,7 +65,7 @@ export default function FeedbackListHeader({
         )}
       </HeaderPanelItem>
       {hasNewItems ? (
-        <Flex justify="center" align="center" flexGrow="1" padding="xs">
+        <Flex justify="center" align="center" flexGrow={1} padding="xs">
           <Button
             priority="primary"
             size="xs"

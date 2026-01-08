@@ -167,10 +167,11 @@ export default function FeedbackListPage() {
                 <LayoutGrid hideTop={hideTop}>
                   {!hideTop && (
                     <Stack
-                      align="stretch"
-                      flexGrow="1"
+                      flexGrow={1}
                       gap="md"
-                      style={{gridArea: 'top'}}
+                      area="top"
+                      direction={{sm: 'column', md: 'row'}}
+                      align={{sm: 'stretch', md: undefined}}
                     >
                       <FeedbackFilters />
                       <SearchContainer>
