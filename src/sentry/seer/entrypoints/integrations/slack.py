@@ -20,6 +20,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.shared_integrations.exceptions import IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -111,12 +112,22 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             ),
             ephemeral_user_id=self.slack_request.user_id,
         )
-        _update_existing_message(
-            request=self.slack_request,
-            install=self.install,
-            channel_id=self.channel_id,
-            message_ts=self.thread_ts,
-        )
+        try:
+            _update_existing_message(
+                request=self.slack_request,
+                install=self.install,
+                channel_id=self.channel_id,
+                message_ts=self.thread_ts,
+            )
+        except IntegrationError:
+            logger.exception(
+                "slack.autofix.update_message_failed",
+                extra={
+                    "channel_id": self.channel_id,
+                    "message_ts": self.thread_ts,
+                    "organization_id": self.organization_id,
+                },
+            )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
@@ -313,7 +324,7 @@ def _update_existing_message(
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
-    # Removes the autofix button to prevent repeated usage
+    # XXX: Removes the autofix button to prevent repeated usage
     blocks = _transform_block_actions(
         request.data["message"]["blocks"],
         lambda elem: (
