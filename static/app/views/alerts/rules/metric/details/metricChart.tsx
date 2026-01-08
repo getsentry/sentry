@@ -76,6 +76,7 @@ import {
   getTraceItemTypeForDatasetAndEventType,
 } from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
@@ -567,6 +568,12 @@ export default function MetricChart({
     isLegacyAlert: true,
   });
 
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries,
+    isAnomalyDetection: rule.detectionType === 'dynamic',
+    thresholdType: rule.thresholdType,
+  });
+
   return (
     <Fragment>
       {shouldUseSessionsStats
@@ -577,7 +584,7 @@ export default function MetricChart({
         timeSeriesData,
         minutesThresholdToDisplaySeconds,
         comparisonTimeseriesData,
-        anomalyThresholdSeries
+        filteredAnomalyThresholdSeries
       )}
     </Fragment>
   );
@@ -630,6 +637,18 @@ function getMetricChartTooltipFormatter({
 
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const comparisonPointY = comparisonSeries?.data[1] as number | undefined;
+
+    // Find threshold series for anomaly detection
+    const upperThresholdSeries = pointSeries.find(
+      ({seriesName: _sn}) => _sn === 'Upper Threshold'
+    );
+    const lowerThresholdSeries = pointSeries.find(
+      ({seriesName: _sn}) => _sn === 'Lower Threshold'
+    );
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type
+    const upperThresholdValue = upperThresholdSeries?.data[1] as number | undefined;
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type
+    const lowerThresholdValue = lowerThresholdSeries?.data[1] as number | undefined;
     const comparisonPointYFormatted =
       comparisonPointY === undefined
         ? undefined
@@ -662,6 +681,10 @@ function getMetricChartTooltipFormatter({
       `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
       comparisonSeries &&
         `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+      upperThresholdSeries &&
+        `<div><span class="tooltip-label">${upperThresholdSeries.marker as string} <strong>${t('Upper Threshold')}</strong></span>${upperThresholdValue ?? ''}</div>`,
+      lowerThresholdSeries &&
+        `<div><span class="tooltip-label">${lowerThresholdSeries.marker as string} <strong>${t('Lower Threshold')}</strong></span>${lowerThresholdValue ?? ''}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
