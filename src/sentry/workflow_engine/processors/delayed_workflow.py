@@ -950,8 +950,12 @@ def process_delayed_workflows(
 
     project = fetch_project(project_id)
     if not project:
+        # Project is gone, all done here, but let's not leave a mess.
+        cleanup_redis_buffer(project_client, event_keys, batch_key)
         return
 
     _process_workflows_for_project(project, event_data)
-
+    # if processing returns cleanly, that means we successfully processed the
+    # redis data and can delete it. If we fail, it'll raise and we'll either
+    # read it again on retry or let it ttl out.
     cleanup_redis_buffer(project_client, event_keys, batch_key)
