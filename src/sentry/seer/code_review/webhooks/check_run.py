@@ -21,16 +21,12 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.utils import metrics
 
-from ..permissions import has_code_review_enabled
-from ..utils import SeerEndpoint, make_seer_request
-
 logger = logging.getLogger(__name__)
 
 
 class ErrorStatus(enum.StrEnum):
     MISSING_ORGANIZATION = "missing_organization"
     MISSING_ACTION = "missing_action"
-    CODE_REVIEW_NOT_ENABLED = "code_review_not_enabled"
     INVALID_PAYLOAD = "invalid_payload"
 
 
@@ -115,13 +111,6 @@ def handle_check_run_event(
     if action != GitHubCheckRunAction.REREQUESTED:
         return
 
-    if not has_code_review_enabled(organization):
-        metrics.incr(
-            f"{Metrics.ERROR.value}",
-            tags={**tags, "error_status": ErrorStatus.CODE_REVIEW_NOT_ENABLED.value},
-        )
-        return
-
     try:
         validated_event = _validate_github_check_run_event(event)
     except (ValidationError, ValueError):
@@ -158,17 +147,3 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
     validated_event = GitHubCheckRunEvent.parse_obj(event)
     int(validated_event.check_run.external_id)  # Raises ValueError if not numeric
     return validated_event
-
-
-def process_check_run_task_event(*, event_payload: Mapping[str, Any], **kwargs: Any) -> None:
-    """
-    Process check_run task events.
-
-    This allows the task to be shared by multiple webhook types without conflicts.
-    """
-    original_run_id = event_payload.get("original_run_id")
-    if not original_run_id:
-        return
-
-    payload = {"original_run_id": original_run_id}
-    make_seer_request(path=SeerEndpoint.PR_REVIEW_RERUN.value, payload=payload)
