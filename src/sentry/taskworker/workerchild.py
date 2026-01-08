@@ -201,8 +201,11 @@ def child_process(
                     scope.set_tag("namespace", inflight.activation.namespace)
                     scope.set_tag("processing_pool", processing_pool_name)
                     scope.set_extra("activation", str(inflight.activation))
-                    scope.capture_message(
-                        f"Unregistered task {inflight.activation.taskname} was not executed"
+                    scope.capture_event(
+                        {
+                            "message": f"Unregistered task {inflight.activation.taskname} was not executed",
+                            "level": "error",
+                        }
                     )
 
                 processed_tasks.put(
