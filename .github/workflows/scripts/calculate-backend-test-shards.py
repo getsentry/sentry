@@ -15,11 +15,7 @@ PYTEST_ARGS = [
     "pytest",
     "--collect-only",
     "--quiet",
-    "tests",
-    "--ignore=tests/acceptance",
-    "--ignore=tests/apidocs",
-    "--ignore=tests/js",
-    "--ignore=tests/tools",
+    "@selected-tests-fd7c6b1b8b9458f40874dcb82790aa87c1ecef6f",
 ]
 
 

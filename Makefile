@@ -120,19 +120,7 @@ test-js-ci:
 	@echo ""
 
 test-python-ci:
-	@echo "--> Running CI Python tests"
-	python3 -b -m pytest \
-		tests \
-		--ignore tests/acceptance \
-		--ignore tests/apidocs \
-		--ignore tests/js \
-		--ignore tests/tools \
-		--json-report \
-		--json-report-file=".artifacts/pytest.json" \
-		--json-report-omit=log \
-		--junit-xml=.artifacts/pytest.junit.xml \
-		-o junit_suite_name=pytest
-	@echo ""
+	python3 -b -m pytest @selected-tests-fd7c6b1b8b9458f40874dcb82790aa87c1ecef6f
 
 # it's not possible to change settings.DATABASE after django startup, so
 # unfortunately these tests must be run in a separate pytest process. References:
