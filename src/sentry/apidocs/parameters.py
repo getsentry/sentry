@@ -595,10 +595,11 @@ Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         type=str,
         many=True,
         description="""The fields, functions, or equations to request for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
-- A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property.
+- A built-in key field. See possible fields in the [properties table](/concepts/search/searchable-properties/), under any field that matches the dataset passed to the dataset parameter
     - example: `field=transaction`
-- A tag. Tags should use the `tag[]` formatting to avoid ambiguity with any fields
-    - example: `field=tag[isEnterprise]`
+- A tag. Tags should use the `tag[{name}, {type}]` formatting to avoid ambiguity with any fields,
+    - example: `field=tag[isEnterprise, string]`
+    - example: `field=tag[numberOfBytes, number]`
 - A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
     - when a function is included, Discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
