@@ -94,7 +94,7 @@ export const DiffTableChangeAmountCell = styled(SimpleTable.RowCell)<{
         return p.theme.dangerText;
       case 'removed':
       case 'decreased':
-        return p.theme.successText;
+        return p.theme.tokens.content.success;
       default:
         throw new Error(`Invalid change type: ${p.changeType}`);
     }
