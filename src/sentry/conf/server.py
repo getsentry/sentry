@@ -767,8 +767,6 @@ LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
     LAUNCHPAD_RPC_SHARED_SECRET = [val]
 
-
-
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
