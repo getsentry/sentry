@@ -22,7 +22,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -491,11 +490,12 @@ const CloseButton = styled(Button)`
 `;
 
 const SlideoutHeaderWrapper = styled('div')`
-  padding: ${space(1)} ${space(4)};
+  padding: ${p => `0 ${p.theme.space['2xl']}`};
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid ${p => p.theme.border};
+  height: 44px;
 `;
 
 const SlideoutBreadcrumb = styled('div')`
