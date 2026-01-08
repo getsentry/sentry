@@ -109,10 +109,6 @@ function ConversationsTableInner() {
   );
 }
 
-/**
- * Get a display name from user data with fallback priority:
- * email > username > ip_address > "Unknown"
- */
 function getUserDisplayName(user: ConversationUser): string {
   return user.email || user.username || user.ip_address || t('Unknown');
 }
