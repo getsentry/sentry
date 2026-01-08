@@ -154,7 +154,12 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             )
             mock_enqueue.assert_not_called()
 
-    @override_options({"overwatch.enabled-regions": ["us"]})
+    @override_options(
+        {
+            "overwatch.enabled-regions": ["us"],
+            "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
+        }
+    )
     def test_forward_if_applicable_skips_seer_only_orgs(self):
         organization = self.create_organization(name="Test Org", slug="test-org", region="us")
         self.create_organization_integration(

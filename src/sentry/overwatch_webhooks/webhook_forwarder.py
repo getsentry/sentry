@@ -17,7 +17,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
 from sentry.seer.code_review.utils import get_webhook_option_key
-from sentry.seer.code_review.webhooks.config import GH_ORGS_TO_ONLY_SEND_TO_SEER
+from sentry.seer.code_review.webhooks.config import get_direct_to_seer_gh_orgs
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -151,12 +151,13 @@ class OverwatchGithubWebhookForwarder:
             if isinstance(repository, dict):
                 github_org = repository.get("owner", {}).get("login")
 
-            if github_org and github_org in GH_ORGS_TO_ONLY_SEND_TO_SEER:
+            direct_to_seer_orgs = get_direct_to_seer_gh_orgs()
+            if github_org and github_org in direct_to_seer_orgs:
                 verbose_log(
                     "overwatch.debug.github_org_not_whitelisted",
                     extra={
                         "github_org": github_org,
-                        "whitelisted_orgs": list(GH_ORGS_TO_ONLY_SEND_TO_SEER),
+                        "direct_to_seer_orgs": direct_to_seer_orgs,
                     },
                 )
                 return

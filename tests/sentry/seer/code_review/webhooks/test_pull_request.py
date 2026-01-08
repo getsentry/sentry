@@ -13,7 +13,10 @@ from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     """Integration tests for GitHub pull_request webhook events."""
 
-    OPTIONS_TO_SET = {"github.webhook.pr": False}
+    OPTIONS_TO_SET = {
+        "github.webhook.pr": False,
+        "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
+    }
 
     @pytest.fixture(autouse=True)
     def mock_github_api_calls(self) -> Generator[None]:
