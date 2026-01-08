@@ -301,6 +301,10 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
                 created_by_id=request.user.id
             )
+        elif filter_by == "excludePrebuilt":
+            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
+                prebuilt_id__isnull=False
+            )
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
