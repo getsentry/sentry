@@ -69,6 +69,23 @@ def _extract_first_user_message(messages: str | list | None) -> str | None:
     return None
 
 
+def _build_user_response(
+    user_id: str | None,
+    user_email: str | None,
+    user_username: str | None,
+    user_ip: str | None,
+) -> dict[str, str | None] | None:
+    """Build user response object, returning None if no user data is available."""
+    if not any([user_id, user_email, user_username, user_ip]):
+        return None
+    return {
+        "id": user_id,
+        "email": user_email,
+        "username": user_username,
+        "ip_address": user_ip,
+    }
+
+
 def _build_conversation_response(
     conv_id: str,
     duration: int,
@@ -82,6 +99,7 @@ def _build_conversation_response(
     flow: list[str],
     first_input: str | None,
     last_output: str | None,
+    user: dict[str, str | None] | None = None,
 ) -> dict[str, Any]:
     return {
         "conversationId": conv_id,
@@ -97,6 +115,7 @@ def _build_conversation_response(
         "traceIds": trace_ids,
         "firstInput": first_input,
         "lastOutput": last_output,
+        "user": user,
     }
 
 
@@ -255,7 +274,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "gen_ai.conversation.id",
                 "failure_count()",
                 "count_if(gen_ai.operation.type,equals,ai_client)",
-                "count_if(gen_ai.operation.type,equals,execute_tool)",
+                "count_if(gen_ai.operation.type,equals,tool)",
                 "sum(gen_ai.usage.total_tokens)",
                 "sum(gen_ai.cost.total_tokens)",
                 "min(precise.start_ts)",
@@ -279,6 +298,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "gen_ai.agent.name",
                 "trace",
                 "precise.start_ts",
+                "user.id",
+                "user.email",
+                "user.username",
+                "user.ip",
             ],
             orderby=["precise.start_ts"],
             offset=0,
@@ -323,7 +346,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 timestamp=_compute_timestamp_ms(finish_ts),
                 errors=int(row.get("failure_count()") or 0),
                 llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
-                tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,execute_tool)") or 0),
+                tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,tool)") or 0),
                 total_tokens=int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
                 total_cost=float(row.get("sum(gen_ai.cost.total_tokens)") or 0),
                 trace_ids=[],
@@ -339,6 +362,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> None:
         flows_by_conversation: dict[str, list[str]] = defaultdict(list)
         traces_by_conversation: dict[str, set[str]] = defaultdict(set)
+        # Track first user data per conversation (data is sorted by start_ts, so first occurrence wins)
+        user_by_conversation: dict[str, dict[str, str | None]] = {}
 
         for row in enrichment_data.get("data", []):
             conv_id = row.get("gen_ai.conversation.id", "")
@@ -354,11 +379,23 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if agent_name:
                     flows_by_conversation[conv_id].append(agent_name)
 
+            # Capture user from the first span (earliest timestamp) for each conversation
+            if conv_id not in user_by_conversation:
+                user_data = _build_user_response(
+                    user_id=row.get("user.id"),
+                    user_email=row.get("user.email"),
+                    user_username=row.get("user.username"),
+                    user_ip=row.get("user.ip"),
+                )
+                if user_data:
+                    user_by_conversation[conv_id] = user_data
+
         for conv_id, conversation in conversations_map.items():
             traces = traces_by_conversation.get(conv_id, set())
             conversation["flow"] = flows_by_conversation.get(conv_id, [])
             conversation["traceIds"] = list(traces)
             conversation["traceCount"] = len(traces)
+            conversation["user"] = user_by_conversation.get(conv_id)
 
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
@@ -410,6 +447,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "gen_ai.agent.name",
                 "gen_ai.request.messages",
                 "gen_ai.response.text",
+                "user.id",
+                "user.email",
+                "user.username",
+                "user.ip",
             ],
             orderby=["precise.start_ts"],
             offset=0,
@@ -431,7 +472,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "max_finish_ts": 0.0,
                 "failure_count": 0,
                 "ai_client_count": 0,
-                "execute_tool_count": 0,
+                "tool_count": 0,
                 "total_tokens": 0,
                 "total_cost": 0.0,
                 "traces": set(),
@@ -440,6 +481,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "first_input_ts": float("inf"),
                 "last_output": None,
                 "last_output_ts": 0.0,
+                "user": None,
             }
             for conv_id in conversation_ids
         }
@@ -458,6 +500,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             self._update_tokens_and_cost(acc, row)
             self._update_traces(acc, row)
             self._update_first_last_io(acc, row)
+            self._update_user(acc, row)
 
     def _update_timestamps(self, acc: dict[str, Any], row: dict[str, Any]) -> None:
         start_ts = row.get("precise.start_ts") or 0
@@ -477,8 +520,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         if op_type == "ai_client":
             acc["ai_client_count"] += 1
-        elif op_type == "execute_tool":
-            acc["execute_tool_count"] += 1
+        elif op_type == "tool":
+            acc["tool_count"] += 1
         elif op_type == "invoke_agent":
             agent_name = row.get("gen_ai.agent.name", "")
             if agent_name:
@@ -518,6 +561,20 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             acc["last_output"] = response_text
             acc["last_output_ts"] = finish_ts
 
+    def _update_user(self, acc: dict[str, Any], row: dict[str, Any]) -> None:
+        # Capture user from the first span (data is sorted by start_ts)
+        if acc["user"] is not None:
+            return
+
+        user_data = _build_user_response(
+            user_id=row.get("user.id"),
+            user_email=row.get("user.email"),
+            user_username=row.get("user.username"),
+            user_ip=row.get("user.ip"),
+        )
+        if user_data:
+            acc["user"] = user_data
+
     def _build_results_from_accumulators(
         self, conversation_ids: list[str], accumulators: dict[str, dict[str, Any]]
     ) -> list[dict]:
@@ -538,13 +595,14 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     timestamp=_compute_timestamp_ms(max_ts),
                     errors=acc["failure_count"],
                     llm_calls=acc["ai_client_count"],
-                    tool_calls=acc["execute_tool_count"],
+                    tool_calls=acc["tool_count"],
                     total_tokens=acc["total_tokens"],
                     total_cost=acc["total_cost"],
                     trace_ids=list(acc["traces"]),
                     flow=acc["flow"],
                     first_input=acc["first_input"],
                     last_output=acc["last_output"],
+                    user=acc["user"],
                 )
             )
 
