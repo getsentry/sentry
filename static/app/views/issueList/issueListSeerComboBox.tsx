@@ -3,11 +3,9 @@ import omit from 'lodash/omit';
 
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -53,14 +51,15 @@ export function IssueListSeerComboBox() {
     committedQuery,
     enableAISearch,
     askSeerSuggestedQueryRef,
+    parseQuery,
   } = useSearchQueryBuilder();
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
     const queryToUse = committedQuery.length > 0 ? committedQuery : query;
-    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
+    const parsedQuery = parseQuery(queryToUse);
     return {parsedQuery, queryToUse};
-  }, [committedQuery, query]);
+  }, [committedQuery, query, parseQuery]);
 
   const inputValue = currentInputValueRef.current.trim();
 
