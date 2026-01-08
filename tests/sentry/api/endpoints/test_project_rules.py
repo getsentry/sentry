@@ -602,6 +602,37 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
 
+    def test_user_owner_another_member(self) -> None:
+        """Test that a user can assign another organization member as the rule owner.
+
+        Unlike team ownership (which requires team membership), user ownership
+        only requires the target user to be an organization member.
+        """
+        # XXX(oioki): this behavior could be updated in the future iterations of the rule ownership feature
+        other_user = self.create_user()
+        self.create_member(
+            user=other_user,
+            organization=self.organization,
+            role="member",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=f"user:{other_user.id}",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            conditions=self.first_seen_condition,
+        )
+        assert response.status_code == 200
+        assert response.data["owner"] == f"user:{other_user.id}"
+
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_user_id == other_user.id
+        assert rule.owner_team_id is None
+
     def test_frequency_percent_validation(self) -> None:
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
