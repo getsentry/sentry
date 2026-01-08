@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0020_add_preprod_artifact_date_added_index
+preprod: 0021_add_preprod_artifact_mobile_app_info
 
 prevent: 0002_alter_integration_id_not_null
 
