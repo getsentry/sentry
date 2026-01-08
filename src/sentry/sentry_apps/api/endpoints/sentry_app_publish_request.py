@@ -111,7 +111,8 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         )
 
         # Must send to user & partners so that the reply-to email will be each other
-        recipients = ["integrations-platform@sentry.io", request.user.email]
+        # User is guaranteed to be authenticated since this endpoint requires org:admin
+        recipients = ["integrations-platform@sentry.io", request.user.email]  # type: ignore[union-attr]
         sent_messages = new_message.send(
             to=recipients,
         )
