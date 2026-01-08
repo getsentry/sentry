@@ -566,42 +566,30 @@ function AMCheckout(props: Props) {
     ]
   );
 
-  // componentDidMount
   useEffect(() => {
     /**
      * Preload Stripe so it's ready when the subscription + cc form becomes
      * available. `loadStripe` ensures Stripe is not loaded multiple times
      */
     loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
+  }, []);
 
-    if (subscription.canSelfServe) {
-      fetchBillingConfig();
-    } else {
-      handleRedirect();
-    }
-
+  useEffect(() => {
     trackGetsentryAnalytics('am_checkout.viewed', {
       organization,
       subscription,
     });
 
     Sentry.getReplay()?.start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [organization, subscription]);
 
-  // componentDidUpdate - checkoutTier change
   useEffect(() => {
     if (subscription.canSelfServe) {
       fetchBillingConfig();
     } else {
       handleRedirect();
     }
-  }, [checkoutTier, subscription.canSelfServe, fetchBillingConfig, handleRedirect]);
-
-  // componentDidUpdate - location.hash change
-  useEffect(() => {
-    scrollToStep();
-  }, [location.hash, scrollToStep]);
+  }, [subscription.canSelfServe, fetchBillingConfig, handleRedirect]);
 
   // Scroll to step after billing config and form data are ready
   useEffect(() => {
