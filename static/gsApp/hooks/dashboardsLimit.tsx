@@ -36,7 +36,7 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
           query: {
             filter: 'excludePrebuilt',
             // We only need to know there are at most the limited # of dashboards.
-            per_page: dashboardsLimit + 1, // +1 to account for the General dashboard
+            per_page: dashboardsLimit,
           },
         },
       ],
