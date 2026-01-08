@@ -177,10 +177,13 @@ export function IssueListSeerComboBox() {
         ...timeParams,
       };
 
-      navigate({
-        pathname: location.pathname,
-        query: queryParams,
-      });
+      navigate(
+        {
+          pathname: location.pathname,
+          query: queryParams,
+        },
+        {replace: true, preventScrollReset: true}
+      );
     },
     [askSeerSuggestedQueryRef, location.pathname, location.query, navigate, organization]
   );
