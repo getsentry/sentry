@@ -55,7 +55,6 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
@@ -570,37 +569,18 @@ class SlackActionEndpoint(Endpoint):
         group: Group,
         user: RpcUser,
     ) -> None:
-        try:
-            stopping_point = (
-                AutofixStoppingPoint(action.value)
-                if action.value
-                else AutofixStoppingPoint.ROOT_CAUSE
-            )
-        except ValueError:
-            _logger.exception(
-                "invalid_autofix_stopping_point",
-                extra={
-                    "stopping_point": action.value,
-                    "action_id": action.action_id,
-                    "group_id": group.id,
-                    "user_id": user.id,
-                },
-            )
-            return
-
-        run_id = slack_request.callback_data.get("run_id")
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
             group=group,
             organization_id=group.project.organization_id,
-            autofix_stopping_point=stopping_point,
         )
+        stopping_point = entrypoint.set_autofix_stopping_point(action=action)
         operator = SeerOperator(entrypoint=entrypoint)
         operator.trigger_autofix(
             group=group,
             user=user,
             stopping_point=stopping_point,
-            run_id=run_id,
+            run_id=entrypoint.get_autofix_run_id(),
         )
 
     @classmethod

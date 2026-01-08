@@ -14,6 +14,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
 )
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
+from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
@@ -40,13 +41,13 @@ class SlackEntrypointCachePayload(TypedDict):
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
 class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     key = SeerEntrypointKey.SLACK
+    autofix_stopping_point: AutofixStoppingPoint | None = None
 
     def __init__(
         self,
         slack_request: SlackActionRequest,
         group: Group,
         organization_id: int,
-        autofix_stopping_point: AutofixStoppingPoint | None = None,
     ):
         from sentry.integrations.slack.integration import SlackIntegration
 
@@ -58,7 +59,34 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         self.install = SlackIntegration(
             model=slack_request.integration, organization_id=organization_id
         )
-        self.autofix_stopping_point = autofix_stopping_point or AutofixStoppingPoint.ROOT_CAUSE
+
+    def set_autofix_stopping_point(self, *, action: BlockKitMessageAction) -> AutofixStoppingPoint:
+        """
+        Sets the autofix stopping point from a passed BlockKitMessageAction.
+        XXX: We could attempt to interpret it from the slack_request value, but this will make
+        it explicit which we use in case there's multiple in the body.
+        """
+        stopping_point = AutofixStoppingPoint.ROOT_CAUSE
+        try:
+            stopping_point = (
+                AutofixStoppingPoint(action.value)
+                if action.value
+                else AutofixStoppingPoint.ROOT_CAUSE
+            )
+        except ValueError:
+            logger.exception(
+                "invalid_autofix_stopping_point",
+                extra={
+                    "stopping_point": action.value,
+                    "action_id": action.action_id,
+                    "group_id": self.group.id,
+                },
+            )
+        self.autofix_stopping_point = stopping_point
+        return self.autofix_stopping_point
+
+    def get_autofix_run_id(self) -> int | None:
+        return self.slack_request.callback_data.get("run_id")
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         _send_thread_update(
@@ -70,6 +98,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
+
         _send_thread_update(
             install=self.install,
             channel_id=self.channel_id,
@@ -77,7 +106,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             data=SeerAutofixSuccess(
                 run_id=run_id,
                 organization_id=self.organization_id,
-                stopping_point=self.autofix_stopping_point,
+                stopping_point=self.autofix_stopping_point or AutofixStoppingPoint.ROOT_CAUSE,
             ),
             ephemeral_user_id=self.slack_request.user_id,
         )
