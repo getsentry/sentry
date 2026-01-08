@@ -7,6 +7,7 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -116,6 +117,7 @@ export function SpansTabSeerComboBox() {
 
   const spansTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
+      const timezone = getUserTimezone();
       const selectedProjects =
         pageFilters.selection.projects?.length > 0 &&
         pageFilters.selection.projects?.[0] !== -1
@@ -129,6 +131,7 @@ export function SpansTabSeerComboBox() {
           data: {
             natural_language_query: queryToSubmit,
             project_ids: selectedProjects,
+            timezone,
           },
         });
 
