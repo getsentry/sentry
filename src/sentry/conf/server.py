@@ -1328,11 +1328,7 @@ def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
 
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
-    from sentry.apidocs.build import (
-        OPENAPI_TAGS,
-        get_old_json_components,
-        get_old_json_paths,
-    )
+    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
