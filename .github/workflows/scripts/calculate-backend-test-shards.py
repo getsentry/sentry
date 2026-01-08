@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import traceback
 
 TESTS_PER_SHARD = 1200
 MIN_SHARDS = 1
@@ -28,27 +29,32 @@ def collect_test_count():
         )
 
         # Parse output for "N tests collected"
-        # Format: "27000 tests collected in 18.53s"
         match = re.search(r"(\d+) tests? collected", result.stdout + result.stderr)
         if match:
             count = int(match.group(1))
             print(f"Collected {count} tests", file=sys.stderr)
             return count
 
-        # If no match, check if pytest failed
+        # If subprocess failed, dump full info
         if result.returncode != 0:
+            print(f"Pytest collection failed (exit {result.returncode})", file=sys.stderr)
             print(
-                f"Pytest collection failed (exit {result.returncode})",
+                f"Command: python .github/workflows/scripts/pytest-args-wrapper.py @selected-tests-fd7c6b1b8b9458f40874dcb82790aa87c1ecef6f --collect-only --quiet",
                 file=sys.stderr,
             )
+            print("=== STDOUT ===", file=sys.stderr)
+            print(result.stdout, file=sys.stderr)
+            print("=== STDERR ===", file=sys.stderr)
             print(result.stderr, file=sys.stderr)
             return None
 
         print("No tests collected", file=sys.stderr)
         return 0
+
     except Exception as e:
         print(f"Error collecting tests: {e}", file=sys.stderr)
-        return None
+        traceback.print_exc(file=sys.stderr)
+        raise SystemExit(1)
 
 
 def calculate_shards(test_count):
@@ -80,7 +86,6 @@ def calculate_shards(test_count):
 def main():
     test_count = collect_test_count()
     shard_count = calculate_shards(test_count)
-    # Generate a JSON array of shard indices [0, 1, 2, ..., shard_count-1]
     shard_indices = json.dumps(list(range(shard_count)))
 
     github_output = os.getenv("GITHUB_OUTPUT")
