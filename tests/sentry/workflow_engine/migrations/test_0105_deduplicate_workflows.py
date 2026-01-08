@@ -11,6 +11,7 @@ from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionGroupAction,
     DetectorWorkflow,
     Workflow,
     WorkflowActionGroupStatus,
@@ -323,6 +324,28 @@ class TestDeduplicateWorkflows(TestMigrations):
             config_action_count = 1
 
         assert wags_count == config_action_count + COUNT_DEFAULT_WORKFLOW_CONFIGS_WITH_ACTIONS
+
+        # Verify no orphaned Action objects exist - all remaining actions should be connected to existing workflows
+        remaining_actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id__in=workflow_ids
+        )
+        all_actions_in_org = Action.objects.filter(
+            dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__organization=org
+        )
+        assert (
+            remaining_actions.count() == all_actions_in_org.count()
+        ), f"Found orphaned Action objects in org {org.name}"
+
+        # Verify no orphaned DataConditionGroupAction objects exist
+        remaining_dcga = DataConditionGroupAction.objects.filter(
+            condition_group__workflowdataconditiongroup__workflow_id__in=workflow_ids
+        )
+        all_dcga_in_org = DataConditionGroupAction.objects.filter(
+            condition_group__workflowdataconditiongroup__workflow__organization=org
+        )
+        assert (
+            remaining_dcga.count() == all_dcga_in_org.count()
+        ), f"Found orphaned DataConditionGroupAction objects in org {org.name}"
 
     def test_deduplication(self) -> None:
         for i, config in enumerate(DUPLICATE_WORKFLOW_CONFIGS):
