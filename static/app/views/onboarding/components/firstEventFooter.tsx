@@ -160,7 +160,8 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.colors.pink500)};
+  color: ${p =>
+    p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
 
 const indicatorAnimation: Variants = {

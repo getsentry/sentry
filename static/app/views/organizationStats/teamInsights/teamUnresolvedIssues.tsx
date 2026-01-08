@@ -188,7 +188,7 @@ export function TeamUnresolvedIssues({
                             ? theme.subText
                             : totals.percentChange > 0
                               ? theme.errorText
-                              : theme.successText
+                              : theme.tokens.content.success
                         }
                       >
                         {formatPercentage(

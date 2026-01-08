@@ -432,7 +432,7 @@ const Title = styled('p')`
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   align-self: center;
-  color: ${p => p.theme.success};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const InstallButton = styled(Button)`

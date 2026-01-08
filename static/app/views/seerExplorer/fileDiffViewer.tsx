@@ -216,7 +216,7 @@ const FileAddedRemoved = styled('div')`
 `;
 
 const FileAdded = styled('div')`
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const FileRemoved = styled('div')`
