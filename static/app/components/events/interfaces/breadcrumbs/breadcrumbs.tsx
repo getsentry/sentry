@@ -245,7 +245,7 @@ export const StyledBreadcrumbPanelTable = styled(PanelTable)`
 
   > * {
     :nth-child(-n + 6) {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
       border-radius: 0;
       /* This is to fix a small issue with the border not being fully visible on smaller devices */
       margin-bottom: 1px;

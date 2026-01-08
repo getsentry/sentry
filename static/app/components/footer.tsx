@@ -143,7 +143,7 @@ const Footer = styled(BaseFooter)`
   grid-template-columns: 1fr 1fr 1fr;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   align-content: center;
   padding: ${space(2)} ${space(4)};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */

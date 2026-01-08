@@ -48,7 +48,7 @@ export default Storybook.story('InteractionStateLayer', story => {
 
 const StyledPanel = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   max-width: 300px;

@@ -74,7 +74,7 @@ const DropdownBubble = styled(
 )`
   background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   position: absolute;
   right: 0;
 
