@@ -28,7 +28,7 @@ import {InvoiceStatus} from 'getsentry/types';
 
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
-function InvoiceDetails() {
+export default function InvoiceDetails() {
   const {invoiceId, orgId, region} = useParams<{
     invoiceId: string;
     orgId: string;
@@ -332,5 +332,3 @@ function InvoiceDetails() {
     />
   );
 }
-
-export default InvoiceDetails;

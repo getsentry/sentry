@@ -30,6 +30,7 @@ type ParamKeys =
   | 'eventSlug'
   | 'fineTuneType'
   | 'groupId'
+  | 'invoiceGuid'
   | 'id'
   | 'installationId'
   | 'integrationId'
