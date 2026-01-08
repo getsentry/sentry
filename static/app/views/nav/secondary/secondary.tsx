@@ -396,19 +396,21 @@ const Item = styled(Link)<ItemProps>`
     height: 20px;
     left: -${space(1.5)};
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
 
   &:hover {
-    color: ${p => p.theme.tokens.component.link.muted.default};
-    background-color: ${p => p.theme.colors.gray100};
+    color: ${p => p.theme.tokens.interactive.transparent.neutral.content.secondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.component.link.accent.default};
-    background-color: ${p => p.theme.colors.blue100};
+    color: ${p => p.theme.tokens.interactive.transparent.accent.content.primary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
 
     &::before {
       opacity: 1;
