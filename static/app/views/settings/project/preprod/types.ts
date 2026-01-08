@@ -1,4 +1,4 @@
-type MetricType = 'install_size' | 'download_size' | 'total_insights';
+type MetricType = 'install_size' | 'download_size';
 
 type MeasurementType = 'absolute' | 'absolute_diff' | 'relative_diff';
 
@@ -22,7 +22,6 @@ export interface StatusCheckRule {
 export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> = [
   {label: 'Install/Uncompressed Size', value: 'install_size'},
   {label: 'Download Size', value: 'download_size'},
-  {label: 'Total Insights', value: 'total_insights'},
 ];
 
 export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}> = [
