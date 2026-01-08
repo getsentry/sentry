@@ -46,9 +46,8 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
       }
     );
 
-  // Add 1 to dashboardsLimit to account for the General dashboard
   const hasReachedDashboardLimit =
-    ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit + 1 &&
+    ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit &&
       dashboardsLimit !== UNLIMITED_DASHBOARDS_LIMIT) ||
     dashboardsLimit === 0;
   const limitMessage = hasReachedDashboardLimit
