@@ -744,7 +744,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         """
 
         serializer = DrfRuleSerializer(
-            context={"project": project, "organization": project.organization}, data=request.data
+            context={"project": project, "organization": project.organization, "request": request},
+            data=request.data,
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -184,7 +184,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         rule_data_before["label"] = rule.label
 
         serializer = DrfRuleSerializer(
-            context={"project": project, "organization": project.organization},
+            context={"project": project, "organization": project.organization, "request": request},
             data=request.data,
             partial=True,
         )
