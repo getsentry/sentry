@@ -122,7 +122,7 @@ export function createItem(
     showDetailsInOverlay: true,
     details: () => <KeyDescription tag={tag} />,
     type: 'item',
-    trailingItems: (
+    trailingItems: () => (
       <TypeBadge
         kind={(fieldDefinition?.kind || tag?.kind) ?? undefined}
         valueType={fieldDefinition?.valueType ?? undefined}
@@ -143,7 +143,7 @@ export function createRawSearchItem(value: string): RawSearchItem {
     showDetailsInOverlay: true,
     details: null,
     type: 'raw-search',
-    trailingItems: <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
+    trailingItems: () => <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
   };
 }
 
@@ -292,7 +292,7 @@ export function createLogicFilterItem({
     textValue: value,
     hideCheck: true,
     showDetailsInOverlay: true,
-    trailingItems: <TypeBadge isLogicFilter />,
+    trailingItems: () => <TypeBadge isLogicFilter />,
   };
 }
 
