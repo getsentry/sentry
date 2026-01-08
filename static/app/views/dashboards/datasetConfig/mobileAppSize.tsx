@@ -10,6 +10,7 @@ import type {
   AggregationOutputType,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
@@ -17,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {getWidgetInterval} from 'sentry/views/dashboards/utils';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -35,6 +37,7 @@ import type {
   WidgetBuilderSearchBarProps,
 } from './base';
 import {handleOrderByReset} from './base';
+import {getTimeseriesSortOptions} from './errorsAndTransactions';
 
 export interface AppSizeResponse {
   data: Array<[number, Array<{count: number | null}>]>;
@@ -43,7 +46,11 @@ export interface AppSizeResponse {
     fields: Record<string, string>;
   };
   start: number;
+  order?: number;
 }
+
+// Multi-series response when groupBy is used - keyed by group value (e.g., "ios", "android")
+export type MultiAppSizeResponse = Record<string, AppSizeResponse>;
 
 // Query building uses standard event-stats with dataset=preprodSize.
 // This serves as the initial template for new widgets.
@@ -129,6 +136,33 @@ function filterYAxisOptions() {
   return function (option: FieldValueOption) {
     return option.value.kind === FieldValueKind.FUNCTION;
   };
+}
+
+function getGroupByFieldOptions(
+  _organization: Organization,
+  tags?: TagCollection
+): Record<string, FieldValueOption> {
+  if (!tags) {
+    return {};
+  }
+
+  // Convert tags to field options, filtering out numeric fields (those are for aggregation)
+  const tagOptions: Record<string, FieldValueOption> = {};
+  for (const [key, tag] of Object.entries(tags)) {
+    // Skip numeric fields - those are for aggregation, not grouping
+    if (tag.kind === 'measurement' || key.includes('size')) {
+      continue;
+    }
+    tagOptions[`field:${key}`] = {
+      label: tag.name,
+      value: {
+        kind: FieldValueKind.FIELD,
+        meta: {name: key, dataType: 'string'},
+      },
+    };
+  }
+
+  return tagOptions;
 }
 
 function MobileAppSizeSearchBar({
@@ -218,6 +252,9 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
   getTableFieldOptions: getPrimaryFieldOptions,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
+  getGroupByFieldOptions,
+  getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
+    getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   getSeriesRequest: (
     api: Client,
     widget: Widget,
@@ -238,6 +275,8 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
       widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'max(install_size)';
 
     const {start, end, period} = pageFilters.datetime;
+    const interval = getWidgetInterval(widget, pageFilters.datetime, '1d');
+
     const baseParams: Record<string, any> = {
       dataset: 'preprodSize',
       project: pageFilters.projects,
@@ -245,10 +284,15 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
       start: start ? new Date(start).toISOString() : undefined,
       end: end ? new Date(end).toISOString() : undefined,
       statsPeriod: period || (!start && !end ? '14d' : undefined),
-      interval: widget.interval || '1d',
+      interval,
       yAxis,
       query: widgetQuery.conditions || '',
     };
+
+    if (widgetQuery.columns && widgetQuery.columns.length > 0) {
+      baseParams.topEvents = widget.limit ?? TOP_N;
+      baseParams.field = [...widgetQuery.columns, yAxis];
+    }
 
     return api
       .requestPromise(`/organizations/${organization.slug}/events-stats/`, {
@@ -270,30 +314,69 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     widgetQuery: WidgetQuery,
     _organization: Organization
   ): Series[] => {
-    return data.map(response => {
-      // Filter out time buckets with no data (null, undefined, or 0), creating a continuous line
-      const seriesData = response.data
-        .filter(
-          ([, values]) =>
-            values[0]?.count !== null &&
-            values[0]?.count !== undefined &&
-            values[0]?.count !== 0
-        )
-        .map(([timestamp, values]) => ({
-          name: timestamp * 1000,
-          value: values[0]!.count as number,
-        }));
+    const response = data[0];
+    if (!response) {
+      return [];
+    }
 
-      // Use the aggregate field from the query as the series name
-      const aggregate =
-        widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'App Size';
-      const seriesName = widgetQuery.name || aggregate;
+    const aggregate =
+      widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'App Size';
 
-      return {
-        seriesName,
-        data: seriesData,
-      };
-    });
+    // Check if this is a multi-series response (grouped by some field)
+    // Multi-series responses don't have a 'data' array directly, they have group keys
+    const isMultiSeries = !Array.isArray(response.data);
+
+    if (isMultiSeries) {
+      // Multi-series: response is keyed by group values (e.g., "ios", "android")
+      const multiResponse = response as unknown as MultiAppSizeResponse;
+      const seriesWithOrder: Array<{order: number; series: Series}> = [];
+
+      for (const [groupName, groupData] of Object.entries(multiResponse)) {
+        if (!groupData.data || !Array.isArray(groupData.data)) {
+          continue;
+        }
+
+        const seriesData = groupData.data
+          .filter(
+            ([, values]) =>
+              values[0]?.count !== null &&
+              values[0]?.count !== undefined &&
+              values[0]?.count !== 0
+          )
+          .map(([timestamp, values]) => ({
+            name: timestamp * 1000,
+            value: values[0]!.count as number,
+          }));
+
+        const seriesName = widgetQuery.name
+          ? `${widgetQuery.name} : ${groupName}`
+          : groupName;
+
+        seriesWithOrder.push({
+          order: groupData.order ?? 0,
+          series: {seriesName, data: seriesData},
+        });
+      }
+
+      return seriesWithOrder.sort((a, b) => a.order - b.order).map(item => item.series);
+    }
+
+    // Single series: original format
+    const seriesData = response.data
+      .filter(
+        ([, values]) =>
+          values[0]?.count !== null &&
+          values[0]?.count !== undefined &&
+          values[0]?.count !== 0
+      )
+      .map(([timestamp, values]) => ({
+        name: timestamp * 1000,
+        value: values[0]!.count as number,
+      }));
+
+    const seriesName = widgetQuery.name || aggregate;
+
+    return [{seriesName, data: seriesData}];
   },
   getSeriesResultType: (
     _data: AppSizeResponse[],

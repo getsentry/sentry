@@ -15,7 +15,9 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface WidgetBuilderGroupBySelectorProps {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
@@ -38,6 +40,17 @@ function WidgetBuilderGroupBySelector({
   const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
   const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
 
+  const preprodAttributeConfig = {
+    traceItemType: TraceItemDataset.PREPROD,
+    enabled:
+      state.dataset === WidgetType.MOBILE_APP_SIZE &&
+      organization.features.includes('preprod-frontend-routes'),
+  };
+  const {attributes: preprodStringAttributes} = useTraceItemAttributesWithConfig(
+    preprodAttributeConfig,
+    'string'
+  );
+
   const groupByOptions = useMemo(() => {
     const datasetConfig = getDatasetConfig(state.dataset);
     if (!datasetConfig.getGroupByFieldOptions) {
@@ -54,8 +67,20 @@ function WidgetBuilderGroupBySelector({
         ...stringSpanTags,
       });
     }
+
+    if (state.dataset === WidgetType.MOBILE_APP_SIZE) {
+      return datasetConfig.getGroupByFieldOptions(organization, preprodStringAttributes);
+    }
+
     return datasetConfig.getGroupByFieldOptions(organization, tags);
-  }, [numericSpanTags, organization, state.dataset, stringSpanTags, tags]);
+  }, [
+    numericSpanTags,
+    organization,
+    preprodStringAttributes,
+    state.dataset,
+    stringSpanTags,
+    tags,
+  ]);
 
   const handleGroupByChange = (newValue: QueryFieldValue[]) => {
     dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});
