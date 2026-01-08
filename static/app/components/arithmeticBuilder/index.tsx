@@ -95,8 +95,8 @@ const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>
     p.state === 'valid'
       ? css`
           :focus-within {
-            border: 1px solid ${p.theme.focusBorder};
-            box-shadow: 0 0 0 1px ${p.theme.focusBorder};
+            border: 1px solid ${p.theme.tokens.border.accent.vibrant};
+            box-shadow: 0 0 0 1px ${p.theme.tokens.border.accent.vibrant};
           }
         `
       : p.state === 'invalid'

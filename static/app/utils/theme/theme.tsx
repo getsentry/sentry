@@ -232,8 +232,8 @@ const generateButtonTheme = (
     border: alias.border,
     borderActive: alias.border,
     borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.border.accent.vibrant,
+    focusShadow: tokens.border.accent.vibrant,
   },
   primary: {
     color: colors.white,
@@ -243,8 +243,8 @@ const generateButtonTheme = (
     border: colors.blue400,
     borderActive: colors.blue400,
     borderTranslucent: colors.blue400,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.border.accent.vibrant,
+    focusShadow: tokens.border.accent.vibrant,
   },
   danger: {
     color: colors.white,
@@ -265,8 +265,8 @@ const generateButtonTheme = (
     border: 'transparent',
     borderActive: 'transparent',
     borderTranslucent: 'transparent',
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.border.accent.vibrant,
+    focusShadow: tokens.border.accent.vibrant,
   },
   disabled: {
     color: alias.disabled,
@@ -1223,13 +1223,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   active: tokens.interactive.link.accent.active,
   activeHover: tokens.interactive.link.accent.hover,
   activeText: tokens.interactive.link.accent.rest,
-
-  /**
-   * Indicates that something has "focus", which is different than "active" state as it is more temporal
-   * and should be a bit subtler than active
-   */
-  focus: tokens.border.accent.vibrant,
-  focusBorder: tokens.border.accent.vibrant,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
@@ -1381,7 +1374,7 @@ const lightThemeDefinition = {
   tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.border.accent.vibrant}`,
   }),
 
   // @TODO: these colors need to be ported
@@ -1430,7 +1423,7 @@ export const darkTheme: SentryTheme = {
   tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.border.accent.vibrant}`,
   }),
 
   // @TODO: these colors need to be ported

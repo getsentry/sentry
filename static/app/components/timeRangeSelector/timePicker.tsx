@@ -124,8 +124,8 @@ const Input = styled('input')`
 
     &&:focus-visible {
       outline: none;
-      border-color: ${p => p.theme.focusBorder};
-      box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+      border-color: ${p => p.theme.tokens.border.accent.vibrant};
+      box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant};
     }
 
     &&[aria-invalid='true'] {

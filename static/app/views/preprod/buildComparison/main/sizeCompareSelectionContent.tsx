@@ -325,7 +325,8 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 }
 
 const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
-  border: 1px solid ${p => (p.isSelected ? p.theme.focusBorder : p.theme.border)};
+  border: 1px solid
+    ${p => (p.isSelected ? p.theme.tokens.border.accent.vibrant : p.theme.border)};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;

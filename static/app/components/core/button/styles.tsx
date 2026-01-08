@@ -126,8 +126,8 @@ export function DO_NOT_USE_getButtonStyles(
       color: p.disabled || p.busy ? undefined : buttonTheme.color,
 
       '&::after': {
-        border: `1px solid ${p.theme.focusBorder}`,
-        boxShadow: `0 0 0 1px ${p.theme.focusBorder}`,
+        border: `1px solid ${p.theme.tokens.border.accent.vibrant}`,
+        boxShadow: `0 0 0 1px ${p.theme.tokens.border.accent.vibrant}`,
       },
     },
 
