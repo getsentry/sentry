@@ -32,12 +32,6 @@ from ..metrics import (
 logger = logging.getLogger(__name__)
 
 
-class ErrorStatus(enum.StrEnum):
-    MISSING_ORGANIZATION = "missing_organization"
-    MISSING_ACTION = "missing_action"
-    INVALID_PAYLOAD = "invalid_payload"
-
-
 class Log(enum.StrEnum):
     MISSING_ACTION = "github.webhook.check_run.missing-action"
     INVALID_PAYLOAD = "github.webhook.check_run.invalid-payload"
@@ -110,7 +104,7 @@ def handle_check_run_event(
     record_webhook_received(github_event, action)
 
     if action != GitHubCheckRunAction.REREQUESTED:
-        record_webhook_filtered(github_event, action, WebhookFilteredReason.WRONG_ACTION)
+        record_webhook_filtered(github_event, action, WebhookFilteredReason.UNSUPPORTED_ACTION)
         return
 
     try:

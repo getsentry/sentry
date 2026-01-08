@@ -13,7 +13,9 @@ class WebhookFilteredReason(StrEnum):
     """Webhook-specific reasons why a webhook was filtered out."""
 
     NOT_REVIEW_COMMAND = "not_review_command"  # issue_comment not @sentry review
-    WRONG_ACTION = "wrong_action"  # Not a supported action, e.g., check_run not rerequested
+    UNSUPPORTED_ACTION = (
+        "unsupported_action"  # Not a supported action, e.g., check_run not rerequested
+    )
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
 
@@ -24,11 +26,18 @@ CodeReviewFilteredReason = WebhookFilteredReason | PreflightDenialReason
 class CodeReviewErrorType(StrEnum):
     """Types of errors that can occur in the code review pipeline."""
 
+    # Shared errors
+    MISSING_ACTION = "missing_action"
+
     # Errors from check_run webhook
     MISSING_ORGANIZATION = "missing_organization"
-    MISSING_ACTION = "missing_action"
     CODE_REVIEW_NOT_ENABLED = "code_review_not_enabled"
     INVALID_PAYLOAD = "invalid_payload"
+
+    # Errors from pull_request webhook
+    MISSING_PULL_REQUEST = "missing_pull_request"
+    UNSUPPORTED_ACTION = "unsupported_action"
+    DRAFT_PR = "draft_pr"
 
     # Errors from issue_comment webhook
     MISSING_INTEGRATION = "missing_integration"

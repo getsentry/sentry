@@ -39,7 +39,7 @@ class TestCodeReviewMetrics:
         record_webhook_filtered(
             GithubWebhookType.CHECK_RUN,
             "completed",
-            WebhookFilteredReason.WRONG_ACTION,
+            WebhookFilteredReason.UNSUPPORTED_ACTION,
         )
 
         mock_metrics.incr.assert_called_once_with(
