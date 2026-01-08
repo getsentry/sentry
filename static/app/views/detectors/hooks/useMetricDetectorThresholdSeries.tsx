@@ -15,7 +15,6 @@ import type {
   MetricCondition,
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return MarkLine({
@@ -118,10 +117,6 @@ function extractThresholdsFromConditions(
 interface UseMetricDetectorThresholdSeriesProps {
   conditions: Array<Omit<MetricCondition, 'id'>> | undefined;
   detectionType: MetricDetectorConfig['detectionType'];
-  /**
-   * The aggregate function to determine if thresholds should be scaled for percentage display
-   */
-  aggregate?: string;
   comparisonSeries?: Series[];
 }
 
@@ -139,16 +134,11 @@ interface UseMetricDetectorThresholdSeriesResult {
 export function useMetricDetectorThresholdSeries({
   conditions,
   detectionType,
-  aggregate,
   comparisonSeries = [],
 }: UseMetricDetectorThresholdSeriesProps): UseMetricDetectorThresholdSeriesResult {
   const theme = useTheme();
 
   return useMemo((): UseMetricDetectorThresholdSeriesResult => {
-    // For percentage aggregates (e.g., crash-free rate), thresholds are input as whole numbers
-    // (e.g., 95 for 95%) but need to be displayed as decimals (0.95) on the chart
-    const isPercentageAggregate =
-      aggregate && aggregateOutputType(aggregate) === 'percentage';
     if (!conditions) {
       return {maxValue: undefined, additionalSeries: []};
     }
@@ -226,10 +216,8 @@ export function useMetricDetectorThresholdSeries({
             ? theme.colors.red400
             : theme.colors.yellow400;
         const areaColor = lineColor;
-        // Scale threshold for percentage aggregates (e.g., 95 -> 0.95)
-        const displayThreshold = isPercentageAggregate
-          ? threshold.value / 100
-          : threshold.value;
+        // Thresholds are already in correct scale (0-1 for percentages, e.g., 0.05 = 5%)
+        const displayThreshold = threshold.value;
 
         return {
           type: 'line',
@@ -245,10 +233,8 @@ export function useMetricDetectorThresholdSeries({
         resolution && !thresholds.some(threshold => threshold.value === resolution.value)
       );
       if (resolution && isResolutionManual) {
-        // Scale resolution threshold for percentage aggregates
-        const displayResolution = isPercentageAggregate
-          ? resolution.value / 100
-          : resolution.value;
+        // Thresholds are already in correct scale (0-1 for percentages, e.g., 0.05 = 5%)
+        const displayResolution = resolution.value;
         const resolutionSeries: LineSeriesOption = {
           type: 'line',
           markLine: createThresholdMarkLine(theme.colors.green400, displayResolution),
@@ -265,12 +251,8 @@ export function useMetricDetectorThresholdSeries({
       }
 
       const valuesForMax = [
-        ...thresholds.map(threshold =>
-          isPercentageAggregate ? threshold.value / 100 : threshold.value
-        ),
-        ...(resolution && isResolutionManual
-          ? [isPercentageAggregate ? resolution.value / 100 : resolution.value]
-          : []),
+        ...thresholds.map(threshold => threshold.value),
+        ...(resolution && isResolutionManual ? [resolution.value] : []),
       ];
       const maxValue = valuesForMax.length > 0 ? Math.max(...valuesForMax) : undefined;
       return {maxValue, additionalSeries: additional};
@@ -278,5 +260,5 @@ export function useMetricDetectorThresholdSeries({
 
     // Other detection types not supported yet
     return {maxValue: undefined, additionalSeries: additional};
-  }, [conditions, detectionType, aggregate, comparisonSeries, theme]);
+  }, [conditions, detectionType, comparisonSeries, theme]);
 }

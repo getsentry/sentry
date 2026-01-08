@@ -38,20 +38,24 @@ export function useDetectorChartAxisBounds({
     const seriesMax = Math.max(...allSeriesValues);
     const seriesMin = Math.min(...allSeriesValues);
 
-    // Combine with threshold max and round to nearest whole number
-    const combinedMax = thresholdMaxValue
-      ? Math.max(seriesMax, thresholdMaxValue)
-      : seriesMax;
+    // Determine the max value: use threshold if it's higher than data, otherwise add padding to data
+    let maxValue: number;
+    if (thresholdMaxValue && thresholdMaxValue >= seriesMax) {
+      // Threshold is the limiting factor - use it as-is without padding
+      maxValue = thresholdMaxValue;
+    } else {
+      // Data exceeds threshold - add padding to show data clearly above threshold
+      const maxPadding = seriesMax * 0.1;
+      maxValue = seriesMax + maxPadding;
+    }
 
-    const roundedMax = Math.round(combinedMax);
-
-    // Add padding to the bounds
-    const maxPadding = roundedMax * 0.1;
+    // Add padding to min value
     const minPadding = seriesMin * 0.1;
+    const minValue = Math.max(0, seriesMin - minPadding);
 
     return {
-      maxValue: roundedMax + maxPadding,
-      minValue: Math.max(0, seriesMin - minPadding),
+      maxValue,
+      minValue,
     };
   }, [series, thresholdMaxValue]);
 }
