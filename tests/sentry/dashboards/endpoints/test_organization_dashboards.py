@@ -2060,3 +2060,18 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 assert response.status_code == 200
                 assert len(response.data) == 1
                 assert response.data[0]["prebuiltId"] == PrebuiltDashboardId.FRONTEND_SESSION_HEALTH
+
+    def test_get_with_exclude_prebuilt(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url, {"filter": "excludePrebuilt"})
+
+                prebuilt_dashboards_count = Dashboard.objects.filter(
+                    organization=self.organization, prebuilt_id__isnull=False
+                ).count()
+                total_count = Dashboard.objects.filter(organization=self.organization).count()
+                assert prebuilt_dashboards_count == 3
+                assert total_count == 5
+
+                assert response.status_code == 200
+                assert len(response.data) == total_count - prebuilt_dashboards_count
