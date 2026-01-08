@@ -37,6 +37,8 @@ function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDa
       return TraceItemDataset.LOGS;
     case WidgetType.SPANS:
       return TraceItemDataset.SPANS;
+    case WidgetType.MOBILE_APP_SIZE:
+      return TraceItemDataset.PREPROD;
     default:
       return TraceItemDataset.SPANS; // Default to spans for backwards compatibility
   }
