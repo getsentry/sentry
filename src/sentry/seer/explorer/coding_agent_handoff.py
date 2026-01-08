@@ -96,7 +96,7 @@ def launch_coding_agents(
 
         try:
             coding_agent_state = installation.launch(launch_request)
-        except (HTTPError, ApiError) as e:
+        except (HTTPError, ApiError):
             logger.exception(
                 "explorer.coding_agent.launch_error",
                 extra={
@@ -108,7 +108,7 @@ def launch_coding_agents(
             failures.append(
                 {
                     "repo_name": repo_name,
-                    "error_message": str(e),
+                    "error_message": "Failed to launch coding agent",
                 }
             )
             continue
