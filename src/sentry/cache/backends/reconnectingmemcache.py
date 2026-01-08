@@ -1,31 +1,35 @@
 import time
+from collections.abc import Mapping
 
-from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
+import pymemcache
 from django.core.cache.backends.memcached import PyMemcacheCache
 
 from sentry.utils import metrics
 
 
-class ReconnectingMemcache(BaseCache):
+class ReconnectingMemcache(PyMemcacheCache):
     """
-    A django cache adapter that wraps a Pymemcache adapter.
-    Periodically, this adapter will close and reconnect the underlying
+    A django cache adapter adds periodic reconnecting
+    to PyMemcacheCache.
+
+    Periodically this adapter will close and reconnect the underlying
     cache adapter to help even out load on Twemproxy.
     """
 
+    _class: pymemcache.Client
+    _options: Mapping[str, str] | None = None
+
     def __init__(self, server, params) -> None:
         self._reconnect_age: int = params.get("OPTIONS", {}).pop("reconnect_age", 300)
-
-        super().__init__(params)
-        self._server = server
-        self._params = params
-        self._backend: BaseCache | None = None
         self._last_reconnect_at: float = time.time()
+        self._backend: pymemcache.Client | None = None
 
-    def _get_backend(self) -> BaseCache:
+        super().__init__(server, params)
+
+    @property
+    def _cache(self) -> pymemcache.Client | None:
         """
-        Get the wrapped backend. Will close the wrapped connection
-        if it has reached the `reconnect_age`.
+        Overload PyMemcacheCache._cache with periodic reconnections.
         """
         age = time.time() - self._last_reconnect_at
         if age >= self._reconnect_age and self._backend:
@@ -35,19 +39,7 @@ class ReconnectingMemcache(BaseCache):
             self._backend = None
 
         if not self._backend:
-            self._backend = PyMemcacheCache(self._server, self._params)
+            self._backend = self._class(self.client_servers, **self._options)
             self._last_reconnect_at = time.time()
 
         return self._backend
-
-    def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
-        return self._get_backend().add(key, value, timeout=timeout, version=version)
-
-    def get(self, key, default=None, version=None):
-        return self._get_backend().get(key, default=default, version=version)
-
-    def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
-        return self._get_backend().set(key, value, timeout=timeout, version=version)
-
-    def delete(self, key, version=None):
-        return self._get_backend().delete(key, version=version)

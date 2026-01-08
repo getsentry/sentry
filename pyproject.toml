@@ -297,6 +297,7 @@ module = [
     "onelogin.saml2.auth.*",
     "onelogin.saml2.constants.*",
     "onelogin.saml2.idp_metadata_parser.*",
+    "pymemcache.*",
     "P4",
     "rb.*",
     "statsd.*",
