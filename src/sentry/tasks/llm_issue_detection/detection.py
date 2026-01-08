@@ -53,14 +53,17 @@ class DetectedIssue(BaseModel):
     title: str
     subcategory: str
     category: str
-    verification_reason: str
+    verification_reason: str | None = None
+
+
+class DetectedIssueResponse(DetectedIssue):
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
 
 
 class IssueDetectionResponse(BaseModel):
-    issues: list[DetectedIssue]
+    issues: list[DetectedIssueResponse]
     traces_analyzed: int
 
 
@@ -95,7 +98,7 @@ def get_base_platform(platform: str | None) -> str | None:
 
 
 def create_issue_occurrence_from_detection(
-    detected_issue: DetectedIssue,
+    detected_issue: DetectedIssueResponse,
     project_id: int,
 ) -> None:
     """
@@ -195,7 +198,7 @@ def run_llm_issue_detection() -> None:
     for index, project_id in enumerate(enabled_project_ids):
         detect_llm_issues_for_project.apply_async(
             args=[project_id],
-            countdown=index * 60,
+            countdown=index * 120,
         )
 
 
@@ -293,8 +296,22 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
         try:
             raw_response_data = response.json()
+            # Add debug logging to see raw response
+            logger.info(
+                "Raw Seer response",
+                extra={
+                    "raw_issues_count": len(raw_response_data.get("issues", [])),
+                    "raw_traces_analyzed": raw_response_data.get("traces_analyzed", 0),
+                    "trace_id": trace.trace_id,
+                    "response_keys": (
+                        list(raw_response_data.keys())
+                        if isinstance(raw_response_data, dict)
+                        else None
+                    ),
+                },
+            )
             response_data = IssueDetectionResponse.parse_obj(raw_response_data)
-        except (ValueError, TypeError, ValidationError):
+        except (ValueError, TypeError, ValidationError) as e:
             logger.exception(
                 "Seer response parsing error",
                 extra={
@@ -303,6 +320,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     "status": response.status,
                     "response_data": response.data.decode("utf-8"),
                     "trace_id": trace.trace_id,
+                    "error_detail": str(e),
                 },
             )
             continue
