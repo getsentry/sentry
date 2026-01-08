@@ -301,6 +301,10 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
                 created_by_id=request.user.id
             )
+        elif filter_by == "excludePrebuilt":
+            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
+                prebuilt_id__isnull=False
+            )
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
@@ -468,7 +472,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if filter_by and filter_by in {"onlyFavorites", "owned"} or should_filter_by_prebuilt_ids:
+        if (
+            filter_by
+            and filter_by in {"onlyFavorites", "owned", "excludePrebuilt"}
+            or should_filter_by_prebuilt_ids
+        ):
             render_pre_built_dashboard = False
         elif pin_by and pin_by == "favorites":
             # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show
