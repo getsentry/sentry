@@ -13,7 +13,6 @@ import type {
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
@@ -198,12 +197,6 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 }}
                 onChange={(val: any) => {
                   try {
-                    // Multi-select workaround: reset the "saved" indicator on change to prevent it
-                    // from appearing before the save completes (handled onBlur).
-                    if (multiple) {
-                      model.setFieldState(name, FormState.READY, false);
-                    }
-
                     if (!confirm) {
                       this.handleChange(onBlur, onChange, val);
                       return;
