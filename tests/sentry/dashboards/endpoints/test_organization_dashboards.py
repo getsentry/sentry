@@ -2074,6 +2074,4 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 assert total_count == 5
 
                 assert response.status_code == 200
-                assert (
-                    len(response.data) == (total_count - prebuilt_dashboards_count) + 1
-                )  # +1 for general dashboard
+                assert len(response.data) == total_count - prebuilt_dashboards_count
