@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
