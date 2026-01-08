@@ -340,7 +340,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.dangerText};
+  color: ${p => p.theme.tokens.content.danger};
   margin-right: ${space(1)};
 `;
 
