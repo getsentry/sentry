@@ -114,6 +114,7 @@ jobs:
           retention-days: 7
           include-hidden-files: true
 
+  # TODO: Skip this step if the no backend files changed
   combine-coverage:
     name: Combine coverage from all test jobs
     runs-on: ubuntu-24.04
