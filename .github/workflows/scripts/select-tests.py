@@ -11,10 +11,12 @@ MIN_SHARDS = 1
 MAX_SHARDS = 22
 DEFAULT_SHARDS = 22
 
-PYTEST_IGNORED_FILES = [
+PYTEST_IGNORED_FILES = (
     # the pytest code itself is not part of the test suite but will be referenced by most tests
     "sentry/testutils/pytest/sentry.py",
-]
+)
+
+IGNORED_NODEIDS = ("tests/sentry/test_wsgi.py::test_wsgi_init",)
 
 
 def executed_lines(bitblob: bytes) -> set[int]:
@@ -68,6 +70,9 @@ def select_tests(coverage_db_path: str, changed_files: list[str]):
                     continue
 
                 test_nodeid = test_context.partition("|")[0]
+                if test_nodeid in IGNORED_NODEIDS:
+                    continue
+
                 test_nodeids.add(test_nodeid)
 
     return test_nodeids

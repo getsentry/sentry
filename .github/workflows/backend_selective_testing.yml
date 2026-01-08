@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          # fetching changed files in select-tests.py requires a full checkout for github.base_ref?
+          # fetching changed files in select-tests.py requires a full checkout?
           fetch-depth: 0
 
       # TODO: Replace with Gcloud download
@@ -64,7 +64,7 @@ jobs:
       - name: Select Tests
         id: select-tests
         env:
-          GITHUB_PR_BASE_REF: ${{ github.base_ref }}
+          GITHUB_PR_BASE_REF: ${{ ${{ github.event.pull_request.base.sha }} }}
           COVERAGE_DB_PATH: .coverage/.coverage.combined
         run: |
           python3 .github/workflows/scripts/select-tests.py
