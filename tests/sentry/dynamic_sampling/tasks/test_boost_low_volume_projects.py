@@ -374,19 +374,20 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
     def now(self) -> datetime:
         return MOCK_DATETIME
 
-    def test_query_skips_for_empty_org_ids(self) -> None:
+    def test_query_skips_for_empty_org_ids_when_option_enabled(self) -> None:
         """
         Confirms that query_project_counts_by_org does NOT make a Snuba query
-        when called with an empty org_ids list.
+        when called with an empty org_ids list and the option is enabled.
         """
-        with patch(
-            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
-        ) as mock_query:
-            mock_query.return_value = {"data": []}
+        with self.options({"dynamic-sampling.skip_snuba_query_for_empty_orgs": True}):
+            with patch(
+                "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
+            ) as mock_query:
+                mock_query.return_value = {"data": []}
 
-            list(query_project_counts_by_org([], SamplingMeasure.TRANSACTIONS))
+                list(query_project_counts_by_org([], SamplingMeasure.TRANSACTIONS))
 
-            assert mock_query.call_count == 0
+                assert mock_query.call_count == 0
 
     def test_fetch_projects_only_queries_measures_with_orgs(self) -> None:
         """
@@ -415,6 +416,7 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                 {
                     "dynamic-sampling.check_span_feature_flag": True,
                     "dynamic-sampling.measure.spans": [org.id],
+                    "dynamic-sampling.skip_snuba_query_for_empty_orgs": True,
                 }
             ):
                 partitioned = partition_by_measure([org.id])
@@ -448,6 +450,7 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                 {
                     "dynamic-sampling.check_span_feature_flag": True,
                     "dynamic-sampling.measure.spans": [org1.id, org2.id],
+                    "dynamic-sampling.skip_snuba_query_for_empty_orgs": True,
                 }
             ):
                 batches = [[org1.id], [org2.id]]
