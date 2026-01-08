@@ -22,6 +22,7 @@ import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign'
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
 import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
+import {ConversationUserCell} from 'sentry/views/insights/pages/conversations/components/conversationUserCell';
 import {
   useConversations,
   type Conversation,
@@ -48,6 +49,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
+  {key: 'user', name: t('User'), width: 120},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
@@ -124,6 +126,8 @@ const BodyCell = memo(function BodyCell({
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
       );
+    case 'user':
+      return <ConversationUserCell user={dataRow.user} />;
     case 'inputOutput': {
       return (
         <InputOutputButton
