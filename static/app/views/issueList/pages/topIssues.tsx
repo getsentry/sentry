@@ -548,6 +548,9 @@ function DenseTagFacets({groupIds}: DenseTagFacetsProps) {
           {t('Tag')}
         </Text>
         <Text size="xs" uppercase variant="muted">
+          {t('Distribution')}
+        </Text>
+        <Text size="xs" uppercase variant="muted">
           {t('Top %')}
         </Text>
         <Text size="xs" uppercase variant="muted">
@@ -575,7 +578,7 @@ interface TagDistributionPreviewProps {
 
 function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
   const theme = useTheme();
-  const topValues = tag.topValues.slice(0, 3);
+  const topValues = tag.topValues.slice(0, 4);
   const totalCount = tag.totalValues;
   const hasValues = topValues.length > 0;
 
@@ -640,48 +643,74 @@ function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
 }
 
 function DenseTagItem({tag, colors}: DenseTagItemProps) {
+  const theme = useTheme();
   const topValue = tag.topValues[0];
   const totalCount = tag.totalValues;
   const topValuePct =
     topValue && totalCount > 0 ? Math.round((topValue.count / totalCount) * 100) : null;
+  const barValues = tag.topValues.slice(0, 4);
   const hasValues = Boolean(topValue);
 
   return (
-    <Tooltip
-      title={<TagDistributionPreview tag={tag} colors={colors} />}
-      skipWrapper
-      maxWidth={360}
-    >
-      <TagRow>
-        <Text size="sm" bold ellipsis>
-          {tag.key}
-        </Text>
-        <TagPctCell>
-          {hasValues && topValuePct !== null ? (
-            <Text size="xs" variant="muted" style={{flexShrink: 0}}>
-              {topValuePct}%
-            </Text>
-          ) : (
-            <Text size="sm" variant="muted">
-              {t('—')}
-            </Text>
-          )}
-        </TagPctCell>
+    <TagRow>
+      <Text size="sm" bold ellipsis>
+        {tag.key}
+      </Text>
+      <TagBarCell>
         {hasValues ? (
-          <TagValueCell>
-            <Text size="sm" ellipsis>
-              {topValue?.name || t('(empty)')}
-            </Text>
-          </TagValueCell>
+          <Tooltip
+            title={<TagDistributionPreview tag={tag} colors={colors} />}
+            skipWrapper
+            maxWidth={360}
+          >
+            <TagBarHoverArea>
+              <TagMiniBar aria-hidden="true">
+                {barValues.map((value, index) => {
+                  const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
+                  return (
+                    <DenseTagSegment
+                      key={value.value}
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: colors[index] ?? theme.colors.gray300,
+                      }}
+                    />
+                  );
+                })}
+              </TagMiniBar>
+            </TagBarHoverArea>
+          </Tooltip>
         ) : (
-          <TagValueCell>
-            <Text size="sm" variant="muted">
-              {t('No values')}
-            </Text>
-          </TagValueCell>
+          <Text size="xs" variant="muted">
+            {t('—')}
+          </Text>
         )}
-      </TagRow>
-    </Tooltip>
+      </TagBarCell>
+      <TagPctCell>
+        {hasValues && topValuePct !== null ? (
+          <Text size="xs" variant="muted" style={{flexShrink: 0}}>
+            {topValuePct}%
+          </Text>
+        ) : (
+          <Text size="sm" variant="muted">
+            {t('—')}
+          </Text>
+        )}
+      </TagPctCell>
+      {hasValues ? (
+        <TagValueCell>
+          <Text size="sm" ellipsis>
+            {topValue?.name || t('(empty)')}
+          </Text>
+        </TagValueCell>
+      ) : (
+        <TagValueCell>
+          <Text size="sm" variant="muted">
+            {t('No values')}
+          </Text>
+        </TagValueCell>
+      )}
+    </TagRow>
   );
 }
 
@@ -1365,7 +1394,7 @@ const SingleGraphContainer = styled('div')`
 
 const TagsTable = styled('div')`
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) 70px minmax(180px, 2fr);
+  grid-template-columns: minmax(160px, 1fr) minmax(90px, 1fr) 70px minmax(180px, 2fr);
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
@@ -1408,6 +1437,24 @@ const DenseTagValues = styled('div')`
 const DenseTagSegment = styled('div')`
   height: 100%;
   min-width: 2px;
+`;
+
+const TagMiniBar = styled('div')`
+  display: flex;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: ${p => p.theme.backgroundSecondary};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
+`;
+
+const TagBarHoverArea = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: ${p => p.theme.space.xs} 0;
 `;
 
 const DenseTagChip = styled('div')`
@@ -1458,6 +1505,13 @@ const TagPctCell = styled('div')`
   align-items: center;
   justify-content: flex-start;
   min-width: 0;
+`;
+
+const TagBarCell = styled('div')`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  align-self: stretch;
 `;
 
 const CodeChangesContainer = styled('div')`
