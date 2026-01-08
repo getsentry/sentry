@@ -251,7 +251,7 @@ const StepWrapper = styled('div')`
     position: absolute;
     height: calc(100% + ${space(2)});
     width: 1px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }
 `;
@@ -285,7 +285,7 @@ const StepHeading = styled('h4')<{isActive: boolean}>`
 const StepDoneIcon = styled(IconCheckmark, {
   shouldForwardProp: prop => prop !== 'isActive',
 })<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.successText : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.success : p.theme.subText)};
   margin-left: ${space(1)};
   vertical-align: middle;
 `;

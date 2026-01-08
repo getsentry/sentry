@@ -45,6 +45,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
+import {PlatformizedBackendOverviewPage} from 'sentry/views/insights/pages/backend/platformizedBackendOverviewPage';
 import {Referrer} from 'sentry/views/insights/pages/backend/referrers';
 import {
   DEFAULT_SORT,
@@ -55,6 +56,7 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
   WEB_VITALS_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import useHasPlatformizedBackendOverview from 'sentry/views/insights/pages/frontend/utils/useHasPlatformizedBackendOverview';
 import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
@@ -76,6 +78,10 @@ function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const isNewBackendExperienceEnabled = useInsightsEap();
+  const hasPlatformizedBackendOverview = useHasPlatformizedBackendOverview();
+  if (hasPlatformizedBackendOverview) {
+    return <PlatformizedBackendOverviewPage />;
+  }
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
@@ -281,6 +287,7 @@ function BackendOverviewPageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <DomainOverviewPageProviders maxPickableDays={maxPickableDays.maxPickableDays}>
       <BackendOverviewPage datePageFilterProps={datePageFilterProps} />

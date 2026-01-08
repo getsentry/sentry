@@ -58,10 +58,17 @@ export function VisualizationWidget({
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
     >
-      {({timeseriesResults, timeseriesResultsTypes, errorMessage, loading}) => {
+      {({
+        timeseriesResults,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits,
+        errorMessage,
+        loading,
+      }) => {
         const plottables = transformLegacySeriesToPlottables(
           timeseriesResults,
           timeseriesResultsTypes,
+          timeseriesResultsUnits,
           widget
         );
 

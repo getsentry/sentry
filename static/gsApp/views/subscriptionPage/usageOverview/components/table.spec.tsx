@@ -19,7 +19,7 @@ describe('UsageOverviewTable', () => {
   const usageData = CustomerUsageFixture();
 
   beforeEach(() => {
-    organization.features = ['subscriptions-v3', 'seer-billing'];
+    organization.features = ['seer-billing'];
     organization.access = ['org:billing'];
     SubscriptionStore.set(organization.slug, subscription);
   });

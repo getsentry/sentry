@@ -687,7 +687,7 @@ const Footer = styled('div')`
   align-items: center;
   gap: ${space(1.5)};
   padding: ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   > *:first-child {
     flex-grow: 1;
   }
@@ -730,7 +730,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
           <StyledSettingsButton
             borderless
             size="zero"
-            icon={<IconSettings color="subText" />}
+            icon={<IconSettings variant="muted" />}
             title={t('Dynamic Sampling Settings')}
             aria-label={t('Dynamic Sampling Settings')}
             to={`/settings/${organization.slug}/dynamic-sampling/`}

@@ -34,7 +34,7 @@ export function WidgetOnDemandQueryWarning(props: {
           'We don’t routinely collect metrics for this property and you’ve exceeded the maximum number of extracted metrics for your organization. [strong:Please review your other widgets and remove any unused or less valuable queries marked with a (!) sign.]',
           {strong: <strong />}
         )}
-        color="yellow300"
+        variant="warning"
       />
     );
   }
@@ -45,7 +45,7 @@ export function WidgetOnDemandQueryWarning(props: {
         'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
         {strong: <strong />}
       )}
-      color="yellow300"
+      variant="warning"
     />
   );
 }

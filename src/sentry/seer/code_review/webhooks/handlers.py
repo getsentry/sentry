@@ -5,23 +5,27 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+
+from ..metrics import record_webhook_filtered
+from ..preflight import CodeReviewPreflightService
 
 if TYPE_CHECKING:
     from sentry.integrations.github.webhook import WebhookProcessor
 
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
+from .pull_request import handle_pull_request_event
 
 logger = logging.getLogger(__name__)
-
-METRICS_PREFIX = "seer.code_review.webhook"
 
 
 EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, WebhookProcessor] = {
     GithubWebhookType.CHECK_RUN: handle_check_run_event,
     GithubWebhookType.ISSUE_COMMENT: handle_issue_comment_event,
+    GithubWebhookType.PULL_REQUEST: handle_pull_request_event,
 }
 
 
@@ -31,6 +35,7 @@ def handle_webhook_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -41,7 +46,8 @@ def handle_webhook_event(
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
         repo: The repository that the webhook event is for
-        **kwargs: Additional keyword arguments including integration
+        integration: The GitHub integration
+        **kwargs: Additional keyword arguments
     """
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
@@ -51,10 +57,29 @@ def handle_webhook_event(
         )
         return
 
+    from ..utils import get_pr_author_id
+
+    preflight = CodeReviewPreflightService(
+        organization=organization,
+        repo=repo,
+        integration_id=integration.id if integration else None,
+        pr_author_external_id=get_pr_author_id(event),
+    ).check()
+
+    if not preflight.allowed:
+        if preflight.denial_reason:
+            record_webhook_filtered(
+                github_event=github_event,
+                github_event_action=event.get("action", "unknown"),
+                reason=preflight.denial_reason,
+            )
+        return
+
     handler(
         github_event=github_event,
         event=event,
         organization=organization,
         repo=repo,
+        integration=integration,
         **kwargs,
     )

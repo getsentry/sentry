@@ -79,7 +79,6 @@ type GetsentryEventParameters = {
   'checkout.data_slider_changed': {data_type: string; quantity: number};
   // no sub here;
   'checkout.data_sliders_viewed': Record<PropertyKey, unknown>;
-  // only used for checkout v3
   'checkout.exit': HasSub;
   'checkout.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;

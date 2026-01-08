@@ -459,7 +459,7 @@ const MenuPanel = styled('div')<{
   position: absolute;
   width: 300px;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   max-height: ${p =>
@@ -471,15 +471,18 @@ const MenuPanel = styled('div')<{
 const MenuItem = styled('div')<{isSelected: boolean}>`
   padding: ${p => p.theme.space.md};
   cursor: pointer;
-  background: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
-  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p =>
+    p.isSelected
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : 'transparent'};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

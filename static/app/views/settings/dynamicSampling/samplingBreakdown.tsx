@@ -4,6 +4,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -98,11 +100,11 @@ export function SamplingBreakdown({
                   key={item.project.id}
                   overlayStyle={{maxWidth: 'none'}}
                   title={
-                    <LegendItem key={item.project.id}>
+                    <Flex align="center" gap="sm" key={item.project.id}>
                       <ProjectBadge disableLink avatarSize={16} project={item.project} />
                       {formatPercent(itemPercent, {addSymbol: true})}
                       <SubText>{formatAbbreviatedNumber(item.sampledSpans)}</SubText>
-                    </LegendItem>
+                    </Flex>
                   }
                   skipWrapper
                 >
@@ -119,11 +121,11 @@ export function SamplingBreakdown({
               <Tooltip
                 overlayStyle={{maxWidth: 'none'}}
                 title={
-                  <LegendItem>
+                  <Flex align="center" gap="sm">
                     <OthersBadge />
                     {formatPercent(otherRate, {addSymbol: true})}
                     <SubText>{formatAbbreviatedNumber(total)}</SubText>
-                  </LegendItem>
+                  </Flex>
                 }
                 skipWrapper
               >
@@ -136,22 +138,22 @@ export function SamplingBreakdown({
               </Tooltip>
             )}
           </Breakdown>
-          <Footer>
+          <Flex align="start" gap="xl">
             <Legend>
               {topItems.map((item: any) => {
                 const itemPercent = getSpanRate(item.sampledSpans);
                 return (
-                  <LegendItem key={item.project.id}>
+                  <Flex align="center" gap="sm" key={item.project.id}>
                     <ProjectBadge avatarSize={16} project={item.project} />
                     {formatPercent(itemPercent, {addSymbol: true})}
-                  </LegendItem>
+                  </Flex>
                 );
               })}
               {hasOthers && (
-                <LegendItem>
+                <Flex align="center" gap="sm">
                   <OthersBadge />
                   {formatPercent(otherRate, {addSymbol: true})}
-                </LegendItem>
+                </Flex>
               )}
             </Legend>
             <Total>
@@ -159,7 +161,7 @@ export function SamplingBreakdown({
               &nbsp;
               {formatAbbreviatedNumber(total)}
             </Total>
-          </Footer>
+          </Flex>
         </Fragment>
       ) : (
         <EmptyStateText>{t('No spans found in the selected period.')}</EmptyStateText>
@@ -176,12 +178,6 @@ const StyledPanel = styled(Panel)`
 const Heading = styled('h6')`
   margin-bottom: ${space(1.5)};
   font-size: ${p => p.theme.fontSize.md};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-  align-items: flex-start;
 `;
 
 const Breakdown = styled('div')`
@@ -208,12 +204,6 @@ const Total = styled('div')`
   margin-top: ${space(1.5)};
   font-size: ${p => p.theme.fontSize.md};
   flex-shrink: 0;
-`;
-
-const LegendItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;
 
 const SubText = styled('span')`

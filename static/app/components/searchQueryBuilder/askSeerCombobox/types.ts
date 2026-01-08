@@ -12,9 +12,11 @@ interface AskSeerSearchItem<S extends string> {
 export type AskSeerSearchItems<T> = (AskSeerSearchItem<string> & T) | NoneOfTheseItem;
 
 export interface QueryTokensProps {
+  end?: string | null;
   groupBys?: string[];
   query?: string;
   sort?: string;
+  start?: string | null;
   statsPeriod?: string;
   visualizations?: Array<{chartType: ChartType; yAxes: string[]}>;
 }

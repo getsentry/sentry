@@ -913,7 +913,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         <AlertLink
           openInNewTab
           variant="danger"
-          trailingItems={<IconNot color="red300" />}
+          trailingItems={<IconNot variant="danger" />}
           href={makeAlertsPathname({
             path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
             organization,
@@ -1250,7 +1250,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                     <StepConnector />
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron color="gray200" direction="right" size="sm" />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
@@ -1335,7 +1335,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron color="gray200" direction="right" size="sm" />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
 
                       <StepContent data-test-id="rule-filters">
@@ -1406,7 +1406,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   <Step>
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron color="gray200" direction="right" size="sm" />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>

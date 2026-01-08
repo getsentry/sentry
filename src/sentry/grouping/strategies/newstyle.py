@@ -507,7 +507,6 @@ def _single_stacktrace_variant(
     # for grouping.
     if (
         len(frames) == 1
-        and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
     ):
@@ -717,6 +716,12 @@ def filter_exceptions_for_exception_groups(
     exception_components: dict[int, dict[str, ExceptionGroupingComponent]],
     event: Event,
 ) -> list[SingleException]:
+    """
+    Attempt to filter exceptions in exception groups in order to deduplicate sibling exceptions, and
+    in order to ignore wrapper aggregate exceptions if all they do is add a level to the chain.
+
+    If the data is malformed in any way, return the list of exceptions as is.
+    """
     # This function only filters exceptions if there are at least two exceptions.
     if len(exceptions) <= 1:
         return exceptions
@@ -809,6 +814,13 @@ def filter_exceptions_for_exception_groups(
         )
     else:
         # If there's no root exception, return the original list
+        return exceptions
+
+    # It's possible to end up with no top-level exceptions, for example if all exceptions in the
+    # chain are marked as exception groups and therefore all get excluded, or if the exception tree
+    # contains a cycle. (Ideally SDKs should never mark the data this way, but we've run into this
+    # before.) In that case, return the list as is.
+    if not top_level_exceptions:
         return exceptions
 
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.

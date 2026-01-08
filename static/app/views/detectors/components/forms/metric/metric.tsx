@@ -680,7 +680,7 @@ function MigratedAlertWarningListener() {
 function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProps}) {
   return (
     <Tooltip title={tooltipProps?.title} skipWrapper {...tooltipProps}>
-      <StyledIconWarning id={id} size="md" color="warning" />
+      <StyledIconWarning id={id} size="md" variant="warning" />
     </Tooltip>
   );
 }
@@ -767,7 +767,7 @@ const DefineThresholdParagraph = styled('p')`
   margin-bottom: ${p => p.theme.space.sm};
   padding-top: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const DatasetField = styled(SelectField)`

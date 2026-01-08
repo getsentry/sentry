@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {InlineCode} from '@sentry/scraps/code';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
@@ -160,7 +162,7 @@ function StoryTabPanels() {
   }
 
   return (
-    <TabPanels>
+    <StyledTabPanels>
       <TabPanels.Item key="usage">
         <StoryModuleExports exports={story.exports.documentation?.exports} />
         <StoryUsage />
@@ -171,7 +173,7 @@ function StoryTabPanels() {
       <TabPanels.Item key="resources">
         <StoryResources />
       </TabPanels.Item>
-    </TabPanels>
+    </StyledTabPanels>
   );
 }
 const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
@@ -194,7 +196,7 @@ function StoryUsage() {
           <ErrorBoundary
             fallback={
               <Alert variant="danger" showIcon={false}>
-                Problem loading <code>{filename}</code>
+                Problem loading <InlineCode>{filename}</InlineCode>
               </Alert>
             }
           >
@@ -261,6 +263,11 @@ function StoryModuleExports(props: {
   if (!props.exports) return null;
   return <Storybook.ModuleExports exports={props.exports} />;
 }
+
+const StyledTabPanels = styled(TabPanels)`
+  flex-grow: 1;
+  min-width: 0;
+`;
 
 const StoryContainer = styled('div')`
   max-width: 580px;

@@ -87,7 +87,7 @@ const FrameContainer = styled('div')`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSize.md};
 
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   background: ${p => p.theme.colors.surface300};
 `;

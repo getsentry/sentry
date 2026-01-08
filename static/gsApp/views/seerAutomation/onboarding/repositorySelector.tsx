@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
 import Panel from 'sentry/components/panels/panel';
@@ -143,7 +144,7 @@ export function RepositorySelector() {
           <Access access={['org:integrations']} organization={organization}>
             {({hasAccess}) =>
               hasAccess ? (
-                <p>
+                <Text density="comfortable">
                   {tct(
                     `Can't find a repository? [link:Manage your GitHub integration] and ensure you have granted access to the correct repositories.`,
                     {
@@ -163,7 +164,7 @@ export function RepositorySelector() {
                       ),
                     }
                   )}
-                </p>
+                </Text>
               ) : null
             }
           </Access>
