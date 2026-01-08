@@ -28,6 +28,7 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   getExplorerUrl,
+  getLangfuseUrl,
   useCopySessionDataToClipboard,
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
@@ -295,9 +296,7 @@ function ExplorerPanel() {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-  const langfuseUrl = runId
-    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`
-    : undefined;
+  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -308,28 +307,22 @@ function ExplorerPanel() {
 
   const openFeedbackForm = useFeedbackForm();
 
-  // Tags shared by all feedback entrypoints in the panel.
-  const feedbackTags = useMemo(
-    () => ({
-      ['feedback.source']: 'seer_explorer',
-      ['feedback.owner']: 'ml-ai',
-      ...(runId === null ? {} : {['seer.run_id']: runId}),
-      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
-      ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
-    }),
-    [runId, langfuseUrl]
-  );
-
-  // Generic feedback handler. Block components have separate thumbs up/down buttons.
+  // Generic feedback handler
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
       openFeedbackForm({
         formTitle: 'Seer Explorer Feedback',
         messagePlaceholder: 'How can we make Seer Explorer better for you?',
-        tags: {...feedbackTags},
+        tags: {
+          ['feedback.source']: 'seer_explorer',
+          ['feedback.owner']: 'ml-ai',
+          ...(runId === null ? {} : {['seer.run_id']: runId}),
+          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+        },
       });
     }
-  }, [openFeedbackForm, feedbackTags]);
+  }, [openFeedbackForm, runId, langfuseUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -607,7 +600,7 @@ function ExplorerPanel() {
                 }}
                 block={block}
                 blockIndex={index}
-                feedbackTags={feedbackTags}
+                runId={runId ?? undefined}
                 getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
