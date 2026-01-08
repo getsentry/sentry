@@ -44,6 +44,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          # full checkout is required for symmetric diff with the merge base to get changed files
+          # maybe we can just use the github api to get a PR's changed files?
+          fetch-depth: 0
 
       # TODO: Replace with Gcloud download
       # Download coverage artifact from a previous workflow run
