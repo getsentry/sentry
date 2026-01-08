@@ -1626,7 +1626,7 @@ const AlertInfo = styled('div')`
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.tokens.content.secondary};
+  background: ${p => p.theme.tokens.graphics.neutral.vibrant};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;
