@@ -188,12 +188,17 @@ function ResultsSearchQueryBuilder(props: Props) {
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
         enableAISearch={areAiFeaturesAllowed}
-        aiSearchBadgeType="alpha"
+        disabled={disabled}
         fieldDefinitionGetter={undefined}
         filterKeys={getFilterKeys()}
         filterKeySections={getFilterKeySections()}
         getTagValues={getTagValues}
         searchSource={props.searchSource || 'eventsv2'}
+        placeholder={placeholderText}
+        recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
+        onSearch={props.onSearch}
+        onChange={props.onChange}
+        portalTarget={portalTarget}
       >
         <ErrorsSearchBar {...searchBarProps} />
       </SearchQueryBuilderProvider>
