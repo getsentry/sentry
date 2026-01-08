@@ -65,7 +65,7 @@ const ErrorLine = styled('div')`
 `;
 
 const ErrorLabel = styled('div')`
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   position: absolute;
   top: 0;
   transform: translate(-50%, -100%);

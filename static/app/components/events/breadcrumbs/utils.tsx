@@ -289,8 +289,8 @@ function getBreadcrumbColorConfig(
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
       return {
-        title: theme.colors.blue500,
-        icon: theme.colors.blue500,
+        title: theme.tokens.content.accent,
+        icon: theme.tokens.content.accent,
         iconBorder: theme.colors.blue200,
       };
     case BreadcrumbType.SYSTEM:
@@ -305,7 +305,7 @@ function getBreadcrumbColorConfig(
       };
     case BreadcrumbType.INFO:
       return {
-        title: theme.colors.blue500,
+        title: theme.tokens.content.accent,
         icon: theme.colors.blue400,
         iconBorder: theme.colors.blue200,
       };

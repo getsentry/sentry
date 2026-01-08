@@ -333,7 +333,7 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
         backgroundLight: theme.colors.blue100,
         border: theme.colors.blue200,
         borderHover: theme.colors.blue400,
-        color: theme.colors.blue500,
+        color: theme.tokens.content.accent,
       };
     case SeverityLevel.WARN:
       return {
@@ -374,7 +374,7 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
         backgroundLight: theme.colors.blue100,
         border: theme.colors.blue200,
         borderHover: theme.colors.blue400,
-        color: theme.colors.blue500,
+        color: theme.tokens.content.accent,
       };
     case SeverityLevel.UNKNOWN:
       return {

@@ -322,7 +322,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
       ? p.theme.colors.red500
       : p.warning
         ? p.theme.colors.gray500
-        : p.theme.colors.blue500};
+        : p.theme.tokens.content.accent};
 
   position: relative;
   animation-name: ${shakeAnimation};
@@ -442,16 +442,16 @@ const InList = styled('span')`
   &:before {
     content: '[';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
   &:after {
     content: ']';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
 
   ${Value} {
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
 `;
 
