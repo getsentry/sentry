@@ -139,6 +139,7 @@ test-python-ci-with-coverage:
 	python3 -b -m pytest \
 		tests \
 		--ignore tests/acceptance \
+		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
 		--cov . \
