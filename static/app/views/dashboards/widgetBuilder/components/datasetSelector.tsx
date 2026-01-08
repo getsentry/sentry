@@ -36,7 +36,7 @@ function WidgetBuilderDatasetSelector() {
     value: WidgetType.ERRORS,
     label: t('Errors'),
     details: t(
-      'Error events from your application, including exception details and stack traces'
+      'Error events from your application that Sentry uses to group into issues. Use for error frequency, distribution, and impact.'
     ),
   });
 
@@ -70,7 +70,7 @@ function WidgetBuilderDatasetSelector() {
           ),
         })
       : t(
-          'End-to-end application transactions showing performance and user experience metrics'
+          'Transaction events that track the performance of operations in your application. Use for endpoint performance, throughput, and trends.'
         ),
   };
 
@@ -79,7 +79,7 @@ function WidgetBuilderDatasetSelector() {
       value: WidgetType.SPANS,
       label: t('Spans'),
       details: t(
-        'Distributed tracing spans from your application, showing performance and execution paths'
+        'Distributed tracing spans from your application that track the performance of individual operations. Use for detailed performance analysis.'
       ),
     });
   }
@@ -88,7 +88,7 @@ function WidgetBuilderDatasetSelector() {
       value: WidgetType.LOGS,
       label: t('Logs'),
       details: t(
-        'Log messages from your application for debugging and monitoring purposes'
+        'Log messages from your application for debugging and monitoring. Use for tracking application events and troubleshooting issues.'
       ),
     });
   }
@@ -97,7 +97,7 @@ function WidgetBuilderDatasetSelector() {
       value: WidgetType.TRACEMETRICS,
       label: t('Metrics'),
       details: t(
-        'Performance metrics derived from traces to monitor and analyze system behavior'
+        'Performance metrics derived from traces to monitor and analyze system behavior. Use for high-level performance monitoring.'
       ),
     });
   }
@@ -105,14 +105,14 @@ function WidgetBuilderDatasetSelector() {
     value: WidgetType.ISSUE,
     label: t('Issues'),
     details: t(
-      'Aggregated error events grouped by root cause to help prioritize problems'
+      'Issues grouped by root cause with properties like state and assignment. Use for creating custom issue lists and tracking resolution.'
     ),
   });
   datasetOptions.push({
     value: WidgetType.RELEASE,
     label: t('Releases'),
     details: t(
-      'Release-specific data to track deployment health and performance changes'
+      'Release-specific data including sessions and crash rates. Use for monitoring release health and stability across versions.'
     ),
   });
   datasetOptions.push(transactionsOption);
@@ -133,6 +133,7 @@ function WidgetBuilderDatasetSelector() {
       <CompactSelect
         value={state.dataset ?? WidgetType.ERRORS}
         options={datasetOptions}
+        menuWidth={500}
         triggerProps={{
           prefix: t('Dataset'),
         }}

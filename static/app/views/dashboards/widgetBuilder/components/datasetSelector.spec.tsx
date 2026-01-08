@@ -32,7 +32,7 @@ describe('DatasetSelector', () => {
 
     expect(
       await screen.findByText(
-        'Error events from your application, including exception details and stack traces'
+        'Error events from your application that Sentry uses to group into issues. Use for error frequency, distribution, and impact.'
       )
     ).toBeInTheDocument();
   });
@@ -133,7 +133,7 @@ describe('DatasetSelector', () => {
     await userEvent.hover(transactionsOption);
     expect(
       await screen.findByText(
-        'End-to-end application transactions showing performance and user experience metrics'
+        'Transaction events that track the performance of operations in your application. Use for endpoint performance, throughput, and trends.'
       )
     ).toBeInTheDocument();
 
