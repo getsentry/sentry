@@ -8,6 +8,7 @@ resources:
 ---
 
 import {Container, Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
 import documentation from '!!type-loader!@sentry/scraps/layout/container';
@@ -184,7 +185,35 @@ The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined
 </Container>
 ```
 
-### Grid Integration
+#### Truncating Text within a Container
+
+In most case, it is recommended to use the `Text` component with the `ellipsis` prop to truncate text inside a container while using the parent `Container` component to set the actual boundary box for the text.
+
+<Storybook.Demo>
+  <Container maxWidth="200px">
+    <Text ellipsis>This content is hidden and ellipsed</Text>
+  </Container>
+</Storybook.Demo>
+```jsx
+<Container maxWidth="200px">
+  <Text ellipsis>This content is hidden and ellipsed</Text>
+</Container>
+```
+
+There is however another way to truncate text within a container by using the `ellipsis` prop on the parent `Container` component. This way, if you have multiple lines of text, they will all be truncated with an ellipsis.
+
+<Storybook.Demo>
+  <Container ellipsis maxWidth="200px">
+    <Text as="span">This content is hidden and ellipsed</Text>
+    <Text as="span">This content is hidden and ellipsed</Text>
+  </Container>
+</Storybook.Demo>
+```jsx
+<Container ellipsis maxWidth="200px">
+  <div>This content is hidden and ellipsed</div>
+  <div>This content is hidden and ellipsed</div>
+</Container>
+``` ### Grid Integration
 
 The `area` prop supports CSS Grid integration:
 

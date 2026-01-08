@@ -243,7 +243,12 @@ export const Container = styled(
   ${p => rc('left', p.left, p.theme)};
   ${p => rc('right', p.right, p.theme)};
 
-  ${p => rc('overflow', p.overflow, p.theme)};
+  ${p =>
+    p.overflow
+      ? rc('overflow', p.overflow, p.theme)
+      : p.ellipsis
+        ? rc('overflow', p.ellipsis, p.theme, v => (v ? 'hidden' : ''))
+        : undefined};
   ${p => rc('overflow-x', p.overflowX, p.theme)};
   ${p => rc('overflow-y', p.overflowY, p.theme)};
 
