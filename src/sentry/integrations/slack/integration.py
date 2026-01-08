@@ -159,6 +159,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             client.chat_update(
                 channel=channel_id,
                 ts=message_ts,
+                text=renderable["text"],
                 blocks=renderable["blocks"],
             )
         except SlackApiError as e:

@@ -282,6 +282,28 @@ def _send_thread_update(
         )
 
 
+def transform_block_actions(blocks, transform_fn):
+    """
+    Transform action elements within top-level action blocks. Does not traverse nested blocks.
+    """
+    result = []
+    for block in blocks:
+        if block["type"] != "actions":
+            result.append(block)
+            continue
+
+        transformed_elements = []
+        for elem in block["elements"]:
+            transformed = transform_fn(elem)
+            if transformed is not None:
+                transformed_elements.append(transformed)
+
+        if transformed_elements:
+            result.append({**block, "elements": transformed_elements})
+
+    return result
+
+
 def _update_existing_message(
     *,
     request: SlackActionRequest,
@@ -289,31 +311,19 @@ def _update_existing_message(
     channel_id: str,
     message_ts: str,
 ) -> None:
-    """
-    Removes the autofix button from the existing message, replaces it with a link to Sentry
-    """
     from sentry.integrations.slack.message_builder.types import SlackAction
 
-    raw_blocks = request.data["message"]["blocks"]
-    non_autofix_action_blocks = []
-    # This is very brute force, but we don't have a better way to parse BlockKit at the moment.
-    # It iterates until it hits a block with the type "actions", then iterates through its elements
-    # and removes any that start with the autofix action id. ¯\_(ツ)_/¯
-    for block in raw_blocks:
-        if block["type"] != "actions":
-            non_autofix_action_blocks.append(block)
-            continue
-        action_blocks = block["elements"]
-        clean_inner_blocks = []
-        for inner_block in action_blocks:
-            if inner_block.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
-                continue
-            clean_inner_blocks.append(inner_block)
-        clean_action_block = {**block, "elements": clean_inner_blocks}
-        non_autofix_action_blocks.append(clean_action_block)
+    blocks = transform_block_actions(
+        request.data["message"]["blocks"],
+        lambda elem: (
+            None
+            if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value)
+            else elem
+        ),
+    )
 
     renderable = SlackRenderable(
-        blocks=non_autofix_action_blocks,
+        blocks=blocks,
         text=request.data["message"]["text"],
     )
 
