@@ -43,36 +43,7 @@ describe('InvoiceDetails > Payment Form', () => {
 
   const modalDummy = ({children}: {children?: ReactNode}) => <div>{children}</div>;
 
-  it('renders basic a card form', async () => {
-    const mockget = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
-      method: 'GET',
-      body: intentData,
-    });
-    render(
-      <InvoiceDetailsPaymentForm
-        organization={organization}
-        Header={modalDummy}
-        Body={ModalBody}
-        closeModal={jest.fn()}
-        reloadInvoice={jest.fn()}
-        invoice={invoice}
-      />
-    );
-
-    await waitFor(() => expect(mockget).toHaveBeenCalled());
-    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
-      )
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders form when Stripe components are enabled', async () => {
-    organization.features = ['stripe-components'];
+  it('renders form', async () => {
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
       method: 'GET',
@@ -106,7 +77,7 @@ describe('InvoiceDetails > Payment Form', () => {
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
       method: 'GET',
       statusCode: 500,
-      body: {details: 'Something bad happened.'},
+      body: {detail: 'Something bad happened.'},
     });
     render(
       <InvoiceDetailsPaymentForm
@@ -118,21 +89,17 @@ describe('InvoiceDetails > Payment Form', () => {
         invoice={invoice}
       />
     );
-    await waitFor(() => expect(mockget).toHaveBeenCalled());
+
+    // Wait for the error message to appear (this also ensures API was called and state updated)
+    expect(await screen.findByText(/Something bad happened./)).toBeInTheDocument();
     expect(mockget).toHaveBeenCalled();
 
-    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
-
-    let error = screen.getByText(/Unable to initialize payment/);
-    expect(error).toBeInTheDocument();
-
     // Submit the form anyways
-    const button = screen.getByRole('button', {name: 'Pay Now'});
-    await userEvent.click(button);
+    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Pay Now'}));
 
     // Should show an error as our intent never loaded.
-    error = screen.getByText(/Cannot complete your payment/);
-    expect(error).toBeInTheDocument();
+    expect(await screen.findByText(/Cannot complete your payment/)).toBeInTheDocument();
   });
 
   it('can submit the form', async () => {
