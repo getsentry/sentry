@@ -11,18 +11,17 @@ MIN_SHARDS = 1
 MAX_SHARDS = 22
 DEFAULT_SHARDS = 22
 
-PYTEST_ARGS = [
-    "pytest",
-    "--collect-only",
-    "--quiet",
-    "@selected-tests-fd7c6b1b8b9458f40874dcb82790aa87c1ecef6f",
-]
-
 
 def collect_test_count():
     try:
         result = subprocess.run(
-            PYTEST_ARGS,
+            [
+                "python",
+                ".github/workflows/scripts/pytest-args-wrapper.py",
+                "@selected-tests-fd7c6b1b8b9458f40874dcb82790aa87c1ecef6f",
+                "--collect-only",
+                "--quiet",
+            ],
             capture_output=True,
             text=True,
             check=False,
