@@ -1,6 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   deleteMonitorEnvironment,
   setEnvironmentIsMuted,
@@ -128,7 +130,7 @@ export function OverviewTimeline({monitorList}: Props) {
     <MonitorListPanel role="region">
       <TimelineWidthTracker ref={elementRef} />
       <Header>
-        <HeaderControlsLeft>
+        <Flex justify="between" padding="lg xl" gap="xs" column="1/3">
           <SortSelector size="xs" />
           <DateNavigator
             dateNavigation={dateNavigation}
@@ -136,7 +138,7 @@ export function OverviewTimeline({monitorList}: Props) {
             size="xs"
             borderless
           />
-        </HeaderControlsLeft>
+        </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
         <HeaderControlsRight>
           <DateNavigator
@@ -224,14 +226,6 @@ const MonitorRows = styled('ul')`
   list-style: none;
   padding: 0;
   margin: 0;
-`;
-
-const HeaderControlsLeft = styled('div')`
-  grid-column: 1/3;
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
 `;
 
 const HeaderControlsRight = styled('div')`
