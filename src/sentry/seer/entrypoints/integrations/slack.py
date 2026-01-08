@@ -313,6 +313,7 @@ def _update_existing_message(
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
+    # Removes the autofix button to prevent repeated usage
     blocks = _transform_block_actions(
         request.data["message"]["blocks"],
         lambda elem: (
