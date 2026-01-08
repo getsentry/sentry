@@ -75,6 +75,10 @@ describe('CronDetectorDetails - check-ins', () => {
       url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj.slug}/processing-errors/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/`,
+      body: [],
+    });
   });
 
   it('should show onboarding when the monitor has never checked in', async () => {

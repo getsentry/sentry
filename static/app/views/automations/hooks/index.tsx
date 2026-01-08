@@ -37,7 +37,7 @@ export const makeAutomationsQueryKey = ({
 }: {
   orgSlug: string;
   cursor?: string;
-  detector?: number[];
+  detector?: string[];
   ids?: string[];
   limit?: number;
   projects?: number[];
@@ -54,7 +54,7 @@ const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQuery
 
 interface UseAutomationsQueryOptions {
   cursor?: string;
-  detector?: number[];
+  detector?: string[];
   ids?: string[];
   limit?: number;
   projects?: number[];

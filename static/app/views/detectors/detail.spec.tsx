@@ -4,6 +4,7 @@ import {
   CronDetectorFixture,
   CronMonitorDataSourceFixture,
   CronMonitorEnvironmentFixture,
+  IssueStreamDetectorFixture,
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
   UptimeDetectorFixture,
@@ -50,6 +51,11 @@ describe('DetectorDetails', () => {
     route: '/organizations/:orgId/issues/detectors/:detectorId/',
   };
 
+  const issueStreamDetector = IssueStreamDetectorFixture({
+    id: 'issue-stream-1',
+    projectId: project.id,
+  });
+
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
     TeamStore.loadInitialData([ownerTeam]);
@@ -59,7 +65,6 @@ describe('DetectorDetails', () => {
         AutomationFixture({id: '1', name: 'Automation 1'}),
         AutomationFixture({id: '2', name: 'Automation 2'}),
       ],
-      match: [MockApiClient.matchQuery({id: ['1', '2']})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
@@ -89,6 +94,16 @@ describe('DetectorDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/`,
       body: GroupFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/`,
+      body: [issueStreamDetector],
+      match: [
+        MockApiClient.matchQuery({
+          query: 'type:issue_stream',
+          project: [Number(project.id)],
+        }),
+      ],
     });
   });
 

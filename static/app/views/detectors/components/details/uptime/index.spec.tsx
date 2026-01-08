@@ -29,6 +29,10 @@ describe('UptimeDetectorDetails', () => {
       url: '/organizations/org-slug/uptime-summary/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/`,
+      body: [],
+    });
   });
 
   it('renders the detector details sections', async () => {
