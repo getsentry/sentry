@@ -19,13 +19,13 @@ export function getSizeBuildUrl(params: BuildLinkParams): string | null {
 }
 
 export function getInstallBuildUrl(params: BuildLinkParams): string | null {
-  const {organizationSlug, projectId, baseArtifactId} = params;
+  const baseUrl = getBaseBuildUrl(params);
 
-  if (!baseArtifactId) {
+  if (!baseUrl) {
     return null;
   }
 
-  return `/organizations/${organizationSlug}/preprod/${projectId}/${baseArtifactId}/install/`;
+  return `${baseUrl}install/`;
 }
 
 export function getCompareBuildUrl(params: {
