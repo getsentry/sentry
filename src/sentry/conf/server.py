@@ -29,6 +29,7 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
+from sentry.conf.types.taskworker import crontab as task_crontab
 from sentry.conf.types.uptime import UptimeRegionConfig
 
 
@@ -826,12 +827,16 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
+# This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.autopilot.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
+    "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
+    "sentry.deletions.tasks.nodestore",
+    "sentry.deletions.tasks.overwatch",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
@@ -844,6 +849,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
     "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.integrations.github.tasks.codecov_account_link",
+    "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
@@ -853,6 +860,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.slack.tasks.link_slack_user_identities",
     "sentry.integrations.slack.tasks.post_message",
     "sentry.integrations.slack.tasks.send_notifications_on_activity",
+    "sentry.integrations.source_code_management.tasks",
     "sentry.integrations.tasks.create_comment",
     "sentry.integrations.tasks.kick_off_status_syncs",
     "sentry.integrations.tasks.migrate_repo",
@@ -864,19 +872,28 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.vsts.tasks.subscription_check",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
+    "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
+    "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
+    "sentry.replays.data_export",
     "sentry.replays.tasks",
     "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
+    "sentry.seer.autofix.issue_summary",
+    "sentry.seer.code_review.webhooks.task",
+    "sentry.seer.entrypoints.operator",
     "sentry.snuba.tasks",
+    "sentry.tasks.activity",
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
@@ -900,10 +917,13 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.files",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
+    "sentry.tasks.organization_contributors",
     "sentry.tasks.options",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
@@ -936,7 +956,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.taskworker.tasks.examples",
 )
 
-from sentry.conf.types.taskworker import crontab as task_crontab
 
 # Schedules for taskworker tasks to be spawned on.
 TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
@@ -1309,7 +1328,11 @@ def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
 
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
-    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
+    from sentry.apidocs.build import (
+        OPENAPI_TAGS,
+        get_old_json_components,
+        get_old_json_paths,
+    )
 
     SPECTACULAR_SETTINGS = {
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),

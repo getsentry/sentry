@@ -1,5 +1,7 @@
+import ast
 import inspect
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -64,3 +66,59 @@ def test_taskworker_schedule_parameters() -> None:
                 raise AssertionError(
                     f"Parameter `{parameter.name}` for task `{task.name}` must have a default value."
                 )
+
+
+def test_all_instrumented_tasks_registered() -> None:
+    """
+    Verify all @instrumented_task decorators are registered in TASKWORKER_IMPORTS.
+
+    This prevents production issues where tasks are defined but not discoverable
+    by the taskworker because their module wasn't imported.
+    """
+    src_dir = Path(__file__).parent.parent.parent.parent / "src"
+
+    task_modules = set()
+
+    for py_file in src_dir.rglob("*.py"):
+        if not py_file.is_file():
+            continue
+
+        try:
+            content = py_file.read_text()
+
+            if "@instrumented_task" not in content:
+                continue
+
+            tree = ast.parse(content)
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    for decorator in node.decorator_list:
+                        decorator_name = None
+                        if isinstance(decorator, ast.Name):
+                            decorator_name = decorator.id
+                        elif isinstance(decorator, ast.Call) and isinstance(
+                            decorator.func, ast.Name
+                        ):
+                            decorator_name = decorator.func.id
+
+                        if decorator_name == "instrumented_task":
+                            relative_path = py_file.relative_to(src_dir)
+                            module_path = str(relative_path.with_suffix("")).replace("/", ".")
+                            task_modules.add(module_path)
+                            break
+        except Exception:
+            continue
+
+    registered_imports = set(settings.TASKWORKER_IMPORTS)
+
+    missing_modules = task_modules - registered_imports
+
+    if missing_modules:
+        missing_list = "\n  - ".join(sorted(missing_modules))
+        raise AssertionError(
+            f"Found {len(missing_modules)} module(s) with @instrumented_task that are NOT registered in TASKWORKER_IMPORTS.\n"
+            f"These tasks will not be discovered by the taskworker in production!\n\n"
+            f"Missing modules:\n  - {missing_list}\n\n"
+            f"Add these to TASKWORKER_IMPORTS in src/sentry/conf/server.py"
+        )
