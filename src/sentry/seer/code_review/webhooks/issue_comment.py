@@ -55,7 +55,7 @@ def is_pr_review_command(comment_body: str | None) -> bool:
 
 def _add_eyes_reaction_to_comment(
     github_event: GithubWebhookType,
-    github_event_action: str,
+    github_event_action: GitHubIssueCommentAction,
     integration: RpcIntegration | None,
     organization: Organization,
     repo: Repository,
@@ -67,13 +67,13 @@ def _add_eyes_reaction_to_comment(
         "repo": repo.name,
         "comment_id": comment_id,
         "github_event": github_event,
-        "github_event_action": github_event_action,
+        "github_event_action": github_event_action.value,
     }
 
     if integration is None:
         record_webhook_handler_error(
             github_event,
-            github_event_action,
+            github_event_action.value,
             CodeReviewErrorType.MISSING_INTEGRATION,
         )
         logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
@@ -85,7 +85,7 @@ def _add_eyes_reaction_to_comment(
     except Exception:
         record_webhook_handler_error(
             github_event,
-            github_event_action,
+            github_event_action.value,
             CodeReviewErrorType.REACTION_FAILED,
         )
         logger.exception(Log.REACTION_FAILED.value, extra=extra)
@@ -134,7 +134,12 @@ def handle_issue_comment_event(
     if github_org in get_direct_to_seer_gh_orgs():
         if comment_id:
             _add_eyes_reaction_to_comment(
-                github_event, github_event_action, integration, organization, repo, str(comment_id)
+                github_event,
+                GitHubIssueCommentAction(github_event_action),
+                integration,
+                organization,
+                repo,
+                str(comment_id),
             )
 
         target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
