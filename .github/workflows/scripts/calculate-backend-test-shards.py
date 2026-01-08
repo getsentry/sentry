@@ -19,7 +19,7 @@ def collect_test_count():
             [
                 "python",
                 ".github/workflows/scripts/pytest-args-wrapper.py",
-                "@selected-tests-fd7c6b1b8b9458f40874dcb82790aa87c1ecef6f",
+                "selected-tests-fd7c6b1b8b9458f40874dcb82790aa87c1ecef6f",
                 "--collect-only",
                 "--quiet",
             ],
