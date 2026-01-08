@@ -44,6 +44,7 @@ seer_issue_detection_connection_pool = connection_from_url(
 
 
 class DetectedIssue(BaseModel):
+    # LLM generated fields
     explanation: str
     impact: str
     evidence: str
@@ -52,7 +53,7 @@ class DetectedIssue(BaseModel):
     title: str
     subcategory: str
     category: str
-    verification_reason: str | None = None
+    verification_reason: str
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
