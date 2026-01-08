@@ -767,7 +767,7 @@ const DefineThresholdParagraph = styled('p')`
   margin-bottom: ${p => p.theme.space.sm};
   padding-top: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const DatasetField = styled(SelectField)`

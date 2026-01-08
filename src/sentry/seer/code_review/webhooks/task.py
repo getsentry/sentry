@@ -25,7 +25,7 @@ from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import get_seer_endpoint_for_event, make_seer_request
-from .config import GH_ORGS_TO_ONLY_SEND_TO_SEER
+from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ def process_github_webhook_event(
     # Check if repo owner is in the whitelist (always send to Seer for these orgs)
     # Otherwise, check option key to see if Overwatch should handle this
     repo_owner = event_payload.get("data", {}).get("repo", {}).get("owner")
-    if repo_owner not in GH_ORGS_TO_ONLY_SEND_TO_SEER:
+    if repo_owner not in get_direct_to_seer_gh_orgs():
         # If option is True, Overwatch handles this - skip Seer processing
         if option_key and options.get(option_key):
             return

@@ -260,7 +260,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 }
 
 const PanelContainer = styled(Flex)`
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
 `;
 
@@ -272,7 +272,7 @@ const ScrollableContent = styled(Flex)`
 
 const MessageHeader = styled(Flex)`
   background-color: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const MessageText = styled(Text)`
@@ -284,7 +284,7 @@ const MessageBubble = styled('div')<{
   isClickable?: boolean;
   isSelected?: boolean;
 }>`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   ${p =>
