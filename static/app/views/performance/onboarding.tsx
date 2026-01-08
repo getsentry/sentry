@@ -670,7 +670,7 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const SubTitle = styled('div')`

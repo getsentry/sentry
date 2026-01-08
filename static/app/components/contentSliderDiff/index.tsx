@@ -137,7 +137,7 @@ const Header = styled('div')`
   }
 
   & > *:last-child {
-    color: ${p => p.theme.success};
+    color: ${p => p.theme.tokens.content.success};
   }
 `;
 
@@ -232,7 +232,7 @@ const Cover = styled('div')`
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.success};
+  border-color: ${p => p.theme.tokens.content.success};
   & + & {
     border: ${BORDER_WIDTH}px solid;
     border-radius: ${space(0.5)} 0 0 ${space(0.5)};

@@ -10,12 +10,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {InputProps} from 'sentry/components/core/input';
-import {Input as _Input, Input as CoreInput} from 'sentry/components/core/input';
+import {Input as CoreInput} from 'sentry/components/core/input';
 import type {TextAreaProps} from 'sentry/components/core/textarea';
-import {
-  TextArea as _TextArea,
-  TextArea as CoreTextArea,
-} from 'sentry/components/core/textarea';
+import {TextArea as CoreTextArea} from 'sentry/components/core/textarea';
 import {space} from 'sentry/styles/space';
 import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
 
@@ -269,5 +266,5 @@ export type {InputProps, TextAreaProps};
 
 const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
-  ${p => p.disabled && `color: ${p.theme.disabled};`};
+  ${p => p.disabled && `color: ${p.theme.tokens.content.disabled};`};
 `;
