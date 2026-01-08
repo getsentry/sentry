@@ -9,7 +9,6 @@ from sentry.seer.entrypoints.integrations.slack import (
     SlackEntrypointCachePayload,
     _send_thread_update,
     _update_existing_message,
-    transform_block_actions,
 )
 from sentry.testutils.cases import TestCase
 
@@ -145,51 +144,6 @@ class SlackEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_user_id,
         )
-
-    def test_transform_block_actions_removes_matching_elements(self):
-        blocks = [
-            {"type": "section", "text": {"type": "plain_text", "text": "Keep this"}},
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "action_id": "remove_me",
-                        "text": {"type": "plain_text", "text": "Remove"},
-                    },
-                    {
-                        "type": "button",
-                        "action_id": "keep_me",
-                        "text": {"type": "plain_text", "text": "Keep"},
-                    },
-                ],
-            },
-        ]
-
-        result = transform_block_actions(
-            blocks, lambda elem: None if elem.get("action_id") == "remove_me" else elem
-        )
-
-        assert len(result) == 2
-        assert result[0]["type"] == "section"
-        assert len(result[1]["elements"]) == 1
-        assert result[1]["elements"][0]["action_id"] == "keep_me"
-
-    def test_transform_block_actions_removes_empty_action_blocks(self):
-        blocks = [
-            {
-                "type": "actions",
-                "elements": [
-                    {"type": "button", "action_id": "remove_me"},
-                ],
-            },
-        ]
-
-        result = transform_block_actions(
-            blocks, lambda elem: None if elem.get("action_id") == "remove_me" else elem
-        )
-
-        assert len(result) == 0
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     def test_update_existing_message(self, mock_update_message):

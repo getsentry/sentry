@@ -282,7 +282,7 @@ def _send_thread_update(
         )
 
 
-def transform_block_actions(blocks, transform_fn):
+def _transform_block_actions(blocks, transform_fn):
     """
     Transform action elements within top-level action blocks. Does not traverse nested blocks.
     """
@@ -313,7 +313,7 @@ def _update_existing_message(
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
-    blocks = transform_block_actions(
+    blocks = _transform_block_actions(
         request.data["message"]["blocks"],
         lambda elem: (
             None
