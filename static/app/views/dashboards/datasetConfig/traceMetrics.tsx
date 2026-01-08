@@ -13,6 +13,9 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   parseFunction,
   RateUnit,
+  type AggregationOutputType,
+  type DataUnit,
+  type ParsedFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -39,6 +42,7 @@ import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHas
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -249,9 +253,6 @@ export const TraceMetricsConfig: DatasetConfig<
     return transformedData;
   },
   transformSeries: (data, widgetQuery) => {
-    const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
-    const hasGroupings = new Set(widgetQuery.columns).size > 0;
-
     return data.timeSeries.map(timeSeries => {
       // The function should always be defined when dealing with a successful
       // time series response
@@ -265,14 +266,11 @@ export const TraceMetricsConfig: DatasetConfig<
           value: value.value ?? 0,
         })),
 
-        // The series name needs to distinctively refer to the yAxis it belongs to
-        // when multiple yAxes and groupings are present, otherwise the response
-        // returns each series with its grouping but they overlap each other in the
-        // legend
-        seriesName:
-          multiYAxis && hasGroupings && func
-            ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
-            : formatTimeSeriesLabel(timeSeries),
+        seriesName: formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        }),
       };
     });
   },
@@ -288,6 +286,49 @@ export const TraceMetricsConfig: DatasetConfig<
         },
         {} as Record<string, string>
       ) ?? {}
+    );
+  },
+  getSeriesResultType(data, widgetQuery) {
+    return data.timeSeries.reduce(
+      (acc, timeSeries) => {
+        const func = parseFunction(timeSeries.yAxis);
+        if (func) {
+          timeSeries.yAxis = `${func.name}(${func.arguments[0] ?? '…'})`;
+        }
+        const label = formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        });
+        acc[label] = timeSeries.meta.valueType as AggregationOutputType;
+        return acc;
+      },
+      {} as Record<string, AggregationOutputType>
+    );
+  },
+  getSeriesResultUnit: (data, widgetQuery) => {
+    return data.timeSeries.reduce(
+      (acc, timeSeries) => {
+        const func = parseFunction(timeSeries.yAxis);
+        if (func) {
+          timeSeries.yAxis = `${func.name}(${func.arguments[0] ?? '…'})`;
+        }
+        const label = formatMetricsTimeseriesLabel({
+          widgetQuery,
+          func,
+          timeSeries,
+        });
+
+        if (label.includes('per_second(')) {
+          acc[label] = RateUnit.PER_SECOND;
+        } else if (label.includes('per_minute(')) {
+          acc[label] = RateUnit.PER_MINUTE;
+        } else {
+          acc[label] = timeSeries.meta.valueUnit as DataUnit;
+        }
+        return acc;
+      },
+      {} as Record<string, DataUnit>
     );
   },
 };
@@ -425,4 +466,24 @@ function filterSeriesSortOptions(columns: Set<string>) {
 
     return columns.has(option.value.meta.name);
   };
+}
+
+function formatMetricsTimeseriesLabel({
+  widgetQuery,
+  func,
+  timeSeries,
+}: {
+  func: ParsedFunction | null;
+  timeSeries: TimeSeries;
+  widgetQuery: WidgetQuery;
+}): string {
+  const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
+  const hasGroupings = new Set(widgetQuery.columns).size > 0;
+  // The series name needs to distinctively refer to the yAxis it belongs to
+  // when multiple yAxes and groupings are present, otherwise the response
+  // returns each series with its grouping but they overlap each other in the
+  // legend
+  return multiYAxis && hasGroupings && func
+    ? `${formatTimeSeriesLabel(timeSeries)} : ${func.name}(…)`
+    : formatTimeSeriesLabel(timeSeries);
 }

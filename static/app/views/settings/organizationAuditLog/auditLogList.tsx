@@ -18,7 +18,10 @@ import {
   TimeRangeSelectTrigger,
   type ChangeData,
 } from 'sentry/components/timeRangeSelector';
-import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
+import {
+  getAbsoluteSummary,
+  getArbitraryRelativePeriod,
+} from 'sentry/components/timeRangeSelector/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
@@ -300,7 +303,8 @@ function AuditLogList({
   const {displayStart, displayEnd} = getDisplayValues();
 
   const currentValue = statsPeriod || allTime;
-  let displayLabel: React.JSX.Element | string;
+  const arbitraryRelativePeriods = getArbitraryRelativePeriod(currentValue);
+  let displayLabel: React.ReactNode;
 
   if (displayStart && displayEnd) {
     // Show formatted absolute date range using display values (user's intended timezone)
@@ -310,6 +314,8 @@ function AuditLogList({
     displayLabel = getAbsoluteSummary(start, end, utc);
   } else if (currentValue === allTime) {
     displayLabel = allTime;
+  } else {
+    displayLabel = arbitraryRelativePeriods[currentValue];
   }
 
   const headerActions = (
@@ -321,6 +327,7 @@ function AuditLogList({
         onChange={onDateSelect}
         relativeOptions={{
           allTime,
+          ...arbitraryRelativePeriods,
         }}
         utc={utc}
         maxPickableDays={getDaysSinceDate(organization.dateCreated)}

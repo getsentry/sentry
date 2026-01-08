@@ -359,6 +359,9 @@ class PreprodArtifact(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
+        indexes = [
+            models.Index(fields=["project", "date_added"]),
+        ]
 
 
 @region_silo_model

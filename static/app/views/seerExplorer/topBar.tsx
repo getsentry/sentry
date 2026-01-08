@@ -38,6 +38,7 @@ interface TopBarProps {
   onSizeToggleClick: () => void;
   panelSize: 'max' | 'med';
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
+  readOnly: boolean;
   repoPRStates: Record<string, RepoPRState>;
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
 }
@@ -57,6 +58,7 @@ function TopBar({
   onSizeToggleClick,
   panelSize,
   prWidgetButtonRef,
+  readOnly,
   repoPRStates,
   isCopySessionEnabled,
   isCopyLinkEnabled,
@@ -127,7 +129,7 @@ function TopBar({
             exit={{opacity: 0, scale: 0.8, x: '-50%'}}
             transition={{duration: 0.12, ease: 'easeOut'}}
           >
-            {hasCodeChanges ? (
+            {!readOnly && hasCodeChanges ? (
               <PRWidget
                 ref={prWidgetButtonRef}
                 blocks={blocks}
@@ -192,6 +194,9 @@ const CenterSection = styled(motion.div)`
 
 const SessionHistoryButtonWrapper = styled('div')<{isSelected: boolean}>`
   button {
-    background-color: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
+    background-color: ${p =>
+      p.isSelected
+        ? p.theme.tokens.interactive.transparent.neutral.background.active
+        : 'transparent'};
   }
 `;

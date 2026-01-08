@@ -182,7 +182,7 @@ const StyledPanel = styled(Panel)`
 const TagHeading = styled('h5')`
   font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const UnstyledUnorderedList = styled('ul')`

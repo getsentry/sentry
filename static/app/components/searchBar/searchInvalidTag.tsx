@@ -43,5 +43,5 @@ const Invalid = styled(`span`)`
 `;
 
 const Highlight = styled(`strong`)`
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;

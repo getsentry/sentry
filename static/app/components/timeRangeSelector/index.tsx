@@ -217,7 +217,7 @@ export function TimeRangeSelector({
               <IconArrow
                 direction="right"
                 size="xs"
-                color={isFocused || isSelected ? undefined : 'subText'}
+                variant={isFocused || isSelected ? undefined : 'muted'}
               />
             ),
             textValue: item.textValue,
