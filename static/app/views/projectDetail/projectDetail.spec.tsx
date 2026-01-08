@@ -46,7 +46,7 @@ describe('ProjectDetail', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=5&project=${project.id}&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${organization.slug}/issues/`,
       body: [],
     });
     MockApiClient.addMockResponse({

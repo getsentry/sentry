@@ -877,6 +877,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.snuba.tasks",
+    "sentry.seer.code_review.webhooks.task",
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
@@ -1127,7 +1128,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-issue-detection": {
         "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -3095,7 +3096,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-relay-register-challenge",
     "sentry-api-0-relay-register-response",
     "sentry-api-0-relay-projectconfigs",
-    "sentry-api-0-relay-projectids",
     "sentry-api-0-relay-publickeys",
     "sentry-api-0-relays-healthcheck",
     "sentry-api-0-relays-details",

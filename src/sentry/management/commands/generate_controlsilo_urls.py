@@ -13,7 +13,6 @@ from django.core.management.base import BaseCommand
 from django.urls import URLPattern, URLResolver
 
 from sentry.silo.base import SiloMode
-from sentry.web.frontend.base import BaseView
 
 # There are a handful of catchall routes
 # that we don't want to handle in controlsilo
@@ -96,7 +95,7 @@ class Command(BaseCommand):
             func = info.callable
             if isinstance(func, functools.partial):
                 func = func.func
-            elif hasattr(func, "view_class"):
+            if hasattr(func, "view_class"):
                 func = func.view_class
 
             if hasattr(func, "__name__"):
@@ -115,16 +114,7 @@ class Command(BaseCommand):
             except ImportError as err:
                 raise CommandError(f"Could not load view in {module}: {err}")
 
-            # If a view/endpoint doesn't have a silo_limit it is likely a basic django view
-            # We have tests in tests/sentry/silo/test_base.py that ensure all views/endpoints
-            # have silo annotations on them. BaseView subclasses generally render HTML,
-            # and we don't need them in the controlsilo URL inventory as the UI doesn't
-            # fetch data from them.
-            if (
-                not hasattr(view_func, "silo_limit")
-                or isinstance(view_func, type)
-                and issubclass(view_func, BaseView)
-            ):
+            if not hasattr(view_func, "silo_limit"):
                 continue
 
             silo_limit = view_func.silo_limit

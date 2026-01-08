@@ -65,7 +65,7 @@ const AccordionContainer = styled('ul')`
 const AccordionHeader = styled('div')`
   display: flex;
   align-items: center;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   /* Margin bottom to compensate for the border so it doesn't cut into previous item's padding */
   margin-bottom: ${p => p.theme.space.sm};
