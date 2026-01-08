@@ -12,6 +12,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
+import parseApiError from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
@@ -40,6 +41,7 @@ interface BuildDetailsMainContentProps {
   onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
+  projectId?: string;
   projectType?: string | null;
 }
 
@@ -51,6 +53,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     buildDetailsData,
     isBuildDetailsPending = false,
     projectType,
+    projectId,
   } = props;
   const {
     data: appSizeData,
@@ -186,14 +189,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  // TODO(EME-302): Currently we don't set the size metrics
-  // error_{code,message} correctly so we often see this.
   if (isAppSizeError) {
+    const errorMessage = appSizeError ? parseApiError(appSizeError) : 'Unknown API Error';
     return (
       <Flex width="100%" justify="center" align="center" minHeight="60vh">
         <BuildError
           title={t('Size analysis failed')}
-          message={appSizeError?.message ?? t('The treemap data could not be loaded')}
+          message={
+            errorMessage === 'Unknown API Error'
+              ? t('The treemap data could not be loaded')
+              : errorMessage
+          }
         >
           <Button
             priority="primary"
@@ -293,7 +299,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
-          <Alert type="info">No files found matching "{searchQuery}"</Alert>
+          <Alert variant="info">No files found matching "{searchQuery}"</Alert>
         )
       ) : (
         <AppSizeCategories treemapData={appSizeData.treemap} />
@@ -313,7 +319,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         onSearchChange={value => setSearchQuery(value || undefined)}
       />
     ) : (
-      <Alert type="info">No files found matching "{searchQuery}"</Alert>
+      <Alert variant="info">No files found matching "{searchQuery}"</Alert>
     );
   }
 
@@ -323,8 +329,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         sizeInfo={sizeInfo}
         processedInsights={processedInsights}
         totalSize={totalSize}
+        artifactId={buildDetailsData?.id}
+        baseArtifactId={buildDetailsData?.base_artifact_id ?? null}
         platform={buildDetailsData?.app_info?.platform ?? null}
-        projectType={projectType}
+        projectType={projectType ?? null}
+        projectId={projectId}
         onOpenInsightsSidebar={openInsightsSidebar}
       />
 

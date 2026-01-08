@@ -95,10 +95,10 @@ const Wrapper = styled('div')`
   align-items: center;
   padding-right: ${space(3)};
   gap: ${space(4)};
-  background-color: ${p => p.theme.backgroundElevated};
+  background-color: ${p => p.theme.tokens.background.primary};
   white-space: nowrap;
 
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -116,7 +116,7 @@ const StyledLogoSentry = styled(LogoSentry)`
   margin-right: auto;
   width: 130px;
   height: 30px;
-  fill: ${p => p.theme.textColor};
+  fill: ${p => p.theme.tokens.content.primary};
 `;
 
 const FreeTrialTextShort = styled('span')`

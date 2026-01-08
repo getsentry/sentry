@@ -157,7 +157,8 @@ function CheckInBodyCell({
       return <Cell>{httpStatusCode}</Cell>;
     }
     case 'checkStatus': {
-      const color = tickStyle(theme)[checkStatus].labelColor ?? theme.textColor;
+      const color =
+        tickStyle(theme)[checkStatus].labelColor ?? theme.tokens.content.primary;
       const checkStatusReasonLabel = checkStatusReason
         ? reasonToText[checkStatusReason](check)
         : null;
@@ -200,10 +201,10 @@ function CheckInBodyCell({
                   )
             }
           >
-            <Tag type="default">{t('%s spans', totalSpanCount)}</Tag>
+            <Tag variant="muted">{t('%s spans', totalSpanCount)}</Tag>
           </Tooltip>
         ) : (
-          <Tag type="info">{t('%s spans', totalSpanCount)}</Tag>
+          <Tag variant="info">{t('%s spans', totalSpanCount)}</Tag>
         );
 
       return (

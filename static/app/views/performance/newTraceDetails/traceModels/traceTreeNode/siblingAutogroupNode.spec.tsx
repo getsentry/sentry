@@ -1,10 +1,9 @@
-import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   makeEAPSpan,
   makeSiblingAutogroup,
-  makeSpan,
   makeTraceError,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
@@ -12,7 +11,6 @@ import {
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
-import {SpanNode} from './spanNode';
 import {TransactionNode} from './transactionNode';
 
 const createMockExtra = (
@@ -78,28 +76,15 @@ describe('SiblingAutogroupNode', () => {
   });
 
   describe('getter methods', () => {
-    it('should return id from first child', () => {
+    it('should return id from parent', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
-      const childSpanValue1 = makeEAPSpan({event_id: 'child-1'});
-      const childSpanValue2 = makeEAPSpan({event_id: 'child-2'});
+      const parentSpanValue = makeEAPSpan({event_id: 'parent-1'});
 
-      const childNode1 = new EapSpanNode(null, childSpanValue1, extra);
-      const childNode2 = new EapSpanNode(null, childSpanValue2, extra);
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
+      const parentNode = new EapSpanNode(null, parentSpanValue, extra);
+      const node = new SiblingAutogroupNode(parentNode, autogroupValue, extra);
 
-      node.children = [childNode1, childNode2];
-
-      expect(node.id).toBe('child-1');
-    });
-
-    it('should return undefined when no children', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      expect(node.children).toEqual([]);
-      expect(node.id).toBeUndefined();
+      expect(node.id).toBe('parent-1');
     });
 
     it('should return correct op from value', () => {
@@ -220,16 +205,14 @@ describe('SiblingAutogroupNode', () => {
     it('should return path without transaction when no parent transaction found', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
-      const childSpanValue = makeEAPSpan({event_id: 'child-span-id'});
+      const parentSpanValue = makeEAPSpan({event_id: 'parent-span-id'});
 
-      const childNode = new EapSpanNode(null, childSpanValue, extra);
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      node.children = [childNode];
+      const parentNode = new EapSpanNode(null, parentSpanValue, extra);
+      const node = new SiblingAutogroupNode(parentNode, autogroupValue, extra);
 
       const path = node.pathToNode();
       expect(path).toHaveLength(1);
-      expect(path[0]).toBe('ag-child-span-id'); // Should use first child id
+      expect(path[0]).toBe('ag-parent-span-id'); // Should use parent id
     });
 
     it('should include transaction ID in path when closest transaction parent found', () => {
@@ -239,35 +222,14 @@ describe('SiblingAutogroupNode', () => {
         'transaction.op': 'navigation',
       });
       const autogroupValue = makeSiblingAutogroup({});
-      const childSpanValue = makeSpan({span_id: 'child-span-id'});
 
-      const mockFn = jest.fn();
-      const transactionNode = new TransactionNode(
-        null,
-        transactionValue,
-        extra,
-        mockFn,
-        mockFn
-      );
-      const childNode = new SpanNode(transactionNode, childSpanValue, extra);
+      const transactionNode = new TransactionNode(null, transactionValue, extra);
       const node = new SiblingAutogroupNode(transactionNode, autogroupValue, extra);
-
-      node.children = [childNode];
 
       const path = node.pathToNode();
       expect(path).toHaveLength(2);
-      expect(path[0]).toBe('ag-child-span-id');
+      expect(path[0]).toBe('ag-transaction-id');
       expect(path[1]).toBe('txn-transaction-id');
-    });
-
-    it('should handle pathToNode when no children exist', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      const path = node.pathToNode();
-      expect(path).toHaveLength(1);
-      expect(path[0]).toBe('ag-undefined'); // Should handle undefined id
     });
   });
 
@@ -351,12 +313,8 @@ describe('SiblingAutogroupNode', () => {
       const mockError = makeTraceError({event_id: 'error-1', level: 'error'});
       node.errors.add(mockError);
 
-      const mockTheme: Partial<Theme> = {
-        red300: '#ff6b6b',
-        blue300: '#3182ce',
-      };
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      const theme = ThemeFixture();
+      expect(node.makeBarColor(theme)).toBe(theme.colors.red400);
     });
 
     it('should return blue color when no errors are present', () => {
@@ -365,12 +323,8 @@ describe('SiblingAutogroupNode', () => {
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       // No errors added, should default to blue
-      const mockTheme: Partial<Theme> = {
-        red300: '#ff6b6b',
-        blue300: '#3182ce',
-      };
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#3182ce');
+      const theme = ThemeFixture();
+      expect(node.makeBarColor(theme)).toBe(theme.colors.blue400);
     });
   });
 
@@ -399,13 +353,11 @@ describe('SiblingAutogroupNode', () => {
     it('should match by path', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
-      const childSpanValue = makeEAPSpan({event_id: 'child1'});
-      const childNode = new EapSpanNode(null, childSpanValue, extra);
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-      node.children = [childNode];
+      const parentSpanValue = makeEAPSpan({event_id: 'parent1'});
+      const parentNode = new EapSpanNode(null, parentSpanValue, extra);
+      const node = new SiblingAutogroupNode(parentNode, autogroupValue, extra);
 
-      expect(node.matchByPath('ag-child1')).toBe(true);
-      expect(node.matchByPath('ag-child2')).toBe(false);
+      expect(node.matchByPath('ag-parent1')).toBe(true);
       expect(node.matchByPath('span-differentId')).toBe(false);
     });
 

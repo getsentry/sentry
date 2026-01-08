@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
@@ -9,6 +8,7 @@ import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -17,11 +17,15 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+const ORG_DROPDOWN_REFERRER = 'org-dropdown';
 
 function createOrganizationMenuItem(): MenuItemProps {
   const configFeatures = ConfigStore.get('features');
@@ -57,10 +61,10 @@ export function OrgDropdown({
   hideOrgLinks?: boolean;
   onClick?: () => void;
 }) {
-  const theme = useTheme();
-
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
   // It's possible we do not have an org in context (e.g. RouteNotFound)
   // Otherwise, we should have the full org
@@ -103,8 +107,8 @@ export function OrgDropdown({
       className={className}
       trigger={props => (
         <OrgDropdownTrigger
-          borderless={!theme.isChonk}
-          size={theme.isChonk ? 'xs' : undefined}
+          borderless={false}
+          size="xs"
           width={isMobile ? 32 : 48}
           aria-label={t('Toggle organization menu')}
           {...props}
@@ -144,7 +148,10 @@ export function OrgDropdown({
             {
               key: 'projects',
               label: t('Projects'),
-              to: makeProjectsPathname({path: '/', organization}),
+              onAction: () => {
+                setReferrer(ORG_DROPDOWN_REFERRER);
+                navigate(makeProjectsPathname({path: '/', organization}));
+              },
               hidden: hideOrgLinks,
             },
             {
@@ -204,7 +211,7 @@ export function OrgDropdown({
 const OrgDropdownTrigger = styled(Button)<{width: number}>`
   height: ${p => p.width}px;
   width: ${p => p.width}px;
-  min-height: ${p => (p.theme.isChonk ? `${p.width}px` : undefined)};
+  min-height: ${p => `${p.width}px`};
   padding: 0; /* Without this the icon will be cutoff due to overflow */
 `;
 
@@ -216,5 +223,5 @@ const SectionTitleWrapper = styled('div')`
   text-transform: none;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;

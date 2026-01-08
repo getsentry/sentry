@@ -317,8 +317,8 @@ const TransactionProfilesContentContainer = styled('div')`
   grid-template-areas: 'visualization digest';
   grid-template-columns: 1fr min-content;
   flex: 1;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   max-height: 85vh;
 `;
 
@@ -353,7 +353,7 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
     but subtract 1px for the border that doesnt exist on the header
    */
   height: 41px;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ViewSelectContainer = styled('div')`
@@ -365,7 +365,7 @@ const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
 `;
 
 const AggregateFlamegraphSidePanelContainer = styled('div')<{visible: boolean}>`
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: scroll;
   ${p => !p.visible && 'display: none;'}
 `;

@@ -441,9 +441,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         open_period = open_periods[0]
         assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
+        assert open_period.event_id == event2.event_id
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
+        assert open_period.event_id == event.event_id
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
@@ -4088,7 +4090,7 @@ class DSLatestReleaseBoostTest(TestCase):
 class TestSaveGroupHashAndGroup(TransactionTestCase):
     def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
-        perf_data["event_id"] = str(uuid.uuid4())
+        perf_data["event_id"] = "a" * 32
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
         group, created, _ = save_grouphash_and_group(self.project, event, group_hash)

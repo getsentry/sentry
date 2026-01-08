@@ -87,9 +87,8 @@ const NoOrganizationSidebar = styled('div')`
   z-index: ${p => p.theme.zIndex.sidebarPanel};
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   padding: ${space(1.5)} 0 ${space(1)} 0;
-  border-right: 1px solid
-    ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface300)};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.primary};
   display: flex;
   align-items: center;
   flex-direction: column;

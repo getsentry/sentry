@@ -164,7 +164,7 @@ export function InsightSourcesFooter({
 // Styled Components
 const BottomDivider = styled('div')`
   margin-top: ${p => p.theme.space.lg};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const FooterContainer = styled('div')`
@@ -203,7 +203,7 @@ const FooterInputContainer = styled('div')`
 const FooterInputWrapper = styled('form')`
   display: flex;
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const FooterInput = styled(Input)`

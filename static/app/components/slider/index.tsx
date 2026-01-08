@@ -315,7 +315,7 @@ const SliderLabelWrapper = styled('div')`
 
 const SliderLabel = styled('label')`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const SliderLabelOutput = styled('output')`
@@ -337,7 +337,7 @@ const SliderTrack = styled('div', {
   width: calc(100% - 2px);
   height: 3px;
   border-radius: 3px;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   margin-left: 1px; /* to better align track with label */
 
   margin-bottom: ${p => (p.hasTickLabels ? '2em' : '0.5rem')};

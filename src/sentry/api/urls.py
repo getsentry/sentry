@@ -19,6 +19,7 @@ from sentry.api.endpoints.organization_plugin_deprecation_info import (
 )
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
+from sentry.api.endpoints.organization_project_keys import OrganizationProjectKeysEndpoint
 from sentry.api.endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
     OrganizationReleasesStatsEndpoint,
@@ -161,6 +162,7 @@ from sentry.dashboards.endpoints.organization_dashboards_starred import (
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
@@ -283,6 +285,9 @@ from sentry.integrations.api.endpoints.organization_repository_commits import (
 )
 from sentry.integrations.api.endpoints.organization_repository_details import (
     OrganizationRepositoryDetailsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_repository_settings import (
+    OrganizationRepositorySettingsEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -434,6 +439,8 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.overwatch.endpoints.overwatch_rpc import (
+    CodeReviewRepoSettingsEndpoint,
+    PreventPrReviewEligibilityEndpoint,
     PreventPrReviewResolvedConfigsEndpoint,
     PreventPrReviewSentryOrgEndpoint,
 )
@@ -513,6 +520,9 @@ from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
+from sentry.seer.endpoints.organization_autofix_automation_settings import (
+    OrganizationAutofixAutomationSettingsEndpoint,
+)
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
@@ -523,8 +533,9 @@ from sentry.seer.endpoints.organization_seer_explorer_runs import (
 from sentry.seer.endpoints.organization_seer_explorer_update import (
     OrganizationSeerExplorerUpdateEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
-from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
+from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
@@ -811,7 +822,6 @@ from .endpoints.relay import (
     RelayHealthCheck,
     RelayIndexEndpoint,
     RelayProjectConfigsEndpoint,
-    RelayProjectIdsEndpoint,
     RelayPublicKeysEndpoint,
     RelayRegisterChallengeEndpoint,
     RelayRegisterResponseEndpoint,
@@ -976,6 +986,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             GroupAiSummaryEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-summary",
         ),
+        re_path(
+            r"^(?P<issue_id>[^/]+)/related-issues/$",
+            RelatedIssuesEndpoint.as_view(),
+            name=f"{name_prefix}-related-issues",
+        ),
         # Load plugin group urls
         re_path(
             r"^(?P<issue_id>[^/]+)/plugins?/",
@@ -1017,14 +1032,6 @@ BROADCAST_URLS = [
         r"^(?P<broadcast_id>[^/]+)/$",
         BroadcastDetailsEndpoint.as_view(),
         name="sentry-api-0-broadcast-details",
-    ),
-]
-
-ISSUES_URLS = [
-    re_path(
-        r"^(?P<issue_id>[^/]+)/related-issues/$",
-        RelatedIssuesEndpoint.as_view(),
-        name="sentry-api-0-issues-related-issues",
     ),
 ]
 
@@ -1101,11 +1108,6 @@ RELAY_URLS = [
         r"^projectconfigs/$",
         RelayProjectConfigsEndpoint.as_view(),
         name="sentry-api-0-relay-projectconfigs",
-    ),
-    re_path(
-        r"^projectids/$",
-        RelayProjectIdsEndpoint.as_view(),
-        name="sentry-api-0-relay-projectids",
     ),
     re_path(
         r"^publickeys/$",
@@ -1359,6 +1361,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
+        SharedGroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-shared-group-details",
+    ),
     # Alert Rules
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/alert-rules/$",
@@ -1395,6 +1402,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/data-export/(?P<data_export_id>[^/]+)/$",
         DataExportDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-data-export-details",
+    ),
+    # Data Secrecy
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/data-secrecy/$",
+        WaiveDataSecrecyEndpoint.as_view(),
+        name="sentry-api-0-data-secrecy",
     ),
     # Incidents
     re_path(
@@ -1593,6 +1606,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/api-keys/(?P<api_key_id>[^/]+)/$",
         OrganizationApiKeyDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-api-key-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/project-keys/$",
+        OrganizationProjectKeysEndpoint.as_view(),
+        name="sentry-api-0-organization-project-keys",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/audit-logs/$",
@@ -2170,6 +2188,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-repositories",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/repos/settings/$",
+        OrganizationRepositorySettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-repository-settings",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/$",
         OrganizationRepositoryDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-details",
@@ -2327,8 +2350,18 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
-        OrganizationSeerSetupCheck.as_view(),
+        OrganizationSeerSetupCheckEndpoint.as_view(),
         name="sentry-api-0-organization-seer-setup-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",
+        OrganizationSeerOnboardingCheck.as_view(),
+        name="sentry-api-0-organization-seer-onboarding-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
+        OrganizationAutofixAutomationSettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-autofix-automation-settings",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",
@@ -2618,6 +2651,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationObjectstoreEndpoint.as_view(),
         name="sentry-api-0-organization-objectstore",
     ),
+    *preprod_urls.preprod_organization_urlpatterns,
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -3248,7 +3282,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectUserIssueEndpoint.as_view(),
         name="sentry-api-0-project-user-issue",
     ),
-    *preprod_urls.preprod_urlpatterns,
+    *preprod_urls.preprod_project_urlpatterns,
 ]
 
 TEAM_URLS = [
@@ -3498,9 +3532,19 @@ INTERNAL_URLS = [
         name="sentry-api-0-prevent-pr-review-configs-resolved",
     ),
     re_path(
+        r"^prevent/pr-review/eligibility/$",
+        PreventPrReviewEligibilityEndpoint.as_view(),
+        name="sentry-api-0-prevent-pr-review-eligibility",
+    ),
+    re_path(
         r"^prevent/pr-review/github/sentry-org/$",
         PreventPrReviewSentryOrgEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-github-sentry-org",
+    ),
+    re_path(
+        r"^code-review/repo-settings/$",
+        CodeReviewRepoSettingsEndpoint.as_view(),
+        name="sentry-api-0-code-review-repo-settings",
     ),
     re_path(
         r"^feature-flags/$",
@@ -3531,10 +3575,6 @@ urlpatterns = [
     re_path(
         r"^(?:issues|groups)/",
         include(create_group_urls("sentry-api-0")),
-    ),
-    re_path(
-        r"^issues/",
-        include(ISSUES_URLS),
     ),
     # Organizations
     re_path(
@@ -3661,17 +3701,6 @@ urlpatterns = [
         r"^notification-defaults/$",
         NotificationDefaultsEndpoints.as_view(),
         name="sentry-api-0-notification-defaults",
-    ),
-    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
-    re_path(
-        r"^organizations/(?P<organization_id_or_slug>[^/]+)/shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
-        SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-shared-group-details",
-    ),
-    re_path(
-        r"^shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
-        SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-shared-group-details",
     ),
     re_path(
         r"^sentry-apps-stats/$",

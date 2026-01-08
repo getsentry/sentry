@@ -92,7 +92,7 @@ const WiderHovercard = styled(Hovercard)`
 `;
 
 const ConnectedDetectors = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
@@ -114,7 +114,7 @@ const HovercardRow = styled('div')`
   min-height: 64px;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

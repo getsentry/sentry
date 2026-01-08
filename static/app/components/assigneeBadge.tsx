@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -13,7 +12,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
@@ -63,7 +61,7 @@ export function AssigneeBadge({
         {showLabel && (
           <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
         )}
-        <IconChevron color="subText" direction={chevronDirection} size="xs" />
+        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
       </Fragment>
     );
   };
@@ -72,7 +70,7 @@ export function AssigneeBadge({
     <Fragment>
       <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -85,12 +83,12 @@ export function AssigneeBadge({
         height={`${AVATAR_SIZE}px`}
       />
       {showLabel && <Fragment>Unassigned</Fragment>}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
   return loading ? (
-    <StyledTag icon={loadingIcon} />
+    <StyledTag icon={loadingIcon} variant="muted" />
   ) : assignedTo ? (
     <Tooltip
       isHoverable
@@ -106,7 +104,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} />
+      <StyledTag icon={makeAssignedIcon(assignedTo)} variant="muted" />
     </Tooltip>
   ) : (
     <Tooltip
@@ -129,7 +127,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <UnassignedTag icon={unassignedIcon} />
+      <UnassignedTag icon={unassignedIcon} variant="muted" />
     </Tooltip>
   );
 }
@@ -144,7 +142,7 @@ const TooltipWrapper = styled('div')`
 `;
 
 const StyledText = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 114px;
   ${p => p.theme.overflowEllipsis};
 `;
@@ -157,15 +155,10 @@ const StyledTag = styled(Tag)`
   color: ${p => p.theme.subText};
 `;
 
-const UnassignedTag = withChonk(
-  styled(StyledTag)`
-    border-style: dashed;
-  `,
-  styled(StyledTag)<{theme: DO_NOT_USE_ChonkTheme}>`
-    border: 1px dashed ${p => p.theme.border};
-    background-color: transparent;
-  `
-);
+const UnassignedTag = styled(StyledTag)`
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  background-color: transparent;
+`;
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};

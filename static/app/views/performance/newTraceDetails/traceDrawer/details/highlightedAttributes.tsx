@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {CaptureContext} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -14,9 +15,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
-  AI_CREATE_AGENT_OPS,
-  AI_RUN_OPS,
-  getIsAiSpan,
+  getIsAiAgentSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -41,13 +40,14 @@ export function getHighlightedSpanAttributes({
   attributes = {},
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
-  op: string | undefined;
   spanId: string;
+  op?: string;
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
+  const genAiOpType = attributeObject['gen_ai.operation.type'] as string | undefined;
 
-  if (getIsAiSpan({op})) {
-    return getAISpanAttributes({attributes: attributeObject, op, spanId});
+  if (genAiOpType) {
+    return getAISpanAttributes({attributes: attributeObject, spanId});
   }
 
   if (op?.startsWith('mcp.')) {
@@ -76,15 +76,15 @@ function ensureAttributeObject(
 }
 
 function getAISpanAttributes({
-  op,
   spanId,
   attributes = {},
 }: {
   attributes: Record<string, string | number | boolean>;
-  op: string | undefined;
   spanId: string;
 }) {
   const highlightedAttributes = [];
+
+  const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
   const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
   if (agentName) {
@@ -123,7 +123,7 @@ function getAISpanAttributes({
     });
   }
 
-  const totalCosts = attributes['gen_ai.usage.total_cost'];
+  const totalCosts = attributes['gen_ai.cost.total_tokens'];
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
@@ -132,23 +132,34 @@ function getAISpanAttributes({
   }
 
   // Check for missing cost calculation and emit Sentry error
-  if (model && (!totalCosts || Number(totalCosts) === 0)) {
-    Sentry.captureMessage('Gen AI span missing cost calculation', {
+  if (
+    model &&
+    (inputTokens || outputTokens) &&
+    (!totalCosts || Number(totalCosts) === 0)
+  ) {
+    const contextData: CaptureContext = {
       level: 'warning',
       tags: {
         feature: 'agent-monitoring',
         span_type: 'gen_ai',
         has_model: 'true',
         has_cost: 'false',
-        span_operation: op || 'unknown',
         model: model.toString(),
       },
       extra: {
         total_costs: totalCosts,
-        span_operation: op,
         attributes,
       },
-    });
+    };
+
+    // General issue for tracking overall missing cost calculations
+    Sentry.captureMessage('Gen AI span missing cost calculation', contextData);
+
+    // Model-specific issue for tracking cost calculation failures per model
+    Sentry.captureMessage(
+      `Gen AI cost data missing for model: ${model.toString()}`,
+      contextData
+    );
   }
 
   const toolName = attributes['gen_ai.tool.name'];
@@ -165,11 +176,48 @@ function getAISpanAttributes({
     toolsArray &&
     Array.isArray(toolsArray) &&
     toolsArray.length > 0 &&
-    [...AI_RUN_OPS, ...AI_CREATE_AGENT_OPS].includes(op!)
+    getIsAiAgentSpan(genAiOpType)
   ) {
     highlightedAttributes.push({
       name: t('Available Tools'),
       value: <HighlightedTools availableTools={toolsArray} spanId={spanId} />,
+    });
+  }
+
+  // Emit a message if the span is missing any required gen_ai attributes,
+  // but only if the origin starts with "auto.ai"
+  const requiredGenAIAttributes = [
+    'gen_ai.system',
+    'gen_ai.request.model',
+    'gen_ai.operation.name',
+    'gen_ai.agent.name',
+  ];
+
+  const missingGenAIAttributes = requiredGenAIAttributes.filter(
+    attr => !attributes[attr]
+  );
+
+  const origin = attributes['gen_ai.origin'];
+  if (
+    missingGenAIAttributes.length > 0 &&
+    typeof origin === 'string' &&
+    origin.startsWith('auto.ai')
+  ) {
+    const sdkName = attributes['sdk.name'];
+    const sdkVersion = attributes['sdk.version'];
+
+    Sentry.captureMessage('Gen AI span missing required attributes', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        missing_attributes: missingGenAIAttributes.join(','),
+        origin,
+        sdk:
+          [sdkName?.toString(), sdkVersion?.toString()].filter(Boolean).join('@') ||
+          'unknown',
+        span_id: spanId,
+      },
     });
   }
 
@@ -259,7 +307,7 @@ function HighlightedTools({
                 : tn('Used %s time', 'Used %s times', usageCount)
             }
           >
-            <Tag key={tool} type={usedTools.has(tool) ? 'info' : 'default'}>
+            <Tag key={tool} variant={usedTools.has(tool) ? 'info' : 'muted'}>
               {tool}
             </Tag>
           </Tooltip>
@@ -339,5 +387,5 @@ const TokensSpan = styled('span')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;

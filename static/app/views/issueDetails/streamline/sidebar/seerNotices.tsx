@@ -15,7 +15,6 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {
@@ -32,7 +31,8 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
@@ -98,7 +98,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     codeMappingRepos,
   } = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
-  const {mutateAsync: updateProjectAutomation} = useUpdateProjectAutomation(project);
+  const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
   const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
   const {starredViews: views} = useStarredIssueViews();
 
@@ -216,7 +216,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
-          <IconSeer variant="waiting" size="lg" style={{marginRight: 8}} />
+          <IconSeer animation="waiting" size="lg" style={{marginRight: 8}} />
           <span>
             {t(
               'Only %s step%s left to get the most out of Seer.',
@@ -237,7 +237,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             transition={{duration: 0.2}}
           >
             <StepsHeader>
-              <IconSeer variant="waiting" size="xl" />
+              <IconSeer animation="waiting" size="xl" />
               Debug Faster with Seer
             </StepsHeader>
             <StyledGuidedSteps>
@@ -534,7 +534,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       )}
       {/* Banners for unreadable repos */}
       {hasMultipleUnreadableRepos && (
-        <StyledAlert type="warning" key="multiple-repos">
+        <StyledAlert variant="warning" key="multiple-repos">
           {tct("Seer can't access these repositories: [repoList].", {
             repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
           })}
@@ -559,7 +559,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </StyledAlert>
       )}
       {hasSingleUnreadableRepo && (
-        <StyledAlert type="warning" key="single-repo">
+        <StyledAlert variant="warning" key="single-repo">
           {unreadableRepos[0]?.provider.includes('github')
             ? tct(
                 "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
@@ -655,7 +655,7 @@ const StepsHeader = styled('h3')`
 
 const StepsDivider = styled('hr')`
   border: none;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(3)} 0;
 `;
 
@@ -663,18 +663,18 @@ const CollapsedSummaryCard = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  background: ${p => p.theme.pink400}10;
-  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.colors.pink500}10;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
   padding: ${space(1)};
   margin-bottom: ${space(2)};
   cursor: pointer;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 500;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   transition: box-shadow 0.2s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   &:hover {
-    background: ${p => p.theme.pink400}20;
+    background: ${p => p.theme.colors.pink500}20;
   }
 `;

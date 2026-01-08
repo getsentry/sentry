@@ -19,8 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -35,6 +33,7 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -197,9 +196,21 @@ function SpanTabContentSection({
   const id = useQueryParamsId();
   const [tab, setTab] = useTab();
   const [caseInsensitive] = useCaseInsensitivity();
+  const crossEventQueries = useCrossEventQueries();
 
-  const queryType: 'aggregate' | 'samples' | 'traces' =
-    tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';
+  const organization = useOrganization();
+  const hasCrossEventQueries = organization.features.includes(
+    'traces-page-cross-event-querying'
+  );
+
+  const queryType =
+    tab === Mode.AGGREGATE
+      ? 'aggregate'
+      : tab === Tab.TRACE
+        ? 'traces'
+        : tab === Tab.ATTRIBUTE_BREAKDOWNS
+          ? 'attribute_breakdowns'
+          : 'samples';
 
   const limit = 50;
 
@@ -209,26 +220,38 @@ function SpanTabContentSection({
     query,
     limit,
     enabled: isReady && queryType === 'aggregate',
-    queryExtras: {caseInsensitive},
+    queryExtras: {
+      caseInsensitive,
+      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+    },
   });
   const spansTableResult = useExploreSpansTable({
     query,
     limit,
     enabled: isReady && queryType === 'samples',
-    queryExtras: {caseInsensitive},
+    queryExtras: {
+      caseInsensitive,
+      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+    },
   });
   const tracesTableResult = useExploreTracesTable({
     query,
     limit,
     enabled: isReady && queryType === 'traces',
-    queryExtras: {caseInsensitive},
+    queryExtras: {
+      caseInsensitive,
+      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+    },
   });
 
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
       query,
       enabled: isReady,
-      queryExtras: {caseInsensitive},
+      queryExtras: {
+        caseInsensitive,
+        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      },
     });
 
   const confidences = useMemo(
@@ -246,7 +269,6 @@ function SpanTabContentSection({
   const [interval] = useChartInterval();
 
   useAnalytics({
-    tab,
     queryType,
     aggregatesTableResult,
     spansTableResult,
@@ -300,7 +322,7 @@ function SpanTabContentSection({
       <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
-          <Alert type="error">{error.message}</Alert>
+          <Alert variant="danger">{error.message}</Alert>
         </Alert.Container>
       )}
       <TourElement<ExploreSpansTour>
@@ -351,40 +373,22 @@ const ActionButtonsGroup = styled('div')`
   gap: ${p => p.theme.space.xs};
 `;
 
-const ChevronButton = withChonk(
-  styled(Button)<{expanded: boolean}>`
-    display: none;
+const ChevronButton = styled(Button)<{expanded: boolean}>`
+  display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: block;
-    }
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: inline-flex;
+  }
 
-    ${p =>
-      p.expanded &&
-      css`
-        margin-left: -13px;
-        border-left-color: ${p.theme.background};
+  ${p =>
+    p.expanded &&
+    css`
+      margin-left: -13px;
+
+      &::after {
+        border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
-      `}
-  `,
-  chonkStyled(Button)<{expanded: boolean}>`
-    display: none;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: inline-flex;
-    }
-
-    ${p =>
-      p.expanded &&
-      css`
-        margin-left: -13px;
-
-        &::after {
-          border-left-color: ${p.theme.background};
-          border-top-left-radius: 0px;
-          border-bottom-left-radius: 0px;
-        }
-      `}
-  `
-);
+      }
+    `}
+`;

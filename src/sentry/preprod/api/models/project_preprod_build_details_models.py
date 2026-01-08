@@ -6,7 +6,10 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
-from sentry.preprod.build_distribution_utils import is_installable_artifact
+from sentry.preprod.build_distribution_utils import (
+    get_download_count_for_artifact,
+    is_installable_artifact,
+)
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
 
@@ -36,8 +39,10 @@ class BuildDetailsAppInfo(BaseModel):
     date_built: str | None = None
     artifact_type: PreprodArtifact.ArtifactType | None = None
     platform: Platform | None = None
+    # Deprecated, use distribution_info.is_installable instead
     is_installable: bool
     build_configuration: str | None = None
+    app_icon_id: str | None = None
     apple_app_info: AppleAppInfo | None = None
     android_app_info: AndroidAppInfo | None = None
 
@@ -51,6 +56,12 @@ class BuildDetailsVcsInfo(BaseModel):
     head_ref: str | None = None
     base_ref: str | None = None
     pr_number: int | None = None
+
+
+class DistributionInfo(BaseModel):
+    is_installable: bool
+    download_count: int
+    release_notes: str | None = None
 
 
 class StatusCheckResultSuccess(BaseModel):
@@ -106,6 +117,7 @@ class SizeInfoCompleted(BaseModel):
     # Deprecated, use size_metrics instead
     download_size_bytes: int
     size_metrics: list[SizeInfoSizeMetric]
+    base_size_metrics: list[SizeInfoSizeMetric]
 
 
 class SizeInfoFailed(BaseModel):
@@ -127,8 +139,13 @@ class BuildDetailsApiResponse(BaseModel):
     state: PreprodArtifact.ArtifactState
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
+    project_id: int
+    project_slug: str
+    distribution_info: DistributionInfo
     size_info: SizeInfo | None = None
     posted_status_checks: PostedStatusChecks | None = None
+    base_artifact_id: str | None = None
+    base_build_info: BuildDetailsAppInfo | None = None
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
@@ -143,7 +160,57 @@ def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> 
             raise ValueError(f"Unknown artifact type: {artifact_type}")
 
 
-def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeInfo:
+def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppInfo:
+    """Factory function to create BuildDetailsAppInfo from a PreprodArtifact."""
+    platform = None
+    # artifact_type can be null before preprocessing has completed
+    if artifact.artifact_type is not None:
+        platform = platform_from_artifact_type(artifact.artifact_type)
+
+    apple_app_info = None
+    if platform == Platform.IOS or platform == Platform.MACOS:
+        legacy_missing_dsym_binaries = (
+            artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
+        )
+        has_missing_dsym_binaries = (
+            artifact.extras.get("has_missing_dsym_binaries", False)
+            or len(legacy_missing_dsym_binaries) > 0
+            if artifact.extras
+            else False
+        )
+        apple_app_info = AppleAppInfo(has_missing_dsym_binaries=has_missing_dsym_binaries)
+
+    android_app_info = None
+    if platform == Platform.ANDROID:
+        android_app_info = AndroidAppInfo(
+            has_proguard_mapping=(
+                artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
+            )
+        )
+
+    return BuildDetailsAppInfo(
+        app_id=artifact.app_id,
+        name=artifact.app_name,
+        version=artifact.build_version,
+        build_number=artifact.build_number,
+        date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
+        date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
+        artifact_type=artifact.artifact_type,
+        platform=platform,
+        is_installable=is_installable_artifact(artifact),
+        build_configuration=(
+            artifact.build_configuration.name if artifact.build_configuration else None
+        ),
+        app_icon_id=artifact.app_icon_id,
+        apple_app_info=apple_app_info,
+        android_app_info=android_app_info,
+    )
+
+
+def to_size_info(
+    size_metrics: list[PreprodArtifactSizeMetrics],
+    base_size_metrics: list[PreprodArtifactSizeMetrics] | None = None,
+) -> None | SizeInfo:
     if len(size_metrics) == 0:
         return None
 
@@ -182,6 +249,15 @@ def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeI
                     )
                     for metric in size_metrics
                 ],
+                base_size_metrics=[
+                    SizeInfoSizeMetric(
+                        metrics_artifact_type=metric.metrics_artifact_type,
+                        install_size_bytes=metric.max_install_size,
+                        download_size_bytes=metric.max_download_size,
+                    )
+                    for metric in (base_size_metrics or [])
+                    if metric.max_install_size is not None and metric.max_download_size is not None
+                ],
             )
         case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
             error_code = main_metric.error_code
@@ -197,57 +273,29 @@ def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
 
-    size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact=artifact,
+    size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
+
+    base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
+    base_artifact = (
+        artifact.get_base_artifact_for_commit().select_related("build_configuration").first()
     )
-
-    size_info = to_size_info(list(size_metrics_qs))
-
-    platform = None
-    # artifact_type can be null before preprocessing has completed
-    if artifact.artifact_type is not None:
-        platform = platform_from_artifact_type(artifact.artifact_type)
-
-    apple_app_info = None
-    if platform == Platform.IOS or platform == Platform.MACOS:
-        legacy_missing_dsym_binaries = (
-            artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
+    base_build_info = None
+    if base_artifact:
+        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=base_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
-        has_missing_dsym_binaries = (
-            artifact.extras.get("has_missing_dsym_binaries", False)
-            or len(legacy_missing_dsym_binaries) > 0
-            if artifact.extras
-            else False
-        )
-        apple_app_info = AppleAppInfo(has_missing_dsym_binaries=has_missing_dsym_binaries)
+        base_size_metrics_list = list(base_size_metrics_qs)
+        base_build_info = create_build_details_app_info(base_artifact)
 
-    android_app_info = None
-    if platform == Platform.ANDROID:
-        android_app_info = AndroidAppInfo(
-            has_proguard_mapping=(
-                artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
-            )
-        )
+    size_info = to_size_info(size_metrics_list, base_size_metrics_list)
 
-    app_info = BuildDetailsAppInfo(
-        app_id=artifact.app_id,
-        name=artifact.app_name,
-        version=artifact.build_version,
-        build_number=artifact.build_number,
-        date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
-        date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
-        artifact_type=artifact.artifact_type,
-        platform=(
-            platform_from_artifact_type(artifact.artifact_type)
-            if artifact.artifact_type is not None
-            else None
-        ),
-        is_installable=is_installable_artifact(artifact),
-        build_configuration=(
-            artifact.build_configuration.name if artifact.build_configuration else None
-        ),
-        apple_app_info=apple_app_info,
-        android_app_info=android_app_info,
+    app_info = create_build_details_app_info(artifact)
+    is_installable = app_info.is_installable
+    distribution_info = DistributionInfo(
+        is_installable=is_installable,
+        download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
+        release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
     )
 
     vcs_info = BuildDetailsVcsInfo(
@@ -272,8 +320,13 @@ def transform_preprod_artifact_to_build_details(
         state=artifact.state,
         app_info=app_info,
         vcs_info=vcs_info,
+        project_id=artifact.project.id,
+        project_slug=artifact.project.slug,
+        distribution_info=distribution_info,
         size_info=size_info,
         posted_status_checks=posted_status_checks,
+        base_artifact_id=base_artifact.id if base_artifact else None,
+        base_build_info=base_build_info,
     )
 
 

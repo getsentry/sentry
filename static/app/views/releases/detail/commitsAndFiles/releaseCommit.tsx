@@ -102,7 +102,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
                 />
               ),
             })}
-            <TimeSince date={commit.dateCreated} tooltipUnderlineColor="background" />
+            <TimeSince date={commit.dateCreated} tooltipUnderlineColor="muted" />
           </Meta>
         </MetaWrapper>
       </CommitContent>
@@ -129,11 +129,11 @@ const BoldEmail = styled('strong')`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-  border-bottom: 1px dotted ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -154,7 +154,7 @@ const Meta = styled(TextOverflow)`
   }
 
   a:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -186,7 +186,7 @@ const AuthorWrapper = styled('span')`
   }
 
   &:has(svg):hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     & svg {
       opacity: 1;
     }

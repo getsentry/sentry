@@ -5,6 +5,8 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -34,6 +36,7 @@ import {
   getTitle,
 } from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
@@ -43,7 +46,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -646,7 +648,11 @@ function GroupDetailsContentError({
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
-      return <MissingProjectMembership organization={organization} project={project} />;
+      return (
+        <Container padding="lg">
+          <MissingProjectMembership organization={organization} project={project} />
+        </Container>
+      );
     default:
       return <StyledLoadingError onRetry={onRetry} />;
   }

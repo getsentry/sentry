@@ -91,6 +91,10 @@ describe('DataConditionNodeList', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-conditions/`,
       body: dataConditionHandlers,
     });
@@ -156,7 +160,9 @@ describe('DataConditionNodeList', () => {
       {organization}
     );
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Tag'}), 's');
+    // Wait until the request for tags is completed
+    const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
+    await userEvent.type(tagInput, 'names{enter}');
     expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
       comparison: {key: 'names', match: MatchType.CONTAINS, value: 'moo deng'},
     });

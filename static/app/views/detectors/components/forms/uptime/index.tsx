@@ -56,6 +56,7 @@ export function NewUptimeDetectorForm() {
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       initialFormData={{}}
+      envFieldProps={{required: true}}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -68,6 +69,7 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
       detector={detector}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
+      envFieldProps={{required: true}}
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>

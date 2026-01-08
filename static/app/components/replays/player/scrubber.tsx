@@ -56,7 +56,7 @@ const Meter = styled('div')`
   height: 100%;
   width: 100%;
   pointer-events: none;
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.colors.gray200};
 `;
 
 const RangeWrapper = styled('div')`
@@ -140,7 +140,7 @@ export const TimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
-    border-right: ${space(0.25)} solid ${p => p.theme.purple300};
+    border-right: ${space(0.25)} solid ${p => p.theme.colors.blue400};
   }
 `;
 
@@ -148,8 +148,8 @@ export const PlayerScrubber = styled(Scrubber)`
   height: ${space(0.5)};
 
   ${Meter} {
-    border-radius: ${p => p.theme.borderRadius};
-    background: ${p => p.theme.translucentInnerBorder};
+    border-radius: ${p => p.theme.radius.md};
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   ${RangeWrapper} {
@@ -165,8 +165,8 @@ export const PlayerScrubber = styled(Scrubber)`
   }
 
   ${PlaybackTimeValue} {
-    background: ${p => p.theme.purple200};
-    border-radius: ${p => p.theme.borderRadius};
+    background: ${p => p.theme.colors.blue200};
+    border-radius: ${p => p.theme.radius.md};
 
     /**
      * Draw the circle (appears on hover) to mark the currentTime of the video
@@ -175,13 +175,13 @@ export const PlayerScrubber = styled(Scrubber)`
      *           PlaybackTimeValue @ 20s
      */
     :after {
-      background: ${p => p.theme.purple300};
+      background: ${p => p.theme.colors.blue400};
     }
   }
 
   ${MouseTrackingValue} {
     background: ${p => p.theme.translucentBorder};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
 
     /**
      * Draw a square so users can see their mouse position when it is left or right of the currentTime
@@ -191,7 +191,7 @@ export const PlayerScrubber = styled(Scrubber)`
      *      MouseTrackingValue @ 10s
      */
     :after {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.colors.gray500};
     }
   }
 

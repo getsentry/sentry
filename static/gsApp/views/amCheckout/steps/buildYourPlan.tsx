@@ -1,18 +1,15 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Stack} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
-import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import type {BillingConfig, Plan, PlanTier, Subscription} from 'getsentry/types';
 import {
-  getPlanIcon,
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
@@ -22,10 +19,7 @@ import PlanFeatures from 'getsentry/views/amCheckout/components/planFeatures';
 import PlanSelectCard from 'getsentry/views/amCheckout/components/planSelectCard';
 import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
-import type {
-  CheckoutFormData,
-  CheckoutV3StepProps,
-} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData, StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 interface BaseSubstepProps {
@@ -41,7 +35,9 @@ interface PlanSubstepProps extends BaseSubstepProps {
   checkoutTier?: PlanTier;
 }
 
-interface AdditionalProductsSubstepProps extends BaseSubstepProps {}
+interface AdditionalProductsSubstepProps extends BaseSubstepProps {
+  subscription: Subscription;
+}
 
 function PlanSubstep({
   billingConfig,
@@ -55,7 +51,8 @@ function PlanSubstep({
     // TODO(isabella): Remove this once Developer is surfaced
     const plans = billingConfig.planList.filter(
       ({contractInterval, id}) =>
-        contractInterval === activePlan.contractInterval && id !== billingConfig.freePlan
+        contractInterval === activePlan.contractInterval &&
+        !id.includes(billingConfig.freePlan)
     );
 
     if (plans.length === 0) {
@@ -69,12 +66,11 @@ function PlanSubstep({
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (
       plan.id === subscription.plan ||
-      // TODO(checkout v3): Test this once Developer is surfaced
+      // TODO(billing): Test this once Developer is surfaced
       (isTrialPlan(subscription.plan) && isDeveloperPlan(plan))
     ) {
-      // TODO(checkout v3): Replace with custom badge
       const copy = t('Current');
-      return <Tag type="default">{copy}</Tag>;
+      return <Tag variant="muted">{copy}</Tag>;
     }
 
     if (
@@ -85,7 +81,7 @@ function PlanSubstep({
       const lastTrialEnd = moment(subscription.lastTrialEnd).utc().fromNow();
       const trialExpired: boolean = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
-        <Tag type="warning">
+        <Tag variant="warning">
           {subscription.isTrial && !trialExpired
             ? tct('Trial expires [lastTrialEnd]', {lastTrialEnd})
             : t('You trialed this plan')}
@@ -105,10 +101,7 @@ function PlanSubstep({
             organization
           );
           const basePrice = utils.formatPrice({cents: plan.basePrice}); // TODO(isabella): confirm discountInfo is no longer used
-
-          const planContent = utils.getContentForPlan(plan, true);
-
-          const planIcon = getPlanIcon(plan);
+          const planContent = utils.getContentForPlan(plan);
           const badge = getBadge(plan);
 
           return (
@@ -121,7 +114,6 @@ function PlanSubstep({
               planName={plan.name}
               price={basePrice}
               planContent={planContent}
-              planIcon={planIcon}
               shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
               badge={badge}
             />
@@ -137,22 +129,16 @@ function AdditionalProductsSubstep({
   activePlan,
   formData,
   onUpdate,
+  subscription,
 }: AdditionalProductsSubstepProps) {
   return (
     <Flex direction="column" gap="xl" paddingTop="3xl">
-      <Flex align="center" gap="lg">
-        <Flex paddingLeft="lg">
-          <IconSeer variant="waiting" size="lg" />
-        </Flex>
-        {/* TODO(isabella): The heading and icon should be pushed to the child component (ProductSelect) */}
-        <Heading as="h2">{t('Detect and fix issues faster with our AI agent')}</Heading>
-      </Flex>
       <Flex direction="column" gap="xl">
         <ProductSelect
           activePlan={activePlan}
           formData={formData}
           onUpdate={onUpdate}
-          isNewCheckout
+          subscription={subscription}
         />
       </Flex>
     </Flex>
@@ -165,43 +151,28 @@ function BuildYourPlan({
   organization,
   subscription,
   formData,
-  onEdit,
   onUpdate,
   stepNumber,
   checkoutTier,
-}: CheckoutV3StepProps) {
-  const [isOpen, setIsOpen] = useState(true);
-
+}: StepProps) {
   return (
-    <Stack gap="xl" direction="column">
-      <StepHeader
-        isActive
-        isCompleted={false}
-        onEdit={onEdit}
-        onToggleStep={setIsOpen}
-        isOpen={isOpen}
-        stepNumber={stepNumber}
-        title={t('Select a plan')}
-        isNewCheckout
+    <Stack gap="xl" direction="column" id={`step${stepNumber}`}>
+      <StepHeader title={t('Select a plan')} />
+      <PlanSubstep
+        activePlan={activePlan}
+        billingConfig={billingConfig}
+        formData={formData}
+        onUpdate={onUpdate}
+        organization={organization}
+        subscription={subscription}
+        checkoutTier={checkoutTier}
       />
-      {isOpen && (
-        <Fragment>
-          <PlanSubstep
-            activePlan={activePlan}
-            billingConfig={billingConfig}
-            formData={formData}
-            onUpdate={onUpdate}
-            organization={organization}
-            subscription={subscription}
-            checkoutTier={checkoutTier}
-          />
-          <AdditionalProductsSubstep
-            activePlan={activePlan}
-            formData={formData}
-            onUpdate={onUpdate}
-          />
-        </Fragment>
-      )}
+      <AdditionalProductsSubstep
+        activePlan={activePlan}
+        formData={formData}
+        onUpdate={onUpdate}
+        subscription={subscription}
+      />
     </Stack>
   );
 }

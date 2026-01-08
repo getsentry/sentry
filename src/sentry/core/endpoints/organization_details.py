@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
+from rest_framework.exceptions import NotFound, PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
@@ -41,10 +42,13 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
+    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
@@ -91,6 +95,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
@@ -99,6 +104,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteState,
 )
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
@@ -249,6 +255,24 @@ ORG_OPTIONS = (
         AUTO_OPEN_PRS_DEFAULT,
     ),
     (
+        "autoEnableCodeReview",
+        "sentry:auto_enable_code_review",
+        bool,
+        AUTO_ENABLE_CODE_REVIEW,
+    ),
+    (
+        "defaultCodeReviewTriggers",
+        "sentry:default_code_review_triggers",
+        list,
+        DEFAULT_CODE_REVIEW_TRIGGERS,
+    ),
+    (
+        "allowBackgroundAgentDelegation",
+        "sentry:allow_background_agent_delegation",
+        bool,
+        ALLOW_BACKGROUND_AGENT_DELEGATION,
+    ),
+    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
         str,
@@ -335,8 +359,25 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     autoOpenPrs = serializers.BooleanField(required=False)
+    autoEnableCodeReview = serializers.BooleanField(required=False)
+    defaultCodeReviewTriggers = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=["on_command_phrase", "on_ready_for_review", "on_new_commit"]
+        ),
+        required=False,
+        allow_empty=True,
+        help_text="The default code review triggers for new repositories.",
+    )
+    allowBackgroundAgentDelegation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
+    )
+    hasGranularReplayPermissions = serializers.BooleanField(required=False)
+    replayAccessMembers = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_null=True,
+        help_text="List of user IDs that have access to replay data. Only modifiable by owners and managers.",
     )
 
     def _has_sso_enabled(self):
@@ -443,6 +484,26 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         # as this is handled by a choice field, we don't need to check the values of the field
 
         return value
+
+    def validate_hasGranularReplayPermissions(self, value):
+        self._validate_granular_replay_permissions()
+        return value
+
+    def validate_replayAccessMembers(self, value):
+        self._validate_granular_replay_permissions()
+        return value
+
+    def _validate_granular_replay_permissions(self):
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        if not features.has("organizations:granular-replay-permissions", organization):
+            raise NotFound("This feature is not enabled for your organization.")
+
+        if not request.access.has_scope("org:write"):
+            raise PermissionDenied(
+                "You do not have permission to modify granular replay permissions."
+            )
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -557,6 +618,74 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         trusted_relay_info = data.get("trustedRelays")
         if trusted_relay_info is not None:
             self.save_trusted_relays(trusted_relay_info, changed_data, org)
+
+        if "hasGranularReplayPermissions" in data:
+            option_key = "sentry:granular-replay-permissions"
+            new_value = data["hasGranularReplayPermissions"]
+            option_inst, created = OrganizationOption.objects.get_or_create(
+                organization=org, key=option_key, defaults={"value": new_value}
+            )
+            if not created and option_inst.value != new_value:
+                old_val = option_inst.value
+                option_inst.value = new_value
+                option_inst.save()
+                changed_data["hasGranularReplayPermissions"] = f"from {old_val} to {new_value}"
+            elif created:
+                changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
+
+        if "replayAccessMembers" in data:
+            user_ids = data["replayAccessMembers"]
+            if user_ids is None:
+                user_ids = []
+
+            current_user_ids = set(
+                OrganizationMemberReplayAccess.objects.filter(
+                    organizationmember__organization=org
+                ).values_list("organizationmember__user_id", flat=True)
+            )
+            new_user_ids = set(user_ids)
+
+            to_add = new_user_ids - current_user_ids
+            to_remove = current_user_ids - new_user_ids
+
+            if to_add:
+                user_to_member = dict(
+                    OrganizationMember.objects.filter(
+                        organization=org, user_id__in=to_add
+                    ).values_list("user_id", "id")
+                )
+                invalid_user_ids = to_add - set(user_to_member.keys())
+                if invalid_user_ids:
+                    raise serializers.ValidationError(
+                        {
+                            "replayAccessMembers": f"Invalid user IDs (not members of this organization): {sorted(invalid_user_ids)}"
+                        }
+                    )
+
+                OrganizationMemberReplayAccess.objects.bulk_create(
+                    [
+                        OrganizationMemberReplayAccess(
+                            organizationmember_id=user_to_member[user_id]
+                        )
+                        for user_id in to_add
+                    ],
+                    ignore_conflicts=True,
+                )
+
+            if to_remove:
+                OrganizationMemberReplayAccess.objects.filter(
+                    organizationmember__organization=org, organizationmember__user_id__in=to_remove
+                ).delete()
+
+            if to_add or to_remove:
+                changes = []
+                if to_add:
+                    changes.append(f"added {len(to_add)} user(s)")
+                if to_remove:
+                    changes.append(f"removed {len(to_remove)} user(s)")
+                changed_data["replayAccessMembers"] = (
+                    f"{' and '.join(changes)} (total: {len(new_user_ids)} user(s) with access)"
+                )
 
         if "openMembership" in data:
             org.flags.allow_joinleave = data["openMembership"]
@@ -720,6 +849,9 @@ def create_console_platform_audit_log(
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
         "autoOpenPrs",
+        "autoEnableCodeReview",
+        "defaultCodeReviewTriggers",
+        "allowBackgroundAgentDelegation",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]
@@ -774,6 +906,16 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         choices=roles.get_choices(),
         help_text="The role required to download debug information files, ProGuard mappings and source maps.",
         required=False,
+    )
+    hasGranularReplayPermissions = serializers.BooleanField(
+        help_text="Specify `true` to enable granular replay permissions, allowing per-member access control for replay data.",
+        required=False,
+    )
+    replayAccessMembers = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="A list of user IDs who have permission to access replay data. Requires the hasGranularReplayPermissions flag to be true to be enforced.",
+        required=False,
+        allow_null=True,
     )
 
     # avatar

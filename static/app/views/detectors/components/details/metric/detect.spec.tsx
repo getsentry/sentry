@@ -58,7 +58,7 @@ describe('MetricDetectorDetailsDetect', () => {
 
     expect(screen.getByText('Resolved')).toBeInTheDocument();
     expect(
-      screen.getByText(/Less than 8% lower than the previous 1 minute/)
+      screen.getByText(/Below or equal to 8% lower than the previous 1 minute/)
     ).toBeInTheDocument();
   });
 

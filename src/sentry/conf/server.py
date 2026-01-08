@@ -440,6 +440,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "crispy_forms",
     "rest_framework",
     "sentry",
+    "sentry.autopilot",
     "sentry.analytics",
     "sentry.auth_v2",
     "sentry.incidents.apps.Config",
@@ -486,6 +487,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.preprod",
     "sentry.releases",
     "sentry.prevent",
+    "sentry.seer",
 )
 
 # Silence internal hints from Django's system checks
@@ -825,6 +827,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.autopilot.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
@@ -874,6 +877,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.snuba.tasks",
+    "sentry.seer.code_review.webhooks.task",
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
@@ -923,6 +927,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tempest.tasks",
     "sentry.uptime.autodetect.notifications",
     "sentry.uptime.autodetect.tasks",
+    "sentry.uptime.consumers.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
@@ -1057,6 +1062,14 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
     },
+    "autopilot-run-sdk-update-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "autopilot-run-missing-sdk-integration-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
@@ -1115,7 +1128,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-issue-detection": {
         "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -2130,7 +2143,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.11.1"
+SELF_HOSTED_STABLE_VERSION = "25.12.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2982,6 +2995,10 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS: ServiceOptions = {
     "options": {"cluster": "default"},
 }
 
+SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE = (
+    0.1  # relative to SENTRY_PROCESS_EVENT_APM_SAMPLING
+)
+
 ADDITIONAL_BULK_QUERY_DELETES: list[tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
@@ -3074,13 +3091,11 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integrations",
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
-    "sentry-api-0-shared-group-details",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
     "sentry-api-0-relay-register-response",
     "sentry-api-0-relay-projectconfigs",
-    "sentry-api-0-relay-projectids",
     "sentry-api-0-relay-publickeys",
     "sentry-api-0-relays-healthcheck",
     "sentry-api-0-relays-details",

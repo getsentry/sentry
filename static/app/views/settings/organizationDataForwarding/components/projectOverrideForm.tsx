@@ -10,6 +10,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {IconRefresh} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
@@ -22,8 +23,10 @@ import type {DataForwarder} from 'sentry/views/settings/organizationDataForwardi
 export function ProjectOverrideForm({
   project,
   dataForwarder,
+  disabled,
 }: {
   dataForwarder: DataForwarder;
+  disabled: boolean;
   project: AvatarProject;
 }) {
   const organization = useOrganization();
@@ -64,19 +67,34 @@ export function ProjectOverrideForm({
       hideFooter
     >
       <OverrideForm
-        forms={[getProjectOverrideForm({dataForwarder, project})]}
+        disabled={disabled}
+        forms={[getProjectOverrideForm({dataForwarder, project, omitTag: disabled})]}
         collapsible
         renderHeader={() => (
           <Flex padding="sm lg" borderBottom="primary" gap="md" align="center">
-            <IconInfo size="sm" />
+            <IconInfo size="sm" variant="muted" />
             <Text variant="muted" size="sm" bold>
               {t('Overrides set here will only affect this project')}
             </Text>
           </Flex>
         )}
         renderFooter={() => (
-          <Flex justify="end" padding="lg xl">
-            <Button priority="primary" size="sm" type="submit">
+          <Flex justify="between" padding="lg xl">
+            <Button
+              size="sm"
+              icon={<IconRefresh variant="danger" transform="scale(-1, 1)" />}
+              disabled={disabled}
+              onClick={() => {
+                updateDataForwarder({
+                  project_id: `${project.id}`,
+                  overrides: {},
+                  is_enabled: projectConfig?.isEnabled ?? false,
+                });
+              }}
+            >
+              {t('Clear Override')}
+            </Button>
+            <Button priority="primary" size="sm" type="submit" disabled={disabled}>
               {t('Save Override')}
             </Button>
           </Flex>

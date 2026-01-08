@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
@@ -22,6 +23,7 @@ from sentry.issue_detection.performance_detection import detect_performance_prob
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.killswitches import killswitch_matches_context
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -50,6 +52,22 @@ outcome_aggregator = OutcomeAggregator()
 def process_segment(
     unprocessed_spans: list[SpanEvent], skip_produce: bool = False
 ) -> list[CompatibleSpan]:
+    sample_rate = (
+        settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
+        * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
+    )
+    with sentry_sdk.start_transaction(
+        name="spans.consumers.process_segments.process_segment",
+        custom_sampling_context={
+            "sample_rate": sample_rate,
+        },
+    ):
+        return _process_segment(unprocessed_spans, skip_produce)
+
+
+def _process_segment(
+    unprocessed_spans: list[SpanEvent], skip_produce: bool
+) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
@@ -64,6 +82,16 @@ def process_segment(
             )
     except (Project.DoesNotExist, Organization.DoesNotExist):
         # If the project does not exist then it might have been deleted during ingestion.
+        return []
+
+    # Check killswitch for dropping segments based on org_id
+    if killswitch_matches_context(
+        "spans.process-segments.drop-segments",
+        {
+            "org_id": str(project.organization_id),
+        },
+        emit_metrics=True,
+    ):
         return []
 
     safe_execute(_normalize_segment_name, segment_span, project)
@@ -147,6 +175,7 @@ def _enrich_spans(
 
 
 @metrics.wraps("spans.consumers.process_segments.normalize_segment_name")
+@sentry_sdk.trace
 def _normalize_segment_name(segment_span: CompatibleSpan, project: Project) -> None:
     if not features.has(
         "organizations:normalize_segment_names_in_span_enrichment", project.organization
@@ -175,9 +204,9 @@ def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) 
         return
 
     for span in spans:
-        if not attribute_value(span, "sentry.segment.name"):
+        if not attribute_value(span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME):
             span["attributes"] = span.get("attributes") or {}
-            span["attributes"]["sentry.segment.name"] = {  # type: ignore[index]
+            span["attributes"][ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME] = {  # type: ignore[index]
                 "type": "string",
                 "value": segment_name,
             }
@@ -199,9 +228,9 @@ def _create_models(segment: CompatibleSpan, project: Project) -> None:
     Creates the Environment and Release models, along with the necessary
     relationships between them and the Project model.
     """
-    environment_name = attribute_value(segment, "sentry.environment")
-    release_name = attribute_value(segment, "sentry.release")
-    dist_name = attribute_value(segment, "sentry.dist")
+    environment_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)
+    release_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_RELEASE)
+    dist_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_DIST)
     date = to_datetime(segment["end_timestamp"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
@@ -294,9 +323,9 @@ def _record_signals(
 ) -> None:
     record_generic_event_processed(
         project,
-        platform=attribute_value(segment_span, "sentry.platform"),
-        release=attribute_value(segment_span, "sentry.release"),
-        environment=attribute_value(segment_span, "sentry.environment"),
+        platform=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PLATFORM),
+        release=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_RELEASE),
+        environment=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT),
     )
 
     # signal expects an event like object with a datetime attribute

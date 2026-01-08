@@ -75,7 +75,7 @@ class QueryCard extends PureComponent<Props> {
 }
 
 const AvatarWrapper = styled('span')`
-  border: 3px solid ${p => p.theme.border};
+  border: 3px solid ${p => p.theme.tokens.border.primary};
   border-radius: 50%;
   height: min-content;
 `;
@@ -101,7 +101,7 @@ const QueryCardHeader = styled('div')`
 `;
 
 const QueryTitle = styled('div')`
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
@@ -138,7 +138,7 @@ const DateSelected = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const DateStatus = styled('span')`

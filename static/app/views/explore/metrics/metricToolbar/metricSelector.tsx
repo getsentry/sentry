@@ -8,7 +8,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useSetTraceMetric} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
@@ -25,13 +24,18 @@ export function MetricTypeBadge({metricType}: {metricType: TraceMetricTypeValue}
     return null;
   }
 
-  return <Tag>{metricType}</Tag>;
+  return <Tag variant="muted">{metricType}</Tag>;
 }
 
-export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
+export function MetricSelector({
+  traceMetric,
+  onChange,
+}: {
+  onChange: (traceMetric: TraceMetric) => void;
+  traceMetric: TraceMetric;
+}) {
   const [search, setSearch] = useState('');
   const {data: metricOptionsData, isFetching} = useMetricOptions({search});
-  const setTraceMetric = useSetTraceMetric();
 
   const metricSelectValue = makeMetricSelectValue(traceMetric);
   const optionFromTraceMetric: MetricSelectOption = useMemo(
@@ -72,12 +76,12 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
 
   useEffect(() => {
     if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
-      setTraceMetric({
+      onChange({
         name: metricOptions[0].metricName,
         type: metricOptions[0].metricType,
       });
     }
-  }, [metricOptions, setTraceMetric, traceMetric.name]);
+  }, [metricOptions, onChange, traceMetric.name]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSetSearch = useCallback(
@@ -100,7 +104,7 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
       onChange={option => {
         if ('metricType' in option) {
           const typedOption = option as MetricSelectOption;
-          setTraceMetric({
+          onChange({
             name: typedOption.metricName,
             type: typedOption.metricType,
           });

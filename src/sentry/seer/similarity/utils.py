@@ -16,6 +16,13 @@ from sentry.grouping.variants import BaseVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    is_seer_seat_based_tier_enabled,
+    set_project_seer_preference,
+)
+from sentry.seer.models import SeerProjectPreference
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -502,25 +509,59 @@ def project_is_seer_eligible(project: Project) -> bool:
 def set_default_project_autofix_automation_tuning(
     organization: Organization, project: Project
 ) -> None:
-    org_default_autofix_automation_tuning = organization.get_option(
-        "sentry:default_autofix_automation_tuning"
-    )
-    if org_default_autofix_automation_tuning and org_default_autofix_automation_tuning != "off":
+    """Called once at project creation time to set the initial autofix automation tuning."""
+    org_default = organization.get_option("sentry:default_autofix_automation_tuning")
+
+    if org_default == AutofixAutomationTuningSettings.OFF:
+        # Explicit "off" is always respected, regardless of feature flag
         project.update_option(
-            "sentry:default_autofix_automation_tuning", org_default_autofix_automation_tuning
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
         )
+    elif is_seer_seat_based_tier_enabled(organization):
+        # Feature flag ON overrides everything except explicit "off"
+        project.update_option(
+            "sentry:autofix_automation_tuning",
+            AutofixAutomationTuningSettings.MEDIUM,
+        )
+    elif org_default:
+        # Feature flag OFF, use org's explicit value
+        project.update_option("sentry:autofix_automation_tuning", org_default)
 
 
 def set_default_project_seer_scanner_automation(
     organization: Organization, project: Project
 ) -> None:
-    org_default_seer_scanner_automation = organization.get_option(
-        "sentry:default_seer_scanner_automation"
+    """Called once at project creation time to set the initial seer scanner automation."""
+    if is_seer_seat_based_tier_enabled(organization):
+        # Feature flag ON always sets scanner to True
+        project.update_option("sentry:seer_scanner_automation", True)
+    else:
+        # Feature flag OFF, use org's explicit value if set
+        org_default = organization.get_option("sentry:default_seer_scanner_automation")
+        if org_default is not None:
+            project.update_option("sentry:seer_scanner_automation", org_default)
+
+
+def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
+    """Called once at project creation time to set the initial auto open PRs."""
+    if not is_seer_seat_based_tier_enabled(organization):
+        return
+
+    stopping_point = AutofixStoppingPoint.CODE_CHANGES
+    if organization.get_option("sentry:auto_open_prs"):
+        stopping_point = AutofixStoppingPoint.OPEN_PR
+
+    # We need to make an API call to Seer to set this preference
+    preference = SeerProjectPreference(
+        organization_id=organization.id,
+        project_id=project.id,
+        repositories=[],
+        automated_run_stopping_point=stopping_point,
     )
-    if org_default_seer_scanner_automation:
-        project.update_option(
-            "sentry:default_seer_scanner_automation", org_default_seer_scanner_automation
-        )
+    try:
+        set_project_seer_preference(preference)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def report_token_count_metric(

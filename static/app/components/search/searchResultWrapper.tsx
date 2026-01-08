@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
   cursor: pointer;
   display: block;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: 10px;
   scroll-margin: 120px;
 
@@ -16,7 +16,7 @@ const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
     `};
 
   &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

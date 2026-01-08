@@ -1,20 +1,15 @@
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {FormSize} from 'sentry/utils/theme';
-
-import {chonkInputStyles} from './input.chonk';
+import {debossedBackground} from 'sentry/components/core/chonk';
+import {type FormSize, type StrictCSSObject} from 'sentry/utils/theme';
 
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
     InputStylesProps {
   ref?: React.Ref<HTMLInputElement>;
 }
-
-export const inputStyles = (p: InputStylesProps & {theme: Theme}) =>
-  p.theme.isChonk ? chonkInputStyles(p as any) : legacyInputStyles(p);
 
 /**
  * Basic input component.
@@ -40,7 +35,7 @@ export const Input = styled(
   }: InputProps) => <input {...props} ref={ref} size={nativeSize} />,
   {shouldForwardProp: prop => prop === 'nativeSize' || isPropValid(prop)}
 )`
-  ${inputStyles};
+  ${p => inputStyles(p)};
 `;
 
 export interface InputStylesProps {
@@ -51,56 +46,65 @@ export interface InputStylesProps {
   type?: React.HTMLInputTypeAttribute;
 }
 
-const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
-  display: block;
-  width: 100%;
-  color: ${p.theme.gray400};
-  background: ${p.theme.background};
-  border: 1px solid ${p.theme.border};
-  border-radius: ${p.theme.borderRadius};
-  box-shadow: inset ${p.theme.dropShadowMedium};
-  resize: vertical;
-  transition:
-    border 0.1s,
-    box-shadow 0.1s;
+export const inputStyles = ({
+  theme,
+  monospace,
+  readOnly,
+  size = 'md',
+}: InputStylesProps & {theme: Theme}): StrictCSSObject => {
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
 
-  ${p.monospace ? `font-family: ${p.theme.text.familyMono};` : ''}
-  ${p.readOnly ? 'cursor: default;' : ''}
+  return {
+    display: 'block',
+    width: '100%',
+    color: theme.tokens.content.primary,
+    ...debossedBackground(theme),
+    boxShadow,
+    border: `1px solid ${theme.tokens.border.primary}`,
+    fontFamily: theme.font.family[monospace ? 'mono' : 'sans'],
+    fontWeight: theme.font.weight[monospace ? 'mono' : 'sans'].regular,
+    resize: 'vertical',
+    transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
+    ...(readOnly ? {cursor: 'default'} : {}),
 
-  ${p.theme.form[p.size ?? 'md']}
-  ${p.theme.formPadding[p.size ?? 'md']}
+    fontSize: theme.form[size].fontSize,
+    height: theme.form[size].height,
+    lineHeight: theme.form[size].lineHeight,
+    minHeight: theme.form[size].minHeight,
 
-  &::placeholder {
-    color: ${p.theme.formPlaceholder};
-    opacity: 1;
-  }
+    paddingBottom: theme.form[size].paddingBottom,
+    paddingLeft: theme.form[size].paddingLeft,
+    paddingRight: theme.form[size].paddingRight,
+    paddingTop: theme.form[size].paddingTop,
 
-  &[disabled],
-  &[aria-disabled='true'] {
-    background: ${p.theme.background};
-    color: ${p.theme.disabled};
-    cursor: not-allowed;
+    borderRadius: theme.form[size].borderRadius,
 
-    &::placeholder {
-      color: ${p.theme.disabled};
-    }
-  }
+    '&::placeholder': {
+      color: theme.tokens.content.muted,
+      opacity: 1,
+    },
 
-  &:focus,
-  &:focus-visible,
-  :focus-within {
-    outline: none;
-    border-color: ${p.theme.focusBorder};
-    box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
-  }
-  &[type='number'] {
-    appearance: textfield;
-    -moz-appearance: textfield;
-    font-variant-numeric: tabular-nums;
-  }
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-`;
+    "&[disabled], &[aria-disabled='true']": {
+      color: theme.tokens.content.disabled,
+      cursor: 'not-allowed',
+      opacity: '60%',
+
+      '&::placeholder': {
+        color: theme.tokens.content.disabled,
+      },
+    },
+
+    '&:focus, &:focus-visible, :focus-within': {
+      ...theme.focusRing(boxShadow),
+    },
+    "&[type='number']": {
+      appearance: 'textfield',
+      MozAppearance: 'textfield',
+      fontVariantNumeric: 'tabular-nums',
+    },
+    '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+      WebkitAppearance: 'none',
+      margin: 0,
+    },
+  };
+};

@@ -43,13 +43,19 @@ import {
   getFilterToken,
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
-import type {GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {
+  SpanFields,
+  subregionCodeToName,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type FilterSelectorProps = {
   globalFilter: GlobalFilter;
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
+  disableRemoveFilter?: boolean;
 };
 
 function FilterSelector({
@@ -57,6 +63,7 @@ function FilterSelector({
   searchBarData,
   onRemoveFilter,
   onUpdateFilter,
+  disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
 
@@ -89,11 +96,7 @@ function FilterSelector({
       };
     }
 
-    const operatorInfo = getOperatorInfo({
-      filterToken,
-      hasWildcardOperators: true,
-      fieldDefinition,
-    });
+    const operatorInfo = getOperatorInfo({filterToken, fieldDefinition});
 
     return {
       initialOperator: operatorInfo?.operator ?? TermOperator.DEFAULT,
@@ -147,22 +150,31 @@ function FilterSelector({
     : true;
 
   const baseQueryKey = useMemo(
-    () => [
-      'global-dashboard-filters-tag-values',
+    () =>
+      [
+        'global-dashboard-filters-tag-values',
+        {
+          key: globalFilter.tag.key,
+          name: globalFilter.tag.name,
+          kind: globalFilter.tag.kind,
+        },
+        selection,
+        searchQuery,
+      ] as const,
+    [
       globalFilter.tag.key,
+      globalFilter.tag.name,
+      globalFilter.tag.kind,
       selection,
       searchQuery,
-    ],
-    [globalFilter.tag.key, selection, searchQuery]
+    ]
   );
   const queryKey = useDebouncedValue(baseQueryKey);
 
-  const queryResult = useQuery<string[]>({
-    // Disable exhaustive deps because we want to debounce the query key above
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const queryResult = useQuery({
     queryKey,
-    queryFn: async () => {
-      const result = await searchBarData.getTagValues(globalFilter.tag, searchQuery);
+    queryFn: async ctx => {
+      const result = await searchBarData.getTagValues(ctx.queryKey[1], ctx.queryKey[3]);
       return result ?? [];
     },
     placeholderData: keepPreviousData,
@@ -172,7 +184,7 @@ function FilterSelector({
 
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
-  const options = useMemo(() => {
+  const options = useMemo((): Array<SelectOption<string>> => {
     if (predefinedValues && !canSelectMultipleValues) {
       return predefinedValues.flatMap(section =>
         section.suggestions.map(suggestion => ({
@@ -222,6 +234,8 @@ function FilterSelector({
     canSelectMultipleValues,
   ]);
 
+  const translatedOptions = translateKnownFilterOptions(options, globalFilter);
+
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues) && stagedOperator === initialOperator) {
       return;
@@ -251,7 +265,7 @@ function FilterSelector({
 
     if (stagedOperator !== initialOperator) {
       const newToken = parseFilterValue(newValue, globalFilter)[0] ?? filterToken;
-      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator, true);
+      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator);
     }
 
     onUpdateFilter({
@@ -279,13 +293,15 @@ function FilterSelector({
           {t('Clear')}
         </StyledButton>
       )}
-      <StyledButton
-        aria-label={t('Remove Filter')}
-        size="zero"
-        onClick={() => onRemoveFilter(globalFilter)}
-      >
-        {t('Remove Filter')}
-      </StyledButton>
+      {!disableRemoveFilter && (
+        <StyledButton
+          aria-label={t('Remove Filter')}
+          size="zero"
+          onClick={() => onRemoveFilter(globalFilter)}
+        >
+          {t('Remove Filter')}
+        </StyledButton>
+      )}
     </Flex>
   );
 
@@ -294,7 +310,7 @@ function FilterSelector({
       globalFilter={globalFilter}
       activeFilterValues={filterValues}
       operator={stagedOperator}
-      options={options}
+      options={translatedOptions}
       queryResult={queryResult}
     />
   );
@@ -304,7 +320,7 @@ function FilterSelector({
       <CompactSelect
         multiple={false}
         disabled={false}
-        options={options}
+        options={translatedOptions}
         value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
         onChange={option => {
           const newValue = option?.value;
@@ -331,7 +347,7 @@ function FilterSelector({
       checkboxPosition="leading"
       searchable
       disabled={false}
-      options={options}
+      options={translatedOptions}
       value={activeFilterValues}
       searchPlaceholder={t('Search or enter a custom value...')}
       onSearch={setSearchQuery}
@@ -382,6 +398,22 @@ function FilterSelector({
   );
 }
 
+const translateKnownFilterOptions = (
+  options: Array<SelectOption<string>>,
+  globalFilter: GlobalFilter
+) => {
+  const key = globalFilter.tag.key;
+  const dataset = globalFilter.dataset;
+
+  if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
+    return options.map(option => ({
+      ...option,
+      label: subregionCodeToName[option.value as SubregionCode] || option.label,
+    }));
+  }
+  return options;
+};
+
 export default FilterSelector;
 
 const StyledButton = styled(Button)`
@@ -389,10 +421,7 @@ const StyledButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${p => p.theme.space.xs};
-  margin: ${p =>
-    p.theme.isChonk
-      ? `-${p.theme.space.xs} -${p.theme.space.xs}`
-      : `-${p.theme.space['2xs']} -${p.theme.space['2xs']}`};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
 
 export const MenuTitleWrapper = styled('span')`

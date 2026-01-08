@@ -123,7 +123,19 @@ class ExportedData(Model):
             export_url=url,
             expiration_date=self.date_expired,
         )
-        if NotificationService.has_access(self.organization, data.source):
+        has_access = NotificationService.has_access(self.organization, data.source)
+        logger.info(
+            "notification.platform.data-export-success.has_access",
+            extra={
+                "organization_id": self.organization.id,
+                "data_export_id": self.id,
+                "data_source": data.source,
+                "has_access": has_access,
+                "user_email": user_email,
+            },
+        )
+
+        if has_access:
             NotificationService(data=data).notify_async(
                 targets=[
                     GenericNotificationTarget(

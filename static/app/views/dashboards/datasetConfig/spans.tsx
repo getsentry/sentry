@@ -23,6 +23,8 @@ import {
   isEquation,
   isEquationAlias,
   type Aggregation,
+  type AggregationOutputType,
+  type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {
@@ -54,15 +56,18 @@ import {
   renderTraceAsLinkable,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {isMultiSeriesEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
+import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
+import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -150,17 +155,18 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
-  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
-    itemType: TraceItemDataset.SPANS,
-    numberAttributes,
-    stringAttributes,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    searchSource: 'dashboards',
-    initialQuery: widgetQuery?.conditions ?? '',
-    projects: pageFilters.projects,
-    supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  });
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.SPANS,
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: widgetQuery?.conditions ?? '',
+      projects: pageFilters.projects,
+      supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+    });
   return {
     getFilterKeys: () => filterKeys,
     getFilterKeySections: () => filterKeySections,
@@ -223,7 +229,7 @@ export const SpansConfig: DatasetConfig<
   },
   getSeriesRequest,
   transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  transformSeries,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     if (field === 'id') {
@@ -234,6 +240,57 @@ export const SpansConfig: DatasetConfig<
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
+  getSeriesResultUnit: (data, widgetQuery) => {
+    const resultUnits: Record<string, DataUnit> = {};
+    widgetQuery.fieldMeta?.forEach((meta, index) => {
+      if (meta && widgetQuery.fields) {
+        resultUnits[widgetQuery.fields[index]!] = meta.valueUnit;
+      }
+    });
+    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
+
+    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
+    // But we can just assume the units is for all the series
+    // TODO: This doesn't work with multiple aggregates
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
+    if (
+      isMultiSeriesStats &&
+      firstMeta &&
+      widgetQuery.aggregates?.length === 1 &&
+      widgetQuery.columns?.length > 0
+    ) {
+      Object.keys(data).forEach(seriesName => {
+        resultUnits[seriesName] = firstMeta.valueUnit;
+      });
+    }
+    return resultUnits;
+  },
+  getSeriesResultType: (data, widgetQuery) => {
+    const resultTypes: Record<string, AggregationOutputType> = {};
+    widgetQuery.fieldMeta?.forEach((meta, index) => {
+      if (meta && widgetQuery.fields) {
+        resultTypes[widgetQuery.fields[index]!] = meta.valueType as AggregationOutputType;
+      }
+    });
+
+    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
+
+    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
+    // But we can just assume the units is for all the series
+    // TODO: This doesn't work with multiple aggregates
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
+    if (
+      isMultiSeriesStats &&
+      firstMeta &&
+      widgetQuery.aggregates?.length === 1 &&
+      widgetQuery.columns?.length > 0
+    ) {
+      Object.keys(data).forEach(seriesName => {
+        resultTypes[seriesName] = firstMeta.valueType as AggregationOutputType;
+      });
+    }
+    return resultTypes;
+  },
 };
 
 function getPrimaryFieldOptions(
@@ -241,33 +298,7 @@ function getPrimaryFieldOptions(
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
 ): Record<string, FieldValueOption> {
-  const baseFieldOptions = generateFieldOptions({
-    organization,
-    tagKeys: [],
-    fieldKeys: [],
-    aggregations: EAP_AGGREGATIONS,
-  });
-
-  const spanTags = Object.values(tags ?? {}).reduce(
-    function combineTag(acc, tag) {
-      acc[`${tag.kind}:${tag.key}`] = {
-        label: tag.name,
-        value: {
-          kind: FieldValueKind.TAG,
-
-          // We have numeric and string tags which have the same
-          // display name, but one is used for aggregates and the other
-          // is used for grouping.
-          meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
-        },
-      };
-
-      return acc;
-    },
-    {} as Record<string, FieldValueOption>
-  );
-
-  return {...baseFieldOptions, ...spanTags};
+  return combineBaseFieldsWithTags(organization, tags, EAP_AGGREGATIONS);
 }
 
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
@@ -451,4 +482,19 @@ function renderEventInTraceView(
       <Container>{getShortEventId(spanId)}</Container>
     </Link>
   );
+}
+
+function transformSeries(
+  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  widgetQuery: WidgetQuery
+) {
+  let eventsStats = data;
+  // Kind of a hack, but performance score breakdown charts need a special transformation to display correctly.
+  if (
+    isMultiSeriesEventsStats(eventsStats) &&
+    isPerformanceScoreBreakdownChart(widgetQuery)
+  ) {
+    eventsStats = transformPerformanceScoreBreakdownSeries(eventsStats);
+  }
+  return transformEventsResponseToSeries(eventsStats, widgetQuery);
 }

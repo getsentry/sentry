@@ -677,7 +677,7 @@ function OnDemandEquationsWarning() {
           `This is using indexed data because we don't routinely collect metrics for equations.`
         )}
       >
-        <IconWarning color="warningText" />
+        <IconWarning variant="warning" />
       </Tooltip>
     </OnDemandContainer>
   );
@@ -715,11 +715,11 @@ const RowContainer = styled('div')<{
 `;
 
 const Ghost = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   display: block;
   position: absolute;
   padding: ${GHOST_PADDING}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   width: 710px;
   opacity: 0.8;
@@ -744,8 +744,8 @@ const OnDemandContainer = styled('div')`
 
 const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
-  border: 2px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 2px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   height: ${p => p.theme.form.md.height};
 `;
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Literal
 
 import orjson
@@ -18,6 +19,10 @@ from sentry.seer.explorer.client_utils import (
     poll_until_done,
 )
 from sentry.seer.explorer.custom_tool_utils import ExplorerTool, extract_tool_schema
+from sentry.seer.explorer.on_completion_hook import (
+    ExplorerOnCompletionHook,
+    extract_hook_definition,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User
@@ -73,31 +78,23 @@ class SeerExplorerClient:
         solution = state.get_artifact("solution", Solution)
 
         # WITH CUSTOM TOOLS
-        from sentry.seer.explorer.custom_tool_utils import ExplorerTool, ExplorerToolParam, StringType
+        from pydantic import BaseModel, Field
+        from sentry.seer.explorer.custom_tool_utils import ExplorerTool
 
-        class DeploymentStatusTool(ExplorerTool):
+        class DeploymentStatusParams(BaseModel):
+            environment: str = Field(description="Environment name (e.g., 'production', 'staging')")
+            service: str = Field(description="Service name")
+
+        class DeploymentStatusTool(ExplorerTool[DeploymentStatusParams]):
+            params_model = DeploymentStatusParams
+
             @classmethod
-            def get_description(cls):
+            def get_description(cls) -> str:
                 return "Check if a service is deployed in an environment"
 
             @classmethod
-            def get_params(cls):
-                return [
-                    ExplorerToolParam(
-                        name="environment",
-                        description="Environment name (e.g., 'production', 'staging')",
-                        type=StringType(),
-                    ),
-                    ExplorerToolParam(
-                        name="service",
-                        description="Service name",
-                        type=StringType(),
-                    ),
-                ]
-
-            @classmethod
-            def execute(cls, organization, **kwargs):
-                return "deployed" if check_deployment(organization, kwargs["environment"], kwargs["service"]) else "not deployed"
+            def execute(cls, organization, params: DeploymentStatusParams) -> str:
+                return "deployed" if check_deployment(organization, params.environment, params.service) else "not deployed"
 
         client = SeerExplorerClient(
             organization,
@@ -105,6 +102,44 @@ class SeerExplorerClient:
             custom_tools=[DeploymentStatusTool]
         )
         run_id = client.start_run("Check if payment-service is deployed in production")
+
+        # WITH ON-COMPLETION HOOK
+        from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
+
+        class NotifyOnComplete(ExplorerOnCompletionHook):
+            @classmethod
+            def execute(cls, organization: Organization, run_id: int) -> None:
+                # Called when the agent completes (regardless of status)
+                send_notification(organization, f"Explorer run {run_id} completed")
+
+        client = SeerExplorerClient(
+            organization,
+            user,
+            on_completion=NotifyOnComplete
+        )
+        run_id = client.start_run("Analyze this issue")
+
+        # WITH CODE EDITING AND PR CREATION
+        client = SeerExplorerClient(
+            organization,
+            user,
+            enable_coding=True,  # Enable code editing tools
+        )
+
+        run_id = client.start_run("Fix the null pointer exception in auth.py")
+        state = client.get_run(run_id, blocking=True)
+
+        # Check if agent made code changes and if they need to be pushed
+        has_changes, is_synced = state.has_code_changes()
+        if has_changes and not is_synced:
+            # Push changes to PR (creates new PR or updates existing)
+            state = client.push_changes(run_id)
+
+            # Get PR info for each repo
+            for repo_name in state.get_diffs_by_repo().keys():
+                pr_state = state.get_pr_state(repo_name)
+                if pr_state and pr_state.pr_url:
+                    print(f"PR created: {pr_state.pr_url}")
     ```
 
         Args:
@@ -112,9 +147,11 @@ class SeerExplorerClient:
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
-            custom_tools: Optional list of `ExplorerTool` objects to make available as tools to the agent. Each tool must inherit from ExplorerTool and implement get_params() and execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
+            custom_tools: Optional list of `ExplorerTool` classes to make available as tools to the agent. Each tool must inherit from ExplorerTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
+            on_completion_hook: Optional `ExplorerOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
+            enable_coding: Enable code editing tools. When disabled, the agent cannot make code changes. Default is False.
     """
 
     def __init__(
@@ -123,17 +160,21 @@ class SeerExplorerClient:
         user: User | AnonymousUser | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
-        custom_tools: list[type[ExplorerTool]] | None = None,
+        custom_tools: list[type[ExplorerTool[Any]]] | None = None,
+        on_completion_hook: type[ExplorerOnCompletionHook] | None = None,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         is_interactive: bool = False,
+        enable_coding: bool = False,
     ):
         self.organization = organization
         self.user = user
         self.custom_tools = custom_tools or []
+        self.on_completion_hook = on_completion_hook
         self.intelligence_level = intelligence_level
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+        self.enable_coding = enable_coding
 
         # Validate that category_key and category_value are provided together
         if category_key == "" or category_value == "":
@@ -152,6 +193,9 @@ class SeerExplorerClient:
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        metadata: dict[str, Any] | None = None,
+        conduit_channel_id: str | None = None,
+        conduit_url: str | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -161,6 +205,9 @@ class SeerExplorerClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key to identify this artifact (required if artifact_schema is provided)
             artifact_schema: Optional Pydantic model to generate a structured artifact
+            metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
+            conduit_channel_id: Optional Conduit channel ID for streaming
+            conduit_url: Optional Conduit URL for streaming
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -183,6 +230,7 @@ class SeerExplorerClient:
             "user_org_context": collect_user_org_context(self.user, self.organization),
             "intelligence_level": self.intelligence_level,
             "is_interactive": self.is_interactive,
+            "enable_coding": self.enable_coding,
         }
 
         # Add artifact key and schema if provided
@@ -196,9 +244,21 @@ class SeerExplorerClient:
                 extract_tool_schema(tool).dict() for tool in self.custom_tools
             ]
 
+        # Add on-completion hook if provided
+        if self.on_completion_hook:
+            payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
+
         if self.category_key and self.category_value:
             payload["category_key"] = self.category_key
             payload["category_value"] = self.category_value
+
+        if metadata:
+            payload["metadata"] = metadata
+
+        # Add conduit params for streaming if provided
+        if conduit_channel_id and conduit_url:
+            payload["conduit_channel_id"] = conduit_channel_id
+            payload["conduit_url"] = conduit_url
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
@@ -223,6 +283,8 @@ class SeerExplorerClient:
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        conduit_channel_id: str | None = None,
+        conduit_url: str | None = None,
     ) -> int:
         """
         Continue an existing Seer Explorer session. This allows you to add follow-up queries to an ongoing conversation.
@@ -234,6 +296,8 @@ class SeerExplorerClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key for a new artifact to generate in this step
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
+            conduit_channel_id: Optional Conduit channel ID for streaming
+            conduit_url: Optional Conduit URL for streaming
 
         Returns:
             int: The run ID (same as input)
@@ -254,12 +318,18 @@ class SeerExplorerClient:
             "insert_index": insert_index,
             "on_page_context": on_page_context,
             "is_interactive": self.is_interactive,
+            "enable_coding": self.enable_coding,
         }
 
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        # Add conduit params for streaming if provided
+        if conduit_channel_id and conduit_url:
+            payload["conduit_channel_id"] = conduit_channel_id
+            payload["conduit_url"] = conduit_url
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
@@ -365,3 +435,68 @@ class SeerExplorerClient:
 
         runs = [ExplorerRun(**run) for run in result.get("data", [])]
         return runs
+
+    def push_changes(
+        self,
+        run_id: int,
+        repo_name: str | None = None,
+        poll_interval: float = 2.0,
+        poll_timeout: float = 120.0,
+    ) -> SeerRunState:
+        """
+        Push code changes to PR(s) and wait for completion.
+
+        Creates new PRs or updates existing ones with current file patches.
+        Polls until all PR operations complete.
+
+        Args:
+            run_id: The run ID
+            repo_name: Specific repo to push, or None for all repos with changes
+            poll_interval: Seconds between polls
+            poll_timeout: Maximum seconds to wait
+
+        Returns:
+            SeerRunState: Final state with PR info
+
+        Raises:
+            TimeoutError: If polling exceeds timeout
+            requests.HTTPError: If the Seer API request fails
+        """
+        # Trigger PR creation
+        path = "/v1/automation/explorer/update"
+        payload = {
+            "run_id": run_id,
+            "payload": {
+                "type": "create_pr",
+                "repo_name": repo_name,
+            },
+        }
+        body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+        response.raise_for_status()
+
+        # Poll until PR creation completes
+        start_time = time.time()
+
+        while True:
+            state = fetch_run_status(run_id, self.organization)
+
+            # Check if any PRs are still being created
+            any_creating = any(
+                pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()
+            )
+
+            if not any_creating:
+                return state
+
+            if time.time() - start_time > poll_timeout:
+                raise TimeoutError(f"PR creation timed out after {poll_timeout}s")
+
+            time.sleep(poll_interval)

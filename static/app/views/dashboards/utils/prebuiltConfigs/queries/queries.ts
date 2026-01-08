@@ -11,7 +11,7 @@ import {
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const BASE_FILTERS = {
+export const BASE_FILTERS = {
   [SpanFields.SPAN_CATEGORY]: ModuleName.DB,
   has: SpanFields.NORMALIZED_DESCRIPTION,
 };
@@ -59,7 +59,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Queries Per Minute'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: QUERIES_PER_MINUTE_TEXT,
@@ -83,7 +83,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Average Duration'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: AVERAGE_DURATION_TEXT,
@@ -107,7 +107,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Queries List'),
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
-      interval: '',
+      interval: '5m',
       tableWidths: [-1, -1, -1, -1],
       queries: [
         {

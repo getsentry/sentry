@@ -39,8 +39,8 @@ function SortableVisualizeFieldWrapper({
       ...style,
       zIndex: 100,
       height: theme.form.md.height,
-      border: `2px dashed ${theme.border}`,
-      borderRadius: theme.borderRadius,
+      border: `2px dashed ${theme.tokens.border.primary}`,
+      borderRadius: theme.radius.md,
     };
   }
 

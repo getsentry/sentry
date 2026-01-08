@@ -87,9 +87,9 @@ const FrameContainer = styled('div')`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSize.md};
 
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
-  background: ${p => p.theme.surface200};
+  background: ${p => p.theme.colors.surface300};
 `;
 
 const ProjectAvatarContainer = styled('div')`
@@ -97,7 +97,7 @@ const ProjectAvatarContainer = styled('div')`
 `;
 
 const Emphasize = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
 `;
 
 const Deemphasize = styled('span')`

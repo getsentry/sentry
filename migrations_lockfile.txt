@@ -23,15 +23,15 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0018_add_preprod_artifact_app_icon_id_field
+preprod: 0020_add_preprod_artifact_date_added_index
 
 prevent: 0002_alter_integration_id_not_null
 
 releases: 0004_cleanup_failed_safe_deletes
 
-replays: 0006_add_bulk_delete_job
+replays: 0007_organizationmember_replay_access
 
-sentry: 1011_update_oc_integration_cascade_to_null
+sentry: 1015_backfill_self_hosted_sentry_app_emails
 
 social_auth: 0003_social_auth_json_field
 

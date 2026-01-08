@@ -17,6 +17,7 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
@@ -31,7 +32,7 @@ import {
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
 
-const MAX_METRICS_ALLOWED = 4;
+const MAX_METRICS_ALLOWED = 8;
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -101,7 +102,15 @@ function MetricsQueryBuilderSection() {
 function MetricsTabBodySection() {
   const metricQueries = useMultiMetricsQueryParams();
   const [interval] = useChartInterval();
-  useMetricsAnalytics({interval, metricQueries});
+  const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
+    enabled: true,
+  });
+  useMetricsAnalytics({
+    interval,
+    metricQueries,
+    areToolbarsLoading,
+    isMetricOptionsEmpty,
+  });
 
   return (
     <ExploreBodyContent>
@@ -132,7 +141,7 @@ function MetricsTabBodySection() {
 
 const MetricsQueryBuilderContainer = styled(Container)`
   padding: ${p => `${p.theme.space.xl} ${p.theme.space['3xl']}`};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border-top: none;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;

@@ -101,7 +101,8 @@ const GraphToggle = styled('a')<{active: boolean}>`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.textColor : p.theme.disabled)};
+    color: ${p =>
+      p.active ? p.theme.tokens.content.primary : p.theme.tokens.content.disabled};
   }
 `;
 

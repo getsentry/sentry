@@ -746,7 +746,7 @@ const LoadingMessage = styled('div')<{visible: boolean}>`
 `;
 
 const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;

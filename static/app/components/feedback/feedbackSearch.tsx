@@ -6,6 +6,7 @@ import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/ta
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -243,8 +244,8 @@ export default function FeedbackSearch() {
     return getFilterKeySections(issuePlatformTags);
   }, [issuePlatformTags]);
 
-  const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    (tag, searchQuery) => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't

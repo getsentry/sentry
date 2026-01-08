@@ -136,16 +136,16 @@ export const Header = styled('div')`
   gap: ${space(1.5)};
   align-items: center;
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 `;
 
 export const Title = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
 `;
@@ -157,8 +157,8 @@ export const HeaderItem = styled('div')`
 `;
 
 const StreamlineGridEditable = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 
   ${Panel} {
     border: 0;
@@ -185,8 +185,8 @@ const StreamlineGridEditable = styled('div')`
         to bottom,
         transparent,
         transparent 30%,
-        ${p => p.theme.border} 30%,
-        ${p => p.theme.border} 70%,
+        ${p => p.theme.tokens.border.primary} 30%,
+        ${p => p.theme.tokens.border.primary} 70%,
         transparent 70%,
         transparent
       )
@@ -215,9 +215,9 @@ const StreamlineGridEditable = styled('div')`
 
     td:not(:nth-child(2)) {
       a {
-        color: ${p => p.theme.textColor};
+        color: ${p => p.theme.tokens.content.primary};
         text-decoration: underline;
-        text-decoration-color: ${p => p.theme.border};
+        text-decoration-color: ${p => p.theme.tokens.border.primary};
       }
     }
   }

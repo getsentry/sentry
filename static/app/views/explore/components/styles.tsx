@@ -6,7 +6,7 @@ import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/sc
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     border-bottom: none;
@@ -16,7 +16,7 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
             width: 343px; /* 300px for the toolbar + padding */
             padding: ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.md}
               ${p.theme.space['3xl']};
-            border-right: 1px solid ${p.theme.border};
+            border-right: 1px solid ${p.theme.tokens.border.primary};
           `
         : css`
             overflow: hidden;
@@ -72,7 +72,7 @@ export const ExploreSchemaHintsSection = styled(SchemaHintsSection)`
 
 export const ExploreBodySearch = styled(Layout.Body)`
   flex-grow: 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -81,7 +81,7 @@ export const ExploreBodySearch = styled(Layout.Body)`
 `;
 
 export const ExploreBodyContent = styled('div')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   display: flex;

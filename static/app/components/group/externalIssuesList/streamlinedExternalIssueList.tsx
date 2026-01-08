@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
@@ -67,7 +66,6 @@ export function StreamlinedExternalIssueList({
   project,
 }: ExternalIssueListProps) {
   const organization = useOrganization();
-  const theme = useTheme();
   const {isLoading, integrations, linkedIssues} = useGroupExternalIssues({
     group,
     event,
@@ -82,7 +80,7 @@ export function StreamlinedExternalIssueList({
   if (!hasLinkedIssuesOrIntegrations) {
     return (
       <AlertLink
-        type="muted"
+        variant="muted"
         to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
       >
         {t('Track this issue in Jira, GitHub, etc.')}
@@ -133,7 +131,7 @@ export function StreamlinedExternalIssueList({
             const sharedButtonProps: ButtonProps = {
               size: 'zero',
               icon: integration.displayIcon,
-              priority: theme.isChonk ? 'transparent' : undefined,
+              priority: 'transparent',
               children: <IssueActionName>{integration.displayName}</IssueActionName>,
             };
 
@@ -218,8 +216,8 @@ const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: ${p => (p.theme.isChonk ? 'none' : '1px solid ' + p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  border: none;
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
@@ -227,8 +225,8 @@ const IssueActionButton = styled(Button)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
@@ -236,8 +234,8 @@ const IssueActionLinkButton = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
@@ -245,12 +243,12 @@ const IssueActionDropdownMenu = styled(DropdownButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 
   &[aria-expanded='true'] {
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -274,7 +272,7 @@ const LinkedIssueName = styled('div')`
 const HorizontalSeparator = styled('div')`
   width: 1px;
   height: 14px;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
 `;
 
 const UnlinkButton = styled(Button)`

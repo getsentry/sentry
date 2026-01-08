@@ -19,7 +19,7 @@ export const CPE_MULTIPLIER_TO_CENTS = 0.000001;
 export const GIGABYTE = 10 ** 9;
 
 // the first tier is the default tier
-export const SUPPORTED_TIERS = [PlanTier.AM3, PlanTier.AM2, PlanTier.AM1];
+const SUPPORTED_TIERS = [PlanTier.AM3, PlanTier.AM2, PlanTier.AM1];
 export const DEFAULT_TIER = SUPPORTED_TIERS[0];
 export const UPSELL_TIER = SUPPORTED_TIERS[1]; // TODO(am3): Update to DEFAULT_TIER when upsells are configured for AM3
 
@@ -210,8 +210,10 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SEER_USER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER],
     feature: 'seer-user-billing',
-    canProductTrial: true,
-    maxAdminGift: 10_000, // TODO(seer): Update this to the actual max admin gift
+    canProductTrial: false,
+    maxAdminGift: 100,
+    freeEventsMultiple: 1,
     tallyType: 'seat',
+    shortenedUnitName: t('contributor'),
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

@@ -2,6 +2,8 @@ import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
@@ -103,10 +105,10 @@ function IssueSyncListElement({
             bodyClassName="issue-list-body"
             forceVisible={showHoverCard}
           >
-            <Label>
+            <Flex align="center">
               {icon}
               {link}
-            </Label>
+            </Flex>
           </StyledHovercard>
         )}
       </ClassNames>
@@ -138,7 +140,7 @@ const IssueSyncListElementContainer = styled('div')`
 export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-decoration: none;
   margin-left: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
   line-height: 1.2;
   white-space: nowrap;
@@ -146,7 +148,10 @@ export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-overflow: ellipsis;
 
   &:hover {
-    color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.linkColor)};
+    color: ${({disabled, theme}) =>
+      disabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.interactive.link.accent.rest};
   }
 `;
 
@@ -155,11 +160,6 @@ const StyledHovercard = styled(Hovercard)`
     max-height: 300px;
     overflow-y: auto;
   }
-`;
-
-const Label = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 export default IssueSyncListElement;

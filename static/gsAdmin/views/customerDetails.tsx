@@ -226,11 +226,6 @@ export default function CustomerDetails() {
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories
-        .filter(
-          category =>
-            subscription.planDetails.checkoutCategories.includes(category) ||
-            subscription.planDetails.onDemandCategories.includes(category)
-        )
         .filter(category => {
           const categoryInfo = getCategoryInfoFromPlural(category);
           return categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
@@ -320,11 +315,10 @@ export default function CustomerDetails() {
   const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
-    {name: 'Grace Period', level: 'warning', visible: subscription.isGracePeriod},
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
-      level: 'error',
+      level: 'danger',
       help: subscription.suspensionReason,
       visible: subscription.isSuspended,
     },
@@ -439,15 +433,6 @@ export default function CustomerDetails() {
               ),
             },
             onAction: params => onUpdateMutation.mutate({...params}),
-          },
-          {
-            key: 'allowGrace',
-            name: 'Allow Grace Period',
-            help: 'Allow this account to enter a grace period upon next overage.',
-            disabled: subscription.canGracePeriod,
-            disabledReason: 'Account may already be in a grace period',
-            onAction: params =>
-              onUpdateMutation.mutate({...params, canGracePeriod: true}),
           },
           {
             key: 'clearPendingChanges',

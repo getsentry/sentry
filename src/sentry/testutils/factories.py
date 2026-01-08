@@ -116,6 +116,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
@@ -901,6 +902,19 @@ class Factories:
             external_id=external_id,
         )
         return repo
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_repository_settings(
+        repository: Repository,
+        enabled_code_review: bool = False,
+        code_review_triggers: list[str] | None = None,
+    ) -> RepositorySettings:
+        return RepositorySettings.objects.create(
+            repository=repository,
+            enabled_code_review=enabled_code_review,
+            code_review_triggers=code_review_triggers or [],
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2563,11 +2577,12 @@ class Factories:
         commit_comparison: CommitComparison | None = None,
         file_id: int | None = None,
         installable_app_file_id: int | None = None,
+        date_added: datetime | None = None,
         build_configuration: PreprodBuildConfiguration | None = None,
         extras: dict | None = None,
         **kwargs,
     ) -> PreprodArtifact:
-        return PreprodArtifact.objects.create(
+        artifact = PreprodArtifact.objects.create(
             project=project,
             state=state,
             artifact_type=artifact_type,
@@ -2582,6 +2597,9 @@ class Factories:
             extras=extras,
             **kwargs,
         )
+        if date_added is not None:
+            artifact.update(date_added=date_added)
+        return artifact
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

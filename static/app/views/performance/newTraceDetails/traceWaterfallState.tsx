@@ -138,9 +138,9 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   color: ${p => p.theme.subText};
   z-index: 30;
   padding: 20px;
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   transform-origin: 50% 50%;
   transform: translate(-50%, -50%);
   animation: ${p =>

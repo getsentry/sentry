@@ -128,7 +128,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             <SettingsButton
               borderless
               size="zero"
-              icon={<IconSettings color="subText" />}
+              icon={<IconSettings variant="muted" />}
               title={t('Settings')}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
@@ -242,7 +242,7 @@ const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: 0 ${space(0.5)};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;

@@ -42,7 +42,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         borderless
         priority="link"
         aria-label={t('Dismiss')}
-        icon={<IconClose color="subText" />}
+        icon={<IconClose variant="muted" />}
         size="xs"
         onClick={onDismiss}
       />
@@ -52,8 +52,8 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
 
 const StacktraceIntegrationBannerWrapper = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)};
   margin: ${space(1)} 0;
   background: linear-gradient(

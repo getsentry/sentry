@@ -9,12 +9,6 @@ from typing import Any
 import sentry_sdk
 
 from sentry import features, nodestore, options, projectoptions
-from sentry.issue_detection.detectors.experiments.mn_plus_one_db_span_detector import (
-    MNPlusOneDBSpanExperimentalDetector,
-)
-from sentry.issue_detection.detectors.experiments.n_plus_one_db_span_detector import (
-    NPlusOneDBSpanExperimentalDetector,
-)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -28,9 +22,6 @@ from sentry.utils.safe import get_path
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
 from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
-from .detectors.experiments.n_plus_one_api_calls_detector import (
-    NPlusOneAPICallsExperimentalDetector,
-)
 from .detectors.http_overhead_detector import HTTPOverheadDetector
 from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
 from .detectors.large_http_payload_detector import LargeHTTPPayloadDetector
@@ -258,11 +249,6 @@ def get_detection_settings(
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
-        DetectorType.EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES: {
-            "count": settings["n_plus_one_db_count"],
-            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
-            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-        },
         DetectorType.CONSECUTIVE_DB_OP: {
             # time saved by running all queries in parallel
             "min_time_saved": settings["consecutive_db_min_time_saved_threshold"],  # ms
@@ -285,25 +271,12 @@ def get_detection_settings(
         },
         DetectorType.N_PLUS_ONE_API_CALLS: {
             "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
-            "concurrency_threshold": 5,  # ms
-            "count": 10,
-            "allowed_span_ops": ["http.client"],
-            "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
-        },
-        DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS: {
-            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
             "concurrency_threshold": 15,  # ms
             "count": 5,
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
-            "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
-            "minimum_occurrences_of_pattern": 3,
-            "max_sequence_length": 5,
-            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-        },
-        DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: {
             "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 8,
@@ -356,12 +329,9 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     SlowDBQueryDetector,
     RenderBlockingAssetSpanDetector,
     NPlusOneDBSpanDetector,
-    NPlusOneDBSpanExperimentalDetector,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
-    NPlusOneAPICallsExperimentalDetector,
     MNPlusOneDBSpanDetector,
-    MNPlusOneDBSpanExperimentalDetector,
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,
     HTTPOverheadDetector,

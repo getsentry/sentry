@@ -38,7 +38,20 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+
+// Full-stack JS frameworks that support Vercel AI SDK (they have server-side capabilities)
+const fullStackJsPlatforms = [
+  'javascript-astro',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react-router',
+  'javascript-remix',
+  'javascript-solidstart',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+];
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -63,7 +76,7 @@ function useAiSpanWaiter(project: Project) {
 
   const request = useSpans(
     {
-      search: 'span.op:"gen_ai.*"',
+      search: getHasAiSpansFilter(),
       fields: ['id'],
       limit: 1,
       enabled: !!project,
@@ -210,6 +223,10 @@ export function Onboarding() {
 
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const isNodePlatform = (project?.platform ?? '').startsWith('node');
+  const isFullStackJsPlatform = fullStackJsPlatforms.includes(project?.platform ?? '');
+  const hasVercelAI = isNodePlatform || isFullStackJsPlatform;
+
   const integrationOptions = {
     integration: {
       label: t('Integration'),
@@ -226,7 +243,7 @@ export function Onboarding() {
             {label: 'Other', value: 'manual'},
           ]
         : [
-            {label: 'Vercel AI SDK', value: 'vercel_ai'},
+            ...(hasVercelAI ? [{label: 'Vercel AI SDK', value: 'vercel_ai'}] : []),
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'Google Gen AI SDK', value: 'google_genai'},
@@ -370,7 +387,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   gap: ${p => p.theme.space.md};
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
   padding-right: ${p => p.theme.space['3xl']};
 `;
 
@@ -406,7 +423,7 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;
 
@@ -433,7 +450,7 @@ const Setup = styled('div')`
     right: 50%;
     top: 2.5%;
     height: 95%;
-    border-right: 1px ${p => p.theme.border} solid;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
 `;
 
@@ -474,7 +491,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;
@@ -484,7 +501,7 @@ const CONTENT_SPACING = space(1);
 
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
-    color: ${p => p.theme.pink400};
+    color: ${p => p.theme.colors.pink500};
   }
 
   :not(:last-child) {

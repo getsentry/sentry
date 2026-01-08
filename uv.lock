@@ -273,7 +273,7 @@ wheels = [
 
 [[package]]
 name = "devservices"
-version = "1.2.3"
+version = "1.2.4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -283,7 +283,7 @@ dependencies = [
     { name = "supervisor", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.2.3-py3-none-any.whl", hash = "sha256:19beb1dabb533c5dcbd021d6a34e3f357e5c868670f0dfe8945911d3965a6494" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.2.4-py3-none-any.whl", hash = "sha256:637055d5dae3dd01899ba066d511aa14537d791ed7f997292bc6a72dd5ddf416" },
 ]
 
 [[package]]
@@ -1171,7 +1171,7 @@ wheels = [
 
 [[package]]
 name = "objectstore-client"
-version = "0.0.13"
+version = "0.0.14"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "filetype", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -1180,7 +1180,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.0.13-py3-none-any.whl", hash = "sha256:d0445a097b9329677b2590398b440826c7a4e73b8a7afa64991c40be3f054f08" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.0.14-py3-none-any.whl", hash = "sha256:ca2edd8733bfcfce5463d5f6078ca70b838cb40a74f628fc37fac431e63515f6" },
 ]
 
 [[package]]
@@ -2160,7 +2160,7 @@ requires-dist = [
     { name = "mmh3", specifier = ">=4.0.0" },
     { name = "msgpack", specifier = ">=1.1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
-    { name = "objectstore-client", specifier = ">=0.0.13" },
+    { name = "objectstore-client", specifier = ">=0.0.14" },
     { name = "openai", specifier = ">=1.3.5" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "p4python", specifier = ">=2025.1.2767466" },
@@ -2191,15 +2191,15 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
-    { name = "sentry-arroyo", specifier = ">=2.34.0" },
+    { name = "sentry-arroyo", specifier = ">=2.35.0" },
     { name = "sentry-conventions", specifier = ">=0.3.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
-    { name = "sentry-kafka-schemas", specifier = ">=2.1.15" },
+    { name = "sentry-kafka-schemas", specifier = ">=2.1.16" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-protos", specifier = ">=0.4.7" },
+    { name = "sentry-protos", specifier = ">=0.4.10" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.22" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.43.0" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.47.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
@@ -2227,7 +2227,7 @@ requires-dist = [
 dev = [
     { name = "black", specifier = ">=25.1.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
-    { name = "devservices", specifier = ">=1.2.3" },
+    { name = "devservices", specifier = ">=1.2.4" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "ephemeral-port-reserve", specifier = ">=1.1.4" },
     { name = "flake8", specifier = ">=7.3.0" },
@@ -2284,13 +2284,13 @@ dev = [
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.34.0"
+version = "2.35.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.34.0-py3-none-any.whl", hash = "sha256:d1737cbd3ed17feec476d83e42ca306bbd24f0f6576050ec8ad2da246e631f3a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.35.0-py3-none-any.whl", hash = "sha256:a403fe4ea1f371e4582c8934efc7abff71c18d4c911dd9ede2b6b7956aa0558a" },
 ]
 
 [[package]]
@@ -2374,7 +2374,7 @@ wheels = [
 
 [[package]]
 name = "sentry-kafka-schemas"
-version = "2.1.15"
+version = "2.1.16"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "fastjsonschema", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2385,7 +2385,7 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.15-py2.py3-none-any.whl", hash = "sha256:fe2c3379a42c92e96e5eb9b412dc7cb5e4090f5d1d1efc0c2bec9f4bc17947a8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.16-py2.py3-none-any.whl", hash = "sha256:65450a0ee0fa4a0972681e57acb9a9dd88a42fea014f3b1066b2b4320a6e2095" },
 ]
 
 [[package]]
@@ -2401,7 +2401,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.4.8"
+version = "0.4.10"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2409,7 +2409,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.4.8-py3-none-any.whl", hash = "sha256:c189335d346bafabe7a96e9f5086a05a179c36261b55d942fcac58bac1e46bd7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.4.10-py3-none-any.whl", hash = "sha256:fe32f66f6d074978fb3b72be20932cb8354a49a119fac9861c4a876b9f476b2e" },
 ]
 
 [[package]]
@@ -2438,14 +2438,14 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "2.43.0"
+version = "2.47.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "urllib3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.43.0-py2.py3-none-any.whl", hash = "sha256:4aacafcf1756ef066d359ae35030881917160ba7f6fc3ae11e0e58b09edc2d5d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.47.0-py2.py3-none-any.whl", hash = "sha256:d72f8c61025b7d1d9e52510d03a6247b280094a327dd900d987717a4fce93412" },
 ]
 
 [package.optional-dependencies]

@@ -688,15 +688,16 @@ const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
   & code {
-    font-size: ${p => (p.integratedStyle ? p.theme.fontSize.sm : p.theme.codeFontSize)};
+    font-size: ${p => p.theme.fontSize.sm};
   }
   line-height: 20px;
   vertical-align: middle;
-  border: 1px solid ${p => p.theme.border};
-  border-color: ${p => (p.integratedStyle ? 'transparent' : p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-color: ${p =>
+    p.integratedStyle ? 'transparent' : p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const FileHeader = styled('div')`
@@ -717,7 +718,7 @@ const FileAddedRemoved = styled('div')`
 `;
 
 const FileAdded = styled('div')`
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const FileRemoved = styled('div')`
@@ -733,7 +734,8 @@ const FileName = styled('div')`
 `;
 
 const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
-  border-top: ${p => (p.integratedStyle ? 'none' : '1px solid ' + p.theme.innerBorder)};
+  border-top: ${p =>
+    p.integratedStyle ? 'none' : '1px solid ' + p.theme.tokens.border.secondary};
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
@@ -762,10 +764,10 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.tokens.content.primary}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.tokens.content.primary}`};
 
   & + & {
     padding-left: 0;
@@ -783,10 +785,10 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.tokens.content.primary}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.tokens.content.primary}`};
 
   &::before {
     content: ${p =>
@@ -818,15 +820,15 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
   background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.background};
-  color: ${p => (p.isHovered ? p.theme.pink400 : p.theme.textColor)};
+    p.isHovered ? p.theme.button.default.background : p.theme.tokens.background.primary};
+  color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
   transition:
     background-color 0.2s ease-in-out,
     color 0.2s ease-in-out;
 
   &:hover {
-    background-color: ${p => p.theme.pink400}10;
-    color: ${p => p.theme.pink400};
+    background-color: ${p => p.theme.colors.pink500}10;
+    color: ${p => p.theme.colors.pink500};
   }
 `;
 
@@ -835,9 +837,9 @@ const EditOverlay = styled('div')`
   bottom: ${space(2)};
   left: 50%;
   right: ${space(2)};
-  background: ${p => p.theme.backgroundElevated};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
   display: flex;
@@ -851,7 +853,7 @@ const EditOverlay = styled('div')`
 
 const OverlayHeader = styled('div')`
   padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayContent = styled('div')`
@@ -861,7 +863,7 @@ const OverlayContent = styled('div')`
 
 const OverlayFooter = styled('div')`
   padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayButtonGroup = styled('div')`
@@ -874,13 +876,13 @@ const OverlayButtonGroup = styled('div')`
 const RemovedLines = styled('div')`
   margin-bottom: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
 
 const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(0.25)} ${space(0.5)};
   white-space: pre-wrap;
 `;
@@ -888,7 +890,7 @@ const RemovedLine = styled('div')`
 const StyledTextArea = styled(TextArea)`
   font-family: ${p => p.theme.text.familyMono};
   background-color: ${DIFF_COLORS.addedRow};
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.tokens.border.primary};
   position: relative;
   min-height: 250px;
 
@@ -913,7 +915,7 @@ const SectionTitle = styled('p')`
   margin: ${space(1)} 0;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.family};
 `;
 
@@ -927,6 +929,6 @@ const OverlayTitle = styled('h3')`
   margin: 0 0 ${space(2)} 0;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.family};
 `;

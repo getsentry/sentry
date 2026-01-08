@@ -6,7 +6,14 @@ import requests
 from pydantic import BaseModel
 
 from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.explorer.client_models import (
+    ExplorerFilePatch,
+    FilePatch,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 
@@ -582,3 +589,257 @@ class TestSeerExplorerClientArtifacts(TestCase):
         root_cause = result.get_artifact("root_cause", RootCause)
         assert root_cause is not None
         assert root_cause.cause == "New cause"
+
+
+class TestSeerExplorerClientPushChanges(TestCase):
+    """Test push_changes method"""
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.explorer.client.requests.post")
+    def test_push_changes_sends_correct_payload(self, mock_post, mock_fetch, mock_access):
+        """Test that push_changes sends correct payload"""
+        mock_access.return_value = (True, None)
+        mock_post.return_value = MagicMock()
+        mock_fetch.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_creation_status="completed",
+                    pr_url="https://github.com/owner/repo/pull/1",
+                )
+            },
+        )
+
+        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        result = client.push_changes(123, repo_name="owner/repo")
+
+        body = orjson.loads(mock_post.call_args[1]["data"])
+        assert body["run_id"] == 123
+        assert body["payload"]["type"] == "create_pr"
+        assert body["payload"]["repo_name"] == "owner/repo"
+        assert result.repo_pr_states["owner/repo"].pr_url == "https://github.com/owner/repo/pull/1"
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.explorer.client.requests.post")
+    @patch("sentry.seer.explorer.client.time.sleep")
+    def test_push_changes_polls_until_complete(
+        self, mock_sleep, mock_post, mock_fetch, mock_access
+    ):
+        """Test that push_changes polls until PR creation completes"""
+        mock_access.return_value = (True, None)
+        mock_post.return_value = MagicMock()
+
+        creating_state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(repo_name="owner/repo", pr_creation_status="creating")
+            },
+        )
+        completed_state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(repo_name="owner/repo", pr_creation_status="completed")
+            },
+        )
+        mock_fetch.side_effect = [creating_state, completed_state]
+
+        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        result = client.push_changes(123)
+
+        assert mock_fetch.call_count == 2
+        assert mock_sleep.call_count == 1
+        assert result.repo_pr_states["owner/repo"].pr_creation_status == "completed"
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.explorer.client.requests.post")
+    @patch("sentry.seer.explorer.client.time.time")
+    def test_push_changes_timeout(self, mock_time, mock_post, mock_fetch, mock_access):
+        """Test that push_changes raises TimeoutError after timeout"""
+        mock_access.return_value = (True, None)
+        mock_post.return_value = MagicMock()
+        mock_fetch.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(repo_name="owner/repo", pr_creation_status="creating")
+            },
+        )
+        mock_time.side_effect = [0, 0, 200]  # Exceeds 120s timeout
+
+        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        with pytest.raises(TimeoutError, match="PR creation timed out"):
+            client.push_changes(123, poll_timeout=120.0)
+
+
+class TestSeerRunStateCodeChanges(TestCase):
+    """Test SeerRunState helper methods for code changes"""
+
+    def test_has_code_changes_no_patches(self):
+        """Test has_code_changes with no patches returns (False, True)"""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="Hello"),
+                    timestamp="2024-01-01T00:00:00Z",
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        has_changes, is_synced = state.has_code_changes()
+        assert has_changes is False
+        assert is_synced is True
+
+    def test_has_code_changes_unsynced(self):
+        """Test has_code_changes with patches but no PR"""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="Fixed"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    merged_file_patches=[
+                        ExplorerFilePatch(
+                            repo_name="owner/repo",
+                            patch=FilePatch(path="file.py", type="M", added=10, removed=5),
+                        )
+                    ],
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        has_changes, is_synced = state.has_code_changes()
+        assert has_changes is True
+        assert is_synced is False
+
+    def test_has_code_changes_synced(self):
+        """Test has_code_changes when changes are synced to PR"""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="Fixed"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    merged_file_patches=[
+                        ExplorerFilePatch(
+                            repo_name="owner/repo",
+                            patch=FilePatch(path="file.py", type="M", added=10, removed=5),
+                        )
+                    ],
+                    pr_commit_shas={"owner/repo": "abc123"},
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    commit_sha="abc123",
+                    pr_creation_status="completed",
+                )
+            },
+        )
+
+        has_changes, is_synced = state.has_code_changes()
+        assert has_changes is True
+        assert is_synced is True
+
+    def test_get_diffs_by_repo(self):
+        """Test get_diffs_by_repo groups merged patches correctly"""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="Fixed"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    merged_file_patches=[
+                        ExplorerFilePatch(
+                            repo_name="owner/repo1",
+                            patch=FilePatch(path="file1.py", type="M", added=10, removed=5),
+                        ),
+                        ExplorerFilePatch(
+                            repo_name="owner/repo2",
+                            patch=FilePatch(path="file2.py", type="A", added=20, removed=0),
+                        ),
+                        ExplorerFilePatch(
+                            repo_name="owner/repo1",
+                            patch=FilePatch(path="file3.py", type="M", added=5, removed=2),
+                        ),
+                    ],
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        result = state.get_diffs_by_repo()
+        assert len(result) == 2
+        assert len(result["owner/repo1"]) == 2
+        assert len(result["owner/repo2"]) == 1
+
+    def test_get_diffs_by_repo_latest_patch_wins(self):
+        """Test get_diffs_by_repo returns latest merged patch per file"""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="First edit"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    merged_file_patches=[
+                        ExplorerFilePatch(
+                            repo_name="owner/repo1",
+                            patch=FilePatch(path="file1.py", type="M", added=10, removed=5),
+                        ),
+                    ],
+                ),
+                MemoryBlock(
+                    id="block-2",
+                    message=Message(role="assistant", content="Second edit"),
+                    timestamp="2024-01-01T00:01:00Z",
+                    merged_file_patches=[
+                        ExplorerFilePatch(
+                            repo_name="owner/repo1",
+                            patch=FilePatch(path="file1.py", type="A", added=100, removed=0),
+                        ),
+                    ],
+                ),
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:01:00Z",
+        )
+
+        result = state.get_diffs_by_repo()
+        # Should only have one patch for file1.py (the latest one)
+        assert len(result) == 1
+        assert len(result["owner/repo1"]) == 1
+        assert result["owner/repo1"][0].patch.type == "A"
+        assert result["owner/repo1"][0].patch.added == 100

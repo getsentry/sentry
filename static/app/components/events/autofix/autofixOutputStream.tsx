@@ -154,7 +154,7 @@ function ActiveLogDisplay({
     return (
       <ActiveLogWrapper>
         <SeerIconContainer>
-          <IconSeer variant="waiting" size="lg" />
+          <IconSeer animation="waiting" size="lg" />
         </SeerIconContainer>
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
@@ -186,7 +186,7 @@ function ActiveLogDisplay({
           )}
         >
           <SeerIconContainer ref={seerIconRef}>
-            <StyledAnimatedSeerIcon variant="loading" size="lg" />
+            <StyledAnimatedSeerIcon animation="loading" size="lg" />
             {seerIconRef?.current && isInitializingRun && (
               <FlyingLinesEffect targetElement={seerIconRef.current} />
             )}
@@ -370,9 +370,9 @@ const shimmer = keyframes`
 const Container = styled(motion.div)<{required: boolean}>`
   position: relative;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
-  border: 1px dashed ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
 
   &:before {
     content: '';
@@ -381,11 +381,11 @@ const Container = styled(motion.div)<{required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => (p.required ? p.theme.pink400 : p.theme.active)}20,
+      ${p => (p.required ? p.theme.colors.pink500 : p.theme.active)}20,
       transparent
     );
     background-size: 2000px 100%;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     animation: ${shimmer} 2s infinite linear;
     pointer-events: none;
   }
@@ -422,7 +422,7 @@ const ActiveLog = styled('div')`
 const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
-  border-left: 1px dashed ${p => p.theme.border};
+  border-left: 1px dashed ${p => p.theme.tokens.border.primary};
   margin-left: 33px;
   margin-bottom: -1px;
 `;
@@ -435,12 +435,12 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   padding-right: ${space(4)};
   resize: none;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -465,7 +465,7 @@ const StyledAnimatedSeerIcon = styled(IconSeer)`
   transition: opacity 0.2s ease;
   top: 0;
   flex-shrink: 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   z-index: 10000;
 `;
 

@@ -180,7 +180,7 @@ export function populateChartData(
 
       // below are the dropped outcome cases
       if (['usage_exceeded', 'grace_period'].includes(point.by.reason)) {
-        // combined usage_exceeded and grace_period into over quota
+        // combined usage_exceeded and grace_period into over quota (grace_period kept for historical data)
         if (dateIndex >= overQuota!.data.length) {
           overQuota!.data.push(dataObject);
           return;
@@ -505,7 +505,7 @@ export const CustomerStats = memo(
 const Footer = styled('div')`
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(3)} -${space(2)} -${space(2)} -${space(2)};
   padding: ${space(2)};
   color: ${p => p.theme.subText};

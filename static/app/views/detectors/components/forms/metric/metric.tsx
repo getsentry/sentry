@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert/alert';
-import {Button} from '@sentry/scraps/button/button';
-import {ExternalLink} from '@sentry/scraps/link/link';
+import {ExternalLink, Link} from '@sentry/scraps/link/link';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex, Stack} from 'sentry/components/core/layout';
@@ -26,6 +25,7 @@ import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -49,6 +49,7 @@ import {
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
+import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
 import {TemplateSection} from 'sentry/views/detectors/components/forms/metric/templateSection';
 import {useAutoMetricDetectorName} from 'sentry/views/detectors/components/forms/metric/useAutoMetricDetectorName';
 import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
@@ -255,13 +256,13 @@ function PriorityRow({
     />
   ) : (
     <DirectionField
+      key={conditionType}
       aria-label={t('Threshold direction')}
       name="conditionTypeDisplay"
       hideLabel
       inline
       flexibleControlStateSize
       choices={conditionChoices}
-      value={conditionType}
       defaultValue={conditionType}
       disabled
     />
@@ -383,6 +384,7 @@ function CustomizeMetricSection() {
   const datasetChoices = useDatasetChoices();
   const formContext = useContext(FormContext);
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
 
   return (
@@ -426,6 +428,17 @@ function CustomizeMetricSection() {
                       formContext.form?.setValue(
                         METRIC_DETECTOR_FORM_FIELDS.detectionType,
                         supportedDetectionTypes[0]
+                      );
+                    }
+
+                    const sanitizedQuery = sanitizeDetectorQuery({
+                      dataset: newDataset,
+                      query,
+                    });
+                    if (sanitizedQuery !== query) {
+                      formContext.form?.setValue(
+                        METRIC_DETECTOR_FORM_FIELDS.query,
+                        sanitizedQuery
                       );
                     }
                   }}
@@ -625,11 +638,12 @@ function MigratedAlertWarningListener() {
     dataset,
     extrapolationMode,
   });
+  const location = useLocation();
 
   if (isMigratedExtrapolation) {
     return (
       <Alert.Container>
-        <Alert type="info">
+        <Alert variant="info">
           {tct(
             'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {
@@ -640,13 +654,16 @@ function MigratedAlertWarningListener() {
                 />
               ),
               thresholdsLink: (
-                <Button
-                  priority="link"
+                <Link
                   aria-label="Go to thresholds"
+                  preventScrollReset
+                  to={{...location, hash: '#thresholds-warning-icon'}}
                   onClick={() => {
-                    document
-                      .getElementById('thresholds-warning-icon')
-                      ?.scrollIntoView({behavior: 'smooth'});
+                    requestAnimationFrame(() => {
+                      document
+                        .getElementById('thresholds-warning-icon')
+                        ?.scrollIntoView({behavior: 'smooth'});
+                    });
                   }}
                 />
               ),
@@ -663,7 +680,7 @@ function MigratedAlertWarningListener() {
 function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProps}) {
   return (
     <Tooltip title={tooltipProps?.title} skipWrapper {...tooltipProps}>
-      <StyledIconWarning id={id} size="md" color="warning" />
+      <StyledIconWarning id={id} size="md" variant="warning" />
     </Tooltip>
   );
 }
@@ -750,7 +767,7 @@ const DefineThresholdParagraph = styled('p')`
   margin-bottom: ${p => p.theme.space.sm};
   padding-top: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const DatasetField = styled(SelectField)`

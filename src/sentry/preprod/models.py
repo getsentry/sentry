@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from enum import IntEnum
+from typing import ClassVar, Self
 
 import sentry_sdk
 from django.db import models
+from django.db.models import IntegerField, Sum
+from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import DefaultFieldsModel, region_silo_model
@@ -15,9 +18,27 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
 
 logger = logging.getLogger(__name__)
+
+
+class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
+    def annotate_download_count(self) -> Self:
+        return self.annotate(
+            download_count=Coalesce(
+                Sum("installablepreprodartifact__download_count"),
+                0,
+                output_field=IntegerField(),
+            )
+        )
+
+
+class PreprodArtifactModelManager(BaseManager["PreprodArtifact"]):
+    def get_queryset(self) -> PreprodArtifactQuerySet:
+        return PreprodArtifactQuerySet(self.model, using=self._db)
 
 
 @region_silo_model
@@ -67,6 +88,9 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.APK, "apk"),
             )
 
+        def to_str(self) -> str:
+            return self.name.lower()
+
     class ErrorCode(IntEnum):
         UNKNOWN = 0
         """The error code is unknown. Try to use a descriptive error code if possible."""
@@ -87,6 +111,7 @@ class PreprodArtifact(DefaultFieldsModel):
             )
 
     __relocation_scope__ = RelocationScope.Excluded
+    objects: ClassVar[PreprodArtifactModelManager] = PreprodArtifactModelManager()
 
     project = FlexibleForeignKey("sentry.Project")
 
@@ -115,6 +140,11 @@ class PreprodArtifact(DefaultFieldsModel):
     build_version = models.CharField(max_length=255, null=True)
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
+
+    # Version of tooling used to upload/build the artifact, extracted from metadata files
+    cli_version = models.CharField(max_length=255, null=True)
+    fastlane_plugin_version = models.CharField(max_length=255, null=True)
+    gradle_plugin_version = models.CharField(max_length=255, null=True)
 
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)
@@ -329,6 +359,9 @@ class PreprodArtifact(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
+        indexes = [
+            models.Index(fields=["project", "date_added"]),
+        ]
 
 
 @region_silo_model

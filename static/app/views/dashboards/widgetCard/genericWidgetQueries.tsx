@@ -10,7 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -46,6 +46,7 @@ export type OnDataFetchedProps = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
 
@@ -60,6 +61,7 @@ export type GenericWidgetQueriesChildrenProps = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;
 };
 
@@ -81,6 +83,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
   dashboardFilters?: DashboardFilters;
+  disabled?: boolean;
   forceOnDemand?: boolean;
   limit?: number;
   loading?: boolean;
@@ -110,6 +113,7 @@ type State<SeriesResponse> = {
   tableResults?: GenericWidgetQueriesChildrenProps['tableResults'];
   timeseriesResults?: GenericWidgetQueriesChildrenProps['timeseriesResults'];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
 };
 
 class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
@@ -186,6 +190,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
           !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
           !isEqual(this.props.forceOnDemand, prevProps.forceOnDemand) ||
+          !isEqual(this.props.disabled, prevProps.disabled) ||
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
@@ -256,7 +261,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDemandControlContext,
       mepSetting,
       samplingMode,
+      disabled,
     } = this.props;
+    if (disabled) {
+      return;
+    }
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
     const responses = await Promise.all(
       widget.queries.map(query => {
@@ -299,6 +308,18 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       ) as TableDataWithTitle;
       transformedData.title = widget.queries[i]?.name ?? '';
 
+      const meta = transformedData.meta;
+      const fieldMeta = widget?.queries?.[i]?.fieldMeta;
+      if (fieldMeta && meta) {
+        fieldMeta.forEach((m, index) => {
+          const field = widget.queries?.[i]?.fields?.[index];
+          if (m && field) {
+            meta.units![field] = m.valueUnit ?? '';
+            meta.fields![field] = m.valueType;
+          }
+        });
+      }
+
       // Overwrite the local var to work around state being stale in tests.
       transformedTableResults = [...transformedTableResults, transformedData];
 
@@ -331,7 +352,12 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       mepSetting,
       onDemandControlContext,
       samplingMode,
+      disabled,
     } = this.props;
+    if (disabled) {
+      return;
+    }
+
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
     const responses = await Promise.all(
@@ -371,22 +397,49 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       });
     });
 
-    // Get series result type
-    // Only used by custom measurements in errorsAndTransactions at the moment
-    const timeseriesResultsTypes = config.getSeriesResultType?.(
-      responses[0]![0],
-      widget.queries[0]!
+    // Retrieve the config's series result types and units
+    // Since each query only differs in its query filter, we can use the first widget queries
+    // to derive the types and units since they share the same aggregations and fields
+    const timeseriesResultsTypes = responses.reduce(
+      (acc, response) => {
+        let allResultTypes: Record<string, AggregationOutputType> = {};
+        widget.queries.forEach(query => {
+          allResultTypes = {
+            ...allResultTypes,
+            ...config.getSeriesResultType?.(response[0], query),
+          };
+        });
+        acc = {...acc, ...allResultTypes};
+        return acc;
+      },
+      {} as Record<string, AggregationOutputType>
+    );
+    const timeseriesResultsUnits = responses.reduce(
+      (acc, response) => {
+        let allResultUnits: Record<string, DataUnit> = {};
+        widget.queries.forEach(query => {
+          allResultUnits = {
+            ...allResultUnits,
+            ...config.getSeriesResultUnit?.(response[0], query),
+          };
+        });
+        acc = {...acc, ...allResultUnits};
+        return acc;
+      },
+      {} as Record<string, DataUnit>
     );
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
       onDataFetched?.({
         timeseriesResults: transformedTimeseriesResults,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
       });
       this.setState({
         timeseriesResults: transformedTimeseriesResults,
         rawResults: rawResultsClone,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
       });
     }
   }
@@ -450,6 +503,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       errorMessage,
       pageLinks,
       timeseriesResultsTypes,
+      timeseriesResultsUnits,
     } = this.state;
 
     return children({
@@ -459,6 +513,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       errorMessage,
       pageLinks,
       timeseriesResultsTypes,
+      timeseriesResultsUnits,
     });
   }
 }

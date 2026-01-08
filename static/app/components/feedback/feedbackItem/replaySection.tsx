@@ -1,6 +1,7 @@
 import {lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
+import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import type {Organization} from 'sentry/types/organization';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
@@ -36,11 +37,13 @@ export default function ReplaySection({eventTimestampMs, organization, replayId}
   };
 
   return (
-    <LazyLoad
-      key={replayId}
-      {...props}
-      LazyComponent={LazyReplayClipPreviewComponent}
-      clipOffsets={CLIP_OFFSETS}
-    />
+    <ReplayAccess>
+      <LazyLoad
+        key={replayId}
+        {...props}
+        LazyComponent={LazyReplayClipPreviewComponent}
+        clipOffsets={CLIP_OFFSETS}
+      />
+    </ReplayAccess>
   );
 }

@@ -7,6 +7,9 @@ from enum import IntEnum, StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
+from django.db.models import Q
+from sentry_sdk import logger as sentry_logger
+
 from sentry import features, options
 from sentry.types.group import PriorityLevel
 
@@ -92,6 +95,19 @@ class WorkflowEventData:
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+
+
+@dataclass(frozen=True)
+class ActionInvocation:
+    """
+    Represents a single invocation of a workflow action, containing all the information
+    needed to route and execute the action through the appropriate handler.
+    """
+
+    event_data: WorkflowEventData
+    action: Action
+    detector: Detector
+    notification_uuid: str
 
 
 class WorkflowEvaluationSnapshot(TypedDict):
@@ -198,6 +214,7 @@ class WorkflowEvaluation:
         # Check if we should log this evaluation
         organization = self.data.organization
         should_log = features.has("organizations:workflow-engine-log-evaluations", organization)
+        direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
 
         if not should_log:
             sample_rate = options.get("workflow_engine.evaluation_log_sample_rate")
@@ -226,21 +243,22 @@ class WorkflowEvaluation:
         triggered_workflows = data_snapshot["triggered_workflows"] or []
         action_filter_conditions = data_snapshot["action_filter_conditions"] or []
         triggered_actions = data_snapshot["triggered_actions"] or []
+        extra = {
+            "event_id": data_snapshot["event_id"],
+            "group_id": group_id,
+            "detection_type": detection_type,
+            "workflow_ids": data_snapshot["workflow_ids"],
+            "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
+            "delayed_conditions": data_snapshot["delayed_conditions"],
+            "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
+            "triggered_action_ids": [a["id"] for a in triggered_actions],
+            "debug_msg": self.msg,
+        }
 
-        logger.info(
-            log_str,
-            extra={
-                "event_id": data_snapshot["event_id"],
-                "group_id": group_id,
-                "detection_type": detection_type,
-                "workflow_ids": data_snapshot["workflow_ids"],
-                "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
-                "delayed_conditions": data_snapshot["delayed_conditions"],
-                "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
-                "triggered_action_ids": [a["id"] for a in triggered_actions],
-                "debug_msg": self.msg,
-            },
-        )
+        if direct_to_sentry:
+            sentry_logger.info(log_str, attributes=extra)
+        else:
+            logger.info(log_str, extra=extra)
         return True
 
 
@@ -274,7 +292,7 @@ class ActionHandler:
         return None
 
     @staticmethod
-    def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def execute(invocation: ActionInvocation) -> None:
         # TODO - do we need to pass all of this data to an action?
         raise NotImplementedError
 
@@ -379,3 +397,4 @@ class DetectorSettings:
     handler: type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
+    filter: Q | None = None

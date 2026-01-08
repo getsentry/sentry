@@ -22,7 +22,7 @@ function UnmaskAlert() {
   return (
     <UnmaskAlertContainer data-test-id="unmask-alert">
       <Alert
-        type="info"
+        variant="info"
         trailingItems={
           <Button
             aria-label={t('Close Alert')}

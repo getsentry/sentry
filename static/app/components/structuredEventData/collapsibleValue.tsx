@@ -127,7 +127,7 @@ const NumItemsButton = styled(Button)`
 const ToggleButton = styled(Button)`
   position: absolute;
   left: -${space(3)};
-  top: ${p => (p.theme.isChonk ? '0px' : '2px')};
+  top: 0px;
   border-radius: 2px;
   align-items: center;
   justify-content: center;

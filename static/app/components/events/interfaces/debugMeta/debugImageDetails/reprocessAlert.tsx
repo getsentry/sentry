@@ -59,7 +59,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
 
   if (reprocessable) {
     return (
-      <AlertLink type="warning" onClick={onReprocessEvent}>
+      <AlertLink variant="warning" onClick={onReprocessEvent}>
         {t(
           'You’ve uploaded new debug files. Reprocess events in this issue to view a better stack trace'
         )}
@@ -82,7 +82,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
   }
 
   return (
-    <Alert type="info" showIcon={false}>
+    <Alert variant="info" showIcon={false}>
       {getAlertInfoMessage()}
     </Alert>
   );

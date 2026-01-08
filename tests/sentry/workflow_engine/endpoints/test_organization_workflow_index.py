@@ -11,19 +11,11 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
-from sentry.workflow_engine.models import (
-    Action,
-    DataConditionGroupAction,
-    DetectorWorkflow,
-    Workflow,
-    WorkflowDataConditionGroup,
-    WorkflowFireHistory,
-)
+from sentry.workflow_engine.models import Action, DetectorWorkflow, Workflow, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.typings.notification_action import (
     ActionTarget,
@@ -72,6 +64,20 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert "X-Hits" in response
         hits = int(response["X-Hits"])
         assert hits == 3
+
+    def test_only_returns_workflows_from_organization(self) -> None:
+        other_org = self.create_organization()
+        self.create_workflow(organization_id=other_org.id, name="Other Org Workflow")
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 3
+        workflow_names = {w["name"] for w in response.data}
+        assert "Other Org Workflow" not in workflow_names
+        assert workflow_names == {
+            self.workflow.name,
+            self.workflow_two.name,
+            self.workflow_three.name,
+        }
 
     def test_empty_result(self) -> None:
         response = self.get_success_response(
@@ -354,6 +360,53 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response3.data) == 2
         assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response3.data}
 
+    def test_filter_by_detector(self) -> None:
+        project_1 = self.create_project(organization=self.organization)
+        project_2 = self.create_project(organization=self.organization)
+        project_3 = self.create_project(organization=self.organization)
+
+        detector_1 = self.create_detector(project=project_1, name="Detector 1")
+        detector_2 = self.create_detector(project=project_2, name="Detector 2")
+        detector_3 = self.create_detector(project=project_3, name="Detector 3")
+
+        self.create_detector_workflow(workflow=self.workflow, detector=detector_1)
+        self.create_detector_workflow(workflow=self.workflow_two, detector=detector_2)
+        self.create_detector_workflow(workflow=self.workflow_three, detector=detector_3)
+
+        # Filter by single detector
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector": str(detector_1.id)},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == self.workflow.name
+
+        # Filter by multiple detectors
+        response2 = self.get_success_response(
+            self.organization.slug,
+            qs_params=[
+                ("detector", str(detector_1.id)),
+                ("detector", str(detector_2.id)),
+            ],
+        )
+        assert len(response2.data) == 2
+        assert {w["name"] for w in response2.data} == {self.workflow.name, self.workflow_two.name}
+
+        # Filter by non-existent detector ID returns no results
+        response3 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector": "999999"},
+        )
+        assert len(response3.data) == 0
+
+        # Invalid detector ID format returns error
+        response4 = self.get_error_response(
+            self.organization.slug,
+            qs_params={"detector": "not-an-id"},
+            status_code=400,
+        )
+        assert response4.data == {"detector": ["Invalid detector ID format"]}
+
     def test_compound_query(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)
@@ -447,7 +500,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        assert new_workflow.config == self.valid_workflow["config"]
+        assert response.data == serialize(new_workflow)
 
     def test_create_workflow__with_triggers(self) -> None:
         self.valid_workflow["triggers"] = {
@@ -462,10 +515,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        assert new_workflow.when_condition_group is not None
-        assert str(new_workflow.when_condition_group.id) == response.data.get("triggers", {}).get(
-            "id"
-        )
+        assert response.data == serialize(new_workflow)
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.action_validator_registry.get",
@@ -498,11 +548,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        new_action_filters = WorkflowDataConditionGroup.objects.filter(workflow=new_workflow)
-        assert len(new_action_filters) == len(response.data.get("actionFilters", []))
-        assert str(new_action_filters[0].condition_group.id) == response.data.get(
-            "actionFilters", []
-        )[0].get("id")
+        assert response.data == serialize(new_workflow)
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.action_validator_registry.get",
@@ -534,24 +580,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        new_action_filters = WorkflowDataConditionGroup.objects.filter(workflow=new_workflow)
-        assert len(new_action_filters) == len(response.data.get("actionFilters", []))
-        dcga = DataConditionGroupAction.objects.filter(
-            condition_group=new_action_filters[0].condition_group
-        ).first()
-        assert dcga
-        assert str(new_action_filters[0].condition_group.id) == response.data.get(
-            "actionFilters", []
-        )[0].get("id")
-        assert (
-            response.data.get("actionFilters")[0]
-            .get("actions")[0]
-            .get("data")
-            .get("fallthrough_type")
-            == FallthroughChoiceType.ACTIVE_MEMBERS.value
-        )
-        assert dcga.action.type == Action.Type.EMAIL
-        assert dcga.action.data == {"fallthrough_type": "ActiveMembers"}
+        assert response.data == serialize(new_workflow)
 
     @responses.activate
     def test_create_workflow_with_sentry_app_action(self) -> None:
@@ -587,19 +616,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             raw_data=self.valid_workflow,
         )
         updated_workflow = Workflow.objects.get(id=response.data["id"])
-        new_action_filters = WorkflowDataConditionGroup.objects.filter(workflow=updated_workflow)
-        dcga = DataConditionGroupAction.objects.filter(
-            condition_group=new_action_filters[0].condition_group
-        )
-        action = dcga[0].action
-
-        assert action.type == Action.Type.SENTRY_APP
-        assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
-            "target_identifier": str(self.sentry_app.id),
-            "target_type": ActionTarget.SENTRY_APP.value,
-        }
-        assert action.data["settings"] == self.sentry_app_settings
+        assert response.data == serialize(updated_workflow)
 
     @responses.activate
     def test_create_sentry_app_action_missing_settings(self) -> None:
@@ -679,19 +696,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             raw_data=self.valid_workflow,
         )
         updated_workflow = Workflow.objects.get(id=response.data["id"])
-        new_action_filters = WorkflowDataConditionGroup.objects.filter(workflow=updated_workflow)
-        dcga = DataConditionGroupAction.objects.filter(
-            condition_group=new_action_filters[0].condition_group
-        )
-        action = dcga[0].action
-
-        assert action.type == Action.Type.SENTRY_APP
-        assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
-            "target_identifier": str(sentry_app.id),
-            "target_type": ActionTarget.SENTRY_APP.value,
-        }
-        assert action.data == {}
+        assert response.data == serialize(updated_workflow)
 
     def test_create_invalid_workflow(self) -> None:
         self.valid_workflow["name"] = ""

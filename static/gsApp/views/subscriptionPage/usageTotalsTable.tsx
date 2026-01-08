@@ -1,26 +1,22 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
 import {
   displayPercentage,
   formatUsageWithUnits,
   getPercentage,
-  hasNewBillingUI,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
@@ -125,44 +121,25 @@ type OutcomeSectionProps = {
   totals: BillingStatTotal;
   expanded?: boolean;
   isEventBreakdown?: boolean;
-  isNewBillingUI?: boolean;
 };
-
-type State = {expanded: boolean};
 
 function OutcomeSection({
   name,
   quantity,
-  isEventBreakdown,
   category,
   totals,
   children,
-  isNewBillingUI,
 }: OutcomeSectionProps) {
-  const [state, setState] = useState<State>({
-    expanded: isNewBillingUI || !isEventBreakdown,
-  });
-
-  const expandButton = isNewBillingUI ? undefined : (
-    <StyledButton
-      data-test-id="expand-dropped-totals"
-      size="zero"
-      onClick={() => setState({expanded: !state.expanded})}
-      icon={<IconStack size="xs" direction={state.expanded ? 'up' : 'down'} />}
-      aria-label={t('Expand dropped totals')}
-    />
-  );
   return (
     <Fragment>
       <OutcomeRow
         name={name}
         quantity={quantity}
-        expandButton={expandButton}
         category={category}
         totals={totals}
-        bold={isNewBillingUI}
+        bold
       />
-      {state.expanded && children}
+      {children}
     </Fragment>
   );
 }
@@ -248,8 +225,6 @@ type Props = {
 };
 
 function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
-  const organization = useOrganization();
-  const isNewBillingUI = hasNewBillingUI(organization);
   const categoryInfo = getCategoryInfoFromPlural(category);
   const theme = useTheme();
   const colorPalette = theme.chart.getColorPalette(6);
@@ -279,7 +254,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
         <thead>
           <tr>
             <th>
-              {(!isNewBillingUI || isEventBreakdown) && (
+              {isEventBreakdown && (
                 <TextOverflow>
                   {isEventBreakdown
                     ? tct('[singularName] Events', {
@@ -310,21 +285,20 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
   const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
-    <Grid gap="md" padding={isNewBillingUI ? 'md' : 'md 0'}>
-      {isNewBillingUI && (
-        <IngestionSummary
-          category={category}
-          totals={totals}
-          outcomeToBarColor={outcomeToBarColor}
-        />
-      )}
+    <Flex direction="column" gap="md" padding="md">
+      <IngestionSummary
+        category={category}
+        totals={totals}
+        outcomeToBarColor={outcomeToBarColor}
+      />
+
       <OutcomeTable>
         <OutcomeRow
           name={t('Accepted')}
           quantity={totals.accepted}
           category={category}
           totals={totals}
-          barColor={isNewBillingUI ? outcomeToBarColor.accepted : undefined}
+          barColor={outcomeToBarColor.accepted}
         />
         <OutcomeSection
           isEventBreakdown={isEventBreakdown}
@@ -332,7 +306,6 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
           quantity={totals.dropped}
           category={category}
           totals={totals}
-          isNewBillingUI={isNewBillingUI}
         >
           <OutcomeRow
             indent
@@ -340,7 +313,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
             quantity={totals.droppedOverQuota}
             category={category}
             totals={totals}
-            barColor={isNewBillingUI ? outcomeToBarColor.droppedOverQuota : undefined}
+            barColor={outcomeToBarColor.droppedOverQuota}
           />
           {hasSpikeProtection && (
             <OutcomeRow
@@ -349,9 +322,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
               quantity={totals.droppedSpikeProtection}
               category={category}
               totals={totals}
-              barColor={
-                isNewBillingUI ? outcomeToBarColor.droppedSpikeProtection : undefined
-              }
+              barColor={outcomeToBarColor.droppedSpikeProtection}
             />
           )}
           <OutcomeRow
@@ -363,21 +334,15 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
             tooltipTitle={t(
               'The dropped other category is for all uncategorized dropped events. This is commonly due to user configured rate limits.'
             )}
-            barColor={isNewBillingUI ? outcomeToBarColor.droppedOther : undefined}
+            barColor={outcomeToBarColor.droppedOther}
           />
         </OutcomeSection>
       </OutcomeTable>
-    </Grid>
+    </Flex>
   );
 }
 
 export default UsageTotalsTable;
-
-const StyledButton = styled(Button)`
-  border-radius: 20px;
-  padding: ${space(0.25)} ${space(1)};
-  margin-right: ${space(1)};
-`;
 
 const OutcomeType = styled(TextOverflow)<{indent?: boolean}>`
   display: grid;
@@ -426,10 +391,10 @@ const Bar = styled('div')<{
   width: ${p => `${p.fillPercentage}%`};
   height: 7px;
   background: ${p => p.barColor ?? p.theme.gray200};
-  border-top-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
-  border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
-  border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
-  border-bottom-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
+  border-top-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.radius.md : 0)};
+  border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.radius.md : 0)};
+  border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.radius.md : 0)};
+  border-bottom-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.radius.md : 0)};
 `;
 
 const OutcomeLegend = styled('div')<{color: string}>`

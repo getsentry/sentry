@@ -168,7 +168,7 @@ function SentryAppExternalIssueActions({
 }
 
 const StyledSentryAppComponentIcon = styled(SentryAppComponentIcon)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   width: ${space(3)};
   height: ${space(3)};
   cursor: pointer;
@@ -182,7 +182,8 @@ const IssueLink = styled('div')`
 `;
 
 const StyledIntegrationLink = styled(IntegrationLink)<{disabled?: boolean}>`
-  color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.textColor)};
+  color: ${({disabled, theme}) =>
+    disabled ? theme.tokens.content.disabled : theme.tokens.content.primary};
   ${p => p.disabled && 'cursor: not-allowed;'}
 `;
 
@@ -195,7 +196,7 @@ const IssueLinkContainer = styled('div')`
 `;
 
 const StyledIcon = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
 `;
 

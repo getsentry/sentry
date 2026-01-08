@@ -92,10 +92,10 @@ const VerticalSpacing = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const SeenBy = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

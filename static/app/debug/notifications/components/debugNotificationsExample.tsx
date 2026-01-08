@@ -134,8 +134,8 @@ export function DebugNotificationsExample({
 const PlaceholderChart = styled('div')`
   height: 100px;
   width: 200px;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   background: linear-gradient(
     to bottom right,
     ${p => p.theme.tokens.background.primary},

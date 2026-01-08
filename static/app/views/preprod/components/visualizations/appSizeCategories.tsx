@@ -3,7 +3,7 @@ import type {PieSeriesOption} from 'echarts';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
+import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapType, type TreemapResults} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeCategoriesProps {
@@ -52,7 +52,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
       avoidLabelOverlap: false,
       itemStyle: {
         borderRadius: 6,
-        borderColor: theme.surface100,
+        borderColor: theme.colors.surface200,
         borderWidth: 2,
       },
       label: {
@@ -61,12 +61,12 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
         formatter: '{b}\n{d}%',
         fontSize: 12,
         fontFamily: 'Rubik',
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
       },
       labelLine: {
         show: true,
         lineStyle: {
-          color: theme.border,
+          color: theme.tokens.border.primary,
         },
       },
       emphasis: {
@@ -78,7 +78,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
         itemStyle: {
           shadowBlur: 10,
           shadowOffsetX: 0,
-          shadowColor: theme.gray100,
+          shadowColor: theme.colors.gray100,
         },
       },
       data: pieData,
@@ -88,13 +88,13 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
   const tooltip: TooltipOption = {
     trigger: 'item',
     borderWidth: 0,
-    backgroundColor: theme.surface100,
+    backgroundColor: theme.colors.surface200,
     hideDelay: 0,
     transitionDuration: 0,
     padding: 12,
     extraCssText: 'border-radius: 6px;',
     textStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       fontFamily: 'Rubik',
     },
     formatter: function (params: any) {
@@ -104,7 +104,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
             <div style="font-family: Rubik;">
               <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${theme.space.md}; gap: ${theme.space.md}">
                 <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.color};"></div>
-                <span style="color: ${theme.textColor}">${params.name}</span>
+                <span style="color: ${theme.tokens.content.primary}">${params.name}</span>
               </div>
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${theme.space.sm}">
                 <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${formatBytesBase10(value)}</p>

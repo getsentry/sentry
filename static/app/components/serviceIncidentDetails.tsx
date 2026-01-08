@@ -123,15 +123,15 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
   return (
     <Tooltip skipWrapper title={startCase(status)}>
       {status === 'operational' ? (
-        <IconCheckmark size="sm" color="successText" />
+        <IconCheckmark size="sm" variant="success" />
       ) : status === 'major_outage' ? (
-        <IconFatal size="sm" color="errorText" />
+        <IconFatal size="sm" variant="danger" />
       ) : status === 'degraded_performance' ? (
-        <IconWarning size="sm" color="warningText" />
+        <IconWarning size="sm" variant="warning" />
       ) : status === 'partial_outage' ? (
-        <IconFire size="sm" color="warningText" />
+        <IconFire size="sm" variant="warning" />
       ) : (
-        <IconInfo size="sm" color="subText" />
+        <IconInfo size="sm" variant="muted" />
       )}
     </Tooltip>
   );
@@ -158,7 +158,7 @@ const UpdatesList = styled(List)`
     height: 100%;
     width: 2px;
     margin: ${space(1)} 0 ${space(1)} -${space(1.5)};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.colors.gray100};
   }
 
   &::after {
@@ -171,8 +171,8 @@ const UpdatesList = styled(List)`
     width: 2px;
     background: linear-gradient(
       0deg,
-      ${p => p.theme.background},
-      ${p => color(p.theme.background).alpha(0).string()}
+      ${p => p.theme.tokens.background.primary},
+      ${p => color(p.theme.tokens.background.primary).alpha(0).string()}
     );
   }
 `;
@@ -185,10 +185,10 @@ function getIndicatorColor({
   theme: Theme;
 }): string {
   const indicatorColor: Record<StatusPageIncidentUpdate['status'], string> = {
-    investigating: theme.red200,
-    identified: theme.blue200,
-    monitoring: theme.yellow200,
-    resolved: theme.green200,
+    investigating: theme.colors.red200,
+    identified: theme.colors.blue200,
+    monitoring: theme.colors.yellow200,
+    resolved: theme.colors.green200,
   };
   return indicatorColor[status];
 }
@@ -213,13 +213,13 @@ const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}
 `;
 
 const StatusTitle = styled('div')`
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StatusDate = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const ComponentList = styled(List)`

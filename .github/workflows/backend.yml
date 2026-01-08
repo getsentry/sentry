@@ -5,6 +5,7 @@ on:
     branches:
       - master
   pull_request:
+  workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -72,9 +73,34 @@ jobs:
             devservices logs
           fi
 
-  backend-test:
+  calculate-shards:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
+    name: calculate test shards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
+      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+          skip-devservices: true
+
+      - name: Calculate test shards
+        id: calculate-shards
+        run: |
+          python3 .github/workflows/scripts/calculate-backend-test-shards.py
+
+  backend-test:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: [files-changed, calculate-shards]
     name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -87,14 +113,12 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance:
-          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+        # Dynamic matrix from calculate-shards
+        instance: ${{ fromJSON(needs.calculate-shards.outputs.shard-indices) }}
 
     env:
-      # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
-      # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
-      MATRIX_INSTANCE_TOTAL: 22
+      # Dynamic total from calculate-shards
+      MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
@@ -128,18 +152,6 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: backend
-
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -166,18 +178,6 @@ jobs:
           if command -v devservices; then
             devservices logs
           fi
-
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: backend-migration
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -229,9 +229,8 @@ jobs:
         with:
           version: '0.8.2'
 
-      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
-          python-version: 3.13.1
           cache-dependency-path: uv.lock
           install-cmd: echo
 
@@ -350,18 +349,6 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: monolith-dbs
-
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -377,9 +364,8 @@ jobs:
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
-      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
-          python-version: 3.13.1
           cache-dependency-path: uv.lock
           install-cmd: uv sync --frozen --active
 
@@ -443,6 +429,7 @@ jobs:
         api-docs,
         backend-test,
         backend-migration-tests,
+        calculate-shards,
         cli,
         files-changed,
         requirements,

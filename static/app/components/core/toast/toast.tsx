@@ -1,4 +1,4 @@
-import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 import {motion, type HTMLMotionProps} from 'framer-motion';
@@ -13,7 +13,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {Theme} from 'sentry/utils/theme';
 
 export interface ToastProps {
   indicator: Indicator;
@@ -93,69 +93,66 @@ function ToastIcon({type}: {type: Indicator['type']}) {
   }
 }
 
-function getContainerTheme(
-  theme: DO_NOT_USE_ChonkTheme,
-  type: Indicator['type']
-): React.CSSProperties {
+function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProperties {
   switch (type) {
     case 'success':
       return {
         background: theme.colors.green100,
-        borderBottom: `2px solid ${theme.colors.border.success}`,
+        borderBottom: `2px solid ${theme.tokens.border.success}`,
         border: `1px solid ${chonkFor(theme, theme.colors.chonk.green400)}`,
         boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.green400)}`,
       };
     case 'error':
       return {
         background: theme.colors.red100,
-        borderBottom: `2px solid ${theme.colors.border.danger}`,
+        borderBottom: `2px solid ${theme.tokens.border.danger}`,
         border: `1px solid ${chonkFor(theme, theme.colors.chonk.red400)}`,
         boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.red400)}`,
       };
     default:
       return {
-        background: theme.colors.background.primary,
-        borderBottom: `2px solid ${theme.colors.border.accent}`,
+        background: theme.tokens.background.primary,
+        borderBottom: `2px solid ${theme.tokens.border.accent}`,
         border: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
         boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.blue400)}`,
       };
   }
 }
 
-interface ChonkToastContainerProps extends HTMLMotionProps<'div'> {
+interface ToastContainerProps extends HTMLMotionProps<'div'> {
   children: React.ReactNode;
   type: Indicator['type'];
 }
 
-const ToastContainer = chonkStyled((props: ChonkToastContainerProps) => {
+const ToastContainer = styled((props: ToastContainerProps) => {
   const {type, children, ...rest} = props;
   return (
     <ToastOuterContainer type={type} {...rest}>
       <ToastInnerContainer type={type}>{children}</ToastInnerContainer>
     </ToastOuterContainer>
   );
-})<ChonkToastContainerProps>``;
+})<ToastContainerProps>``;
 
-const ToastOuterContainer = chonkStyled(motion.div)<{type: Indicator['type']}>`
+const ToastOuterContainer = styled(motion.div)<{type: Indicator['type']}>`
   overflow: hidden;
   /* The outer container is a separate element because the colors are not opaque,
    * so we set the background color here to the background color so that the
    * toast is not see-through.
    */
-  background: ${p => p.theme.colors.background.primary};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.lg};
   border: ${p => getContainerTheme(p.theme, p.type).border};
   box-shadow: ${p => getContainerTheme(p.theme, p.type).boxShadow};
 `;
 
-const ToastInnerContainer = chonkStyled('div')<{type: Indicator['type']}>`
+const ToastInnerContainer = styled('div')<{type: Indicator['type']}>`
   display: flex;
   align-items: stretch;
   background: ${p => getContainerTheme(p.theme, p.type).background};
 `;
 
 function getToastIconContainerTheme(
-  theme: DO_NOT_USE_ChonkTheme,
+  theme: Theme,
   type: Indicator['type']
 ): React.CSSProperties {
   switch (type) {
@@ -171,12 +168,12 @@ function getToastIconContainerTheme(
       };
     default:
       return {
-        background: theme.colors.background.primary,
+        background: theme.tokens.background.primary,
         borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
       };
   }
 }
-const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
+const ToastIconContainer = styled('div')<{type: Indicator['type']}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -187,13 +184,15 @@ const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
   svg {
     width: 16px;
     height: 16px;
-    color: ${p => (p.type === 'success' ? p.theme.colors.black : p.type === 'error' ? p.theme.colors.white : undefined)} !important;
+    color: ${p =>
+      p.type === 'success'
+        ? p.theme.colors.black
+        : p.type === 'error'
+          ? p.theme.colors.white
+          : undefined} !important;
   }
 `;
 
-const ToastLoadingIndicator = chonkStyled(LoadingIndicator)`
+const ToastLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
-  .loading-indicator {
-
-  }
 `;

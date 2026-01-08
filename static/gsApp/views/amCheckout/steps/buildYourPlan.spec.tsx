@@ -58,21 +58,7 @@ describe('BuildYourPlan', () => {
     });
   });
 
-  function assertAllSubsteps(isNewCheckout: boolean) {
-    const substepTitles = ['Detect and fix issues faster with our AI agent'];
-
-    if (isNewCheckout) {
-      substepTitles.forEach(title => {
-        expect(screen.getByText(title)).toBeInTheDocument();
-      });
-    } else {
-      substepTitles.forEach(title => {
-        expect(screen.queryByText(title)).not.toBeInTheDocument();
-      });
-    }
-  }
-
-  function renderCheckout(isNewCheckout: boolean, referrer?: string) {
+  function renderCheckout(referrer?: string) {
     let location = LocationFixture();
     if (referrer) {
       location = LocationFixture({
@@ -85,9 +71,7 @@ describe('BuildYourPlan', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
-        isNewCheckout={isNewCheckout}
         location={location}
         navigate={jest.fn()}
       />,
@@ -95,22 +79,12 @@ describe('BuildYourPlan', () => {
     );
   }
 
-  it('renders for checkout v3', async () => {
-    renderCheckout(true);
+  it('renders', async () => {
+    renderCheckout();
 
     expect(await screen.findByText('Select a plan')).toBeInTheDocument();
     expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
-    assertAllSubsteps(true);
   });
-
-  it('does not render for old checkout', async () => {
-    renderCheckout(false);
-
-    expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
-    expect(screen.queryByText('Select a plan')).not.toBeInTheDocument();
-    assertAllSubsteps(false);
-  });
-
   describe('PlanSubstep', () => {
     it('annotates the current plan', async () => {
       const bizOrg = OrganizationFixture();
@@ -120,7 +94,7 @@ describe('BuildYourPlan', () => {
       });
       SubscriptionStore.set(bizOrg.slug, businessSubscription);
 
-      renderCheckout(true);
+      renderCheckout();
 
       const businessPlan = await screen.findByTestId('plan-option-am3_business');
       expect(businessPlan).toBeInTheDocument();
@@ -130,7 +104,7 @@ describe('BuildYourPlan', () => {
     });
 
     it('can select plan', async () => {
-      renderCheckout(true);
+      renderCheckout();
 
       const teamPlan = await screen.findByRole('radio', {name: 'Team'});
       const businessPlan = screen.getByRole('radio', {name: 'Business'});

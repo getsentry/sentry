@@ -325,12 +325,12 @@ const ContextMarkedText = styled(MarkedText)`
 `;
 
 const InsightContainer = styled('div')<{expanded?: boolean}>`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   margin-bottom: 0;
-  background: ${p => p.theme.background};
-  border: 1px dashed ${p => p.theme.border};
-  border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-color: ${p => (p.expanded ? p.theme.tokens.border.primary : 'transparent')};
 
   box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 `;
@@ -343,20 +343,20 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
   margin: 0;
   flex: 1;
   word-break: break-word;
-  color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
 
   code {
-    color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
+    color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
   }
 `;
 
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background: ${p => p.theme.alert.info.backgroundLight};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   position: relative;
-  border-top: 1px dashed ${p => p.theme.innerBorder};
+  border-top: 1px dashed ${p => p.theme.tokens.border.secondary};
 
   code {
     white-space: pre-wrap;

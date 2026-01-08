@@ -3,14 +3,14 @@ import {css, Global} from '@emotion/react';
 
 const styles = (theme: Theme) => css`
   body {
-    color: ${theme.textColor};
+    color: ${theme.tokens.content.primary};
     background: ${theme.backgroundSecondary};
   }
 
   a {
-    color: ${theme.linkColor};
+    color: ${theme.tokens.interactive.link.accent.rest};
     &:hover {
-      color: ${theme.linkHoverColor};
+      color: ${theme.tokens.interactive.link.accent.hover};
     }
   }
 

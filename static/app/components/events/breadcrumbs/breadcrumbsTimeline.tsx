@@ -1,6 +1,9 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
+
+import {Link} from '@sentry/scraps/link';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
@@ -9,11 +12,40 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {Timeline} from 'sentry/components/timeline';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import isValidDate from 'sentry/utils/date/isValidDate';
-import {shouldUse24Hours} from 'sentry/utils/dates';
+
+function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
+  const currentTimezone = useTimezone();
+  const isUTCLocalTimezone = currentTimezone === 'UTC';
+
+  return (
+    <DescriptionList>
+      <dt>{t('Occurred')}</dt>
+      <dd>
+        <TimestampValues>
+          <DateTime date={timestamp} seconds milliseconds timeZone />
+          {!isUTCLocalTimezone && (
+            <DateTime date={timestamp} seconds milliseconds timeZone utc />
+          )}
+        </TimestampValues>
+      </dd>
+      {isUTCLocalTimezone && (
+        <Fragment>
+          <dt />
+          <dd>
+            <TimezoneLink to="/settings/account/details/#timezone">
+              {t('Add your local timezone')}
+            </TimezoneLink>
+          </dd>
+        </Fragment>
+      )}
+    </DescriptionList>
+  );
+}
 
 interface BreadcrumbsTimelineProps {
   breadcrumbs: EnhancedCrumb[];
@@ -74,24 +106,24 @@ export default function BreadcrumbsTimeline({
       breadcrumbs[virtualizedRow.index]!;
     const isVirtualCrumb = !defined(raw);
 
-    const timeDate = new Date(breadcrumb.timestamp ?? '');
+    const timestamp = new Date(breadcrumb.timestamp ?? '');
     const startTimeDate = new Date(startTimeString ?? '');
 
-    const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS A';
-    const timestampComponent = isValidDate(timeDate) ? (
+    const timestampComponent = isValidDate(timestamp) ? (
       <Timestamp>
         <Tooltip
-          title={<DateTime date={timeDate} format={`ll - ${absoluteFormat} (z)`} />}
+          title={<BreadcrumbTimestampTooltipBody timestamp={timestamp} />}
           isHoverable
+          maxWidth={400}
         >
           {isValidDate(startTimeDate) ? (
             <Duration
-              seconds={moment(timeDate).diff(moment(startTimeDate), 's', true)}
+              seconds={moment(timestamp).diff(moment(startTimeDate), 's', true)}
               exact
               abbreviation
             />
           ) : (
-            <DateTime date={timeDate} format={absoluteFormat} />
+            <DateTime date={timestamp} seconds milliseconds timeZone />
           )}
         </Tooltip>
       </Timestamp>
@@ -191,8 +223,27 @@ const BreadcrumbItem = styled(Timeline.Item)`
     border-image: linear-gradient(
         to right,
         transparent 20px,
-        ${p => p.theme.translucentInnerBorder} 20px
+        ${p => p.theme.tokens.border.secondary} 20px
       )
       100% 1;
   }
+`;
+
+const DescriptionList = styled('dl')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${space(0.75)} ${space(1)};
+  text-align: left;
+  margin: 0;
+`;
+
+const TimestampValues = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+const TimezoneLink = styled(Link)`
+  line-height: 0.8;
 `;

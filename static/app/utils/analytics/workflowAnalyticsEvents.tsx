@@ -134,6 +134,16 @@ export type TeamInsightsEventParameters = {
     group_id: string | undefined;
     resource: string;
   };
+  'issue_details.seer_opened': {
+    autofix_exists: boolean;
+    autofix_step_type: string | null;
+    has_coded_solution: boolean;
+    has_pr: boolean;
+    has_root_cause: boolean;
+    has_solution: boolean;
+    has_streamlined_ui: boolean;
+    has_summary: boolean;
+  };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
     suspect_commit_calculation: string;
@@ -166,13 +176,6 @@ export type TeamInsightsEventParameters = {
   'release_detail.pagination': {direction: string};
   'releases_list.click_add_release_health': {
     project_id: number;
-  };
-  'seer.autofix.feedback_submitted': {
-    autofix_run_id: string;
-    group_id: string;
-    positive: boolean;
-    step_type: 'root_cause' | 'solution' | 'changes';
-    user_id: string;
   };
   'suspect_commit.feedback_submitted': {
     choice_selected: boolean;
@@ -233,6 +236,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.issue_tab.trace_timeline_more_events_clicked':
     'Issue Details: Trace Timeline More Events Clicked',
   'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
+  'issue_details.seer_opened': 'Issue Details: Seer Opened',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
@@ -252,7 +256,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
   'release_detail.pagination': 'Release Detail: Pagination',
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
-  'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
   trace_timeline_clicked: 'Trace Timeline Clicked',
   trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
   'suspect_commit.feedback_submitted': 'Suspect Commit Feedback Submitted',

@@ -212,7 +212,7 @@ export class RenderField extends Component<RenderProps, State> {
           <Container area="manage-project">
             <Button
               onClick={() => handleDelete(index)}
-              icon={<IconDelete color="gray300" />}
+              icon={<IconDelete variant="muted" />}
               size="sm"
               aria-label={t('Delete')}
             />
@@ -278,7 +278,7 @@ export class RenderField extends Component<RenderProps, State> {
           </FieldControlWrapper>
         </Item>
         {nextUrl && (
-          <NextButtonPanelAlert type="muted">
+          <NextButtonPanelAlert variant="muted">
             <NextButtonWrapper>
               {nextDescription ?? ''}
               <LinkButton
@@ -331,7 +331,7 @@ const Item = styled('div')`
   padding: ${space(2)};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;
@@ -376,8 +376,8 @@ const FieldControlWrapper = styled('div')`
 const NextButtonPanelAlert = styled(PanelAlert)`
   align-items: center;
   margin-bottom: -1px;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.theme.radius.md};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const NextButtonWrapper = styled('div')`

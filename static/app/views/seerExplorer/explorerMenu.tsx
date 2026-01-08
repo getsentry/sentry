@@ -3,15 +3,11 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
-import {space} from 'sentry/styles/space';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
-type MenuMode =
-  | 'slash-commands-keyboard'
-  | 'slash-commands-manual'
-  | 'session-history'
-  | 'hidden';
+type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
 
 interface ExplorerMenuProps {
   clearInput: () => void;
@@ -21,14 +17,21 @@ interface ExplorerMenuProps {
   panelSize: 'max' | 'med';
   panelVisible: boolean;
   slashCommandHandlers: {
+    onFeedback: (() => void) | undefined;
+    onLangfuse: () => void;
     onMaxSize: () => void;
     onMedSize: () => void;
     onNew: () => void;
   };
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  inputAnchorRef?: React.RefObject<HTMLElement | null>;
+  menuAnchorRef?: React.RefObject<HTMLElement | null>;
+  prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
+  prWidgetFooter?: React.ReactNode;
+  prWidgetItems?: MenuItemProps[];
 }
 
-interface MenuItemProps {
+export interface MenuItemProps {
   description: string | React.ReactNode;
   handler: () => void;
   key: string;
@@ -44,8 +47,19 @@ export function useExplorerMenu({
   panelVisible,
   slashCommandHandlers,
   onChangeSession,
+  menuAnchorRef,
+  inputAnchorRef,
+  prWidgetAnchorRef,
+  prWidgetItems,
+  prWidgetFooter,
 }: ExplorerMenuProps) {
   const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
+  const [menuPosition, setMenuPosition] = useState<{
+    bottom?: string | number;
+    left?: string | number;
+    right?: string | number;
+    top?: string | number;
+  }>({});
 
   const allSlashCommands = useSlashCommands(slashCommandHandlers);
 
@@ -67,14 +81,14 @@ export function useExplorerMenu({
     switch (menuMode) {
       case 'slash-commands-keyboard':
         return filteredSlashCommands;
-      case 'slash-commands-manual':
-        return allSlashCommands;
       case 'session-history':
         return sessionItems;
+      case 'pr-widget':
+        return prWidgetItems ?? [];
       default:
         return [];
     }
-  }, [menuMode, allSlashCommands, filteredSlashCommands, sessionItems]);
+  }, [menuMode, filteredSlashCommands, sessionItems, prWidgetItems]);
 
   const close = useCallback(() => {
     setMenuMode('hidden');
@@ -109,13 +123,24 @@ export function useExplorerMenu({
         // Handle /resume command here - avoid changing menu state from item handlers.
         setMenuMode('session-history');
         refetchSessions();
+      } else if (menuMode === 'session-history') {
+        // When resuming a session, just close without focusing input.
+        close();
       } else {
         // Default to closing the menu after an item is selected and handled.
         closeAndFocusInput();
       }
     },
     // clearInput and textAreaRef are both expected to be stable.
-    [menuMode, clearInput, textAreaRef, setMenuMode, refetchSessions, closeAndFocusInput]
+    [
+      menuMode,
+      clearInput,
+      textAreaRef,
+      setMenuMode,
+      refetchSessions,
+      close,
+      closeAndFocusInput,
+    ]
   );
 
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
@@ -199,10 +224,65 @@ export function useExplorerMenu({
     return undefined;
   }, [handleKeyDown, isVisible]);
 
+  // Calculate menu position based on anchor element
+  useEffect(() => {
+    if (!isVisible) {
+      setMenuPosition({});
+      return;
+    }
+
+    const anchorRef =
+      menuMode === 'slash-commands-keyboard'
+        ? inputAnchorRef
+        : menuMode === 'pr-widget'
+          ? prWidgetAnchorRef
+          : menuAnchorRef;
+    const isSlashCommand = menuMode === 'slash-commands-keyboard';
+
+    if (!anchorRef?.current) {
+      setMenuPosition({
+        bottom: '100%',
+        left: '16px',
+      });
+      return;
+    }
+
+    const rect = anchorRef.current.getBoundingClientRect();
+    const panelRect = anchorRef.current
+      .closest('[data-seer-explorer-root]')
+      ?.getBoundingClientRect();
+
+    if (!panelRect) {
+      return;
+    }
+
+    const spacing = 8;
+    const relativeTop = rect.top - panelRect.top;
+    const relativeLeft = rect.left - panelRect.left;
+
+    if (isSlashCommand) {
+      setMenuPosition({
+        bottom: `${panelRect.height - relativeTop + spacing}px`,
+        left: `${relativeLeft}px`,
+      });
+    } else if (menuMode === 'pr-widget') {
+      // Position below anchor, centered
+      setMenuPosition({
+        top: `${relativeTop + rect.height + spacing}px`,
+        left: `${relativeLeft - rect.width - spacing}px`,
+      });
+    } else {
+      setMenuPosition({
+        top: `${relativeTop + rect.height + spacing}px`,
+        left: `${relativeLeft}px`,
+      });
+    }
+  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef, prWidgetAnchorRef]);
+
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
-      <MenuPanel panelSize={panelSize}>
-        {menuItems.map((item, index) => (
+      <MenuPanel panelSize={panelSize} style={menuPosition} data-seer-menu-panel="">
+        {menuItems.map((item: MenuItemProps, index: number) => (
           <MenuItem
             key={item.key}
             ref={el => {
@@ -226,25 +306,37 @@ export function useExplorerMenu({
             </ItemName>
           </MenuItem>
         )}
+        {menuMode === 'pr-widget' && prWidgetFooter}
       </MenuPanel>
     </Activity>
   );
 
-  // Handler for the button entrypoint.
-  const onMenuButtonClick = useCallback(() => {
-    if (menuMode === 'hidden') {
-      setMenuMode('slash-commands-manual');
-    } else {
+  // Handler for opening session history from button
+  const openSessionHistory = useCallback(() => {
+    if (menuMode === 'session-history') {
       close();
+    } else {
+      setMenuMode('session-history');
+      refetchSessions();
     }
-  }, [menuMode, setMenuMode, close]);
+  }, [menuMode, close, refetchSessions]);
+
+  // Handler for opening PR widget from button
+  const openPRWidget = useCallback(() => {
+    if (menuMode === 'pr-widget') {
+      close();
+    } else {
+      setMenuMode('pr-widget');
+    }
+  }, [menuMode, close]);
 
   return {
     menu,
     menuMode,
     isMenuOpen: menuMode !== 'hidden',
     closeMenu: close,
-    onMenuButtonClick,
+    openSessionHistory,
+    openPRWidget,
   };
 }
 
@@ -252,12 +344,16 @@ function useSlashCommands({
   onMaxSize,
   onMedSize,
   onNew,
+  onFeedback,
+  onLangfuse,
 }: {
+  onFeedback: (() => void) | undefined;
+  onLangfuse: () => void;
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
 }): MenuItemProps[] {
-  const openFeedbackForm = useFeedbackForm();
+  const isSentryEmployee = useIsSentryEmployee();
 
   return useMemo(
     (): MenuItemProps[] => [
@@ -285,25 +381,28 @@ function useSlashCommands({
         description: 'Set panel to medium size (default)',
         handler: onMedSize,
       },
-      ...(openFeedbackForm
+      ...(onFeedback
         ? [
             {
               title: '/feedback',
               key: '/feedback',
               description: 'Open feedback form to report issues or suggestions',
-              handler: () =>
-                openFeedbackForm({
-                  formTitle: 'Seer Explorer Feedback',
-                  messagePlaceholder: 'How can we make Seer Explorer better for you?',
-                  tags: {
-                    ['feedback.source']: 'seer_explorer',
-                  },
-                }),
+              handler: () => onFeedback(),
+            },
+          ]
+        : []),
+      ...(isSentryEmployee
+        ? [
+            {
+              title: '/langfuse',
+              key: '/langfuse',
+              description: 'Open Langfuse to view session details',
+              handler: onLangfuse,
             },
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, openFeedbackForm]
+    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, isSentryEmployee]
   );
 }
 
@@ -314,27 +413,35 @@ function useSessions({
   onChangeSession: (runId: number) => void;
   enabled?: boolean;
 }) {
-  const {data, isPending, isError, refetch} = useExplorerSessions({limit: 20, enabled});
+  const organization = useOrganization({allowNull: true});
+  const hasFeature = organization?.features.includes('seer-explorer');
+
+  const {data, isPending, isError, refetch} = useExplorerSessions({
+    limit: 20,
+    enabled: enabled && hasFeature,
+  });
 
   const sessionItems = useMemo(() => {
     if (isPending || isError) {
       return [];
     }
 
-    return data.data.map(session => ({
-      title: session.title,
-      key: session.run_id.toString(),
-      description: (
-        <TimeSince
-          tooltipPrefix="Last updated"
-          date={moment.utc(session.last_triggered_at).toDate()}
-          suffix="ago"
-        />
-      ),
-      handler: () => {
-        onChangeSession(session.run_id);
-      },
-    }));
+    return data.data.map(
+      (session: {last_triggered_at: moment.MomentInput; run_id: number; title: any}) => ({
+        title: session.title,
+        key: session.run_id.toString(),
+        description: (
+          <TimeSince
+            tooltipPrefix="Last updated"
+            date={moment.utc(session.last_triggered_at).toDate()}
+            suffix="ago"
+          />
+        ),
+        handler: () => {
+          onChangeSession(session.run_id);
+        },
+      })
+    );
   }, [data, isPending, isError, onChangeSession]);
 
   return {
@@ -350,12 +457,10 @@ const MenuPanel = styled('div')<{
   panelSize: 'max' | 'med';
 }>`
   position: absolute;
-  bottom: 100%;
-  left: ${space(2)};
   width: 300px;
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   max-height: ${p =>
     p.panelSize === 'max' ? 'calc(100vh - 120px)' : `calc(50vh - 80px)`};
@@ -366,20 +471,22 @@ const MenuPanel = styled('div')<{
 const MenuItem = styled('div')<{isSelected: boolean}>`
   padding: ${p => p.theme.space.md};
   cursor: pointer;
-  background: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
-  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p =>
+    p.isSelected
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : 'transparent'};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
 const ItemName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.sm};
   overflow: hidden;
   text-overflow: ellipsis;

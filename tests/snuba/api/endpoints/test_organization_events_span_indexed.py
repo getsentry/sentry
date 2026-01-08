@@ -11,7 +11,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.snuba_rpc import _make_rpc_requests
+from sentry.utils.snuba_rpc import _make_rpc_requests, table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 # Downsampling is deterministic, so unless the algorithm changes we can find a known id that will appear in the
@@ -6233,6 +6233,90 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         assert meta["dataset"] == "spans"
 
+    def test_count_if_between(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=299,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=300,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=399,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                    duration=200,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["count_if(span.duration,between,300,399)"],
+                "query": "",
+                "orderby": "count_if(span.duration,between,300,399)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count_if(span.duration,between,300,399)": 2,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
+    def test_count_if_between_raises_with_second_value_missing(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["count_if(span.duration,between,300)"],
+                "query": "",
+                "orderby": "count_if(span.duration,between,300)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert "between operator requires two values" in response.data["detail"]
+
+    def test_count_if_between_raises_with_second_value_less_than_first(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["count_if(span.duration,between,300,299)"],
+                "query": "",
+                "orderby": "count_if(span.duration,between,300,299)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert (
+            "Fourth Parameter 299 Must Be Greater Than Third Parameter 300"
+            in response.data["detail"].title()
+        )
+
     def test_count_if_numeric_raises_invalid_search_query_with_bad_value(self) -> None:
         response = self.do_request(
             {
@@ -6245,7 +6329,10 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         assert response.status_code == 400, response.content
-        assert "Invalid Parameter " in response.data["detail"].title()
+        assert (
+            "Invalid Third Parameter Three. Must Be Of Type Number"
+            in response.data["detail"].title()
+        )
 
     def test_count_if_integer(self) -> None:
         self.store_spans(
@@ -6975,3 +7062,52 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert returned_ids == {span1["span_id"], span2["span_id"]}
 
         assert span3["span_id"] not in returned_ids
+
+    def test_no_project_sent_spans(self):
+        project1 = self.create_project(flags=0)
+        project2 = self.create_project(flags=0)
+
+        request = {
+            "field": ["timestamp", "span.description"],
+            "project": [project1.id, project2.id],
+            "dataset": "spans",
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == []
+
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_sent_spans_project_optimization(self, mock_table_rpc):
+        project1 = self.create_project(flags=0)
+        project2 = self.create_project(flags=0)
+
+        spans = [
+            self.create_span({"description": "foo"}, project=project1, start_ts=self.ten_mins_ago),
+        ]
+        self.store_spans(spans, is_eap=True)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "timestamp",
+                    "span.description",
+                ],
+                "dataset": "spans",
+                "project": [project1.id, project2.id],
+            }
+        )
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "timestamp": mock.ANY,
+                "span.description": "foo",
+                "project.name": project1.slug,
+            }
+        ]
+
+        mock_table_rpc.assert_called_once()
+        assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]

@@ -17,7 +17,6 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
-    _can_use_prevent_ai_features,
     check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
@@ -26,6 +25,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_sentry_organization_ids,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 
@@ -293,63 +293,6 @@ class TestSeerRpcMethods(APITestCase):
             "consent": False,
             "consent_url": self.organization.absolute_url("/settings/organization/"),
         }
-
-    def test_can_use_prevent_ai_features_without_gen_ai_flag(self) -> None:
-        """Test that _can_use_prevent_ai_features returns False when gen-ai-features flag is disabled"""
-        # Enable PR review and disable hide_ai_features (should normally pass)
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
-
-        # Without the feature flag enabled, should return False
-        result = _can_use_prevent_ai_features(self.organization)
-        assert result is False
-
-    def test_can_use_prevent_ai_features_with_gen_ai_flag(self) -> None:
-        """Test that _can_use_prevent_ai_features checks org-level flags when gen-ai-features is enabled"""
-        from sentry.testutils.helpers.features import with_feature
-
-        # Enable PR review and disable hide_ai_features
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
-
-        # With the feature flag enabled and correct org settings, should return True
-        with with_feature("organizations:gen-ai-features"):
-            result = _can_use_prevent_ai_features(self.organization)
-            assert result is True
-
-    def test_can_use_prevent_ai_features_with_gen_ai_flag_but_hide_ai(self) -> None:
-        """Test that _can_use_prevent_ai_features returns False when hide_ai_features is True"""
-        from sentry.testutils.helpers.features import with_feature
-
-        # Enable PR review but enable hide_ai_features
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
-
-        # Even with feature flag enabled, should return False due to hide_ai_features
-        with with_feature("organizations:gen-ai-features"):
-            result = _can_use_prevent_ai_features(self.organization)
-            assert result is False
-
-    def test_can_use_prevent_ai_features_with_gen_ai_flag_but_no_pr_review(self) -> None:
-        """Test that _can_use_prevent_ai_features returns False when PR review is disabled"""
-        from sentry.testutils.helpers.features import with_feature
-
-        # Disable PR review but disable hide_ai_features
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", False
-        )
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
-
-        # Even with feature flag enabled, should return False due to PR review being disabled
-        with with_feature("organizations:gen-ai-features"):
-            result = _can_use_prevent_ai_features(self.organization)
-            assert result is False
 
     def test_get_attributes_for_span(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -974,7 +917,7 @@ class TestSeerRpcMethods(APITestCase):
             "success": False,
             "error": "Seer webhooks are not enabled for this organization",
         }
-        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
 
     @patch("sentry.features.has")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
@@ -991,7 +934,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"success": True}
-        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
         mock_delay.assert_called_once_with(
             resource_name="seer",
             event_name="root_cause_started",
@@ -1025,6 +968,54 @@ class TestSeerRpcMethods(APITestCase):
 
         # Verify that the task was called for each valid event
         assert mock_delay.call_count == len(seer_events)
+
+    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_operator_no_feature_flag(
+        self, mock_broadcast, mock_process_autofix_updates
+    ) -> None:
+        """Slack workflows flag should not affect broadcasting the webhooks."""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        with self.feature("organizations:seer-webhooks"):
+            result = send_seer_webhook(
+                event_name="root_cause_completed",
+                organization_id=self.organization.id,
+                payload={"run_id": 123},
+            )
+
+        assert result["success"]
+        mock_process_autofix_updates.assert_not_called()
+        mock_broadcast.assert_called_once()
+
+    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
+        """Slack workflows flag should not affect broadcasting the webhooks."""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        event_payload = {"run_id": 123}
+        event_name = "root_cause_completed"
+
+        with (
+            self.feature("organizations:seer-webhooks"),
+            self.feature("organizations:seer-slack-workflows"),
+        ):
+            result = send_seer_webhook(
+                event_name=event_name,
+                organization_id=self.organization.id,
+                payload=event_payload,
+            )
+
+        assert result["success"]
+        mock_process_autofix_updates.apply_async.assert_called_once_with(
+            kwargs={
+                "run_id": event_payload["run_id"],
+                "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+                "event_payload": event_payload,
+            },
+        )
+        mock_broadcast.assert_called_once()
 
     def test_check_repository_integrations_status_empty_list(self) -> None:
         """Test with empty input list"""

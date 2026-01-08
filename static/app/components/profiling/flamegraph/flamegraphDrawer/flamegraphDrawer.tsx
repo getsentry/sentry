@@ -1,6 +1,5 @@
 import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -23,7 +22,6 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -49,7 +47,6 @@ interface FlamegraphDrawerProps {
 const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
   const params = useParams();
   const orgSlug = useOrganization().slug;
-  const theme = useTheme();
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
@@ -211,7 +208,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <ProfilingDetailsListItem margin="none">
             <ExportProfileButton
               size="zero"
-              priority={theme.isChonk ? 'transparent' : undefined}
+              priority="transparent"
               eventId={params.eventId}
               projectId={params.projectId}
               orgId={orgSlug}
@@ -224,8 +221,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <LayoutSelectionContainer>
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
-                active={flamegraphPreferences.layout === 'table left'}
+                priority="transparent"
                 onClick={onTableLeftClick}
                 title={t('Table left')}
                 aria-label={t('Table left')}
@@ -235,8 +231,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
-                active={flamegraphPreferences.layout === 'table bottom'}
+                priority="transparent"
                 onClick={onTableBottomClick}
                 title={t('Table bottom')}
                 aria-label={t('Table bottom')}
@@ -246,8 +241,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
-                active={flamegraphPreferences.layout === 'table right'}
+                priority="transparent"
                 onClick={onTableRightClick}
                 title={t('Table right')}
                 aria-label={t('Table right')}
@@ -301,7 +295,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
 const ResizableVerticalDrawer = styled('div')`
   width: 1px;
   grid-area: drawer;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   position: relative;
 `;
 
@@ -357,7 +351,7 @@ const Separator = styled('li')`
   width: 1px;
   height: 66%;
   margin: 0 ${space(1)};
-  background: 1px solid ${p => p.theme.border};
+  background: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
 `;
 
@@ -366,8 +360,8 @@ export const ProfilingDetailsFrameTabs = styled('ul')`
   list-style-type: none;
   padding: 0 ${space(1)};
   margin: 0;
-  border-top: 1px solid ${prop => prop.theme.border};
-  background-color: ${props => props.theme.surface200};
+  border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
+  background-color: ${props => props.theme.colors.surface300};
   user-select: none;
   grid-area: tabs;
 `;
@@ -391,7 +385,7 @@ export const ProfilingDetailsListItem = styled('li')<{
     font-weight: ${p => p.theme.fontWeight.normal};
     margin: 0;
 
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
 
     display: inline-block;
 
@@ -407,7 +401,7 @@ export const ProfilingDetailsListItem = styled('li')<{
     }
 
     &:hover {
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 
@@ -417,22 +411,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   }
 `;
 
-const StyledButton = withChonk(
-  styled(Button)<{active: boolean}>`
-    opacity: ${p => (p.active ? 0.7 : 0.5)};
-    padding: ${space(0.5)} ${space(0.5)};
-    background-color: transparent;
-
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-      opacity: ${p => (p.active ? 0.6 : 0.5)};
-    }
-  `,
-  Button
-);
+const StyledButton = Button;
 
 const LayoutSelectionContainer = styled('div')`
   display: flex;

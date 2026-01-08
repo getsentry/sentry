@@ -131,7 +131,7 @@ function TryBusinessSidebarItem(props: Props) {
 const StackedNavTrialStartedSidebarItem = styled(TrialStartedSidebarItem)`
   margin: 0;
   padding: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 export default withSubscription(TryBusinessSidebarItem, {noLoader: true});

@@ -8,10 +8,11 @@ import {
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -94,8 +95,8 @@ export function TransactionSearchQueryBuilder({
   );
 
   // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
-  const getTransactionFilterTagValues = useCallback(
-    async (tag: Tag, queryString: string) => {
+  const getTransactionFilterTagValues = useCallback<GetTagValues>(
+    async (tag, queryString) => {
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't

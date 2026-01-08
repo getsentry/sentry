@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -12,16 +13,16 @@ import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/a
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -130,7 +131,7 @@ function EventTagsTreeRowDropdown({
   const organization = useOrganization();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {copy} = useCopyToClipboard();
-  const {mutate: saveTag} = useMutateProject({organization, project});
+  const {mutate: saveTag} = useUpdateProject(project);
   const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
 
@@ -230,9 +231,27 @@ function EventTagsTreeRowDropdown({
       label: t('Add to event highlights'),
       hidden: hideAddHighlightsOption || !isProjectAdmin || isFeedback,
       onAction: () => {
-        saveTag({
-          highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
-        });
+        saveTag(
+          {
+            highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
+          },
+          {
+            onError: () => {
+              addErrorMessage(
+                tct(`Failed to update '[projectName]' project`, {
+                  projectName: project.name,
+                })
+              );
+            },
+            onSuccess: () => {
+              addSuccessMessage(
+                tct(`Successfully updated '[projectName]' project`, {
+                  projectName: project.name,
+                })
+              );
+            },
+          }
+        );
       },
     },
     {
@@ -337,7 +356,7 @@ function EventTagsTreeValue({
           projectSlug={project.slug}
           releaseVersion={content.value}
           showUnderline
-          underlineColor="linkUnderline"
+          underlineColor="muted"
         >
           <Version version={content.value} truncate shouldWrapText />
         </VersionHoverCard>
@@ -408,7 +427,7 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors ? p.theme.alert.danger.backgroundLight : p.theme.backgroundSecondary};
   }
   .invisible {
     visibility: hidden;
@@ -419,24 +438,28 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
       visibility: visible;
     }
   }
-  color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
+  color: ${p => (p.hasErrors ? p.theme.alert.danger.color : p.theme.subText)};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors
+      ? p.theme.alert.danger.backgroundLight
+      : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+    ${p => (p.hasErrors ? p.theme.alert.danger.border : 'transparent')};
 `;
 
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.error.border : p.theme.border)};
+  border: 1px solid
+    ${p => (p.hasErrors ? p.theme.alert.danger.border : p.theme.tokens.border.primary)};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -470,7 +493,7 @@ const TreeValue = styled('div')<{hasErrors?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
 `;
 
 const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
@@ -504,8 +527,8 @@ const TreeValueErrors = styled('div')`
 `;
 
 const TagLinkText = styled('span')`
-  color: ${p => p.theme.linkColor};
-  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
   margin: 0;
   &:hover,
   &:focus {

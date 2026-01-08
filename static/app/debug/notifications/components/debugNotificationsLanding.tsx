@@ -8,14 +8,11 @@ import heroImg from 'sentry-images/debug/notifications/hero.png';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Heading, Text} from 'sentry/components/core/text';
 // Mimicking useStoriesDarkMode -> Don't use these elsewhere please 🙏
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme} from 'sentry/utils/theme/theme';
 
 function DarkModeProvider(props: PropsWithChildren) {
-  return (
-    <ThemeProvider theme={DO_NOT_USE_darkChonkTheme as any}>
-      {props.children}
-    </ThemeProvider>
-  );
+  return <ThemeProvider theme={darkTheme}>{props.children}</ThemeProvider>;
 }
 
 export function DebugNotificationsLanding() {

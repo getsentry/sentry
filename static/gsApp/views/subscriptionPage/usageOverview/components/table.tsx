@@ -4,9 +4,12 @@ import styled from '@emotion/styled';
 import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 
-import {UNLIMITED_RESERVED} from 'getsentry/constants';
-import {AddOnCategory} from 'getsentry/types';
-import {getBilledCategory, supportsPayg} from 'getsentry/utils/billing';
+import {
+  checkIsAddOnChildCategory,
+  getBilledCategory,
+  getReservedBudgetCategoryForAddOn,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import {sortCategories} from 'getsentry/utils/dataCategory';
 import UsageOverviewTableRow from 'getsentry/views/subscriptionPage/usageOverview/components/tableRow';
 import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
@@ -18,9 +21,9 @@ function UsageOverviewTable({
   selectedProduct,
   usageData,
 }: UsageOverviewTableProps) {
-  const addOnDataCategories = Object.values(
-    subscription.planDetails.addOnCategories
-  ).flatMap(addOnInfo => addOnInfo.dataCategories);
+  const addOnDataCategories = Object.values(subscription.planDetails.addOnCategories)
+    .flatMap(addOnInfo => addOnInfo.dataCategories)
+    .filter(category => checkIsAddOnChildCategory(subscription, category, true));
   const sortedCategories = sortCategories(subscription.categories);
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
@@ -53,9 +56,7 @@ function UsageOverviewTable({
           .filter(
             categoryInfo =>
               // filter out data categories that are part of add-ons
-              // unless they are unlimited
-              !addOnDataCategories.includes(categoryInfo.category) ||
-              categoryInfo.reserved === UNLIMITED_RESERVED
+              !addOnDataCategories.includes(categoryInfo.category)
           )
           .map(categoryInfo => {
             const {category} = categoryInfo;
@@ -75,18 +76,8 @@ function UsageOverviewTable({
         {Object.values(subscription.planDetails.addOnCategories)
           .filter(
             // show add-ons regardless of whether they're enabled
-            // as long as they're launched for the org
-            // and none of their sub-categories are unlimited
-            // Also do not show Seer if the legacy Seer add-on is enabled
-            addOnInfo =>
-              (!addOnInfo.billingFlag ||
-                organization.features.includes(addOnInfo.billingFlag)) &&
-              !addOnInfo.dataCategories.some(
-                category =>
-                  subscription.categories[category]?.reserved === UNLIMITED_RESERVED
-              ) &&
-              (addOnInfo.apiName !== AddOnCategory.SEER ||
-                !subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled)
+            // as long as they're available
+            addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
           )
           .map(addOnInfo => {
             const {apiName, dataCategories} = addOnInfo;
@@ -94,6 +85,19 @@ function UsageOverviewTable({
             if (!billedCategory) {
               return null;
             }
+
+            // if any sub-category has non-zero or non-reserved budget reserved volume, don't show the add-on
+            // we will render the individual sub-categories alone as part of `sortedCategories`
+            // NOTE: this assumes that the same is true for all sibling sub-categories of the add-on
+            if (
+              dataCategories.some(
+                category => !checkIsAddOnChildCategory(subscription, category, true)
+              )
+            ) {
+              return null;
+            }
+
+            const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
 
             return (
               <Fragment key={apiName}>
@@ -105,25 +109,30 @@ function UsageOverviewTable({
                   usageData={usageData}
                   organization={organization}
                 />
-                {sortedCategories
-                  .filter(categoryInfo => dataCategories.includes(categoryInfo.category))
-                  .map(categoryInfo => {
-                    const {category} = categoryInfo;
+                {/* Only show sub-categories if it's a reserved budget add-on */}
+                {reservedBudgetCategory
+                  ? sortedCategories
+                      .filter(categoryInfo =>
+                        dataCategories.includes(categoryInfo.category)
+                      )
+                      .map(categoryInfo => {
+                        const {category} = categoryInfo;
 
-                    return (
-                      <UsageOverviewTableRow
-                        key={category}
-                        product={category}
-                        selectedProduct={selectedProduct}
-                        onRowClick={onRowClick}
-                        subscription={subscription}
-                        isChildProduct
-                        parentProduct={apiName}
-                        usageData={usageData}
-                        organization={organization}
-                      />
-                    );
-                  })}
+                        return (
+                          <UsageOverviewTableRow
+                            key={category}
+                            product={category}
+                            selectedProduct={selectedProduct}
+                            onRowClick={onRowClick}
+                            subscription={subscription}
+                            isChildProduct
+                            parentProduct={apiName}
+                            usageData={usageData}
+                            organization={organization}
+                          />
+                        );
+                      })
+                  : null}
               </Fragment>
             );
           })}
@@ -136,30 +145,26 @@ export default UsageOverviewTable;
 
 const Table = styled('table')`
   display: grid;
-  grid-template-columns: auto max-content auto;
-  background: ${p => p.theme.background};
-  border-top: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  grid-template-columns: repeat(3, auto);
+  background: ${p => p.theme.tokens.background.primary};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   gap: 0 ${p => p.theme.space['3xl']};
   width: 100%;
   margin: 0;
 
-  thead,
-  tbody,
-  tr {
+  & > thead,
+  & > tbody,
+  & > * > tr {
     display: grid;
     grid-template-columns: subgrid;
     grid-column: 1 / -1;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(3, auto);
   }
 `;
 
 const TableHeaderRow = styled('tr')`
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   text-transform: uppercase;
   padding: ${p => p.theme.space.xl};
 `;

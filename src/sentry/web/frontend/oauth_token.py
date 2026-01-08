@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
+from django.db import router
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -15,11 +16,11 @@ from rest_framework.request import Request
 
 from sentry import options
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
-from sentry.models.apigrant import ApiGrant
+from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
@@ -139,8 +140,12 @@ class OAuthTokenView(View):
             return self.error(request=request, name="unsupported_grant_type")
 
         try:
+            # Note: We don't filter by status here to distinguish between invalid
+            # credentials (unknown client) and inactive applications. This allows
+            # proper grant cleanup per RFC 6749 §10.5 and clearer metrics.
             application = ApiApplication.objects.get(
-                client_id=client_id, client_secret=client_secret, status=ApiApplicationStatus.active
+                client_id=client_id,
+                client_secret=client_secret,
             )
         except ApiApplication.DoesNotExist:
             metrics.incr(
@@ -153,6 +158,34 @@ class OAuthTokenView(View):
                 name="invalid_client",
                 reason="invalid client_id or client_secret",
                 status=401,
+            )
+
+        # Check application status separately from credential validation.
+        # This preserves metric clarity and provides consistent error handling.
+        if application.status != ApiApplicationStatus.active:
+            metrics.incr(
+                "oauth_token.post.inactive_application",
+                sample_rate=1.0,
+            )
+            logger.warning(
+                "Token request for inactive application",
+                extra={"client_id": client_id, "application_id": application.id},
+            )
+            # For authorization_code, invalidate the grant per RFC 6749 §10.5
+            if grant_type == GrantTypes.AUTHORIZATION:
+                code = request.POST.get("code")
+                if code:
+                    # Use unguarded_write because deleting the grant triggers SET_NULL on
+                    # SentryAppInstallation.api_grant, which is a cross-model write
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        ApiGrant.objects.filter(application=application, code=code).delete()
+            # Use invalid_grant per RFC 6749 §5.2: grants/tokens are effectively "revoked"
+            # when the application is deactivated. invalid_client would be incorrect here
+            # since client authentication succeeded (we verified the credentials).
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="application not active",
             )
 
         # Defense-in-depth: verify the application's client_id matches the request.
@@ -275,34 +308,44 @@ class OAuthTokenView(View):
     def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
         code = request.POST.get("code")
         try:
-            grant = ApiGrant.objects.get(
-                application=application, application__status=ApiApplicationStatus.active, code=code
-            )
+            grant = ApiGrant.objects.get(application=application, code=code)
         except ApiGrant.DoesNotExist:
             return {"error": "invalid_grant", "reason": "invalid grant"}
 
-        if grant.is_expired():
-            return {"error": "invalid_grant", "reason": "grant expired"}
-
-        # Enforce redirect_uri binding (RFC 6749 §4.1.3)
-        redirect_uri = request.POST.get("redirect_uri")
-        if grant.redirect_uri and grant.redirect_uri != redirect_uri:
-            return {"error": "invalid_grant", "reason": "invalid redirect URI"}
+        # Save data needed for OpenID before from_grant deletes the grant
+        grant_has_openid = grant.has_scope("openid")
+        grant_user_id = grant.user_id
 
         try:
-            token_data = {"token": ApiToken.from_grant(grant=grant)}
-        except UnableToAcquireLock:
-            # TODO(mdtro): we should return a 409 status code here
-            return {"error": "invalid_grant", "reason": "invalid grant"}
+            api_token = ApiToken.from_grant(
+                grant=grant,
+                redirect_uri=request.POST.get("redirect_uri", ""),
+                code_verifier=request.POST.get("code_verifier"),
+            )
+        except InvalidGrantError as e:
+            return {"error": "invalid_grant", "reason": str(e) if str(e) else "invalid grant"}
+        except ExpiredGrantError as e:
+            return {"error": "invalid_grant", "reason": str(e) if str(e) else "grant expired"}
 
-        if grant.has_scope("openid") and options.get("codecov.signing_secret"):
+        token_data = {"token": api_token}
+
+        # OpenID token generation (stays in endpoint)
+        if grant_has_openid and options.get("codecov.signing_secret"):
             open_id_token = OpenIDToken(
                 application.client_id,
-                grant.user_id,
+                grant_user_id,
                 options.get("codecov.signing_secret"),
                 nonce=request.POST.get("nonce"),
             )
-            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant)
+            # Use api_token.user instead of grant since grant is deleted
+            from types import SimpleNamespace
+
+            grant_data = SimpleNamespace(
+                user_id=grant_user_id,
+                has_scope=lambda s: s in api_token.get_scopes(),
+                user=api_token.user,
+            )
+            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant_data)
 
         return token_data
 

@@ -20,10 +20,17 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.types import (
+    AutofixCreatePRPayload,
+    AutofixSelectRootCausePayload,
+    AutofixSelectSolutionPayload,
+    AutofixUpdateRequest,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_repos_from_project_code_mappings,
@@ -341,7 +348,15 @@ def _respond_with_error(reason: str, status: int):
 
 
 def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
-    """Get GitHub username for a user by checking ExternalActor mappings."""
+    """
+    Get GitHub username for a user by checking multiple sources.
+
+    This function attempts to resolve a Sentry user to their GitHub username by:
+    1. Checking ExternalActor for explicit user→GitHub mappings
+    2. Falling back to CommitAuthor records matched by email (like suspect commits)
+    3. Extracting the GitHub username from the CommitAuthor external_id
+    """
+    # Method 1: Check ExternalActor for direct user→GitHub mapping
     external_actor: ExternalActor | None = (
         ExternalActor.objects.filter(
             user_id=user.id,
@@ -358,6 +373,36 @@ def _get_github_username_for_user(user: User | RpcUser, organization_id: int) ->
     if external_actor and external_actor.external_name:
         username = external_actor.external_name
         return username[1:] if username.startswith("@") else username
+
+    # Method 2: Check CommitAuthor by email matching (like suspect commits does)
+    # Get all verified emails for this user
+    user_emails: list[str] = []
+    try:
+        # Both User and RpcUser models have a get_verified_emails method
+        if hasattr(user, "get_verified_emails"):
+            verified_emails = user.get_verified_emails()
+            user_emails.extend([e.email for e in verified_emails])
+    except Exception:
+        # If we can't get verified emails, don't use any
+        pass
+
+    if user_emails:
+        # Find CommitAuthors with matching emails that have GitHub external_id
+        commit_author = (
+            CommitAuthor.objects.filter(
+                organization_id=organization_id,
+                email__in=[email.lower() for email in user_emails],
+                external_id__isnull=False,
+            )
+            .exclude(external_id="")
+            .order_by("-id")
+            .first()
+        )
+
+        if commit_author:
+            commit_username = commit_author.get_username_from_external_id()
+            if commit_username:
+                return commit_username
 
     return None
 
@@ -560,7 +605,7 @@ def trigger_autofix(
         )
 
     # check billing quota for autofix
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     )
@@ -664,3 +709,34 @@ def trigger_autofix(
         },
         status=202,
     )
+
+
+def update_autofix(
+    *,
+    run_id: int,
+    payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
+) -> Response:
+    """
+    Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
+    """
+
+    path = "/v1/automation/autofix/update"
+    data = AutofixUpdateRequest(run_id=run_id, payload=payload)
+    body = orjson.dumps(data)
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={"content-type": "application/json;charset=utf-8", **sign_with_seer_secret(body)},
+    )
+
+    try:
+        response.raise_for_status()
+    except Exception:
+        return Response({"detail": "Failed to update autofix run"}, status=500)
+
+    try:
+        response_data = response.json()
+    except Exception:
+        return Response({"detail": "Seer returned an invalid response"}, status=500)
+
+    return Response(response_data, status=200)

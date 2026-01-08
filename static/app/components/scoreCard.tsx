@@ -63,7 +63,7 @@ export function ScoreCard({
 function getTrendColor(p: TrendProps & {theme: Theme}) {
   switch (p.trendStatus) {
     case 'good':
-      return p.theme.successText;
+      return p.theme.tokens.content.success;
     case 'bad':
       return p.theme.errorText;
     default:
@@ -89,7 +89,7 @@ const HeaderTitle = styled('div')`
 
 export const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
@@ -105,7 +105,7 @@ export const Score = styled('span')`
   flex-shrink: 1;
   font-size: 32px;
   line-height: 1;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
 `;
 

@@ -150,7 +150,7 @@ function MemberInviteModalCustomization({
       }
       return (
         <TrialInfo>
-          <IconBusiness gradient withShine size="md" />
+          <IconBusiness size="md" />
           {trialStartText}
           {upgradeOrTrialButton}
         </TrialInfo>

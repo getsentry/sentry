@@ -1,16 +1,21 @@
 import trimStart from 'lodash/trimStart';
 
 import type {Client, ResponseMeta} from 'sentry/api';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {
+  AggregationOutputType,
+  DataUnit,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -33,6 +38,7 @@ import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
+import {TraceMetricsConfig} from './traceMetrics';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
@@ -43,6 +49,7 @@ export type WidgetBuilderSearchBarProps = {
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
   disabled?: boolean;
+  index?: number;
   portalTarget?: HTMLElement | null;
 };
 
@@ -54,7 +61,7 @@ export type SearchBarDataProviderProps = {
 export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];
   getFilterKeys: () => TagCollection;
-  getTagValues: (tag: Tag, searchQuery: string) => Promise<string[]>;
+  getTagValues: GetTagValues;
 }
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -201,6 +208,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery
   ) => Record<string, AggregationOutputType>;
   /**
+   * Get the result unit of the series. ie milliseconds, bytes, etc
+   */
+  getSeriesResultUnit?: (
+    data: SeriesResponse,
+    widgetQuery: WidgetQuery
+  ) => Record<string, DataUnit>;
+  /**
    * Generate the request promises for fetching
    * tabular data.
    */
@@ -275,7 +289,9 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
           ? typeof LogsConfig
           : T extends WidgetType.SPANS
             ? typeof SpansConfig
-            : typeof ErrorsAndTransactionsConfig;
+            : T extends WidgetType.TRACEMETRICS
+              ? typeof TraceMetricsConfig
+              : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -286,7 +302,8 @@ export function getDatasetConfig(
   | typeof ErrorsConfig
   | typeof TransactionsConfig
   | typeof LogsConfig
-  | typeof SpansConfig {
+  | typeof SpansConfig
+  | typeof TraceMetricsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -300,6 +317,8 @@ export function getDatasetConfig(
       return LogsConfig;
     case WidgetType.SPANS:
       return SpansConfig;
+    case WidgetType.TRACEMETRICS:
+      return TraceMetricsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

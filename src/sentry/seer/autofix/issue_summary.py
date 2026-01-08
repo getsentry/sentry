@@ -18,6 +18,7 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
+from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     FixabilityScoreThresholds,
@@ -27,6 +28,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
@@ -168,13 +170,24 @@ def _trigger_autofix_task(
         else:
             user = AnonymousUser()
 
-        trigger_autofix(
-            group=group,
-            event_id=event_id,
-            user=user,
-            auto_run_source=auto_run_source,
-            stopping_point=stopping_point,
-        )
+        # Route to explorer-based autofix if both feature flags are enabled
+        if features.has("organizations:seer-explorer", group.organization) and features.has(
+            "organizations:autofix-on-explorer", group.organization
+        ):
+            trigger_autofix_explorer(
+                group=group,
+                step=AutofixStep.ROOT_CAUSE,
+                run_id=None,
+                stopping_point=stopping_point,
+            )
+        else:
+            trigger_autofix(
+                group=group,
+                event_id=event_id,
+                user=user,
+                auto_run_source=auto_run_source,
+                stopping_point=stopping_point,
+            )
 
 
 def _get_event(
@@ -253,13 +266,18 @@ fixability_connection_pool_gpu = connection_from_url(
 )
 
 
-def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
-    payload = {
+def _generate_fixability_score(
+    group: Group,
+    summary: dict[str, Any] | None = None,
+) -> SummarizeIssueResponse:
+    payload: dict[str, Any] = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
         "organization_id": group.organization.id,
         "project_id": group.project.id,
     }
+    if summary is not None:
+        payload["summary"] = summary
     response = make_signed_seer_api_request(
         fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
@@ -272,7 +290,11 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     return SummarizeIssueResponse.validate(response_data)
 
 
-def get_and_update_group_fixability_score(group: Group, force_generate: bool = False) -> float:
+def get_and_update_group_fixability_score(
+    group: Group,
+    force_generate: bool = False,
+    summary: dict[str, Any] | None = None,
+) -> float:
     """
     Get the fixability score for a group and update the group with the score.
     If the fixability score is already set, return it without generating a new one.
@@ -281,7 +303,7 @@ def get_and_update_group_fixability_score(group: Group, force_generate: bool = F
         return group.seer_fixability_score
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
+        issue_summary = _generate_fixability_score(group, summary=summary)
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")
@@ -321,28 +343,17 @@ def run_automation(
         return
 
     # Check event count for ALERT source with triage-signals-v0-org
-    if source == SeerAutomationSource.ALERT and features.has(
-        "organizations:triage-signals-v0-org", group.organization
-    ):
-        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-        times_seen = (
-            group.times_seen_with_pending
-            if hasattr(group, "_times_seen_pending")
-            else group.times_seen
-        )
-        if times_seen < 10:
-            logger.info(
-                "Triage signals V0: skipping alert automation, event count < 10",
-                extra={
-                    "group_id": group.id,
-                    "project_slug": group.project.slug,
-                    "event_count": times_seen,
-                },
+    if is_seer_seat_based_tier_enabled(group.organization):
+        if source == SeerAutomationSource.ALERT:
+            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+            times_seen = (
+                group.times_seen_with_pending
+                if hasattr(group, "_times_seen_pending")
+                else group.times_seen
             )
-            return
+            if times_seen < 10:
+                return
 
-    # Only log for orgs with triage-signals-v0-org
-    if features.has("organizations:triage-signals-v0-org", group.organization):
         try:
             times_seen = group.times_seen_with_pending
         except (AssertionError, AttributeError):
@@ -378,7 +389,7 @@ def run_automation(
     ):
         return
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     )
@@ -394,7 +405,7 @@ def run_automation(
         return
 
     stopping_point = None
-    if features.has("organizations:triage-signals-v0-org", group.organization):
+    if is_seer_seat_based_tier_enabled(group.organization):
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 
         # Fetch user preference and apply as upper bound
@@ -402,14 +413,6 @@ def run_automation(
 
         stopping_point = _apply_user_preference_upper_bound(
             fixability_stopping_point, user_preference
-        )
-        logger.info(
-            "Triage signals V0 stopping point for group=%s project=%s: fixability=%s, user preference=%s, final=%s",
-            group.id,
-            group.project.slug,
-            fixability_stopping_point,
-            user_preference,
-            stopping_point,
         )
 
     _trigger_autofix_task.delay(

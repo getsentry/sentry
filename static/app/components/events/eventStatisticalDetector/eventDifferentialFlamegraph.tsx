@@ -431,9 +431,9 @@ const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
   height: 10px;
   border-radius: 2px;
   display: inline-block;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-right: ${space(0.25)};
-  background-color: ${p => p.theme.green300};
+  background-color: ${p => p.theme.colors.green400};
 `;
 
 const RIGHT_ALIGN_PLACEHOLDER_STYLES: React.CSSProperties = {
@@ -511,11 +511,11 @@ function DifferentialFlamegraphExplanationBar(
 const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.backgroundSecondary};
 `;
 
@@ -631,7 +631,7 @@ const ErrorMessageContainer = styled('div')`
   justify-content: center;
   width: 100%;
   height: 100%;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.subText};
   text-align: center;
   padding: ${space(2)} ${space(4)};

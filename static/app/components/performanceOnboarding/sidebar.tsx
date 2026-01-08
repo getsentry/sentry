@@ -161,7 +161,7 @@ function SidebarContent() {
   // The panel shouldn't be activated in this case, but if so we'll show a message
   if (projects?.length > 0 && !shouldShowPerformanceTasks(projects)) {
     return (
-      <Alert type="info" showIcon={false}>
+      <Alert variant="info" showIcon={false}>
         {t("Performance isn't supported for your projects.")}
       </Alert>
     );
@@ -417,7 +417,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -430,5 +430,5 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;

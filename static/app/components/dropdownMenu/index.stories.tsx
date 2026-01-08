@@ -8,7 +8,7 @@ import {IconCopy, IconDelete, IconDownload, IconEdit} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('DropdownMenu', (story, APIReference) => {
-  APIReference(documentation.props.DropdownMenu);
+  APIReference(documentation.props?.DropdownMenu);
 
   story('Default', () => {
     const items: MenuItemProps[] = [

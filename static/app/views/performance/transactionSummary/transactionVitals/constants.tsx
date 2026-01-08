@@ -1,10 +1,7 @@
 import type {Theme} from '@emotion/react';
 
 import {WebVital} from 'sentry/utils/fields';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {VitalGroup} from 'sentry/utils/performance/vitals/types';
-
-export const NUM_BUCKETS = 100;
 
 export const PERCENTILE = 0.75;
 
@@ -44,13 +41,3 @@ export const makeVitalGroups = (theme: Theme): VitalGroup[] =>
     ...group,
     colors: makeColors(theme).splice(0, group.vitals.length),
   }));
-
-export const makeZoomKeys = () =>
-  _VITAL_GROUPS.reduce((keys: string[], {vitals}) => {
-    vitals.forEach(vital => {
-      const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
-      keys.push(`${vitalSlug}Start`);
-      keys.push(`${vitalSlug}End`);
-    });
-    return keys;
-  }, []);

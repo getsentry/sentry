@@ -19,7 +19,6 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 type DeletableTokenProps = {
   children: React.ReactNode;
@@ -86,14 +85,14 @@ export function DeletableToken({
 }
 
 const FloatingCloseButton = styled('button')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   outline: none;
   user-select: none;
   padding: 0;
   border: none;
   color: ${p => p.theme.subText};
   border-radius: 2px 2px 0 0;
-  box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -106,14 +105,11 @@ const FloatingCloseButton = styled('button')`
   &:hover {
     outline: none;
     border: none;
-    background: ${p =>
-      isChonkTheme(p.theme)
-        ? p.theme.button.default.background
-        : p.theme.button.default.backgroundActive};
+    background: ${p => p.theme.button.default.background};
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -131,11 +127,11 @@ const Wrapper = styled('div')`
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.colors.gray100};
   }
 
   &[aria-invalid='true'] {
-    color: ${p => p.theme.red400};
+    color: ${p => p.theme.colors.red500};
   }
 
   /* Need to hide visually but keep focusable */
@@ -143,7 +139,7 @@ const Wrapper = styled('div')`
     color: ${p => p.theme.subText};
 
     &[aria-invalid='true'] {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
 
     ${FloatingCloseButton} {
@@ -164,6 +160,6 @@ const HoverFocusBorder = styled('div')`
 
   &:focus-within,
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   }
 `;
