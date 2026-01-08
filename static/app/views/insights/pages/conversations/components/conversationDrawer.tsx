@@ -64,7 +64,6 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
           <ConversationIdLabel>
             {conversation.conversationId.slice(0, 8)}
           </ConversationIdLabel>
-          <HeaderDivider />
         </HeaderContent>
       </StyledDrawerHeader>
       <StyledDrawerBody>
@@ -263,10 +262,4 @@ const ConversationIdLabel = styled('span')`
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const HeaderDivider = styled('span')`
-  width: 1px;
-  height: 16px;
-  background: ${p => p.theme.border};
 `;
