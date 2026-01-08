@@ -2600,7 +2600,6 @@ class Factories:
         )
         if date_added is not None:
             artifact.update(date_added=date_added)
-        return artifact
 
         mobile_app_info_fields = {}
         if build_version is not None:
