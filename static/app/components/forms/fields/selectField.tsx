@@ -13,6 +13,7 @@ import type {
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
@@ -102,7 +103,12 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
     }
 
     onChange?.(value, {});
-    onBlur?.(value, {});
+
+    // Prevent onBlur from firing when toggling options in a multi-select.
+    // Instead,onBlur is handled once at the component level.
+    if (!this.props.multiple) {
+      onBlur?.(value, {});
+    }
   };
 
   render() {
@@ -192,6 +198,12 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 }}
                 onChange={(val: any) => {
                   try {
+                    // Multi-select workaround: reset the "saved" indicator on change to prevent it
+                    // from appearing before the save completes (handled onBlur).
+                    if (multiple) {
+                      model.setFieldState(name, FormState.READY, false);
+                    }
+
                     if (!confirm) {
                       this.handleChange(onBlur, onChange, val);
                       return;
@@ -219,6 +231,13 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                       return;
                     }
                     throw e;
+                  }
+                }}
+                onBlur={() => {
+                  // For multiple selects, trigger onBlur when the component actually loses focus
+                  // (as opposed to on every selection which would close the menu)
+                  if (multiple) {
+                    onBlur?.(props.value, {});
                   }
                 }}
               />
