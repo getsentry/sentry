@@ -342,7 +342,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 extra={"group_id": group_id, "project_id": group.project_id},
             )
             return None
-        if not preference_response.preference:
+        if not preference_response or not preference_response.preference:
             return None
         handoff_config = preference_response.preference.automation_handoff
         if not handoff_config:
