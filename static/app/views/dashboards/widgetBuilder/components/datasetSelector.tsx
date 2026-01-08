@@ -83,6 +83,7 @@ function WidgetBuilderDatasetSelector() {
       ),
     });
   }
+
   if (isLogsEnabled(organization)) {
     datasetOptions.push({
       value: WidgetType.LOGS,
@@ -92,6 +93,7 @@ function WidgetBuilderDatasetSelector() {
       ),
     });
   }
+
   if (hasTraceMetricsDashboards) {
     datasetOptions.push({
       value: WidgetType.TRACEMETRICS,
@@ -108,6 +110,7 @@ function WidgetBuilderDatasetSelector() {
       'Issues grouped by root cause with properties like state and assignment. Use for creating custom issue lists and tracking resolution.'
     ),
   });
+
   datasetOptions.push({
     value: WidgetType.RELEASE,
     label: t('Releases'),
@@ -115,6 +118,7 @@ function WidgetBuilderDatasetSelector() {
       'Release-specific data including sessions and crash rates. Use for monitoring release health and stability across versions.'
     ),
   });
+
   datasetOptions.push(transactionsOption);
 
   return (
