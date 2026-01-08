@@ -64,12 +64,6 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "User is not authenticated"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
         query = request.data.get("query")
         if not query:
             return Response(
