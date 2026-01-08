@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
-from sentry.seer.code_review.preflight import CodeReviewPreflightService
+from sentry.seer.code_review.preflight import CodeReviewPreflightService, PreflightDenialReason
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -46,7 +46,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "org_legal_ai_consent_not_granted"
+        assert result.denial_reason == PreflightDenialReason.ORG_LEGAL_AI_CONSENT_NOT_GRANTED
 
     @with_feature("organizations:gen-ai-features")
     def test_denied_when_hide_ai_features_enabled(self) -> None:
@@ -56,7 +56,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "org_legal_ai_consent_not_granted"
+        assert result.denial_reason == PreflightDenialReason.ORG_LEGAL_AI_CONSENT_NOT_GRANTED
 
     # -------------------------------------------------------------------------
     # Org feature enablement tests
@@ -68,7 +68,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "org_not_eligible_for_code_review"
+        assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
     def test_denied_when_beta_org_has_legacy_toggle_disabled(self) -> None:
@@ -76,7 +76,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "org_pr_review_legacy_toggle_disabled"
+        assert result.denial_reason == PreflightDenialReason.ORG_PR_REVIEW_LEGACY_TOGGLE_DISABLED
 
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
     def test_allowed_when_beta_org_has_legacy_toggle_enabled(self) -> None:
@@ -128,7 +128,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "repo_code_review_disabled"
+        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_seat_based_org_has_repo_settings_disabled(self) -> None:
@@ -140,7 +140,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "repo_code_review_disabled"
+        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
@@ -242,7 +242,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "billing_missing_contributor_info"
+        assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
     def test_denied_when_missing_external_identifier(self) -> None:
@@ -257,7 +257,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "billing_missing_contributor_info"
+        assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
     def test_denied_when_contributor_does_not_exist(self) -> None:
@@ -267,7 +267,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "billing_quota_exceeded"
+        assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
 
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
@@ -286,6 +286,6 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == "billing_quota_exceeded"
+        assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
 
 """
