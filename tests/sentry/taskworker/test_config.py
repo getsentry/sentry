@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from django.conf import settings
 
+import sentry
 from sentry.conf.types.taskworker import crontab
 from sentry.taskworker.registry import taskregistry
 
@@ -75,7 +76,7 @@ def test_all_instrumented_tasks_registered() -> None:
     This prevents production issues where tasks are defined but not discoverable
     by the taskworker because their module wasn't imported.
     """
-    src_dir = Path(__file__).parent.parent.parent.parent / "src"
+    src_dir = Path(sentry.__file__).parent.parent
 
     task_modules = set()
 
