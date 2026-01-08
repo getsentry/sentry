@@ -95,6 +95,17 @@ function DashboardGrid({
       isLoading: isLoadingDashboardsLimit,
       limitMessage,
     } = dashboardLimitData;
+
+    const disableDuplicate =
+      hasReachedDashboardLimit ||
+      isLoadingDashboardsLimit ||
+      (defined(dashboard.prebuiltId) &&
+        !organization.features.includes('dashboards-prebuilt-controls'));
+
+    const disableDelete =
+      defined(dashboard.prebuiltId) ||
+      (dashboards !== undefined && dashboards.length <= 1);
+
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
@@ -106,11 +117,7 @@ function DashboardGrid({
             onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
         },
-        disabled:
-          hasReachedDashboardLimit ||
-          isLoadingDashboardsLimit ||
-          (defined(dashboard.prebuiltId) &&
-            !organization.features.includes('dashboards-prebuilt-controls')),
+        disabled: disableDuplicate,
         tooltip:
           defined(dashboard.prebuiltId) &&
           !organization.features.includes('dashboards-prebuilt-controls')
@@ -138,6 +145,12 @@ function DashboardGrid({
       },
     ];
 
+    const disabledKeys =
+      (dashboards && dashboards.length <= 1) || disableDelete ? ['dashboard-delete'] : [];
+    if (disableDuplicate) {
+      disabledKeys.push('dashboard-duplicate');
+    }
+
     return (
       <DropdownMenu
         items={menuItems}
@@ -157,7 +170,7 @@ function DashboardGrid({
           />
         )}
         position="bottom-end"
-        disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
+        disabledKeys={disabledKeys}
         offset={4}
       />
     );
