@@ -108,15 +108,10 @@ export function WrapUpStep() {
         </MaxWidthPanel>
 
         <ActionSection>
-          {!hasCompletedAnySteps && (
-            <Button
-              size="md"
-              onClick={handlePreviousStep}
-              aria-label={t('Previous Step')}
-            >
-              {t('Previous Step')}
-            </Button>
-          )}
+          <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
+            {t('Previous Step')}
+          </Button>
+
           <LinkButton
             priority="primary"
             size="md"
