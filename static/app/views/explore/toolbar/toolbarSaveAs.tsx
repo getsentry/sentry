@@ -329,7 +329,7 @@ export function ToolbarSaveAs() {
 }
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;
 
 const StyledToolbarSection = styled(ToolbarSection)`
