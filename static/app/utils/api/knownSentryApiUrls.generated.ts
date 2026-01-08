@@ -450,6 +450,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/missing-members/'
   | '/organizations/$organizationIdOrSlug/monitors-count/'
   | '/organizations/$organizationIdOrSlug/monitors-schedule-data/'
+  | '/organizations/$organizationIdOrSlug/monitors-schedule-window/'
   | '/organizations/$organizationIdOrSlug/monitors-stats/'
   | '/organizations/$organizationIdOrSlug/monitors/'
   | '/organizations/$organizationIdOrSlug/monitors/$monitorIdOrSlug/'
