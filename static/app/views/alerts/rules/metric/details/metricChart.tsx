@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -529,15 +529,40 @@ export default function MetricChart({
     ? transformComparisonTimeseriesData(eventStats?.data ?? [])
     : [];
 
-  // Get timestamps from timePeriod for anomaly threshold data
-  const startTimestamp = new Date(timePeriod.start).getTime() / 1000;
-  const endTimestamp = new Date(timePeriod.end).getTime() / 1000;
+  // Get timestamps from actual series data for anomaly threshold data
+  const metricTimestamps = useMemo(() => {
+    const firstSeries = timeSeriesData[0];
+    if (!firstSeries?.data.length) {
+      return {start: undefined, end: undefined};
+    }
+    const data = firstSeries.data;
+    const firstPoint = data[0];
+    const lastPoint = data[data.length - 1];
+
+    if (!firstPoint || !lastPoint) {
+      return {start: undefined, end: undefined};
+    }
+
+    const firstTimestamp =
+      typeof firstPoint.name === 'number'
+        ? firstPoint.name
+        : new Date(firstPoint.name).getTime();
+    const lastTimestamp =
+      typeof lastPoint.name === 'number'
+        ? lastPoint.name
+        : new Date(lastPoint.name).getTime();
+
+    return {
+      start: Math.floor(firstTimestamp / 1000),
+      end: Math.floor(lastTimestamp / 1000),
+    };
+  }, [timeSeriesData]);
 
   const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
     detectorId: rule.id ?? '',
     detectionType: rule.detectionType,
-    startTimestamp,
-    endTimestamp,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
     series: timeSeriesData,
     isLegacyAlert: true,
   });
