@@ -2,11 +2,15 @@
 
 import django.contrib.postgres.fields
 from django.db import migrations, models
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 
 
-def remove_on_command_phrase_from_triggers(apps, schema_editor):
+def remove_on_command_phrase_from_triggers(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
     """Remove 'on_command_phrase' from all code_review_triggers arrays."""
     RepositorySettings = apps.get_model("sentry", "RepositorySettings")
 
@@ -47,6 +51,7 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             remove_on_command_phrase_from_triggers,
             reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_repositorysettings"]},
         ),
         migrations.AlterField(
             model_name="repositorysettings",
