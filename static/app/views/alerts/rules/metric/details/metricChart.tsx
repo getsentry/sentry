@@ -76,6 +76,7 @@ import {
   getTraceItemTypeForDatasetAndEventType,
 } from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
 import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
@@ -346,7 +347,8 @@ export default function MetricChart({
       loading: boolean,
       timeseriesData?: Series[],
       minutesThresholdToDisplaySeconds?: number,
-      comparisonTimeseriesData?: Series[]
+      comparisonTimeseriesData?: Series[],
+      thresholdSeries?: LineSeriesOption[]
     ) => {
       const {start, end} = timePeriod;
 
@@ -402,6 +404,7 @@ export default function MetricChart({
           })
         ),
         ...getRuleChangeSeries(rule, timeseriesData, theme),
+        ...(thresholdSeries ?? []),
       ];
 
       const queryFilter =
@@ -526,6 +529,19 @@ export default function MetricChart({
     ? transformComparisonTimeseriesData(eventStats?.data ?? [])
     : [];
 
+  // Get timestamps from timePeriod for anomaly threshold data
+  const startTimestamp = new Date(timePeriod.start).getTime() / 1000;
+  const endTimestamp = new Date(timePeriod.end).getTime() / 1000;
+
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: rule.id ?? '',
+    detectionType: rule.detectionType,
+    startTimestamp,
+    endTimestamp,
+    series: timeSeriesData,
+    isLegacyAlert: true,
+  });
+
   return (
     <Fragment>
       {shouldUseSessionsStats
@@ -535,7 +551,8 @@ export default function MetricChart({
         isLoading,
         timeSeriesData,
         minutesThresholdToDisplaySeconds,
-        comparisonTimeseriesData
+        comparisonTimeseriesData,
+        anomalyThresholdSeries
       )}
     </Fragment>
   );
