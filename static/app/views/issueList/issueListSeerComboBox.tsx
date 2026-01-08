@@ -149,11 +149,10 @@ export function IssueListSeerComboBox() {
         query: queryToUse,
       });
 
-      // Build time range parameters
-      let timeParams: Record<string, string | null> = {};
+      let timeParams: Record<string, string | undefined> = {};
 
       if (resultStart && resultEnd) {
-        // Use absolute time range - strip 'Z' suffix to treat UTC dates as local time
+        // Strip 'Z' suffix to treat UTC dates as local time
         const startLocal = resultStart.endsWith('Z')
           ? resultStart.slice(0, -1)
           : resultStart;
@@ -161,18 +160,16 @@ export function IssueListSeerComboBox() {
         timeParams = {
           start: new Date(startLocal).toISOString(),
           end: new Date(endLocal).toISOString(),
-          statsPeriod: null, // Clear relative period when using absolute
+          statsPeriod: undefined,
         };
       } else if (statsPeriod) {
-        // Use relative time period
         timeParams = {
           statsPeriod,
-          start: null, // Clear absolute times when using relative
-          end: null,
+          start: undefined,
+          end: undefined,
         };
       }
 
-      // Navigate directly with query, sort, and time params to avoid race conditions
       const queryParams = {
         ...omit(location.query, ['page', 'cursor']),
         referrer: 'issue-list',
@@ -189,8 +186,6 @@ export function IssueListSeerComboBox() {
     [askSeerSuggestedQueryRef, location.pathname, location.query, navigate, organization]
   );
 
-  // enableAISearch from context already checks gen-ai-features, hideAiFeatures,
-  // and gen-ai-search-agent-translate (set in IssueSearch component)
   if (!enableAISearch) {
     return null;
   }

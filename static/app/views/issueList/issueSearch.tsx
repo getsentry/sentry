@@ -21,7 +21,6 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   const {displayAskSeer} = useSearchQueryBuilder();
 
   if (displayAskSeer) {
-    // IssueListSeerComboBox handles navigation directly to apply both query and sort
     return <IssueListSeerComboBox />;
   }
 
