@@ -779,10 +779,9 @@ class FormModel {
       this.errors.delete(id);
     }
 
-    if (this.getFieldState(id, FormState.SAVING)) {
-      // Field should no longer to "saving", but is not necessarily "ready"
-      this.setFieldState(id, FormState.SAVING, false);
-    }
+    // Resets field states used in the control state
+    this.setFieldState(id, FormState.SAVING, false);
+    this.setFieldState(id, FormState.READY, false);
   }
 
   /**
