@@ -1,5 +1,6 @@
 from unittest.mock import ANY, Mock, patch
 
+from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -8,48 +9,7 @@ from sentry.seer.entrypoints.integrations.slack import (
     SlackEntrypointCachePayload,
     _send_thread_update,
 )
-from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import TestCase
-
-RUN_ID = 123
-MOCK_SEER_WEBHOOKS = {
-    SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED: {
-        "run_id": RUN_ID,
-        "root_cause": {
-            "description": "Test description",
-            "steps": [{"title": "Step 1"}, {"title": "Step 2"}],
-        },
-    },
-    SentryAppEventType.SEER_SOLUTION_COMPLETED: {
-        "run_id": RUN_ID,
-        "solution": {
-            "description": "Test description",
-            "steps": [{"title": "Step 1"}, {"title": "Step 2"}],
-        },
-    },
-    SentryAppEventType.SEER_CODING_COMPLETED: {
-        "run_id": RUN_ID,
-        "changes": [
-            {
-                "repo_name": "Test repo",
-                "diff": "Test diff",
-                "title": "Test title",
-                "description": "Test description",
-            }
-        ],
-    },
-    SentryAppEventType.SEER_PR_CREATED: {
-        "run_id": RUN_ID,
-        "pull_requests": [
-            {
-                "pull_request": {
-                    "pr_number": 123,
-                    "pr_url": "https://github.com/owner/repo/pull/123",
-                },
-            }
-        ],
-    },
-}
 
 
 class SlackEntrypointTest(TestCase):
@@ -90,7 +50,7 @@ class SlackEntrypointTest(TestCase):
             group=self.group,
             organization_id=self.organization.id,
         )
-        ep.on_trigger_autofix_success(run_id=RUN_ID)
+        ep.on_trigger_autofix_success(run_id=MOCK_RUN_ID)
         mock_send_threaded_ephemeral_message.assert_called_with(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
@@ -138,7 +98,7 @@ class SlackEntrypointTest(TestCase):
         self, mock_send_threaded_message, mock_send_threaded_ephemeral_message
     ):
         data = SeerAutofixUpdate(
-            run_id=RUN_ID,
+            run_id=MOCK_RUN_ID,
             organization_id=self.organization.id,
             project_id=self.group.project.id,
             group_id=self.group.id,
