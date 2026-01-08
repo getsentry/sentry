@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import beautify from 'js-beautify';
+
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -9,7 +10,6 @@ import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanne
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useExtractPageHtml from 'sentry/utils/replays/hooks/useExtractPageHtml';
 
 export function ReplayTextDiff() {
@@ -29,7 +29,7 @@ export function ReplayTextDiff() {
   );
 
   return (
-    <Container>
+    <Stack flexGrow="1" gap="md" height="0">
       {!isLoading && leftBody === rightBody ? <DiffFeedbackBanner /> : null}
       <ContentSliderDiff.Header>
         <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs}>
@@ -49,24 +49,9 @@ export function ReplayTextDiff() {
           />
         </After>
       </ContentSliderDiff.Header>
-      <SplitDiffScrollWrapper>
+      <Flex flexGrow="1" height="0" overflow="auto">
         <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="lines" />
-      </SplitDiffScrollWrapper>
-    </Container>
+      </Flex>
+    </Stack>
   );
 }
-
-const Container = styled('div')`
-  height: 0;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const SplitDiffScrollWrapper = styled('div')`
-  overflow: auto;
-  height: 0;
-  display: flex;
-  flex-grow: 1;
-`;
