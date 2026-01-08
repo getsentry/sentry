@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.synapse.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
@@ -67,6 +66,7 @@ from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndp
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
+from sentry.api.endpoints.synapse.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
