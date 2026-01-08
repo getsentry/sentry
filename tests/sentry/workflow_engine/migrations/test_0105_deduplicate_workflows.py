@@ -65,6 +65,11 @@ DEFAULT_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
     },
 ]
 
+COUNT_DEFAULT_WORKFLOW_CONFIGS_WITH_ACTIONS = sum(
+    1 for config in DEFAULT_WORKFLOW_CONFIGS if config.get("mock_actions") is not False
+)
+
+
 MULTIPLE_TRIGGERS: list[DataCondition] = [
     DataCondition(
         type=Condition.ASSIGNED_TO,
@@ -190,8 +195,6 @@ class TestDeduplicateWorkflows(TestMigrations):
             **kwargs,
         }
 
-        # TODO - can this be a transaction?
-
         # create workflow
         workflow = self.create_workflow(
             organization=org,
@@ -265,30 +268,36 @@ class TestDeduplicateWorkflows(TestMigrations):
         return workflow
 
     def setup_initial_state(self) -> None:
-        self.orgs = []
-
         # Isolate each test case to an organization
+        self.config_replication_count: dict[int, int] = {}
+
         for i, workflow_config in enumerate(DUPLICATE_WORKFLOW_CONFIGS):
             org = self.create_organization(name=str(i))
 
             # Create a random number of duplicate workflows for each org
-            for _ in range(randint(2, 5)):
+            replication_count = randint(2, 5)
+            self.config_replication_count[i] = replication_count
+
+            for _ in range(replication_count):
                 self.mock_workflow(org, **deepcopy(workflow_config))
 
             for default_config in DEFAULT_WORKFLOW_CONFIGS:
                 self.mock_workflow(org, **deepcopy(default_config))
 
-            self.orgs.append(org)
-
     def validate_org_workflows_deduped(self, duplicate_workflow_index: int):
         org = Organization.objects.annotate(workflow_count=Count("workflow")).get(
             name=str(duplicate_workflow_index)
         )
+
+        config = DUPLICATE_WORKFLOW_CONFIGS[duplicate_workflow_index]
+        is_default_config = config in DEFAULT_WORKFLOW_CONFIGS
+
         expected_count = (
             len(DEFAULT_WORKFLOW_CONFIGS)
-            if DUPLICATE_WORKFLOW_CONFIGS[duplicate_workflow_index] in DEFAULT_WORKFLOW_CONFIGS
+            if is_default_config
             else len(DEFAULT_WORKFLOW_CONFIGS) + 1
         )
+
         assert org.workflow_count == expected_count
 
         # Ensures that we have updated all the connections for workflows that have been deduplicated
@@ -302,14 +311,18 @@ class TestDeduplicateWorkflows(TestMigrations):
         # The legacy connections should match the new connections
         assert count_connections == count_legacy
 
-        # Ensure the connection to the action / group are correct
-        """
-        count_action_group_status = WorkflowActionGroupStatus.objects.filter(
-            workflow_id__in=workflow_ids
-        ).count()
-        """
+        # Validate WorkflowActionGroupStatus records after de-duplication
+        wags_count = WorkflowActionGroupStatus.objects.filter(workflow_id__in=workflow_ids).count()
 
-        # assert count_action_group_status == expected_count - 1
+        config_action_count = len(config.get("actions", []) or [])
+        if (
+            not is_default_config
+            and config_action_count == 0
+            and config.get("mock_actions") is not False
+        ):
+            config_action_count = 1
+
+        assert wags_count == config_action_count + COUNT_DEFAULT_WORKFLOW_CONFIGS_WITH_ACTIONS
 
     def test_deduplication(self) -> None:
         for i, config in enumerate(DUPLICATE_WORKFLOW_CONFIGS):

@@ -86,12 +86,12 @@ class WorkflowData:
 def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Organization = app.get_model("sentry", "Organization")
 
+    Action = app.get_model("workflow_engine", "Action")
     AlertRuleWorkflow = app.get_model("workflow_engine", "AlertRuleWorkflow")
     DataCondition = app.get_model("workflow_engine", "DataCondition")
     DataConditionGroupAction = app.get_model("workflow_engine", "DataConditionGroupAction")
     DetectorWorkflow = app.get_model("workflow_engine", "DetectorWorkflow")
     Workflow = app.get_model("workflow_engine", "Workflow")
-    WorkflowActionGroupStatus = app.get_model("workflow_engine", "WorkflowActionGroupStatus")
     WorkflowDataConditionGroup = app.get_model("workflow_engine", "WorkflowDataConditionGroup")
 
     # Filters out ~65% of orgs by only selecting orgs with more than 1 workflow
@@ -153,24 +153,28 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
                 continue
 
             # Get the canonical version of the workflow, just use the first one created
-            workflow_id = workflow_ids.pop(0)
+            canonical_workflow_id = workflow_ids.pop(0)
 
             # Update the DetectorWorkflow references to use the canonical version
             DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
-                workflow_id=workflow_id
+                workflow_id=canonical_workflow_id
             )
 
             # Update AlertRuleWorkflow entries to point to the canonical workflow
             AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
-                workflow_id=workflow_id
+                workflow_id=canonical_workflow_id
             )
 
-            # Update WorkflowActionGroupStatus records to point to canonical workflow
-            WorkflowActionGroupStatus.objects.filter(workflow_id__in=workflow_ids).update(
-                workflow_id=workflow_id
-            )
+            # Before deleting workflows, clean up related models that won't be cascade deleted
+            Action.objects.filter(
+                dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id__in=workflow_ids
+            ).delete()
 
-            # Delete the duplicate workflows
+            DataConditionGroupAction.objects.filter(
+                condition_group__workflowdataconditiongroup__workflow_id__in=workflow_ids
+            ).delete()
+
+            # Now delete the duplicate workflows (cascade will handle WorkflowDataConditionGroup and DataConditionGroup)
             Workflow.objects.filter(id__in=workflow_ids).delete()
 
 
