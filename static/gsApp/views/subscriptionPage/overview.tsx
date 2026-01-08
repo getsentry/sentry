@@ -183,7 +183,7 @@ function Overview({subscription, promotionData}: Props) {
       <Fragment>
         <RecurringCredits displayType="discount" planDetails={planDetails} />
         <RecurringCredits displayType="data" planDetails={planDetails} />
-        <OnDemandDisabled subscription={subscription} />
+        <OnDemandDisabled organization={organization} subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
         <UsageOverview
           subscription={subscription}
@@ -200,7 +200,7 @@ function Overview({subscription, promotionData}: Props) {
   function contentWithoutBillingPerms(usageData: CustomerUsage) {
     return (
       <Fragment>
-        <OnDemandDisabled subscription={subscription} />
+        <OnDemandDisabled organization={organization} subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
         <UsageOverview
           subscription={subscription}
