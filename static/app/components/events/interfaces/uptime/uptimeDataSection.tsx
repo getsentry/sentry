@@ -209,7 +209,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineLabels)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TimelineWidthTracker = styled('div')`

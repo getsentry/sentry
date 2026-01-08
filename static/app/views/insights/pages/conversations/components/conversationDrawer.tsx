@@ -208,7 +208,7 @@ const TracePanel = styled('div')`
   min-width: ${TRACE_PANEL_WIDTH}px;
   min-height: 0;
   padding: 0 ${p => p.theme.space.md};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;

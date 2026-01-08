@@ -1137,7 +1137,7 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
       p.withExpanders ? '75px' : ''};
 
   > * {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {

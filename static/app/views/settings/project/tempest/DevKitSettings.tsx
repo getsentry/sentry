@@ -269,7 +269,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;
@@ -309,7 +309,7 @@ const CardIllustration = styled('img')`
   max-width: 600px;
   height: auto;
   object-fit: contain;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowLight};
 `;

@@ -66,7 +66,7 @@ const getPillStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
       `;
     default:
       return css`
-        border: 1px solid ${theme.border};
+        border: 1px solid ${theme.tokens.border.primary};
       `;
   }
 };
@@ -110,7 +110,7 @@ const PillName = styled('span')`
 `;
 
 const PillValue = styled(PillName)`
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => `0 ${p.theme.radius.md} ${p.theme.radius.md} 0`};
   max-width: 100%;
   display: flex;

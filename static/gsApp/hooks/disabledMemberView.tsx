@@ -198,7 +198,7 @@ export default withSubscription(DisabledMemberView);
 
 const MinimalistSidebar = styled('div')`
   height: 60px;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
   display: flex;
   align-items: center;

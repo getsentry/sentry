@@ -387,5 +387,5 @@ const TokensSpan = styled('span')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;

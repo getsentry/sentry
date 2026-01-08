@@ -366,7 +366,7 @@ const ReposContainer = styled('div')`
   flex-direction: column;
 
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

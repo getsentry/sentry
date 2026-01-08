@@ -147,7 +147,7 @@ const Frame = styled('div')<{
   min-width: ${MIN_WIDTH}px;
 
   border-radius: ${p => p.theme.radius.md};
-  border: ${p => (p.borderless ? 'none' : `1px solid ${p.theme.border}`)};
+  border: ${p => (p.borderless ? 'none' : `1px solid ${p.theme.tokens.border.primary}`)};
 
   background: ${p => p.theme.tokens.background.primary};
 
@@ -183,6 +183,6 @@ const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
 
 export const FooterWrapper = styled('div')<{noPadding?: boolean}>`
   margin: 0;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => (p.noPadding ? 0 : `${space(1)} ${X_GUTTER} ${space(1)} ${X_GUTTER}`)};
 `;

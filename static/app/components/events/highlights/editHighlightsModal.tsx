@@ -488,7 +488,7 @@ const Title = styled('h3')`
 `;
 
 const Subtitle = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(1.5)};
   padding-bottom: ${space(0.5)};
   display: flex;
@@ -510,7 +510,7 @@ const FooterInfo = styled('div')`
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: 4px;
   padding: ${space(2)};
   display: grid;

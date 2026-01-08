@@ -189,7 +189,7 @@ const Frame = styled('div')<{showBorder: boolean}>`
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: ${p => (p.showBorder ? `solid 1px ${p.theme.border}` : 'none')};
+  border: ${p => (p.showBorder ? `solid 1px ${p.theme.tokens.border.primary}` : 'none')};
   border-radius: ${p => (p.showBorder ? p.theme.radius.md : '0')};
   overflow: hidden;
 `;

@@ -215,7 +215,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 submitLabel={t('Update Forwarder')}
                 footerStyle={{
                   borderTop: 0,
-                  borderBottom: `1px solid ${theme.border}`,
+                  borderBottom: `1px solid ${theme.tokens.border.primary}`,
                   marginTop: `-${theme.space.lg}`,
                   paddingBottom: theme.space['3xl'],
                 }}

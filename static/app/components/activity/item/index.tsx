@@ -122,7 +122,7 @@ const ActivityHeader = styled('div')`
   display: flex;
   align-items: center;
   padding: 6px ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.fontSize.md};
 
   &:last-child {

@@ -268,7 +268,7 @@ const StyledMultipleCheckbox = styled(MultipleCheckbox)`
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   width: 100%;
   padding: ${space(1)} ${space(0.5)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;

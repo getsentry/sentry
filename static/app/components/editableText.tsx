@@ -235,7 +235,7 @@ const Label = styled('div')<{isDisabled: boolean}>`
 
 const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
-  border-bottom: 1px dotted ${p => p.theme.border};
+  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
   line-height: 38px;
 `;
 

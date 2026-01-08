@@ -308,7 +308,7 @@ const Wrapper = styled('div')`
   flex-direction: column;
   flex-wrap: nowrap;
   min-height: 0;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -325,7 +325,7 @@ const Summary = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   gap: ${space(4)};
   justify-content: space-between;
 `;

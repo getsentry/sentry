@@ -10,7 +10,7 @@ const ListGroupItem = styled('li')<ListGroupItemProps>`
   position: relative;
   display: block;
   min-height: 36px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 
   padding: ${space(0.5)} ${space(1.5)};
 

@@ -116,7 +116,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 const StyledBreak = styled('hr')`
   margin-top: ${space(1.5)};
   margin-bottom: ${space(1.5)};
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.tokens.border.primary};
 `;
 
 export const SidebarSectionTitle = styled(SidebarSection.Title)`
@@ -128,7 +128,7 @@ const Side = styled(Layout.Side)`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   > div {

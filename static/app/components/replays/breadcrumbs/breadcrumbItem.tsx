@@ -169,7 +169,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
     width: 1px;
     top: -2px;
     bottom: -9px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }
   &:first-child::before {

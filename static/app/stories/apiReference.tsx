@@ -344,7 +344,7 @@ function stripNodeModulesPrefix(str: string): string {
 
 const StoryTableContainer = styled('div')`
   overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -365,7 +365,7 @@ const StoryTypesTable = styled('table')`
   }
 
   tr:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   td:first-child {
@@ -374,14 +374,14 @@ const StoryTypesTable = styled('table')`
 
   td:not(:last-child),
   th:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StoryTypesTableHeader = styled('thead')`
   tr {
     background-color: ${p => p.theme.colors.surface300};
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

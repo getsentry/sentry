@@ -120,7 +120,7 @@ const ClicksGridCell = styled('div')`
   padding: ${space(1.5)} ${space(1)};
   min-width: 0;
   overflow: hidden;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   &:nth-child(${COLUMN_COUNT}n + 1) {
     padding-left: ${space(2)};
   }

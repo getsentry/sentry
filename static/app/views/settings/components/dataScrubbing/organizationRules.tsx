@@ -116,7 +116,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1)} ${space(2)};
 `;
 
@@ -124,7 +124,7 @@ const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
   color: ${p => p.theme.subText};
   background: ${p => p.theme.backgroundSecondary};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
-  ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.border}`};
+  ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.tokens.border.primary}`};
   ${p =>
     !p.isCollapsed &&
     p.contentHeight &&

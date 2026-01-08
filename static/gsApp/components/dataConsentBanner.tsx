@@ -104,7 +104,7 @@ export default withSubscription(DataConsentBanner, {noLoader: true});
 
 const DataConsentBannerWrapper = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)};
   margin-bottom: ${space(2)};

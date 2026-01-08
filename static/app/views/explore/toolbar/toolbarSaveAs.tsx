@@ -333,7 +333,7 @@ const DisabledText = styled('span')`
 `;
 
 const StyledToolbarSection = styled(ToolbarSection)`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${space(3)};
 `;
 

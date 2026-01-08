@@ -154,7 +154,7 @@ const Header = styled('div')`
   grid-column: 1/-1;
   display: grid;
   grid-template-columns: subgrid;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 1;
 
   > :last-child {

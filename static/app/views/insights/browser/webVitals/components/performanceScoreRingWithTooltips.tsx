@@ -374,7 +374,7 @@ const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
   padding: ${space(1)} ${space(2)};
   width: 200px;

@@ -34,7 +34,7 @@ const PreviewDisclosure = styled(Disclosure)`
 `;
 
 const Divider = styled('hr')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   width: 100%;
   &:last-child {
     display: none;

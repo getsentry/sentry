@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export const GridTable = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {

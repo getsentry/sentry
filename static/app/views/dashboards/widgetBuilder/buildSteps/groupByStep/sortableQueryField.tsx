@@ -28,7 +28,7 @@ export function SortableQueryField({dragId, ...props}: SortableItemProps) {
       ...style,
       zIndex: 100,
       height: theme.form.md.height,
-      border: `2px dashed ${theme.border}`,
+      border: `2px dashed ${theme.tokens.border.primary}`,
       borderRadius: theme.radius.md,
     };
   }

@@ -136,6 +136,6 @@ const Divider = styled('div')`
     height: 1px;
     left: 0;
     right: 0;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
   }
 `;

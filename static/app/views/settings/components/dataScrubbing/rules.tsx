@@ -90,7 +90,7 @@ const ListItem = styled('li')`
   grid-column-gap: ${space(1)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }

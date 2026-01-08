@@ -231,7 +231,7 @@ const SlowestFunctionsContainer = styled('div')`
   display: flex;
   flex-direction: column;
   padding: 0 ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SlowestFunctionsPagination = styled(Pagination)`

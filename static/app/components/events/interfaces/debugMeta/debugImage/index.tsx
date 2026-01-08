@@ -68,7 +68,7 @@ export default DebugImage;
 const Wrapper = styled('div')`
   :not(:last-child) {
     > * {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
   ${p => layout(p.theme)};

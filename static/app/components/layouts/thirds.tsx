@@ -46,7 +46,7 @@ export const Header = styled('header')<{
   ${p =>
     !p.unified &&
     css`
-      border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
+      border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.tokens.border.primary};
     `}
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

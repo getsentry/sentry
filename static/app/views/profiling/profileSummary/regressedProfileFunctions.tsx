@@ -448,7 +448,7 @@ const RegressedFunctionMetricsRow = styled('div')`
 const RegressedFunctionsContainer = styled('div')`
   flex-basis: 80px;
   padding: 0 ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const RegressedFunctionsPagination = styled(Pagination)`

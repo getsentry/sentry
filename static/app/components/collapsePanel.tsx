@@ -97,14 +97,14 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   cursor: pointer;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   ${p =>
     !p.disableBorder &&
     css`
-      border-left: 1px solid ${p.theme.border};
-      border-right: 1px solid ${p.theme.border};
-      border-bottom: 1px solid ${p.theme.border};
+      border-left: 1px solid ${p.theme.tokens.border.primary};
+      border-right: 1px solid ${p.theme.tokens.border.primary};
+      border-bottom: 1px solid ${p.theme.tokens.border.primary};
       border-bottom-left-radius: ${p.theme.radius.md};
       border-bottom-right-radius: ${p.theme.radius.md};
       margin-bottom: ${space(2)};

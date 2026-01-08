@@ -201,7 +201,7 @@ export default addGiftBudgetAction;
 const BudgetCard = styled('div')<{isSelected: boolean}>`
   padding: ${space(2)};
   margin: ${space(1)} 0;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   background-color: ${p => (p.isSelected ? p.theme.colors.surface200 : 'transparent')};
   cursor: pointer;

@@ -103,7 +103,7 @@ const StyledArrowButton = styled(Button)<{direction: string}>`
   height: 36px;
   width: 36px;
   border-radius: 50%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0;
   margin: auto;
   background-color: ${p => p.theme.tokens.background.primary};

@@ -329,8 +329,8 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
   overflow: hidden;
   margin-bottom: 0;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px dashed ${p => p.theme.border};
-  border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-color: ${p => (p.expanded ? p.theme.tokens.border.primary : 'transparent')};
 
   box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 `;

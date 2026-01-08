@@ -159,7 +159,7 @@ const Tooltip = styled('div')`
   user-select: none;
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(0.25)} ${space(1)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 24px;
 `;

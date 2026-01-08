@@ -279,7 +279,7 @@ const IntegrationFeatureGroup = styled((p: GroupProps) => {
 })`
   overflow: hidden;
   border-radius: 4px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(2)};
 `;
 

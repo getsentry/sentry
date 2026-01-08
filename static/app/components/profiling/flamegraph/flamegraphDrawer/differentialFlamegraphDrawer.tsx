@@ -341,7 +341,7 @@ const Separator = styled('li')`
   width: 1px;
   height: 66%;
   margin: 0 ${space(1)};
-  background: 1px solid ${p => p.theme.border};
+  background: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
 `;
 
@@ -350,7 +350,7 @@ const ProfilingDetailsFrameTabs = styled('ul')`
   list-style-type: none;
   padding: 0 ${space(1)};
   margin: 0;
-  border-top: 1px solid ${prop => prop.theme.border};
+  border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
   background-color: ${props => props.theme.colors.surface300};
   user-select: none;
   grid-area: tabs;

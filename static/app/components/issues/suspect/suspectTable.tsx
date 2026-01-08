@@ -43,7 +43,7 @@ export default function SuspectTable({environments, group}: Props) {
 }
 
 const GradientBox = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
   background: linear-gradient(
     90deg,

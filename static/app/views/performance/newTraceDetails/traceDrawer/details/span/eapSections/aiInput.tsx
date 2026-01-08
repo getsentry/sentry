@@ -362,7 +362,7 @@ const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
 const ButtonDivider = styled('div')`
   height: 1px;
   width: 100%;
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
   display: flex;
   justify-content: center;
   align-items: center;

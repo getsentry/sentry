@@ -202,5 +202,5 @@ const ProfilesChartTitle = styled('div')`
 
 const ProfilesChartContainer = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;

@@ -143,5 +143,5 @@ const MetricsQueryBuilderContainer = styled(Container)`
   padding: ${p => `${p.theme.space.xl} ${p.theme.space['3xl']}`};
   background-color: ${p => p.theme.tokens.background.primary};
   border-top: none;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
