@@ -2,7 +2,7 @@ import json  # noqa: S003
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import Any, TypedDict
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -69,12 +69,19 @@ def _extract_first_user_message(messages: str | list | None) -> str | None:
     return None
 
 
+class UserResponse(TypedDict):
+    id: str | None
+    email: str | None
+    username: str | None
+    ip_address: str | None
+
+
 def _build_user_response(
     user_id: str | None,
     user_email: str | None,
     user_username: str | None,
     user_ip: str | None,
-) -> dict[str, str | None] | None:
+) -> UserResponse | None:
     """Build user response object, returning None if no user data is available."""
     if not any([user_id, user_email, user_username, user_ip]):
         return None
