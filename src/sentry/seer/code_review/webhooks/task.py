@@ -24,6 +24,7 @@ from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..utils import get_seer_endpoint_for_event, make_seer_request
+from .config import GH_ORGS_TO_ONLY_SEND_TO_SEER
 
 logger = logging.getLogger(__name__)
 
@@ -98,9 +99,13 @@ def process_github_webhook_event(
     status = "success"
     should_record_latency = True
     option_key = get_webhook_option_key(github_event)
-    # If True, we're only sending to Overwatch
-    if option_key and options.get(option_key):
-        return
+
+    repo_owner_login = event_payload.get("repository", {}).get("owner", {}).get("login")
+    # If repo owner is whitelisted, always allow, otherwise check option key (Overwatch filter)
+    if repo_owner_login not in GH_ORGS_TO_ONLY_SEND_TO_SEER:
+        if option_key and options.get(option_key):
+            return
+
     try:
         path = get_seer_endpoint_for_event(github_event).value
         make_seer_request(path=path, payload=event_payload)
