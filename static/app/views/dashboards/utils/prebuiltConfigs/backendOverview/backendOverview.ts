@@ -296,6 +296,7 @@ const TRANSACTIONS_TABLE: Widget = {
     {
       name: '',
       fields: [
+        SpanFields.IS_STARRED_TRANSACTION,
         SpanFields.REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
@@ -316,12 +317,14 @@ const TRANSACTIONS_TABLE: Widget = {
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [
+        SpanFields.IS_STARRED_TRANSACTION,
         SpanFields.REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
         SpanFields.PROJECT,
       ],
       fieldAliases: [
+        'Starred',
         'Http Method',
         '',
         'Operation',
@@ -344,7 +347,7 @@ const TRANSACTIONS_TABLE: Widget = {
         {valueType: 'percentage', valueUnit: null},
       ],
       conditions: TABLE_QUERY.formatString(),
-      orderby: '-sum(span.duration)',
+      orderby: '-is_starred_transaction',
       linkedDashboards: [],
     },
   ],
