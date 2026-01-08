@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
@@ -90,13 +92,13 @@ export function AutomationStatsChart({
       </StyledPanelBody>
       <ChartFooter>
         <FooterHeader>{t('Total Triggers')}</FooterHeader>
-        <FooterValue>
+        <Flex align="center" margin="0 md">
           {isPending ? (
             <Placeholder height="16px" width="50px" />
           ) : (
             totalAlertsTriggered.toLocaleString()
           )}
-        </FooterValue>
+        </Flex>
       </ChartFooter>
     </Panel>
   );
@@ -117,12 +119,6 @@ const FooterHeader = styled('h4')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
-`;
-
-const FooterValue = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(1)};
 `;
 
 /* Override padding to make chart appear centered */

@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Text} from 'sentry/components/core/text/text';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -145,7 +147,7 @@ export function ResolveSection() {
 
   return (
     <div>
-      <FormRow>
+      <Stack>
         <StyledRadioField
           name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
           aria-label={t('Resolution method')}
@@ -153,7 +155,7 @@ export function ResolveSection() {
           defaultValue="automatic"
           preserveOnUnmount
         />
-      </FormRow>
+      </Stack>
       {resolutionStrategy === 'custom' && (
         <DescriptionContainer onClick={e => e.preventDefault()}>
           <Text>
@@ -179,11 +181,6 @@ export function ResolveSection() {
     </div>
   );
 }
-
-const FormRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const StyledRadioField = styled(RadioField)`
   flex: 1;

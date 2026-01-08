@@ -269,7 +269,7 @@ function PriorityRow({
   );
 
   return (
-    <PriorityRowContainer>
+    <Flex align="center" gap="md">
       <PriorityDot priority={priority} />
       <PriorityLabel>
         {isHigh ? t('High priority') : t('Medium priority')}
@@ -334,7 +334,7 @@ function PriorityRow({
           </Fragment>
         )}
       </Flex>
-    </PriorityRowContainer>
+    </Flex>
   );
 }
 
@@ -500,7 +500,7 @@ function DetectSection() {
     <Container>
       <Flex direction="column" gap="lg">
         <div>
-          <HeadingContainer>
+          <Flex align="center" gap="sm">
             <Heading as="h3">{t('Issue Detection')}</Heading>
             {showThresholdWarning && (
               <WarningIcon
@@ -521,7 +521,7 @@ function DetectSection() {
                 }}
               />
             )}
-          </HeadingContainer>
+          </Flex>
           <DetectionType />
           <Flex direction="column">
             {(!detectionType || detectionType === 'static') && (
@@ -532,7 +532,7 @@ function DetectSection() {
                     {t('An issue will be created when query value is:')}
                   </Text>
                 </DefineThresholdParagraph>
-                <PriorityRowsContainer>
+                <Stack marginTop="md" gap="xl">
                   <PriorityRow
                     priority={PriorityLevel.HIGH}
                     detectionType="static"
@@ -543,7 +543,7 @@ function DetectSection() {
                     detectionType="static"
                     aggregate={aggregate}
                   />
-                </PriorityRowsContainer>
+                </Stack>
               </Flex>
             )}
             {detectionType === 'percent' && (
@@ -554,7 +554,7 @@ function DetectSection() {
                     {t('An issue will be created when query value is:')}
                   </Text>
                 </DefineThresholdParagraph>
-                <PriorityRowsContainer>
+                <Stack marginTop="md" gap="xl">
                   <PriorityRow
                     priority={PriorityLevel.HIGH}
                     detectionType="percent"
@@ -566,7 +566,7 @@ function DetectSection() {
                     detectionType="percent"
                     aggregate={aggregate}
                   />
-                </PriorityRowsContainer>
+                </Stack>
               </Flex>
             )}
             {detectionType === 'dynamic' && (
@@ -689,12 +689,6 @@ const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
-const HeadingContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
-
 const DatasetRow = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -788,19 +782,6 @@ const IntervalField = styled(SelectField)`
 
 const DisabledSection = styled('div')<{disabled: boolean}>`
   ${p => (p.disabled ? `opacity: 0.6;` : '')}
-`;
-
-const PriorityRowsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
-`;
-
-const PriorityRowContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const PriorityLabel = styled('span')`

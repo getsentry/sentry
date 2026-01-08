@@ -1,6 +1,8 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -35,10 +37,10 @@ function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]
     return (
       <div>
         {Array.from({length: shownAutomations.length}).map((_, index) => (
-          <HovercardSkeletonRow key={index}>
+          <Stack justify="center" padding="md xl" gap="xs" minHeight="64px" key={index}>
             <Placeholder height="20px" width="100%" />
             <Placeholder height="18px" width="40%" />
-          </HovercardSkeletonRow>
+          </Stack>
         ))}
       </div>
     );
@@ -102,16 +104,6 @@ const ConnectedAutomations = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
-`;
-
-const HovercardSkeletonRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(2)};
-
-  min-height: 64px;
 `;
 
 const HovercardRow = styled(Link)`
