@@ -344,13 +344,12 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
         color: theme.tokens.content.warning,
       };
     case SeverityLevel.ERROR:
-      // All these colours are likely changing, so we'll hold off moving them into theme for now.
       return {
-        background: '#FF7738', // Matches the legacy error level color
-        backgroundLight: 'rgba(245, 113, 54, 0.11)',
-        border: 'rgba(245, 113, 54, 0.55)',
-        borderHover: '#FF7738',
-        color: '#b34814',
+        background: theme.tokens.graphics.danger.vibrant,
+        backgroundLight: theme.tokens.background.transparent.danger.muted,
+        border: theme.tokens.border.danger.moderate,
+        borderHover: theme.tokens.border.danger.vibrant,
+        color: theme.tokens.content.danger,
       };
     case SeverityLevel.FATAL:
       return {
