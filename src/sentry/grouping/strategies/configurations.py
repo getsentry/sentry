@@ -72,6 +72,7 @@ register_grouping_config(
     base=WINTER_2023_GROUPING_CONFIG,
     initial_context={
         "use_legacy_exception_subcomponent_order": False,
+        "handle_js_single_frame_url_origin_backwards": False,
     },
     enhancements_base="all-platforms:2025-11-21",
 )
