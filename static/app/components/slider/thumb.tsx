@@ -104,11 +104,11 @@ const SliderThumbWrap = styled('div')<{
     p.isDisabled &&
     css`
       cursor: initial;
-      background: ${p.theme.tokens.content.secondary};
-      color: ${p.theme.tokens.content.secondary};
+      background: ${p.theme.tokens.content.disabled};
+      color: ${p.theme.tokens.content.disabled};
 
       &:hover {
-        background: ${p.theme.tokens.content.secondary};
+        background: ${p.theme.tokens.content.disabled};
       }
     `};
 
