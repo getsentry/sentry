@@ -183,6 +183,7 @@ export type KnownSentryApiUrls =
   | '/issues/$issueId/user-feedback/'
   | '/issues/$issueId/user-reports/'
   | '/notification-defaults/'
+  | '/org-cell-mappings/'
   | '/organizations/'
   | '/organizations/$organizationIdOrSlug/'
   | '/organizations/$organizationIdOrSlug/access-requests/'
