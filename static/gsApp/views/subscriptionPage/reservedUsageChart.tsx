@@ -7,15 +7,12 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import barSeries from 'sentry/components/charts/series/barSeries';
 import lineSeries from 'sentry/components/charts/series/lineSeries';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import UsageChart, {
-  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
-  type CategoryOption,
   type ChartStats,
 } from 'sentry/views/organizationStats/usageChart';
 import {
@@ -29,7 +26,6 @@ import {
   type BillingMetricHistory,
   type BillingStats,
   type CustomerUsage,
-  type Plan,
   type ReservedBudgetForCategory,
   type Subscription,
 } from 'getsentry/types';
@@ -57,30 +53,6 @@ import {
   calculateCategorySpend,
   calculateTotalSpend,
 } from 'getsentry/views/subscriptionPage/utils';
-
-const USAGE_CHART_OPTIONS_DATACATEGORY = [
-  ...CHART_OPTIONS_DATACATEGORY,
-  {
-    label: DATA_CATEGORY_INFO.span_indexed.titleName,
-    value: DATA_CATEGORY_INFO.span_indexed.plural,
-    yAxisMinInterval: 100,
-  },
-];
-
-export function getCategoryOptions({
-  plan,
-  hadCustomDynamicSampling,
-}: {
-  hadCustomDynamicSampling: boolean;
-  plan: Plan;
-}): CategoryOption[] {
-  return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
-    opt =>
-      (plan.checkoutCategories.includes(opt.value) ||
-        plan.onDemandCategories.includes(opt.value)) &&
-      (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
-  );
-}
 
 /**
  * Calculates usage metrics for a subscription category's prepaid (reserved) events.

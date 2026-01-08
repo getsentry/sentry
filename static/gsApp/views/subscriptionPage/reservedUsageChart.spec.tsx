@@ -9,11 +9,10 @@ import {DataCategory} from 'sentry/types/core';
 import {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
 
 import {GIGABYTE} from 'getsentry/constants';
-import {PlanTier, type BillingStats} from 'getsentry/types';
+import {type BillingStats} from 'getsentry/types';
 import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 
 import {
-  getCategoryOptions,
   mapCostStatsToChart,
   mapReservedBudgetStatsToChart,
   mapReservedToChart,
@@ -684,102 +683,6 @@ describe('mapReservedBudgetStatsToChart', () => {
           value: ['Jan 2', 4000_00],
         },
       ],
-    });
-  });
-});
-
-describe('getCategoryOptions', () => {
-  const organization = OrganizationFixture({access: ['org:billing']});
-
-  it('should return am3 categories', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am3_f',
-      planTier: PlanTier.AM3,
-      organization,
-    });
-
-    const result = getCategoryOptions({
-      plan: subscription.planDetails,
-      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-    });
-
-    result.forEach(option => {
-      const inCheckoutCategories = subscription.planDetails.checkoutCategories.includes(
-        option.value
-      );
-      const inOnDemandCategories = subscription.planDetails.onDemandCategories.includes(
-        option.value
-      );
-      expect(inCheckoutCategories || inOnDemandCategories).toBe(true);
-    });
-  });
-
-  it('should return am3 categories with stored spans for custom dynamic sampling', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am3_f',
-      planTier: PlanTier.AM3,
-      organization,
-      hadCustomDynamicSampling: true,
-    });
-
-    const result = getCategoryOptions({
-      plan: subscription.planDetails,
-      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-    });
-
-    result.forEach(option => {
-      expect(subscription.planDetails.categories).toContain(option.value);
-    });
-  });
-
-  it('should return am2 categories', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am2_f',
-      planTier: PlanTier.AM2,
-      organization,
-    });
-
-    const result = getCategoryOptions({
-      plan: subscription.planDetails,
-      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-    });
-
-    result.forEach(option => {
-      expect(subscription.planDetails.categories).toContain(option.value);
-    });
-  });
-
-  it('should return am1 categories', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      planTier: PlanTier.AM1,
-      organization,
-    });
-
-    const result = getCategoryOptions({
-      plan: subscription.planDetails,
-      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-    });
-
-    result.forEach(option => {
-      expect(subscription.planDetails.categories).toContain(option.value);
-    });
-  });
-
-  it('should return mm2 categories', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'mm2_f',
-      planTier: PlanTier.MM2,
-      organization,
-    });
-
-    const result = getCategoryOptions({
-      plan: subscription.planDetails,
-      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-    });
-
-    result.forEach(option => {
-      expect(subscription.planDetails.categories).toContain(option.value);
     });
   });
 });
