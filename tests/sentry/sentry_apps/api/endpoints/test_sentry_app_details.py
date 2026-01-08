@@ -761,6 +761,51 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=403,
         )
 
+    def test_manager_cannot_set_publish_request_inprogress_status(self) -> None:
+        """
+        Regression test for authorization bypass vulnerability.
+
+        A Manager (with org:write but not org:admin) should NOT be able to set
+        status to 'publish_request_inprogress' via PUT. This should only be
+        possible via the dedicated publish request endpoint which requires org:admin.
+        """
+        manager_user = self.create_user("manager@example.com", is_superuser=False)
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.create_member(
+                user=manager_user, organization=self.organization, role="manager", teams=[]
+            )
+        self.login_as(manager_user)
+
+        # Verify the app starts as unpublished
+        assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
+
+        # Attempt to set status to publish_request_inprogress via PUT
+        # This should be silently ignored (status won't change)
+        self.get_success_response(
+            self.unpublished_app.slug,
+            status="publish_request_inprogress",
+            status_code=200,
+        )
+
+        # Verify status was NOT changed
+        self.unpublished_app.refresh_from_db()
+        assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
+
+    def test_superuser_can_set_publish_request_inprogress_status(self) -> None:
+        """Verify superusers CAN set status to publish_request_inprogress via PUT."""
+        self.login_as(user=self.superuser, superuser=True)
+
+        assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
+
+        self.get_success_response(
+            self.unpublished_app.slug,
+            status="publish_request_inprogress",
+            status_code=200,
+        )
+
+        self.unpublished_app.refresh_from_db()
+        assert self.unpublished_app.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
+
 
 @control_silo_test
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):

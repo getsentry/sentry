@@ -13,10 +13,7 @@ from sentry.constants import SentryAppStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
-from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils.email.message_builder import MessageBuilder
 
 logger = logging.getLogger("sentry.sentry_apps.sentry_app_publish_request")
@@ -72,13 +69,10 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 status=400,
             )
 
-        assert isinstance(
-            request.user, (User, RpcUser)
-        ), "User must be authenticated to update a Sentry App"
-        SentryAppUpdater(
-            sentry_app=sentry_app,
-            status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
-        ).run(user=request.user)
+        # Permission is enforced by SentryAppPermission which equires org:admin for POST on
+        # unpublished apps (see unpublished_scope_map).
+        sentry_app.status = SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
+        sentry_app.save()
 
         org_mapping = OrganizationMapping.objects.filter(
             organization_id=sentry_app.owner_id
