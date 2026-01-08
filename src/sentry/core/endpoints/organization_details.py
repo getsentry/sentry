@@ -1489,9 +1489,3 @@ def old_value(model, field_name):
     if value is DEFERRED:
         return None
     return model.__data.get(field_name)
-    if model.__data is UNSAVED:
-        return None
-    value = model.__data.get(field_name)
-    if value is DEFERRED:
-        return None
-    return model.__data.get(field_name)
