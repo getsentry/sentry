@@ -165,10 +165,10 @@ def get_detector_validator(
 @extend_schema(tags=["Workflows"])
 class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
-        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
