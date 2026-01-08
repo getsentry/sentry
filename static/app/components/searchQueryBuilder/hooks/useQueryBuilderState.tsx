@@ -463,7 +463,7 @@ function wrapTokensWithParentheses(
   );
   const after = state.query.substring(lastToken.location.end.offset);
 
-  const newQuery = `${before}(${middle})${after}`.trim();
+  const newQuery = `${before} ( ${middle} ) ${after}`.trim();
   const cursorPosition = firstToken.location.start.offset + middle.length + 2;
   const newParsedQuery = parseQuery(newQuery);
 
