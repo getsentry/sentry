@@ -607,6 +607,7 @@ function ExplorerPanel() {
                 }}
                 block={block}
                 blockIndex={index}
+                feedbackTags={feedbackTags}
                 getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
