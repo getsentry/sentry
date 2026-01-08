@@ -341,11 +341,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         mock_incr.assert_called_with("workflow_engine.detectors.error")  # called twice
         mock_logger.exception.assert_called_with(
-            "Detector not found for event",
+            "Issue stream detector not found for event",
             extra={
-                "event_id": self.event.event_id,
+                "project_id": self.group.project_id,
                 "group_id": self.group_event.group_id,
-                "detector_id": None,
             },
         )  # exception is called twice for both missing detectors
 
