@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 import {css, Global} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 // Prism colors
 // @TODO(jonasbadalic): are these final?
@@ -57,34 +58,18 @@ const generateThemePrismVariables = (
   ...prismColors,
 });
 
-const getPrismThemeStyles = (theme: Theme) => {
-  if (theme.type === 'dark') {
-    return {
-      prismVariables: generateThemePrismVariables(prismDark, theme.backgroundSecondary),
-      prismDarkVariables: generateThemePrismVariables(
-        prismDark,
-        theme.tokens.background.primary
-      ),
-    };
-  }
-  return {
-    prismVariables: generateThemePrismVariables(prismLight, theme.backgroundSecondary),
-    prismDarkVariables: generateThemePrismVariables(
-      prismDark,
-      theme.tokens.background.primary
-    ),
-  };
-};
-
-const prismStyles = (theme: Theme) => css`
+const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   :root {
-    ${getPrismThemeStyles(theme).prismVariables};
+    ${generateThemePrismVariables(
+      theme.type === 'dark' ? prismDark : prismLight,
+      theme.backgroundSecondary
+    )};
   }
 
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
   .gatsby-highlight,
   .prism-dark {
-    ${getPrismThemeStyles(theme).prismDarkVariables};
+    ${generateThemePrismVariables(prismDark, darkTheme.tokens.background.primary)};
   }
 
   pre[class*='language-'] {
@@ -201,7 +186,7 @@ const prismStyles = (theme: Theme) => css`
   }
 `;
 
-const styles = (theme: Theme, isDark: boolean) => css`
+const styles = (theme: Theme, darkTheme: Theme) => css`
   body {
     .sentry-error-embed-wrapper {
       z-index: ${theme.zIndex.sentryErrorEmbed};
@@ -281,7 +266,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
     color: inherit;
   }
 
-  ${prismStyles(theme)}
+  ${prismStyles(theme, darkTheme)}
 
   /**
    * See https://web.dev/prefers-reduced-motion/
@@ -306,7 +291,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
-  ${isDark
+  ${theme.type === 'dark'
     ? css`
         .box,
         .box.box-modal {
@@ -466,8 +451,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
 /**
  * Renders an emotion global styles injection component
  */
-function GlobalStyles({theme, isDark}: {isDark: boolean; theme: Theme}) {
-  return <Global styles={styles(theme, isDark)} />;
+function GlobalStyles({theme}: {theme: Theme}) {
+  const invertedTheme = useInvertedTheme();
+  const darkTheme = theme.type === 'dark' ? theme : invertedTheme;
+  return <Global styles={styles(theme, darkTheme)} />;
 }
 
 export default GlobalStyles;
