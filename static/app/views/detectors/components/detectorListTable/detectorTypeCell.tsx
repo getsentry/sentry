@@ -31,6 +31,6 @@ const Type = styled('div')<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     `
-    color: ${p.theme.disabled};
+    color: ${p.theme.tokens.content.disabled};
   `}
 `;

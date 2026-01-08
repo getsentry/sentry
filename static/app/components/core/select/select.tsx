@@ -82,7 +82,9 @@ const getStylesConfig = ({
     padding: '0 4px 0 4px',
     alignItems: 'center',
     cursor: state.isDisabled ? 'not-allowed' : 'pointer',
-    color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
+    color: state.isDisabled
+      ? theme.tokens.content.disabled
+      : theme.tokens.content.primary,
     ':hover': {
       color: 'currentcolor',
     },
@@ -92,7 +94,9 @@ const getStylesConfig = ({
   return {
     control: (_, state) => ({
       display: 'flex',
-      color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.primary,
       ...debossedBackground(theme),
       border: `1px solid ${theme.border}`,
       boxShadow,
@@ -102,7 +106,7 @@ const getStylesConfig = ({
       ...(state.isFocused && theme.focusRing(boxShadow)),
       ...(state.isDisabled && {
         background: theme.tokens.background.primary,
-        color: theme.disabled,
+        color: theme.tokens.content.disabled,
         cursor: 'not-allowed',
         opacity: '60%',
       }),
@@ -128,7 +132,7 @@ const getStylesConfig = ({
     }),
     noOptionsMessage: provided => ({
       ...provided,
-      color: theme.disabled,
+      color: theme.tokens.content.disabled,
     }),
     menuPortal: provided => ({
       ...provided,
@@ -173,7 +177,9 @@ const getStylesConfig = ({
     }),
     singleValue: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.primary,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,
@@ -182,12 +188,12 @@ const getStylesConfig = ({
     }),
     placeholder: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.subText,
+      color: state.isDisabled ? theme.tokens.content.disabled : theme.subText,
     }),
     multiValue: provided => ({
       ...provided,
       backgroundColor: theme.tokens.background.primary,
-      color: isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: isDisabled ? theme.tokens.content.disabled : theme.tokens.content.primary,
       borderRadius: '4px',
       border: `1px solid ${theme.border}`,
       boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,
@@ -199,7 +205,7 @@ const getStylesConfig = ({
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: isDisabled ? theme.tokens.content.disabled : theme.tokens.content.primary,
       padding: multiValueSizeMapping[size].spacing,
       paddingLeft: multiValueSizeMapping[size].spacing,
       height: multiValueSizeMapping[size].height,

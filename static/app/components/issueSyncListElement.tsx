@@ -149,7 +149,9 @@ export const IntegrationLink = styled('a')<{disabled?: boolean}>`
 
   &:hover {
     color: ${({disabled, theme}) =>
-      disabled ? theme.disabled : theme.tokens.interactive.link.accent.rest};
+      disabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.interactive.link.accent.rest};
   }
 `;
 
