@@ -15,7 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.events import get_direct_hit_response, get_query_builder_for_group
+from sentry.api.helpers.events import get_direct_hit_response, run_group_events_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import SimpleEventSerializerResponse
@@ -141,17 +141,17 @@ class GroupEventsEndpoint(GroupEndpoint):
 
         def data_fn(offset: int, limit: int) -> Any:
             try:
-                snuba_query = get_query_builder_for_group(
-                    request.GET.get("query", ""),
-                    snuba_params,
-                    group,
+                data = run_group_events_query(
+                    query=request.GET.get("query", ""),
+                    snuba_params=snuba_params,
+                    group=group,
                     limit=limit,
                     offset=offset,
                     orderby=orderby,
+                    referrer=referrer,
                 )
             except InvalidSearchQuery as e:
                 raise ParseError(detail=str(e))
-            results = snuba_query.run_query(referrer=referrer)
             results = [
                 Event(
                     event_id=evt["id"],
@@ -163,7 +163,7 @@ class GroupEventsEndpoint(GroupEndpoint):
                         "timestamp": evt["timestamp"],
                     },
                 )
-                for evt in results["data"]
+                for evt in data
             ]
             if full:
                 eventstore.backend.bind_nodes(results)
