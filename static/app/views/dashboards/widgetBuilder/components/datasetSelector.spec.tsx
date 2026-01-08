@@ -23,10 +23,8 @@ describe('DatasetSelector', () => {
       </WidgetBuilderProvider>
     );
 
-    // Open the CompactSelect menu
     await userEvent.click(await screen.findByText('Dataset'));
 
-    // Hover over the Errors option and verify description appears
     const errorsOption = await screen.findByRole('option', {name: 'Errors'});
     await userEvent.hover(errorsOption);
 
@@ -47,10 +45,8 @@ describe('DatasetSelector', () => {
       </WidgetBuilderProvider>
     );
 
-    // Open the CompactSelect menu
     await userEvent.click(await screen.findByText('Dataset'));
 
-    // Find and click on the Issues option
     await userEvent.click(await screen.findByRole('option', {name: 'Issues'}));
 
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -78,21 +74,17 @@ describe('DatasetSelector', () => {
       }
     );
 
-    // Open the CompactSelect menu
     await userEvent.click(await screen.findByText('Dataset'));
 
-    // Find the Transactions option and verify it's disabled
     const transactionsOption = await screen.findByText('Transactions');
     expect(transactionsOption.closest('[aria-disabled="true"]')).not.toBeNull();
 
-    // Hover on the disabled transactions dataset to show tooltip
     await userEvent.hover(transactionsOption);
 
     expect(
       await screen.findByText(/This dataset is no longer supported./i)
     ).toBeInTheDocument();
 
-    // Click on the "spans" link in the tooltip
     const spansLink = screen.getByRole('link', {name: 'spans'});
     await userEvent.click(spansLink);
 
@@ -122,14 +114,11 @@ describe('DatasetSelector', () => {
       }
     );
 
-    // Open the CompactSelect menu
     await userEvent.click(await screen.findByText('Dataset'));
 
-    // Find the Transactions option and verify it's not disabled
     const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
     expect(transactionsOption.closest('[aria-disabled="true"]')).toBeNull();
 
-    // Hover on the transactions option and verify description appears
     await userEvent.hover(transactionsOption);
     expect(
       await screen.findByText(
@@ -137,7 +126,6 @@ describe('DatasetSelector', () => {
       )
     ).toBeInTheDocument();
 
-    // Select transactions dataset
     await userEvent.click(transactionsOption);
 
     expect(mockNavigate).toHaveBeenCalledWith(
