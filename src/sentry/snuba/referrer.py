@@ -308,9 +308,6 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPARTUP_SPAN_TABLE = "api.insights.mobile-spartup-span-table"
     API_INSIGHTS_MOBILE_SCREENS_METRICS = "api.insights.mobile-screens-metrics"
     API_INSIGHTS_MOBILE_SCREENS_SPAN_METRICS = "api.insights.mobile-screens-span-metrics"
-    API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_METRICS = (
-        "api.insights.mobile-screens-screen-table-metrics"
-    )
     API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_SPAN_METRICS = (
         "api.insights.mobile-screens-screen-table-span-metrics"
     )
