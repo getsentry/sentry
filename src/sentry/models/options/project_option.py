@@ -68,6 +68,8 @@ OPTION_KEYS = frozenset(
         "sentry:autofix_automation_tuning",
         "sentry:seer_scanner_automation",
         "sentry:debug_files_role",
+        "sentry:preprod_size_status_checks_enabled",
+        "sentry:preprod_size_status_checks_rules",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
