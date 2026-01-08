@@ -6,7 +6,7 @@ from django.db import router, transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.query import QuerySet
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -36,7 +36,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.issues import grouptype
 from sentry.issues.issue_search import convert_actor_or_none_value
 from sentry.models.group import GroupStatus
@@ -74,6 +73,26 @@ detector_search_config = SearchConfig.create_from(
     free_text_key="query",
 )
 parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
+
+
+class APIDocsDetectorSerializer(serializers.Serializer):
+    """
+    Create a monitor
+    ```json
+    {
+        "name": "The name of the monitor",
+        "type": "The type of monitor. Options are: metric_issue, uptime_domain_failure, bar",
+        "config": {
+            "detection_type": "static, TODO: add others",
+            // TODO add anomaly detection config options
+        },
+        "owner": "The user or team who owns the monitor.",
+        "description": "A description of the monitor. Will be displayed in the resulting notification.",
+        "enabled": True,
+        "condition_group": "The condition group. TODO add more here. or just 'see example'?",
+    }
+    ```
+    """
 
 
 def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
@@ -299,16 +318,16 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
-        # request=PolymorphicProxySerializer(
-        #     "GenericDetectorSerializer",
-        #     serializers=[
-        #         gt.detector_settings.validator
-        #         for gt in grouptype.registry.all()
-        #         if gt.detector_settings and gt.detector_settings.validator
-        #     ],
-        #     resource_type_field_name=None,
-        # ),
-        request=MetricIssueDetectorValidator,
+        request=PolymorphicProxySerializer(
+            "GenericDetectorSerializer",
+            serializers=[
+                gt.detector_settings.validator
+                for gt in grouptype.registry.all()
+                if gt.detector_settings and gt.detector_settings.validator
+            ],
+            resource_type_field_name=None,
+        ),
+        # request=APIDocsDetectorSerializer,
         responses={
             201: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -319,16 +338,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Create a Detector
-        ````````````````
-        Create a new monitor for a project.
-
-        :param string name: The name of the detector
-        :param string type: The type of detector to create
-        :param string projectId: The detector project
-        :param object dataSource: Configuration for the data source
-        :param array dataConditions: List of conditions to trigger the detector
-        :param array workflowIds: List of workflow IDs to connect to the detector
+        Create a Monitor for a project
         """
         detector_type = request.data.get("type")
         if not detector_type:
@@ -383,151 +393,151 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
 
-    # @extend_schema(
-    #     operation_id="Mutate an Organization's Detectors",
-    #     parameters=[
-    #         GlobalParams.ORG_ID_OR_SLUG,
-    #         OrganizationParams.PROJECT,
-    #         DetectorParams.QUERY,
-    #         DetectorParams.SORT,
-    #         DetectorParams.ID,
-    #     ],
-    #     responses={
-    #         200: RESPONSE_SUCCESS,
-    #         201: DetectorSerializer,
-    #         400: RESPONSE_BAD_REQUEST,
-    #         401: RESPONSE_UNAUTHORIZED,
-    #         403: RESPONSE_FORBIDDEN,
-    #         404: RESPONSE_NOT_FOUND,
-    #     },
-    # )
-    # def put(self, request: Request, organization: Organization) -> Response:
-    #     """
-    #     Mutate an Organization's Detectors
-    #     """
-    #     if not request.user.is_authenticated:
-    #         return self.respond(status=status.HTTP_401_UNAUTHORIZED)
+    @extend_schema(
+        operation_id="Mutate an Organization's Detectors",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            DetectorParams.QUERY,
+            DetectorParams.SORT,
+            DetectorParams.ID,
+        ],
+        responses={
+            200: RESPONSE_SUCCESS,
+            201: DetectorSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(self, request: Request, organization: Organization) -> Response:
+        """
+        Mutate an Organization's Detectors
+        """
+        if not request.user.is_authenticated:
+            return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
-    #     if not (
-    #         request.GET.getlist("id")
-    #         or request.GET.get("query")
-    #         or request.GET.getlist("project")
-    #         or request.GET.getlist("projectSlug")
-    #     ):
-    #         return Response(
-    #             {
-    #                 "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
-    #             },
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
+        ):
+            return Response(
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    #     validator = DetectorWorkflowMutationValidator(data=request.data)
-    #     validator.is_valid(raise_exception=True)
-    #     enabled = validator.validated_data.get("enabled", True)
+        validator = DetectorWorkflowMutationValidator(data=request.data)
+        validator.is_valid(raise_exception=True)
+        enabled = validator.validated_data.get("enabled", True)
 
-    #     queryset = self.filter_detectors(request, organization)
+        queryset = self.filter_detectors(request, organization)
 
-    #     # If explicitly filtering by IDs and some were not found, return 400
-    #     if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
-    #         return Response(
-    #             {
-    #                 "detail": "Some detectors were not found or you do not have permission to update them."
-    #             },
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+        # If explicitly filtering by IDs and some were not found, return 400
+        if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
+            return Response(
+                {
+                    "detail": "Some detectors were not found or you do not have permission to update them."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    #     if not queryset:
-    #         return Response(
-    #             {"detail": "No detectors found."},
-    #             status=status.HTTP_200_OK,
-    #         )
+        if not queryset:
+            return Response(
+                {"detail": "No detectors found."},
+                status=status.HTTP_200_OK,
+            )
 
-    #     # Check if the user has edit permissions for all detectors
-    #     if not can_edit_detectors(queryset, request):
-    #         raise PermissionDenied
+        # Check if the user has edit permissions for all detectors
+        if not can_edit_detectors(queryset, request):
+            raise PermissionDenied
 
-    #     # We update detectors individually to ensure post_save signals are called
-    #     with transaction.atomic(router.db_for_write(Detector)):
-    #         for detector in queryset:
-    #             detector.update(enabled=enabled)
+        # We update detectors individually to ensure post_save signals are called
+        with transaction.atomic(router.db_for_write(Detector)):
+            for detector in queryset:
+                detector.update(enabled=enabled)
 
-    #     return self.paginate(
-    #         request=request,
-    #         queryset=queryset,
-    #         paginator_cls=OffsetPaginator,
-    #         on_results=lambda x: serialize(x, request.user),
-    #         order_by=["id"],
-    #     )
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+            order_by=["id"],
+        )
 
-    # @extend_schema(
-    #     operation_id="Delete an Organization's Detectors",
-    #     parameters=[
-    #         GlobalParams.ORG_ID_OR_SLUG,
-    #         OrganizationParams.PROJECT,
-    #         DetectorParams.QUERY,
-    #         DetectorParams.SORT,
-    #         DetectorParams.ID,
-    #     ],
-    #     responses={
-    #         200: RESPONSE_SUCCESS,
-    #         204: RESPONSE_NO_CONTENT,
-    #         400: RESPONSE_BAD_REQUEST,
-    #         401: RESPONSE_UNAUTHORIZED,
-    #         403: RESPONSE_FORBIDDEN,
-    #         404: RESPONSE_NOT_FOUND,
-    #     },
-    # )
-    # def delete(self, request: Request, organization: Organization) -> Response:
-    #     """
-    #     Delete an Organization's Detectors
-    #     """
-    #     if not request.user.is_authenticated:
-    #         return self.respond(status=status.HTTP_401_UNAUTHORIZED)
+    @extend_schema(
+        operation_id="Delete an Organization's Detectors",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            DetectorParams.QUERY,
+            DetectorParams.SORT,
+            DetectorParams.ID,
+        ],
+        responses={
+            200: RESPONSE_SUCCESS,
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(self, request: Request, organization: Organization) -> Response:
+        """
+        Delete an Organization's Detectors
+        """
+        if not request.user.is_authenticated:
+            return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
-    #     if not (
-    #         request.GET.getlist("id")
-    #         or request.GET.get("query")
-    #         or request.GET.getlist("project")
-    #         or request.GET.getlist("projectSlug")
-    #     ):
-    #         return Response(
-    #             {
-    #                 "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
-    #             },
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
+        ):
+            return Response(
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    #     queryset = self.filter_detectors(request, organization)
+        queryset = self.filter_detectors(request, organization)
 
-    #     # If explicitly filtering by IDs and some were not found, return 400
-    #     if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
-    #         return Response(
-    #             {
-    #                 "detail": "Some detectors were not found or you do not have permission to delete them."
-    #             },
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+        # If explicitly filtering by IDs and some were not found, return 400
+        if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
+            return Response(
+                {
+                    "detail": "Some detectors were not found or you do not have permission to delete them."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    #     if not queryset:
-    #         return Response(
-    #             {"detail": "No detectors found."},
-    #             status=status.HTTP_200_OK,
-    #         )
+        if not queryset:
+            return Response(
+                {"detail": "No detectors found."},
+                status=status.HTTP_200_OK,
+            )
 
-    #     # Check if the user has edit permissions for all detectors
-    #     if not can_delete_detectors(queryset, request):
-    #         raise PermissionDenied
+        # Check if the user has edit permissions for all detectors
+        if not can_delete_detectors(queryset, request):
+            raise PermissionDenied
 
-    #     for detector in queryset:
-    #         with transaction.atomic(router.db_for_write(Detector)):
-    #             RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
-    #             create_audit_entry(
-    #                 request=request,
-    #                 organization=organization,
-    #                 target_object=detector.id,
-    #                 event=audit_log.get_event_id("DETECTOR_REMOVE"),
-    #                 data=detector.get_audit_log_data(),
-    #             )
-    #             detector.update(status=ObjectStatus.PENDING_DELETION)
+        for detector in queryset:
+            with transaction.atomic(router.db_for_write(Detector)):
+                RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
+                create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=detector.id,
+                    event=audit_log.get_event_id("DETECTOR_REMOVE"),
+                    data=detector.get_audit_log_data(),
+                )
+                detector.update(status=ObjectStatus.PENDING_DELETION)
 
-    #     return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)

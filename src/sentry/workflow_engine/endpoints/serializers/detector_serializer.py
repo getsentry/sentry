@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.db.models import Count
 from drf_spectacular.utils import extend_schema_serializer
@@ -22,6 +22,13 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
+
+
+class OwnerSerializerResponse(TypedDict):
+    type: str
+    id: str
+    name: str
+    email: NotRequired[str]
 
 
 class DetectorSerializerResponseOptional(TypedDict, total=False):
@@ -172,7 +179,9 @@ class DetectorSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs
+    ) -> DetectorSerializerResponse:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
