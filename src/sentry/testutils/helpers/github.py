@@ -4,14 +4,18 @@ Utilities for testing GitHub integration webhooks.
 
 from __future__ import annotations
 
+from collections.abc import Collection, Generator, Mapping
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
+import orjson
 from django.http.response import HttpResponseBase
 
 from sentry import options
 from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.models.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -89,7 +93,7 @@ class GitHubWebhookTestCase(APITestCase):
 
     def send_github_webhook_event(
         self,
-        event_type: str,
+        github_event: GithubWebhookType,
         event_data: str | bytes,
         **extra_headers: str,
     ) -> HttpResponseBase:
@@ -97,7 +101,7 @@ class GitHubWebhookTestCase(APITestCase):
         Send a GitHub webhook event with proper signatures and headers.
 
         Args:
-            event_type: GitHub event type (e.g., "push", "pull_request", "check_run")
+            github_event: GitHub event type (e.g., "push", "pull_request", "check_run")
             event_data: The webhook event payload (as JSON string or bytes)
             **extra_headers: Additional HTTP headers
 
@@ -115,7 +119,7 @@ class GitHubWebhookTestCase(APITestCase):
 
         # Build headers
         headers = {
-            "HTTP_X_GITHUB_EVENT": event_type,
+            "HTTP_X_GITHUB_EVENT": github_event.value,
             "HTTP_X_HUB_SIGNATURE": sha1_sig,
             "HTTP_X_HUB_SIGNATURE_256": sha256_sig,
             "HTTP_X_GITHUB_DELIVERY": str(uuid4()),
@@ -130,3 +134,44 @@ class GitHubWebhookTestCase(APITestCase):
             content_type="application/json",
             **headers,
         )
+
+
+class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
+    CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+    OPTIONS_TO_SET: dict[str, Any] = {}
+
+    @contextmanager
+    def code_review_setup(
+        self,
+        features: Collection[str] | Mapping[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> Generator[None]:
+        """Helper to set up code review test context."""
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        features_to_enable = self.CODE_REVIEW_FEATURES if features is None else features
+        options_to_set = dict(self.OPTIONS_TO_SET) | (options or {})
+        with (
+            self.feature(features_to_enable),
+            self.options(options_to_set),
+        ):
+            yield
+
+    def _send_webhook_event(
+        self, github_event: GithubWebhookType, event_data: bytes | str
+    ) -> HttpResponseBase:
+        """Helper to send a GitHub webhook event."""
+        self.event_dict = (
+            orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
+        )
+        repo_id = int(self.event_dict["repository"]["id"])
+
+        integration = self.create_github_integration()
+        self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id=repo_id,
+            integration_id=integration.id,
+        )
+        response = self.send_github_webhook_event(github_event, event_data)
+        assert response.status_code == 204
+        return response

@@ -82,7 +82,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
             "values": [
               {
                 "contributes": false,
-                "hint": null,
+                "hint": "ignored single non-URL JavaScript frame",
                 "id": "frame",
                 "name": null,
                 "values": [

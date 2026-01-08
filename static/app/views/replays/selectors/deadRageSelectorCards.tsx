@@ -12,7 +12,6 @@ import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   HeaderContainer,
@@ -85,6 +84,7 @@ function AccordionWidget({
   deadOrRage: 'dead' | 'rage';
   header: ReactNode;
 }) {
+  const clickVariant = deadOrRage === 'dead' ? 'warning' : 'danger';
   const [selectedListIndex, setSelectListIndex] = useState(-1);
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
@@ -95,12 +95,11 @@ function AccordionWidget({
   });
   const location = useLocation();
   const filteredData = data.filter(d => (d[clickType] ?? 0) > 0);
-  const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'red300';
 
   return (
     <StyledWidgetContainer data-test-id="selector-widget">
       <StyledHeaderContainer>
-        <IconCursorArrow color={clickColor} />
+        <IconCursorArrow variant={clickVariant} />
         {header}
       </StyledHeaderContainer>
       {isLoading ? (
@@ -139,7 +138,7 @@ function AccordionWidget({
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
                     selector={d.dom_element.selector}
-                    clickColor={clickColor}
+                    clickVariant={clickVariant}
                     selectorQuery={selectorQuery}
                     id={d.project_id}
                   />
@@ -163,12 +162,12 @@ function AccordionWidget({
 
 function AccordionItemHeader({
   count,
-  clickColor,
+  clickVariant,
   selector,
   selectorQuery,
   id,
 }: {
-  clickColor: ColorOrAlias;
+  clickVariant: 'warning' | 'danger';
   count: number;
   id: number;
   selector: string;
@@ -176,7 +175,7 @@ function AccordionItemHeader({
 }) {
   const clickCount = (
     <ClickCount>
-      <IconCursorArrow size="xs" color={clickColor} />
+      <IconCursorArrow size="xs" variant={clickVariant} />
       {count}
     </ClickCount>
   );

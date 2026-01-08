@@ -1,12 +1,14 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import nextStepsImg from 'sentry-images/spot/seer-config-bug-2.svg';
 
+import {Button} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
+import {useGuidedStepsContext} from 'sentry/components/guidedSteps/guidedSteps';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,6 +20,11 @@ export function WrapUpStep() {
   const organization = useOrganization();
   const {selectedCodeReviewRepositories, repositoryProjectMapping, autoCreatePR} =
     useSeerOnboardingContext();
+  const {currentStep, setCurrentStep} = useGuidedStepsContext();
+
+  const handlePreviousStep = useCallback(() => {
+    setCurrentStep(currentStep - 1);
+  }, [setCurrentStep, currentStep]);
 
   const hasCodeReview = useMemo(
     () => selectedCodeReviewRepositories.length > 0,
@@ -40,12 +47,14 @@ export function WrapUpStep() {
           <PanelBody>
             {hasCompletedAnySteps ? (
               <PanelDescription>
-                <Text bold>{t('Congratulations, you’ve finished setting up Seer!')}</Text>
-                <p>
+                <Heading as="h3" size="lg">
+                  {t('Congratulations, you’ve finished setting up Seer!')}
+                </Heading>
+                <Text density="comfortable">
                   {t(
                     'For connected projects and repos, you will now be able to have Seer:'
                   )}
-                </p>
+                </Text>
                 <NextStepsList>
                   {hasCodeReview && (
                     <li>
@@ -63,7 +72,7 @@ export function WrapUpStep() {
                   )}
                   {hasAutoCreatePR && <li>{t('Create PRs to fix issues')}</li>}
                 </NextStepsList>
-                <Text>
+                <Text density="comfortable">
                   {tct(
                     'If you want to adjust your configurations, you can modify them on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
                     {
@@ -78,7 +87,10 @@ export function WrapUpStep() {
               </PanelDescription>
             ) : (
               <PanelDescription>
-                <Text>
+                <Heading as="h3" size="lg">
+                  {t('Seer set-up is not complete')}
+                </Heading>
+                <Text density="comfortable">
                   {tct(
                     'You can restart the wizard and continue setting up Seer, or if you prefer, you can set-up Seer on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
                     {
@@ -96,6 +108,15 @@ export function WrapUpStep() {
         </MaxWidthPanel>
 
         <ActionSection>
+          {!hasCompletedAnySteps && (
+            <Button
+              size="md"
+              onClick={handlePreviousStep}
+              aria-label={t('Previous Step')}
+            >
+              {t('Previous Step')}
+            </Button>
+          )}
           <LinkButton
             priority="primary"
             size="md"
@@ -112,6 +133,7 @@ export function WrapUpStep() {
 const StepContentWithBackground = styled(StepContent)`
   background: url(${nextStepsImg}) no-repeat 638px 0;
   background-size: 233px 212px;
+  min-height: 220px;
 `;
 
 const NextStepsList = styled('ul')`

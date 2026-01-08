@@ -320,7 +320,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       return `
             <div style="font-family: Rubik;">
               <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${theme.space.md}; gap: ${theme.space.md}">
-                <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.data?.itemStyle?.borderColor || theme.border};"></div>
+                <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.data?.itemStyle?.borderColor || theme.tokens.border.primary};"></div>
                 <span style="color: ${theme.tokens.content.primary}">${params.data?.category || 'Other'}</span>
               </div>
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${theme.space.sm}">
@@ -382,7 +382,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     <Flex direction="column" gap="sm" height="100%" width="100%">
       {alertMessage && (
         <ClickableAlert
-          type="warning"
+          variant="warning"
           onClick={onAlertClick}
           style={{cursor: onAlertClick ? 'pointer' : 'default'}}
         >

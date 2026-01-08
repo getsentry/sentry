@@ -39,10 +39,10 @@ export function BuildDetailsSidebarStatusCheck({
     const providerName = getProviderDisplayName(vcsInfo.provider);
     const errorMessage = getErrorMessage(statusCheck.error_type, providerName);
     return (
-      <Alert type="muted" showIcon={false}>
+      <Alert variant="muted" showIcon={false}>
         <Flex direction="column" gap="sm">
           <Flex align="center" gap="xs">
-            <IconWarning size="xs" color="errorText" />
+            <IconWarning size="xs" variant="danger" />
             <Text size="sm" bold>
               {t('Status check failed to post')}
             </Text>
@@ -72,9 +72,9 @@ export function BuildDetailsSidebarStatusCheck({
     const providerName = getProviderDisplayName(vcsInfo.provider);
 
     return (
-      <Alert type="muted" showIcon={false}>
+      <Alert variant="muted" showIcon={false}>
         <Flex align="center" gap="xs">
-          <IconCheckmark size="xs" color="successText" />
+          <IconCheckmark size="xs" variant="success" />
           <Text size="sm">
             <ExternalLink href={checkUrl}>
               {t('View status check on %s', providerName)}

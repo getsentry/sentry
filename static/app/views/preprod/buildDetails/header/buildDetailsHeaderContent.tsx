@@ -50,9 +50,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const {buildDetailsQuery, projectId, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
+    isRerunningStatusChecks,
     handleDeleteArtifact,
     handleRerunAction,
     handleDownloadAction,
+    handleRerunStatusChecksAction,
   } = useBuildDetailsActions({
     projectId,
     artifactId,
@@ -188,10 +190,21 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             {({open: openDeleteModal}) => {
               const menuItems: MenuItemProps[] = [
                 {
+                  key: 'rerun-status-checks',
+                  label: (
+                    <Flex align="center" gap="sm">
+                      <IconRefresh size="sm" />
+                      {t('Rerun Status Checks')}
+                    </Flex>
+                  ),
+                  onAction: handleRerunStatusChecksAction,
+                  textValue: t('Rerun Status Checks'),
+                },
+                {
                   key: 'delete',
                   label: (
                     <Flex align="center" gap="sm">
-                      <IconDelete size="sm" color="danger" />
+                      <IconDelete size="sm" variant="danger" />
                       <Text variant="danger">{t('Delete Build')}</Text>
                     </Flex>
                   ),
@@ -240,7 +253,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                       size="sm"
                       aria-label="More actions"
                       showChevron={false}
-                      disabled={isDeletingArtifact || !artifactId}
+                      disabled={
+                        isDeletingArtifact || isRerunningStatusChecks || !artifactId
+                      }
                     >
                       <IconEllipsis />
                     </DropdownButton>

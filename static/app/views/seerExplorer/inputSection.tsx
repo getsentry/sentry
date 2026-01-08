@@ -30,6 +30,7 @@ interface QuestionActions {
 }
 
 interface InputSectionProps {
+  enabled: boolean;
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
@@ -47,6 +48,7 @@ interface InputSectionProps {
 }
 
 function InputSection({
+  enabled,
   inputValue,
   focusedBlockIndex,
   isMinimized = false,
@@ -62,6 +64,9 @@ function InputSection({
   questionActions,
 }: InputSectionProps) {
   const getPlaceholder = () => {
+    if (!enabled) {
+      return 'This conversation is owned by another user and is read-only';
+    }
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';
     }
@@ -70,7 +75,7 @@ function InputSection({
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!fileApprovalActions || !isVisible || isMinimized) {
+    if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
       return undefined;
     }
 
@@ -94,11 +99,11 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [fileApprovalActions, isVisible, isMinimized]);
+  }, [enabled, fileApprovalActions, isVisible, isMinimized]);
 
   // Handle keyboard shortcuts for questions
   useEffect(() => {
-    if (!questionActions || !isVisible || isMinimized) {
+    if (!enabled || !questionActions || !isVisible || isMinimized) {
       return undefined;
     }
 
@@ -134,7 +139,28 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [questionActions, isVisible, isMinimized]);
+  }, [enabled, questionActions, isVisible, isMinimized]);
+
+  // Render disabled input element if not enabled
+  if (!enabled) {
+    return (
+      <InputBlock>
+        <StyledInputGroup>
+          <InputGroup.TextArea
+            disabled
+            ref={textAreaRef}
+            value={inputValue}
+            onChange={onInputChange}
+            onKeyDown={onKeyDown}
+            onClick={onInputClick}
+            placeholder={getPlaceholder()}
+            rows={1}
+            data-test-id="seer-explorer-input"
+          />
+        </StyledInputGroup>
+      </InputBlock>
+    );
+  }
 
   // Render file approval action bar instead of entire input section
   if (fileApprovalActions) {
@@ -238,7 +264,7 @@ function InputSection({
     if (isPolling) {
       return (
         <Button
-          icon={<IconPause color="subText" />}
+          icon={<IconPause variant="muted" />}
           onClick={onInterrupt}
           size="sm"
           priority="transparent"

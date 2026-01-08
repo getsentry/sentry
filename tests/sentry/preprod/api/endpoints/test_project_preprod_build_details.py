@@ -73,6 +73,28 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["app_info"]["build_number"] == self.preprod_artifact.build_number
         assert resp_data["app_info"]["artifact_type"] == self.preprod_artifact.artifact_type
 
+    def test_get_build_details_distribution_info(self) -> None:
+        self.preprod_artifact.extras = {"release_notes": "Build notes"}
+        self.preprod_artifact.save()
+        self.create_installable_preprod_artifact(
+            preprod_artifact=self.preprod_artifact, download_count=2
+        )
+        self.create_installable_preprod_artifact(
+            preprod_artifact=self.preprod_artifact, download_count=3
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        distribution_info = resp_data["distribution_info"]
+        assert distribution_info["is_installable"] is True
+        assert distribution_info["download_count"] == 5
+        assert distribution_info["release_notes"] == "Build notes"
+
     def test_get_build_details_not_found(self) -> None:
         url = self._get_url(artifact_id=999999)
         response = self.client.get(

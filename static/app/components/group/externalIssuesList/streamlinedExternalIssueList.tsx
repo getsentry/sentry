@@ -80,7 +80,7 @@ export function StreamlinedExternalIssueList({
   if (!hasLinkedIssuesOrIntegrations) {
     return (
       <AlertLink
-        type="muted"
+        variant="muted"
         to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
       >
         {t('Track this issue in Jira, GitHub, etc.')}
@@ -225,7 +225,7 @@ const IssueActionButton = styled(Button)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
@@ -234,7 +234,7 @@ const IssueActionLinkButton = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
@@ -243,12 +243,12 @@ const IssueActionDropdownMenu = styled(DropdownButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 
   &[aria-expanded='true'] {
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -272,7 +272,7 @@ const LinkedIssueName = styled('div')`
 const HorizontalSeparator = styled('div')`
   width: 1px;
   height: 14px;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
 `;
 
 const UnlinkButton = styled(Button)`

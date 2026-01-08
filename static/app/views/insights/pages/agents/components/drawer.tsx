@@ -225,7 +225,7 @@ const LeftPanel = styled('div')`
   min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
   padding: ${p => p.theme.space.xl};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: auto;
   overflow-x: hidden;
   max-width: 400px;

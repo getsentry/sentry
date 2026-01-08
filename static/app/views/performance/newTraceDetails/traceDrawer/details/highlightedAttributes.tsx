@@ -307,7 +307,7 @@ function HighlightedTools({
                 : tn('Used %s time', 'Used %s times', usageCount)
             }
           >
-            <Tag key={tool} type={usedTools.has(tool) ? 'info' : 'default'}>
+            <Tag key={tool} variant={usedTools.has(tool) ? 'info' : 'muted'}>
               {tool}
             </Tag>
           </Tooltip>
@@ -387,5 +387,5 @@ const TokensSpan = styled('span')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;

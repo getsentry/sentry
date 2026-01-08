@@ -267,7 +267,7 @@ function WidgetBuilderSlideout({
               {isTransactionsWidget && showTransactionsDeprecationAlert && (
                 <Section>
                   <Alert
-                    type="warning"
+                    variant="warning"
                     trailingItems={
                       <StyledCloseButton
                         icon={<IconClose size="sm" />}
@@ -495,7 +495,7 @@ const SlideoutHeaderWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SlideoutBreadcrumb = styled('div')`

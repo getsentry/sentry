@@ -130,7 +130,7 @@ export function IssueViewItem({
               }}
             >
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
-              <IconGrabbable color="gray300" />
+              <IconGrabbable variant="muted" />
             </GrabHandleWrapper>
             <ProjectIcon
               projectPlatforms={projectPlatforms}

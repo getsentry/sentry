@@ -101,7 +101,7 @@ export default function AutomationBuilder() {
           }
         />
         {(mutationErrors as any)?.actionFilters?.all && (
-          <StyledAlert type="error">
+          <StyledAlert variant="danger">
             {(mutationErrors as any).actionFilters.all}
           </StyledAlert>
         )}
@@ -273,7 +273,7 @@ const IfThenWrapper = styled(Flex)`
   position: relative;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};

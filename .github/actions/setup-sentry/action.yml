@@ -15,6 +15,10 @@ inputs:
     description: 'Mode to bring up by new devservices'
     required: false
     default: 'default'
+  skip-devservices:
+    description: 'Skip bringing up devservices'
+    required: false
+    default: 'false'
 
 outputs:
   matrix-instance-number:
@@ -38,7 +42,7 @@ runs:
         # isn't right because job-total will be 3x larger and you'd never run 2/3 of the tests.
         # MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
-        echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
+        echo "SENTRY_SKIP_SERVICE_VALIDATION=1" >> $GITHUB_ENV
 
         # for actions/setup-python which always runs pip install
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
@@ -80,6 +84,15 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
+    - name: Clear Python cache
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
+      env:
+        WORKDIR: ${{ inputs.workdir }}
+      run: |
+        cd "$WORKDIR"
+        find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+        find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
     - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
       with:
         version: '0.8.2'
@@ -113,6 +126,7 @@ runs:
         python3 -m tools.fast_editable --path .
 
     - name: Start new devservices
+      if: ${{ inputs.skip-devservices != 'true' }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         WORKDIR: ${{ inputs.workdir }}

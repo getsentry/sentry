@@ -39,7 +39,7 @@ export function ProjectLoadingError({
   if (code === 'sso-required' && ssoLoginUrl) {
     return (
       <Alert
-        type="error"
+        variant="danger"
         trailingItems={
           <LinkButton href={ssoLoginUrl} size="xs">
             {t('Log in')}

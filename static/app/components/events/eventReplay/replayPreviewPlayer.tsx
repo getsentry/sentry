@@ -93,7 +93,7 @@ export default function ReplayPreviewPlayer({
   return (
     <PlayerPanel>
       {errorBeforeReplayStart && (
-        <StyledAlert type="warning">
+        <StyledAlert variant="warning">
           {t(
             'For this event, the replay recording started after the error happened, so the replay below shows the user experience after the error.'
           )}
@@ -234,7 +234,7 @@ const PlayerContextContainer = styled(FluidHeight)`
 `;
 
 const StaticPanel = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 const ButtonGrid = styled('div')`

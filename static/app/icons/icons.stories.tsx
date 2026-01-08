@@ -1544,6 +1544,7 @@ export default function IconsStories() {
       <Heading as="h5" size="xl" variant="primary">
         Icon Variants
       </Heading>
+
       <Text as="p" density="comfortable" size="md" variant="primary">
         Just like other Core components, Icons support a set of variants that control the
         color of the icon. The full list of variants is{' '}
@@ -1839,7 +1840,7 @@ function IconCard(props: IconCardProps) {
           <Flex gap="lg">
             <Flex align="center" gap="sm">
               <Tag
-                type={action === 'element' ? 'info' : 'default'}
+                variant={action === 'element' ? 'info' : 'muted'}
                 style={{width: 'max-content'}}
               >
                 click
@@ -1853,7 +1854,7 @@ function IconCard(props: IconCardProps) {
               </Text>
             </Flex>
             <Flex align="center" gap="sm">
-              <Tag type={action === 'import' ? 'info' : 'default'}>shift+click</Tag>
+              <Tag variant={action === 'import' ? 'info' : 'muted'}>shift+click</Tag>
               <Text
                 monospace
                 size="sm"
