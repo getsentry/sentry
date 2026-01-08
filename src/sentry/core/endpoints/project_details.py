@@ -943,6 +943,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
                 )
+            if "sentry:preprod_size_status_checks_enabled" in options:
+                project.update_option(
+                    "sentry:preprod_size_status_checks_enabled",
+                    bool(options["sentry:preprod_size_status_checks_enabled"]),
+                )
+            if "sentry:preprod_size_status_checks_rules" in options:
+                project.update_option(
+                    "sentry:preprod_size_status_checks_rules",
+                    options["sentry:preprod_size_status_checks_rules"],
+                )
 
         self.create_audit_entry(
             request=request,
