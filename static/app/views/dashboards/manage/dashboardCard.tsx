@@ -87,7 +87,7 @@ function DashboardCard({
         </Flex>
       </CardLink>
 
-      <Flex gap="xs" position="absolute" bottom="PLACEHOLDER" right="PLACEHOLDER">
+      <Flex gap="xs" position="absolute" bottom={space(1)} right={space(2)}>
         <StyledButton
           icon={
             <IconStar
