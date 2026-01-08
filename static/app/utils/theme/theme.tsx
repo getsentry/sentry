@@ -231,7 +231,7 @@ const generateButtonTheme = (
     backgroundActive: tokens.background.transparent.neutral.muted,
     border: alias.border,
     borderActive: alias.border,
-    borderTranslucent: alias.translucentBorder,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -1188,7 +1188,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    * Primary border color
    */
   border: tokens.border.primary,
-  translucentBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * A color that denotes a "success", or something good
