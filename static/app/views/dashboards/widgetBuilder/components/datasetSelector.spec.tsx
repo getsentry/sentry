@@ -13,6 +13,30 @@ jest.mock('sentry/utils/useNavigate', () => ({
 const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('DatasetSelector', () => {
+  it('shows dataset descriptions on hover', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(
+      <WidgetBuilderProvider>
+        <DatasetSelector />
+      </WidgetBuilderProvider>
+    );
+
+    // Open the CompactSelect menu
+    await userEvent.click(await screen.findByText('Dataset'));
+
+    // Hover over the Errors option and verify description appears
+    const errorsOption = await screen.findByRole('option', {name: 'Errors'});
+    await userEvent.hover(errorsOption);
+
+    expect(
+      await screen.findByText(
+        'Error events from your application, including exception details and stack traces'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('changes the dataset', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
@@ -104,6 +128,14 @@ describe('DatasetSelector', () => {
     // Find the Transactions option and verify it's not disabled
     const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
     expect(transactionsOption.closest('[aria-disabled="true"]')).toBeNull();
+
+    // Hover on the transactions option and verify description appears
+    await userEvent.hover(transactionsOption);
+    expect(
+      await screen.findByText(
+        'End-to-end application transactions showing performance and user experience metrics'
+      )
+    ).toBeInTheDocument();
 
     // Select transactions dataset
     await userEvent.click(transactionsOption);

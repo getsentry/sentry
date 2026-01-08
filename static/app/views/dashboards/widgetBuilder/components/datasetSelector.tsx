@@ -32,7 +32,13 @@ function WidgetBuilderDatasetSelector() {
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
   const datasetOptions = [];
-  datasetOptions.push({value: WidgetType.ERRORS, label: t('Errors')});
+  datasetOptions.push({
+    value: WidgetType.ERRORS,
+    label: t('Errors'),
+    details: t(
+      'Error events from your application, including exception details and stack traces'
+    ),
+  });
 
   const transactionsOption = {
     value: WidgetType.TRANSACTIONS,
@@ -63,20 +69,52 @@ function WidgetBuilderDatasetSelector() {
             </Link>
           ),
         })
-      : null,
+      : t(
+          'End-to-end application transactions showing performance and user experience metrics'
+        ),
   };
 
   if (organization.features.includes('visibility-explore-view')) {
-    datasetOptions.push({value: WidgetType.SPANS, label: t('Spans')});
+    datasetOptions.push({
+      value: WidgetType.SPANS,
+      label: t('Spans'),
+      details: t(
+        'Distributed tracing spans from your application, showing performance and execution paths'
+      ),
+    });
   }
   if (isLogsEnabled(organization)) {
-    datasetOptions.push({value: WidgetType.LOGS, label: t('Logs')});
+    datasetOptions.push({
+      value: WidgetType.LOGS,
+      label: t('Logs'),
+      details: t(
+        'Log messages from your application for debugging and monitoring purposes'
+      ),
+    });
   }
   if (hasTraceMetricsDashboards) {
-    datasetOptions.push({value: WidgetType.TRACEMETRICS, label: t('Metrics')});
+    datasetOptions.push({
+      value: WidgetType.TRACEMETRICS,
+      label: t('Metrics'),
+      details: t(
+        'Performance metrics derived from traces to monitor and analyze system behavior'
+      ),
+    });
   }
-  datasetOptions.push({value: WidgetType.ISSUE, label: t('Issues')});
-  datasetOptions.push({value: WidgetType.RELEASE, label: t('Releases')});
+  datasetOptions.push({
+    value: WidgetType.ISSUE,
+    label: t('Issues'),
+    details: t(
+      'Aggregated error events grouped by root cause to help prioritize problems'
+    ),
+  });
+  datasetOptions.push({
+    value: WidgetType.RELEASE,
+    label: t('Releases'),
+    details: t(
+      'Release-specific data to track deployment health and performance changes'
+    ),
+  });
   datasetOptions.push(transactionsOption);
 
   return (
