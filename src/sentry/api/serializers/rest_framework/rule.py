@@ -185,18 +185,27 @@ class RuleSerializer(RuleSetSerializer):
 
         if owner.is_team:
             request = self.context.get("request")
+
+            # Users with team:admin scope can assign any team as owner
             if request and request.access.has_scope("team:admin"):
                 return owner
-            if request and hasattr(request, "user") and request.user:
-                user_is_team_member = OrganizationMemberTeam.objects.filter(
-                    team_id=owner.id,
-                    organizationmember__user_id=request.user.id,
-                    is_active=True,
-                ).exists()
-                if not user_is_team_member:
-                    raise serializers.ValidationError(
-                        "You must be a member of a team to assign it as the rule owner."
-                    )
+
+            # Fail closed: if we can't verify the user, deny the action
+            if not request or not getattr(request, "user", None):
+                raise serializers.ValidationError(
+                    "You must be a member of a team to assign it as the rule owner."
+                )
+
+            # Check if the user is a member of the team
+            user_is_team_member = OrganizationMemberTeam.objects.filter(
+                team_id=owner.id,
+                organizationmember__user_id=request.user.id,
+                is_active=True,
+            ).exists()
+            if not user_is_team_member:
+                raise serializers.ValidationError(
+                    "You must be a member of a team to assign it as the rule owner."
+                )
 
         return owner
 
