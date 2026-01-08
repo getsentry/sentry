@@ -171,7 +171,7 @@ export default function FeedbackListPage() {
                       gap="md"
                       area="top"
                       direction={{xs: 'column', sm: 'row'}}
-                      align={{xs: 'stretch', sm: undefined}}
+                      align={{xs: 'stretch', sm: 'start'}}
                     >
                       <FeedbackFilters />
                       <SearchContainer>
