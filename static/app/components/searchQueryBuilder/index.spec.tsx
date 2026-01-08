@@ -1803,6 +1803,106 @@ describe('SearchQueryBuilder', () => {
       expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
     });
 
+    it('wraps selected tokens in parentheses with ( key', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved browser.name:chrome"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('(');
+
+      expect(mockOnChange).toHaveBeenCalledWith(
+        '(is:unresolved browser.name:chrome)',
+        expect.anything()
+      );
+    });
+
+    it('wraps selected tokens in parentheses with ) key', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved browser.name:chrome"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard(')');
+
+      expect(mockOnChange).toHaveBeenCalledWith(
+        '(is:unresolved browser.name:chrome)',
+        expect.anything()
+      );
+    });
+
+    it('wraps single selected token in parentheses', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'is:unresolved'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+      await userEvent.keyboard('(');
+
+      expect(mockOnChange).toHaveBeenCalledWith('(is:unresolved)', expect.anything());
+    });
+
+    it('does not wrap when nothing is selected', async () => {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="is:unresolved" />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('(');
+
+      expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
+    });
+
+    it('can undo wrapping with ctrl-z', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved browser.name:chrome"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('(');
+
+      expect(mockOnChange).toHaveBeenCalledWith(
+        '(is:unresolved browser.name:chrome)',
+        expect.anything()
+      );
+
+      await userEvent.keyboard('{Control>}z{/Control}');
+
+      expect(await screen.findByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:chrome'})
+      ).toBeInTheDocument();
+      expect(screen.queryByText('(')).not.toBeInTheDocument();
+    });
+
     it('can undo last action with ctrl-z', async () => {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
