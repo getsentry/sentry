@@ -51,7 +51,9 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
                 region="default",
             )
 
-            assert "error" in response.data
+            assert "assertion" in response.data
+            assert "error" in response.data["assertion"]
+            assert response.data["assertion"]["error"].code == "invalid"
 
     @responses.activate
     def test_success(self) -> None:

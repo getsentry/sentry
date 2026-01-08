@@ -1,10 +1,9 @@
 import logging
-import uuid
 from collections.abc import Sequence
 from typing import Any, override
 
 import jsonschema
-import requests
+from django.conf import settings
 from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
@@ -14,12 +13,10 @@ from sentry import audit_log, quotas
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.conf.server import UPTIME_REGIONS
-from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.environment import Environment
+from sentry.uptime import checker_api
 from sentry.uptime.models import (
-    UptimeRegionScheduleMode,
     UptimeSubscription,
     UptimeSubscriptionDataSourceHandler,
     get_audit_log_data,
@@ -42,7 +39,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import CheckConfig, UptimeMonitorMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET
@@ -84,13 +81,6 @@ HEADERS_LIST_SCHEMA = {
         ],
     },
 }
-
-
-def get_uptime_checker_region_config(region_slug: str) -> UptimeRegionConfig | None:
-    regions = [r for r in UPTIME_REGIONS if r.slug == region_slug]
-    if len(regions) == 0:
-        return None
-    return regions[0]
 
 
 def compute_http_request_size(
@@ -153,90 +143,40 @@ def _validate_request_size(method, url, headers, body):
         )
 
 
-# Create a "preview check" that we send to an uptime checker to validate the config
-# (in particular, the assertion.)
-def _create_check(validated_data, region: UptimeRegionConfig):
-    config: CheckConfig = {
-        "subscription_id": uuid.uuid4().hex,
-        "url": validated_data.get("url"),
-        "interval_seconds": 3600,
-        "timeout_ms": validated_data.get("timeout_ms"),
-        "trace_sampling": False,
-        # We're only going to run in the one specified region.
-        "active_regions": [region.slug],
-        "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
-    }
-
-    config["request_method"] = validated_data.get("method")
-    config["request_headers"] = validated_data.get("headers")
-    config["request_body"] = validated_data.get("body")
-    config["assertion"] = validated_data.get("assertion")
-
-    return config
-
-
-def _invoke_checker_validator(
-    validation_enabled: bool, check_config: CheckConfig, api_endpoint: str
-):
-    if not validation_enabled:
-        return
-
-    try:
-        result = requests.post(
-            f"http://{api_endpoint}/validate_check",
-            json=check_config,
-            timeout=10,
-        )
-        if result.status_code >= 400:
-            raise serializers.ValidationError({"error": result.json()})
-
-    except requests.RequestException as err:
-        logger.exception("Unable to reach uptime-checker:", err)
-        raise serializers.ValidationError({"error": "Unable to reach validator server"})
-
-
-url = URLField(required=True, max_length=255)
-timeout_ms = serializers.IntegerField(
-    required=True,
-    min_value=1000,
-    max_value=60_000,
-    help_text="The number of milliseconds the request will wait for a response before timing-out.",
-)
-method = serializers.ChoiceField(
-    required=False,
-    choices=UptimeSubscription.SupportedHTTPMethods.choices,
-    help_text="The HTTP method used to make the check request.",
-)
-headers = serializers.JSONField(
-    required=False,
-    help_text="Additional headers to send with the check request.",
-)
-body = serializers.CharField(
-    required=False,
-    allow_null=True,
-    allow_blank=True,
-    help_text="The body to send with the check request.",
-)
-assertion = serializers.JSONField(
-    required=False,
-    allow_null=True,
-    help_text="The assertion to send with the check request.",
-)
+class UptimeValidatorBase(CamelSnakeSerializer):
+    url = URLField(required=True, max_length=255)
+    timeout_ms = serializers.IntegerField(
+        required=True,
+        min_value=1000,
+        max_value=60_000,
+        help_text="The number of milliseconds the request will wait for a response before timing-out.",
+    )
+    method = serializers.ChoiceField(
+        required=False,
+        choices=UptimeSubscription.SupportedHTTPMethods.choices,
+        help_text="The HTTP method used to make the check request.",
+    )
+    headers = serializers.JSONField(
+        required=False,
+        help_text="Additional headers to send with the check request.",
+    )
+    body = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The body to send with the check request.",
+    )
+    assertion = serializers.JSONField(
+        required=False,
+        allow_null=True,
+        help_text="The assertion to send with the check request.",
+    )
 
 
 @extend_schema_serializer()
-class UptimeTestValidator(CamelSnakeSerializer):
-    url = url
-    method = method
-    headers = headers
-    body = body
-    timeout_ms = timeout_ms
-    assertion = assertion
-    region = serializers.CharField(
-        required=True,
-        allow_null=False,
-        allow_blank=False,
-        help_text="The region slug in which to run the assert.",
+class UptimeCheckPreviewValidator(UptimeValidatorBase):
+    region = serializers.ChoiceField(
+        choices=[r.slug for r in settings.UPTIME_REGIONS],
     )
 
     def __init__(self, validation_enabled, **kwargs: Any):
@@ -250,21 +190,13 @@ class UptimeTestValidator(CamelSnakeSerializer):
             attrs.get("headers", []),
             attrs.get("body", None),
         )
+        region_config = get_region_config(attrs["region"])
+        check_config = checker_api.create_check(attrs, region_config)
 
-        check_config = _create_check(attrs, attrs["region"])
+        api_endpoint = region_config.api_endpoint
 
-        api_endpoint = attrs["region"].api_endpoint
-
-        _invoke_checker_validator(self.validation_enabled, check_config, api_endpoint)
+        checker_api.invoke_checker_validator(self.validation_enabled, check_config, api_endpoint)
         return attrs
-
-    def validate_region(self, region):
-        region_config = get_region_config(region)
-
-        if region_config is None:
-            raise serializers.ValidationError(f"No uptime checker for region {region}")
-
-        return region_config
 
     def validate_url(self, url):
         return _validate_url(url)
@@ -273,11 +205,11 @@ class UptimeTestValidator(CamelSnakeSerializer):
         return _validate_headers(headers)
 
     def create(self, validated_data):
-        return _create_check(validated_data, validated_data["region"])
+        return checker_api.create_check(validated_data, get_region_config(validated_data["region"]))
 
 
 @extend_schema_serializer()
-class UptimeMonitorValidator(CamelSnakeSerializer):
+class UptimeMonitorValidator(UptimeValidatorBase):
     name = serializers.CharField(
         required=True,
         max_length=128,
@@ -299,22 +231,17 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         allow_null=True,
         help_text="Name of the environment to create uptime issues in.",
     )
-    url = url
     interval_seconds = serializers.ChoiceField(
         required=True,
         choices=UptimeSubscription.IntervalSeconds.choices,
         help_text="Time in seconds between uptime checks.",
     )
-    timeout_ms = timeout_ms
     mode = serializers.IntegerField(required=False)
-    method = method
-    headers = headers
     trace_sampling = serializers.BooleanField(
         required=False,
         default=False,
         help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
     )
-    body = body
     recovery_threshold = serializers.IntegerField(
         required=False,
         default=DEFAULT_RECOVERY_THRESHOLD,
@@ -362,8 +289,10 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         )
 
         region = get_region_config(get_active_regions()[0].slug)
-        check_config = _create_check(attrs, region)
-        _invoke_checker_validator(self.validation_enabled, check_config, region.api_endpoint)
+        check_config = checker_api.create_check(attrs, region)
+        checker_api.invoke_checker_validator(
+            self.validation_enabled, check_config, region.api_endpoint
+        )
 
         return attrs
 

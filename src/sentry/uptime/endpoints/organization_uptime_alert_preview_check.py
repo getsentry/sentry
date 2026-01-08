@@ -14,14 +14,15 @@ from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
-from sentry.uptime.endpoints.validators import UptimeTestValidator, get_uptime_checker_region_config
+from sentry.uptime.endpoints.validators import UptimeCheckPreviewValidator
+from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.types import CheckConfig
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class OrganizationUptimeAlertPreviewCheckEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
-            200: UptimeDetectorSerializer,
+            200: RESPONSE_SUCCESS,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -62,15 +63,17 @@ class OrganizationUptimeAlertPreviewCheckEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
     ) -> Response:
-        validation_enabled = features.has("organizations:uptime-runtime-assertions", organization)
-        validator = UptimeTestValidator(validation_enabled, data=request.data)
+        validation_enabled = features.has(
+            "organizations:uptime-runtime-assertions", organization, actor=request.user
+        )
+        validator = UptimeCheckPreviewValidator(validation_enabled, data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
         check_config: CheckConfig = validator.save()
 
         # We made it through validation, so this region is non-null
-        region = get_uptime_checker_region_config(check_config["active_regions"][0])
+        region = get_region_config(check_config["active_regions"][0])
         assert region is not None
 
         api_endpoint = region.api_endpoint

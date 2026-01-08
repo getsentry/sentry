@@ -85,11 +85,11 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         """
         Update an uptime monitor.
         """
-        validation_enabled = features.has(
-            "organizations:uptime-runtime-assertions", project.organization
+        assertions_enabled = features.has(
+            "organizations:uptime-runtime-assertions", project.organization, actor=request.user
         )
         validator = UptimeMonitorValidator(
-            validation_enabled,
+            assertions_enabled,
             data=request.data,
             partial=True,
             instance=uptime_detector,
