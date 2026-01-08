@@ -76,7 +76,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime + &.afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue400};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     left: 0;
     position: absolute;
@@ -85,7 +85,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue400};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     right: 0;
     position: absolute;
@@ -321,27 +321,27 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   switch (level) {
     case SeverityLevel.DEFAULT:
       return {
-        background: theme.colors.gray200,
-        backgroundLight: theme.backgroundSecondary,
-        border: theme.border,
-        borderHover: theme.border,
-        color: theme.colors.gray200,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.secondary,
       };
     case SeverityLevel.TRACE:
       return {
-        background: theme.colors.blue400,
-        backgroundLight: theme.colors.blue100,
-        border: theme.colors.blue200,
-        borderHover: theme.colors.blue400,
+        background: theme.tokens.graphics.accent.vibrant,
+        backgroundLight: theme.tokens.background.transparent.accent.muted,
+        border: theme.tokens.border.accent.moderate,
+        borderHover: theme.tokens.border.accent.vibrant,
         color: theme.tokens.content.accent,
       };
     case SeverityLevel.WARN:
       return {
-        background: theme.colors.yellow400,
-        backgroundLight: theme.colors.yellow100,
-        border: theme.colors.yellow200,
-        borderHover: theme.colors.yellow400,
-        color: theme.colors.yellow500,
+        background: theme.tokens.graphics.warning.vibrant,
+        backgroundLight: theme.tokens.background.transparent.warning.muted,
+        border: theme.tokens.border.warning.moderate,
+        borderHover: theme.tokens.border.warning.vibrant,
+        color: theme.tokens.content.warning,
       };
     case SeverityLevel.ERROR:
       // All these colours are likely changing, so we'll hold off moving them into theme for now.
@@ -354,35 +354,35 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       };
     case SeverityLevel.FATAL:
       return {
-        background: theme.colors.red400,
-        backgroundLight: theme.colors.red100,
-        border: theme.colors.red200,
-        borderHover: theme.colors.red400,
-        color: theme.colors.red500,
+        background: theme.tokens.graphics.danger.vibrant,
+        backgroundLight: theme.tokens.background.transparent.danger.muted,
+        border: theme.tokens.border.danger.moderate,
+        borderHover: theme.tokens.border.danger.vibrant,
+        color: theme.tokens.content.danger,
       };
     case SeverityLevel.DEBUG:
       return {
-        background: theme.colors.gray400,
-        backgroundLight: theme.colors.gray100,
-        border: theme.colors.gray200,
-        borderHover: theme.colors.gray400,
-        color: theme.colors.gray400,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.primary,
       };
     case SeverityLevel.INFO:
       return {
-        background: theme.colors.blue400,
-        backgroundLight: theme.colors.blue100,
-        border: theme.colors.blue200,
-        borderHover: theme.colors.blue400,
+        background: theme.tokens.graphics.accent.vibrant,
+        backgroundLight: theme.tokens.graphics.accent.moderate,
+        border: theme.tokens.border.transparent.accent.muted,
+        borderHover: theme.tokens.border.transparent.accent.moderate,
         color: theme.tokens.content.accent,
       };
     case SeverityLevel.UNKNOWN:
       return {
-        background: theme.colors.gray400,
-        backgroundLight: theme.colors.gray100,
-        border: theme.colors.gray200,
-        borderHover: theme.colors.gray400,
-        color: theme.colors.gray200,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.secondary,
       };
     default:
       unreachable(level);
