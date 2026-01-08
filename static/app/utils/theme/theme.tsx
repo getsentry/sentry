@@ -571,8 +571,8 @@ const commonTheme = {
   ...formTheme,
 };
 
-export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
 type Aliases = typeof lightAliases;
+
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {

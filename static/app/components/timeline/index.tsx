@@ -5,16 +5,15 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {space} from 'sentry/styles/space';
-import type {Color} from 'sentry/utils/theme';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
   colorConfig?: {
-    icon: string | Color;
-    iconBorder: string | Color;
-    title: string | Color;
+    icon: string;
+    iconBorder: string;
+    title: string;
   };
   icon?: React.ReactNode;
   isActive?: boolean;
@@ -42,17 +41,13 @@ function Item({
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
 
-  const iconBorder = theme[config.iconBorder as Color] ?? config.iconBorder;
-  const iconColor = theme[config.icon as Color] ?? config.icon;
-  const titleColor = theme[config.title as Color] ?? config.title;
-
   return (
     <Row ref={ref} {...props}>
       {icon ? (
         <IconWrapper
           style={{
-            borderColor: isActive ? iconBorder : 'transparent',
-            color: iconColor,
+            borderColor: isActive ? config.iconBorder : 'transparent',
+            color: config.icon,
           }}
           className="timeline-icon-wrapper"
         >
@@ -62,7 +57,7 @@ function Item({
         <IconWrapper className="timeline-icon-wrapper" />
       )}
       <Flex align="center" gap="xs" wrap="wrap">
-        <Title style={{color: titleColor}}>{title}</Title>
+        <Title style={{color: config.title}}>{title}</Title>
         {titleTrailingItems}
       </Flex>
       {timestamp ?? <div />}
