@@ -514,6 +514,6 @@ const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.disabled};
+      color: ${p.theme.tokens.content.disabled};
     `}
 `;

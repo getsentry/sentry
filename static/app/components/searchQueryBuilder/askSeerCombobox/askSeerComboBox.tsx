@@ -560,7 +560,7 @@ const InvisibleInput = styled('input')`
   }
 
   [disabled] {
-    color: ${p => p.theme.disabled};
+    color: ${p => p.theme.tokens.content.disabled};
   }
 `;
 

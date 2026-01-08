@@ -61,9 +61,9 @@ const StyledLi = styled('li', {
     p.disabled &&
     css`
       a {
-        color: ${p.theme.disabled} !important;
+        color: ${p.theme.tokens.content.disabled} !important;
         :hover {
-          color: ${p.theme.disabled} !important;
+          color: ${p.theme.tokens.content.disabled} !important;
         }
         cursor: default !important;
       }

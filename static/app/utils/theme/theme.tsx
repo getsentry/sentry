@@ -269,8 +269,8 @@ const generateButtonTheme = (
     focusShadow: alias.focus,
   },
   disabled: {
-    color: alias.disabled,
-    colorActive: alias.disabled,
+    color: tokens.content.disabled,
+    colorActive: tokens.content.disabled,
     background: alias.background,
     backgroundActive: alias.background,
     border: tokens.content.disabled,
@@ -1163,7 +1163,7 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
+const generateAliases = (tokens: Tokens) => ({
   /**
    * Text that should not have as much emphasis
    */
@@ -1209,13 +1209,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   dangerText: tokens.content.danger,
 
   /**
-   * A color that indicates something is disabled where user can not interact or use
-   * it in the usual manner (implies that there is an "enabled" state)
-   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
-   */
-  disabled: colors.gray400,
-
-  /**
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
@@ -1231,8 +1224,8 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   focusBorder: tokens.border.accent.vibrant,
 });
 
-const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
-const darkAliases = generateAliases(baseDarkTheme.tokens, darkColors);
+const lightAliases = generateAliases(baseLightTheme.tokens);
+const darkAliases = generateAliases(baseDarkTheme.tokens);
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */

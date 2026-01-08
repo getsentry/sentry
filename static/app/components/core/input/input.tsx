@@ -85,12 +85,12 @@ export const inputStyles = ({
     },
 
     "&[disabled], &[aria-disabled='true']": {
-      color: theme.disabled,
+      color: theme.tokens.content.disabled,
       cursor: 'not-allowed',
       opacity: '60%',
 
       '&::placeholder': {
-        color: theme.disabled,
+        color: theme.tokens.content.disabled,
       },
     },
 
