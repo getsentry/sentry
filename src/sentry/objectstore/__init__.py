@@ -3,7 +3,7 @@ from datetime import timedelta
 from urllib.parse import urlparse, urlunparse
 
 from django.conf import settings
-from objectstore_client import Client, MetricsBackend, Session, TimeToLive, Usecase
+from objectstore_client import Client, MetricsBackend, Session, TimeToLive, TokenGenerator, Usecase
 from objectstore_client.metrics import Tags
 
 from sentry.utils import metrics as sentry_metrics
@@ -48,6 +48,19 @@ def create_client() -> Client:
     from sentry import options as options_store
 
     options = options_store.get("objectstore.config")
+
+    # Initialize the `TokenGenerator` if key parameters are found.
+    token_generator = None
+    if signing_key_options := options.get("token_generator"):
+        kid = signing_key_options.pop("kid")
+        secret_key = signing_key_options.pop("secret_key")
+        if kid and secret_key:
+            token_generator = TokenGenerator(
+                kid,
+                secret_key,
+                **signing_key_options,
+            )
+
     return Client(
         options["base_url"],
         metrics_backend=SentryMetricsBackend(),
@@ -55,6 +68,7 @@ def create_client() -> Client:
         retries=options.get("retries", None),
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get("connection_kwargs", {}),
+        token_generator=token_generator,
     )
 
 
