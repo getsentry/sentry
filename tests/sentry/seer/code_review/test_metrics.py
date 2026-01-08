@@ -47,7 +47,7 @@ class TestCodeReviewMetrics:
             tags={
                 "github_event": "check_run",
                 "github_event_action": "completed",
-                "reason": "wrong_action",
+                "reason": "unsupported_action",
             },
         )
 
