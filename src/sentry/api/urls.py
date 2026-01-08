@@ -395,6 +395,9 @@ from sentry.monitors.endpoints.organization_monitor_processing_errors_index impo
 from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import (
     OrganizationMonitorScheduleSampleDataEndpoint,
 )
+from sentry.monitors.endpoints.organization_monitor_schedule_sample_window import (
+    OrganizationMonitorScheduleSampleWindowEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.monitors.endpoints.project_monitor_checkin_index import (
     ProjectMonitorCheckInIndexEndpoint,
@@ -2065,6 +2068,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/monitors-schedule-data/$",
         OrganizationMonitorScheduleSampleDataEndpoint.as_view(),
         name="sentry-api-0-organization-monitors-schedule-sample-data",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitors-schedule-window/$",
+        OrganizationMonitorScheduleSampleWindowEndpoint.as_view(),
+        name="sentry-api-0-organization-monitors-schedule-sample-window",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/monitors/(?P<monitor_id_or_slug>[^/]+)/$",
