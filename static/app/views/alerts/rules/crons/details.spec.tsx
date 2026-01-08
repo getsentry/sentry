@@ -30,7 +30,7 @@ describe('Monitor Details', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=20&project=${project.id}&query=monitor.slug%3A${monitor.slug}%20environment%3A%5Bproduction%5D%20is%3Aunresolved&statsPeriod=14d`,
+      url: `/organizations/${organization.slug}/issues/`,
       body: [],
     });
     MockApiClient.addMockResponse({

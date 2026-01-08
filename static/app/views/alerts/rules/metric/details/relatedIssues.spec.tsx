@@ -22,7 +22,7 @@ describe('metric details -> RelatedIssues', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&environment=production&groupStatsPeriod=auto&limit=5&project=2&sort=freq&start=2017-10-17T02%3A41%3A20.000Z',
+      url: '/organizations/org-slug/issues/',
       body: [GroupFixture()],
     });
 
