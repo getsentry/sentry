@@ -292,8 +292,15 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
         try:
             raw_response_data = response.json()
+            logger.info(
+                "Raw Seer response",
+                extra={
+                    "response_data": raw_response_data,
+                    "trace_id": trace.trace_id,
+                },
+            )
             response_data = IssueDetectionResponse.parse_obj(raw_response_data)
-        except (ValueError, TypeError, ValidationError):
+        except (ValueError, TypeError, ValidationError) as e:
             logger.exception(
                 "Seer response parsing error",
                 extra={
@@ -302,6 +309,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     "status": response.status,
                     "response_data": response.data.decode("utf-8"),
                     "trace_id": trace.trace_id,
+                    "error_detail": str(e),
                 },
             )
             continue
