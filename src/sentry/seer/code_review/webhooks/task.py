@@ -100,9 +100,11 @@ def process_github_webhook_event(
     should_record_latency = True
     option_key = get_webhook_option_key(github_event)
 
-    repo_owner_login = event_payload.get("repository", {}).get("owner", {}).get("login")
-    # If repo owner is whitelisted, always allow, otherwise check option key (Overwatch filter)
-    if repo_owner_login not in GH_ORGS_TO_ONLY_SEND_TO_SEER:
+    # Check if repo owner is in the whitelist (always send to Seer for these orgs)
+    # Otherwise, check option key to see if Overwatch should handle this
+    repo_owner = event_payload.get("data", {}).get("repo", {}).get("owner")
+    if repo_owner not in GH_ORGS_TO_ONLY_SEND_TO_SEER:
+        # If option is True, Overwatch handles this - skip Seer processing
         if option_key and options.get(option_key):
             return
 
