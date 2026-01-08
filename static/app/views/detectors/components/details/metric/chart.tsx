@@ -250,7 +250,11 @@ export function useMetricDetectorChart({
     usePageDate: true,
   });
 
-  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
+  const {maxValue, minValue} = useDetectorChartAxisBounds({
+    series,
+    thresholdMaxValue,
+    aggregate,
+  });
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];

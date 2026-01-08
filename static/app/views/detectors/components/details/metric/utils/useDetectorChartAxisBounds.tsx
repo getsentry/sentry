@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 
 import type {Series} from 'sentry/types/echarts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 interface UseChartAxisBoundsProps {
   series: Series[];
   thresholdMaxValue: number | undefined;
+  aggregate?: string;
 }
 
 interface ChartAxisBounds {
@@ -19,6 +21,7 @@ interface ChartAxisBounds {
 export function useDetectorChartAxisBounds({
   series,
   thresholdMaxValue,
+  aggregate,
 }: UseChartAxisBoundsProps): ChartAxisBounds {
   return useMemo(() => {
     if (series.length === 0) {
@@ -49,6 +52,12 @@ export function useDetectorChartAxisBounds({
       maxValue = seriesMax + maxPadding;
     }
 
+    // Cap percentage metrics at 100% (1.0 in 0-1 scale)
+    const isPercentage = aggregate && aggregateOutputType(aggregate) === 'percentage';
+    if (isPercentage && maxValue > 1.0) {
+      maxValue = 1.0;
+    }
+
     // Add padding to min value
     const minPadding = seriesMin * 0.1;
     const minValue = Math.max(0, seriesMin - minPadding);
@@ -57,5 +66,5 @@ export function useDetectorChartAxisBounds({
       maxValue,
       minValue,
     };
-  }, [series, thresholdMaxValue]);
+  }, [series, thresholdMaxValue, aggregate]);
 }

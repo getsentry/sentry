@@ -254,7 +254,11 @@ export function MetricDetectorChart({
     thresholdType,
   });
 
-  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
+  const {maxValue, minValue} = useDetectorChartAxisBounds({
+    series,
+    thresholdMaxValue,
+    aggregate,
+  });
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
