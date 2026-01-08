@@ -37,7 +37,7 @@ const COLUMNS = [
         {t('Background Agent')}
         <QuestionTooltip
           title={t(
-            'Background Agent delegation can only be enabled on the individual project settings page. Backgroud agents can have their own settings that are not shown here.'
+            'Background agent delegation can only be enabled on the individual project settings page. Background agents can have their own settings that are not shown here.'
           )}
           size="xs"
         />
