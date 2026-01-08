@@ -138,13 +138,13 @@ class GitHubWebhookTestCase(APITestCase):
 
 class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
     CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
-    OPTIONS_TO_SET: dict[str, bool] = {}
+    OPTIONS_TO_SET: dict[str, Any] = {}
 
     @contextmanager
     def code_review_setup(
         self,
         features: Collection[str] | Mapping[str, Any] | None = None,
-        options: dict[str, bool] | None = None,
+        options: dict[str, Any] | None = None,
     ) -> Generator[None]:
         """Helper to set up code review test context."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
