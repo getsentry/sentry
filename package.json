@@ -46,7 +46,6 @@
     "@react-aria/textfield": "3.18.0",
     "@react-aria/utils": "3.30.0",
     "@react-aria/visually-hidden": "3.8.26",
-    "@react-google-maps/api": "^2.12.0",
     "@react-stately/collections": "3.12.6",
     "@react-stately/combobox": "3.11.0",
     "@react-stately/disclosure": "3.0.6",
