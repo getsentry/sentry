@@ -19,29 +19,22 @@ from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
-from sentry.utils import metrics
+
+from ..metrics import (
+    CodeReviewErrorType,
+    WebhookFilteredReason,
+    record_webhook_enqueued,
+    record_webhook_filtered,
+    record_webhook_handler_error,
+    record_webhook_received,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class ErrorStatus(enum.StrEnum):
-    MISSING_ORGANIZATION = "missing_organization"
-    MISSING_ACTION = "missing_action"
-    INVALID_PAYLOAD = "invalid_payload"
-
-
 class Log(enum.StrEnum):
-    MISSING_ORGANIZATION = "github.webhook.check_run.missing-organization"
     MISSING_ACTION = "github.webhook.check_run.missing-action"
     INVALID_PAYLOAD = "github.webhook.check_run.invalid-payload"
-    INVALID_EXTERNAL_ID = "github.webhook.check_run.invalid-external-id"
-
-
-class Metrics(enum.StrEnum):
-    ERROR = "seer.code_review.error"
-
-
-SUCCESS_STATUS = "success"
 
 
 class GitHubCheckRunAction(StrEnum):
@@ -98,17 +91,20 @@ def handle_check_run_event(
     action = event.get("action")
     # We can use html_url to search through the logs for this event.
     extra = {"html_url": event.get("check_run", {}).get("html_url"), "action": action}
-    tags = {"action": action}
 
     if action is None:
         logger.error(Log.MISSING_ACTION.value, extra=extra)
-        metrics.incr(
-            f"{Metrics.ERROR.value}",
-            tags={**tags, "error_status": ErrorStatus.MISSING_ACTION.value},
+        record_webhook_handler_error(
+            github_event,
+            action or "",
+            CodeReviewErrorType.MISSING_ACTION,
         )
         return
 
+    record_webhook_received(github_event, action)
+
     if action != GitHubCheckRunAction.REREQUESTED:
+        record_webhook_filtered(github_event, action, WebhookFilteredReason.UNSUPPORTED_ACTION)
         return
 
     try:
@@ -116,9 +112,10 @@ def handle_check_run_event(
     except (ValidationError, ValueError):
         # Prevent sending a 500 error to GitHub which would trigger a retry
         logger.exception(Log.INVALID_PAYLOAD.value, extra=extra)
-        metrics.incr(
-            f"{Metrics.ERROR.value}",
-            tags={**tags, "error_status": ErrorStatus.INVALID_PAYLOAD.value},
+        record_webhook_handler_error(
+            github_event,
+            action,
+            CodeReviewErrorType.INVALID_PAYLOAD,
         )
         return
 
@@ -134,6 +131,7 @@ def handle_check_run_event(
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
+    record_webhook_enqueued(github_event, action)
 
 
 def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:

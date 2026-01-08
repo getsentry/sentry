@@ -690,9 +690,14 @@ register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABL
 # enable verbose debug logging for overwatch webhook forwarding
 register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Control forwarding of specific GitHub webhook types to overwatch (True) or seer (False)
+# Control forwarding of GitHub webhook events to Overwatch
 register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# List of GitHub org names that should always send directly to Seer (bypass Overwatch)
+register(
+    "seer.code-review.direct-to-seer-enabled-gh-orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2229,6 +2234,14 @@ register(
     "dynamic-sampling.measure.spans",
     default=[],
     type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Skip Snuba query when there are no orgs to query for. This is a rollout flag for a fix
+# that prevents unnecessary Snuba queries.
+register(
+    "dynamic-sampling.skip_snuba_query_for_empty_orgs",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

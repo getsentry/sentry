@@ -190,7 +190,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   if (props.disabled) {
     return css`
       ${common}
-      color: ${props.theme.disabled};
+      color: ${props.theme.tokens.content.disabled};
       background: transparent;
       cursor: not-allowed;
     `;
