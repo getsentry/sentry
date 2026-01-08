@@ -1031,16 +1031,16 @@ const TraceStylingWrapper = styled('div')`
   &.light {
     .TracePattern {
       &.info {
-        --pattern-odd: ${p => p.theme.colors.blue500};
-        --pattern-even: ${p => p.theme.colors.blue400};
+        --pattern-odd: ${p => p.theme.tokens.content.accent};
+        --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
       &.warning {
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
-        --pattern-odd: ${p => p.theme.colors.blue500};
-        --pattern-even: ${p => p.theme.colors.blue400};
+        --pattern-odd: ${p => p.theme.tokens.content.accent};
+        --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
 
       &.profile {
@@ -1073,16 +1073,16 @@ const TraceStylingWrapper = styled('div')`
   &.dark {
     .TracePattern {
       &.info {
-        --pattern-odd: ${p => p.theme.colors.blue500};
-        --pattern-even: ${p => p.theme.colors.blue400};
+        --pattern-odd: ${p => p.theme.tokens.content.accent};
+        --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
       &.warning {
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
-        --pattern-odd: ${p => p.theme.colors.blue500};
-        --pattern-even: ${p => p.theme.colors.blue400};
+        --pattern-odd: ${p => p.theme.tokens.content.accent};
+        --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
 
       &.profile {

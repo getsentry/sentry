@@ -396,7 +396,7 @@ function TourProvider({
 
 const BlurBoundary = styled('div')`
   position: relative;
-  border: 1px dashed ${p => p.theme.colors.blue500};
+  border: 1px dashed ${p => p.theme.tokens.border.accent.vibrant};
   padding: ${space(2)};
   margin: ${space(1)} ${space(2)};
 `;

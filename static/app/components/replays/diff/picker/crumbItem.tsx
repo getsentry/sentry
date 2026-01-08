@@ -60,7 +60,7 @@ const CenterRelative = styled('div')`
 `;
 
 const ErrorLine = styled('div')`
-  border: 1px solid ${p => p.theme.colors.blue500};
+  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
   height: 100%;
 `;
 

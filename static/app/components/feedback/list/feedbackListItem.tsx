@@ -236,7 +236,7 @@ const DotRow = styled(Row)`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.colors.blue500};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   border-radius: 50%;
 `;
 
