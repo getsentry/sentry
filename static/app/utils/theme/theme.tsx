@@ -218,8 +218,8 @@ const generateButtonTheme = (
     colorActive: tokens.content.primary,
     background: alias.background,
     backgroundActive: tokens.background.transparent.neutral.muted,
-    border: alias.border,
-    borderActive: alias.border,
+    border: tokens.border.primary,
+    borderActive: tokens.border.primary,
     borderTranslucent: alias.translucentBorder,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
@@ -281,7 +281,11 @@ const generateButtonTheme = (
   },
 });
 
-const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
+const generateAlertTheme = (
+  colors: Colors,
+  alias: Aliases,
+  tokens: Tokens
+): AlertColors => ({
   info: {
     border: colors.blue200,
     background: colors.blue400,
@@ -299,8 +303,8 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   muted: {
     background: colors.gray200,
     backgroundLight: alias.backgroundSecondary,
-    border: alias.border,
-    borderHover: alias.border,
+    border: tokens.border.primary,
+    borderHover: tokens.border.primary,
     color: 'inherit',
   },
   warning: {
@@ -1128,29 +1132,13 @@ const generateAliases = (tokens: Tokens) => ({
    */
   backgroundTertiary: tokens.background.tertiary,
 
-  /**
-   * Primary border color
-   */
-  border: tokens.border.primary,
   translucentBorder: tokens.border.transparent.neutral.muted,
-
-  /**
-   * A color that denotes a "success", or something good
-   */
-  success: tokens.content.success,
-  successText: tokens.content.success,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
-
-  /**
-   * A color that denotes danger, for dangerous actions like deletion
-   */
-  danger: tokens.content.danger,
-  dangerText: tokens.content.danger,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -1322,7 +1310,7 @@ const lightThemeDefinition = {
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseLightTheme.tokens),
-  alert: generateAlertTheme(lightColors, lightAliases),
+  alert: generateAlertTheme(lightColors, lightAliases, baseLightTheme.tokens),
   button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
@@ -1362,7 +1350,7 @@ export const darkTheme: SentryTheme = {
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseDarkTheme.tokens),
-  alert: generateAlertTheme(darkColors, darkAliases),
+  alert: generateAlertTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
