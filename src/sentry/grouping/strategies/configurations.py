@@ -59,6 +59,9 @@ register_grouping_config(
     initial_context={
         # Shim to preserve hash values, since they're order-dependent
         "use_legacy_exception_subcomponent_order": True,
+        # Preserve a long-standing bug, wherein our "non-URL frame" test actually looks for frames
+        # *with* URLs
+        "handle_js_single_frame_url_origin_backwards": True,
     },
     enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
