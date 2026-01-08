@@ -765,7 +765,7 @@ const ArgumentGridCell = styled('div')`
   max-width: fit-content;
 
   > div input {
-    max-width: fit-content !important;
+    max-width: 130px !important;
     min-width: 0 !important;
     white-space: nowrap !important;
   }
