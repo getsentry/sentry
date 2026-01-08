@@ -28,7 +28,7 @@ export function getInstallBuildUrl(params: BuildLinkParams): string | null {
   return `/organizations/${organizationSlug}/preprod/${projectId}/${baseArtifactId}/install/`;
 }
 
-export function getBuildCompareUrl(params: {
+export function getCompareBuildUrl(params: {
   headArtifactId: string;
   organizationSlug: string;
   projectId: string;
@@ -45,7 +45,7 @@ export function getBuildCompareUrl(params: {
   return path;
 }
 
-export function getBuildListUrl(params: {
+export function getListBuildUrl(params: {
   organizationSlug: string;
   projectId: string;
 }): string {

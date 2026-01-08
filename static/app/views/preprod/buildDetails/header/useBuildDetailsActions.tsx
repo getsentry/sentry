@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getBuildListUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {getListBuildUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 interface UseBuildDetailsActionsProps {
   artifactId: string;
@@ -51,7 +51,7 @@ export function useBuildDetailsActions({
       addSuccessMessage(t('Build deleted successfully'));
       // TODO(preprod): navigate back to the release page once built?
       navigate(
-        getBuildListUrl({
+        getListBuildUrl({
           organizationSlug: organization.slug,
           projectId,
         })
