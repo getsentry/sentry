@@ -22,6 +22,13 @@ import {
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
+  /**
+   * When true, overflow is set to hidden, text-overflow is set to ellipsis, and white-space is set to nowrap.
+   * Individual properties can be overridden by setting the corresponding property (e.g. overflow, text-overflow, white-space).
+   * @default undefined
+   */
+  ellipsis?: Responsive<boolean>;
+
   background?: Responsive<SurfaceVariant>;
   display?: Responsive<
     | 'block'
@@ -81,6 +88,9 @@ interface ContainerLayoutProps {
   flexBasis?: Responsive<React.CSSProperties['flexBasis']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
+
+  textOverflow?: Responsive<React.CSSProperties['textOverflow']>;
+  whiteSpace?: Responsive<React.CSSProperties['whiteSpace']>;
 
   /**
    * Prefer using Flex or Grid gap as opposed to margin.
@@ -167,6 +177,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'bottom',
   'column',
   'display',
+  'ellipsis',
   'flex',
   'flexBasis',
   'flexGrow',
@@ -197,8 +208,10 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'radius',
   'right',
   'row',
+  'textOverflow',
   'top',
   'width',
+  'whiteSpace',
 ]);
 
 export const Container = styled(
@@ -276,6 +289,19 @@ export const Container = styled(
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+
+  ${p =>
+    rc(
+      'text-overflow',
+      p.textOverflow ? p.textOverflow : p.ellipsis ? 'ellipsis' : undefined,
+      p.theme
+    )};
+  ${p =>
+    rc(
+      'white-space',
+      p.whiteSpace ? p.whiteSpace : p.ellipsis ? 'nowrap' : undefined,
+      p.theme
+    )};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
