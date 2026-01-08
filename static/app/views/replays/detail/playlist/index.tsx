@@ -36,7 +36,7 @@ export default function Playlist() {
   const columns = allMobileProj ? MOBILE_COLUMNS : VISIBLE_COLUMNS;
 
   return (
-    <Flex height="100%" overflow="auto">
+    <Flex height="0" minHeight="100%">
       <Grid gap="md" rows="max-content auto" height="100%" width="100%">
         <ReplaysSearch />
         <ReplayTable
