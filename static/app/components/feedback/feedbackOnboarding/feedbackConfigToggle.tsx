@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,7 +21,7 @@ function FeedbackConfigToggle({
   screenshotToggle: boolean;
 }) {
   return (
-    <SwitchWrapper>
+    <Flex align="center" paddingTop="xs" gap="xl">
       <SwitchItem htmlFor="name">
         {t('Name Required')}
         <Switch id="name" onChange={onNameToggle} size="lg" checked={nameToggle} />
@@ -38,7 +39,7 @@ function FeedbackConfigToggle({
           checked={screenshotToggle}
         />
       </SwitchItem>
-    </SwitchWrapper>
+    </Flex>
   );
 }
 
@@ -46,13 +47,6 @@ const SwitchItem = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const SwitchWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-  padding-top: ${space(0.5)};
 `;
 
 export default FeedbackConfigToggle;

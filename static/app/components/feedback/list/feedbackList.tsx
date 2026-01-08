@@ -4,6 +4,8 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import type {ApiResult} from 'sentry/api';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -56,7 +58,7 @@ export default function FeedbackList({onItemSelect}: Props) {
   return (
     <Fragment>
       <FeedbackListHeader {...checkboxState} />
-      <FeedbackListItems>
+      <Stack flexGrow={1} paddingBottom="xs">
         <InfiniteListState
           queryResult={queryResult}
           backgroundUpdatingMessage={() => null}
@@ -97,17 +99,10 @@ export default function FeedbackList({onItemSelect}: Props) {
             loadingCompleteMessage={() => null}
           />
         </InfiniteListState>
-      </FeedbackListItems>
+      </Stack>
     </Fragment>
   );
 }
-
-const FeedbackListItems = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  padding-bottom: ${space(0.5)};
-`;
 
 const Centered = styled('div')`
   justify-self: center;
