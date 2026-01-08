@@ -50,7 +50,7 @@ export interface AppSizeResponse {
 }
 
 // Multi-series response when groupBy is used - keyed by group value (e.g., "ios", "android")
-export type MultiAppSizeResponse = Record<string, AppSizeResponse>;
+type MultiAppSizeResponse = Record<string, AppSizeResponse>;
 
 // Query building uses standard event-stats with dataset=preprodSize.
 // This serves as the initial template for new widgets.
