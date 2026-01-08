@@ -11,17 +11,14 @@ import {
   type FieldDefinitionGetter,
   type FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
-import {
-  isDateToken,
-  makeTokenKey,
-  parseQueryBuilderValue,
-} from 'sentry/components/searchQueryBuilder/utils';
+import {isDateToken, makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   TermOperator,
   Token,
   WildcardOperators,
   type AggregateFilter,
+  type ParseResult,
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -482,13 +479,13 @@ function updateFreeText(
 function replaceTokensWithText(
   state: QueryBuilderState,
   {
-    getFieldDefinition,
+    parseQuery,
     text,
     tokens,
     focusOverride: incomingFocusOverride,
     shouldCommitQuery,
   }: {
-    getFieldDefinition: FieldDefinitionGetter;
+    parseQuery: (query: string) => ParseResult | null;
     shouldCommitQuery: boolean;
     text: string;
     tokens: Array<TokenResult<Token>>;
@@ -517,7 +514,8 @@ function replaceTokensWithText(
   }
 
   const cursorPosition = (tokens[0]?.location.start.offset ?? 0) + text.length; // TODO: Ensure this is sorted
-  const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
+  const newParsedQuery = parseQuery(newQuery);
+
   const focusedToken = newParsedQuery?.find(
     (token: any) =>
       token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
@@ -676,7 +674,7 @@ function updateFilterKey(
  */
 export function replaceFreeTextTokens(
   currentQuery: string,
-  getFieldDefinition: FieldDefinitionGetter,
+  parseQuery: (query: string) => ParseResult | null,
   replaceRawSearchKeys: string[]
 ) {
   if (
@@ -687,9 +685,7 @@ export function replaceFreeTextTokens(
     return undefined;
   }
 
-  const currentQueryTokens =
-    parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
-
+  const currentQueryTokens = parseQuery(currentQuery) ?? [];
   const foundFreeTextToken = currentQueryTokens.some(
     token => token.type === Token.FREE_TEXT && token.text.trim().length > 0
   );
@@ -747,7 +743,7 @@ export function replaceFreeTextTokens(
   }
 
   const finalQuery = replacedQuery.join(' ').trim();
-  const newParsedQuery = parseQueryBuilderValue(finalQuery, getFieldDefinition) ?? [];
+  const newParsedQuery = parseQuery(finalQuery) ?? [];
   const focusedToken = newParsedQuery?.findLast(token => token.type === Token.FREE_TEXT);
   const focusOverride = focusedToken
     ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
@@ -762,7 +758,7 @@ function updateFreeTextAndReplaceText(
     | UpdateFreeTextActionOnBlur
     | UpdateFreeTextActionOnExit
     | UpdateFreeTextActionOnCommit,
-  getFieldDefinition: FieldDefinitionGetter,
+  parseQuery: (query: string) => ParseResult | null,
   replaceRawSearchKeys?: string[]
 ): QueryBuilderState {
   const newState = updateFreeText(state, action);
@@ -773,7 +769,7 @@ function updateFreeTextAndReplaceText(
 
   const replacedState = replaceFreeTextTokens(
     newState.query,
-    getFieldDefinition,
+    parseQuery,
     replaceRawSearchKeys ?? []
   );
 
@@ -826,11 +822,13 @@ export function useQueryBuilderState({
   displayAskSeerFeedback,
   setDisplayAskSeerFeedback,
   replaceRawSearchKeys,
+  parseQuery,
 }: {
   disabled: boolean;
   displayAskSeerFeedback: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
+  parseQuery: (query: string) => ParseResult | null;
   setDisplayAskSeerFeedback: (value: boolean) => void;
   replaceRawSearchKeys?: string[];
 }) {
@@ -880,7 +878,7 @@ export function useQueryBuilderState({
 
           const replacedState = replaceFreeTextTokens(
             action.query,
-            getFieldDefinition,
+            parseQuery,
             replaceRawSearchKeys
           );
 
@@ -907,7 +905,7 @@ export function useQueryBuilderState({
             ...replaceTokensWithText(state, {
               tokens: [action.token],
               text: '',
-              getFieldDefinition,
+              parseQuery,
               shouldCommitQuery: true,
             }),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
@@ -944,7 +942,7 @@ export function useQueryBuilderState({
           const newState = updateFreeTextAndReplaceText(
             state,
             action,
-            getFieldDefinition,
+            parseQuery,
             replaceRawSearchKeys
           );
 
@@ -960,7 +958,7 @@ export function useQueryBuilderState({
             tokens: action.tokens,
             text: action.text,
             focusOverride: action.focusOverride,
-            getFieldDefinition,
+            parseQuery,
             shouldCommitQuery: hasReplaceRawSearchKeys ? false : true,
           });
         }
@@ -971,7 +969,7 @@ export function useQueryBuilderState({
             tokens: action.tokens,
             text: action.text,
             focusOverride: action.focusOverride,
-            getFieldDefinition,
+            parseQuery,
             shouldCommitQuery: true,
           });
         }
@@ -996,7 +994,13 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [disabled, displayAskSeerFeedback, getFieldDefinition, replaceRawSearchKeys]
+    [
+      disabled,
+      displayAskSeerFeedback,
+      getFieldDefinition,
+      parseQuery,
+      replaceRawSearchKeys,
+    ]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);
