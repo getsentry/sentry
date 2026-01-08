@@ -223,7 +223,13 @@ function WidgetBuilderSlideout({
       ];
 
   const header = (
-    <SlideoutHeaderWrapper>
+    <Flex
+      align="center"
+      justify="between"
+      borderBottom="primary"
+      height="44px"
+      padding="0 2xl"
+    >
       <Breadcrumbs crumbs={breadcrumbs} />
       <CloseButton
         priority="link"
@@ -235,7 +241,7 @@ function WidgetBuilderSlideout({
       >
         {t('Close')}
       </CloseButton>
-    </SlideoutHeaderWrapper>
+    </Flex>
   );
 
   return (
@@ -487,15 +493,6 @@ const CloseButton = styled(Button)`
     color: ${p => p.theme.colors.gray500};
   }
   z-index: 100;
-`;
-
-const SlideoutHeaderWrapper = styled('div')`
-  padding: ${p => `0 ${p.theme.space['2xl']}`};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.border};
-  height: 44px;
 `;
 
 const SlideoutBreadcrumb = styled('div')`
