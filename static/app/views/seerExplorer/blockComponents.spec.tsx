@@ -30,6 +30,7 @@ describe('BlockComponent', () => {
 
   beforeEach(() => {
     mockOnClick.mockClear();
+    sessionStorage.clear();
   });
 
   describe('User Input Blocks', () => {
@@ -105,6 +106,66 @@ describe('BlockComponent', () => {
       );
 
       expect(screen.queryByRole('button', {name: '↩'})).not.toBeInTheDocument();
+    });
+
+    it('shows feedback buttons for assistant blocks when isFocused=true', () => {
+      const block = createResponseBlock();
+      render(
+        <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not show feedback buttons for user blocks', () => {
+      const block = createUserInputBlock();
+      render(
+        <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
+      );
+
+      expect(
+        screen.queryByRole('button', {name: 'Seer Explorer Thumbs Up'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Seer Explorer Thumbs Down'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('disables both thumbs buttons after thumbs up is clicked', async () => {
+      const block = createResponseBlock();
+      render(
+        <BlockComponent block={block} blockIndex={1} isFocused onClick={mockOnClick} />
+      );
+
+      const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
+      const downButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'});
+      expect(upButton).toBeEnabled();
+
+      await userEvent.click(upButton);
+
+      expect(upButton).toBeDisabled();
+      expect(downButton).toBeDisabled();
+    });
+
+    it('disables both thumbs buttons after thumbs down is clicked', async () => {
+      const block = createResponseBlock();
+      render(
+        <BlockComponent block={block} blockIndex={2} isFocused onClick={mockOnClick} />
+      );
+
+      const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
+      const downButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'});
+      expect(downButton).toBeEnabled();
+
+      await userEvent.click(downButton);
+
+      expect(upButton).toBeDisabled();
+      expect(downButton).toBeDisabled();
     });
   });
 
