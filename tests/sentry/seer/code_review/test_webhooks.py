@@ -10,6 +10,7 @@ from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.utils import ClientError
 from sentry.seer.code_review.webhooks.issue_comment import (
+    GitHubIssueCommentAction,
     _add_eyes_reaction_to_comment,
     is_pr_review_command,
 )
@@ -495,7 +496,7 @@ class AddEyesReactionTest(TestCase):
     def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
         _add_eyes_reaction_to_comment(
             github_event=GithubWebhookType.ISSUE_COMMENT,
-            github_event_action="created",
+            github_event_action=GitHubIssueCommentAction.CREATED,
             integration=None,
             organization=self.organization,
             repo=self.repo,
@@ -514,7 +515,7 @@ class AddEyesReactionTest(TestCase):
 
         _add_eyes_reaction_to_comment(
             github_event=GithubWebhookType.ISSUE_COMMENT,
-            github_event_action="created",
+            github_event_action=GitHubIssueCommentAction.CREATED,
             integration=mock_integration,
             organization=self.organization,
             repo=self.repo,
@@ -536,7 +537,7 @@ class AddEyesReactionTest(TestCase):
 
         _add_eyes_reaction_to_comment(
             github_event=GithubWebhookType.ISSUE_COMMENT,
-            github_event_action="created",
+            github_event_action=GitHubIssueCommentAction.CREATED,
             integration=mock_integration,
             organization=self.organization,
             repo=self.repo,
