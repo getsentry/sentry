@@ -273,8 +273,8 @@ const generateButtonTheme = (
     colorActive: alias.disabled,
     background: alias.background,
     backgroundActive: alias.background,
-    border: alias.disabledBorder,
-    borderActive: alias.disabledBorder,
+    border: tokens.content.disabled,
+    borderActive: tokens.content.disabled,
     borderTranslucent: tokens.border.transparent.neutral.muted,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
@@ -1214,7 +1214,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
   disabled: colors.gray400,
-  disabledBorder: colors.gray400,
 
   /**
    * Indicates that something is "active" or "selected"
