@@ -120,8 +120,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
     if (event_id) {
       return isLoading
-        ? `Inspecting event ${event_id}...`
-        : `Inspected event ${event_id}`;
+        ? `Inspecting event ${event_id.slice(0, 8)}...`
+        : `Inspected event ${event_id.slice(0, 8)}`;
     }
 
     // Should not happen unless there's a bug.
