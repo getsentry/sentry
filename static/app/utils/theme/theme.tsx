@@ -269,8 +269,8 @@ const generateButtonTheme = (
     focusShadow: alias.focus,
   },
   disabled: {
-    color: alias.disabled,
-    colorActive: alias.disabled,
+    color: tokens.content.disabled,
+    colorActive: tokens.content.disabled,
     background: alias.background,
     backgroundActive: alias.background,
     border: alias.disabledBorder,
@@ -1208,12 +1208,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   danger: tokens.content.danger,
   dangerText: tokens.content.danger,
 
-  /**
-   * A color that indicates something is disabled where user can not interact or use
-   * it in the usual manner (implies that there is an "enabled" state)
-   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
-   */
-  disabled: colors.gray400,
   disabledBorder: colors.gray400,
 
   /**
