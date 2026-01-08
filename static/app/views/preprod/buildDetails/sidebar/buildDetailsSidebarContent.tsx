@@ -112,7 +112,7 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
 
 const SkeletonCard = styled('div')`
   padding: ${space(3)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
   background: ${p => p.theme.backgroundSecondary};
 `;

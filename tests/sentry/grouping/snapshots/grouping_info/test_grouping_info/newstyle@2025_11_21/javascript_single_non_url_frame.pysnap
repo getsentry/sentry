@@ -7,7 +7,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
     "app_stacktrace": {
       "component": {
         "contributes": false,
-        "hint": null,
+        "hint": "ignored because system stacktrace takes precedence",
         "id": "app",
         "name": "in-app",
         "values": [
@@ -24,21 +24,19 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "name": null,
                 "values": [
                   {
-                    "contributes": true,
+                    "contributes": false,
                     "hint": null,
                     "id": "module",
                     "name": null,
-                    "values": [
-                      "foo/bar/baz"
-                    ]
+                    "values": []
                   },
                   {
-                    "contributes": false,
-                    "hint": "ignored because frame points to a URL",
+                    "contributes": true,
+                    "hint": null,
                     "id": "filename",
                     "name": null,
                     "values": [
-                      "foo.py"
+                      "great.js"
                     ]
                   },
                   {
@@ -57,53 +55,43 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       "contributes": false,
       "description": "event-level stacktrace — in-app frames",
       "hash": null,
-      "hint": null,
+      "hint": "ignored because system stacktrace takes precedence",
       "key": "app_stacktrace",
       "type": "component"
     },
-    "fallback": {
-      "contributes": true,
-      "description": "fallback grouping",
-      "hash": "d41d8cd98f00b204e9800998ecf8427e",
-      "hint": null,
-      "key": "fallback",
-      "type": "fallback"
-    },
     "system_stacktrace": {
       "component": {
-        "contributes": false,
+        "contributes": true,
         "hint": null,
         "id": "system",
         "name": null,
         "values": [
           {
-            "contributes": false,
-            "hint": "ignored because it contains no contributing frames",
+            "contributes": true,
+            "hint": null,
             "id": "stacktrace",
             "name": "stacktrace",
             "values": [
               {
-                "contributes": false,
-                "hint": "ignored single non-URL JavaScript frame",
+                "contributes": true,
+                "hint": null,
                 "id": "frame",
                 "name": null,
                 "values": [
                   {
-                    "contributes": true,
+                    "contributes": false,
                     "hint": null,
                     "id": "module",
                     "name": null,
-                    "values": [
-                      "foo/bar/baz"
-                    ]
+                    "values": []
                   },
                   {
-                    "contributes": false,
-                    "hint": "ignored because frame points to a URL",
+                    "contributes": true,
+                    "hint": null,
                     "id": "filename",
                     "name": null,
                     "values": [
-                      "foo.py"
+                      "great.js"
                     ]
                   },
                   {
@@ -119,9 +107,9 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
           }
         ]
       },
-      "contributes": false,
+      "contributes": true,
       "description": "event-level stacktrace — all frames",
-      "hash": null,
+      "hash": "d2ab6870c762b8a67d831c2a608bbfb4",
       "hint": null,
       "key": "system_stacktrace",
       "type": "component"

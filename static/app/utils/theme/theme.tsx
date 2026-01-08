@@ -169,13 +169,9 @@ type AlertColors = Record<
   }
 >;
 
-const generateThemeUtils = (
-  tokens: Tokens,
-  colors: ReturnType<typeof deprecatedColorMappings>,
-  aliases: Aliases
-) => ({
+const generateThemeUtils = (tokens: Tokens) => ({
   tooltipUnderline: (
-    underlineColor: ColorOrAlias | 'warning' | 'danger' | 'success' | 'muted' = 'gray300'
+    underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
   ) => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
@@ -189,8 +185,7 @@ const generateThemeUtils = (
             ? tokens.content.success
             : underlineColor === 'muted'
               ? tokens.content.secondary
-              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                (colors[underlineColor] ?? aliases[underlineColor]),
+              : undefined,
     textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
@@ -234,8 +229,8 @@ const generateButtonTheme = (
     colorActive: tokens.content.primary,
     background: alias.background,
     backgroundActive: tokens.background.transparent.neutral.muted,
-    border: alias.border,
-    borderActive: alias.border,
+    border: tokens.border.primary,
+    borderActive: tokens.border.primary,
     borderTranslucent: alias.translucentBorder,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
@@ -274,12 +269,12 @@ const generateButtonTheme = (
     focusShadow: alias.focus,
   },
   disabled: {
-    color: alias.disabled,
-    colorActive: alias.disabled,
+    color: tokens.content.disabled,
+    colorActive: tokens.content.disabled,
     background: alias.background,
     backgroundActive: alias.background,
-    border: alias.disabledBorder,
-    borderActive: alias.disabledBorder,
+    border: tokens.content.disabled,
+    borderActive: tokens.content.disabled,
     borderTranslucent: tokens.border.transparent.neutral.muted,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
@@ -297,7 +292,11 @@ const generateButtonTheme = (
   },
 });
 
-const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
+const generateAlertTheme = (
+  colors: Colors,
+  alias: Aliases,
+  tokens: Tokens
+): AlertColors => ({
   info: {
     border: colors.blue200,
     background: colors.blue400,
@@ -315,8 +314,8 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   muted: {
     background: colors.gray200,
     backgroundLight: alias.backgroundSecondary,
-    border: alias.border,
-    borderHover: alias.border,
+    border: tokens.border.primary,
+    borderHover: tokens.border.primary,
     color: 'inherit',
   },
   warning: {
@@ -574,12 +573,6 @@ const commonTheme = {
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
 type Aliases = typeof lightAliases;
-/**
- * Do not use this type. Use direct colors access via theme.colors or encapsulate
- * colors into human readable variants that signify the color's purpose.
- * @deprecated
- */
-export type ColorOrAlias = keyof Aliases | Color;
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
@@ -1174,7 +1167,7 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
+const generateAliases = (tokens: Tokens) => ({
   /**
    * Text that should not have as much emphasis
    */
@@ -1195,37 +1188,13 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
    */
   backgroundTertiary: tokens.background.tertiary,
 
-  /**
-   * Primary border color
-   */
-  border: tokens.border.primary,
   translucentBorder: tokens.border.transparent.neutral.muted,
-
-  /**
-   * A color that denotes a "success", or something good
-   */
-  success: tokens.content.success,
-  successText: tokens.content.success,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
-
-  /**
-   * A color that denotes danger, for dangerous actions like deletion
-   */
-  danger: tokens.content.danger,
-  dangerText: tokens.content.danger,
-
-  /**
-   * A color that indicates something is disabled where user can not interact or use
-   * it in the usual manner (implies that there is an "enabled" state)
-   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
-   */
-  disabled: colors.gray400,
-  disabledBorder: colors.gray400,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -1243,8 +1212,8 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   focusBorder: tokens.border.accent.vibrant,
 });
 
-const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
-const darkAliases = generateAliases(baseDarkTheme.tokens, darkColors);
+const lightAliases = generateAliases(baseLightTheme.tokens);
+const darkAliases = generateAliases(baseDarkTheme.tokens);
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
@@ -1396,12 +1365,8 @@ const lightThemeDefinition = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(
-    baseLightTheme.tokens,
-    deprecatedColorMappings(lightColors),
-    lightAliases
-  ),
-  alert: generateAlertTheme(lightColors, lightAliases),
+  ...generateThemeUtils(baseLightTheme.tokens),
+  alert: generateAlertTheme(lightColors, lightAliases, baseLightTheme.tokens),
   button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
@@ -1449,12 +1414,8 @@ export const darkTheme: SentryTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(
-    baseDarkTheme.tokens,
-    deprecatedColorMappings(darkColors),
-    darkAliases
-  ),
-  alert: generateAlertTheme(darkColors, darkAliases),
+  ...generateThemeUtils(baseDarkTheme.tokens),
+  alert: generateAlertTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),

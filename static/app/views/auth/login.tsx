@@ -137,7 +137,7 @@ const StyledLoadingError = styled(LoadingError)`
 `;
 
 const Header = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 20px 40px 0;
 `;
 
