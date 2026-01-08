@@ -5,20 +5,17 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import LegacyCreditCardSetup from 'getsentry/components/creditCardEdit/legacySetup';
-import StripeCreditCardSetup from 'getsentry/components/creditCardEdit/stripeSetup';
+import CreditCardForm from 'getsentry/components/creditCardEdit/form';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
-import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics, {
   type GetsentryEventKey,
 } from 'getsentry/utils/trackGetsentryAnalytics';
 
-interface CreditCardSetupProps {
+export interface CreditCardSetupProps {
   budgetTerm: string;
   organization: Organization;
   analyticsEvent?: GetsentryEventKey;
   buttonText?: string;
-  isModal?: boolean;
   location?: FTCConsentLocation;
   onCancel?: () => void;
   onSuccess?: () => void;
@@ -36,66 +33,39 @@ function CreditCardSetup({
   budgetTerm,
   buttonText,
   analyticsEvent,
-  isModal,
 }: CreditCardSetupProps) {
-  const shouldUseStripe = hasStripeComponentsFeature(organization);
-
-  const commonProps = {
-    organization,
-    location,
-    budgetTerm,
-    buttonText: buttonText ?? t('Save Changes'),
-    referrer,
-  };
-
-  if (shouldUseStripe) {
-    return (
-      <Fragment>
-        {referrer?.includes('billing-failure') && (
-          <Alert.Container>
-            <Alert variant="warning" showIcon={false}>
-              {t('Your credit card will be charged upon update.')}
-            </Alert>
-          </Alert.Container>
-        )}
-        <StripeCreditCardSetup
-          onCancel={onCancel ?? (() => {})}
-          onSuccess={() => {
-            onSuccess?.();
-            if (analyticsEvent) {
-              trackGetsentryAnalytics(analyticsEvent, {
-                organization,
-                referrer: decodeScalar(referrer),
-                isStripeComponent: true,
-                isNewBillingUI: true,
-              });
-            }
-          }}
-          onSuccessWithSubscription={onSuccessWithSubscription}
-          {...commonProps}
-        />
-      </Fragment>
-    );
-  }
-
   return (
-    <LegacyCreditCardSetup
-      isModal={isModal}
-      onCancel={onCancel}
-      onSuccess={data => {
-        onSuccessWithSubscription?.(data);
-        onSuccess?.();
-        if (analyticsEvent) {
-          trackGetsentryAnalytics(analyticsEvent, {
-            organization,
-            referrer: decodeScalar(referrer),
-            isStripeComponent: false,
-            isNewBillingUI: true,
-          });
-        }
-      }}
-      {...commonProps}
-    />
+    <Fragment>
+      {referrer?.includes('billing-failure') && (
+        <Alert.Container>
+          <Alert variant="warning" showIcon={false}>
+            {t('Your credit card will be charged upon update.')}
+          </Alert>
+        </Alert.Container>
+      )}
+      <CreditCardForm
+        organization={organization}
+        location={location}
+        budgetTerm={budgetTerm}
+        buttonText={buttonText ?? t('Save Changes')}
+        referrer={referrer}
+        cardMode="setup"
+        intentDataEndpoint={`/organizations/${organization.slug}/payments/setup/`}
+        onCancel={onCancel ?? (() => {})}
+        onSuccess={() => {
+          onSuccess?.();
+          if (analyticsEvent) {
+            trackGetsentryAnalytics(analyticsEvent, {
+              organization,
+              referrer: decodeScalar(referrer),
+              isStripeComponent: true,
+              isNewBillingUI: true,
+            });
+          }
+        }}
+        onSuccessWithSubscription={onSuccessWithSubscription}
+      />
+    </Fragment>
   );
 }
 
