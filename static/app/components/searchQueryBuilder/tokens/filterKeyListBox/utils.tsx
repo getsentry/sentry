@@ -34,6 +34,7 @@ import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 export const ALL_CATEGORY_VALUE = '__all';
 export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches';
@@ -121,6 +122,12 @@ export function createItem(
     showDetailsInOverlay: true,
     details: () => <KeyDescription tag={tag} />,
     type: 'item',
+    trailingItems: () => (
+      <TypeBadge
+        kind={(fieldDefinition?.kind || tag?.kind) ?? undefined}
+        valueType={fieldDefinition?.valueType ?? undefined}
+      />
+    ),
   };
 }
 
@@ -136,7 +143,7 @@ export function createRawSearchItem(value: string): RawSearchItem {
     showDetailsInOverlay: true,
     details: null,
     type: 'raw-search',
-    trailingItems: <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
+    trailingItems: () => <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
   };
 }
 
@@ -285,6 +292,7 @@ export function createLogicFilterItem({
     textValue: value,
     hideCheck: true,
     showDetailsInOverlay: true,
+    trailingItems: () => <TypeBadge isLogicFilter />,
   };
 }
 
