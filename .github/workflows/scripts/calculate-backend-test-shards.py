@@ -19,7 +19,7 @@ def collect_test_count():
             [
                 "python",
                 ".github/workflows/scripts/pytest-args-wrapper.py",
-                "selected-tests-4e2badd90f2f6b8f9aed786873a1440772289086",
+                "selected-tests-8f82855d2e372ac8b628917a662f81c7063888e1",
                 "--collect-only",
                 "--quiet",
             ],
@@ -39,7 +39,7 @@ def collect_test_count():
         if result.returncode != 0:
             print(f"Pytest collection failed (exit {result.returncode})", file=sys.stderr)
             print(
-                f"Command: python .github/workflows/scripts/pytest-args-wrapper.py @selected-tests-4e2badd90f2f6b8f9aed786873a1440772289086 --collect-only --quiet",
+                f"Command: python .github/workflows/scripts/pytest-args-wrapper.py @selected-tests-8f82855d2e372ac8b628917a662f81c7063888e1 --collect-only --quiet",
                 file=sys.stderr,
             )
             print("=== STDOUT ===", file=sys.stderr)
