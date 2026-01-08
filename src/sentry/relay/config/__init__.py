@@ -77,6 +77,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
+    "organizations:span-v2-otlp-processing",
 ]
 
 EXTRACT_METRICS_VERSION = 1
