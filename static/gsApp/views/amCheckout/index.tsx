@@ -314,8 +314,7 @@ function AMCheckout(props: Props) {
           category,
           getBucket({
             events: value,
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            buckets: plan.planCategories[category],
+            buckets: plan.planCategories[category as DataCategory],
             shouldMinimize: hasPartnerMigrationFeature(organization),
           }).events,
         ])
