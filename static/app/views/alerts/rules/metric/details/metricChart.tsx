@@ -649,6 +649,14 @@ function getMetricChartTooltipFormatter({
     const upperThresholdValue = upperThresholdSeries?.data[1] as number | undefined;
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type
     const lowerThresholdValue = lowerThresholdSeries?.data[1] as number | undefined;
+    const upperThresholdFormatted =
+      upperThresholdValue === undefined
+        ? undefined
+        : alertTooltipValueFormatter(upperThresholdValue, seriesName, rule.aggregate);
+    const lowerThresholdFormatted =
+      lowerThresholdValue === undefined
+        ? undefined
+        : alertTooltipValueFormatter(lowerThresholdValue, seriesName, rule.aggregate);
     const comparisonPointYFormatted =
       comparisonPointY === undefined
         ? undefined
@@ -682,9 +690,9 @@ function getMetricChartTooltipFormatter({
       comparisonSeries &&
         `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
       upperThresholdSeries &&
-        `<div><span class="tooltip-label">${upperThresholdSeries.marker as string} <strong>${t('Upper Threshold')}</strong></span>${upperThresholdValue ?? ''}</div>`,
+        `<div><span class="tooltip-label">${upperThresholdSeries.marker as string} <strong>${t('Upper Threshold')}</strong></span>${upperThresholdFormatted ?? ''}</div>`,
       lowerThresholdSeries &&
-        `<div><span class="tooltip-label">${lowerThresholdSeries.marker as string} <strong>${t('Lower Threshold')}</strong></span>${lowerThresholdValue ?? ''}</div>`,
+        `<div><span class="tooltip-label">${lowerThresholdSeries.marker as string} <strong>${t('Lower Threshold')}</strong></span>${lowerThresholdFormatted ?? ''}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
