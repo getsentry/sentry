@@ -25,6 +25,7 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -247,7 +248,7 @@ function WidgetCard(props: Props) {
       });
 
       navigate(
-        {
+        normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
           query: {
             ...location.query,
@@ -256,7 +257,7 @@ function WidgetCard(props: Props) {
                 ? widget.queries[0]?.orderby
                 : location.query.sort,
           },
-        },
+        }),
         {preventScrollReset: true}
       );
     }
