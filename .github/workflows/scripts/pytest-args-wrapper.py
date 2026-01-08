@@ -10,10 +10,6 @@ if len(sys.argv) < 2:
     sys.exit(1)
 
 testnodeids_file = sys.argv[1]
-if not testnodeids_file.exists():
-    print(f"test-node-ids file not found: {testnodeids_file}")
-    sys.exit(1)
-
 with open(testnodeids_file) as f:
     nodeids = [line.strip() for line in f.readlines() if line.strip()]
 
