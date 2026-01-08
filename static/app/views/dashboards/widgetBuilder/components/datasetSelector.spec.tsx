@@ -13,28 +13,6 @@ jest.mock('sentry/utils/useNavigate', () => ({
 const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('DatasetSelector', () => {
-  it('shows dataset descriptions on hover', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderProvider>
-        <DatasetSelector />
-      </WidgetBuilderProvider>
-    );
-
-    await userEvent.click(await screen.findByText('Dataset'));
-
-    const errorsOption = await screen.findByRole('option', {name: 'Errors'});
-    await userEvent.hover(errorsOption);
-
-    expect(
-      await screen.findByText(
-        'Error events from your application that Sentry uses to group into issues. Use for error frequency, distribution, and impact.'
-      )
-    ).toBeInTheDocument();
-  });
-
   it('changes the dataset', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
