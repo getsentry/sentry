@@ -199,8 +199,8 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                         group_id=cache_payload["group_id"],
                         pull_requests=[
                             {
-                                "pr_number": pr.get("pr_number", ""),
-                                "pr_url": pr.get("pr_url", ""),
+                                "pr_number": pr["pr_number"],
+                                "pr_url": pr["pr_url"],
                             }
                             for pr in pull_requests
                         ],
