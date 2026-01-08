@@ -61,7 +61,7 @@ export function AssigneeBadge({
         {showLabel && (
           <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
         )}
-        <IconChevron color="subText" direction={chevronDirection} size="xs" />
+        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
       </Fragment>
     );
   };
@@ -70,7 +70,7 @@ export function AssigneeBadge({
     <Fragment>
       <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -83,12 +83,12 @@ export function AssigneeBadge({
         height={`${AVATAR_SIZE}px`}
       />
       {showLabel && <Fragment>Unassigned</Fragment>}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
   return loading ? (
-    <StyledTag icon={loadingIcon} />
+    <StyledTag icon={loadingIcon} variant="muted" />
   ) : assignedTo ? (
     <Tooltip
       isHoverable
@@ -104,7 +104,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} />
+      <StyledTag icon={makeAssignedIcon(assignedTo)} variant="muted" />
     </Tooltip>
   ) : (
     <Tooltip
@@ -127,7 +127,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <UnassignedTag icon={unassignedIcon} />
+      <UnassignedTag icon={unassignedIcon} variant="muted" />
     </Tooltip>
   );
 }
@@ -156,7 +156,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const UnassignedTag = styled(StyledTag)`
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   background-color: transparent;
 `;
 

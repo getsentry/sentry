@@ -84,7 +84,11 @@ export default function SentryAppDetailsModal(props: Props) {
   const featureTags = (features: Array<Pick<IntegrationFeature, 'featureGate'>>) => {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
-      return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
+      return (
+        <StyledTag key={feat} variant="muted">
+          {feat.replace(/-/g, ' ')}
+        </StyledTag>
+      );
     });
   };
 
@@ -234,7 +238,7 @@ const Author = styled('div')`
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <IconFlag color="errorText" size="md" />
+    <IconFlag variant="danger" size="md" />
     {reason}
   </div>
 ))`
@@ -266,7 +270,7 @@ const Title = styled('p')`
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
-  color: ${p => p.theme.success};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const Features = styled('div')`

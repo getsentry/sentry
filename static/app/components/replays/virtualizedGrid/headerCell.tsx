@@ -48,7 +48,7 @@ function HeaderCell<T extends BaseRecord>({
         </Tooltip>
       ) : null}
       <IconArrow
-        color="gray300"
+        variant="muted"
         size="xs"
         direction={sortConfig.by === field && !sortConfig.asc ? 'down' : 'up'}
         style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}
@@ -59,7 +59,7 @@ function HeaderCell<T extends BaseRecord>({
 
 const HeaderButton = styled('button')`
   border: 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
 

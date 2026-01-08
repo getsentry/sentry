@@ -68,18 +68,11 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
       <div>{children}</div>
       <div>
         <Button
-          borderless={isCollapsed ? false : true}
           size="xs"
-          icon={
-            <IconChevron
-              direction={isCollapsed ? 'right' : 'left'}
-              isDouble
-              color={isCollapsed ? 'white' : undefined}
-            />
-          }
+          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
           onClick={() => setIsCollapsed(!isCollapsed)}
-          priority={isCollapsed ? 'primary' : undefined}
+          priority={isCollapsed ? 'primary' : 'transparent'}
           analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
           analyticsEventKey="sidebar_secondary_toggle_button_clicked"
           analyticsParams={{
@@ -138,7 +131,7 @@ function SectionTitle({
               <IconChevron
                 direction={isCollapsed ? 'down' : 'up'}
                 size="xs"
-                color="subText"
+                variant="muted"
               />
             )
           )}
@@ -279,11 +272,7 @@ const Header = styled('div')`
 
   /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-  button {
-    color: inherit;
-  }
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
@@ -370,7 +359,7 @@ const SeparatorWrapper = styled('div')`
 
 const Separator = styled('hr')`
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0 ${space(1)};
   border: none;
 `;
@@ -379,7 +368,7 @@ interface ItemProps extends LinkProps {
   layout: NavLayout;
 }
 
-const ChonkItem = styled(Link)<ItemProps>`
+const Item = styled(Link)<ItemProps>`
   display: flex;
   gap: ${space(0.75)};
   justify-content: center;
@@ -431,15 +420,13 @@ const ChonkItem = styled(Link)<ItemProps>`
   }
 `;
 
-const Item = ChonkItem;
-
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
   padding: ${space(1)} ${space(1)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
     p.layout === NavLayout.MOBILE &&

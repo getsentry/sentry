@@ -74,7 +74,7 @@ export function formatRootCauseWithEvent(
     return rootCauseText;
   }
 
-  const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+  const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event, undefined);
   return rootCauseText + eventText;
 }
 
@@ -95,7 +95,7 @@ export function formatSolutionWithEvent(
   combinedText += solutionText;
 
   if (event) {
-    const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+    const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event, undefined);
     combinedText += eventText;
   }
 

@@ -56,7 +56,7 @@ export default function EmptyState({
         <Setup>
           <BodyTitle>{t('Install instructions')}</BodyTitle>
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {t(
                 "Note: You need PlayStation access to complete these instructions. Sentry admin access alone isn't sufficient."
               )}
@@ -225,7 +225,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;

@@ -241,7 +241,7 @@ class BaseDateRange extends Component<Props, State> {
 const DateRange = styled(withTheme(withSentryRouter(BaseDateRange)))`
   display: flex;
   flex-direction: column;
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TimeAndUtcPicker = styled('div')`
@@ -249,7 +249,7 @@ const TimeAndUtcPicker = styled('div')`
   align-items: center;
   margin: 0 ${space(2)};
   padding: ${space(0.5)} 0;
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const StyledTimePicker = styled(TimePicker)`

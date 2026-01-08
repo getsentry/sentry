@@ -301,7 +301,7 @@ describe('CreateAlertFromViewButton', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/monitors/new/settings/'
+      '/organizations/org-slug/monitors/new/settings'
     );
     expect(router.location.query).toEqual(
       expect.objectContaining({

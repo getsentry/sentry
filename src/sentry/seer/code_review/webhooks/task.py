@@ -7,6 +7,15 @@ from typing import Any
 
 from urllib3.exceptions import HTTPError
 
+from sentry import options
+from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.seer.code_review.utils import (
+    get_webhook_option_key,
+    transform_webhook_to_codegen_request,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -14,9 +23,8 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
-from ..utils import SeerEndpoint, make_seer_request
-from .check_run import process_check_run_task_event
-from .types import EventType
+from ..utils import get_seer_endpoint_for_event, make_seer_request
+from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
 
@@ -25,24 +33,45 @@ PREFIX = "seer.code_review.task"
 MAX_RETRIES = 3
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
+METRICS_PREFIX = "seer.code_review.task"
 
 
-def _call_seer_request(*, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any) -> None:
-    """
-    XXX: This is a placeholder processor to send events to Seer.
-    """
-    assert event_type != EventType.CHECK_RUN
-    assert event_payload is not None
-    make_seer_request(path=SeerEndpoint.SENTRY_REQUEST.value, payload=event_payload)
+def schedule_task(
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    target_commit_sha: str,
+    trigger: CodeReviewTrigger,
+) -> None:
+    """Transform and forward a webhook event to Seer for processing."""
+    from .task import process_github_webhook_event
 
+    transformed_event = transform_webhook_to_codegen_request(
+        github_event=github_event,
+        event_payload=dict(event),
+        organization=organization,
+        repo=repo,
+        target_commit_sha=target_commit_sha,
+        trigger=trigger,
+    )
 
-EVENT_TYPE_TO_PROCESSOR = {
-    EventType.CHECK_RUN: process_check_run_task_event,
-    EventType.ISSUE_COMMENT: _call_seer_request,
-    EventType.PULL_REQUEST: _call_seer_request,
-    EventType.PULL_REQUEST_REVIEW: _call_seer_request,
-    EventType.PULL_REQUEST_REVIEW_COMMENT: _call_seer_request,
-}
+    if transformed_event is None:
+        metrics.incr(
+            f"{METRICS_PREFIX}.{github_event.value}.skipped",
+            tags={"reason": "failed_to_transform", "github_event": github_event.value},
+        )
+        return
+
+    process_github_webhook_event.delay(
+        github_event=github_event,
+        event_payload=transformed_event,
+        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+    )
+    metrics.incr(
+        f"{METRICS_PREFIX}.{github_event.value}.enqueued",
+        tags={"status": "success", "github_event": github_event.value},
+    )
 
 
 @instrumented_task(
@@ -52,25 +81,36 @@ EVENT_TYPE_TO_PROCESSOR = {
     silo_mode=SiloMode.REGION,
 )
 def process_github_webhook_event(
-    *, enqueued_at_str: str, event_type: str, event_payload: Mapping[str, Any], **kwargs: Any
+    *,
+    enqueued_at_str: str,
+    github_event: GithubWebhookType,
+    event_payload: Mapping[str, Any],
+    **kwargs: Any,
 ) -> None:
     """
     Process GitHub webhook event by forwarding to Seer if applicable.
 
     Args:
         enqueued_at_str: The timestamp when the task was enqueued
-        event_type: The type of the webhook event
+        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
         event_payload: The payload of the webhook event
         **kwargs: Parameters to pass to webhook handler functions
     """
     status = "success"
     should_record_latency = True
+    option_key = get_webhook_option_key(github_event)
+
+    # Check if repo owner is in the whitelist (always send to Seer for these orgs)
+    # Otherwise, check option key to see if Overwatch should handle this
+    repo_owner = event_payload.get("data", {}).get("repo", {}).get("owner")
+    if repo_owner not in get_direct_to_seer_gh_orgs():
+        # If option is True, Overwatch handles this - skip Seer processing
+        if option_key and options.get(option_key):
+            return
+
     try:
-        event_type_enum = EventType.from_string(event_type)
-        event_processor = EVENT_TYPE_TO_PROCESSOR.get(event_type_enum)
-        if event_processor is None:
-            raise ValueError(f"No processor found for event type: {event_type}")
-        event_processor(event_type=event_type, event_payload=event_payload, **kwargs)
+        path = get_seer_endpoint_for_event(github_event).value
+        make_seer_request(path=path, payload=event_payload)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.

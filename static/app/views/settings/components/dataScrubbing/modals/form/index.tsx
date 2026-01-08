@@ -284,7 +284,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                   suggestions={sourceSuggestions}
                 />
                 {containsRootDeepWildcard && (
-                  <Alert type="warning" style={{marginTop: space(1)}}>
+                  <Alert variant="warning" style={{marginTop: space(1)}}>
                     {t(
                       `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
                     )}
@@ -473,7 +473,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
     p.isExpanded &&
     css`
       border-radius: ${p.theme.radius.md};
-      border: 1px solid ${p.theme.border};
+      border: 1px solid ${p.theme.tokens.border.primary};
       box-shadow: ${p.theme.dropShadowMedium};
       margin: ${space(2)} 0 ${space(3)} 0;
       padding: ${space(2)};
@@ -514,6 +514,6 @@ const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.disabled};
+      color: ${p.theme.tokens.content.disabled};
     `}
 `;

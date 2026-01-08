@@ -11,6 +11,7 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure/disclosure';
 import {Link} from 'sentry/components/core/link';
+import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
@@ -23,8 +24,17 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import Placeholder from 'sentry/components/placeholder';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconClock, IconFire, IconLink, IconUser} from 'sentry/icons';
+import {
+  IconCalendar,
+  IconClock,
+  IconClose,
+  IconFire,
+  IconLink,
+  IconUpload,
+  IconUser,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -35,6 +45,9 @@ import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeInteger} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
@@ -922,18 +935,63 @@ function TopIssues() {
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const {selection} = usePageFilters();
-  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasClusterParam = location.query.cluster !== undefined;
+  const filterFromUrl = location.query.assigned === '1';
+  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(
+    hasClusterParam ? filterFromUrl : true
+  );
+  const [showDevTools, setShowDevTools] = useState(false);
+  const [showJsonInput, setShowJsonInput] = useState(false);
+  const [jsonInputValue, setJsonInputValue] = useState('');
+  const [customClusterData, setCustomClusterData] = useState<ClusterSummary[] | null>(
+    null
+  );
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [disableFilters, setDisableFilters] = useState(false);
+
+  const selectedClusterId = decodeInteger(location.query.cluster);
 
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
     [`/organizations/${organization.slug}/top-issues/`],
     {
       staleTime: 60000,
+      enabled: customClusterData === null, // Only fetch if no custom data
     }
   );
 
+  const handleParseJson = () => {
+    try {
+      const parsed = JSON.parse(jsonInputValue);
+      const clusters = Array.isArray(parsed) ? parsed : parsed?.data;
+      if (!Array.isArray(clusters)) {
+        setJsonError(t('JSON must be an array or have a "data" property with an array'));
+        return;
+      }
+      setCustomClusterData(clusters as ClusterSummary[]);
+      setJsonError(null);
+      setShowJsonInput(false);
+    } catch (e) {
+      setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  const handleClearCustomData = () => {
+    setCustomClusterData(null);
+    setJsonInputValue('');
+    setJsonError(null);
+    setDisableFilters(false);
+  };
+
+  const isUsingCustomData = customClusterData !== null;
+
   const filteredClusters = useMemo(() => {
-    const clusterData = topIssuesResponse?.data ?? [];
+    const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
+
+    if (isUsingCustomData && disableFilters) {
+      return clusterData;
+    }
 
     let filtered = clusterData.filter(cluster => {
       if (!cluster.error_type || !cluster.impact || !cluster.location) {
@@ -961,22 +1019,48 @@ function TopIssues() {
 
     return filtered.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
   }, [
+    customClusterData,
     topIssuesResponse?.data,
+    isUsingCustomData,
+    disableFilters,
     selection.projects,
     filterByAssignedToMe,
     user.id,
     userTeams,
   ]);
 
+  const currentIndex = useMemo(() => {
+    if (selectedClusterId === undefined) {
+      return 0;
+    }
+    const idx = filteredClusters.findIndex(c => c.cluster_id === selectedClusterId);
+    return idx >= 0 ? idx : 0;
+  }, [filteredClusters, selectedClusterId]);
+
   const currentCluster = filteredClusters[currentIndex];
   const totalClusters = filteredClusters.length;
 
+  const navigateToCluster = (clusterId: number) => {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, cluster: String(clusterId)},
+    });
+  };
+
   const handlePrevious = () => {
-    setCurrentIndex(prev => Math.max(0, prev - 1));
+    const prevIndex = Math.max(0, currentIndex - 1);
+    const prevCluster = filteredClusters[prevIndex];
+    if (prevCluster) {
+      navigateToCluster(prevCluster.cluster_id);
+    }
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => Math.min(totalClusters - 1, prev + 1));
+    const nextIndex = Math.min(totalClusters - 1, currentIndex + 1);
+    const nextCluster = filteredClusters[nextIndex];
+    if (nextCluster) {
+      navigateToCluster(nextCluster.cluster_id);
+    }
   };
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
@@ -989,7 +1073,25 @@ function TopIssues() {
       <PageWrapper>
         <Grid padding="2xl 3xl xl">
           <Flex justify="between" align="center">
-            <Heading as="h1">{t('Top Issues')}</Heading>
+            <Flex align="center" gap="md">
+              <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+                {t('Top Issues')}
+              </ClickableHeading>
+              {isUsingCustomData && (
+                <CustomDataBadge>
+                  <Text size="xs" bold>
+                    {t('Using Custom Data')}
+                  </Text>
+                  <Button
+                    size="zero"
+                    borderless
+                    icon={<IconClose size="xs" />}
+                    aria-label={t('Clear custom data')}
+                    onClick={handleClearCustomData}
+                  />
+                </CustomDataBadge>
+              )}
+            </Flex>
             <Link to={`/organizations/${organization.slug}/issues/dynamic-groups/`}>
               <Button size="sm">{t('View Grid Layout')}</Button>
             </Link>
@@ -1004,12 +1106,22 @@ function TopIssues() {
           >
             <Flex gap="sm" align="center">
               <ProjectPageFilter />
+              {showDevTools && (
+                <Button
+                  size="sm"
+                  icon={<IconUpload size="xs" />}
+                  onClick={() => setShowJsonInput(!showJsonInput)}
+                >
+                  {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+                </Button>
+              )}
               <CheckboxLabel>
                 <Checkbox
                   checked={filterByAssignedToMe}
                   onChange={e => {
                     setFilterByAssignedToMe(e.target.checked);
-                    setCurrentIndex(0);
+                    const newQuery = {...location.query, cluster: undefined};
+                    navigate({pathname: location.pathname, query: newQuery});
                   }}
                   aria-label={t('Assigned to me')}
                   size="sm"
@@ -1022,6 +1134,7 @@ function TopIssues() {
               <Flex align="center" gap="sm">
                 <Text size="sm" variant="muted" style={{padding: `0 ${theme.space.md}`}}>
                   {currentIndex + 1} {t('of')} {totalClusters} {t('top issues')}
+                  {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
                 </Text>
                 <Button size="sm" onClick={handlePrevious} disabled={currentIndex <= 0}>
                   {t('Previous')}
@@ -1036,6 +1149,56 @@ function TopIssues() {
               </Flex>
             )}
           </Flex>
+
+          {showJsonInput && (
+            <JsonInputContainer>
+              <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
+                {t(
+                  'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
+                )}
+              </Text>
+              <TextArea
+                value={jsonInputValue}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  setJsonInputValue(e.target.value);
+                  setJsonError(null);
+                }}
+                placeholder={t('Paste JSON here...')}
+                rows={8}
+                monospace
+              />
+              {jsonError && (
+                <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
+                  {jsonError}
+                </Text>
+              )}
+              <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
+                <Checkbox
+                  checked={disableFilters}
+                  onChange={e => setDisableFilters(e.target.checked)}
+                  aria-label={t('Disable filters and sorting')}
+                  size="sm"
+                />
+                <Text size="sm" variant="muted">
+                  {t('Disable filters and sorting')}
+                </Text>
+              </Flex>
+              <Flex gap="sm" style={{marginTop: space(1)}}>
+                <Button size="sm" priority="primary" onClick={handleParseJson}>
+                  {t('Parse and Load')}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setShowJsonInput(false);
+                    setJsonError(null);
+                  }}
+                >
+                  {t('Cancel')}
+                </Button>
+              </Flex>
+            </JsonInputContainer>
+          )}
         </Grid>
 
         <ContentArea>
@@ -1061,11 +1224,35 @@ const PageWrapper = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
 `;
 
+const ClickableHeading = styled(Heading)`
+  cursor: pointer;
+  user-select: none;
+`;
+
 const CheckboxLabel = styled('label')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
   cursor: pointer;
+`;
+
+const JsonInputContainer = styled('div')`
+  margin-top: ${space(2)};
+  padding: ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const CustomDataBadge = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  background: ${p => p.theme.colors.yellow100};
+  border: 1px solid ${p => p.theme.colors.yellow400};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const ContentArea = styled('div')`
@@ -1079,14 +1266,14 @@ const EmptyState = styled('div')`
   align-items: center;
   padding: ${p => p.theme.space['3xl']};
   background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
 const CardContainer = styled('div')`
   display: flex;
   background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -1105,12 +1292,12 @@ const CardSidebar = styled('div')`
   width: 280px;
   flex-shrink: 0;
   padding: ${p => p.theme.space['2xl']};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     width: 100%;
     border-left: none;
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -1118,13 +1305,13 @@ const SidebarSection = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space['2xl']};
     padding-bottom: ${p => p.theme.space['2xl']};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const CardHeader = styled('div')`
   padding: ${p => p.theme.space['2xl']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const TagPill = styled('span')`
@@ -1133,13 +1320,13 @@ const TagPill = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 20px;
 `;
 
 const CardFooter = styled('div')`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const AvatarStack = styled('div')`
@@ -1179,7 +1366,7 @@ const SingleGraphContainer = styled('div')`
 const TagsTable = styled('div')`
   display: grid;
   grid-template-columns: minmax(140px, 1fr) 70px minmax(180px, 2fr);
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
@@ -1191,7 +1378,7 @@ const TagsTableHeader = styled('div')`
   gap: ${p => p.theme.space.xl};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const DenseTagsGrid = styled('div')`
@@ -1251,7 +1438,7 @@ const TagRow = styled('div')`
   cursor: default;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   &:hover {

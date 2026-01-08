@@ -98,7 +98,7 @@ export function GroupPriorityBadge({
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
-    <StyledTag type="default" icon={<IconCellSignal bars={bars} />}>
+    <StyledTag variant="muted" icon={<IconCellSignal bars={bars} />}>
       {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
@@ -211,7 +211,7 @@ export function GroupPriorityDropdown({
           }
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}
@@ -279,7 +279,7 @@ const LearnMoreWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1.5)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   background: linear-gradient(

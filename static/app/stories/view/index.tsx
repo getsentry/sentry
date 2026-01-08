@@ -4,11 +4,12 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {
-  StorySidebar,
-  useStoryBookFilesByCategory,
-} from 'sentry/stories/view/storySidebar';
-import {StoryTreeNode, type StoryCategory} from 'sentry/stories/view/storyTree';
+  StoryTreeNode,
+  useFlatStoryList,
+  type StoryCategory,
+} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -53,7 +54,7 @@ function StoriesLanding() {
 function StoryDetail() {
   const location = useLocation();
   const {storyCategory, storySlug} = useStoryParams();
-  const stories = useStoryBookFilesByCategory();
+  const stories = useFlatStoryList();
 
   let storyNode = getStoryFromParams(stories, {
     category: storyCategory,
@@ -93,7 +94,7 @@ function StoryDetail() {
       ) : story.isError ? (
         <VerticalScroll>
           <Alert.Container>
-            <Alert type="error">
+            <Alert variant="danger">
               <strong>{story.error.name}:</strong> {story.error.message}
             </Alert>
           </Alert.Container>
@@ -138,22 +139,20 @@ function isLandingPage(location: ReturnType<typeof useLocation>) {
 }
 
 function getStoryFromParams(
-  stories: ReturnType<typeof useStoryBookFilesByCategory>,
+  stories: ReturnType<typeof useFlatStoryList>,
   context: {category?: StoryCategory; slug?: string}
 ): StoryTreeNode | undefined {
-  const nodes = stories[context.category as keyof typeof stories] ?? [];
-
-  if (!nodes || nodes.length === 0) {
+  if (stories.length === 0) {
     return undefined;
   }
 
-  const queue = [...nodes];
+  const queue = [...stories];
 
   while (queue.length > 0) {
     const node = queue.pop();
     if (!node) break;
 
-    if (node.slug === context.slug) {
+    if (node.category === context.category && node.slug === context.slug) {
       return node;
     }
 
@@ -249,80 +248,6 @@ const StoryMainContainer = styled('main')`
   h5,
   h6 {
     scroll-margin-top: 80px;
-    margin: 0;
-  }
-
-  p,
-  pre {
-    margin: 0;
-  }
-
-  code:not([class]):not(pre > code) {
-    background: ${p => p.theme.tokens.background.secondary};
-    color: ${p => p.theme.tokens.content.primary};
-  }
-
-  table:not([class]) {
-    margin: 1px;
-    padding: 0;
-    width: calc(100% - 2px);
-    table-layout: auto;
-    border: 0;
-    border-collapse: collapse;
-    border-radius: ${p => p.theme.radius.md};
-    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
-    margin-bottom: ${p => p.theme.space['3xl']};
-
-    & thead {
-      height: 36px;
-      border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-      background: ${p => p.theme.tokens.background.tertiary};
-      border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
-    }
-
-    & th {
-      padding-inline: ${p => p.theme.space.xl};
-      padding-block: ${p => p.theme.space.sm};
-
-      &:first-of-type {
-        border-radius: ${p => p.theme.radius.md} 0 0 0;
-      }
-      &:last-of-type {
-        border-radius: 0 ${p => p.theme.radius.md} 0 0;
-      }
-    }
-
-    tr:last-child td:first-of-type {
-      border-radius: 0 0 0 ${p => p.theme.radius.md};
-    }
-    tr:last-child td:last-of-type {
-      border-radius: 0 0 ${p => p.theme.radius.md} 0;
-    }
-
-    tbody {
-      background: ${p => p.theme.tokens.background.primary};
-      border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
-    }
-
-    tr {
-      border-bottom: 1px solid ${p => p.theme.tokens.border.muted};
-      vertical-align: baseline;
-
-      &:last-child {
-        border-bottom: 0;
-      }
-    }
-
-    td:first-child {
-      white-space: nowrap;
-      word-break: break-all;
-      hyphens: none;
-    }
-
-    td {
-      padding-inline: ${p => p.theme.space.xl};
-      padding-block: ${p => p.theme.space.lg};
-    }
   }
 
   div + .expressive-code .frame {
@@ -333,9 +258,9 @@ const StoryMainContainer = styled('main')`
   }
 
   .expressive-code .frame {
-    margin-bottom: ${p => p.theme.space['3xl']};
+    margin: 0;
     box-shadow: none;
-    border: 1px solid #000000;
+    border: none;
     pre {
       background: hsla(254, 18%, 15%, 1);
       border: 0;

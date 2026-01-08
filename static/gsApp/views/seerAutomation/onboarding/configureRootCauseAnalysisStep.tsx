@@ -235,12 +235,14 @@ export function ConfigureRootCauseAnalysisStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
-              <Text bold>{t('Root Cause Analysis')}</Text>
-              <p>
-                {t(
-                  'For all projects added below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it. '
-                )}
-              </p>
+              <Flex direction="column" gap="sm">
+                <Text bold>{t('Root Cause Analysis')}</Text>
+                <Text variant="muted" density="comfortable">
+                  {t(
+                    'For all projects added below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it. '
+                  )}
+                </Text>
+              </Flex>
             </PanelDescription>
 
             <Field>
@@ -317,7 +319,7 @@ export function ConfigureRootCauseAnalysisStep() {
 
 const StepContentWithBackground = styled(StepContent)`
   background: url(${configureRootCauseAnalysisImg}) no-repeat 638px 0;
-  background-size: 200px 256px;
+  background-size: 187px 240px;
 `;
 
 const AddRepoRow = styled(PanelItem)`

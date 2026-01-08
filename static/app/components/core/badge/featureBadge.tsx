@@ -21,7 +21,7 @@ const labels: Record<FeatureBadgeProps['type'], string> = {
   experimental: t('experimental'),
 };
 
-export interface FeatureBadgeProps extends Omit<BadgeProps, 'children'> {
+export interface FeatureBadgeProps extends Omit<BadgeProps, 'children' | 'variant'> {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   tooltipProps?: Partial<TooltipProps>;
 }
@@ -31,7 +31,7 @@ function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
 
   return (
     <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
-      <StyledBadge type={type} {...props}>
+      <StyledBadge variant={type} {...props}>
         {labels[type]}
       </StyledBadge>
     </Tooltip>
@@ -44,8 +44,6 @@ function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
  */
 export const FeatureBadge = styled(InnerFeatureBadge)``;
 
-const ChonkStyledBadge = styled(Badge)`
+const StyledBadge = styled(Badge)`
   text-transform: capitalize;
 `;
-
-const StyledBadge = ChonkStyledBadge;

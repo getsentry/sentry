@@ -74,7 +74,9 @@ export function CheckInTooltip<Status extends string>({
               count > 0 && (
                 <tr key={status}>
                   <StatusLabel
-                    labelColor={labelColors[status]?.labelColor ?? theme.disabled}
+                    labelColor={
+                      labelColors[status]?.labelColor ?? theme.tokens.content.disabled
+                    }
                   >
                     {statusLabel[status]}
                   </StatusLabel>

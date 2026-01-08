@@ -170,7 +170,7 @@ function ReleaseCard({
                     ),
                   })}
                 >
-                  <Tag type="success" icon={<IconCheckmark />} />
+                  <Tag variant="success" icon={<IconCheckmark />} />
                 </Tooltip>
               ) : (
                 <Tooltip
@@ -306,7 +306,7 @@ const ReleaseInfo = styled('div')`
   justify-content: stretch;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     min-width: 260px;
     width: 22%;
     max-width: 300px;
@@ -359,7 +359,7 @@ const PackageContainer = styled('div')`
 `;
 
 const ReleaseProjects = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   flex-grow: 1;
   display: grid;
 
@@ -507,7 +507,7 @@ const HiddenProjectsMessage = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   height: 24px;
   line-height: 24px;
