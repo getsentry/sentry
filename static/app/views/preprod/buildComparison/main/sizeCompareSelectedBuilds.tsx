@@ -13,7 +13,7 @@ import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import {getSizeBuildUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
@@ -43,7 +43,7 @@ function BuildButton({
   const dateAdded = buildDetails.app_info?.date_added;
 
   const buildUrl =
-    getSizeBuildUrl({
+    getSizeBuildPath({
       organizationSlug: organization.slug,
       projectId,
       baseArtifactId: buildId,

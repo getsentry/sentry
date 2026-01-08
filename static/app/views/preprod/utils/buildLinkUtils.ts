@@ -1,34 +1,34 @@
 interface BuildLinkParams {
-  baseArtifactId: string | null | undefined;
   organizationSlug: string;
   projectId: string;
+  baseArtifactId?: string;
 }
 
-export function getBaseBuildUrl(params: BuildLinkParams): string | null {
+export function getBaseBuildPath(params: BuildLinkParams): string | undefined {
   const {organizationSlug, projectId, baseArtifactId} = params;
 
   if (!baseArtifactId) {
-    return null;
+    return undefined;
   }
 
   return `/organizations/${organizationSlug}/preprod/${projectId}/${baseArtifactId}/`;
 }
 
-export function getSizeBuildUrl(params: BuildLinkParams): string | null {
-  return getBaseBuildUrl(params);
+export function getSizeBuildPath(params: BuildLinkParams): string | undefined {
+  return getBaseBuildPath(params);
 }
 
-export function getInstallBuildUrl(params: BuildLinkParams): string | null {
-  const baseUrl = getBaseBuildUrl(params);
+export function getInstallBuildPath(params: BuildLinkParams): string | undefined {
+  const basePath = getBaseBuildPath(params);
 
-  if (!baseUrl) {
-    return null;
+  if (!basePath) {
+    return undefined;
   }
 
-  return `${baseUrl}install/`;
+  return `${basePath}install/`;
 }
 
-export function getCompareBuildUrl(params: {
+export function getCompareBuildPath(params: {
   headArtifactId: string;
   organizationSlug: string;
   projectId: string;
@@ -36,16 +36,15 @@ export function getCompareBuildUrl(params: {
 }): string {
   const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
 
-  let path = `/organizations/${organizationSlug}/preprod/${projectId}/compare/${headArtifactId}`;
+  let path = `/organizations/${organizationSlug}/preprod/${projectId}/compare/${headArtifactId}/`;
   if (baseArtifactId) {
-    path += `/${baseArtifactId}`;
+    path += `${baseArtifactId}/`;
   }
-  path += '/';
 
   return path;
 }
 
-export function getListBuildUrl(params: {
+export function getListBuildPath(params: {
   organizationSlug: string;
   projectId: string;
 }): string {

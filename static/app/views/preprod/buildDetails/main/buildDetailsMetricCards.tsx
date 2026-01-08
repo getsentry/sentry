@@ -25,7 +25,7 @@ import type {
   BuildDetailsSizeInfoSizeMetric,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
-import {getCompareBuildUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 import {
   formattedPrimaryMetricDownloadSize,
@@ -116,7 +116,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   // Build comparison URL using route params
   const comparisonUrl =
     baseArtifactId && projectId && artifactId
-      ? getCompareBuildUrl({
+      ? getCompareBuildPath({
           organizationSlug: organization.slug,
           projectId,
           headArtifactId: artifactId,
