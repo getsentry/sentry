@@ -206,6 +206,12 @@ type UpdateLogicOperatorAction = {
   value: string;
 };
 
+type WrapTokensWithParenthesesAction = {
+  tokens: ParseResultToken[];
+  type: 'WRAP_TOKENS_WITH_PARENTHESES';
+  focusOverride?: FocusOverride;
+};
+
 type ResetClearAskSeerFeedbackAction = {type: 'RESET_CLEAR_ASK_SEER_FEEDBACK'};
 
 type UpdateFreeTextActions =
@@ -242,7 +248,8 @@ export type QueryBuilderActions =
   | UpdateAggregateArgsAction
   | MultiSelectFilterValueAction
   | ResetClearAskSeerFeedbackAction
-  | UpdateLogicOperatorAction;
+  | UpdateLogicOperatorAction
+  | WrapTokensWithParenthesesAction;
 
 function removeQueryTokensFromQuery(
   query: string,
@@ -435,6 +442,53 @@ function removeExcessWhitespaceFromParts(...parts: string[]): string {
     .filter(part => part.length > 0)
     .join(' ')
     .trim();
+}
+
+function wrapTokensWithParentheses(
+  state: QueryBuilderState,
+  action: WrapTokensWithParenthesesAction,
+  parseQuery: (query: string) => ParseResult | null
+): QueryBuilderState {
+  if (action.tokens.length === 0) {
+    return state;
+  }
+
+  const firstToken = action.tokens[0]!;
+  const lastToken = action.tokens[action.tokens.length - 1]!;
+
+  const before = state.query.substring(0, firstToken.location.start.offset);
+  const middle = state.query.substring(
+    firstToken.location.start.offset,
+    lastToken.location.end.offset
+  );
+  const after = state.query.substring(lastToken.location.end.offset);
+
+  const newQuery = `${before}(${middle})${after}`.trim();
+  const cursorPosition = firstToken.location.start.offset + middle.length + 2;
+  const newParsedQuery = parseQuery(newQuery);
+
+  const focusedToken = newParsedQuery?.find(
+    (token: any) =>
+      token.type === Token.FREE_TEXT && token.location.start.offset >= cursorPosition
+  );
+
+  const focusOverride = focusedToken
+    ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
+    : newParsedQuery?.length
+      ? {
+          itemKey: makeTokenKey(
+            newParsedQuery[newParsedQuery.length - 1]!,
+            newParsedQuery
+          ),
+        }
+      : null;
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
+    focusOverride,
+  };
 }
 
 // Ensures that the replaced token is separated from the rest of the query
@@ -988,6 +1042,8 @@ export function useQueryBuilderState({
           return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
+        case 'WRAP_TOKENS_WITH_PARENTHESES':
+          return wrapTokensWithParentheses(state, action, parseQuery);
         case 'RESET_CLEAR_ASK_SEER_FEEDBACK':
           return {...state, clearAskSeerFeedback: false};
         default:
