@@ -313,11 +313,10 @@ def _get_detector_for_event(event: GroupEvent) -> Detector:
 
     try:
         if issue_occurrence is not None:
-            detector = Detector.objects.filter(
-                id=issue_occurrence.evidence_data.get("detector_id", None)
-            ).first()
-            if detector is None:
+            detector_id = issue_occurrence.evidence_data.get("detector_id")
+            if detector_id is None:
                 raise SpecificDetectorNotFound
+            detector = Detector.objects.get(id=detector_id)
         else:
             detector = Detector.get_error_detector_for_project(event.group.project_id)
     except Detector.DoesNotExist:

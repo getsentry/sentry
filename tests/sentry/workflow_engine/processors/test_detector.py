@@ -923,6 +923,35 @@ class TestGetDetectorsForEvent(TestCase):
         # assert no exception is logged
         mock_logger.exception.assert_not_called()
 
+    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
+    @patch("sentry.workflow_engine.processors.detector.logger")
+    def test_event_missing_detector(self, mock_logger: MagicMock) -> None:
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={"detector_id": 12345},  # missing detector
+            evidence_display=[],
+            type=PerformanceNPlusOneAPICallsGroupType,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+        self.group_event.occurrence = occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.issue_stream_detector
+        assert result.detectors == {self.issue_stream_detector}
+
+        # assert no exception is logged
+        mock_logger.exception.assert_called_once()
+
     def test_no_detectors(self) -> None:
         self.issue_stream_detector.delete()
         self.error_detector.delete()
