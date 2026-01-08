@@ -100,7 +100,6 @@ export type IssueEventParameters = {
   };
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.list.ai_query_applied': {
-    organization: Organization;
     query: string;
   };
   'issue.search_sidebar_clicked': Record<string, unknown>;
