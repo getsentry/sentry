@@ -30,7 +30,7 @@ logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 180
 SEER_RETRIES = Retry(total=1, backoff_factor=2, status_forcelist=[408, 429, 502, 503, 504])
-START_TIME_DELTA_MINUTES = 30
+START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 100
 NUM_TRANSACTIONS_TO_PROCESS = 20
 
