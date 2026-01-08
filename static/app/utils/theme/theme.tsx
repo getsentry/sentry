@@ -1203,12 +1203,6 @@ const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
   errorText: tokens.content.danger,
 
   /**
-   * A color that denotes danger, for dangerous actions like deletion
-   */
-  danger: tokens.content.danger,
-  dangerText: tokens.content.danger,
-
-  /**
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
