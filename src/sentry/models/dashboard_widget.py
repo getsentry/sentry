@@ -75,7 +75,7 @@ class DashboardWidgetTypes(TypesClass):
     """
     Mobile app size metrics from preprod item type on the EAP dataset.
     """
-    MOBILE_APP_SIZE = 105
+    MOBILE_BUILDS = 105
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -89,7 +89,7 @@ class DashboardWidgetTypes(TypesClass):
         (SPANS, "spans"),
         (LOGS, "logs"),
         (TRACEMETRICS, "tracemetrics"),
-        (MOBILE_APP_SIZE, "mobile-app-size"),
+        (MOBILE_BUILDS, "mobile-builds"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
