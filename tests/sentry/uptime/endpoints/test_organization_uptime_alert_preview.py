@@ -1,8 +1,20 @@
 import responses
+from django.test import override_settings
 
+from sentry.conf.types.uptime import UptimeRegionConfig
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
+@override_settings(
+    UPTIME_REGIONS=[
+        UptimeRegionConfig(
+            slug="default",
+            name="Default Region",
+            config_redis_key_prefix="default",
+            api_endpoint="pop-st-1.uptime-checker.s4s.sentry.internal:80",
+        )
+    ]
+)
 class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-organization-uptime-alert-preview-check"
     method = "post"
