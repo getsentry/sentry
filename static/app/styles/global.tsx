@@ -4,72 +4,33 @@ import {css, Global} from '@emotion/react';
 import {space} from 'sentry/styles/space';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
-// Prism colors
-// @TODO(jonasbadalic): are these final?
-const prismLight = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#332B3B',
-  '--prism-inline-code': '#332B3B',
-  '--prism-inline-code-background': '#F5F3F7',
-  '--prism-highlight-background': '#5C78A31C',
-  '--prism-highlight-accent': '#5C78A344',
-  '--prism-comment': '#80708F',
-  '--prism-punctuation': '#332B3B',
-  '--prism-property': '#18408B',
-  '--prism-selector': '#177861',
-  '--prism-operator': '#235CC8',
-  '--prism-variable': '#332B3B',
-  '--prism-function': '#235CC8',
-  '--prism-keyword': '#BB3A3D',
-};
-
-// @TODO(jonasbadalic): are these final?
-const prismDark = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#D6D0DC',
-  '--prism-inline-code': '#D6D0DC',
-  '--prism-inline-code-background': '#18121C',
-  '--prism-highlight-background': '#A8A2C31C',
-  '--prism-highlight-accent': '#A8A2C344',
-  '--prism-comment': '#998DA5',
-  '--prism-punctuation': '#D6D0DC',
-  '--prism-property': '#70A2FF',
-  '--prism-selector': '#1DCDA4',
-  '--prism-operator': '#70A2FF',
-  '--prism-variable': '#D6D0DC',
-  '--prism-function': '#70A2FF',
-  '--prism-keyword': '#F8777C',
-};
-
-const generateThemePrismVariables = (
-  prismColors: typeof prismLight,
-  blockBackground: string
-) => ({
+const generateThemePrismVariables = (theme: Theme, blockBackground: string) => ({
+  '--prism-base': theme.tokens.syntax.base,
+  '--prism-inline-code': theme.tokens.syntax.inlineCode,
+  '--prism-inline-code-background': theme.tokens.syntax.codeBackground,
+  '--prism-highlight-background': theme.tokens.syntax.hightlightBackground,
+  '--prism-highlight-accent': theme.tokens.syntax.hightlightAccent,
+  '--prism-comment': theme.tokens.syntax.comment,
+  '--prism-punctuation': theme.tokens.syntax.punctuation,
+  '--prism-property': theme.tokens.syntax.property,
+  '--prism-selector': theme.tokens.syntax.selector,
+  '--prism-operator': theme.tokens.syntax.operator,
+  '--prism-variable': theme.tokens.syntax.variable,
+  '--prism-function': theme.tokens.syntax.function,
+  '--prism-keyword': theme.tokens.syntax.keyWord,
   // block background differs based on light/dark mode
   '--prism-block-background': blockBackground,
-  ...prismColors,
 });
 
 const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   :root {
-    ${generateThemePrismVariables(
-      theme.type === 'dark' ? prismDark : prismLight,
-      theme.backgroundSecondary
-    )};
+    ${generateThemePrismVariables(theme, theme.backgroundSecondary)};
   }
 
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
   .gatsby-highlight,
   .prism-dark {
-    ${generateThemePrismVariables(prismDark, darkTheme.tokens.background.primary)};
+    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.primary)};
   }
 
   pre[class*='language-'] {
