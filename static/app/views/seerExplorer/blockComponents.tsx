@@ -690,7 +690,9 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
   color: ${p =>
-    p.isHighlighted ? p.theme.tokens.interactive.link.accent.hover : p.theme.tokens.content.secondary};
+    p.isHighlighted
+      ? p.theme.tokens.interactive.link.accent.hover
+      : p.theme.tokens.content.secondary};
   flex-shrink: 0;
 `;
 

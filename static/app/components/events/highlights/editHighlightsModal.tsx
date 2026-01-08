@@ -600,7 +600,8 @@ const EditButton = styled(Button)`
 
 const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary)};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.familyMono};
   margin-bottom: 0;
   word-wrap: break-word;

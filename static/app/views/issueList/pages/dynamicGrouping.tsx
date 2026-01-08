@@ -1528,7 +1528,8 @@ const InfoValue = styled('span')`
 
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary)};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
 `;
 
 const ShowMoreButton = styled('button')`

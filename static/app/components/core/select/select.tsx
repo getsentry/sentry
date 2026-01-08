@@ -188,7 +188,9 @@ const getStylesConfig = ({
     }),
     placeholder: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.tokens.content.disabled : theme.tokens.content.secondary,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.secondary,
     }),
     multiValue: provided => ({
       ...provided,

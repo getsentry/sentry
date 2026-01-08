@@ -286,7 +286,8 @@ const StepHeading = styled('h4')<{isActive: boolean}>`
 const StepDoneIcon = styled(IconCheckmark, {
   shouldForwardProp: prop => prop !== 'isActive',
 })<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.tokens.content.success : p.theme.tokens.content.secondary)};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
   margin-left: ${space(1)};
   vertical-align: middle;
 `;
