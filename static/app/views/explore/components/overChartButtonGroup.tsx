@@ -1,13 +1,5 @@
-import styled from '@emotion/styled';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-export const OverChartButtonGroup = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.xs};
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.md};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    justify-content: flex-end;
-  }
-`;
+export function OverChartButtonGroup(props: FlexProps<'div'>) {
+  return <Flex justify="end" marginBottom="md" gap="xs" {...props} />;
+}
