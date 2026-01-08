@@ -144,7 +144,7 @@ export default function PreventAIOnboarding() {
             direction="column"
             gap="lg"
             padding="0 0 xl 0"
-            style={{borderBottom: `1px solid ${theme.border}`}}
+            style={{borderBottom: `1px solid ${theme.tokens.border.primary}`}}
           >
             <Heading as="h1">{t('Setup AI Code Review')}</Heading>
             <Text variant="primary" size="sm">
@@ -270,7 +270,7 @@ const StepContent = styled('div')<{isLastStep?: boolean}>`
     top: 25px;
     bottom: ${p => (p.isLastStep ? '0px' : '-20px')};
     width: 2px;
-    background-color: ${p => p.theme.border};
+    background-color: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }
 `;

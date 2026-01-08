@@ -616,7 +616,7 @@ const ProfileVisualization = styled('div')`
 
 const ProfileDigestContainer = styled('div')`
   grid-area: digest;
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex: 1 1 100%;
@@ -780,7 +780,7 @@ const ProfileDigestHeader = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: 0 ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   /* force height to be same as toolbar */
   height: 42px;
   flex-shrink: 0;

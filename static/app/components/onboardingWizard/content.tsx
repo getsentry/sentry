@@ -563,7 +563,7 @@ const Content = styled('div')`
 `;
 
 const TaskGroupWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
 

@@ -362,7 +362,7 @@ const HeaderCell = styled('div')`
   font-weight: 600;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   white-space: nowrap;
   line-height: 1;
   position: sticky;

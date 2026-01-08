@@ -200,7 +200,7 @@ const MessageContainer = styled('div')`
   justify-items: center;
   align-items: center;
   text-align: center;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;

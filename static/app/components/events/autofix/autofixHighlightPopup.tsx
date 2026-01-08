@@ -697,7 +697,7 @@ const Container = styled(motion.div, {
   width: 100%;
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   box-shadow: ${p => (p.isFocused ? p.theme.dropShadowHeavy : p.theme.dropShadowLight)};
   transition: box-shadow 200ms ease;
@@ -733,7 +733,7 @@ const StyledInput = styled(TextArea)`
   resize: none;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -779,7 +779,7 @@ const Arrow = styled('div')`
   width: 12px;
   height: 12px;
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-right: none;
   border-bottom: none;
   top: 20px;

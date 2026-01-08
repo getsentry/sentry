@@ -4,7 +4,7 @@ const TabItemContainer = styled('div')`
   position: relative;
   flex-grow: 1;
   overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: grid;
 

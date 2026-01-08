@@ -408,7 +408,7 @@ export default UsageOverviewTableRow;
 
 const Row = styled('tr')`
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   &:last-child {

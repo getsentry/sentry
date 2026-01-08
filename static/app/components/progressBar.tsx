@@ -26,7 +26,7 @@ const getVariantStyle = ({
     return `
       height: 24px;
       border-radius: 24px;
-      border: 1px solid ${theme.border};
+      border: 1px solid ${theme.tokens.border.primary};
       box-shadow: inset 0px 1px 3px rgba(0, 0, 0, 0.06);
       :before {
         left: 6px;

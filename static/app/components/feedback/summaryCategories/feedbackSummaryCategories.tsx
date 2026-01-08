@@ -97,6 +97,6 @@ const SummaryContainer = styled('div')`
 
 const SummaryIconContainer = styled('div')`
   padding: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;

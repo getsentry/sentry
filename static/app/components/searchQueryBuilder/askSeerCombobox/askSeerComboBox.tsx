@@ -578,7 +578,7 @@ const SeerFooter = styled('div')`
   display: flex;
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 

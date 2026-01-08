@@ -128,7 +128,7 @@ const ProfilesTable = styled('div')`
   grid-template-columns: 1fr min-content;
   grid-template-rows: auto;
   width: 100%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   > div {
@@ -167,7 +167,7 @@ const ProfilesTableRow = styled('div')`
   }
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

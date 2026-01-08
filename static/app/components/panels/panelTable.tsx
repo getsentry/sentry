@@ -164,7 +164,7 @@ const Wrapper = styled(Panel, {
       p.disableHeaderBorderBottom
         ? ''
         : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
-      border-bottom: 1px solid ${p.theme.border};
+      border-bottom: 1px solid ${p.theme.tokens.border.primary};
     }`}
   }
 

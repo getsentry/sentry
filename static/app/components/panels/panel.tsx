@@ -28,7 +28,7 @@ const Panel = styled(
         ? 'transparent'
         : p.dashedBorder
           ? 'dashed' + p.theme.colors.gray400
-          : 'solid ' + p.theme.border};
+          : 'solid ' + p.theme.tokens.border.primary};
   margin-bottom: ${space(2)};
   position: relative;
 `;

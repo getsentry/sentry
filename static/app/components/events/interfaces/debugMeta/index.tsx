@@ -430,7 +430,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   > * {
     :nth-child(-n + 5) {
       ${p => p.theme.overflowEllipsis};
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
       :nth-child(5n) {
         height: 100%;
         ${p => !p.scrollbarWidth && `display: none`}

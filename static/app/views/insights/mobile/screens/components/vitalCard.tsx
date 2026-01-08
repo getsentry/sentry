@@ -56,7 +56,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 `;
 
 const MeterBarBody = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   border-bottom: none;
   padding: ${space(1)} 0 ${space(0.5)} 0;

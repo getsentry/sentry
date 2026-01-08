@@ -749,7 +749,7 @@ export const TraceGrid = styled('div')<{
   ${traceGridCssVariables}
 
   background-color: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   flex: 1 1 100%;
   display: grid;
   overflow: hidden;

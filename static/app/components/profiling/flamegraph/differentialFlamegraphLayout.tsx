@@ -125,8 +125,8 @@ const ProfileLabel = styled(CollapsibleTimelineLabel)`
     ${p => p.theme.backgroundSecondary} 80%,
     transparent 100%
   );
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-right: ${space(2)};
   z-index: 1;
   /* Visually align with the grid */

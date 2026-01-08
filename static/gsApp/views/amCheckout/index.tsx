@@ -841,7 +841,7 @@ const CheckoutHeader = styled('header')`
   z-index: 100;
   width: 100%;
   background: ${p => p.theme.tokens.background.primary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   justify-content: center;
   gap: ${p => p.theme.space.md};
@@ -871,7 +871,7 @@ const CheckoutBody = styled('div')`
 
 const SidePanel = styled('aside')`
   width: 100%;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   flex-direction: column;
   padding: 0 ${p => p.theme.space['2xl']};
@@ -913,7 +913,7 @@ const CheckoutStepsContainer = styled('div')`
   gap: ${p => p.theme.space['3xl']};
 
   & > * + * {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
     padding-top: ${p => p.theme.space['3xl']};
     margin-top: ${p => p.theme.space['3xl']};
   }

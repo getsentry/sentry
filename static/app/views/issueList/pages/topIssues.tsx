@@ -1240,7 +1240,7 @@ const JsonInputContainer = styled('div')`
   margin-top: ${space(2)};
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -1266,14 +1266,14 @@ const EmptyState = styled('div')`
   align-items: center;
   padding: ${p => p.theme.space['3xl']};
   background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
 const CardContainer = styled('div')`
   display: flex;
   background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -1292,12 +1292,12 @@ const CardSidebar = styled('div')`
   width: 280px;
   flex-shrink: 0;
   padding: ${p => p.theme.space['2xl']};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     width: 100%;
     border-left: none;
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -1320,7 +1320,7 @@ const TagPill = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 20px;
 `;
 
@@ -1366,7 +1366,7 @@ const SingleGraphContainer = styled('div')`
 const TagsTable = styled('div')`
   display: grid;
   grid-template-columns: minmax(140px, 1fr) 70px minmax(180px, 2fr);
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
@@ -1378,7 +1378,7 @@ const TagsTableHeader = styled('div')`
   gap: ${p => p.theme.space.xl};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const DenseTagsGrid = styled('div')`

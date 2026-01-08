@@ -479,7 +479,7 @@ const StickyActions = styled(Sticky)`
     border-radius: 0;
   }
 
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-top: none;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 `;

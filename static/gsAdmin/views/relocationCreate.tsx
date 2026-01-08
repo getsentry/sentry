@@ -172,7 +172,7 @@ function RelocationForm() {
 const UploadWell = styled('div')`
   margin-top: ${space(2)};
   margin-bottom: ${space(3)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.backgroundSecondary};
   padding: ${space(2)} ${space(3)};
   border-radius: 3px;

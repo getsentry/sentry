@@ -84,7 +84,7 @@ const DescriptionKeyLabel = styled('p')`
 `;
 
 const Separator = styled('hr')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(1)} 0;
 `;
 

@@ -108,7 +108,7 @@ const IssueRow = styled('div')<{isFirst: boolean}>`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
-  border-top: ${p => (p.isFirst ? 'none' : `1px solid ${p.theme.border}`)};
+  border-top: ${p => (p.isFirst ? 'none' : `1px solid ${p.theme.tokens.border.primary}`)};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.md}
     ${p => p.theme.space.lg};
 `;

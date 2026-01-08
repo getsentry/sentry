@@ -107,7 +107,7 @@ const QueryCountBubble = styled(motion.span)`
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   color: ${p => p.theme.subText};
   margin-left: 0;
   font-weight: ${p => p.theme.fontWeight.bold};

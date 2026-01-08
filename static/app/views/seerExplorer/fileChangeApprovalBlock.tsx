@@ -95,7 +95,8 @@ export default FileChangeApprovalBlock;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
-  border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
+  border-bottom: ${p =>
+    p.isLast ? 'none' : `1px solid ${p.theme.tokens.border.primary}`};
   position: relative;
   flex-shrink: 0;
   cursor: pointer;

@@ -37,7 +37,7 @@ const LoadingSkeleton = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SkeletonCellsContainer = styled('div')`
@@ -47,7 +47,7 @@ const SkeletonCellsContainer = styled('div')`
 
 const SkeletonCell = styled('div')`
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   flex-direction: column;
 

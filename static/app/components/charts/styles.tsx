@@ -30,7 +30,7 @@ export const InlineContainer = styled('div')`
 
 export const ChartControls = styled('div')`
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;

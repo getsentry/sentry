@@ -177,11 +177,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   .group-detail:before {
-    background: ${theme.border};
+    background: ${theme.tokens.border.primary};
   }
 
   .form-actions {
-    border-top-color: ${theme.border};
+    border-top-color: ${theme.tokens.border.primary};
   }
 
   pre,
@@ -238,7 +238,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .box,
         .box.box-modal {
           background: ${theme.tokens.background.primary};
-          border-color: ${theme.border};
+          border-color: ${theme.tokens.border.primary};
 
           .box-content,
           .box-header {
@@ -255,7 +255,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
 
           .box-header {
-            border-bottom-color: ${theme.border};
+            border-bottom-color: ${theme.tokens.border.primary};
 
             a {
               color: ${theme.tokens.content.primary};
@@ -290,7 +290,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             }
           }
           &.border-bottom {
-            border-color: ${theme.border};
+            border-color: ${theme.tokens.border.primary};
           }
         }
 
@@ -299,14 +299,14 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
 
         .traceback {
-          border-color: ${theme.border};
+          border-color: ${theme.tokens.border.primary};
 
           &.in-app-traceback {
             .frame {
               &.leads-to-app {
                 &.collapsed {
                   .title {
-                    border-color: ${theme.border};
+                    border-color: ${theme.tokens.border.primary};
                     background: ${theme.tokens.background.primary};
                   }
                 }
@@ -316,7 +316,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
           .frame,
           .frame.system-frame {
-            border-top-color: ${theme.border};
+            border-top-color: ${theme.tokens.border.primary};
 
             &.is-expandable .title:hover {
               background-color: ${theme.tokens.background.primary};
@@ -335,9 +335,9 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background: ${theme.tokens.background.primary};
 
               table.key-value {
-                border-color: ${theme.border};
+                border-color: ${theme.tokens.border.primary};
                 td {
-                  border-color: ${theme.border} !important;
+                  border-color: ${theme.tokens.border.primary} !important;
                 }
               }
             }
@@ -349,7 +349,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .event-details-container {
           background-color: ${theme.tokens.background.primary};
           .secondary {
-            border-left-color: ${theme.border};
+            border-left-color: ${theme.tokens.border.primary};
           }
         }
         .nav-header a.help-link,
@@ -372,15 +372,15 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .dropdown-menu {
           background-color: ${theme.tokens.background.primary} !important;
           color: ${theme.tokens.content.primary};
-          border: 1px solid ${theme.border};
+          border: 1px solid ${theme.tokens.border.primary};
           &:before {
-            border-bottom-color: ${theme.border};
+            border-bottom-color: ${theme.tokens.border.primary};
           }
           &:after {
             border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
-            border-top-color: ${theme.border};
+            border-top-color: ${theme.tokens.border.primary};
           }
           &.inverted:after {
             border-top-color: ${theme.tokens.background.primary};

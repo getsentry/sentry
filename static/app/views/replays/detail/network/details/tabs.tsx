@@ -36,7 +36,7 @@ function NetworkDetailsTabs() {
 }
 
 const TabsContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`

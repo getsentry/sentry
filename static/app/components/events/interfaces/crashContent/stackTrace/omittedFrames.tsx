@@ -26,7 +26,7 @@ const FramesOmittedListItem = styled('li')`
   font-size: 14px;
   font-weight: ${p => p.theme.fontWeight.bold};
   border-left: 2px solid ${p => p.theme.colors.red400};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.colors.red100};
   padding: ${space(1)} ${space(2)};
 `;

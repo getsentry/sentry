@@ -717,7 +717,7 @@ const SectionDivider = styled('hr')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: 100%;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   margin-top: ${space(0.5)};
 `;
 
@@ -1284,7 +1284,7 @@ const MarkdownContainer = styled('div')`
   blockquote {
     margin: 0;
     padding: ${p => p.theme.space.sm};
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
   }
   pre {
     margin: 0;
@@ -1296,7 +1296,7 @@ const MarkdownContainer = styled('div')`
   }
   hr {
     margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
   table {
     border-collapse: collapse;
@@ -1305,7 +1305,7 @@ const MarkdownContainer = styled('div')`
   }
   table th,
   table td {
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
     padding: ${p => p.theme.space.xs};
   }
 `;

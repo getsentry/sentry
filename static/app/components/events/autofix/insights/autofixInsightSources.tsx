@@ -225,7 +225,7 @@ const ThoughtsOverlay = styled('div')`
   left: 50%;
   right: ${space(2)};
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -240,7 +240,7 @@ const ThoughtsOverlay = styled('div')`
 
 const OverlayHeader = styled('div')`
   padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayContent = styled('div')`
@@ -250,7 +250,7 @@ const OverlayContent = styled('div')`
 
 const OverlayFooter = styled('div')`
   padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayButtonGroup = styled('div')`

@@ -138,7 +138,7 @@ export function AutomateSection() {
 }
 
 const ButtonWrapper = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(2)};
   margin: -${space(2)};
 `;

@@ -156,7 +156,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const UnassignedTag = styled(StyledTag)`
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   background-color: transparent;
 `;
 

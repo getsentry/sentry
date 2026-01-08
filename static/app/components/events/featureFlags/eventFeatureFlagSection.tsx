@@ -340,7 +340,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 }
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.border} solid 1px;
+  border: ${p => p.theme.tokens.border.primary} solid 1px;
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;

@@ -196,7 +196,7 @@ const Container = styled('div')`
     );
   overflow: visible;
   padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AutofixStartText = styled('div')`
@@ -242,7 +242,7 @@ const StyledInput = styled(TextArea)`
 
   border-color: ${p => p.theme.tokens.border.secondary};
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 

@@ -511,7 +511,7 @@ const ToggleButton = styled(Button)`
 `;
 
 const Registers = styled(Context)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0;
   margin: 0;
 `;
@@ -531,7 +531,7 @@ const Package = styled('span')`
 
 const FileName = styled('span')`
   color: ${p => p.theme.subText};
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const RowHeader = styled('span')<{
@@ -566,7 +566,7 @@ const RowHeader = styled('span')<{
 const StackTraceFrame = styled('li')`
   :not(:last-child) {
     ${RowHeader} {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;
