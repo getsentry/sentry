@@ -46,6 +46,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
@@ -284,6 +285,12 @@ ORG_OPTIONS = (
         list,
         ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     ),
+    (
+        "consoleSdkInviteQuota",
+        "sentry:console_sdk_invite_quota_limit",
+        int,
+        CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -355,6 +362,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         required=False,
         allow_empty=True,
     )
+    consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
@@ -458,6 +466,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         # Remove duplicates by converting to set and back to list
         if value is not None:
             value = list(set(value))
+
+        return value
+
+    def validate_consoleSdkInviteQuota(self, value):
+        request = self.context["request"]
+
+        if not is_active_staff(request):
+            raise serializers.ValidationError(
+                "Only staff members can change console SDK invite quota limit."
+            )
 
         return value
 
@@ -854,6 +872,7 @@ def create_console_platform_audit_log(
         "allowBackgroundAgentDelegation",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "consoleSdkInviteQuota",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
