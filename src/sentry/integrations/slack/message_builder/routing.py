@@ -18,9 +18,13 @@ class SlackRoutingData:
     project_id: int | None = None
 
 
-def encode_action_id(*, action: str, organization_id: int, project_id: int) -> str:
+def encode_action_id(*, action: str, organization_id: int, project_id: int | None) -> str:
     """Used to encode routing data into the outbound action_id for a Slack block."""
-    return f"{action}::{organization_id}::{project_id}"
+    return (
+        f"{action}::{organization_id}::{project_id}"
+        if project_id
+        else f"{action}::{organization_id}"
+    )
 
 
 def decode_action_id(encoded_action_id: str) -> SlackRoutingData:
