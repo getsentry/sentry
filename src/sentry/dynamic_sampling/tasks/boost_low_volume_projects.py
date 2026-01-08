@@ -300,10 +300,6 @@ def query_project_counts_by_org(
         amount=len(org_ids),
         tags={"measure": str(measure.value)},
     )
-    metrics.incr(
-        "dynamic_sampling.query_project_counts_by_org.invocations",
-        tags={"measure": str(measure.value), "empty_org_ids": str(len(org_ids) == 0)},
-    )
 
     org_ids = list(org_ids)
     project_ids = list(
