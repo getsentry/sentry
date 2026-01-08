@@ -2166,7 +2166,7 @@ requires-dist = [
     { name = "mmh3", specifier = ">=4.0.0" },
     { name = "msgpack", specifier = ">=1.1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
-    { name = "objectstore-client", specifier = "==0.0.15" },
+    { name = "objectstore-client", specifier = ">=0.0.15" },
     { name = "openai", specifier = ">=1.3.5" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "p4python", specifier = ">=2025.1.2767466" },
