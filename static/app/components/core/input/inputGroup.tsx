@@ -31,9 +31,11 @@ const InputItemsWrap = styled('div')`
   align-items: center;
   gap: ${space(1)};
 
+  /* Do not use transform here to do alignment as it will create a new stacking
+   * context, breaking things like dropdown menus */
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
 `;
 
 const itemsPadding = {
