@@ -11,10 +11,10 @@ MIN_SHARDS = 1
 MAX_SHARDS = 22
 DEFAULT_SHARDS = 22
 
-PYTEST_IGNORED_FILES = (
+IGNORED_FILES = {
     # the pytest code itself is not part of the test suite but will be referenced by most tests
     "sentry/testutils/pytest/sentry.py",
-)
+}
 
 IGNORED_NODEIDS = ("tests/sentry/test_wsgi.py::test_wsgi_init",)
 
@@ -32,48 +32,46 @@ def executed_lines(bitblob: bytes) -> set[int]:
     return lines
 
 
-def select_tests(coverage_db_path: str, changed_files: list[str]):
+def select_tests(coverage_db_path: str, changed_files: set[str]):
     test_nodeids = set()
 
     with sqlite3.connect(coverage_db_path) as conn:
         cursor = conn.cursor()
 
-        for file_path in changed_files:
-            if any(file_path.endswith(ignored_file) for ignored_file in PYTEST_IGNORED_FILES):
+        file_paths = [
+            f"/home/runner/work/sentry/sentry/{file_path}"
+            for file_path in changed_files - IGNORED_FILES
+        ]
+
+        placeholders = ",".join("?" for _ in file_paths)
+
+        cursor.execute(
+            f"""
+            SELECT c.context, lb.numbits
+            FROM line_bits lb
+            JOIN file f    ON lb.file_id = f.id
+            JOIN context c ON lb.context_id = c.id
+            WHERE f.path IN ({placeholders})
+              AND c.context != ''
+            """,
+            file_paths,
+        )
+
+        for test_context, bitblob in cursor.fetchall():
+            if not test_context.endswith("|run"):
+                # for now we're ignoring |setup and |teardown
                 continue
 
-            cleaned_file_path = file_path
-            if cleaned_file_path.startswith("/src"):
-                cleaned_file_path = cleaned_file_path[len("/src") :]
+            lines = executed_lines(bitblob)
+            if not lines:
+                # test wasn't executed
+                continue
 
-            # TODO: change to IN query; much faster
-            cursor.execute(
-                """
-                SELECT c.context, lb.numbits
-                FROM line_bits lb
-                JOIN file f    ON lb.file_id = f.id
-                JOIN context c ON lb.context_id = c.id
-                WHERE f.path LIKE '%' || ?
-                  AND c.context != ''
-            """,
-                (f"%{cleaned_file_path}",),
-            )
+            test_nodeid = test_context.partition("|")[0]
+            if test_nodeid in IGNORED_NODEIDS:
+                continue
 
-            for test_context, bitblob in cursor.fetchall():
-                if not test_context.endswith("|run"):
-                    # for now we're ignoring |setup and |teardown
-                    continue
-
-                lines = executed_lines(bitblob)
-                if not lines:
-                    # test wasn't executed
-                    continue
-
-                test_nodeid = test_context.partition("|")[0]
-                if test_nodeid in IGNORED_NODEIDS:
-                    continue
-
-                test_nodeids.add(test_nodeid)
+            test_nodeids.add(test_nodeid)
 
     return test_nodeids
 
@@ -122,7 +120,7 @@ def main():
 
     print(f"changed files:\n{'\n'.join(changed_files)}\n")
 
-    selected_tests = select_tests(COVERAGE_DB_PATH, changed_files)
+    selected_tests = select_tests(COVERAGE_DB_PATH, set(changed_files))
     selected_tests_str = "\n".join(selected_tests)
 
     with open("selected-tests", "w") as f:
