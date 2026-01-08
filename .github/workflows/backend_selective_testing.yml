@@ -64,7 +64,7 @@ jobs:
       - name: Select Tests
         id: select-tests
         env:
-          GITHUB_PR_BASE_REF: ${{ ${{ github.event.pull_request.base.sha }} }}
+          GITHUB_PR_BASE_REF: ${{ github.event.pull_request.base.sha }}
           COVERAGE_DB_PATH: .coverage/.coverage.combined
         run: |
           python3 .github/workflows/scripts/select-tests.py
