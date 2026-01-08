@@ -28,7 +28,6 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import SeerEndpoint, make_seer_request
 
 logger = logging.getLogger(__name__)
 
@@ -152,17 +151,3 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
     validated_event = GitHubCheckRunEvent.parse_obj(event)
     int(validated_event.check_run.external_id)  # Raises ValueError if not numeric
     return validated_event
-
-
-def process_check_run_task_event(*, event_payload: Mapping[str, Any], **kwargs: Any) -> None:
-    """
-    Process check_run task events.
-
-    This allows the task to be shared by multiple webhook types without conflicts.
-    """
-    original_run_id = event_payload.get("original_run_id")
-    if not original_run_id:
-        return
-
-    payload = {"original_run_id": original_run_id}
-    make_seer_request(path=SeerEndpoint.PR_REVIEW_RERUN.value, payload=payload)

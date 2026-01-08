@@ -9,7 +9,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import options
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
@@ -26,6 +25,7 @@ from ..metrics import (
     record_webhook_received,
 )
 from ..utils import _get_target_commit_sha
+from .config import GH_ORGS_TO_ONLY_SEND_TO_SEER
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,8 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
 
-    if not options.get("github.webhook.issue-comment"):
+    github_org = event.get("repository", {}).get("owner", {}).get("login")
+    if github_org in GH_ORGS_TO_ONLY_SEND_TO_SEER:
         if comment_id:
             _add_eyes_reaction_to_comment(
                 github_event, github_event_action, integration, organization, repo, str(comment_id)

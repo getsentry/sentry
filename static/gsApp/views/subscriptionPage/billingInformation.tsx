@@ -1,13 +1,12 @@
 import {useTheme} from '@emotion/react';
-import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
@@ -18,15 +17,15 @@ import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type Props = {
-  location: Location;
-  organization: Organization;
   subscription: Subscription;
 };
 
 /**
  * Update Billing Information view.
  */
-function BillingInformation({organization, subscription, location}: Props) {
+function BillingInformation({subscription}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
   const hasBillingPerms = organization.access?.includes('org:billing');
   const theme = useTheme();
   const maxPanelWidth = theme.breakpoints.lg;
@@ -68,7 +67,7 @@ function BillingInformation({organization, subscription, location}: Props) {
   );
 }
 
-export default withSubscription(withOrganization(BillingInformation));
+export default withSubscription(BillingInformation);
 
 /** @internal exported for tests only */
 export {BillingInformation};

@@ -132,7 +132,7 @@ function TeamMisery({
                 <Fragment key={idx}>
                   <KeyTransactionTitleWrapper>
                     <div>
-                      <StyledIconStar isSolid color="yellow300" />
+                      <StyledIconStar isSolid variant="warning" />
                     </div>
                     <TransactionWrapper>
                       <Link
