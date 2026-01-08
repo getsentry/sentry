@@ -134,9 +134,6 @@ function WidgetBuilderDatasetSelector() {
         value={state.dataset ?? WidgetType.ERRORS}
         options={datasetOptions}
         menuWidth={500}
-        triggerProps={{
-          prefix: t('Dataset'),
-        }}
         onChange={selection => {
           const newDataset = selection.value;
 
