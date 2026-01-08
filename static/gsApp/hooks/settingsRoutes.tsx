@@ -81,7 +81,6 @@ const settingsRoutes = (): SentryRouteObject => ({
             {
               index: true,
               component: make(() => import('../views/invoiceDetails')),
-              deprecatedRouteProps: true,
             },
           ],
         },
