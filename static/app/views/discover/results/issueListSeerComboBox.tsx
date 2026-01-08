@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
@@ -16,17 +16,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
-
-interface AskSeerSearchQuery extends QueryTokensProps {
-  end: string | null;
-  groupBys: string[];
-  mode: string;
-  query: string;
-  sort: string;
-  start: string | null;
-  statsPeriod: string;
-  visualizations: Array<{chartType: ChartType; yAxes: string[]}>;
-}
 
 interface IssuesAskSeerTranslateResponse {
   responses: Array<{
