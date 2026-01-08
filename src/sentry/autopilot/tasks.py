@@ -183,12 +183,12 @@ def run_missing_sdk_integration_detector_for_organization(organization: Organiza
 
         if repo_config:
             run_missing_sdk_integration_detector_for_project(
-                organization, project, repo_config.repository.name
+                organization, project, repo_config.repository.name, repo_config.source_root
             )
 
 
 def run_missing_sdk_integration_detector_for_project(
-    organization: Organization, project: Project, repo_name: str
+    organization: Organization, project: Project, repo_name: str, source_root: str
 ) -> list[str] | None:
     """
     Detect missing SDK integrations for a project using Seer Explorer.
@@ -228,20 +228,68 @@ def run_missing_sdk_integration_detector_for_project(
         else "https://docs.sentry.io/platforms/"
     )
 
-    prompt = f"""Analyze the connected code repository for project "{project.slug}" to identify missing Sentry SDK integrations.
+    prompt = f"""# Objective
 
-The project is mapped to repository: {repo_name}
-The project platform is: {project.platform or "unknown"}
+Identify missing Sentry SDK integrations for a project by analyzing its code repository.
 
-Refer to the Sentry SDK integrations documentation for available integrations:
-{integration_docs_url}
+# Context
 
-Look at the project's dependencies (package.json, requirements.txt, pyproject.toml, etc.) and identify any libraries or frameworks that have Sentry SDK integrations available but require manual instrumentation steps.
-Check the Sentry initialization code to see if any integrations are already configured.
+- **Project**: {project.slug}
+- **Repository**: {repo_name}
+- **Source Root**: {source_root or "/"}
+- **Platform**: {project.platform}
+- **SDK Integrations Documentation**: {integration_docs_url}
 
-Return the list of missing SDK integration names. Each integration name should be the exact integration function/class name from the Sentry SDK (e.g., "anthropicIntegration", "openaiIntegration", "CeleryIntegration").
+# Instructions
 
-If no missing integrations are found, return an empty list."""
+Follow these steps in order:
+
+## Step 1: Locate the Project Directory
+
+The repository may contain multiple projects. Use the **Source Root** path to identify the correct project directory.
+- If the Source Root is "/" or empty, the project is at the repository root
+- Otherwise, navigate to the Source Root path within the repository
+
+All subsequent steps should be scoped to this directory.
+
+## Step 2: Identify Project Dependencies
+
+Locate and analyze dependency files within the project directory, like:
+- `package.json` (Node.js/JavaScript)
+- `requirements.txt`, `pyproject.toml`, `setup.py` (Python)
+- `Gemfile` (Ruby)
+- `go.mod` (Go)
+- `pom.xml`, `build.gradle` (Java)
+- `composer.json` (PHP)
+
+Extract the list of libraries and frameworks the project uses.
+
+## Step 3: Review Available Sentry Integrations
+
+Reference the SDK integrations documentation to identify which integrations:
+- Are available for the detected libraries/frameworks
+- Require manual configuration (not auto-enabled by default)
+
+## Step 4: Check Current Sentry Configuration
+
+Search for existing Sentry initialization code (e.g., `Sentry.init`, `sentry_sdk.init`) within the project directory.
+Note which integrations are already explicitly configured.
+
+## Step 5: Determine Missing Integrations
+
+Compare the available integrations (Step 3) against the configured integrations (Step 4).
+An integration is "missing" if:
+- A library/framework in the project has a corresponding Sentry integration
+- The integration requires manual setup
+- The integration is NOT already configured
+
+# Output
+
+Return a JSON array of strings containing the missing SDK integration names.
+
+Example: `["celery", "redis", "sqlalchemy"]`
+
+If no missing integrations are found, return an empty array: `[]`"""
 
     try:
         run_id = client.start_run(
