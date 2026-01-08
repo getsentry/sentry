@@ -2601,7 +2601,7 @@ class Factories:
         if date_added is not None:
             artifact.update(date_added=date_added)
 
-        mobile_app_info_fields = {}
+        mobile_app_info_fields: dict[str, Any] = {}
         if build_version is not None:
             mobile_app_info_fields["build_version"] = build_version
         if build_number is not None:
