@@ -75,7 +75,7 @@ function WidgetBuilderDatasetSelector() {
     datasetChoices.push([WidgetType.TRACEMETRICS, t('Metrics')]);
   }
   if (organization.features.includes('preprod-frontend-routes')) {
-    datasetChoices.push([WidgetType.MOBILE_APP_SIZE, t('Mobile Builds')]);
+    datasetChoices.push([WidgetType.MOBILE_BUILDS, t('Mobile Builds')]);
   }
   datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
   if (organization.features.includes('visibility-explore-view')) {

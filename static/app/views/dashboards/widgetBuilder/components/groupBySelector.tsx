@@ -43,7 +43,7 @@ function WidgetBuilderGroupBySelector({
   const preprodAttributeConfig = {
     traceItemType: TraceItemDataset.PREPROD,
     enabled:
-      state.dataset === WidgetType.MOBILE_APP_SIZE &&
+      state.dataset === WidgetType.MOBILE_BUILDS &&
       organization.features.includes('preprod-frontend-routes'),
   };
   const {attributes: preprodStringAttributes} = useTraceItemAttributesWithConfig(
@@ -68,7 +68,7 @@ function WidgetBuilderGroupBySelector({
       });
     }
 
-    if (state.dataset === WidgetType.MOBILE_APP_SIZE) {
+    if (state.dataset === WidgetType.MOBILE_BUILDS) {
       return datasetConfig.getGroupByFieldOptions(organization, preprodStringAttributes);
     }
 

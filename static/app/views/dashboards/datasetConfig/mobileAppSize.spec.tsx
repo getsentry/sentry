@@ -179,7 +179,7 @@ describe('MobileAppSizeConfig', () => {
     it('uses install size aggregate by default', async () => {
       const api = new MockApiClient();
       const widget = WidgetFixture({
-        widgetType: WidgetType.MOBILE_APP_SIZE,
+        widgetType: WidgetType.MOBILE_BUILDS,
         queries: [
           {
             conditions: 'app_id:com.example.app',
@@ -223,7 +223,7 @@ describe('MobileAppSizeConfig', () => {
     it('uses download size aggregate when specified', async () => {
       const api = new MockApiClient();
       const widget = WidgetFixture({
-        widgetType: WidgetType.MOBILE_APP_SIZE,
+        widgetType: WidgetType.MOBILE_BUILDS,
         queries: [
           {
             conditions: 'app_id:com.example.app',
