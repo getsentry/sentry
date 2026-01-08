@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
 
@@ -24,7 +25,10 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
   >(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const {mutate: loadSetupIntentData} = useMutation<PaymentSetupCreateResponse>({
+  const {mutate: loadSetupIntentData} = useMutation<
+    PaymentSetupCreateResponse,
+    RequestError
+  >({
     mutationFn: () => fetchMutation({url: endpoint, method: 'POST'}),
     onSuccess: data => {
       setSetupIntentData(data);
