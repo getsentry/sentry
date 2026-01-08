@@ -468,6 +468,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sentry-app-webhook-requests", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Process OTLP spans via the Span V2 pipeline in Relay
+    manager.add("organizations:span-v2-otlp-processing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable mobile starfish app start module view
     manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable mobile starfish ui module view
