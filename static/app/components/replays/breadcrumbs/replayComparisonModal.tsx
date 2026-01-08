@@ -54,7 +54,7 @@ export default function ReplayComparisonModal({
         initialRightOffsetMs={initialRightOffsetMs}
       >
         <Header closeButton>
-          <ModalHeader>
+          <Flex justify="between" align="center" flex="1">
             <Title>
               {t('Hydration Error')}
               <Tooltip
@@ -100,7 +100,7 @@ export default function ReplayComparisonModal({
                 />
               ) : null}
             </Flex>
-          </ModalHeader>
+          </Flex>
         </Header>
         <Body>
           {isSameTimestamp ? (
@@ -129,14 +129,6 @@ export default function ReplayComparisonModal({
 
 const AutoWideHovercard = styled(Hovercard)`
   width: auto;
-`;
-
-const ModalHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-  flex: 1;
 `;
 
 const Title = styled('h4')`
