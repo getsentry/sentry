@@ -12,10 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
-import type {
-  TraceItemDetailsMeta,
-  TraceItemResponseAttribute,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
@@ -33,14 +30,20 @@ interface AIMessage {
 }
 
 const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
+const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
+const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
 function renderTextMessages(content: any) {
   if (!Array.isArray(content)) {
     return content;
   }
   return content
-    .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text.trim())
+    .filter((part: any) => SUPPORTED_CONTENT_PARTS.includes(part.type))
+    .map((part: any) =>
+      FILE_CONTENT_PARTS.includes(part.type)
+        ? `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`
+        : part.text.trim()
+    )
     .join('\n');
 }
 
@@ -178,17 +181,19 @@ function useInvalidRoleDetection(roles: string[]) {
 export function AIInputSection({
   node,
   attributes,
-  attributesMeta,
   event,
 }: {
   node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
-  attributesMeta?: TraceItemDetailsMeta;
   event?: EventTransaction;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
-  const messagesMeta = attributesMeta?.['gen_ai.request.messages']?.meta as any;
-  const originalMessagesLength: number | undefined = messagesMeta?.['']?.len;
+  const originalMessagesLength = getTraceNodeAttribute(
+    'gen_ai.request.messages.original_length',
+    node,
+    event,
+    attributes
+  );
 
   let promptMessages = shouldRender
     ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
@@ -244,7 +249,9 @@ export function AIInputSection({
         <MessagesArrayRenderer
           key={node.id}
           messages={messages}
-          originalLength={originalMessagesLength}
+          originalLength={
+            defined(originalMessagesLength) ? Number(originalMessagesLength) : undefined
+          }
         />
       ) : null}
       {toolArgs ? (
@@ -292,7 +299,7 @@ function MessagesArrayRenderer({
 
   const truncationAlert = isTruncated ? (
     <Container paddingBottom="lg">
-      <Alert type="muted">
+      <Alert variant="muted">
         {tct(
           'Due to [link:size limitations], the oldest messages got dropped from the history.',
           {
@@ -355,7 +362,7 @@ const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
 const ButtonDivider = styled('div')`
   height: 1px;
   width: 100%;
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
   display: flex;
   justify-content: center;
   align-items: center;

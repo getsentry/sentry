@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -42,7 +44,7 @@ class InstalledPlugin extends Component<Props> {
     return (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {t(
               'Deleting this installation will disable the integration for this project and remove any configurations.'
             )}
@@ -124,7 +126,7 @@ class InstalledPlugin extends Component<Props> {
     const {className, plugin, organization, hasAccess, projectItem} = this.props;
     return (
       <Container data-test-id="installed-plugin">
-        <IntegrationFlex className={className}>
+        <Flex align="center" className={className}>
           <IntegrationItemBox>
             <ProjectBadge project={this.projectForBadge} />
           </IntegrationItemBox>
@@ -166,7 +168,7 @@ class InstalledPlugin extends Component<Props> {
             }
             disabled={!hasAccess}
           />
-        </IntegrationFlex>
+        </Flex>
       </Container>
     );
   }
@@ -176,12 +178,12 @@ export default withApi(InstalledPlugin);
 
 const Container = styled('div')`
   padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: none;
   background-color: ${p => p.theme.tokens.background.primary};
 
   &:last-child {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -191,11 +193,6 @@ const StyledButton = styled(Button)`
 
 const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
-`;
-
-const IntegrationFlex = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const IntegrationItemBox = styled('div')`

@@ -216,17 +216,31 @@ class EventRedisData:
         A DCG can be recorded with an event for later processing multiple times.
         We need to pick a time to use when processing them in bulk, so to bias for recency we associate each DCG with the latest timestamp.
         """
-        result: dict[int, datetime | None] = defaultdict(lambda: None)
+        result: dict[int, datetime | None] = {}
 
         for key, instance in self.events.items():
             timestamp = instance.timestamp
+            if timestamp is None:
+                continue
             for dcg_id in key.dcg_ids:
-                existing_timestamp = result[dcg_id]
-                if timestamp is None:
-                    continue
-                elif existing_timestamp is not None and timestamp > existing_timestamp:
+                existing_timestamp = result.get(dcg_id)
+                if existing_timestamp is None or timestamp > existing_timestamp:
                     result[dcg_id] = timestamp
         return result
+
+    def filter_by_workflow_ids(self, valid_workflow_ids: set[WorkflowId]) -> EventRedisData:
+        """
+        Return a new EventRedisData containing only events for the given workflow IDs.
+        """
+        if not valid_workflow_ids:
+            return EventRedisData(events={})
+
+        filtered_events = {
+            key: instance
+            for key, instance in self.events.items()
+            if key.workflow_id in valid_workflow_ids
+        }
+        return EventRedisData(events=filtered_events)
 
 
 @dataclass
@@ -388,7 +402,7 @@ def get_condition_query_groups(
         slow_conditions = dcg_to_slow_conditions[dcg.id]
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
-        timestamp = event_data.dcg_to_timestamp[dcg.id]
+        timestamp = event_data.dcg_to_timestamp.get(dcg.id)
         if timestamp is not None:
             delay = now - timestamp
             # If it's been more than 1.5 minutes, we're taking too long to process the event and
@@ -733,6 +747,7 @@ def fire_actions_for_groups(
                 filtered_actions = filter_recently_fired_workflow_actions(
                     dcgs_for_group, workflow_event_data
                 )
+                # TODO: trigger service hooks from here
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
@@ -747,6 +762,14 @@ def fire_actions_for_groups(
                     is_delayed=True,
                     start_timestamp=start_timestamp,
                 )
+
+                # Create mapping: workflow_id -> notification_uuid for propagation
+                workflow_uuid_map: dict[int, str] = {}
+                if workflow_fire_histories:
+                    workflow_uuid_map = {
+                        history.workflow_id: str(history.notification_uuid)
+                        for history in workflow_fire_histories
+                    }
 
                 event_id = (
                     workflow_event_data.event.event_id
@@ -766,7 +789,9 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                fire_actions(filtered_actions, workflow_event_data)
+                fire_actions(
+                    filtered_actions, workflow_event_data, workflow_uuid_map=workflow_uuid_map
+                )
 
     logger.debug(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
@@ -813,12 +838,33 @@ def process_delayed_workflows(
         redis_data = batch_client.for_project(project_id).get_hash_data(batch_key)
         event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
 
+        # Store original keys for cleanup - must clean all regardless of deletion status
+        original_event_keys = set(event_data.events.keys())
+        original_count = len(event_data.events)
+
         metrics.incr(
             "workflow_engine.delayed_workflow",
-            amount=len(event_data.events),
+            amount=original_count,
         )
 
         workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
+
+        event_data = event_data.filter_by_workflow_ids(set(workflows_to_envs.keys()))
+
+        filtered_count = original_count - len(event_data.events)
+        if filtered_count > 0:
+            metrics.incr(
+                "workflow_engine.delayed_workflow.filtered_deleted_workflows",
+                amount=filtered_count,
+            )
+
+        # Early exit if all workflows deleted - still clean up Redis
+        if not event_data.events:
+            cleanup_redis_buffer(
+                batch_client.for_project(project_id), original_event_keys, batch_key
+            )
+            return
+
         data_condition_groups = fetch_data_condition_groups(list(event_data.dcg_ids))
         dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_ids))
 
@@ -847,6 +893,7 @@ def process_delayed_workflows(
         data_condition_groups, event_data, workflows_to_envs, dcg_to_slow_conditions
     )
     if not condition_groups:
+        cleanup_redis_buffer(batch_client.for_project(project_id), original_event_keys, batch_key)
         return
     logger.debug(
         "delayed_workflow.condition_query_groups",
@@ -907,4 +954,4 @@ def process_delayed_workflows(
     )
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
-    cleanup_redis_buffer(batch_client.for_project(project_id), event_data.events.keys(), batch_key)
+    cleanup_redis_buffer(batch_client.for_project(project_id), original_event_keys, batch_key)

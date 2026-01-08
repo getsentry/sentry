@@ -62,7 +62,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           {props.warnings && props.warnings.length > 0 && (
             <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
               <TooltipIconTrigger aria-label={t('Widget warnings')}>
-                <IconWarning color="warningText" />
+                <IconWarning variant="warning" />
               </TooltipIconTrigger>
             </Tooltip>
           )}
@@ -72,7 +72,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
               (currentBadgeProps, i) => (
-                <WidgetBadge key={i} type="default">
+                <WidgetBadge key={i} variant="muted">
                   {currentBadgeProps}
                 </WidgetBadge>
               )

@@ -324,7 +324,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   gap: ${space(1)};
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
   padding-right: ${space(4)};
 `;
 
@@ -381,7 +381,7 @@ const Setup = styled('div')`
     right: 50%;
     top: 2.5%;
     height: 95%;
-    border-right: 1px ${p => p.theme.border} solid;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
 `;
 
@@ -414,7 +414,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;
@@ -432,7 +432,7 @@ const CONTENT_SPACING = space(1);
 
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
-    color: ${p => p.theme.pink400};
+    color: ${p => p.theme.colors.pink500};
   }
 
   :not(:last-child) {

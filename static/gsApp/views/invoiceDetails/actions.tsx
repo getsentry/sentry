@@ -1,6 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -90,7 +92,7 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
 
   return (
     <Fragment>
-      <ActionContainer className="no-print">
+      <Flex justify="end" align="start" className="no-print">
         <EmailForm method="post" action="" onSubmit={handleSend}>
           {invoice.isPaid && (
             <Fragment>
@@ -111,18 +113,12 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
           )}
           <StyledLinkButton href={invoice.receipt.url}>{t('Save PDF')}</StyledLinkButton>
         </EmailForm>
-      </ActionContainer>
+      </Flex>
     </Fragment>
   );
 }
 
 export default InvoiceDetailsActions;
-
-const ActionContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-`;
 
 const EmailForm = styled('form')`
   display: grid;

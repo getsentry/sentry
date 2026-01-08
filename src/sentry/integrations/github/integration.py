@@ -28,12 +28,10 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
+from sentry.integrations.github.issue_sync import GitHubIssueSyncSpec
 from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.github.types import GitHubIssueStatus
-from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
-from sentry.integrations.models.external_actor import ExternalActor
-from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -48,7 +46,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -68,9 +66,7 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -79,7 +75,6 @@ from sentry.web.helpers import render_to_response
 from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
-from .types import IssueEvenntWebhookActionType
 from .utils import parse_github_blob_url
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -235,7 +230,7 @@ def get_document_origin(org) -> str:
 class GitHubIntegration(
     RepositoryIntegration,
     GitHubIssuesSpec,
-    IssueSyncIntegration,
+    GitHubIssueSyncSpec,
     CommitContextIntegration,
     RepoTreesIntegration,
 ):
@@ -408,180 +403,6 @@ class GitHubIntegration(
 
         return False
 
-    # IssueSyncIntegration methods
-
-    def split_external_issue_key(
-        self, external_issue_key: str
-    ) -> tuple[str, str] | tuple[None, None]:
-        """
-        Split the external issue key into repo and issue number.
-        """
-        # Parse the external issue key to get repo and issue number
-        # Format is "{repo_full_name}#{issue_number}"
-        try:
-            repo_id, issue_num = external_issue_key.split("#")
-            return repo_id, issue_num
-        except ValueError:
-            logger.exception(
-                "github.assignee-outbound.invalid-key",
-                extra={
-                    "external_issue_key": external_issue_key,
-                },
-            )
-            return None, None
-
-    def sync_assignee_outbound(
-        self,
-        external_issue: ExternalIssue,
-        user: RpcUser | None,
-        assign: bool = True,
-        **kwargs: Any,
-    ) -> None:
-        """
-        Propagate a sentry issue's assignee to a linked GitHub issue's assignee.
-        If assign=True, we're assigning the issue. Otherwise, deassign.
-        """
-        client = self.get_client()
-
-        repo_id, issue_num = self.split_external_issue_key(external_issue.key)
-
-        if not repo_id or not issue_num:
-            logger.error(
-                "github.assignee-outbound.invalid-key",
-                extra={
-                    "integration_id": external_issue.integration_id,
-                    "external_issue_key": external_issue.key,
-                    "external_issue_id": external_issue.id,
-                },
-            )
-            return
-
-        github_username = None
-
-        # If we're assigning and have a user, find their GitHub username
-        if user and assign:
-            # Check if user has a GitHub identity linked
-            external_actor = ExternalActor.objects.filter(
-                provider=ExternalProviders.GITHUB.value,
-                user_id=user.id,
-                integration_id=external_issue.integration_id,
-                organization=external_issue.organization,
-            ).first()
-            if not external_actor:
-                logger.info(
-                    "github.assignee-outbound.external-actor-not-found",
-                    extra={
-                        "integration_id": external_issue.integration_id,
-                        "user_id": user.id,
-                    },
-                )
-                return
-
-            # Strip the @ from the username
-            github_username = external_actor.external_name.lstrip("@")
-            # lowercase the username
-            github_username = github_username.lower()
-
-        # Only update GitHub if we have a username to assign or if we're explicitly deassigning
-        if github_username or not assign:
-            try:
-                client.update_issue_assignees(
-                    repo_id, issue_num, [github_username] if github_username else []
-                )
-            except Exception as e:
-                self.raise_error(e)
-
-    def sync_status_outbound(
-        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
-    ) -> None:
-        """
-        Propagate a sentry issue's status to a linked GitHub issue's status.
-        For GitHub, we only support open/closed states.
-        """
-        client = self.get_client()
-
-        repo_id, issue_num = self.split_external_issue_key(external_issue.key)
-
-        if not repo_id or not issue_num:
-            logger.error(
-                "github.status-outbound.invalid-key",
-                extra={
-                    "external_issue_key": external_issue.key,
-                },
-            )
-            return
-
-        # Get the project mapping to determine what status to use
-        external_project = integration_service.get_integration_external_project(
-            organization_id=external_issue.organization_id,
-            integration_id=external_issue.integration_id,
-            external_id=repo_id,
-        )
-
-        log_context = {
-            "integration_id": external_issue.integration_id,
-            "is_resolved": is_resolved,
-            "issue_key": external_issue.key,
-            "repo_id": repo_id,
-        }
-
-        if not external_project:
-            logger.info("github.external-project-not-found", extra=log_context)
-            return
-
-        desired_state = (
-            external_project.resolved_status if is_resolved else external_project.unresolved_status
-        )
-
-        try:
-            issue_data = client.get_issue(repo_id, issue_num)
-        except ApiError as e:
-            self.raise_error(e)
-
-        current_state = issue_data.get("state")
-
-        # Don't update if it's already in the desired state
-        if current_state == desired_state:
-            logger.info(
-                "github.sync_status_outbound.unchanged",
-                extra={
-                    **log_context,
-                    "current_state": current_state,
-                    "desired_state": desired_state,
-                },
-            )
-            return
-
-        # Update the issue state
-        try:
-            client.update_issue_status(repo_id, issue_num, desired_state)
-            logger.info(
-                "github.sync_status_outbound.success",
-                extra={
-                    **log_context,
-                    "old_state": current_state,
-                    "new_state": desired_state,
-                },
-            )
-        except ApiError as e:
-            self.raise_error(e)
-
-    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
-        """
-        Given webhook data, check whether the GitHub issue status changed.
-        GitHub issues only have open/closed state.
-        """
-        if not features.has(
-            "organizations:integrations-github-project-management", self.organization
-        ):
-            return ResolveSyncAction.NOOP
-
-        if data.get("action") == IssueEvenntWebhookActionType.CLOSED.value:
-            return ResolveSyncAction.RESOLVE
-        elif data.get("action") == IssueEvenntWebhookActionType.REOPENED.value:
-            return ResolveSyncAction.UNRESOLVE
-        return ResolveSyncAction.NOOP
-
     def get_config_data(self):
         config = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
@@ -619,7 +440,7 @@ class GitHubIntegration(
                     {
                         "name": self.inbound_assignee_key,
                         "type": "boolean",
-                        "label": _("Sync Github Assignment to Sentry"),
+                        "label": _("Sync GitHub Assignment to Sentry"),
                         "help": _(
                             "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
                         ),
@@ -688,14 +509,14 @@ class GitHubIntegration(
                     {
                         "name": self.outbound_status_key,
                         "type": "choice_mapper",
-                        "label": _("Sync Sentry Status to Github"),
+                        "label": _("Sync Sentry Status to GitHub"),
                         "help": _(
-                            "When a Sentry issue changes status, change the status of the linked ticket in Github."
+                            "When a Sentry issue changes status, change the status of the linked ticket in GitHub."
                         ),
-                        "addButtonText": _("Add Github Project"),
+                        "addButtonText": _("Add GitHub Project"),
                         "addDropdown": {
                             "emptyMessage": _("All projects configured"),
-                            "noResultsMessage": _("Could not find Github project"),
+                            "noResultsMessage": _("Could not find GitHub project"),
                             "items": current_repo_items,
                             "url": reverse(
                                 "sentry-integration-github-search",
@@ -711,7 +532,7 @@ class GitHubIntegration(
                             "on_resolve": _("When resolved"),
                             "on_unresolve": _("When unresolved"),
                         },
-                        "mappedColumnLabel": _("Github Project"),
+                        "mappedColumnLabel": _("GitHub Project"),
                         "formatMessageValue": False,
                     },
                 )
@@ -721,14 +542,14 @@ class GitHubIntegration(
                     {
                         "name": self.outbound_status_key,
                         "type": "choice_mapper",
-                        "label": _("Sync Sentry Status to Github"),
+                        "label": _("Sync Sentry Status to GitHub"),
                         "help": _(
-                            "When a Sentry issue changes status, change the status of the linked ticket in Github."
+                            "When a Sentry issue changes status, change the status of the linked ticket in GitHub."
                         ),
-                        "addButtonText": _("Add Github Project"),
+                        "addButtonText": _("Add GitHub Project"),
                         "addDropdown": {
                             "emptyMessage": _("All projects configured"),
-                            "noResultsMessage": _("Could not find Github project"),
+                            "noResultsMessage": _("Could not find GitHub project"),
                             "items": [],  # Populated with projects
                         },
                         "mappedSelectors": {},
@@ -736,7 +557,7 @@ class GitHubIntegration(
                             "on_resolve": _("When resolved"),
                             "on_unresolve": _("When unresolved"),
                         },
-                        "mappedColumnLabel": _("Github Project"),
+                        "mappedColumnLabel": _("GitHub Project"),
                         "formatMessageValue": False,
                     },
                 )
@@ -840,33 +661,6 @@ class GitHubIntegration(
 
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         return GitHubPRCommentWorkflow(integration=self)
-
-    def create_comment_attribution(self, user_id, comment_text):
-        user = user_service.get_user(user_id)
-        username = "Unknown User" if user is None else user.name
-
-        attribution = f"**{username}** wrote:\n\n"
-        # GitHub uses markdown blockquotes
-        quoted_text = "\n".join(f"> {line}" for line in comment_text.split("\n"))
-        return f"{attribution}{quoted_text}"
-
-    def update_comment(self, issue_id, user_id, group_note):
-        quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
-
-        repo, issue_number = issue_id.rsplit("#", 1)
-
-        return self.get_client().update_comment(
-            repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
-        )
-
-    def create_comment(self, issue_id, user_id, group_note):
-        # GitHub uses markdown syntax directly without needing special formatting
-        comment = group_note.data["text"]
-        quoted_comment = self.create_comment_attribution(user_id, comment)
-
-        repo, issue_number = issue_id.rsplit("#", 1)
-
-        return self.get_client().create_comment(repo, issue_number, {"body": quoted_comment})
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\

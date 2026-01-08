@@ -61,12 +61,12 @@ const getPillStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'error':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
       `;
     default:
       return css`
-        border: 1px solid ${theme.border};
+        border: 1px solid ${theme.tokens.border.primary};
       `;
   }
 };
@@ -75,21 +75,21 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'positive':
       return css`
-        background: ${theme.green100};
-        border: 1px solid ${theme.green300};
+        background: ${theme.colors.green100};
+        border: 1px solid ${theme.colors.green400};
         font-family: ${theme.text.familyMono};
         margin: -1px;
       `;
     case 'error':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
         margin: -1px;
       `;
     case 'negative':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
         font-family: ${theme.text.familyMono};
         margin: -1px;
       `;
@@ -110,7 +110,7 @@ const PillName = styled('span')`
 `;
 
 const PillValue = styled(PillName)`
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => `0 ${p.theme.radius.md} ${p.theme.radius.md} 0`};
   max-width: 100%;
   display: flex;

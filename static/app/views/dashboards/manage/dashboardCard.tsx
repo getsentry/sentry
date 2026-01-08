@@ -90,7 +90,7 @@ function DashboardCard({
           icon={
             <IconStar
               isSolid={favorited}
-              color={favorited ? 'yellow300' : 'gray500'}
+              variant={favorited ? 'warning' : 'muted'}
               size="sm"
               aria-label={favorited ? t('Unstar') : t('Star')}
             />
@@ -115,7 +115,7 @@ function DashboardCard({
 }
 
 const AvatarWrapper = styled('span')`
-  border: 3px solid ${p => p.theme.border};
+  border: 3px solid ${p => p.theme.tokens.border.primary};
   border-radius: 50%;
   height: min-content;
 `;
@@ -172,12 +172,12 @@ const Detail = styled('div')`
 `;
 
 const CardBody = styled('div')`
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.colors.gray100};
   padding: ${space(1.5)} ${space(2)};
   max-height: 100px;
   min-height: 100px;
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.gray100};
+  border-bottom: 1px solid ${p => p.theme.colors.gray100};
 `;
 
 const CardFooter = styled('div')`

@@ -5,17 +5,17 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import Icon from './icon';
 
-type Props = Required<Pick<SVGIconProps, 'color'>> &
+type Props = Required<Pick<SVGIconProps, 'variant'>> &
   React.ComponentProps<typeof Icon> & {
     description?: string;
     error?: boolean;
   };
 
-function Type({type, color, description, error}: Props) {
+function Type({type, variant, description, error}: Props) {
   return (
     <Wrapper error={error}>
       <Tooltip title={description} disabled={!description} skipWrapper>
-        <IconWrapper color={color}>
+        <IconWrapper variant={variant}>
           <Icon type={type} />
         </IconWrapper>
       </Tooltip>
@@ -38,11 +38,12 @@ const Wrapper = styled('div')<Pick<Props, 'error'>>`
     left: 50%;
     transform: translate(-50%);
     position: absolute;
-    background: ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
+    background: ${p =>
+      p.error ? p.theme.colors.red400 : p.theme.tokens.border.secondary};
   }
 `;
 
-const IconWrapper = styled('div')<Pick<Props, 'color'>>`
+const IconWrapper = styled('div')<Pick<Props, 'variant'>>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,8 +51,7 @@ const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   height: 22px;
   border-radius: 50%;
   color: ${p => p.theme.white};
-  background: ${p =>
-    (p.theme[p.color as keyof typeof p.theme] as string | undefined) ?? p.color};
+  background: ${p => p.theme.tokens.content[p.variant]};
   box-shadow: ${p => p.theme.dropShadowLight};
   position: relative;
 `;

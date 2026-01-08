@@ -269,7 +269,7 @@ export function SuspectFunctionsTable({
             </TableStatus>
           ) : flamegraphQuery.isError ? (
             <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
           ) : flamegraphQuery.isFetched ? (
             metrics.map((metric, i) => (

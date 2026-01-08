@@ -412,7 +412,7 @@ const BlankAvatar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
   background: ${p => p.theme.backgroundSecondary};
   height: 90px;
   width: 90px;
@@ -430,7 +430,7 @@ const AvatarActions = styled('div')`
   top: ${space(0.25)};
   right: ${space(0.25)};
   display: flex;
-  background: ${p => p.theme.translucentSurface200};
+  background: ${p => p.theme.colors.surface200};
   padding: ${space(0.25)};
   border-radius: 3px;
 `;

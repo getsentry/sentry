@@ -128,7 +128,7 @@ function getRuleChangeSeries(
       markLine: MarkLine({
         silent: true,
         animation: false,
-        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+        lineStyle: {color: theme.colors.gray200, type: 'solid', width: 1},
         data: [{xAxis: ruleChanged}],
         label: {
           show: false,
@@ -137,7 +137,7 @@ function getRuleChangeSeries(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: color(theme.gray100).alpha(0.42).rgb().string(),
+          color: color(theme.colors.gray100).alpha(0.42).rgb().string(),
         },
         data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
       }),
@@ -282,20 +282,20 @@ export default function MetricChart({
               <SectionHeading>{t('Summary')}</SectionHeading>
               <StyledSectionValue>
                 <ValueItem>
-                  <IconCheckmark color="successText" />
+                  <IconCheckmark variant="success" />
                   {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconWarning color="warningText" />
+                  <IconWarning variant="warning" />
                   {warningPercent ? warningPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconFire color="errorText" />
+                  <IconFire variant="danger" />
                   {criticalPercent ? criticalPercent.toFixed(2) : 0}%
                 </ValueItem>
                 {waitingForDataPercent > 0 && (
                   <StyledTooltip
-                    underlineColor="gray200"
+                    underlineColor="muted"
                     showUnderline
                     title={t(
                       'The time spent waiting for metrics matching the filters used.'
@@ -393,8 +393,8 @@ export default function MetricChart({
           LineSeries({
             name: comparisonSeriesName,
             data: _data.map(({name, value}) => [name, value]),
-            lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-            itemStyle: {color: theme.gray200},
+            lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
+            itemStyle: {color: theme.colors.gray200},
             animation: false,
             animationThreshold: 1,
             animationDuration: 0,
@@ -606,10 +606,10 @@ function getMetricChartTooltipFormatter({
 
     const changeStatusColor =
       changeStatus === AlertRuleTriggerType.CRITICAL
-        ? theme.red300
+        ? theme.colors.red400
         : changeStatus === AlertRuleTriggerType.WARNING
-          ? theme.yellow300
-          : theme.green300;
+          ? theme.colors.yellow400
+          : theme.colors.green400;
 
     return [
       `<div class="tooltip-series">`,

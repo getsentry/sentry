@@ -216,13 +216,13 @@ export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
       CHART_CURSOR_INDICATOR: theme.subText,
       CHART_LABEL_COLOR: theme.subText,
-      CURSOR_CROSSHAIR: theme.border,
+      CURSOR_CROSSHAIR: theme.tokens.border.primary,
 
       // Special states
       FOCUSED_FRAME_BORDER_COLOR: theme.focus,
       HIGHLIGHTED_LABEL_COLOR: `rgba(240, 240, 0, 1)`,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
-      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
+      SELECTED_FRAME_BORDER_COLOR: theme.colors.blue500,
 
       // Search results
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
@@ -307,13 +307,13 @@ export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
       CHART_CURSOR_INDICATOR: theme.subText,
       CHART_LABEL_COLOR: theme.subText,
-      CURSOR_CROSSHAIR: theme.border,
+      CURSOR_CROSSHAIR: theme.tokens.border.primary,
 
       // Special states
       FOCUSED_FRAME_BORDER_COLOR: theme.focus,
       HIGHLIGHTED_LABEL_COLOR: theme.colors.yellow400,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
-      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
+      SELECTED_FRAME_BORDER_COLOR: theme.colors.blue500,
 
       // Search results
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',

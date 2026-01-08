@@ -77,8 +77,14 @@ type Props = {
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
+  /**
+   * If you have access to the group data, it is preferred to pass it in as a prop here.
+   * Otherwise, the group data will come from the deprecated GroupStore.
+   */
+  group?: Group;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
   query?: string;
   queryFilterDescription?: string;
@@ -265,6 +271,7 @@ export function LoadingStreamGroup({
 
 function StreamGroup({
   id,
+  group: incomingGroup,
   customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
@@ -280,15 +287,18 @@ function StreamGroup({
   useTintRow = true,
   showLastTriggered = false,
   onPriorityChange,
+  onAssigneeChange,
 }: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const groups = useLegacyStore(GroupStore);
-  const group = useMemo(
-    () => groups.find(item => item.id === id) as Group | undefined,
-    [groups, id]
-  );
+  const group = useMemo(() => {
+    if (incomingGroup) {
+      return incomingGroup;
+    }
+    return groups.find(item => item.id === id) as Group | undefined;
+  }, [incomingGroup, groups, id]);
   const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 
@@ -341,6 +351,7 @@ function StreamGroup({
           assigned_type: newAssignee.type,
         });
       }
+      onAssigneeChange?.(newAssignee);
     },
     onError: () => {
       addErrorMessage('Failed to update assignee');
@@ -758,7 +769,7 @@ const CheckboxLabel = styled('label')`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   border-radius: 50%;
   margin-top: 1px;
   margin-left: ${space(2)};
@@ -998,7 +1009,7 @@ const AssigneeWrapper = styled('div')<{breakpoint: string}>`
 const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
@@ -1011,7 +1022,7 @@ const StartedColumn = styled('div')`
 const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 

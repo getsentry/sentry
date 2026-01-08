@@ -50,12 +50,12 @@ function getEventColor(
     title: theme.tokens.content.primary,
     icon: isSelected
       ? isActive
-        ? theme.green400
+        ? theme.colors.green500
         : theme.tokens.content.primary
       : theme.tokens.content.muted,
     iconBorder: isSelected
       ? isActive
-        ? theme.green400
+        ? theme.colors.green500
         : theme.tokens.content.primary
       : theme.tokens.content.muted,
   };
@@ -247,8 +247,8 @@ const SelectionButton = styled('button')<SelectionButtonProps>`
   &:hover {
     color: ${p =>
       p.actionType === 'delete' || p.actionType === 'close'
-        ? p.theme.red400
-        : p.theme.green400};
+        ? p.theme.colors.red500
+        : p.theme.colors.green500};
   }
 `;
 
@@ -279,7 +279,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   text-decoration: ${p =>
     p.isSelected ? (p.isActive ? 'underline dashed' : 'none') : 'line-through'};
   text-decoration-color: ${p =>
-    p.isSelected ? p.theme.green300 : p.theme.tokens.content.primary};
+    p.isSelected ? p.theme.colors.green400 : p.theme.tokens.content.primary};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
   transition: opacity 0.2s ease;

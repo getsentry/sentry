@@ -27,8 +27,8 @@ const Panel = styled(
       p.hideBorder
         ? 'transparent'
         : p.dashedBorder
-          ? 'dashed' + p.theme.gray300
-          : 'solid ' + p.theme.border};
+          ? 'dashed' + p.theme.colors.gray400
+          : 'solid ' + p.theme.tokens.border.primary};
   margin-bottom: ${space(2)};
   position: relative;
 `;

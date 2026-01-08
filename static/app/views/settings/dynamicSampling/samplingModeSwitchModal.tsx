@@ -2,6 +2,8 @@ import {useId} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -126,7 +128,7 @@ function SamplingModeSwitchModal({
           </p>
         </Body>
         <Footer>
-          <ButtonWrapper>
+          <Flex gap="xl">
             <Button disabled={isPending} onClick={closeModal}>
               {t('Cancel')}
             </Button>
@@ -137,7 +139,7 @@ function SamplingModeSwitchModal({
             >
               {samplingMode === 'organization' ? t('Deactivate') : t('Activate')}
             </Button>
-          </ButtonWrapper>
+          </Flex>
         </Footer>
       </form>
     </FormProvider>
@@ -160,7 +162,7 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
       stacked
       required
     >
-      <InputWrapper>
+      <Stack gap="xs">
         <PercentInput
           id={id}
           aria-label={t('Global Target Sample Rate')}
@@ -174,25 +176,14 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
             : // Placholder character to keep the space occupied
               '\u200b'}
         </ErrorMessage>
-      </InputWrapper>
+      </Stack>
     </FieldGroup>
   );
 }
 
-const InputWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const ErrorMessage = styled('div')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.colors.red400};
   font-size: ${p => p.theme.fontSize.xs};
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  gap: ${space(2)};
 `;
 
 export function openSamplingModeSwitchModal(props: Props) {

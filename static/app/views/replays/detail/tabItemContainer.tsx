@@ -4,7 +4,7 @@ const TabItemContainer = styled('div')`
   position: relative;
   flex-grow: 1;
   overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: grid;
 
@@ -15,17 +15,17 @@ const TabItemContainer = styled('div')`
   }
 
   .beforeHoverTime + .afterHoverTime {
-    border-top-color: ${p => p.theme.purple200};
+    border-top-color: ${p => p.theme.colors.blue200};
   }
   .beforeHoverTime:last-child {
-    border-bottom-color: ${p => p.theme.purple200};
+    border-bottom-color: ${p => p.theme.colors.blue200};
   }
 
   .beforeCurrentTime + .afterCurrentTime {
-    border-top-color: ${p => p.theme.purple300};
+    border-top-color: ${p => p.theme.colors.blue400};
   }
   .beforeCurrentTime:last-child {
-    border-bottom-color: ${p => p.theme.purple300};
+    border-bottom-color: ${p => p.theme.colors.blue400};
   }
 `;
 

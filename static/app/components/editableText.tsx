@@ -235,13 +235,13 @@ const Label = styled('div')<{isDisabled: boolean}>`
 
 const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
-  border-bottom: 1px dotted ${p => p.theme.border};
+  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
   line-height: 38px;
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
-  background: ${p => p.theme.surface200};
+  background: ${p => p.theme.colors.surface300};
   border-radius: ${p => p.theme.radius.md};
   margin: -${space(0.5)} -${space(1)};
   padding: ${space(0.5)} ${space(1)};

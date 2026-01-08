@@ -124,7 +124,7 @@ const PanelContent = styled('div')`
   width: 100%;
   height: 100%;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   display: flex;
@@ -151,7 +151,7 @@ const MinimizedOverlay = styled(motion.div)`
   justify-content: center;
   padding-top: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 1;
   cursor: pointer;
 
@@ -163,7 +163,7 @@ const MinimizedOverlay = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${p => p.theme.purple200};
+    background: ${p => p.theme.colors.blue200};
     border-radius: inherit;
     z-index: -1;
     pointer-events: none;

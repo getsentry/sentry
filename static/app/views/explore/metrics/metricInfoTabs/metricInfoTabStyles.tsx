@@ -155,7 +155,7 @@ export const TableRowContainer = styled('div')`
   grid-column: 1 / -1;
 
   :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   margin-right: -15px;

@@ -32,7 +32,7 @@ import {
   isOnDemandBudgetsEqual,
   parseOnDemandBudgets,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 type Props = {
   organization: Organization;
@@ -378,7 +378,7 @@ function PendingChanges({organization, subscription}: Props) {
 
   return (
     <StyledAlert
-      type="info"
+      variant="info"
       trailingItems={
         <LinkButton to="/settings/billing/activity-logs">
           {t('View all activity')}

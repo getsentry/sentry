@@ -194,7 +194,7 @@ const FileDiffWrapper = styled('div')<{showBorder?: boolean}>`
   vertical-align: middle;
   overflow: hidden;
   background-color: ${p => p.theme.background};
-  ${p => (p.showBorder ? `border: 1px solid ${p.theme.border};` : '')}
+  ${p => (p.showBorder ? `border: 1px solid ${p.theme.tokens.border.primary};` : '')}
   ${p => (p.showBorder ? `border-radius: ${p.theme.radius.md};` : '')}
 `;
 
@@ -216,7 +216,7 @@ const FileAddedRemoved = styled('div')`
 `;
 
 const FileAdded = styled('div')`
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const FileRemoved = styled('div')`
@@ -240,7 +240,7 @@ const DeletedFileMessage = styled('div')`
 `;
 
 const DiffContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;

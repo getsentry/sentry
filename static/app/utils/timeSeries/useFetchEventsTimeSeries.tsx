@@ -169,7 +169,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
               ? '0'
               : '1'
             : undefined,
-          caseInsensitive: caseInsensitive ? 1 : 0,
+          caseInsensitive: caseInsensitive ? 1 : undefined,
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,

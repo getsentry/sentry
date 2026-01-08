@@ -23,7 +23,7 @@ function DeletionInProgress({organization}: OrganizationProps) {
     <Layout.Body>
       <Layout.Main>
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {tct(
               'The [organization] organization is currently in the process of being deleted from Sentry.',
               {
@@ -55,7 +55,7 @@ function DeletionPending({organization}: OrganizationProps) {
       AlertStore.addAlert({
         message:
           'We were unable to restore this organization. Please try again or contact support.',
-        type: 'error',
+        variant: 'danger',
       });
     }
   };

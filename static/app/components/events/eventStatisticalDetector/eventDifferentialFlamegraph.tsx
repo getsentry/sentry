@@ -431,9 +431,9 @@ const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
   height: 10px;
   border-radius: 2px;
   display: inline-block;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-right: ${space(0.25)};
-  background-color: ${p => p.theme.green300};
+  background-color: ${p => p.theme.colors.green400};
 `;
 
 const RIGHT_ALIGN_PLACEHOLDER_STYLES: React.CSSProperties = {
@@ -515,7 +515,7 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.backgroundSecondary};
 `;
 

@@ -130,18 +130,18 @@ const ListItem = styled('li')`
   border: 1px solid transparent;
 
   &[data-before='true'] {
-    border-color: ${p => p.theme.red400};
+    border-color: ${p => p.theme.colors.red500};
   }
   &[data-after='true'] {
-    border-color: ${p => p.theme.green400};
+    border-color: ${p => p.theme.colors.green500};
   }
 
   &[data-before='true']:hover,
   &[data-before='true'][data-selected='true'] {
-    background-color: ${p => p.theme.red100};
+    background-color: ${p => p.theme.colors.red100};
   }
   &[data-after='true']:hover,
   &[data-after='true'][data-selected='true'] {
-    background-color: ${p => p.theme.green100};
+    background-color: ${p => p.theme.colors.green100};
   }
 `;

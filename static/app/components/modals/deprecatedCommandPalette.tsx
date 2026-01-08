@@ -37,7 +37,7 @@ function DeprecatedCommandPalette({Body, closeModal}: ModalRenderProps) {
                 border-top-right-radius: 0;
                 position: initial;
                 box-shadow: none;
-                border-top: 1px solid ${theme.border};
+                border-top: 1px solid ${theme.tokens.border.primary};
               `}
             renderInput={({getInputProps}) => (
               <InputWithoutFocusStyles
@@ -58,6 +58,8 @@ function DeprecatedCommandPalette({Body, closeModal}: ModalRenderProps) {
 export default DeprecatedCommandPalette;
 
 const InputWithoutFocusStyles = styled(InputGroup.Input)`
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
+
   &:focus,
   &:active,
   &:hover {

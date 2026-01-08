@@ -372,7 +372,7 @@ export function WidgetPreviewContainer({
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: getPreviewHeight(),
                     outline: isDragEnabled
-                      ? `${space(1)} solid ${theme.border}`
+                      ? `${space(1)} solid ${theme.tokens.border.primary}`
                       : undefined,
                   }}
                 >
@@ -449,7 +449,7 @@ const Backdrop = styled('div')`
 const SampleWidgetCard = styled(motion.div)`
   width: 100%;
   min-width: 100%;
-  border: 1px dashed ${p => p.theme.gray300};
+  border: 1px dashed ${p => p.theme.colors.gray400};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   z-index: ${p => p.theme.zIndex.initial};

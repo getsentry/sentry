@@ -189,10 +189,14 @@ const Container = styled('div')`
   width: 100%;
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.tokens.background.primary}
-    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
+    linear-gradient(
+      135deg,
+      ${p => p.theme.colors.pink500}08,
+      ${p => p.theme.colors.pink500}20
+    );
   overflow: visible;
   padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AutofixStartText = styled('div')`
@@ -236,9 +240,9 @@ const StyledInput = styled(TextArea)`
   resize: none;
   background: ${p => p.theme.tokens.background.primary};
 
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 

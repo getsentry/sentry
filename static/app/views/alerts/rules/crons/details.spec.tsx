@@ -1,16 +1,23 @@
 import {CheckinProcessingErrorFixture} from 'sentry-fixture/checkinProcessingError';
 import {MonitorFixture} from 'sentry-fixture/monitor';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import MonitorDetails from 'sentry/views/alerts/rules/crons/details';
 
 describe('Monitor Details', () => {
-  const monitor = MonitorFixture();
-  const {organization, project, routerProps} = initializeOrg({
-    router: {params: {monitorSlug: monitor.slug, projectId: monitor.project.slug}},
-  });
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({organization});
+  const monitor = MonitorFixture({project});
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/alerts/rules/crons/${project.slug}/${monitor.slug}/details/`,
+    },
+    route: '/alerts/rules/crons/:projectId/:monitorSlug/details/',
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -23,7 +30,7 @@ describe('Monitor Details', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=20&project=${project.id}&query=monitor.slug%3A${monitor.slug}%20environment%3A%5Bproduction%5D%20is%3Aunresolved&statsPeriod=14d`,
+      url: `/organizations/${organization.slug}/issues/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -41,7 +48,7 @@ describe('Monitor Details', () => {
   });
 
   it('renders', async () => {
-    render(<MonitorDetails {...routerProps} />);
+    render(<MonitorDetails />, {organization, initialRouterConfig});
     expect(await screen.findByText(monitor.slug, {exact: false})).toBeInTheDocument();
 
     // Doesn't show processing errors
@@ -58,7 +65,7 @@ describe('Monitor Details', () => {
       statusCode: 404,
     });
 
-    render(<MonitorDetails {...routerProps} />);
+    render(<MonitorDetails />, {organization, initialRouterConfig});
     expect(
       await screen.findByText('The monitor you were looking for was not found.')
     ).toBeInTheDocument();
@@ -70,7 +77,7 @@ describe('Monitor Details', () => {
       body: [CheckinProcessingErrorFixture()],
     });
 
-    render(<MonitorDetails {...routerProps} />);
+    render(<MonitorDetails />, {organization, initialRouterConfig});
     expect(
       await screen.findByText(
         'Errors were encountered while ingesting check-ins for this monitor'

@@ -62,15 +62,11 @@ export interface ToolCall {
 interface Message {
   content: string;
   role: 'user' | 'assistant' | 'tool_use';
+  thinking_content?: string;
   tool_calls?: ToolCall[];
 }
 
 export type PanelSize = 'max' | 'med';
-
-export interface ExplorerPanelProps {
-  isVisible?: boolean;
-  onClose?: () => void;
-}
 
 export interface ExplorerSession {
   created_at: string; // ISO date string

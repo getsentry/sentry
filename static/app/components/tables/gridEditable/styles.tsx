@@ -13,7 +13,7 @@ const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
  * Local z-index stacking context
  * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
  */
-const Z_INDEX_STICKY_HEADER = 1;
+const Z_INDEX_STICKY_HEADER = 2;
 
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
@@ -116,7 +116,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   grid-column: 1/-1;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
@@ -158,8 +158,9 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   }
 
   &:hover {
-    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.border)};
-    border-right-color: ${p => p.theme.border};
+    border-left-color: ${p =>
+      p.isFirst ? 'transparent' : p.theme.tokens.border.primary};
+    border-right-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -203,7 +204,7 @@ export const GridRow = styled('tr')<{isClickable?: boolean}>`
     background-color: ${p => p.theme.tokens.background.primary};
 
     &:not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
 
     &:last-child {
@@ -312,7 +313,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   }
 
   &:hover::after {
-    background-color: ${p => p.theme.gray200};
+    background-color: ${p => p.theme.colors.gray200};
   }
 
   /**
@@ -321,7 +322,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.colors.blue400};
   }
 
   /**
@@ -335,7 +336,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.colors.blue400};
     opacity: 0.4;
   }
 `;

@@ -699,7 +699,7 @@ function VerticalTimestampIndicators({
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
-  box-shadow: 0 0 0 1px ${p => p.theme.border};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
   position: absolute;
   left: 0;
   top: 0;
@@ -740,7 +740,7 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     height: 38px;
     background-color: ${p => p.theme.tokens.background.primary};
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     z-index: 10;
   }
 
@@ -804,13 +804,13 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
-      background-color: ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
 
     &:hover {
       &:before {
-        background-color: ${p => p.theme.purple300};
+        background-color: ${p => p.theme.colors.blue400};
       }
     }
   }
@@ -829,7 +829,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
-    background-color: ${p => p.theme.border};
+    background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
   }
@@ -843,7 +843,7 @@ const TraceStylingWrapper = styled('div')`
     background-color: ${p => p.theme.tokens.background.primary};
     color: ${p => p.theme.tokens.content.primary};
     border-radius: 100px;
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
     display: inline-block;
     line-height: 1;
     margin-top: 2px;
@@ -859,8 +859,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Poor {
-      color: ${p => p.theme.red300};
-      border: 1px solid ${p => p.theme.red300};
+      color: ${p => p.theme.colors.red400};
+      border: 1px solid ${p => p.theme.colors.red400};
 
       &.light {
         background-color: rgb(251 232 233);
@@ -873,7 +873,7 @@ const TraceStylingWrapper = styled('div')`
 
     &.None {
       color: ${p => p.theme.subText};
-      border: 1px solid ${p => p.theme.border};
+      border: 1px solid ${p => p.theme.tokens.border.primary};
 
       &.light {
         background-color: rgb(245 245 245);
@@ -885,8 +885,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Meh {
-      color: ${p => p.theme.yellow400};
-      border: 1px solid ${p => p.theme.yellow300};
+      color: ${p => p.theme.colors.yellow500};
+      border: 1px solid ${p => p.theme.colors.yellow400};
 
       &.light {
         background-color: rgb(249 244 224);
@@ -898,8 +898,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Good {
-      color: ${p => p.theme.green300};
-      border: 1px solid ${p => p.theme.green300};
+      color: ${p => p.theme.colors.green400};
+      border: 1px solid ${p => p.theme.colors.green400};
 
       &.light {
         background-color: rgb(232 241 239);
@@ -940,7 +940,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.red300} 4px 8px
+            ${p => p.theme.colors.red400} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -958,7 +958,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.yellow300} 4px 8px
+            ${p => p.theme.colors.yellow400} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -967,7 +967,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.green300} 4px 8px
+            ${p => p.theme.colors.green400} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -982,11 +982,11 @@ const TraceStylingWrapper = styled('div')`
       top: 26px;
 
       &.CurrentReplayTimestamp {
-        background: ${p => p.theme.purple300};
+        background: ${p => p.theme.colors.blue400};
       }
 
       &.HoverReplayTimestamp {
-        background: ${p => p.theme.purple200};
+        background: ${p => p.theme.colors.blue200};
       }
     }
 
@@ -1022,7 +1022,7 @@ const TraceStylingWrapper = styled('div')`
       }
 
       .TraceIndicatorLine {
-        background: ${p => p.theme.translucentGray100};
+        background: ${p => p.theme.colors.gray100};
         top: 8px;
       }
     }
@@ -1031,16 +1031,16 @@ const TraceStylingWrapper = styled('div')`
   &.light {
     .TracePattern {
       &.info {
-        --pattern-odd: ${p => p.theme.blue400};
-        --pattern-even: ${p => p.theme.blue300};
+        --pattern-odd: ${p => p.theme.colors.blue500};
+        --pattern-even: ${p => p.theme.colors.blue400};
       }
       &.warning {
-        --pattern-odd: ${p => p.theme.yellow400};
-        --pattern-even: ${p => p.theme.yellow300};
+        --pattern-odd: ${p => p.theme.colors.yellow500};
+        --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
-        --pattern-odd: ${p => p.theme.blue400};
-        --pattern-even: ${p => p.theme.blue300};
+        --pattern-odd: ${p => p.theme.colors.blue500};
+        --pattern-even: ${p => p.theme.colors.blue400};
       }
 
       &.profile {
@@ -1056,8 +1056,8 @@ const TraceStylingWrapper = styled('div')`
 
       &.error,
       &.fatal {
-        --pattern-odd: ${p => p.theme.red400};
-        --pattern-even: ${p => p.theme.red300};
+        --pattern-odd: ${p => p.theme.colors.red500};
+        --pattern-even: ${p => p.theme.colors.red400};
       }
 
       /* false positive for grid layout */
@@ -1073,16 +1073,16 @@ const TraceStylingWrapper = styled('div')`
   &.dark {
     .TracePattern {
       &.info {
-        --pattern-odd: ${p => p.theme.blue400};
-        --pattern-even: ${p => p.theme.blue300};
+        --pattern-odd: ${p => p.theme.colors.blue500};
+        --pattern-even: ${p => p.theme.colors.blue400};
       }
       &.warning {
-        --pattern-odd: ${p => p.theme.yellow400};
-        --pattern-even: ${p => p.theme.yellow300};
+        --pattern-odd: ${p => p.theme.colors.yellow500};
+        --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
-        --pattern-odd: ${p => p.theme.blue400};
-        --pattern-even: ${p => p.theme.blue300};
+        --pattern-odd: ${p => p.theme.colors.blue500};
+        --pattern-even: ${p => p.theme.colors.blue400};
       }
 
       &.profile {
@@ -1092,14 +1092,14 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.surface100};
-        --pattern-even: ${p => p.theme.surface300};
+        --pattern-odd: ${p => p.theme.colors.surface200};
+        --pattern-even: ${p => p.theme.colors.surface400};
       }
 
       &.error,
       &.fatal {
-        --pattern-odd: ${p => p.theme.red400};
-        --pattern-even: ${p => p.theme.red300};
+        --pattern-odd: ${p => p.theme.colors.red500};
+        --pattern-even: ${p => p.theme.colors.red400};
       }
       /* stylelint-disable */
       &.default {
@@ -1123,8 +1123,8 @@ const TraceStylingWrapper = styled('div')`
     --row-background-odd: ${p => p.theme.backgroundSecondary};
     --row-background-hover: ${p => p.theme.backgroundTertiary};
     --row-background-focused: ${p => p.theme.backgroundTertiary};
-    --row-outline: ${p => p.theme.blue300};
-    --row-children-button-border-color: ${p => p.theme.border};
+    --row-outline: ${p => p.theme.colors.blue400};
+    --row-children-button-border-color: ${p => p.theme.tokens.border.primary};
 
     /* allow empty blocks so we can keep an exhaustive list of classnames for future reference */
     /* stylelint-disable */
@@ -1270,10 +1270,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue400} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue300} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.colors.blue400} !important;
       }
     }
 
@@ -1302,7 +1302,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.SearchResult {
-      background-color: ${p => p.theme.yellow100};
+      background-color: ${p => p.theme.colors.yellow100};
 
       .TraceRightColumn {
         background-color: transparent;
@@ -1310,7 +1310,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Autogrouped {
-      color: ${p => p.theme.blue300};
+      color: ${p => p.theme.colors.blue400};
 
       .TraceDescription {
         font-weight: ${p => p.theme.fontWeight.bold};
@@ -1319,7 +1319,7 @@ const TraceStylingWrapper = styled('div')`
       .TraceChildrenCountWrapper {
         button {
           color: ${p => p.theme.white};
-          background-color: ${p => p.theme.blue300};
+          background-color: ${p => p.theme.colors.blue400};
         }
         svg {
           fill: ${p => p.theme.white};
@@ -1327,12 +1327,12 @@ const TraceStylingWrapper = styled('div')`
       }
 
       &.error {
-        color: ${p => p.theme.red300};
+        color: ${p => p.theme.colors.red400};
 
         .TraceChildrenCountWrapper {
           button {
             color: ${p => p.theme.white};
-            background-color: ${p => p.theme.red300};
+            background-color: ${p => p.theme.colors.red400};
           }
         }
       }
@@ -1340,8 +1340,8 @@ const TraceStylingWrapper = styled('div')`
 
     &.Collapsed {
       background-color: ${p => p.theme.backgroundSecondary};
-      border-bottom: 1px solid ${p => p.theme.border};
-      border-top: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+      border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
       .TraceLeftColumn {
         padding-left: 14px;
@@ -1551,11 +1551,11 @@ const TraceStylingWrapper = styled('div')`
       .TraceVerticalConnector,
       .TraceVerticalLastChildConnector,
       .TraceExpandedVerticalConnector {
-        border-left: 2px dashed ${p => p.theme.border};
+        border-left: 2px dashed ${p => p.theme.tokens.border.primary};
       }
 
       &::before {
-        border-bottom: 2px dashed ${p => p.theme.border};
+        border-bottom: 2px dashed ${p => p.theme.tokens.border.primary};
       }
     }
 
@@ -1571,7 +1571,7 @@ const TraceStylingWrapper = styled('div')`
       display: block;
       width: 50%;
       height: 2px;
-      border-bottom: 2px solid ${p => p.theme.border};
+      border-bottom: 2px solid ${p => p.theme.tokens.border.primary};
       position: absolute;
       left: 0;
       top: 50%;
@@ -1580,7 +1580,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      background-color: ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.border.primary};
       border-radius: 50%;
       height: 6px;
       width: 6px;
@@ -1598,10 +1598,10 @@ const TraceStylingWrapper = styled('div')`
     bottom: 0;
     height: 100%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
 
     &.Orphaned {
-      border-left: 2px dashed ${p => p.theme.border};
+      border-left: 2px dashed ${p => p.theme.tokens.border.primary};
     }
   }
 
@@ -1612,7 +1612,7 @@ const TraceStylingWrapper = styled('div')`
     bottom: 0;
     height: 50%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
     border-bottom-left-radius: 4px;
   }
 
@@ -1622,7 +1622,7 @@ const TraceStylingWrapper = styled('div')`
     height: 50%;
     left: 50%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
   }
 
   .TraceOperation {

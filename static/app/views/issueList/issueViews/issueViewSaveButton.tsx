@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,7 +12,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -138,7 +136,7 @@ function SegmentedIssueViewSaveButton({
                 icon={
                   <IconChevron
                     direction="down"
-                    color={buttonPriority === 'primary' ? undefined : 'subText'}
+                    variant={buttonPriority === 'primary' ? undefined : 'muted'}
                   />
                 }
                 aria-label={t('More save options')}
@@ -214,26 +212,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   );
 }
 
-const PrimarySaveButton = withChonk(
-  styled(Button)`
-    box-shadow: none;
-
-    ${p =>
-      p.priority === 'primary' &&
-      css`
-        &::after {
-          content: '';
-          position: absolute;
-          top: -1px;
-          bottom: -1px;
-          right: -1px;
-          border-right: solid 1px currentColor;
-          opacity: 0.25;
-        }
-      `}
-  `,
-  Button
-);
+const PrimarySaveButton = Button;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;

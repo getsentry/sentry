@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
+import type {SelectionCallbackParams} from 'sentry/components/charts/useChartXRangeSelection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -14,17 +14,19 @@ import {useChartSelection} from './chartSelectionContext';
 
 type Props = {
   chartIndex: number;
-  clearSelection: () => void;
-  selection: Selection;
+  params: SelectionCallbackParams;
   setTab: (tab: Mode | Tab) => void;
 };
 
-export function FloatingTrigger({chartIndex, selection, clearSelection, setTab}: Props) {
+export function FloatingTrigger({chartIndex, params, setTab}: Props) {
   const router = useRouter();
   const {setChartSelection} = useChartSelection();
+  const {selectionState, setSelectionState, clearSelection} = params;
 
   const handleZoomIn = useCallback(() => {
-    const coordRange = selection.range;
+    if (!selectionState) return;
+
+    const coordRange = selectionState.selection.range;
     let startTimestamp = coordRange[0];
     let endTimestamp = coordRange[1];
 
@@ -47,16 +49,23 @@ export function FloatingTrigger({chartIndex, selection, clearSelection, setTab}:
       router,
       {save: true}
     );
+
     clearSelection();
-  }, [clearSelection, selection, router]);
+  }, [clearSelection, selectionState, router]);
 
   const handleFindAttributeBreakdowns = useCallback(() => {
+    if (!selectionState) return;
+
+    setSelectionState({
+      ...selectionState,
+      isActionMenuVisible: false,
+    });
     setChartSelection({
-      selection,
+      selection: selectionState.selection,
       chartIndex,
     });
     setTab(Tab.ATTRIBUTE_BREAKDOWNS);
-  }, [selection, chartIndex, setChartSelection, setTab]);
+  }, [selectionState, setSelectionState, chartIndex, setChartSelection, setTab]);
 
   return (
     <List>
@@ -64,6 +73,7 @@ export function FloatingTrigger({chartIndex, selection, clearSelection, setTab}:
       <ListItem onClick={handleFindAttributeBreakdowns}>
         {t('Compare Attribute Breakdowns')}
       </ListItem>
+      <ListItem onClick={() => clearSelection()}>{t('Clear Selection')}</ListItem>
     </List>
   );
 }
@@ -77,7 +87,7 @@ const List = styled('ul')`
   background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   transform: translateY(-20px);
 `;
@@ -85,7 +95,7 @@ const List = styled('ul')`
 const ListItem = styled('li')`
   font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   cursor: pointer;
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};

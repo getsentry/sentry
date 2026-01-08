@@ -102,7 +102,7 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
           body={
             <Fragment>
               <Alert.Container>
-                <Alert type="warning" showIcon={false}>
+                <Alert variant="warning" showIcon={false}>
                   {alertMessage}
                 </Alert>
               </Alert.Container>
@@ -111,7 +111,7 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
           }
         >
           <IncidentIndicator css={position}>
-            <IconExclamation color="white" />
+            <StyledIconExclamation />
           </IncidentIndicator>
         </IncidentHovercard>
         <IncidentOverlay css={position} />
@@ -119,6 +119,10 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
     );
   });
 }
+
+const StyledIconExclamation = styled(IconExclamation)`
+  color: ${p => p.theme.colors.white};
+`;
 
 const IncidentHovercard = styled(Hovercard)`
   width: 400px;
@@ -134,9 +138,9 @@ const IncidentOverlay = styled('div')`
   left: var(--incidentOverlayStart);
   width: calc(var(--incidentOverlayEnd) - var(--incidentOverlayStart));
   pointer-events: none;
-  background: ${p => Color(p.theme.yellow100).alpha(0.05).toString()};
-  border-left: 1px solid ${p => p.theme.yellow200};
-  border-right: 1px solid ${p => p.theme.yellow200};
+  background: ${p => Color(p.theme.colors.yellow100).alpha(0.05).toString()};
+  border-left: 1px solid ${p => p.theme.colors.yellow200};
+  border-right: 1px solid ${p => p.theme.colors.yellow200};
   z-index: 2;
 `;
 
@@ -153,7 +157,7 @@ const IncidentIndicator = styled('div')`
 
   > svg,
   &:before {
-    background: ${p => p.theme.yellow300};
+    background: ${p => p.theme.colors.yellow400};
   }
 
   > svg {

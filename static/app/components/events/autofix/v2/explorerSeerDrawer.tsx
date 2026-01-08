@@ -100,7 +100,8 @@ function DrawerNavigator({
 
         <Feature features={['organizations:autofix-seer-preferences']}>
           <LinkButton
-            to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+            external
+            href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
             size="xs"
             title={t('Configure Seer settings for this project')}
             aria-label={t('Configure Seer settings for this project')}
@@ -403,7 +404,7 @@ const SeerDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SeerDrawerNavigator = styled('div')`
