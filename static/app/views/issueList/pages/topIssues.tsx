@@ -578,7 +578,7 @@ interface TagDistributionPreviewProps {
 
 function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
   const theme = useTheme();
-  const topValues = tag.topValues.slice(0, 3);
+  const topValues = tag.topValues.slice(0, 4);
   const totalCount = tag.totalValues;
   const hasValues = topValues.length > 0;
 
