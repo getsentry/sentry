@@ -94,7 +94,7 @@ const getStylesConfig = ({
       display: 'flex',
       color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
       ...debossedBackground(theme),
-      border: `1px solid ${theme.border}`,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow,
       borderRadius: theme.form[size].borderRadius,
       transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
@@ -120,7 +120,7 @@ const getStylesConfig = ({
       zIndex: theme.zIndex.dropdown,
       background: theme.tokens.background.primary,
       borderRadius: theme.radius.md,
-      border: `1px solid ${theme.border}`,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow: 'none',
       width: 'auto',
       minWidth: '100%',
@@ -189,7 +189,7 @@ const getStylesConfig = ({
       backgroundColor: theme.tokens.background.primary,
       color: isDisabled ? theme.disabled : theme.tokens.content.primary,
       borderRadius: '4px',
-      border: `1px solid ${theme.border}`,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,
       display: 'flex',
       margin: 0,
@@ -308,7 +308,7 @@ export const CheckWrap = styled('div')<{
     p.isMultiple
       ? css`
           padding: 1px;
-          border: solid 1px ${p.theme.border};
+          border: solid 1px ${p.theme.tokens.border.primary};
           background: ${p.theme.tokens.background.primary};
           border-radius: 2px;
           height: 1em;

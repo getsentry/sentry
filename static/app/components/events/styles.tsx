@@ -24,7 +24,7 @@ function getColors({priority, theme}: BannerProps & {theme: Theme}) {
   const COLORS = {
     default: {
       background: theme.backgroundSecondary,
-      border: theme.border,
+      border: theme.tokens.border.primary,
     },
     danger: {
       background: theme.alert.danger.backgroundLight,

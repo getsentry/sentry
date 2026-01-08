@@ -44,7 +44,7 @@ export const WidgetFooterTable = styled('div')<{columns?: number}>`
   }
 
   & > *:not(:nth-last-child(-n + ${p => getColumns(p)})) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
