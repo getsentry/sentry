@@ -62,6 +62,8 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     recomputeOnWindowFocus: true,
   });
 
+  console.log(timeWindowConfig);
+
   const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
     organization,
     monitor.project.slug,

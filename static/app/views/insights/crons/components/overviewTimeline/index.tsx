@@ -44,6 +44,8 @@ export function OverviewTimeline({monitorList}: Props) {
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+
+  console.log(timeWindowConfig);
   const dateNavigation = useDateNavigation();
 
   const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {

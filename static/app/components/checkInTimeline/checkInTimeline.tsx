@@ -98,6 +98,11 @@ interface MockCheckInTimelineProps<Status extends string>
    * The status to use for each mocked tick
    */
   status: Status;
+  /**
+   * Optional per-tick statuses. When provided, the index will be used to pick the
+   * status for each timestamp. Falls back to `status` if not provided.
+   */
+  statuses?: Status[];
 }
 
 function getBucketedCheckInsPosition(
@@ -113,6 +118,7 @@ export function MockCheckInTimeline<Status extends string>({
   mockTimestamps,
   timeWindowConfig,
   status,
+  statuses,
   statusStyle,
 }: MockCheckInTimelineProps<Status>) {
   const {periodStart, elapsedMinutes, timelineWidth, rollupConfig} = timeWindowConfig;
@@ -121,10 +127,11 @@ export function MockCheckInTimeline<Status extends string>({
 
   return (
     <TimelineContainer>
-      {mockTimestamps.map(ts => {
+      {mockTimestamps.map((ts, index) => {
         const timestampMs = ts.getTime();
         const left =
           startOffset + getBucketedCheckInsPosition(timestampMs, periodStart, msPerPixel);
+        const tickStatus = statuses?.[index] ?? status;
 
         return (
           <Tooltip
@@ -136,7 +143,7 @@ export function MockCheckInTimeline<Status extends string>({
           >
             <JobTick
               style={{left}}
-              css={theme => getTickStyle(statusStyle, status, theme)}
+              css={theme => getTickStyle(statusStyle, tickStatus, theme)}
               roundedLeft
               roundedRight
               data-test-id="monitor-checkin-tick"

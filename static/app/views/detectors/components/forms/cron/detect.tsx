@@ -53,6 +53,19 @@ function ScheduleTypeField() {
   );
 }
 
+function PreviewSchedule() {
+  const scheduleCrontab = useCronDetectorFormField('scheduleCrontab');
+  const scheduleIntervalValue = useCronDetectorFormField('scheduleIntervalValue');
+  const scheduleType = useCronDetectorFormField('scheduleType');
+  const failureTolerance = useCronDetectorFormField('failureIssueThreshold');
+  const recoveryThreshold = useCronDetectorFormField('recoveryThreshold');
+
+  const parsedSchedule =
+    scheduleType === 'crontab' ? crontabAsText(scheduleCrontab) : null;
+
+  return <div>{parsedSchedule}</div>;
+}
+
 function Schedule() {
   const theme = useTheme();
   const scheduleCrontab = useCronDetectorFormField('scheduleCrontab');

@@ -20,6 +20,8 @@ import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDe
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 
+import PreviewSchedule from './preview';
+
 function useIsShowingPlatformGuide() {
   const {platformKey, guideKey} = useCronsUpsertGuideState();
   return platformKey && guideKey !== 'manual';
@@ -39,6 +41,7 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
           )}
         </Alert>
       )}
+      <PreviewSchedule />
       <CronDetectorFormDetectSection />
       <CronDetectorFormResolveSection />
       <AssignSection />
