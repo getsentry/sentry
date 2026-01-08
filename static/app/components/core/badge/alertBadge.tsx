@@ -71,7 +71,11 @@ function getDiamondTheme(
   text: string;
 } {
   if (isDisabled) {
-    return {text: t('Disabled'), backgroundColor: theme.disabled, icon: IconPause};
+    return {
+      text: t('Disabled'),
+      backgroundColor: theme.tokens.content.disabled,
+      icon: IconPause,
+    };
   }
   if (isIssue) {
     return {
@@ -91,7 +95,11 @@ function getDiamondTheme(
       icon: IconExclamation,
     };
   }
-  return {text: t('Resolved'), backgroundColor: theme.successText, icon: IconCheckmark};
+  return {
+    text: t('Resolved'),
+    backgroundColor: theme.tokens.content.success,
+    icon: IconCheckmark,
+  };
 }
 
 function makeAlertBadgeDiamondBackgroundTheme(

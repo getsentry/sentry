@@ -210,7 +210,7 @@ function FlamechartTooltip(props: FlamechartTooltipProps) {
 }
 
 const FlamegraphInlineIndicator = styled('span')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(0.25)};

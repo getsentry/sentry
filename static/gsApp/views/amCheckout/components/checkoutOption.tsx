@@ -56,19 +56,22 @@ const Option = styled('div')<{isSelected: boolean}>`
 
   &::before {
     height: calc(100% - ${p => p.theme.space['2xs']});
-    background: ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+    background: ${p =>
+      p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.border.primary};
     border-radius: ${p => p.theme.radius.md};
     top: ${p => p.theme.space['2xs']};
     transform: translateY(-${p => p.theme.space['2xs']});
     box-shadow: 0 ${p => p.theme.space['2xs']} 0 0px
-      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+      ${p =>
+        p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.border.primary};
   }
 
   &::after {
     background: ${p => p.theme.tokens.background.primary};
     border-radius: ${p => p.theme.radius.md};
     border: 1px solid
-      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+      ${p =>
+        p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.border.primary};
     transform: ${p =>
       p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
     transition: transform 0.06s ease-in;

@@ -10,7 +10,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -18,6 +17,7 @@ from sentry.models.repository import Repository
 from sentry.utils import metrics
 
 from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha
+from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,8 @@ def handle_pull_request_event(
         _warn_and_increment_metric(ErrorStatus.DRAFT_PR, action=action_value, extra=extra)
         return
 
-    if not options.get("github.webhook.pr"):
+    github_org = event.get("repository", {}).get("owner", {}).get("login")
+    if github_org in get_direct_to_seer_gh_orgs():
         from .task import schedule_task
 
         schedule_task(

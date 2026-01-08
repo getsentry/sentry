@@ -297,7 +297,7 @@ const UtcPickerLabel = styled('label')`
 
   &:has(:disabled) {
     cursor: not-allowed;
-    color: ${p => p.theme.disabled};
+    color: ${p => p.theme.tokens.content.disabled};
   }
 `;
 
