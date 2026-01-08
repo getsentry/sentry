@@ -61,7 +61,7 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.ISSUES
 
     def post(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
@@ -89,12 +89,6 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "Organization does not have access to this feature"},
                 status=status.HTTP_403_FORBIDDEN,
-            )
-
-        if not settings.SEER_AUTOFIX_URL:
-            return Response(
-                {"detail": "Seer is not properly configured."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         try:
