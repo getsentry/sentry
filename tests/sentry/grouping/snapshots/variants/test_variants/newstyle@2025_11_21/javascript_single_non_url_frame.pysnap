@@ -4,21 +4,24 @@ source: tests/sentry/grouping/test_variants.py::test_variants
 app:
   hash: null
   contributing component: null
-  hint: ignored because system stacktrace takes precedence
+  hint: None
   root_component:
-    app (ignored because system stacktrace takes precedence)
+    app
       stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           filename*
             "great.js"
 --------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
 system:
-  hash: "d2ab6870c762b8a67d831c2a608bbfb4"
-  contributing component: stacktrace
+  hash: null
+  contributing component: null
   hint: None
   root_component:
-    system*
-      stacktrace*
-        frame*
+    system
+      stacktrace (ignored because it contains no contributing frames)
+        frame (ignored single non-URL JavaScript frame)
           filename*
             "great.js"
