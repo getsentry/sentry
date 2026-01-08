@@ -361,9 +361,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
-        child=serializers.ChoiceField(
-            choices=["on_command_phrase", "on_ready_for_review", "on_new_commit"]
-        ),
+        child=serializers.ChoiceField(choices=["on_ready_for_review", "on_new_commit"]),
         required=False,
         allow_empty=True,
         help_text="The default code review triggers for new repositories.",
