@@ -90,6 +90,9 @@ function DashboardGrid({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
+    const shouldDisablePrebuiltControls =
+      defined(dashboard.prebuiltId) &&
+      !organization.features.includes('dashboards-prebuilt-controls');
     const {
       hasReachedDashboardLimit,
       isLoading: isLoadingDashboardsLimit,
@@ -99,12 +102,9 @@ function DashboardGrid({
     const disableDuplicate =
       hasReachedDashboardLimit ||
       isLoadingDashboardsLimit ||
-      (defined(dashboard.prebuiltId) &&
-        !organization.features.includes('dashboards-prebuilt-controls'));
+      shouldDisablePrebuiltControls;
 
-    const disableDelete =
-      defined(dashboard.prebuiltId) ||
-      (dashboards !== undefined && dashboards.length <= 1);
+    const disableDelete = defined(dashboard.prebuiltId);
 
     const menuItems: MenuItemProps[] = [
       {
@@ -118,11 +118,9 @@ function DashboardGrid({
           });
         },
         disabled: disableDuplicate,
-        tooltip:
-          defined(dashboard.prebuiltId) &&
-          !organization.features.includes('dashboards-prebuilt-controls')
-            ? t('Prebuilt dashboards cannot be duplicated')
-            : limitMessage,
+        tooltip: shouldDisablePrebuiltControls
+          ? t('Prebuilt dashboards cannot be duplicated')
+          : limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
@@ -138,8 +136,8 @@ function DashboardGrid({
             onConfirm: () => handleDeleteDashboard(dashboard, 'grid'),
           });
         },
-        disabled: defined(dashboard.prebuiltId),
-        tooltip: defined(dashboard.prebuiltId)
+        disabled: disableDelete,
+        tooltip: shouldDisablePrebuiltControls
           ? t('Prebuilt dashboards cannot be deleted')
           : undefined,
       },
