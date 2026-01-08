@@ -370,7 +370,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         flows_by_conversation: dict[str, list[str]] = defaultdict(list)
         traces_by_conversation: dict[str, set[str]] = defaultdict(set)
         # Track first user data per conversation (data is sorted by start_ts, so first occurrence wins)
-        user_by_conversation: dict[str, dict[str, str | None]] = {}
+        user_by_conversation: dict[str, UserResponse] = {}
 
         for row in enrichment_data.get("data", []):
             conv_id = row.get("gen_ai.conversation.id", "")
