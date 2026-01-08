@@ -270,7 +270,7 @@ def transform_webhook_to_codegen_request(
                 "features": {
                     "bug_prediction": True,
                 },
-                "trigger": trigger,
+                "trigger": trigger.value,
                 **trigger_metadata,
             },
         },
