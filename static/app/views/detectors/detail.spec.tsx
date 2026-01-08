@@ -65,6 +65,7 @@ describe('DetectorDetails', () => {
         AutomationFixture({id: '1', name: 'Automation 1'}),
         AutomationFixture({id: '2', name: 'Automation 2'}),
       ],
+      match: [(_url, options) => options.query?.detector !== undefined],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
@@ -104,6 +105,11 @@ describe('DetectorDetails', () => {
           project: [Number(project.id)],
         }),
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/workflows/`,
+      body: [],
+      match: [(_url, options) => options.query?.detector === undefined],
     });
   });
 

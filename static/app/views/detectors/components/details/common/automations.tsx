@@ -31,7 +31,7 @@ import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
-import {useIssueStreamDetectorId} from 'sentry/views/detectors/utils/useIssueStreamDetectorId';
+import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/useIssueStreamDetectorsForProject';
 
 const AUTOMATIONS_PER_PAGE = 5;
 
@@ -72,13 +72,19 @@ function DetectorAutomationsTable({
   projectId,
 }: DetectorAutomationsTableProps) {
   const project = useProjectFromId({project_id: projectId});
-  const issueStreamDetectorId = useIssueStreamDetectorId(projectId);
+  const {
+    data: issueStreamDetectors,
+    isPending: issueStreamDetectorsPending,
+    isError: issueStreamDetectorsError,
+    refetch: refetchIssueStreamDetectors,
+  } = useIssueStreamDetectorsForProject(projectId);
+  const issueStreamDetectorId = issueStreamDetectors?.[0]?.id;
   const detectorIds = [detectorId, issueStreamDetectorId];
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   const {
     data: automations,
-    isLoading,
+    isPending,
     isError,
     isSuccess,
     getResponseHeader,
@@ -88,9 +94,7 @@ function DetectorAutomationsTable({
       limit: AUTOMATIONS_PER_PAGE,
       cursor,
     },
-    {
-      enabled: detectorIds.every(defined),
-    }
+    {enabled: !issueStreamDetectorsPending}
   );
 
   const pageLinks = getResponseHeader?.('Link');
@@ -98,7 +102,7 @@ function DetectorAutomationsTable({
   const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
 
   const paginationCaption = useMemo(() => {
-    if (!automations || automations.length === 0 || isLoading) {
+    if (!automations || automations.length === 0 || isPending) {
       return undefined;
     }
 
@@ -112,10 +116,16 @@ function DetectorAutomationsTable({
       end: endCount.toLocaleString(),
       total: totalCountInt.toLocaleString(),
     });
-  }, [automations, isLoading, cursor, totalCountInt]);
+  }, [automations, isPending, cursor, totalCountInt]);
 
   return (
     <Container>
+      {issueStreamDetectorsError && (
+        <LoadingError
+          message={t('Error loading project alerts')}
+          onRetry={refetchIssueStreamDetectors}
+        />
+      )}
       <SimpleTableWithColumns>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
@@ -126,7 +136,7 @@ function DetectorAutomationsTable({
             {t('Triggered By Issues')}
           </SimpleTable.HeaderCell>
         </SimpleTable.Header>
-        {isLoading && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
+        {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
         {isError && <LoadingError />}
         {isSuccess && automations.length === 0 && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>

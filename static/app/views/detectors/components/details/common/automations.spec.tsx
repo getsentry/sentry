@@ -39,6 +39,11 @@ describe('DetectorDetailsAutomations', () => {
         }),
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('renders connected alerts list', async () => {
