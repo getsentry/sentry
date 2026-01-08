@@ -103,29 +103,59 @@ jest.mock('@stripe/stripe-js', () => ({
     })
   ),
 }));
-jest.mock('@stripe/react-stripe-js', () => ({
-  Elements: jest.fn(({children}: {children: any}) => children),
-  AddressElement: jest.fn(() => null),
-  CardElement: jest.fn(() => null),
-  PaymentElement: jest.fn(() => null),
-  useStripe: jest.fn(() => ({
-    confirmCardPayment: jest.fn(() =>
-      Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
-    ),
-    confirmCardSetup: jest.fn((secretKey: string) => {
-      if (secretKey === 'ERROR') {
-        return Promise.resolve({error: {message: 'card invalid'}});
-      }
-      return Promise.resolve({
-        error: undefined,
-        setupIntent: {payment_method: 'test-pm'},
-      });
+jest.mock('@stripe/react-stripe-js', () => {
+  const {useEffect} = jest.requireActual('react');
+  return {
+    Elements: jest.fn(({children}: {children: any}) => children),
+    AddressElement: jest.fn(() => null),
+    CardElement: jest.fn(() => null),
+    PaymentElement: jest.fn(({onChange}: any) => {
+      // Simulate a completed Stripe form by calling onChange after mount
+      useEffect(() => {
+        if (onChange) {
+          onChange({complete: true});
+        }
+      }, [onChange]);
+      return null;
     }),
-  })),
-  useElements: jest.fn(() => ({
-    getElement: jest.fn(() => ({})),
-  })),
-}));
+    useStripe: jest.fn(() => ({
+      confirmCardPayment: jest.fn(() =>
+        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+      ),
+      confirmCardSetup: jest.fn((secretKey: string) => {
+        if (secretKey === 'ERROR') {
+          return Promise.resolve({error: {message: 'card invalid'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          setupIntent: {payment_method: 'test-pm'},
+        });
+      }),
+      confirmSetup: jest.fn((options: any) => {
+        if (options?.clientSecret === 'ERROR') {
+          return Promise.resolve({error: {message: 'card invalid'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          setupIntent: {payment_method: 'test-pm'},
+        });
+      }),
+      confirmPayment: jest.fn((options: any) => {
+        if (options?.clientSecret === 'ERROR') {
+          return Promise.resolve({error: {message: 'payment failed'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        });
+      }),
+    })),
+    useElements: jest.fn(() => ({
+      getElement: jest.fn(() => ({})),
+      submit: jest.fn(() => Promise.resolve({error: undefined})),
+    })),
+  };
+});
 jest.mock('getsentry/utils/trackMarketingEvent');
 jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');

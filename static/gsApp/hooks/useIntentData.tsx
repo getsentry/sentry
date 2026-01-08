@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
 
@@ -24,14 +25,21 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
   >(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const {mutate: loadSetupIntentData} = useMutation<PaymentSetupCreateResponse>({
+  const {mutate: loadSetupIntentData} = useMutation<
+    PaymentSetupCreateResponse,
+    RequestError
+  >({
     mutationFn: () => fetchMutation({url: endpoint, method: 'POST'}),
     onSuccess: data => {
       setSetupIntentData(data);
       setIsLoading(false);
     },
     onError: err => {
-      setError(err.message);
+      const errorMessage =
+        typeof err?.responseJSON?.detail === 'string'
+          ? err?.responseJSON?.detail
+          : (err?.responseJSON?.detail?.message ?? err?.message);
+      setError(errorMessage);
       setIsLoading(false);
     },
   });
@@ -63,11 +71,16 @@ function usePaymentIntentData({endpoint}: HookProps): HookResult {
     staleTime: Infinity,
   });
 
+  const errorMessage =
+    typeof error?.responseJSON?.detail === 'string'
+      ? error?.responseJSON?.detail
+      : (error?.responseJSON?.detail?.message ?? error?.message);
+
   return {
     intentData: paymentIntentData,
     isLoading: isLoading || isPending,
     isError,
-    error: error?.message,
+    error: errorMessage,
   };
 }
 
