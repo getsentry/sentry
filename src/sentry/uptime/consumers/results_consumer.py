@@ -14,6 +14,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import features
 from sentry.conf.types.kafka_definition import Topic
+from sentry.locks import locks
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -38,8 +39,16 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
 )
 from sentry.uptime.types import UptimeMonitorMode
-from sentry.uptime.utils import build_last_seen_interval_key, build_last_update_key, get_cluster
-from sentry.utils import metrics
+from sentry.uptime.utils import (
+    build_backlog_key,
+    build_backlog_schedule_lock_key,
+    build_backlog_task_scheduled_key,
+    build_last_seen_interval_key,
+    build_last_update_key,
+    get_cluster,
+)
+from sentry.utils import json, metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -174,6 +183,155 @@ def record_check_metrics(
     )
 
 
+def create_backfill_misses(
+    detector: Detector,
+    subscription: UptimeSubscription,
+    result: CheckResult,
+    last_update_ms: int,
+    metric_tags: dict[str, str],
+    cluster,
+) -> None:
+    """
+    Create synthetic missed check results for gaps in the check timeline.
+
+    When a result arrives with a gap (2+ intervals since last update), this
+    function creates backfill misses for the intervening time periods, unless
+    the subscription interval was recently changed.
+    """
+    subscription_interval_ms = 1000 * subscription.interval_seconds
+    num_intervals = (result["scheduled_check_time_ms"] - last_update_ms) / subscription_interval_ms
+
+    # If the scheduled check is two or more intervals since the last seen check, we can declare the
+    # intervening checks missed...
+    if num_intervals > 1:
+        # ... but it might be the case that the user changed the frequency of the detector.  So, first
+        # verify that the interval in postgres is the same as the last-seen interval (in redis).
+        # We only store in redis when we encounter a difference like this, which means we won't be able
+        # to tell if a missed check is real with the very first missed check.  This is probably okay,
+        # and preferable to just writing the interval to redis on every check consumed.
+        last_interval_key = build_last_seen_interval_key(detector)
+
+        # If we've never set an interval before, just set this to zero, which will never compare
+        # true with any valid interval.
+        last_interval_seen: str = cluster.get(last_interval_key) or "0"
+
+        if int(last_interval_seen) == subscription_interval_ms:
+            # Bound the number of missed checks we generate--just in case.
+            num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
+
+            metrics.distribution(
+                "uptime.result_processer.num_missing_check",
+                num_missed_checks,
+                tags=metric_tags,
+            )
+            logger.info(
+                "uptime.result_processor.num_missing_check",
+                extra={"num_missed_checks": num_missed_checks, **result},
+            )
+            if num_intervals != int(num_intervals):
+                logger.info(
+                    "uptime.result_processor.invalid_check_interval",
+                    0,
+                    extra={
+                        "last_update_ms": last_update_ms,
+                        "current_update_ms": result["scheduled_check_time_ms"],
+                        "interval_ms": subscription_interval_ms,
+                        **result,
+                    },
+                )
+
+            synthetic_metric_tags = metric_tags.copy()
+            synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
+            for i in range(0, num_missed_checks):
+                missed_result: CheckResult = {
+                    "guid": uuid.uuid4().hex,
+                    "subscription_id": result["subscription_id"],
+                    "status": CHECKSTATUS_MISSED_WINDOW,
+                    "status_reason": {
+                        "type": "miss_backfill",
+                        "description": "Miss was never reported for this scheduled check_time",
+                    },
+                    "trace_id": uuid.uuid4().hex,
+                    "span_id": uuid.uuid4().hex,
+                    "region": result["region"],
+                    "scheduled_check_time_ms": last_update_ms
+                    + ((i + 1) * subscription_interval_ms),
+                    "actual_check_time_ms": result["actual_check_time_ms"],
+                    "duration_ms": 0,
+                    "request_info": None,
+                }
+                produce_eap_uptime_result(
+                    detector,
+                    missed_result,
+                    synthetic_metric_tags.copy(),
+                )
+        else:
+            logger.info(
+                "uptime.result_processor.false_num_missing_check",
+                extra={**result},
+            )
+            cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
+
+
+def process_result_internal(
+    detector: Detector,
+    uptime_subscription: UptimeSubscription,
+    result: CheckResult,
+    metric_tags: dict[str, str],
+    cluster,
+) -> None:
+    """
+    Core result processing logic shared by main consumer and retry task.
+
+    Does NOT include: dedup check, backfill detection, queue check.
+    Contains: metrics, mode handling, EAP production, state updates.
+    """
+    mode_name = UptimeMonitorMode(detector.config["mode"]).name.lower()
+
+    # We log the result stats here after the duplicate check so that we
+    # know the "true" duration and delay of each check. Since during
+    # deploys we might have checks run from both the old/new checker
+    # deployments, there will be overlap of when things run. The new
+    # deployment will have artificially inflated delay stats, since it may
+    # duplicate checks that already ran on time on the old deployment, but
+    # will have run them later.
+    #
+    # Since we process all results for a given uptime monitor in order, we
+    # can guarantee that we get the earliest delay stat for each scheduled
+    # check for the monitor here, and so this stat will be a more accurate
+    # measurement of delay/duration.
+    record_check_metrics(result, detector, {"mode": mode_name, **metric_tags})
+
+    Mode = UptimeMonitorMode
+    try:
+        match detector.config["mode"]:
+            case Mode.AUTO_DETECTED_ONBOARDING:
+                handle_onboarding_result(detector, uptime_subscription, result, metric_tags.copy())
+            case Mode.AUTO_DETECTED_ACTIVE | Mode.MANUAL:
+                handle_active_result(detector, uptime_subscription, result, metric_tags.copy())
+            case _:
+                logger.error(
+                    "Unknown subscription mode",
+                    extra={"mode": detector.config["mode"]},
+                )
+    except Exception:
+        logger.exception("Failed to process result for uptime project subscription")
+
+    # EAP production _must_ happen after handling the result, since we
+    # may mutate the UptimeSubscription when we determine we're in an incident
+    produce_eap_uptime_result(detector, result, metric_tags.copy())
+
+    # Track the last update date to allow deduplication
+    last_update_key = build_last_update_key(detector)
+    cluster.set(
+        last_update_key,
+        int(result["scheduled_check_time_ms"]),
+        ex=LAST_UPDATE_REDIS_TTL,
+    )
+
+    record_check_completion_metrics(result, metric_tags)
+
+
 def handle_active_result(
     detector: Detector,
     uptime_subscription: UptimeSubscription,
@@ -196,6 +354,85 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
+
+    def queue_result_for_retry(
+        self,
+        subscription: UptimeSubscription,
+        result: CheckResult,
+        metric_tags: dict[str, str],
+        cluster,
+    ) -> None:
+        """
+        Queue an out-of-order result for retry processing.
+
+        In multiprocessing mode, Arroyo uses a shared worker pool across partitions with no
+        partition-to-process affinity. This means consecutive results for the same subscription
+        can be processed by different workers concurrently, causing out-of-order processing.
+        When we detect a gap (eg: 4:01 arrives before 4:00), we buffer the result in Redis
+        and schedule a task to retry processing after a short delay, giving time for the
+        missing result to arrive and be processed first.
+
+        Results are stored in a sorted set keyed by scheduled_check_time_ms, allowing the
+        retry task to process them in the correct chronological order.
+        """
+        from sentry.uptime.consumers.tasks import process_uptime_backlog
+
+        subscription_id = str(subscription.id)
+        backlog_key = build_backlog_key(subscription_id)
+        task_scheduled_key = build_backlog_task_scheduled_key(subscription_id)
+        schedule_lock_key = build_backlog_schedule_lock_key(subscription_id)
+        schedule_lock = locks.get(schedule_lock_key, duration=10, name="uptime.backlog.schedule")
+        lock_ctx = None
+
+        try:
+            lock_ctx = schedule_lock.blocking_acquire(0.1, 3)
+            lock_ctx.__enter__()
+        except UnableToAcquireLock:
+            # The lock shouldn't fail, but if it does we'd prefer to try and put this in the queue
+            # regardless, so that we don't have to drop it
+            metrics.incr(
+                "uptime.backlog.lock_failed",
+                amount=1,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+
+        try:
+            result_json = json.dumps(result)
+            pipeline = cluster.pipeline()
+            pipeline.zadd(backlog_key, {result_json: int(result["scheduled_check_time_ms"])})
+            pipeline.expire(backlog_key, 600)
+            pipeline.exists(task_scheduled_key)
+            task_scheduled = pipeline.execute()[2]
+            metrics.incr(
+                "uptime.backlog.added",
+                amount=1,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+            if not task_scheduled:
+                cluster.set(task_scheduled_key, "1", ex=300)
+                process_uptime_backlog.apply_async(
+                    args=[subscription_id],
+                    countdown=10,
+                    kwargs={"attempt": 1},
+                )
+                logger.info(
+                    "uptime.backlog.task_scheduled",
+                    extra={
+                        "subscription_id": subscription_id,
+                        "buffer_size": cluster.zcard(backlog_key),
+                    },
+                )
+                metrics.incr(
+                    "uptime.backlog.task_scheduled",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags=metric_tags,
+                )
+        finally:
+            if lock_ctx is not None:
+                lock_ctx.__exit__(None, None, None)
 
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
         if random.random() < 0.01:
@@ -305,123 +542,21 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
             return
 
-        subscription_interval_ms = 1000 * subscription.interval_seconds
-        num_intervals = (
-            result["scheduled_check_time_ms"] - last_update_ms
-        ) / subscription_interval_ms
+        if last_update_ms > 0:
+            subscription_interval_ms = subscription.interval_seconds * 1000
+            expected_next_ms = last_update_ms + subscription_interval_ms
+            is_out_of_order = result["scheduled_check_time_ms"] != expected_next_ms
 
-        # If the scheduled check is two or more intervals since the last seen check, we can declare the
-        # intervening checks missed...
-        if last_update_raw is not None and num_intervals > 1:
-            # ... but it might be the case that the user changed the frequency of the detector.  So, first
-            # verify that the interval in postgres is the same as the last-seen interval (in redis).
-            # We only store in redis when we encounter a difference like this, which means we won't be able
-            # to tell if a missed check is real with the very first missed check.  This is probably okay,
-            # and preferable to just writing the interval to redis on every check consumed.
-            last_interval_key = build_last_seen_interval_key(detector)
+            if is_out_of_order:
+                if features.has("organizations:uptime-backlog-retry", organization):
+                    self.queue_result_for_retry(subscription, result, metric_tags, cluster)
+                    return
 
-            # If we've never set an interval before, just set this to zero, which will never compare
-            # true with any valid interval.
-            last_interval_seen: str = cluster.get(last_interval_key) or "0"
-
-            if int(last_interval_seen) == subscription_interval_ms:
-                # Bound the number of missed checks we generate--just in case.
-                num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
-
-                metrics.distribution(
-                    "uptime.result_processer.num_missing_check",
-                    num_missed_checks,
-                    tags=metric_tags,
+                create_backfill_misses(
+                    detector, subscription, result, last_update_ms, metric_tags, cluster
                 )
-                logger.info(
-                    "uptime.result_processor.num_missing_check",
-                    extra={"num_missed_checks": num_missed_checks, **result},
-                )
-                if num_intervals != int(num_intervals):
-                    logger.info(
-                        "uptime.result_processor.invalid_check_interval",
-                        0,
-                        extra={
-                            "last_update_ms": last_update_ms,
-                            "current_update_ms": result["scheduled_check_time_ms"],
-                            "interval_ms": subscription_interval_ms,
-                            **result,
-                        },
-                    )
 
-                synthetic_metric_tags = metric_tags.copy()
-                synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
-                for i in range(0, num_missed_checks):
-                    missed_result: CheckResult = {
-                        "guid": uuid.uuid4().hex,
-                        "subscription_id": result["subscription_id"],
-                        "status": CHECKSTATUS_MISSED_WINDOW,
-                        "status_reason": {
-                            "type": "miss_backfill",
-                            "description": "Miss was never reported for this scheduled check_time",
-                        },
-                        "trace_id": uuid.uuid4().hex,
-                        "span_id": uuid.uuid4().hex,
-                        "region": result["region"],
-                        "scheduled_check_time_ms": last_update_ms
-                        + ((i + 1) * subscription_interval_ms),
-                        "actual_check_time_ms": result["actual_check_time_ms"],
-                        "duration_ms": 0,
-                        "request_info": None,
-                    }
-                    produce_eap_uptime_result(
-                        detector,
-                        missed_result,
-                        synthetic_metric_tags.copy(),
-                    )
-            else:
-                logger.info(
-                    "uptime.result_processor.false_num_missing_check",
-                    extra={**result},
-                )
-                cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
-
-        # We log the result stats here after the duplicate check so that we
-        # know the "true" duration and delay of each check. Since during
-        # deploys we might have checks run from both the old/new checker
-        # deployments, there will be overlap of when things run. The new
-        # deployment will have artificially inflated delay stats, since it may
-        # duplicate checks that already ran on time on the old deployment, but
-        # will have run them later.
-        #
-        # Since we process all results for a given uptime monitor in order, we
-        # can guarantee that we get the earliest delay stat for each scheduled
-        # check for the monitor here, and so this stat will be a more accurate
-        # measurement of delay/duration.
-        record_check_metrics(result, detector, {"mode": mode_name, **metric_tags})
-
-        Mode = UptimeMonitorMode
-        try:
-            match detector.config["mode"]:
-                case Mode.AUTO_DETECTED_ONBOARDING:
-                    handle_onboarding_result(detector, subscription, result, metric_tags.copy())
-                case Mode.AUTO_DETECTED_ACTIVE | Mode.MANUAL:
-                    handle_active_result(detector, subscription, result, metric_tags.copy())
-                case _:
-                    logger.error(
-                        "Unknown subscription mode",
-                        extra={"mode": detector.config["mode"]},
-                    )
-        except Exception:
-            logger.exception("Failed to process result for uptime project subscription")
-
-        # EAP production _must_ happen after handling the result, since we
-        # may mutate the UptimeSubscription when we determine we're in an incident
-        produce_eap_uptime_result(detector, result, metric_tags.copy())
-
-        # Track the last update date to allow deduplication
-        cluster.set(
-            last_update_key,
-            int(result["scheduled_check_time_ms"]),
-            ex=LAST_UPDATE_REDIS_TTL,
-        )
-
-        record_check_completion_metrics(result, metric_tags)
+        process_result_internal(detector, subscription, result, metric_tags, cluster)
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):

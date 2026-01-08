@@ -90,7 +90,7 @@ function DashboardCard({
           icon={
             <IconStar
               isSolid={favorited}
-              color={favorited ? 'yellow300' : 'subText'}
+              variant={favorited ? 'warning' : 'muted'}
               size="sm"
               aria-label={favorited ? t('Unstar') : t('Star')}
             />
@@ -115,7 +115,7 @@ function DashboardCard({
 }
 
 const AvatarWrapper = styled('span')`
-  border: 3px solid ${p => p.theme.border};
+  border: 3px solid ${p => p.theme.tokens.border.primary};
   border-radius: 50%;
   height: min-content;
 `;

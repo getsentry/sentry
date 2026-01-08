@@ -1,9 +1,13 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
@@ -116,8 +120,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
     if (event_id) {
       return isLoading
-        ? `Inspecting event ${event_id}...`
-        : `Inspected event ${event_id}`;
+        ? `Inspecting event ${event_id.slice(0, 8)}...`
+        : `Inspected event ${event_id.slice(0, 8)}`;
     }
 
     // Should not happen unless there's a bug.
@@ -749,32 +753,56 @@ export function getValidToolLinks(
   };
 }
 
+/**
+ * Returns a callback to get the route string (normalized path) of the current page for analytics, e.g. /issues/:groupId/.
+ * This callback is stable to avoid triggering analytics and re-renders when the location changes.
+ */
+export function usePageReferrer(): {getPageReferrer: () => string} {
+  // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
+  const routes = useRoutes();
+  const routeString = getRouteStringFromRoutes(routes);
+  const routeStringRef = useRef(routeString);
+
+  useEffect(() => {
+    routeStringRef.current = routeString;
+  }, [routeString]);
+
+  // Must remain stable.
+  const getPageReferrer = useCallback(() => routeStringRef.current, []);
+
+  return {getPageReferrer};
+}
+
 export function useCopySessionDataToClipboard({
   blocks,
-  orgSlug,
+  organization,
   projects,
   enabled,
 }: {
   blocks: Block[];
   enabled: boolean;
-  orgSlug: string;
+  organization: Organization | null;
   projects?: Array<{id: string; slug: string}>;
 }) {
   const [isError, setIsError] = useState(false);
 
   const copySessionToClipboard = useCallback(async () => {
-    if (!enabled || !orgSlug || !blocks) {
+    if (!enabled || !organization || !blocks) {
       return;
     }
     setIsError(false);
     try {
-      await navigator.clipboard.writeText(formatSessionData(blocks, orgSlug, projects));
+      await navigator.clipboard.writeText(
+        formatSessionData(blocks, organization.slug, projects)
+      );
       addSuccessMessage('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
       addErrorMessage('Failed to copy conversation to clipboard');
     }
-  }, [enabled, blocks, orgSlug, projects]);
+
+    trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
+  }, [enabled, blocks, organization, projects]);
 
   return {copySessionToClipboard, isError};
 }

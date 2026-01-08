@@ -134,5 +134,5 @@ const ToggleContainer = styled(Flex)`
 
 const VariantDivider = styled('hr')`
   padding-top: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;

@@ -1267,3 +1267,53 @@ class TestEventKeyAndInstance:
         assert dcg_to_timestamp[1] == timestamp2
         assert dcg_to_timestamp[2] == timestamp3
         assert 3 not in dcg_to_timestamp
+
+    def test_filter_by_workflow_ids_basic(self) -> None:
+        redis_data = {
+            "1:100::1:": '{"event_id": "event-1"}',
+            "2:101::2:": '{"event_id": "event-2"}',
+            "1:102::3:": '{"event_id": "event-3"}',
+            "3:103::4:": '{"event_id": "event-4"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        filtered = event_data.filter_by_workflow_ids({1, 2})
+
+        assert len(filtered.events) == 3
+        assert filtered.workflow_ids == {1, 2}
+        assert 3 not in filtered.workflow_ids
+
+    def test_filter_by_workflow_ids_empty_valid_ids(self) -> None:
+        redis_data = {
+            "1:100::1:": '{"event_id": "event-1"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        filtered = event_data.filter_by_workflow_ids(set())
+
+        assert len(filtered.events) == 0
+
+    def test_filter_by_workflow_ids_all_filtered(self) -> None:
+        redis_data = {
+            "1:100::1:": '{"event_id": "event-1"}',
+            "2:101::2:": '{"event_id": "event-2"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        filtered = event_data.filter_by_workflow_ids({999})
+
+        assert len(filtered.events) == 0
+
+    def test_filter_by_workflow_ids_preserves_cached_properties(self) -> None:
+        redis_data = {
+            "1:100:10:1,2:3": '{"event_id": "event-1"}',
+            "2:101:20:4:5": '{"event_id": "event-2"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        filtered = event_data.filter_by_workflow_ids({1})
+
+        assert filtered.workflow_ids == {1}
+        assert filtered.group_ids == {100}
+        assert filtered.dcg_ids == {10, 1, 2, 3}
+        assert 20 not in filtered.dcg_ids
