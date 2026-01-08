@@ -1,4 +1,5 @@
 import copy
+import math
 from datetime import timedelta
 from functools import cached_property
 from unittest.mock import MagicMock, call, patch
@@ -94,6 +95,16 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             mock_metrics.incr.assert_has_calls(
                 [call("incidents.alert_rules.ignore_update_missing_incidents_performance")]
             )
+
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_invalid_aggregation_value(self, mock_metrics: MagicMock) -> None:
+        self.send_update(math.nan)
+        assert self.get_detector_state(self.detector) == DetectorPriorityLevel.OK
+        mock_metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_has_downgraded_on_demand(self, mock_metrics: MagicMock) -> None:
