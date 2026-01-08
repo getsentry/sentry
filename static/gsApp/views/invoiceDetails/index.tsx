@@ -115,7 +115,11 @@ function InvoiceDetails() {
                     invoice.customer.billingInterval === 'annual'
                       ? 'year'
                       : 'month',
-                  here: <ExternalLink href="/settings/billing/cancel" />,
+                  here: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/billing/cancel/`}
+                    />
+                  ),
                 }
               )}
             </FinePrint>
