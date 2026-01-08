@@ -27,7 +27,7 @@ import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
-  RUN_ID_QUERY_PARAM,
+  getExplorerUrl,
   useCopySessionDataToClipboard,
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
@@ -308,18 +308,27 @@ function ExplorerPanel() {
 
   const openFeedbackForm = useFeedbackForm();
 
+  // Tags shared by all feedback entrypoints in the panel.
+  const feedbackTags = useMemo(
+    () => ({
+      ['feedback.source']: 'seer_explorer',
+      ['feedback.owner']: 'ml-ai',
+      ...(runId === null ? {} : {['seer.run_id']: runId}),
+      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+      ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+    }),
+    [runId, langfuseUrl]
+  );
+
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
       openFeedbackForm({
         formTitle: 'Seer Explorer Feedback',
         messagePlaceholder: 'How can we make Seer Explorer better for you?',
-        tags: {
-          ['feedback.source']: 'seer_explorer',
-          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
-        },
+        tags: {...feedbackTags},
       });
     }
-  }, [openFeedbackForm, langfuseUrl]);
+  }, [openFeedbackForm, feedbackTags]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -541,9 +550,8 @@ function ExplorerPanel() {
     }
 
     try {
-      const url = new URL(window.location.href);
-      url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
-      await navigator.clipboard.writeText(url.toString());
+      const url = getExplorerUrl(runId);
+      await navigator.clipboard.writeText(url);
       addSuccessMessage('Copied link to current chat');
     } catch {
       addErrorMessage('Failed to copy link to current chat');

@@ -9,7 +9,9 @@ import {Button} from 'sentry/components/core/button';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
-import {IconChevron, IconLink} from 'sentry/icons';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {IconChevron, IconLink, IconThumb} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -28,6 +30,7 @@ import {
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  feedbackTags?: Record<string, unknown>;
   getPageReferrer?: () => string;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
@@ -134,6 +137,7 @@ function getToolStatus(
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
+  feedbackTags = {},
   getPageReferrer,
   isAwaitingFileApproval,
   isAwaitingQuestion,
@@ -272,6 +276,39 @@ function BlockComponent({
     navigateToToolLink,
   ]);
 
+  const feedbackThumbButton = (type: 'positive' | 'negative') => {
+    const ariaLabel =
+      type === 'positive'
+        ? t('Seer Explorer Feedback Positive')
+        : t('Seer Explorer Feedback Negative');
+    return (
+      <FeedbackButton
+        aria-label={ariaLabel}
+        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+        priority="transparent"
+        size="xs"
+        title={
+          type === 'positive'
+            ? t('I like this response')
+            : t("I don't like this response")
+        }
+        feedbackOptions={{
+          formTitle: t('Seer Explorer Feedback'),
+          messagePlaceholder:
+            type === 'positive'
+              ? t('What did you like about this response?')
+              : t('How can we improve this response?'),
+          tags: {
+            ...feedbackTags,
+            ['feedback.type']: type,
+          },
+        }}
+      >
+        {undefined}
+      </FeedbackButton>
+    );
+  };
+
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete?.();
@@ -299,6 +336,7 @@ function BlockComponent({
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
     !readOnly; // move this check to inside button bar once there are more actions
+  const showFeedbackButtons = block.message.role === 'assistant';
 
   return (
     <Block
@@ -417,6 +455,8 @@ function BlockComponent({
         )}
         {showActions && !isPolling && (
           <ActionButtonBar gap="xs">
+            {showFeedbackButtons && feedbackThumbButton('positive')}
+            {showFeedbackButtons && feedbackThumbButton('negative')}
             <Button
               size="xs"
               priority="transparent"

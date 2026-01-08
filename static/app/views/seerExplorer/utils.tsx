@@ -899,3 +899,12 @@ function locationToUrl(location: LocationDescriptor): string | null {
 }
 
 export const RUN_ID_QUERY_PARAM = 'explorerRunId';
+
+/**
+ * Returns the URL of the current window with the run ID query param set.
+ */
+export function getExplorerUrl(runId: number | string): string {
+  const url = new URL(window.location.href);
+  url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+  return url.toString();
+}

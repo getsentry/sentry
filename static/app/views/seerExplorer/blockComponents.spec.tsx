@@ -3,6 +3,19 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import BlockComponent from './blockComponents';
 import type {Block} from './types';
 
+// Mock FeedbackButton so we can test independently of feedback integration.
+jest.mock('sentry/components/feedbackButton/feedbackButton', () => {
+  return function (props: any) {
+    const {title, ['aria-label']: ariaLabel, feedbackOptions: _ignored, ...rest} = props;
+    return (
+      // mimic button so queries by role/name work without SDK
+      <button aria-label={ariaLabel ?? title} {...rest}>
+        {title}
+      </button>
+    );
+  };
+});
+
 describe('BlockComponent', () => {
   const mockOnClick = jest.fn();
 
@@ -105,6 +118,34 @@ describe('BlockComponent', () => {
       );
 
       expect(screen.queryByRole('button', {name: '↩'})).not.toBeInTheDocument();
+    });
+
+    it('shows feedback buttons for assistant blocks when isFocused=true', () => {
+      const block = createResponseBlock();
+      render(
+        <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Seer Explorer Feedback Positive'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Seer Explorer Feedback Negative'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not show feedback buttons for user blocks', () => {
+      const block = createUserInputBlock();
+      render(
+        <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
+      );
+
+      expect(
+        screen.queryByRole('button', {name: 'Seer Explorer Feedback Positive'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Seer Explorer Feedback Negative'})
+      ).not.toBeInTheDocument();
     });
   });
 
