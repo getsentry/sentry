@@ -9,10 +9,8 @@ app:
     app
       stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
-          module*
-            "foo/bar/baz"
           filename (ignored because frame points to a URL)
-            "foo.py"
+            "great.js"
 --------------------------------------------------------------------------
 fallback:
   hash: "d41d8cd98f00b204e9800998ecf8427e"
@@ -25,7 +23,5 @@ system:
     system
       stacktrace (ignored because it contains no contributing frames)
         frame (ignored single non-URL JavaScript frame)
-          module*
-            "foo/bar/baz"
           filename (ignored because frame points to a URL)
-            "foo.py"
+            "great.js"

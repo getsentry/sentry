@@ -3,12 +3,14 @@ import {Fragment} from 'react';
 import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 
+import NotFound from 'sentry/components/errors/notFound';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -26,7 +28,14 @@ export default function SeerRepoDetails() {
     error,
     isPending,
     refetch,
-  } = useRepositoryWithSettings({repositoryId: repoId});
+  } = useRepositoryWithSettings({
+    repositoryId: repoId,
+    enabled: showNewSeer(organization),
+  });
+
+  if (!showNewSeer(organization)) {
+    return <NotFound />;
+  }
 
   if (isPending) {
     return <LoadingIndicator />;
