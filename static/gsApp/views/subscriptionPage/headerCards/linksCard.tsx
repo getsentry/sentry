@@ -23,7 +23,7 @@ function LinksCard({organization}: {organization: Organization}) {
               <LinkButton
                 priority="link"
                 icon={<IconList />}
-                to="/settings/billing/receipts/"
+                to={`/settings/${organization.slug}/billing/receipts/`}
                 size="xs"
               >
                 {t('View all receipts')}
@@ -31,7 +31,7 @@ function LinksCard({organization}: {organization: Organization}) {
               <LinkButton
                 priority="link"
                 icon={<IconTimer />}
-                to="/settings/billing/activity-logs/"
+                to={`/settings/${organization.slug}/billing/activity-logs/`}
                 size="xs"
               >
                 {t('View activity')}
@@ -40,7 +40,7 @@ function LinksCard({organization}: {organization: Organization}) {
                 <LinkButton
                   priority="link"
                   icon={<IconSubscribed />}
-                  to="/settings/billing/notifications/"
+                  to={`/settings/${organization.slug}/billing/notifications/`}
                   size="xs"
                 >
                   {t('Manage spend notifications')}
@@ -51,7 +51,7 @@ function LinksCard({organization}: {organization: Organization}) {
             <LinkButton
               priority="link"
               icon={<IconTimer />}
-              to="/settings/billing/activity-logs/"
+              to={`/settings/${organization.slug}/billing/activity-logs/`}
               size="xs"
             >
               {t('View activity')}

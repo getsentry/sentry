@@ -595,7 +595,7 @@ function CheckoutSuccess({
             <LinkButton
               priority="primary"
               aria-label={t('View your subscription')}
-              to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
+              to={`/settings/${organization.slug}/billing/overview/${viewSubscriptionQueryParams}`}
             >
               {t('View your subscription')}
             </LinkButton>

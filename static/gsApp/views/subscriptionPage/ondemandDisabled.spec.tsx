@@ -18,7 +18,7 @@ describe('OnDemandDisabled', () => {
       onDemandMaxSpend: 1000,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
   });
@@ -30,7 +30,7 @@ describe('OnDemandDisabled', () => {
       onDemandMaxSpend: 0,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
   });
@@ -43,7 +43,7 @@ describe('OnDemandDisabled', () => {
       planTier: PlanTier.AM1,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.getByTestId('ondemand-disabled-alert')).toBeInTheDocument();
     expect(
@@ -63,7 +63,7 @@ describe('OnDemandDisabled', () => {
       plan: 'am3_team',
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.getByTestId('ondemand-disabled-alert')).toBeInTheDocument();
     expect(
@@ -82,11 +82,11 @@ describe('OnDemandDisabled', () => {
       onDemandMaxSpend: 1000,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(
       screen.getByRole('link', {name: 'closed/outstanding invoices'})
-    ).toHaveAttribute('href', '/settings/billing/receipts/');
+    ).toHaveAttribute('href', `/settings/${organization.slug}/billing/receipts/`);
     expect(screen.getByRole('link', {name: 'support@sentry.io'})).toHaveAttribute(
       'href',
       'mailto:support@sentry.io'

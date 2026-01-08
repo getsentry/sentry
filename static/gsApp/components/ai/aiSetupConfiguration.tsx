@@ -69,7 +69,7 @@ function AutofixConfigureQuota() {
             <Stack align="center">
               {hasAccessToSubscriptionOverview(subscription, organization) ? (
                 <LinkButton
-                  to="/settings/billing/overview/?product=seer"
+                  to={`/settings/${organization.slug}/billing/overview/?product=seer`}
                   priority="primary"
                   icon={<IconUpgrade />}
                 >
