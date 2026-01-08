@@ -474,7 +474,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         if (
             result["status"] == CHECKSTATUS_FAILURE
-            and result["status_reason"] == CHECKSTATUSREASONTYPE_ASSERTION_COMPILATION_ERROR
+            and result["status_reason"]["type"] == CHECKSTATUSREASONTYPE_ASSERTION_COMPILATION_ERROR
         ):
             try:
                 detector = get_detector(subscription)
