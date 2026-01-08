@@ -65,7 +65,7 @@ jobs:
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          python .github/workflows/scripts/pytest-args-wrapper.py "selected-tests-fd7c6b1b8b9458f40874dcb82790aa87c1ecef6f"
+          python .github/workflows/scripts/pytest-args-wrapper.py "selected-tests-358133567cc9045bf4bd37e44a68f75e862e839f"
 
       - name: Inspect failure
         if: failure()
