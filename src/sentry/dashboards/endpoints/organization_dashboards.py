@@ -108,7 +108,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY,
-        "title": "Domain Summary",
+        "title": "Domain Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
