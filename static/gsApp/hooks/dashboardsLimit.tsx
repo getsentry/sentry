@@ -34,6 +34,7 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
         `/organizations/${organization.slug}/dashboards/`,
         {
           query: {
+            filter: 'excludePrebuilt',
             // We only need to know there are at most the limited # of dashboards.
             per_page: dashboardsLimit + 1, // +1 to account for the General dashboard
           },
