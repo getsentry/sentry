@@ -11,7 +11,6 @@ const rootRoutes = (): SentryRouteObject => ({
     {
       path: '/checkout/',
       component: withDomainRequired(errorHandler(OrganizationSubscriptionContext)),
-      deprecatedRouteProps: true,
       customerDomainOnlyRoute: true,
       children: [
         {
@@ -23,7 +22,6 @@ const rootRoutes = (): SentryRouteObject => ({
     {
       path: '/checkout/:orgId/',
       component: withDomainRedirect(errorHandler(OrganizationSubscriptionContext)),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
