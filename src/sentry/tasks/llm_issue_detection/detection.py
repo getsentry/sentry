@@ -296,14 +296,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             logger.info(
                 "Raw Seer response",
                 extra={
-                    "raw_issues_count": len(raw_response_data.get("issues", [])),
-                    "raw_traces_analyzed": raw_response_data.get("traces_analyzed", 0),
+                    "response_data": raw_response_data,
                     "trace_id": trace.trace_id,
-                    "response_keys": (
-                        list(raw_response_data.keys())
-                        if isinstance(raw_response_data, dict)
-                        else None
-                    ),
                 },
             )
             response_data = IssueDetectionResponse.parse_obj(raw_response_data)
