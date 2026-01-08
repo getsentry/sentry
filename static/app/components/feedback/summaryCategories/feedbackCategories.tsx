@@ -1,6 +1,8 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
@@ -157,7 +159,7 @@ export default function FeedbackCategories() {
 
   // TODO: after all feedbacks have the .labels tag, uncomment the feedback count
   return (
-    <TagsContainer>
+    <Flex wrap="wrap" gap="xs">
       {categories.map((category, index) => {
         const selected = isCategorySelected(category);
         return (
@@ -172,15 +174,9 @@ export default function FeedbackCategories() {
           </ClickableTag>
         );
       })}
-    </TagsContainer>
+    </Flex>
   );
 }
-
-const TagsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.xs};
-`;
 
 const ClickableTag = styled(Tag)<{selected: boolean}>`
   cursor: pointer;
