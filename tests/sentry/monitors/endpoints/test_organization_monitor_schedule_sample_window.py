@@ -30,8 +30,8 @@ class SampleScheduleWindowTest(APITestCase):
             qs_params={
                 "schedule_type": "crontab",
                 "schedule": "0 * * * *",  # every hour
-                "failureThreshold": failure_threshold,
-                "recoveryThreshold": recovery_threshold,
+                "failure_issue_threshold": failure_threshold,
+                "recovery_threshold": recovery_threshold,
             },
         )
         assert response.data == {"start": expected_start, "end": expected_end}
@@ -58,8 +58,8 @@ class SampleScheduleWindowTest(APITestCase):
                 "schedule_type": "crontab",
                 "schedule": "0 0 * * *",  # daily at midnight
                 "timezone": tz,
-                "failureThreshold": failure_threshold,
-                "recoveryThreshold": recovery_threshold,
+                "failure_issue_threshold": failure_threshold,
+                "recovery_threshold": recovery_threshold,
             },
         )
         assert response.data == {"start": expected_start, "end": expected_end}
@@ -80,8 +80,8 @@ class SampleScheduleWindowTest(APITestCase):
             qs_params={
                 "schedule_type": "interval",
                 "schedule": [1, "hour"],  # every hour
-                "failureThreshold": failure_threshold,
-                "recoveryThreshold": recovery_threshold,
+                "failure_issue_threshold": failure_threshold,
+                "recovery_threshold": recovery_threshold,
             },
         )
         assert response.data == {"start": expected_start, "end": expected_end}
@@ -100,7 +100,7 @@ class SampleScheduleWindowTest(APITestCase):
             qs_params={
                 "schedule_type": "crontab",
                 "schedule": "0 * * * *",
-                "recoveryThreshold": 3,
+                "recovery_threshold": 3,
             },
             status_code=400,
         )
@@ -109,7 +109,20 @@ class SampleScheduleWindowTest(APITestCase):
             qs_params={
                 "schedule_type": "crontab",
                 "schedule": "0 * * * *",
-                "failureThreshold": 2,
+                "failure_issue_threshold": 2,
+            },
+            status_code=400,
+        )
+
+        # Empty values are coerced to None by EmptyIntegerField, but this
+        # endpoint requires both thresholds to compute a window.
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={
+                "schedule_type": "crontab",
+                "schedule": "0 * * * *",
+                "failure_issue_threshold": "",
+                "recovery_threshold": 3,
             },
             status_code=400,
         )
@@ -118,8 +131,8 @@ class SampleScheduleWindowTest(APITestCase):
         self.get_error_response(
             self.organization.slug,
             qs_params={
-                "failureThreshold": 2,
-                "recoveryThreshold": 3,
+                "failure_issue_threshold": 2,
+                "recovery_threshold": 3,
             },
             status_code=400,
         )
@@ -127,8 +140,8 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "crontab",
-                "failureThreshold": 2,
-                "recoveryThreshold": 3,
+                "failure_issue_threshold": 2,
+                "recovery_threshold": 3,
             },
             status_code=400,
         )
@@ -140,8 +153,8 @@ class SampleScheduleWindowTest(APITestCase):
             qs_params={
                 "schedule_type": "crontab",
                 "schedule": "0 * * *",
-                "failureThreshold": 2,
-                "recoveryThreshold": 3,
+                "failure_issue_threshold": 2,
+                "recovery_threshold": 3,
             },
             status_code=400,
         )
@@ -152,8 +165,8 @@ class SampleScheduleWindowTest(APITestCase):
             qs_params={
                 "schedule_type": "interval",
                 "schedule": [1, "second"],
-                "failureThreshold": 2,
-                "recoveryThreshold": 3,
+                "failure_issue_threshold": 2,
+                "recovery_threshold": 3,
             },
             status_code=400,
         )
@@ -164,8 +177,20 @@ class SampleScheduleWindowTest(APITestCase):
             qs_params={
                 "schedule_type": "interval",
                 "schedule": [-1, "month"],
-                "failureThreshold": 2,
-                "recoveryThreshold": 3,
+                "failure_issue_threshold": 2,
+                "recovery_threshold": 3,
+            },
+            status_code=400,
+        )
+
+        # Invalid thresholds
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={
+                "schedule_type": "crontab",
+                "schedule": "0 * * * *",
+                "failure_issue_threshold": -1,
+                "recovery_threshold": 3,
             },
             status_code=400,
         )

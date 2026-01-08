@@ -7,7 +7,6 @@ from typing import cast
 
 from cronsim import CronSim
 from dateutil import rrule
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,11 +19,6 @@ from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
 from sentry.monitors.validators import ConfigValidator
-
-
-class SampleScheduleConfigValidator(ConfigValidator):
-    failureThreshold = serializers.IntegerField(min_value=1)
-    recoveryThreshold = serializers.IntegerField(min_value=1)
 
 
 @region_silo_endpoint
@@ -41,24 +35,31 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
             else:
                 config_data[key] = val[0]
 
-        validator = SampleScheduleConfigValidator(data=config_data)
+        validator = ConfigValidator(data=config_data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
         config = validator.validated_data
-        failure_threshold: int = config["failureThreshold"]
-        recovery_threshold: int = config["recoveryThreshold"]
+        failure_threshold = config.get("failure_issue_threshold")
+        recovery_threshold = config.get("recovery_threshold")
+        if failure_threshold is None or recovery_threshold is None:
+            errors = {}
+            if failure_threshold is None:
+                errors["failure_issue_threshold"] = ["This field is required."]
+            if recovery_threshold is None:
+                errors["recovery_threshold"] = ["This field is required."]
+            return self.respond(errors, status=400)
 
         # Determine the number of ticks to request from the thresholds.
         #
         # We model the sample window like:
         #   10% success ticks (padding) +
-        #   0-20% error ticks (failureThreshold) +
+        #   0-20% error ticks (failure_issue_threshold) +
         #   60% error ticks (open period) +
-        #   0-20% success ticks (recoveryThreshold) +
+        #   0-20% success ticks (recovery_threshold) +
         #   10% success ticks (padding)
         #
-        # Let T = failureThreshold + recoveryThreshold.
+        # Let T = failure_issue_threshold + recovery_threshold.
         # - open period = 3T (≈60% of total)
         # - each padding = ceil(T/2) (≈10% of total)
         total_threshold = failure_threshold + recovery_threshold
