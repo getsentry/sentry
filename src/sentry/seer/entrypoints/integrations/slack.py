@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, TypedDict
+
+from slack_sdk.models.blocks.blocks import Block
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
@@ -293,7 +296,10 @@ def _send_thread_update(
         )
 
 
-def _transform_block_actions(blocks, transform_fn):
+def _transform_block_actions(
+    blocks: Sequence[dict[str, Any]],
+    transform_fn: Callable[[dict[str, Any]], dict[str, Any] | None],
+) -> list[dict[str, Any]]:
     """
     Transform action elements within top-level action blocks. Does not traverse nested blocks.
     """
@@ -334,8 +340,9 @@ def _update_existing_message(
         ),
     )
 
+    parsed_blocks = [Block.parse(block) for block in blocks]
     renderable = SlackRenderable(
-        blocks=blocks,
+        blocks=[block for block in parsed_blocks if block is not None],
         text=request.data["message"]["text"],
     )
 

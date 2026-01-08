@@ -1,7 +1,6 @@
 from unittest.mock import ANY, Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
-from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.integrations.slack import (
@@ -23,7 +22,7 @@ class SlackEntrypointTest(TestCase):
             external_id="TXXXXXXXXX1",
             provider="slack",
         )
-        self.slack_request: SlackActionRequest = Mock()
+        self.slack_request = Mock()
         self.slack_request.integration = self.integration
         self.slack_request.channel_id = self.channel_id
         self.slack_request.user_id = self.slack_user_id
