@@ -80,7 +80,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
-    environment = EnvironmentField(required=True, allow_null=True)
+    # environment = EnvironmentField(required=True, allow_null=True)
+    environment = serializers.CharField()
     event_types = serializers.ListField(
         child=serializers.CharField(),
     )

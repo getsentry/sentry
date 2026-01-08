@@ -155,6 +155,16 @@ OPENAPI_TAGS = [
         },
     },
     {
+        "name": "Workflows",
+        "x-sidebar-name": "Monitors and Workflows",
+        "description": "Endpoints for Monitors and Workflows",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
+    {
         "name": "Integrations",
         "x-sidebar-name": "Integrations",
         "description": "Endpoints for Integrations",
