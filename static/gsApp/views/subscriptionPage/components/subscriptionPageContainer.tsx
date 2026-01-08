@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import {Container} from 'sentry/components/core/layout';
 import type {ContainerProps} from 'sentry/components/core/layout/container';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 function SubscriptionPageContainer({
   header,
@@ -24,10 +23,6 @@ function SubscriptionPageContainer({
     // record replays for all usage and billing settings pages
     Sentry.getReplay()?.start();
   }, []);
-
-  useRouteAnalyticsParams({
-    isNewBillingUI: true,
-  });
 
   return (
     <Fragment>

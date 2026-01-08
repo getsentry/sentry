@@ -58,8 +58,6 @@ function CreditCardSetup({
             trackGetsentryAnalytics(analyticsEvent, {
               organization,
               referrer: decodeScalar(referrer),
-              isStripeComponent: true,
-              isNewBillingUI: true,
             });
           }
         }}
