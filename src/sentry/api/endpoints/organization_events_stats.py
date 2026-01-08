@@ -36,6 +36,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
@@ -185,6 +186,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
+                        PreprodSize,
                         ProfileFunctions,
                         TraceMetrics,
                         errors,
