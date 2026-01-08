@@ -363,7 +363,17 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         cluster,
     ) -> None:
         """
-        Queue an out-of-order result for retry processing. Adds result to Redis sorted set and schedules task if needed.
+        Queue an out-of-order result for retry processing.
+
+        In multiprocessing mode, Arroyo uses a shared worker pool across partitions with no
+        partition-to-process affinity. This means consecutive results for the same subscription
+        can be processed by different workers concurrently, causing out-of-order processing.
+        When we detect a gap (eg: 4:01 arrives before 4:00), we buffer the result in Redis
+        and schedule a task to retry processing after a short delay, giving time for the
+        missing result to arrive and be processed first.
+
+        Results are stored in a sorted set keyed by scheduled_check_time_ms, allowing the
+        retry task to process them in the correct chronological order.
         """
         from sentry.uptime.consumers.tasks import process_uptime_backlog
 
