@@ -21,7 +21,7 @@ export function CopyLLMPromptButton() {
   );
 }
 
-export const LLM_ONBOARDING_INSTRUCTIONS = `
+const LLM_ONBOARDING_INSTRUCTIONS = `
 # Instrument Sentry AI Agent Monitoring
 
 Follow this decision tree to instrument AI Agent Monitoring.
