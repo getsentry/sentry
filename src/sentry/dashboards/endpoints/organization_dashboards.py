@@ -467,6 +467,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             )
             return serialized
 
+        render_pre_built_dashboard = True
         if filter_by and filter_by in {"onlyFavorites", "owned"} or should_filter_by_prebuilt_ids:
             render_pre_built_dashboard = False
         elif pin_by and pin_by == "favorites":
