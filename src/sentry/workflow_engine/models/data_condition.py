@@ -44,6 +44,7 @@ class Condition(StrEnum):
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
     ISSUE_OCCURRENCES = "issue_occurrences"
+    ISSUE_TYPE = "issue_type"
     LATEST_ADOPTED_RELEASE = "latest_adopted_release"
     LATEST_RELEASE = "latest_release"
     LEVEL = "level"
