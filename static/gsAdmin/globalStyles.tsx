@@ -8,9 +8,9 @@ const styles = (theme: Theme) => css`
   }
 
   a {
-    color: ${theme.linkColor};
+    color: ${theme.tokens.interactive.link.accent.rest};
     &:hover {
-      color: ${theme.linkHoverColor};
+      color: ${theme.tokens.interactive.link.accent.hover};
     }
   }
 

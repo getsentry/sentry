@@ -283,7 +283,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
             )}
             {versionInfo && (
               <Flex align="center" gap="sm">
-                <IconTag size="xs" color="gray300" />
+                <IconTag size="xs" variant="muted" />
                 <Text>{versionInfo}</Text>
               </Flex>
             )}
@@ -325,7 +325,8 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 }
 
 const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
-  border: 1px solid ${p => (p.isSelected ? p.theme.focusBorder : p.theme.border)};
+  border: 1px solid
+    ${p => (p.isSelected ? p.theme.focusBorder : p.theme.tokens.border.primary)};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;

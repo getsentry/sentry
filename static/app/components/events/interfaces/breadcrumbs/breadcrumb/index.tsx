@@ -45,7 +45,7 @@ export function Breadcrumb({
   parent,
   transactionEvents,
 }: BreadcrumbProps) {
-  const {type, description, color, level, category, timestamp} = breadcrumb;
+  const {type, description, variant, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -96,7 +96,7 @@ export function Breadcrumb({
       data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
       isLastItem={isLastItem}
     >
-      <Type type={type} color={color} description={description} error={error} />
+      <Type type={type} variant={variant} description={description} error={error} />
       <Category category={category} searchTerm={searchTerm} />
       <Data
         event={event}
