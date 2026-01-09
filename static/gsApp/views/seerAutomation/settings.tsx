@@ -98,13 +98,13 @@ export default function SeerAutomationSettings() {
                 {
                   name: 'defaultCodeReviewTriggers',
                   label: t('Code Review Triggers'),
-                  help: t(
-                    'Reviews can run on demand, whenever a PR is opened, or after each commit is pushed to a PR.'
+                  help: tct(
+                    'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
+                    {code: <code />}
                   ),
                   type: 'choice',
                   multiple: true,
                   choices: [
-                    ['on_command_phrase', t('On Command Phrase')],
                     ['on_ready_for_review', t('On Ready for Review')],
                     ['on_new_commit', t('On New Commit')],
                   ],
