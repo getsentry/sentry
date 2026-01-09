@@ -4650,11 +4650,7 @@ describe('SearchQueryBuilder', () => {
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
-          features: [
-            'gen-ai-features',
-            'gen-ai-explore-traces',
-            'gen-ai-explore-traces-consent-ui',
-          ],
+          features: ['gen-ai-features'],
         },
       });
 
@@ -4679,11 +4675,7 @@ describe('SearchQueryBuilder', () => {
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
-          features: [
-            'gen-ai-features',
-            'gen-ai-explore-traces',
-            'gen-ai-explore-traces-consent-ui',
-          ],
+          features: ['gen-ai-features'],
         },
       });
 
@@ -4697,11 +4689,7 @@ describe('SearchQueryBuilder', () => {
       it('calls promptsUpdate', async () => {
         const organization = OrganizationFixture({
           slug: 'org-slug',
-          features: [
-            'gen-ai-features',
-            'gen-ai-explore-traces',
-            'gen-ai-explore-traces-consent-ui',
-          ],
+          features: ['gen-ai-features'],
         });
         const promptsUpdateMock = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -4844,11 +4832,7 @@ describe('SearchQueryBuilder', () => {
           </AskSeerWrapper>,
           {
             organization: {
-              features: [
-                'gen-ai-features',
-                'gen-ai-explore-traces',
-                'gen-ai-explore-traces-consent-ui',
-              ],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -4905,11 +4889,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
             organization: {
-              features: [
-                'gen-ai-features',
-                'gen-ai-explore-traces',
-                'gen-ai-explore-traces-consent-ui',
-              ],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -4940,12 +4920,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
             organization: {
-              features: [
-                'gen-ai-features',
-                'gen-ai-explore-traces',
-                'gen-ai-explore-traces-consent-ui',
-                'gen-ai-consent-flow-removal',
-              ],
+              features: ['gen-ai-features', 'gen-ai-consent-flow-removal'],
             },
           }
         );

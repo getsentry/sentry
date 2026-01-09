@@ -16,7 +16,6 @@ import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
-import Feature from 'sentry/components/acl/feature';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
@@ -329,11 +328,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           overlayIsOpen={isOpen}
           size="sm"
         />
-        {enableAISearch ? (
-          <Feature features="organizations:gen-ai-explore-traces">
-            <AskSeer state={state} />
-          </Feature>
-        ) : null}
+        {enableAISearch ? <AskSeer state={state} /> : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
