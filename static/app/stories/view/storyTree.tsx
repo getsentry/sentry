@@ -792,7 +792,10 @@ const FolderLink = styled(Link, {
       p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
 
     &:before {
-      background: ${p => (p.active ? p.theme.colors.blue200 : p.theme.colors.gray200)};
+      background: ${p =>
+        p.active
+          ? p.theme.tokens.background.transparent.accent.muted
+          : p.theme.tokens.background.transparent.neutral.muted};
       opacity: 1;
     }
   }

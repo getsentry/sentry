@@ -163,7 +163,7 @@ const MinimizedOverlay = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${p => p.theme.colors.blue200};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-radius: inherit;
     z-index: -1;
     pointer-events: none;

@@ -417,7 +417,8 @@ const Item = styled(Link)<ItemProps>`
     }
     /* Override the default hover styles */
     &:hover {
-      background-color: ${p => p.theme.colors.blue200};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
   }
 `;

@@ -986,7 +986,7 @@ const TraceStylingWrapper = styled('div')`
       }
 
       &.HoverReplayTimestamp {
-        background: ${p => p.theme.colors.blue200};
+        background: ${p => p.theme.tokens.background.transparent.accent.muted};
       }
     }
 
