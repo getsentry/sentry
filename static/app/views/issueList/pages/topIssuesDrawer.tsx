@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
@@ -370,7 +370,7 @@ function SuggestedCodeChange({runId}: SuggestedCodeChangeProps) {
   }
 
   return (
-    <CodeChangesContainer>
+    <Flex direction="column" gap="md">
       {filePatches.map((filePatch, index) => (
         <FileDiffViewer
           key={`${filePatch.repo_name}-${filePatch.patch.path}-${index}`}
@@ -381,7 +381,7 @@ function SuggestedCodeChange({runId}: SuggestedCodeChangeProps) {
           defaultExpanded={index === 0}
         />
       ))}
-    </CodeChangesContainer>
+    </Flex>
   );
 }
 
@@ -474,7 +474,12 @@ function DenseTagFacets({groupIds}: DenseTagFacetsProps) {
   }
 
   return (
-    <TagsTable>
+    <Grid
+      columns="minmax(160px, 1fr) minmax(90px, 1fr) 70px minmax(180px, 2fr)"
+      border="primary"
+      radius="md"
+      overflow="hidden"
+    >
       <TagsTableHeader>
         <Text size="xs" uppercase variant="muted">
           {t('Tag')}
@@ -494,7 +499,7 @@ function DenseTagFacets({groupIds}: DenseTagFacetsProps) {
           <DenseTagItem key={tag.key} tag={tag} colors={theme.chart.getColorPalette(4)} />
         ))}
       </DenseTagsGrid>
-    </TagsTable>
+    </Grid>
   );
 }
 
@@ -515,7 +520,7 @@ function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
   const hasValues = topValues.length > 0;
 
   return (
-    <DenseTagCard>
+    <Container minWidth={250}>
       <Text
         as="div"
         size="xs"
@@ -543,7 +548,7 @@ function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
               );
             })}
           </DenseTagBar>
-          <DenseTagValues>
+          <Flex direction="column" gap="sm">
             {topValues.map((value, index) => {
               const pct =
                 totalCount > 0 ? Math.round((value.count / totalCount) * 100) : 0;
@@ -563,14 +568,14 @@ function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
                 </Tooltip>
               );
             })}
-          </DenseTagValues>
+          </Flex>
         </Fragment>
       ) : (
         <Text size="sm" variant="muted">
           {t('No values available')}
         </Text>
       )}
-    </DenseTagCard>
+    </Container>
   );
 }
 
@@ -588,7 +593,7 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
       <Text size="sm" bold ellipsis>
         {tag.key}
       </Text>
-      <TagBarCell>
+      <Flex align="center" minWidth={0} alignSelf="stretch">
         {hasValues ? (
           <Tooltip
             title={<TagDistributionPreview tag={tag} colors={colors} />}
@@ -617,8 +622,8 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
             {t('—')}
           </Text>
         )}
-      </TagBarCell>
-      <TagPctCell>
+      </Flex>
+      <Flex align="baseline" justify="center">
         {hasValues && topValuePct !== null ? (
           <Text size="xs" variant="muted" style={{flexShrink: 0}}>
             {topValuePct}%
@@ -628,19 +633,19 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
             {t('—')}
           </Text>
         )}
-      </TagPctCell>
+      </Flex>
       {hasValues ? (
-        <TagValueCell>
+        <Flex align="baseline" gap="xs" minWidth={0}>
           <Text size="sm" ellipsis>
             {topValue?.name || t('(empty)')}
           </Text>
-        </TagValueCell>
+        </Flex>
       ) : (
-        <TagValueCell>
+        <Flex align="baseline" gap="xs" minWidth={0}>
           <Text size="sm" variant="muted">
             {t('No values')}
           </Text>
-        </TagValueCell>
+        </Flex>
       )}
     </TagRow>
   );
@@ -699,8 +704,8 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
         </Flex>
       </DrawerHeader>
       <DrawerContentBody>
-        <DetailCardMain>
-          <DetailCardHeader>
+        <Flex direction="column" minWidth={0}>
+          <Container padding="2xl" borderBottom="muted">
             <Flex direction="column" gap="xs" style={{marginBottom: theme.space.lg}}>
               <Heading as="h2" size="lg">
                 {renderWithInlineCode(cluster.title)}
@@ -801,7 +806,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
                 {allTags.length > 8 && <TagPill>+{allTags.length - 8}</TagPill>}
               </Flex>
             )}
-          </DetailCardHeader>
+          </Container>
 
           <Grid padding="sm" gap="sm">
             <Disclosure size="sm" expanded>
@@ -862,7 +867,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
               </Disclosure.Content>
             </Disclosure>
           </Grid>
-        </DetailCardMain>
+        </Flex>
       </DrawerContentBody>
     </Fragment>
   );
@@ -878,27 +883,8 @@ export const TagPill = styled('span')`
   border-radius: 20px;
 `;
 
-const DetailCardMain = styled('div')`
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-`;
-
-const DetailCardHeader = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
 const DrawerContentBody = styled(DrawerBody)`
   padding: 0;
-`;
-
-const TagsTable = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(90px, 1fr) 70px minmax(180px, 2fr);
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  overflow: hidden;
 `;
 
 const TagsTableHeader = styled('div')`
@@ -915,10 +901,6 @@ const DenseTagsGrid = styled('div')`
   display: contents;
 `;
 
-const DenseTagCard = styled('div')`
-  min-width: 250px;
-`;
-
 const DenseTagBar = styled('div')`
   display: flex;
   width: 100%;
@@ -927,12 +909,6 @@ const DenseTagBar = styled('div')`
   overflow: hidden;
   background: ${p => p.theme.backgroundSecondary};
   margin-bottom: ${p => p.theme.space.sm};
-`;
-
-const DenseTagValues = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const DenseTagSegment = styled('div')`
@@ -992,30 +968,4 @@ const TagRow = styled('div')`
   &:hover {
     background: ${p => p.theme.backgroundSecondary};
   }
-`;
-
-const TagValueCell = styled('div')`
-  display: flex;
-  align-items: baseline;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-`;
-
-const TagPctCell = styled('div')`
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-`;
-
-const TagBarCell = styled('div')`
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  align-self: stretch;
-`;
-
-const CodeChangesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
 `;
