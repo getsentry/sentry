@@ -1,5 +1,4 @@
 from django.db import router, transaction
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
@@ -10,7 +9,6 @@ from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeVal
 from sentry.workflow_engine.models.detector import Detector
 
 
-@extend_schema_serializer(exclude_fields=["fingerprinting_rules", "resolve_age"])
 class ErrorDetectorValidator(BaseDetectorTypeValidator):
     fingerprinting_rules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     resolve_age = EmptyIntegerField(
