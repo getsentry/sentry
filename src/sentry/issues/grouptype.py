@@ -783,7 +783,7 @@ class InstrumentationIssueExperimentalGroupType(GroupType):
     default_priority = PriorityLevel.LOW
     in_default_search = False  # Hide from issues stream
     released = False  # Start as feature-flagged
-    enable_auto_resolve = True
+    enable_auto_resolve = False
     enable_escalation_detection = False
 
 
