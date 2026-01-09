@@ -8,6 +8,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
+// These are used as series names for chart lookup - do not translate
+export const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';
+export const LOWER_THRESHOLD_SERIES_NAME = 'Lower Threshold';
+
 interface AnomalyThresholdDataPoint {
   external_alert_id: number;
   timestamp: number;
@@ -24,7 +28,7 @@ interface UseMetricDetectorAnomalyThresholdsProps {
   detectorId: string;
   detectionType?: string;
   endTimestamp?: number;
-  isLegacyAlert?: boolean;
+  isLegacyAlert?: boolean; // for Alerts, remove this once organizations:workflow-engine-ui is GAd
   series?: Series[];
   startTimestamp?: number;
 }
@@ -112,7 +116,7 @@ export function useMetricDetectorAnomalyThresholds({
 
     return [
       LineSeries({
-        name: 'Upper Threshold',
+        name: UPPER_THRESHOLD_SERIES_NAME,
         data: upperBoundData,
         lineStyle: {
           color: lineColor,
@@ -134,7 +138,7 @@ export function useMetricDetectorAnomalyThresholds({
         step: false,
       }),
       LineSeries({
-        name: 'Lower Threshold',
+        name: LOWER_THRESHOLD_SERIES_NAME,
         data: lowerBoundData,
         lineStyle: {
           color: lineColor,

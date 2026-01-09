@@ -77,7 +77,11 @@ import {
 } from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
-import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
+import {
+  LOWER_THRESHOLD_SERIES_NAME,
+  UPPER_THRESHOLD_SERIES_NAME,
+  useMetricDetectorAnomalyThresholds,
+} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
 import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
@@ -640,10 +644,10 @@ function getMetricChartTooltipFormatter({
 
     // Find threshold series for anomaly detection
     const upperThresholdSeries = pointSeries.find(
-      ({seriesName: _sn}) => _sn === 'Upper Threshold'
+      ({seriesName: _sn}) => _sn === UPPER_THRESHOLD_SERIES_NAME
     );
     const lowerThresholdSeries = pointSeries.find(
-      ({seriesName: _sn}) => _sn === 'Lower Threshold'
+      ({seriesName: _sn}) => _sn === LOWER_THRESHOLD_SERIES_NAME
     );
 
     const upperThresholdValue =
