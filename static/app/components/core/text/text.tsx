@@ -100,7 +100,7 @@ export type ExclusiveTextEllipsisProps =
   | {ellipsis?: true; wrap?: never}
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
-export type TextProps<T extends 'span' | 'p' | 'div'> = BaseTextProps & {
+export type TextProps<T extends 'span' | 'p' | 'label' | 'div'> = BaseTextProps & {
   /**
    * The HTML element to render the text as - defaults to span.
    * @default span
@@ -111,7 +111,7 @@ export type TextProps<T extends 'span' | 'p' | 'div'> = BaseTextProps & {
   ExclusiveTextEllipsisProps;
 
 export const Text = styled(
-  <T extends 'span' | 'p' | 'div' = 'span'>(
+  <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(
     props: TextProps<T> & ExclusiveTextEllipsisProps
   ) => {
     const {children, ...rest} = props;
