@@ -388,8 +388,8 @@ function OpenInButton({detector}: OpenInButtonProps) {
   const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
 
   const isUsingMigratedExtrapolationMode = useIsMigratedExtrapolation({
-    dataset: getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes),
-    extrapolationMode: snubaQuery.extrapolationMode,
+    dataset: getDetectorDataset(snubaQuery?.dataset, snubaQuery?.eventTypes),
+    extrapolationMode: snubaQuery?.extrapolationMode,
   });
 
   if (!snubaQuery) {
