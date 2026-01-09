@@ -26,8 +26,7 @@ pnpm run dev-ui
 
 ### Typechecking
 
-Typecheck the application using the native TypeScript compiler.
-DO NOT attempt to typecheck specific files or directories.
+Typechecking only works on the entire project—individual files cannot be checked.
 
 ```bash
 pnpm run typecheck
