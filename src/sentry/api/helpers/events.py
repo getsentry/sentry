@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.issues.grouptype import GroupCategory
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 def get_direct_hit_response(
     request: Request,
     query: str | None,
-    snuba_params: ParamsType,
+    snuba_params: SnubaParams,
     referrer: str,
     group: Group,
 ) -> Response | None:
@@ -53,7 +53,7 @@ def get_direct_hit_response(
 
 def get_query_builder_for_group(
     query: str,
-    snuba_params: ParamsType,
+    snuba_params: SnubaParams,
     group: Group,
     limit: int,
     offset: int,
@@ -73,7 +73,8 @@ def get_query_builder_for_group(
     return DiscoverQueryBuilder(
         dataset=dataset,
         query=f"issue:{group.qualified_short_id} {query}",
-        params=snuba_params,
+        params={},
+        snuba_params=snuba_params,
         selected_columns=selected_columns,
         orderby=[orderby],
         limit=limit,
