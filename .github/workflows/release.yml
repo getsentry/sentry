@@ -9,26 +9,26 @@ on:
         description: Force a release even when there are release-blockers
         required: false
   schedule:
-  - cron: '0 17 15 * *'
+    - cron: '0 17 15 * *'
 jobs:
   release:
     runs-on: ubuntu-latest
     name: Release a new version
     steps:
-    - name: Get auth token
-      id: token
-      uses: actions/create-github-app-token@v1
-      with:
-        app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
-        private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
-    - uses: actions/checkout@v4
-      with:
-        token: ${{ steps.token.outputs.token }}
-        fetch-depth: 0
-    - name: Prepare release
-      uses: getsentry/craft@v2
-      env:
-        GITHUB_TOKEN: ${{ steps.token.outputs.token }}
-      with:
-        version: ${{ inputs.version }}
-        force: ${{ inputs.force }}
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.token.outputs.token }}
+          fetch-depth: 0
+      - name: Prepare release
+        uses: getsentry/craft@v2
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        with:
+          version: ${{ inputs.version }}
+          force: ${{ inputs.force }}
