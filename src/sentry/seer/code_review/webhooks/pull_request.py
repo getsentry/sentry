@@ -89,6 +89,7 @@ def handle_pull_request_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
+    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -134,11 +135,8 @@ def handle_pull_request_event(
         return
 
     if pull_request.get("draft") is True:
-        logger.warning(Log.DRAFT_PR.value, extra=extra)
-        record_webhook_handler_error(github_event, action_value, CodeReviewErrorType.DRAFT_PR)
         return
 
-    github_org = event.get("repository", {}).get("owner", {}).get("login")
     if github_org in get_direct_to_seer_gh_orgs():
         from .task import schedule_task
 

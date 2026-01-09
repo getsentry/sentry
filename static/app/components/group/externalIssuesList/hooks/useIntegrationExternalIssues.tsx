@@ -1,5 +1,5 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {doOpenExternalIssueModal} from 'sentry/components/group/externalIssuesList/externalIssueActions';
+import {openExternalIssueModal} from 'sentry/components/externalIssues/externalIssueForm';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -60,7 +60,7 @@ export function useIntegrationExternalIssues({
         nameSubText: config.domainName ?? undefined,
         disabled: config.status === 'disabled',
         onClick: () => {
-          doOpenExternalIssueModal({
+          openExternalIssueModal({
             group,
             integration: config,
             onChange: refetchIntegrations,

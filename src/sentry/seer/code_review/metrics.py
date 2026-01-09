@@ -69,6 +69,7 @@ def record_webhook_received(
     metrics.incr(
         f"{METRICS_PREFIX}.webhook.received",
         tags=_build_webhook_tags(github_event, github_event_action),
+        sample_rate=1.0,
     )
 
 
@@ -91,6 +92,7 @@ def record_webhook_filtered(
     metrics.incr(
         f"{METRICS_PREFIX}.webhook.filtered",
         tags={**_build_webhook_tags(github_event, github_event_action), "reason": reason.value},
+        sample_rate=1.0,
     )
 
 
@@ -111,6 +113,7 @@ def record_webhook_enqueued(
     metrics.incr(
         f"{METRICS_PREFIX}.webhook.enqueued",
         tags=_build_webhook_tags(github_event, github_event_action),
+        sample_rate=1.0,
     )
 
 
@@ -133,4 +136,5 @@ def record_webhook_handler_error(
             **_build_webhook_tags(github_event, github_event_action),
             "error_type": error_type.value,
         },
+        sample_rate=1.0,
     )

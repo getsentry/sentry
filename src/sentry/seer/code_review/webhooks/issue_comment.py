@@ -96,6 +96,7 @@ def handle_issue_comment_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
+    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -130,7 +131,6 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
 
-    github_org = event.get("repository", {}).get("owner", {}).get("login")
     if github_org in get_direct_to_seer_gh_orgs():
         if comment_id:
             _add_eyes_reaction_to_comment(

@@ -707,6 +707,13 @@ register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# GitHub Console SDK App (separate app for repository invitations)
+register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github-console-sdk-app.installation-id", default="", flags=FLAG_CREDENTIAL)
+register("github-console-sdk-app.private-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("github-console-sdk-app.client-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # Github Enterprise Integration
 register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",

@@ -6,7 +6,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {
@@ -161,7 +161,7 @@ export function PageOverviewSidebar({
           }
         />
       </SectionHeading>
-      <SidebarPerformanceScoreRingContainer>
+      <Flex justify="center" align="center" marginBottom="md">
         {!projectScoreIsLoading && projectScore && (
           <PerformanceScoreRingWithTooltips
             projectScore={projectScore}
@@ -173,7 +173,7 @@ export function PageOverviewSidebar({
           />
         )}
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
-      </SidebarPerformanceScoreRingContainer>
+      </Flex>
       <SidebarSpacer />
       {hasSeerWebVitalsSuggestions && (
         <SeerSuggestionsSection
@@ -286,7 +286,7 @@ function SeerSuggestionsSection({
       <Fragment>
         <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
         <Content>
-          <SeerSuggestionGrid>
+          <Stack gap="xs" width="100%" minHeight="40px">
             {autofix &&
               issues?.map((issue, index) => (
                 <SeerSuggestion
@@ -296,7 +296,7 @@ function SeerSuggestionsSection({
                   isLoading={isLoading}
                 />
               ))}
-          </SeerSuggestionGrid>
+          </Stack>
         </Content>
       </Fragment>
     )
@@ -347,7 +347,7 @@ function SeerSuggestion({
         </CardTitleIcon>
         <SpanOp>{issue.title}</SpanOp>
       </CardTitle>
-      <CardContentContainer>
+      <Flex align="center" gap="xs">
         <CardContent>
           {isLoading || autofix === undefined || rootCauseDescription === null ? (
             <Placeholder height="1.5rem" width="100%" />
@@ -372,7 +372,7 @@ function SeerSuggestion({
             </LinkButton>
           </ViewIssueButtonContainer>
         </CardContent>
-      </CardContentContainer>
+      </Flex>
     </SeerSuggestionCard>
   );
 }
@@ -436,13 +436,6 @@ const processSeriesData = (
   return {countDiff, currentSeries, currentCount, initialCount};
 };
 
-const SidebarPerformanceScoreRingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const ChartValue = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
 `;
@@ -473,14 +466,6 @@ const Content = styled(Flex)`
   margin: ${p => p.theme.space.md} 0;
 `;
 
-const SeerSuggestionGrid = styled('div')`
-  min-height: 40px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-`;
-
 const SeerSuggestionCard = styled('div')`
   display: flex;
   flex-direction: column;
@@ -507,12 +492,6 @@ const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.subText};
-`;
-
-const CardContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const CardContent = styled('div')`
