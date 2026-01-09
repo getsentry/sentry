@@ -16,7 +16,7 @@
 !tsconfig.json
 !config
 !config/tsconfig.build.json
-!webpack.config.js
+!rspack.config.ts
 !pnpm-lock.yaml
 !tests
 !fixtures
