@@ -1,6 +1,8 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Count from 'sentry/components/count';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
@@ -280,20 +282,14 @@ const BodyCell = memo(function BodyCell({
 
 function TokenTypeCell({value, secondaryValue}: {secondaryValue: number; value: number}) {
   return (
-    <TokenTypeCountWrapper>
+    <Flex as="span" justify="end" gap="xs">
       <Count value={value} />
       <span>
         (<Count value={secondaryValue} />)
       </span>
-    </TokenTypeCountWrapper>
+    </Flex>
   );
 }
-
-const TokenTypeCountWrapper = styled('span')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  justify-content: flex-end;
-`;
 
 const ModelCell = styled(CellLink)`
   line-height: 1.1;

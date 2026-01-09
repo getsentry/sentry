@@ -1,7 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
@@ -10,7 +11,6 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -150,7 +150,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
           filters[SpanFields.USER_GEO_SUBREGION];
       }
       return (
-        <DescriptionWrapper>
+        <Flex wrap="wrap" gap="md">
           <ResourceIcon fileExtension={fileExtension} spanOp={row[SPAN_OP]} />
           <SpanDescriptionCell
             moduleName={ModuleName.RESOURCE}
@@ -160,7 +160,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
             group={row[SPAN_GROUP]}
             extraLinkQueryParams={extraLinkQueryParams}
           />
-        </DescriptionWrapper>
+        </Flex>
       );
     }
     if (key === 'epm()') {
@@ -263,9 +263,3 @@ function ResourceIcon(props: {fileExtension: string; spanOp: string}) {
 }
 
 export default ResourceTable;
-
-const DescriptionWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;

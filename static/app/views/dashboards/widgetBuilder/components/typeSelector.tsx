@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -160,10 +161,10 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
             SingleValue: (containerProps: any) => {
               return (
                 <components.SingleValue {...containerProps}>
-                  <SelectionWrapper>
+                  <Flex gap="md">
                     {containerProps.data.leadingItems}
                     {containerProps.children}
-                  </SelectionWrapper>
+                  </Flex>
                 </components.SingleValue>
               );
             },
@@ -175,11 +176,6 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
 }
 
 export default WidgetBuilderTypeSelector;
-
-const SelectionWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;

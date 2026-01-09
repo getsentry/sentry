@@ -2,6 +2,8 @@ import React, {useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -127,7 +129,7 @@ export function ScreenLoadSpansContent() {
           additionalFilters={[`transaction:${transactionName}`]}
           chartHeight={120}
         />
-        <Controls>
+        <Flex justify="between" align="center" marginBottom="md">
           <FiltersContainer>
             {sampleType === SPANS && (
               <SpanOpSelector
@@ -155,9 +157,9 @@ export function ScreenLoadSpansContent() {
             <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
             <SegmentedControl.Item key={EVENT}>{t('By Event')}</SegmentedControl.Item>
           </SegmentedControl>
-        </Controls>
+        </Flex>
         {sampleType === EVENT && (
-          <SampleContainer>
+          <Flex wrap="wrap" gap="xl">
             <SampleContainerItem>
               <ScreenLoadEventSamples
                 release={primaryRelease}
@@ -166,7 +168,7 @@ export function ScreenLoadSpansContent() {
                 transaction={transactionName}
               />
             </SampleContainerItem>
-          </SampleContainer>
+          </Flex>
         )}
         {sampleType === SPANS && (
           <ScreenLoadSpansTable
@@ -186,22 +188,8 @@ const FilterContainer = styled('div')`
   grid-template-columns: auto 1fr;
 `;
 
-const SampleContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-`;
-
 const SampleContainerItem = styled('div')`
   flex: 1;
-`;
-
-const Controls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(1)};
 `;
 
 const FiltersContainer = styled('div')`

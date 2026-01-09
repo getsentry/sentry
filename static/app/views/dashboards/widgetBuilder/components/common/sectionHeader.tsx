@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,7 +20,7 @@ export function SectionHeader({
   className,
 }: SectionHeaderProps) {
   return (
-    <HeaderWrapper>
+    <Flex gap="xs">
       <Tooltip
         title={tooltipText}
         disabled={!tooltipText}
@@ -30,7 +32,7 @@ export function SectionHeader({
         <StyledHeader className={className}>{title}</StyledHeader>
       </Tooltip>
       {optional && <OptionalHeader>{t('(optional)')}</OptionalHeader>}
-    </HeaderWrapper>
+    </Flex>
   );
 }
 
@@ -44,10 +46,4 @@ const OptionalHeader = styled('h6')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(0.5)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
 `;

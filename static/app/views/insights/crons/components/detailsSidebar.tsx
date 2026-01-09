@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -83,7 +85,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         </div>
       </CheckIns>
       <SectionHeading>{t('Schedule')}</SectionHeading>
-      <Schedule>
+      <Flex wrap="wrap" marginBottom="xl" gap="md">
         <Text>
           {scheduleAsText(monitor.config)}{' '}
           {schedule_type === ScheduleType.CRONTAB && `(${timezone})`}
@@ -91,7 +93,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         {schedule_type === ScheduleType.CRONTAB && (
           <CrontabText>({schedule})</CrontabText>
         )}
-      </Schedule>
+      </Flex>
       <Legend>
         <SectionHeading>{t('Legend')}</SectionHeading>
         <DetailsTimelineLegend
@@ -180,13 +182,6 @@ const CheckIns = styled('div')`
   h4 {
     margin-top: 0;
   }
-`;
-
-const Schedule = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.md};
 `;
 
 const Legend = styled('div')`

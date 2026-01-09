@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
+
 import ResourceLandingDurationChartWidget from 'sentry/views/insights/common/components/widgets/resourceLandingDurationChartWidget';
 import ResourceLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/resourceLandingThroughputChartWidget';
 
 export function ResourceLandingPageCharts() {
   return (
-    <ChartsContainer>
+    <Flex wrap="wrap" gap="xl">
       <ChartsContainerItem>
         <ResourceLandingThroughputChartWidget />
       </ChartsContainerItem>
@@ -14,16 +15,9 @@ export function ResourceLandingPageCharts() {
       <ChartsContainerItem>
         <ResourceLandingDurationChartWidget />
       </ChartsContainerItem>
-    </ChartsContainer>
+    </Flex>
   );
 }
-
-const ChartsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-`;
 
 const ChartsContainerItem = styled('div')`
   flex: 1;

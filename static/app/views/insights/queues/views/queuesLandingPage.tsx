@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -88,14 +88,14 @@ function QueuesLandingPage() {
                   <QueuesLandingThroughputChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
-                  <Flex>
+                  <Stack gap="xl">
                     <SearchBar
                       query={query.destination}
                       placeholder={t('Search for more destinations')}
                       onSearch={handleSearch}
                     />
                     <QueuesTable sort={sort} destination={wildCardDestinationFilter} />
-                  </Flex>
+                  </Stack>
                 </ModuleLayout.Full>
               </ModulesOnboarding>
             </ModuleLayout.Layout>
@@ -123,9 +123,3 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const Flex = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

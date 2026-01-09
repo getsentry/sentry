@@ -5,6 +5,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -453,7 +455,7 @@ function Visualize({error, setError}: VisualizeProps) {
             items={draggableFieldIds}
             strategy={verticalListSortingStrategy}
           >
-            <Fields>
+            <Stack gap="md">
               {fields?.map((field, index) => {
                 const canDelete = canDeleteField(
                   state.dataset ?? WidgetType.ERRORS,
@@ -921,7 +923,7 @@ function Visualize({error, setError}: VisualizeProps) {
                   </SortableVisualizeFieldWrapper>
                 );
               })}
-            </Fields>
+            </Stack>
           </SortableContext>
           <DragOverlay dropAnimation={null}>
             {activeId && (
@@ -1127,13 +1129,9 @@ export const PrimarySelectRow = styled('div')<{
   }
 `;
 
-export const FieldRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-  width: 100%;
-  min-width: 0;
-`;
+export function FieldRow(props: FlexProps<'div'>) {
+  return <Flex gap="md" width="100%" minWidth="0" {...props} />;
+}
 
 export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;
@@ -1150,12 +1148,6 @@ const AddButton = styled(Button)`
 const AddButtons = styled('div')`
   display: inline-flex;
   gap: ${space(1.5)};
-`;
-
-const Fields = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 export const StyledArithmeticInput = styled(ArithmeticInput)`

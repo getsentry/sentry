@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
@@ -66,7 +68,7 @@ function ThresholdRow({
   };
 
   return (
-    <ThresholdRowWrapper>
+    <Flex align="center" gap="xl">
       <CircleIndicator color={color} size={WIDGET_INDICATOR_SIZE} />
       <StyledNumberField {...minInputProps} inline={false} disabled />
       {t('to')}
@@ -79,7 +81,7 @@ function ThresholdRow({
           inline={false}
         />
       )}
-    </ThresholdRowWrapper>
+    </Flex>
   );
 }
 
@@ -175,12 +177,6 @@ export function Thresholds({
     </ThresholdsContainer>
   );
 }
-
-const ThresholdRowWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-`;
 
 const ThresholdsContainer = styled('div')`
   display: flex;

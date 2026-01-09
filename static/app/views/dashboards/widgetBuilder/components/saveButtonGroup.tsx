@@ -1,8 +1,7 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {SaveButtonProps} from './saveButton';
 import SaveButton from './saveButton';
@@ -13,19 +12,13 @@ type SaveButtonGroupProps = SaveButtonProps & {
 
 function SaveButtonGroup({isEditing, onSave, setError, onClose}: SaveButtonGroupProps) {
   return (
-    <SaveButtonGroupContainer>
+    <Flex gap="lg">
       <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
       <Button onClick={onClose} priority="default">
         {t('Cancel')}
       </Button>
-    </SaveButtonGroupContainer>
+    </Flex>
   );
 }
 
 export default SaveButtonGroup;
-
-const SaveButtonGroupContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1.5)};
-`;

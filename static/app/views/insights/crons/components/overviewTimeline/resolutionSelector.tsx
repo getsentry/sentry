@@ -1,10 +1,10 @@
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -28,7 +28,7 @@ export function ResolutionSelector({className}: Props) {
   const timeWindow = (location.query?.timeWindow as TimeWindow) ?? '24h';
 
   return (
-    <ListFilters className={className}>
+    <Flex gap="md" className={className}>
       <SegmentedControl<TimeWindow>
         value={timeWindow}
         onChange={handleResolutionChange}
@@ -40,11 +40,6 @@ export function ResolutionSelector({className}: Props) {
         <SegmentedControl.Item key="7d">{t('Week')}</SegmentedControl.Item>
         <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
       </SegmentedControl>
-    </ListFilters>
+    </Flex>
   );
 }
-
-const ListFilters = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;

@@ -1,10 +1,5 @@
-import styled from '@emotion/styled';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
-export const HeaderContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: ${space(2)};
-`;
+export function HeaderContainer(props: FlexProps<'div'>) {
+  return <Flex justify="between" wrap="wrap" gap="xl" {...props} />;
+}
