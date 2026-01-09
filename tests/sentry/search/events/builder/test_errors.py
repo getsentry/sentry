@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-
 import pytest
 from snuba_sdk import Entity, Join, Relationship
 from snuba_sdk.column import Column
@@ -13,6 +11,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -126,11 +125,14 @@ class ErrorsQueryBuilderTest(TestCase):
 
     def test_error_received_filter_uses_datetime(self) -> None:
         """Test that error.received filter uses datetime comparison, not epoch integer."""
-        now = datetime.now(timezone.utc)
-        start = now - timedelta(days=1)
-        end = now
-        filter_date = now - timedelta(hours=12)
+        snuba_dataclass = SnubaParams(
+            start=before_now(days=1),
+            end=before_now(),
+            projects=[self.project],
+            organization=self.organization,
+        )
 
+        filter_date = before_now(hours=12)
         query = ErrorsQueryBuilder(
             dataset=Dataset.Events,
             query=f"error.received:>{filter_date.isoformat()}",
@@ -138,12 +140,7 @@ class ErrorsQueryBuilderTest(TestCase):
             params={
                 "project_id": self.projects,
             },
-            snuba_params=SnubaParams(
-                start=start,
-                end=end,
-                projects=[self.project],
-                organization=self.organization,
-            ),
+            snuba_params=snuba_dataclass,
             offset=None,
             limit=None,
             config=QueryBuilderConfig(),
