@@ -93,7 +93,7 @@ describe('ExplorerPanel', () => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
 
-    // This matches the real behavior when no run ID is provided.
+    // This matches the real behavior when no run ID is provided to the endpoint.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/explorer-chat/`,
       method: 'GET',
@@ -174,6 +174,38 @@ describe('ExplorerPanel', () => {
         screen.getByPlaceholderText('Type your message or / command and press Enter ↵')
       ).toBeInTheDocument();
     });
+
+    it('shows error when hook returns isError=true', () => {
+      const useSeerExplorerSpy = jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          runId: 123,
+          sessionData: null, // should always be null when isError
+          sendMessage: jest.fn(),
+          deleteFromIndex: jest.fn(),
+          startNewSession: jest.fn(),
+          isPolling: false,
+          isError: true, // isError
+          isPending: false,
+          deletedFromIndex: null,
+          interruptRun: jest.fn(),
+          interruptRequested: false,
+          switchToRun: jest.fn(),
+          respondToUserInput: jest.fn(),
+          createPR: jest.fn(),
+        });
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      expect(
+        screen.getByText('Error loading this session (ID=123).')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Ask Seer anything about your application./)
+      ).not.toBeInTheDocument();
+
+      useSeerExplorerSpy.mockRestore();
+    });
   });
 
   describe('Messages Display', () => {
@@ -212,6 +244,7 @@ describe('ExplorerPanel', () => {
         deleteFromIndex: jest.fn(),
         startNewSession: jest.fn(),
         isPolling: false,
+        isError: false,
         isPending: false,
         deletedFromIndex: null,
         interruptRun: jest.fn(),
