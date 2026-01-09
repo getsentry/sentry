@@ -174,10 +174,8 @@ def get_snooze_url(
     sentry_query_params: str,
     type_id: int,
 ) -> str:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
-    if should_fire_workflow_actions(organization, type_id):
+    try:
         rule_id = int(get_key_from_rule_data(rule, "legacy_rule_id"))
-    else:
+    except AssertionError:
         rule_id = rule.id
     return f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule_id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"

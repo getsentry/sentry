@@ -299,6 +299,7 @@ class AlertRuleNotification(ProjectNotification):
 
         if self.rules:
             rule_url = build_rule_url(self.rules[0], self.group, self.project)
+            key = "legacy_rule_id"
             try:
                 key, value = get_rule_or_workflow_id(self.rules[0])
             except AssertionError:
