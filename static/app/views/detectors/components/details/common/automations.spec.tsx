@@ -1,5 +1,8 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  IssueStreamDetectorFixture,
+  UptimeDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -19,10 +22,28 @@ import {DetectorDetailsAutomations} from './automations';
 describe('DetectorDetailsAutomations', () => {
   const organization = OrganizationFixture();
   const automation1 = AutomationFixture({id: '1', name: 'Alert 1'});
+  const issueStreamDetector = IssueStreamDetectorFixture({id: 'issue-stream-1'});
 
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: [issueStreamDetector],
+      match: [
+        MockApiClient.matchQuery({
+          query: 'type:issue_stream',
+          project: [1],
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('renders connected alerts list', async () => {
@@ -30,7 +51,7 @@ describe('DetectorDetailsAutomations', () => {
       workflowIds: [automation1.id],
     });
 
-    MockApiClient.addMockResponse({
+    const workflowsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
       body: [automation1],
@@ -40,6 +61,16 @@ describe('DetectorDetailsAutomations', () => {
 
     expect(screen.getByText('Connected Alerts')).toBeInTheDocument();
     expect(await screen.findByText(automation1.name)).toBeInTheDocument();
+
+    expect(workflowsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          // Should query for both the issue stream detector of the project and the detector itself
+          detector: [detector.id, issueStreamDetector.id],
+        }),
+      })
+    );
   });
 
   it('renders empty state when no alerts are connected', async () => {
@@ -56,10 +87,7 @@ describe('DetectorDetailsAutomations', () => {
     render(<DetectorDetailsAutomations detector={detector} />, {organization});
 
     expect(
-      await screen.findByText('No alerts are connected to this monitor.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Connect Existing Alerts'})
+      await screen.findByRole('button', {name: 'Connect Existing Alerts'})
     ).toBeInTheDocument();
 
     // Shows create new alert link to new alert page and a prefilled connectedIds
@@ -76,17 +104,20 @@ describe('DetectorDetailsAutomations', () => {
       workflowIds: [],
     });
 
+    // Mock the table query (has detector param) to return empty
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
-      match: [MockApiClient.matchQuery({ids: []})],
       body: [],
+      match: [(_url, options) => options.query?.detector !== undefined],
     });
 
+    // Mock the drawer's all automations query (no detector param)
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
       body: [automation1],
+      match: [(_url, options) => options.query?.detector === undefined],
     });
 
     const updateRequest = MockApiClient.addMockResponse({
@@ -97,12 +128,16 @@ describe('DetectorDetailsAutomations', () => {
 
     render(<DetectorDetailsAutomations detector={detector} />, {organization});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Connect Existing Alerts'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Connect Existing Alerts'})
+    );
 
     const drawer = await screen.findByRole('complementary', {name: 'Connect Alerts'});
 
     const allAutomationsList = await screen.findByTestId('drawer-all-automations-list');
-    expect(within(allAutomationsList).getByText(automation1.name)).toBeInTheDocument();
+    expect(
+      await within(allAutomationsList).findByText(automation1.name)
+    ).toBeInTheDocument();
 
     await userEvent.click(within(drawer).getByRole('button', {name: 'Connect'}));
 
@@ -137,7 +172,9 @@ describe('DetectorDetailsAutomations', () => {
 
     render(<DetectorDetailsAutomations detector={detector} />, {organization});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Edit Connected Alerts'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Edit Connected Alerts'})
+    );
 
     const connectedAutomationsList = await screen.findByTestId(
       'drawer-connected-automations-list'
@@ -164,7 +201,7 @@ describe('DetectorDetailsAutomations', () => {
   });
 
   describe('permissions', () => {
-    it('disables edit button when user lacks alerts:write permission', () => {
+    it('disables edit button when user lacks alerts:write permission', async () => {
       const orgWithoutAlertsWrite = OrganizationFixture({
         access: [],
       });
@@ -189,11 +226,13 @@ describe('DetectorDetailsAutomations', () => {
         organization: orgWithoutAlertsWrite,
       });
 
-      const editButton = screen.getByRole('button', {name: 'Edit Connected Alerts'});
+      const editButton = await screen.findByRole('button', {
+        name: 'Edit Connected Alerts',
+      });
       expect(editButton).toBeDisabled();
     });
 
-    it('disables connect and create buttons in empty state when user lacks permission', () => {
+    it('disables connect and create buttons in empty state when user lacks permission', async () => {
       const orgWithoutAlertsWrite = OrganizationFixture({
         access: [],
       });
@@ -218,7 +257,9 @@ describe('DetectorDetailsAutomations', () => {
         organization: orgWithoutAlertsWrite,
       });
 
-      const connectButton = screen.getByRole('button', {name: 'Connect Existing Alerts'});
+      const connectButton = await screen.findByRole('button', {
+        name: 'Connect Existing Alerts',
+      });
       const createButton = screen.getByRole('button', {name: 'Create a New Alert'});
 
       expect(connectButton).toBeDisabled();

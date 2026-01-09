@@ -33,9 +33,11 @@ export const makeAutomationsQueryKey = ({
   limit,
   cursor,
   projects,
+  detector,
 }: {
   orgSlug: string;
   cursor?: string;
+  detector?: string[];
   ids?: string[];
   limit?: number;
   projects?: number[];
@@ -43,7 +45,7 @@ export const makeAutomationsQueryKey = ({
   sortBy?: string;
 }): ApiQueryKey => [
   `/organizations/${orgSlug}/workflows/`,
-  {query: {query, sortBy, id: ids, per_page: limit, cursor, project: projects}},
+  {query: {query, sortBy, id: ids, per_page: limit, cursor, project: projects, detector}},
 ];
 
 const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
@@ -52,6 +54,7 @@ const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQuery
 
 interface UseAutomationsQueryOptions {
   cursor?: string;
+  detector?: string[];
   ids?: string[];
   limit?: number;
   projects?: number[];
