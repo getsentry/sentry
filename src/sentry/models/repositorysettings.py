@@ -11,7 +11,6 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_
 
 
 class CodeReviewTrigger(StrEnum):
-    ON_COMMAND_PHRASE = "on_command_phrase"
     ON_NEW_COMMIT = "on_new_commit"
     ON_READY_FOR_REVIEW = "on_ready_for_review"
 

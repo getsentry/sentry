@@ -620,7 +620,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase", "on_ready_for_review"],
+            code_review_triggers=["on_new_commit", "on_ready_for_review"],
         )
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -634,7 +634,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp.status_code == 200
         assert resp.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": ["on_command_phrase", "on_ready_for_review"],
+            "codeReviewTriggers": ["on_new_commit", "on_ready_for_review"],
         }
 
     @patch(
@@ -658,7 +658,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -864,7 +864,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-eligibility")
@@ -905,7 +905,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         OrganizationContributors.objects.create(
@@ -954,7 +954,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         contributor = OrganizationContributors.objects.create(
@@ -1021,7 +1021,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo2,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
         OrganizationContributors.objects.create(
             organization=org2,
