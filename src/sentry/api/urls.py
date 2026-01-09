@@ -661,6 +661,7 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
 from .endpoints.assistant import AssistantEndpoint
+from .endpoints.attribute_mappings import AttributeMappingsEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
@@ -3666,6 +3667,11 @@ urlpatterns = [
         r"^assistant/$",
         AssistantEndpoint.as_view(),
         name="sentry-api-0-assistant",
+    ),
+    re_path(
+        r"^attribute-mappings/$",
+        AttributeMappingsEndpoint.as_view(),
+        name="sentry-api-0-attribute-mappings",
     ),
     re_path(
         r"^api-applications/$",
