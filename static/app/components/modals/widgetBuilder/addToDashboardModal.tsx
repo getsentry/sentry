@@ -188,29 +188,6 @@ function AddToDashboardModal({
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
-    if (page === 'preview') {
-      // For dashboard preview, pass widgets via location state
-      navigate(
-        normalizeUrl({
-          pathname,
-          query: {
-            ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-          },
-        }),
-        {
-          state: {
-            widgets: widgets.map(w => ({
-              ...w,
-              title: w.title || DEFAULT_WIDGET_NAME,
-            })),
-          },
-        }
-      );
-      closeModal();
-      return;
-    }
-
-    // For widget builder, use query params so builder can set its initial state
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
     navigate(
       normalizeUrl({
