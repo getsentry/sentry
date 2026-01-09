@@ -42,6 +42,14 @@ describe('ErrorDetectorDetails', () => {
       url: `/organizations/org-slug/issues/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/workflows/`,
+      body: [],
+    });
   });
 
   describe('Resolve section', () => {
