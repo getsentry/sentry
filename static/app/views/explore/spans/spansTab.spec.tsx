@@ -61,12 +61,7 @@ const datePageFilterProps: DatePageFilterProps = {
 describe('SpansTabContent', () => {
   const {organization, project} = initializeOrg({
     organization: {
-      features: [
-        'gen-ai-features',
-        'gen-ai-explore-traces',
-        'gen-ai-explore-traces-consent-ui',
-        'traces-page-cross-event-querying',
-      ],
+      features: ['gen-ai-features', 'traces-page-cross-event-querying'],
     },
   });
 

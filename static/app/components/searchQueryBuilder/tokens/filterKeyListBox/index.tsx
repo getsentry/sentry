@@ -6,7 +6,6 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
@@ -220,11 +219,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <Fragment>
-      {enableAISearch ? (
-        <Feature features="organizations:gen-ai-explore-traces">
-          <AskSeer state={state} />
-        </Feature>
-      ) : null}
+      {enableAISearch ? <AskSeer state={state} /> : null}
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (

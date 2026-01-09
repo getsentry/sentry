@@ -1,6 +1,5 @@
 import type {ComboBoxState} from '@react-stately/combobox';
 
-import Feature from 'sentry/components/acl/feature';
 import {makeOrganizationSeerSetupQueryKey} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {setupCheckQueryKey} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -37,44 +36,36 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
 
   if (loadingState) {
     return (
-      <Feature features="organizations:gen-ai-explore-traces-consent-ui">
-        <AskSeerPane>
-          <AskSeerListItem>
-            <AskSeerLabel width="auto">{t('Loading Seer')}</AskSeerLabel>
-            <LoadingIndicator size={16} style={{margin: 0}} />
-          </AskSeerListItem>
-        </AskSeerPane>
-      </Feature>
+      <AskSeerPane>
+        <AskSeerListItem>
+          <AskSeerLabel width="auto">{t('Loading Seer')}</AskSeerLabel>
+          <LoadingIndicator size={16} style={{margin: 0}} />
+        </AskSeerListItem>
+      </AskSeerPane>
     );
   }
 
   if (displayAskSeerFeedback) {
     return (
-      <Feature features="organizations:gen-ai-explore-traces-consent-ui">
-        <AskSeerPane>
-          <AskSeerListItem justifyContent="space-between" cursor="auto">
-            <AskSeerFeedback />
-          </AskSeerListItem>
-        </AskSeerPane>
-      </Feature>
+      <AskSeerPane>
+        <AskSeerListItem justifyContent="space-between" cursor="auto">
+          <AskSeerFeedback />
+        </AskSeerListItem>
+      </AskSeerPane>
     );
   }
 
   if (gaveSeerConsent || hasAskSeerConsentFlowChanges) {
     return (
-      <Feature features="organizations:gen-ai-explore-traces-consent-ui">
-        <AskSeerPane>
-          <AskSeerOption state={state} />
-        </AskSeerPane>
-      </Feature>
+      <AskSeerPane>
+        <AskSeerOption state={state} />
+      </AskSeerPane>
     );
   }
 
   return (
-    <Feature features="organizations:gen-ai-explore-traces-consent-ui">
-      <AskSeerPane>
-        <AskSeerConsentOption state={state} />
-      </AskSeerPane>
-    </Feature>
+    <AskSeerPane>
+      <AskSeerConsentOption state={state} />
+    </AskSeerPane>
   );
 }
