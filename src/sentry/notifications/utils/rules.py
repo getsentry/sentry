@@ -34,7 +34,7 @@ def split_rules_by_rule_workflow_id(rules: Sequence[Rule]) -> RulesAndWorkflows:
 
 def get_rule_or_workflow_id(rule: Rule) -> tuple[RuleIdType, str]:
     try:
-        return ("legacy_rule_id", get_key_from_rule_data(rule, "legacy_rule_id"))
+        return ("legacy_rule_id", int(get_key_from_rule_data(rule, "legacy_rule_id")))
     except AssertionError:
         pass
 
