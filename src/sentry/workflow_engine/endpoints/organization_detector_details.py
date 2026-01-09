@@ -79,6 +79,10 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
+        # Verify user has access to the detector's project (respects Open Membership setting)
+        if not request.access.has_project_access(detector.project):
+            raise PermissionDenied
+
         return args, kwargs
 
     publish_status = {
