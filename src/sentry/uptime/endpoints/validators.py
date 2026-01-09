@@ -13,6 +13,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.environment import Environment
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionDataSourceHandler,
@@ -247,6 +248,35 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
 
     def validate_mode(self, mode):
         return _validate_mode(mode, self.context["request"])
+
+    def validate_owner(self, owner):
+        """
+        Validate that the user has permission to assign the specified team as owner.
+        When Open Team Membership is disabled, users can only assign teams they belong to.
+        """
+        if owner is None:
+            return owner
+
+        if owner.is_team:
+            request = self.context.get("request")
+
+            # Users with team:admin scope can assign any team as owner
+            if request and request.access.has_scope("team:admin"):
+                return owner
+
+            if not request or not getattr(request, "user", None):
+                raise serializers.ValidationError("You do not have permission to assign this owner")
+
+            # Check if the user is a member of the team
+            user_is_team_member = OrganizationMemberTeam.objects.filter(
+                team_id=owner.id,
+                organizationmember__user_id=request.user.id,
+                is_active=True,
+            ).exists()
+            if not user_is_team_member:
+                raise serializers.ValidationError("You do not have permission to assign this owner")
+
+        return owner
 
     def create(self, validated_data):
         if validated_data.get("environment") is not None:
