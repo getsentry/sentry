@@ -90,6 +90,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["workspace_name", "team_id", "webhook_channel", "webhook_channel_id"]
+
     def send_message(self, channel_id: str, message: str) -> None:
         client = self.get_client()
 

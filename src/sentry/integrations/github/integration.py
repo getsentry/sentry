@@ -251,6 +251,9 @@ class GitHubIntegration(
             raise IntegrationError("Organization Integration does not exist")
         return GitHubApiClient(integration=self.model, org_integration_id=self.org_integration.id)
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["installation_id", "account_type", "domain_name"]
+
     # IntegrationInstallation methods
 
     def is_rate_limited_error(self, exc: ApiError) -> bool:

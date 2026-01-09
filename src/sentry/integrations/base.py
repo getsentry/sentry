@@ -425,6 +425,33 @@ class IntegrationInstallation(abc.ABC):
     def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         return None
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        """
+        Returns a list of metadata keys that are safe to expose for debugging purposes.
+
+        These keys should contain non-sensitive information like domain names,
+        installation IDs, webhook URLs (without secrets), etc. Never include
+        credentials, tokens, passwords, or API keys.
+
+        By default, returns an empty list (no metadata exposed).
+        Override in provider-specific IntegrationInstallation subclasses.
+        """
+        return []
+
+    def get_debug_metadata(self) -> dict[str, Any]:
+        """
+        Returns a filtered metadata dictionary containing only non-sensitive fields.
+
+        This method uses _get_debug_metadata_keys() to determine which metadata
+        fields are safe to expose for debugging purposes. Override _get_debug_metadata_keys()
+        in provider-specific subclasses to customize which fields are exposed.
+
+        Returns:
+            A dictionary containing only the allowlisted metadata fields.
+        """
+        allowed_keys = self._get_debug_metadata_keys()
+        return {key: value for key, value in self.model.metadata.items() if key in allowed_keys}
+
     @abc.abstractmethod
     def get_client(self) -> Any:
         """
