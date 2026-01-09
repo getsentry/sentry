@@ -4,13 +4,12 @@ from typing import Any
 
 from django.utils.http import urlencode
 
-from sentry import features
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
 from sentry.types.rules import NotificationRuleDetails
 
 """
@@ -106,21 +105,22 @@ def get_issue_replay_link(group: Group, sentry_query_params: str = "") -> str:
 def get_rules(
     rules: Sequence[Rule], organization: Organization, project: Project, type_id: int | None = None
 ) -> Sequence[NotificationRuleDetails]:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    rules_with_workflows = []
+    workflows_without_rules = []
+    for rule in rules:
+        key = "legacy_rule_id"
+        try:
+            key, _ = get_rule_or_workflow_id(rule)
+        except AssertionError:
+            pass
+        if key == "workflow_id":
+            workflows_without_rules.append(rule)
+        else:
+            rules_with_workflows.append(rule)
 
-    if features.has("organizations:workflow-engine-ui-links", organization):
-        return get_workflow_links(rules, organization, project)
-    elif type_id is None or should_fire_workflow_actions(organization, type_id):
-        return get_rules_with_legacy_ids(rules, organization, project)
-    return [
-        NotificationRuleDetails(
-            rule.id,
-            rule.label,
-            f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/",
-            f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/details/",
-        )
-        for rule in rules
-    ]
+    return get_workflow_links(
+        workflows_without_rules, organization, project
+    ) + get_rules_with_legacy_ids(rules_with_workflows, organization, project)
 
 
 def _fetch_rule_id(rule: Rule, type_id: int | None = None) -> int:
