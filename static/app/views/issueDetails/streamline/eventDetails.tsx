@@ -99,5 +99,5 @@ const BannerPadding = styled('div')`
 
 const PageErrorBoundary = styled(ErrorBoundary)`
   margin: 0;
-  border: 1px solid ${p => p.theme.translucentBorder};
+  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
 `;

@@ -710,7 +710,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 `;
 
 const SectionDivider = styled('hr')`
-  border-color: ${p => p.theme.translucentBorder};
+  border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
   margin: ${space(1)} 0;
 `;
 

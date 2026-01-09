@@ -384,7 +384,7 @@ const SliderTick = styled('div')<{
   width: 2px;
   height: 6px;
   border-radius: 2px;
-  background: ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   ${p =>
     p.inSelection &&

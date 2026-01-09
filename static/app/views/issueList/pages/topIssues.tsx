@@ -1446,7 +1446,7 @@ const TagMiniBar = styled('div')`
   border-radius: 3px;
   overflow: hidden;
   background: ${p => p.theme.backgroundSecondary};
-  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
 `;
 
 const TagBarHoverArea = styled('div')`

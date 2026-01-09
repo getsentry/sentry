@@ -91,7 +91,7 @@ const Header = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
-  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+  box-shadow: 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &[data-stuck] {
     border-radius: 0;
