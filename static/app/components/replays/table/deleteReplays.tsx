@@ -223,7 +223,7 @@ function ReplayPreviewTable({
                   <Flex gap="xs">
                     {getShortEventId(replay.id)}
                     <Flex gap="xs">
-                      <IconCalendar color="gray300" size="xs" />
+                      <IconCalendar variant="muted" size="xs" />
                       <TimeSince date={replay.started_at} />
                     </Flex>
                   </Flex>
@@ -289,7 +289,7 @@ const SubText = styled('div')`
 `;
 
 const DisplayName = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: normal;

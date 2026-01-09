@@ -1,5 +1,5 @@
-import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
@@ -155,25 +155,6 @@ describe('ParentAutogroupNode', () => {
       expect(node.id).toBe('tail-span-id');
     });
 
-    it('should return undefined when both head and tail ids are undefined', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({});
-      const headSpanValue = makeEAPSpan({event_id: undefined});
-      const tailSpanValue = makeEAPSpan({event_id: undefined});
-
-      const headNode = new EapSpanNode(null, headSpanValue, extra);
-      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
-      const node = new ParentAutogroupNode(
-        null,
-        autogroupValue,
-        extra,
-        headNode,
-        tailNode
-      );
-
-      expect(node.id).toBeUndefined();
-    });
-
     it('should return correct drawerTabsTitle', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({
@@ -283,7 +264,7 @@ describe('ParentAutogroupNode', () => {
 
       node.expanded = true;
 
-      expect(node.directChildren).toEqual([headNode]);
+      expect(node.directVisibleChildren).toEqual([headNode]);
     });
 
     it('should return tail children as directChildren when collapsed', () => {
@@ -308,7 +289,7 @@ describe('ParentAutogroupNode', () => {
 
       node.expanded = false;
 
-      expect(node.directChildren).toEqual([childNode]);
+      expect(node.directVisibleChildren).toEqual([childNode]);
     });
 
     it('should compute autogroupedSegments correctly with node chain', () => {
@@ -621,14 +602,7 @@ describe('ParentAutogroupNode', () => {
       const headSpanValue = makeSpan({span_id: 'head-span-id'});
       const tailSpanValue = makeSpan({span_id: 'tail-span-id'});
 
-      const mockFn = jest.fn();
-      const transactionNode = new TransactionNode(
-        null,
-        transactionValue,
-        extra,
-        mockFn,
-        mockFn
-      );
+      const transactionNode = new TransactionNode(null, transactionValue, extra);
       const headNode = new SpanNode(transactionNode, headSpanValue, extra);
       const tailNode = new SpanNode(transactionNode, tailSpanValue, extra);
       const node = new ParentAutogroupNode(
@@ -704,7 +678,6 @@ describe('ParentAutogroupNode', () => {
       );
 
       expect(node.matchByPath('ag-headSpanId')).toBe(true);
-      expect(node.matchByPath('ag-tailSpanId')).toBe(true);
       expect(node.matchByPath('ag-differentId')).toBe(false);
     });
 
@@ -776,12 +749,8 @@ describe('ParentAutogroupNode', () => {
       const mockError = makeTraceError({event_id: 'error-1', level: 'error'});
       node.errors.add(mockError);
 
-      const mockTheme: Partial<Theme> = {
-        red300: '#ff6b6b',
-        blue300: '#3182ce',
-      };
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      const theme = ThemeFixture();
+      expect(node.makeBarColor(theme)).toBe(theme.colors.red400);
     });
 
     it('should return blue color when no errors are present', () => {
@@ -801,12 +770,8 @@ describe('ParentAutogroupNode', () => {
       );
 
       // No errors added, should default to blue
-      const mockTheme: Partial<Theme> = {
-        red300: '#ff6b6b',
-        blue300: '#3182ce',
-      };
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#3182ce');
+      const theme = ThemeFixture();
+      expect(node.makeBarColor(theme)).toBe(theme.colors.blue400);
     });
   });
 

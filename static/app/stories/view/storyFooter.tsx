@@ -4,21 +4,31 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconArrow} from 'sentry/icons';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import {useStoryBookFilesByCategory} from './storySidebar';
 import type {StoryTreeNode} from './storyTree';
+import {useFlatStoryList} from './storyTree';
 import {type StoryDescriptor} from './useStoriesLoader';
 import {useStory} from './useStory';
 
 export function StoryFooter() {
   const {story} = useStory();
-  const stories = useStoryBookFilesByCategory();
+  const stories = useFlatStoryList();
   const pagination = findPreviousAndNextStory(story, stories);
+  const organization = useOrganization();
 
   return (
     <Flex align="center" justify="between" gap="xl">
       {pagination?.prev && (
-        <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
+        <Card
+          to={{
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/stories/${pagination.prev.category}/${pagination.prev.slug}/`
+            ),
+          }}
+          icon={<IconArrow direction="left" />}
+        >
           <Text variant="muted" as="div">
             Previous
           </Text>
@@ -30,7 +40,11 @@ export function StoryFooter() {
       {pagination?.next && (
         <Card
           data-flip
-          to={pagination.next.location}
+          to={{
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/stories/${pagination.next.category}/${pagination.next.slug}/`
+            ),
+          }}
           icon={<IconArrow direction="right" />}
         >
           <Text variant="muted" as="div" align="right">
@@ -47,12 +61,11 @@ export function StoryFooter() {
 
 function findPreviousAndNextStory(
   story: StoryDescriptor,
-  categories: ReturnType<typeof useStoryBookFilesByCategory>
+  stories: StoryTreeNode[]
 ): {
   next?: StoryTreeNode;
   prev?: StoryTreeNode;
 } | null {
-  const stories = Object.values(categories).flat();
   const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
 
   if (currentIndex === -1) {

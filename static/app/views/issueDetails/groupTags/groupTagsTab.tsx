@@ -86,7 +86,7 @@ export function GroupTagsTab() {
     <Layout.Body>
       <Layout.Main width="full">
         <Alert.Container>
-          <Alert type="info" showIcon={false}>
+          <Alert variant="info" showIcon={false}>
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
               {
@@ -182,7 +182,7 @@ const StyledPanel = styled(Panel)`
 const TagHeading = styled('h5')`
   font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const UnstyledUnorderedList = styled('ul')`
@@ -200,8 +200,8 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   top: 0;
   bottom: 0;
   left: 0;
-  background: ${p => p.theme.surface100};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.colors.surface200};
+  border-radius: ${p => p.theme.radius.md};
   width: ${p => p.widthPercent};
 `;
 
@@ -209,18 +209,18 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   position: relative;
   display: flex;
   line-height: 2.2;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => (p.theme.isChonk ? p.theme.blue300 : p.theme.purple200)};
+      background: ${p => p.theme.colors.blue400};
     }
   }
 `;

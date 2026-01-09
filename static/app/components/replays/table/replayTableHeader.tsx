@@ -67,18 +67,18 @@ export default function ReplayTableHeader({
               replays={replays}
             />
           </TableCellFirst>
-          <TableCellsRemaining>
+          <Flex align="center" flex="1" column="2 / -1">
             <DeleteReplays
               queryOptions={queryOptions}
               replays={replays}
               selectedIds={selectedIds}
             />
-          </TableCellsRemaining>
+          </Flex>
         </TableHeader>
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap" gap="md">
             {tn(
               'Selected %s visible replay.',
@@ -97,7 +97,7 @@ export default function ReplayTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString
@@ -127,13 +127,6 @@ const TableHeader = styled(SimpleTable.Header)`
 
 const TableCellFirst = styled(SimpleTable.HeaderCell)`
   grid-column: 1;
-`;
-
-const TableCellsRemaining = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  grid-column: 2 / -1;
 `;
 
 const FullGridAlert = styled(Alert)`

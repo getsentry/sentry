@@ -86,9 +86,7 @@ function WidgetTemplatesList({
                 });
               }}
             >
-              <IconWrapper backgroundColor={iconColor}>
-                <Icon color="white" />
-              </IconWrapper>
+              <IconWrapper backgroundColor={iconColor}>{Icon}</IconWrapper>
               <div>
                 <WidgetTitle>{widget.title}</WidgetTitle>
                 <WidgetDescription>{widget.description}</WidgetDescription>
@@ -145,7 +143,8 @@ function WidgetTemplatesList({
 export default WidgetTemplatesList;
 
 const TemplateContainer = styled('div')<{lastWidget: boolean}>`
-  border-bottom: ${p => (p.lastWidget ? 'none' : `1px solid ${p.theme.border}`)};
+  border-bottom: ${p =>
+    p.lastWidget ? 'none' : `1px solid ${p.theme.tokens.border.primary}`};
 `;
 
 const TemplateCard = styled('div')<{selected: boolean}>`
@@ -154,20 +153,21 @@ const TemplateCard = styled('div')<{selected: boolean}>`
   gap: ${space(1.5)};
   padding: ${space(2)};
   border: none;
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => (p.selected ? p.theme.purple100 : p.theme.background)};
+  background-color: ${p =>
+    p.selected ? p.theme.colors.blue100 : p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   margin: ${p => (p.selected ? space(2) : space(0.5))} 0px;
 
   cursor: pointer;
 
   &:focus,
   &:hover {
-    background-color: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.colors.blue100};
     outline: none;
   }
 
   &:active {
-    background-color: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.colors.blue100};
   }
 `;
 
@@ -190,7 +190,7 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   padding: ${space(1)};
   min-width: 40px;
   height: 40px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.backgroundColor};
 `;
 

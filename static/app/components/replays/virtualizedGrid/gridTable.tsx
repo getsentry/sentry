@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export const GridTable = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.purple200};
+    border-top: 1px solid ${p => p.theme.colors.blue200};
     content: '';
     left: 0;
     position: absolute;
@@ -16,7 +16,7 @@ export const GridTable = styled(FluidHeight)`
   }
 
   .beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple200};
+    border-bottom: 1px solid ${p => p.theme.colors.blue200};
     content: '';
     right: 0;
     position: absolute;
@@ -25,7 +25,7 @@ export const GridTable = styled(FluidHeight)`
   }
 
   .beforeCurrentTime + .afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.purple300};
+    border-top: 1px solid ${p => p.theme.colors.blue400};
     content: '';
     left: 0;
     position: absolute;
@@ -34,7 +34,7 @@ export const GridTable = styled(FluidHeight)`
   }
 
   .beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple300};
+    border-bottom: 1px solid ${p => p.theme.colors.blue400};
     content: '';
     right: 0;
     position: absolute;

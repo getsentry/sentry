@@ -7,11 +7,10 @@ from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
-from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_query_columns_for_error_upsampling,
@@ -54,7 +53,7 @@ SENTRY_BACKEND_REFERRERS = [
 
 
 @region_silo_endpoint
-class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -156,17 +155,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
-
-            if "agent-monitoring" in referrer:
-                try:
-                    analytics.record(
-                        AgentMonitoringQuery(
-                            organization_id=organization.id,
-                            referrer=referrer,
-                        )
-                    )
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
 
             batch_features = self.get_features(organization, request)
             use_metrics = (
@@ -378,7 +366,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     )
 
                 try:
-                    widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                    widget = DashboardWidget.objects.get(
+                        id=dashboard_widget_id, dashboard__organization_id=organization.id
+                    )
                     does_widget_have_split = widget.discover_widget_split is not None
 
                     if does_widget_have_split:

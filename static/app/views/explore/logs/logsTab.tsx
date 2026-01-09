@@ -9,7 +9,10 @@ import type {DatePageFilterProps} from 'sentry/components/organizations/datePage
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -17,6 +20,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -40,10 +44,7 @@ import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/log
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {
-  ChartIntervalUnspecifiedStrategy,
-  useChartInterval,
-} from 'sentry/views/explore/hooks/useChartInterval';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -52,6 +53,7 @@ import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
+import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
   LogsFilterSection,
@@ -94,7 +96,22 @@ type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
 };
 
+interface LogsSearchBarProps {
+  tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];
+}
+
+function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) {
+  const {displayAskSeer} = useSearchQueryBuilder();
+
+  if (displayAskSeer) {
+    return <LogsTabSeerComboBox />;
+  }
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
+}
+
 export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
   const logsSearch = useQueryParamsSearch();
   const fields = useQueryParamsFields();
@@ -108,6 +125,12 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
+
+  // AI search is gated behind the gen-ai-search-agent-translate feature flag
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('gen-ai-search-agent-translate');
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
     getMaxIngestDelayTimestamp()
   );
@@ -116,9 +139,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
-  const [interval] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-  });
+  const [interval] = useChartInterval();
   const visualizes = useQueryParamsVisualizes();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
@@ -280,7 +301,11 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider
+      enableAISearch={areAiFeaturesAllowed}
+      aiSearchBadgeType="alpha"
+      {...searchQueryBuilderProviderProps}
+    >
       <ExploreBodySearch>
         <Layout.Main width="full">
           <LogsFilterSection>
@@ -292,7 +317,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
                 searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
               />
             </StyledPageFilterBar>
-            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+            <LogsSearchBar
+              tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
+            />
             {saveAsItems.length > 0 && (
               <DropdownMenu
                 items={saveAsItems}
@@ -367,7 +394,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           </LogsGraphContainer>
           <LogsTableActionsContainer>
             <Tabs value={tableTab} onChange={setTableTab} size="sm">
-              <TabList hideBorder variant="floating">
+              <TabList variant="floating">
                 <TabList.Item key="logs">{t('Logs')}</TabList.Item>
                 <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
               </TabList>

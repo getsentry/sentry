@@ -56,7 +56,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   justify-content: center;
   height: 100%;
   width: 100%;
-  color: ${p => p.theme.chartLabel};
+  color: ${p => p.theme.tokens.content.muted};
   font-size: ${p => p.theme.fontSize.xs};
   transition: color 100ms;
   ${p => p.textCss?.(p)}
@@ -84,8 +84,8 @@ function ProgressRing({
   ...p
 }: Props) {
   const theme = useTheme();
-  const progressColor = p.progressColor ?? theme.green300;
-  const backgroundColor = p.backgroundColor ?? theme.gray200;
+  const progressColor = p.progressColor ?? theme.colors.green400;
+  const backgroundColor = p.backgroundColor ?? theme.colors.gray200;
   const radius = size / 2 - barWidth / 2;
   const circumference = 2 * Math.PI * radius;
 

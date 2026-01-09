@@ -56,8 +56,8 @@ const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
   ${p =>
     p.hasStreamlinedUI &&
     css`
-      border: 1px solid ${p.theme.border};
-      border-radius: ${p.theme.borderRadius};
+      border: 1px solid ${p.theme.tokens.border.primary};
+      border-radius: ${p.theme.radius.md};
       padding: ${space(2)} 0;
 
       @media (min-width: ${p.theme.breakpoints.md}) {

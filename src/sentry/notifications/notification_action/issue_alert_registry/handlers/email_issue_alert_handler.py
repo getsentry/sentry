@@ -51,13 +51,7 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
         }
 
         if target_type == ActionTarget.ISSUE_OWNERS.value:
-            # XXX(CEO): temporarily handle both fallthroughType and fallthrough_type
-            action_data = action.data.copy()
-            if action.data.get("fallthroughType"):
-                del action_data["fallthroughType"]
-                action_data["fallthrough_type"] = action.data["fallthroughType"]
-
-            blob = EmailDataBlob(**action_data)
+            blob = EmailDataBlob(**action.data)
             final_blob[EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value] = blob.fallthrough_type
 
         return final_blob

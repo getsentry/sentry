@@ -1,3 +1,4 @@
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -61,7 +62,7 @@ export function getReadableArtifactTypeTooltip(
   }
 }
 
-interface Labels {
+export interface Labels {
   appId: string;
   buildConfiguration: string;
   downloadSizeDescription: string;
@@ -69,9 +70,26 @@ interface Labels {
   installSizeDescription: string;
   installSizeLabel: string;
   installUnavailableTooltip: string;
+  installSizeLabelTooltip?: string;
 }
 
-export function getLabels(platform: Platform | undefined): Labels {
+export function getLabels(
+  platform: Platform | undefined,
+  hasMultiplePlatforms = false
+): Labels {
+  if (hasMultiplePlatforms) {
+    return {
+      installSizeLabel: t('Install Size'),
+      downloadSizeLabel: t('Download Size'),
+      appId: t('Bundle identifier'),
+      installSizeDescription: t('Uncompressed size'),
+      downloadSizeDescription: t('Bytes transferred over the network'),
+      buildConfiguration: t('Build configuration'),
+      installUnavailableTooltip: t('This app cannot be installed.'),
+      installSizeLabelTooltip: t('Install Size for iOS; Uncompressed Size for Android'),
+    };
+  }
+
   switch (platform) {
     case 'android':
       return {
@@ -141,4 +159,34 @@ export function formattedPrimaryMetricDownloadSize(
     return formatBytesBase10(primarySizeMetric.download_size_bytes);
   }
   return '-';
+}
+
+export function formattedSizeDiff(diff: number): string {
+  if (diff === 0) {
+    return '';
+  }
+
+  const sign = diff > 0 ? '+' : '-';
+  return `${sign}${formatBytesBase10(Math.abs(diff))}`;
+}
+
+export function getTrend(diff: number): {
+  variant: 'danger' | 'success' | 'muted';
+  icon?: React.ReactNode;
+} {
+  if (diff > 0) {
+    return {
+      variant: 'danger',
+      icon: <IconArrow direction="up" size="xs" />,
+    };
+  }
+
+  if (diff < 0) {
+    return {
+      variant: 'success',
+      icon: <IconArrow direction="down" size="xs" />,
+    };
+  }
+
+  return {variant: 'muted'};
 }

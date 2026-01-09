@@ -13,6 +13,7 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
@@ -38,9 +39,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {
-        appId: buildDetails.app_info.app_id ?? undefined,
-      }),
+      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
       label: t('Releases'),
     },
   ];
@@ -48,8 +47,8 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   if (buildDetails.app_info.version) {
     breadcrumbs.push({
       to: makeReleasesUrl(project?.id, {
-        version: buildDetails.app_info.version,
-        appId: buildDetails.app_info.app_id ?? undefined,
+        query: buildDetails.app_info.version,
+        tab: 'mobile-builds',
       }),
       label: buildDetails.app_info.version,
     });
@@ -68,14 +67,16 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
         </Flex>
         <Heading as="h1">Build comparison</Heading>
         <Flex gap="lg" wrap="wrap" align="center">
-          <Flex gap="sm" align="center">
-            <AppIcon>
-              <AppIconPlaceholder>
-                {buildDetails.app_info.name?.charAt(0) || ''}
-              </AppIconPlaceholder>
-            </AppIcon>
-            <Text>{buildDetails.app_info.name}</Text>
-          </Flex>
+          {buildDetails.app_info.name && (
+            <Flex gap="sm" align="center">
+              <AppIcon
+                appName={buildDetails.app_info.name}
+                appIconId={buildDetails.app_info.app_icon_id}
+                projectId={projectId}
+              />
+              <Text>{buildDetails.app_info.name}</Text>
+            </Flex>
+          )}
           <Flex gap="sm" align="center">
             <InfoIcon>
               {buildDetails.app_info.platform ? (
@@ -101,7 +102,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {buildDetails.app_info.build_configuration && (
             <Tooltip title={t('Build configuration')}>
               <Flex gap="sm" align="center">
-                <IconMobile size="sm" color="gray300" />
+                <IconMobile size="sm" variant="muted" />
                 <Text monospace>{buildDetails.app_info.build_configuration}</Text>
               </Flex>
             </Tooltip>
@@ -109,7 +110,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {isSizeInfoCompleted(buildDetails.size_info) && (
             <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
-                <IconCode size="sm" color="gray300" />
+                <IconCode size="sm" variant="muted" />
                 <Text underline="dotted">
                   {formattedPrimaryMetricInstallSize(buildDetails.size_info)}
                 </Text>
@@ -119,7 +120,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {isSizeInfoCompleted(buildDetails.size_info) && (
             <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
-                <IconDownload size="sm" color="gray300" />
+                <IconDownload size="sm" variant="muted" />
                 <Text underline="dotted">
                   {formattedPrimaryMetricDownloadSize(buildDetails.size_info)}
                 </Text>
@@ -138,23 +139,6 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     </Flex>
   );
 }
-
-const AppIcon = styled('div')`
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: ${p => p.theme.purple400};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-`;
-
-const AppIconPlaceholder = styled('div')`
-  color: white;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
 
 const InfoIcon = styled('div')`
   width: 24px;

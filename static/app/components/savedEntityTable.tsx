@@ -93,7 +93,7 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
   height: 40px;
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   ${p =>
@@ -131,7 +131,7 @@ SavedEntityTable.CellStar = function CellStar({
     <Button
       aria-label={isStarred ? t('Unstar') : t('Star')}
       borderless
-      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} />}
+      icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={onClick}
     />
@@ -139,9 +139,9 @@ SavedEntityTable.CellStar = function CellStar({
 };
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.border};
+  text-decoration-color: ${p => p.theme.tokens.border.primary};
   ${p => p.theme.overflowEllipsis};
 `;
 
@@ -204,7 +204,7 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
           aria-label={t('More options')}
           size="sm"
           borderless
-          icon={<IconEllipsis compact />}
+          icon={<IconEllipsis />}
           data-test-id="menu-trigger"
         />
       )}

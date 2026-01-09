@@ -324,6 +324,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             extrapolation_mode=extrapolation_mode,
         )
 
+        # Mark that this detector's query was updated by a user
+        self._mark_query_as_user_updated(snuba_query)
+
     def update_anomaly_detection(self, instance: Detector, validated_data: dict[str, Any]) -> bool:
         """
         When data changes on a detector we may need to tell Seer to update or remove their data for the detector
@@ -414,3 +417,15 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         delete_data_in_seer_for_detector(detector)
 
         super().delete()
+
+    def _mark_query_as_user_updated(self, snuba_query: SnubaQuery):
+        """
+        Mark the snuba query as user-updated in the query_snapshot field.
+        This is used to skip automatic migrations for queries that users have already modified.
+        Only marks queries that already have a snapshot (i.e., were previously migrated).
+        """
+        snuba_query.refresh_from_db()
+        if snuba_query.query_snapshot is None:
+            return
+        snuba_query.query_snapshot["user_updated"] = True
+        snuba_query.save()

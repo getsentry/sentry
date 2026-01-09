@@ -199,7 +199,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
         )}
         {isError && (
           <StatusContainer>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </StatusContainer>
         )}
         {!isError && !isLoading && !hasFunctions && (
@@ -446,7 +446,7 @@ function FunctionChart<F extends BreakdownFunction>({
       },
       yAxis: {
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
@@ -457,7 +457,7 @@ function FunctionChart<F extends BreakdownFunction>({
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
       },
     };
-  }, [theme.chartLabel]);
+  }, [theme.tokens.content.muted]);
 
   if (stats?.isPending) {
     return (
@@ -470,7 +470,7 @@ function FunctionChart<F extends BreakdownFunction>({
   if (stats?.isError) {
     return (
       <StatusContainer>
-        <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+        <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
       </StatusContainer>
     );
   }

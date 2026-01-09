@@ -88,15 +88,15 @@ const Header = styled(Sticky)`
   grid-template-columns: subgrid;
 
   z-index: 1;
-  background: ${p => p.theme.background};
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border-top-left-radius: ${p => p.theme.radius.md};
+  border-top-right-radius: ${p => p.theme.radius.md};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
     border-radius: 0;
-    border-left: 1px solid ${p => p.theme.border};
-    border-right: 1px solid ${p => p.theme.border};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     margin: 0 -1px;
   }
 `;
@@ -113,7 +113,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
-  box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
+  box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   grid-row: 1;
   grid-column: 2/-1;
 `;

@@ -146,7 +146,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
             {recentDeploysByEnvironment.map(deploy => {
               return (
                 <Flex key={deploy.id} align="center" gap="md" justify="between">
-                  <Tag type="highlight">{deploy.environment}</Tag>
+                  <Tag variant="info">{deploy.environment}</Tag>
                   {deploy.dateFinished && <StyledTimeSince date={deploy.dateFinished} />}
                 </Flex>
               );
@@ -244,8 +244,8 @@ const StyledVersion = styled(Version)`
 `;
 
 const CountSince = styled('div')`
-  color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const AvatarListContainer = styled('div')`

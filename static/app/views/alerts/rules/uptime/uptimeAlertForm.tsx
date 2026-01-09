@@ -26,6 +26,7 @@ import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -129,6 +130,14 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               exact: true,
             });
           }
+
+          if (!rule) {
+            trackAnalytics('uptime_monitor.created', {
+              organization,
+              uptime_mode: response.mode,
+            });
+          }
+
           navigate(
             makeAlertsPathname({
               path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
@@ -348,7 +357,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             />
           </ConfigurationPanel>
           <Alert.Container>
-            <Alert type="muted">
+            <Alert variant="muted">
               {tct(
                 'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
                 {

@@ -1,17 +1,15 @@
-"""
-Functions for fetching trace data optimized for LLM issue detection.
-"""
-
 from __future__ import annotations
 
 import logging
+import random
 import re
 from datetime import UTC, datetime, timedelta
 
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.sentry_data_models import EvidenceSpan, EvidenceTraceData
+from sentry.seer.explorer.utils import normalize_description
+from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -21,122 +19,99 @@ logger = logging.getLogger(__name__)
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
-def get_evidence_trace_for_llm_detection(
-    transaction_name: str, project_id: int
-) -> EvidenceTraceData | None:
+def get_project_top_transaction_traces_for_llm_detection(
+    project_id: int,
+    limit: int,
+    start_time_delta_minutes: int,
+) -> list[TraceMetadata]:
     """
-    Get trace data with performance metrics for LLM issue detection.
-
-    Args:
-        transaction_name: The name of the transaction to find traces for
-        project_id: The ID of the project
-
-    Returns:
-        EvidenceTraceData with spans including performance metrics, or None if no traces found
+    Get top transactions by total time spent, return one semi-randomly chosen trace per transaction.
     """
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
-        logger.exception(
-            "Project does not exist; cannot fetch traces for LLM detection",
-            extra={"project_id": project_id, "transaction_name": transaction_name},
-        )
-        return None
+        logger.exception("Project does not exist", extra={"project_id": project_id})
+        return []
 
     end_time = datetime.now(UTC)
-    start_time = end_time - timedelta(hours=24)
+    start_time = end_time - timedelta(minutes=start_time_delta_minutes)
+    config = SearchResolverConfig(auto_fields=True)
 
-    snuba_params = SnubaParams(
-        start=start_time,
-        end=end_time,
-        projects=[project],
-        organization=project.organization,
-    )
-    config = SearchResolverConfig(
-        auto_fields=True,
-    )
-
-    escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
-    traces_result = Spans.run_table_query(
-        params=snuba_params,
-        query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
-        selected_columns=[
-            "trace",
-            "precise.start_ts",
-        ],
-        orderby=["precise.start_ts"],
-        offset=0,
-        limit=1,
-        referrer=Referrer.SEER_RPC,
-        config=config,
-        sampling_mode="NORMAL",
-    )
-
-    trace_id = None
-    for row in traces_result.get("data", []):
-        trace_id = row.get("trace")
-        if trace_id:
-            break
-
-    if not trace_id:
-        logger.info(
-            "No traces found for transaction (LLM detection)",
-            extra={"transaction_name": transaction_name, "project_id": project_id},
+    def _build_snuba_params(start: datetime) -> SnubaParams:
+        """
+        Both queries have different start times and the same end time.
+        """
+        return SnubaParams(
+            start=start,
+            end=end_time,
+            projects=[project],
+            organization=project.organization,
         )
-        return None
 
-    spans_result = Spans.run_table_query(
-        params=snuba_params,
-        query_string=f"trace:{trace_id}",
+    transaction_snuba_params = _build_snuba_params(start_time)
+    random_offset = random.randint(1, 8)
+    trace_snuba_params = _build_snuba_params(start_time + timedelta(minutes=random_offset))
+
+    transactions_result = Spans.run_table_query(
+        params=transaction_snuba_params,
+        query_string="is_transaction:true",
         selected_columns=[
-            "span_id",
-            "parent_span",
-            "span.op",
-            "span.description",
-            "precise.start_ts",
-            "span.self_time",
-            "span.duration",
-            "span.status",
+            "transaction",
+            "sum(span.duration)",
         ],
-        orderby=["precise.start_ts"],
+        orderby=["-sum(span.duration)"],
         offset=0,
-        limit=1000,
+        limit=limit,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",
     )
 
-    evidence_spans: list[EvidenceSpan] = []
-    for row in spans_result.get("data", []):
-        span_id = row.get("span_id")
-        parent_span_id = row.get("parent_span")
-        span_op = row.get("span.op")
-        span_description = row.get("span.description")
-        span_exclusive_time = row.get("span.self_time")
-        span_duration = row.get("span.duration")
-        span_status = row.get("span.status")
-        span_timestamp = row.get("precise.start_ts")
+    trace_metadata = []
+    seen_names = set()
+    seen_trace_ids = set()
 
-        if span_id:
-            evidence_spans.append(
-                EvidenceSpan(
-                    span_id=span_id,
-                    parent_span_id=parent_span_id,
-                    op=span_op,
-                    description=span_description or "",
-                    exclusive_time=span_exclusive_time,
-                    timestamp=span_timestamp,
-                    data={
-                        "duration": span_duration,
-                        "status": span_status,
-                    },
-                )
+    for row in transactions_result.get("data", []):
+        transaction_name = row.get("transaction")
+        if not transaction_name:
+            continue
+
+        normalized_name = normalize_description(transaction_name)
+        if normalized_name in seen_names:
+            continue
+
+        escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
+        trace_result = Spans.run_table_query(
+            params=trace_snuba_params,
+            query_string=f'is_transaction:true transaction:"{escaped_transaction_name}"',
+            selected_columns=["trace", "precise.start_ts"],
+            orderby=["precise.start_ts"],  # First trace in the window
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_RPC,
+            config=config,
+            sampling_mode="NORMAL",
+        )
+
+        # Get the first (and only) result
+        data = trace_result.get("data", [])
+        if not data:
+            continue
+
+        trace_id = data[0].get("trace")
+        if not trace_id:
+            continue
+
+        if trace_id in seen_trace_ids:
+            continue
+
+        trace_metadata.append(
+            TraceMetadata(
+                trace_id=trace_id,
+                transaction_name=normalized_name,
             )
+        )
+        seen_names.add(normalized_name)
+        seen_trace_ids.add(trace_id)
 
-    return EvidenceTraceData(
-        trace_id=trace_id,
-        project_id=project_id,
-        transaction_name=transaction_name,
-        total_spans=len(evidence_spans),
-        spans=evidence_spans,
-    )
+    return trace_metadata

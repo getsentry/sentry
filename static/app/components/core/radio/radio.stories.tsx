@@ -1,13 +1,13 @@
 import {Fragment, useState} from 'react';
 import documentation from '!!type-loader!sentry/components/core/radio';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Radio, type RadioProps} from 'sentry/components/core/radio';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Radio', (story, APIReference) => {
-  APIReference(documentation.props.Radio);
+  APIReference(documentation.props?.Radio);
 
   story('Default', () => {
     return (
@@ -47,17 +47,11 @@ function RadioCase(props: RadioProps) {
   const [checked, setChecked] = useState(!!props.checked);
   const {checked: _checkedProp, ...rest} = props;
   return (
-    <Label>
+    <Flex as="label" align="center" gap="md">
       {checked
         ? `Radio is on ${props.disabled ? '(disabled)' : ''}`
         : `Radio is off ${props.disabled ? '(disabled)' : ''}`}
       <Radio checked={checked} onClick={() => setChecked(!checked)} {...rest} />
-    </Label>
+    </Flex>
   );
 }
-
-const Label = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;

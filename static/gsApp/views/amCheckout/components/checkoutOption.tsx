@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 // TODO(isabella): Instead of requiring the code using this component to
@@ -43,7 +42,7 @@ export default CheckoutOption;
 
 const Option = styled('div')<{isSelected: boolean}>`
   width: 100%;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
   position: relative;
 
@@ -57,70 +56,59 @@ const Option = styled('div')<{isSelected: boolean}>`
 
   &::before {
     height: calc(100% - ${p => p.theme.space['2xs']});
-    background: ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
-    border-radius: ${p => p.theme.borderRadius};
+    background: ${p =>
+      p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.border.primary};
+    border-radius: ${p => p.theme.radius.md};
+    top: ${p => p.theme.space['2xs']};
+    transform: translateY(-${p => p.theme.space['2xs']});
+    box-shadow: 0 ${p => p.theme.space['2xs']} 0 0px
+      ${p =>
+        p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.border.primary};
   }
 
   &::after {
-    background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
+    background: ${p => p.theme.tokens.background.primary};
+    border-radius: ${p => p.theme.radius.md};
     border: 1px solid
-      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+      ${p =>
+        p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.border.primary};
+    transform: ${p =>
+      p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
+    transition: transform 0.06s ease-in;
   }
 
   > * {
     z-index: 1;
     position: relative;
+    transform: ${p =>
+      p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
+    transition: transform 0.06s ease-in;
   }
 
-  ${p =>
-    p.theme.isChonk &&
-    css`
-      &::before {
-        top: ${p.theme.space['2xs']};
-        transform: translateY(-${p.theme.space['2xs']});
-        box-shadow: 0 ${p.theme.space['2xs']} 0 0px
-          ${p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border};
-      }
-
-      &::after {
-        transform: ${p.isSelected
+  &:hover {
+    &::after,
+    > * {
+      transform: ${p =>
+        p.isSelected
           ? 'translateY(0)'
-          : `translateY(-${p.theme.space['2xs']})`};
-        transition: transform 0.06s ease-in;
-      }
+          : `translateY(calc(-${p.theme.space['2xs']} - 2px))`};
+    }
+  }
 
-      > * {
-        transform: ${p.isSelected
-          ? 'translateY(0)'
-          : `translateY(-${p.theme.space['2xs']})`};
-        transition: transform 0.06s ease-in;
-      }
+  &:active,
+  &[aria-expanded='true'],
+  &[aria-checked='true'] {
+    &::after,
+    > * {
+      transform: translateY(0);
+    }
+  }
 
-      &:hover {
-        &::after,
-        > * {
-          transform: ${p.isSelected
-            ? 'translateY(0)'
-            : `translateY(calc(-${p.theme.space['2xs']} - 2px))`};
-        }
-      }
-
-      &:active,
-      &[aria-expanded='true'],
-      &[aria-checked='true'] {
-        &::after,
-        > * {
-          transform: translateY(0);
-        }
-      }
-
-      &:disabled,
-      &[aria-disabled='true'] {
-        &::after,
-        > * {
-          transform: translateY(0px);
-        }
-      }
-    `}
+  &:disabled,
+  &[aria-disabled='true'] {
+    &::after,
+    > * {
+      transform: translateY(0px);
+    }
+  }
 `;

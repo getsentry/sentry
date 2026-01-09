@@ -10,7 +10,6 @@ from sentry.search.eap.trace_metrics.formulas import TRACE_METRICS_FORMULA_DEFIN
 
 TRACE_METRICS_DEFINITIONS = ColumnDefinitions(
     aggregates=TRACE_METRICS_AGGREGATE_DEFINITIONS,
-    conditional_aggregates={},
     formulas=TRACE_METRICS_FORMULA_DEFINITIONS,
     columns=TRACE_METRICS_ATTRIBUTE_DEFINITIONS,
     contexts=TRACE_METRICS_VIRTUAL_CONTEXTS,

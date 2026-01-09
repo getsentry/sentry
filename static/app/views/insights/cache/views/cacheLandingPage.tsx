@@ -2,10 +2,12 @@ import React from 'react';
 import keyBy from 'lodash/keyBy';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DataCategory} from 'sentry/types/core';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {CacheSamplePanel} from 'sentry/views/insights/cache/components/samplePanel';
 import {
   isAValidSort,
@@ -135,8 +137,16 @@ export function CacheLandingPage() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="cache" analyticEventName="insight.page_loads.cache">
+    <ModulePageProviders
+      moduleName="cache"
+      analyticEventName="insight.page_loads.cache"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <CacheLandingPage />
     </ModulePageProviders>
   );

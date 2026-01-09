@@ -54,7 +54,7 @@ export default function ReplayComparisonModal({
         initialRightOffsetMs={initialRightOffsetMs}
       >
         <Header closeButton>
-          <ModalHeader>
+          <Flex justify="between" align="center" flex="1">
             <Title>
               {t('Hydration Error')}
               <Tooltip
@@ -100,12 +100,12 @@ export default function ReplayComparisonModal({
                 />
               ) : null}
             </Flex>
-          </ModalHeader>
+          </Flex>
         </Header>
         <Body>
           {isSameTimestamp ? (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t(
                   "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
                 )}
@@ -131,26 +131,18 @@ const AutoWideHovercard = styled(Hovercard)`
   width: auto;
 `;
 
-const ModalHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-  flex: 1;
-`;
-
 const Title = styled('h4')`
   display: flex;
   gap: ${space(1)};
 `;
 
 const Before = styled('span')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.colors.red400};
   font-weight: bold;
 `;
 
 const After = styled('span')`
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.colors.green400};
   font-weight: bold;
 `;
 

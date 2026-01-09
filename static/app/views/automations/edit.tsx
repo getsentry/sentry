@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,6 +31,7 @@ import {AutomationFeedbackButton} from 'sentry/views/automations/components/auto
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
+  assignSubfilterIds,
   getAutomationFormData,
   getNewAutomationData,
   validateAutomationBuilderState,
@@ -40,6 +41,7 @@ import {EditAutomationActions} from 'sentry/views/automations/components/editAut
 import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
+import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -117,49 +119,59 @@ function AutomationEditForm({automation}: {automation: Automation}) {
             logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
             conditions: [],
           },
-      actionFilters: automation.actionFilters,
+      actionFilters: assignSubfilterIds(automation.actionFilters),
     };
   }, [automation]);
 
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer(initialState);
 
-  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, string>
-  >({});
+  const {
+    errors: automationBuilderErrors,
+    setErrors: setAutomationBuilderErrors,
+    removeError,
+  } = useAutomationBuilderErrors();
 
   const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
 
-  const removeError = useCallback((errorId: string) => {
-    setAutomationBuilderErrors(prev => {
-      const {[errorId]: _removedError, ...remainingErrors} = prev;
-      return remainingErrors;
-    });
-  }, []);
-
   const handleFormSubmit = useCallback<OnSubmitCallback>(
-    async (data, _, __, ___, ____) => {
+    async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length === 0) {
-        const formData: NewAutomation = getNewAutomationData(
-          data as AutomationFormData,
-          state
-        );
-        const updatedData = {
-          id: automation.id,
-          ...formData,
-        };
-        const updatedAutomation = await updateAutomation(updatedData);
-        trackAnalytics('automation.updated', {
-          organization,
-          ...getAutomationAnalyticsPayload(updatedAutomation),
-        });
-        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+        try {
+          formModel.setFormSaving();
+          const formData: NewAutomation = getNewAutomationData(
+            data as AutomationFormData,
+            state
+          );
+          const updatedData = {
+            id: automation.id,
+            ...formData,
+          };
+          const updatedAutomation = await updateAutomation(updatedData);
+          onSubmitSuccess(formModel?.getData() ?? data);
+          trackAnalytics('automation.updated', {
+            organization,
+            ...getAutomationAnalyticsPayload(updatedAutomation),
+          });
+          navigate(
+            makeAutomationDetailsPathname(organization.slug, updatedAutomation.id)
+          );
+        } catch (err) {
+          onSubmitError?.(err);
+        }
       }
     },
-    [automation.id, organization, navigate, updateAutomation, state]
+    [
+      state,
+      setAutomationBuilderErrors,
+      automation.id,
+      updateAutomation,
+      organization,
+      navigate,
+    ]
   );
 
   return (
@@ -210,8 +222,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </StyledBody>
         </Layout.Page>
         <StickyFooter>
-          <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-            <EditAutomationActions automation={automation} />
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+            <EditAutomationActions automation={automation} form={model} />
           </Flex>
         </StickyFooter>
       </AutomationFormProvider>
@@ -220,7 +232,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderInner = styled('div')<{maxWidth?: string}>`

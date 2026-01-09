@@ -81,29 +81,29 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
 
 const KeyButton = styled(UnstyledButton)`
   padding: 0 ${space(0.25)} 0 ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
   max-width: 400px;
 
   :focus {
-    background-color: ${p => p.theme.purple100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.blue100};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const KeyEditing = styled('div')`
   padding: 0 ${space(0.25)};
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.colors.blue500};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   max-width: 100%;
 
   :focus-within {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;

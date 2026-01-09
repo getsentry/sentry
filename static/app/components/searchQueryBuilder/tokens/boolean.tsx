@@ -155,6 +155,7 @@ function SearchQueryBuilderBooleanSelect({
             options={LOGIC_OPERATOR_OPTIONS}
             trigger={triggerProps => {
               return (
+                // @ts-expect-error we don't allow arbitrary buttons as triggers
                 <OpButton
                   disabled={disabled}
                   aria-label={t('Edit logic operator: %s', tokenText)}
@@ -188,9 +189,9 @@ const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})`
   border-radius: 3px 0 0 3px;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -201,7 +202,7 @@ const DeleteButton = styled(UnstyledButton)`
   border-left: 1px solid transparent;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;

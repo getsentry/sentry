@@ -32,7 +32,7 @@ export default function FlagDetailsLink({flag, children}: Props) {
 }
 
 const StyledLink = styled(Link)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   ${p => p.theme.overflowEllipsis}
   width: auto;

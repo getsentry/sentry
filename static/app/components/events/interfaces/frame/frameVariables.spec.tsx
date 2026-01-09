@@ -115,10 +115,7 @@ describe('Frame Variables', () => {
           other: '<Class at 0x12345>',
         }}
         platform="python"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(

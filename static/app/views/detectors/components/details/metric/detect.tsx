@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -25,6 +25,11 @@ import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {
+  getSensitivityLabel,
+  getThresholdTypeLabel,
+  isAnomalyDetectionComparison,
+} from 'sentry/views/detectors/utils/anomalyDetectionLabels';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function getDetectorTypeLabel(detector: MetricDetector) {
@@ -71,7 +76,7 @@ function makeDirectionText(condition: MetricCondition) {
   }
 }
 
-function getConditionDescription({
+export function getConditionDescription({
   aggregate,
   config,
   condition,
@@ -84,6 +89,22 @@ function getConditionDescription({
     typeof condition.comparison === 'number' ? String(condition.comparison) : '';
   const unit = getMetricDetectorSuffix(config.detectionType, aggregate);
 
+  if (config.detectionType === 'dynamic') {
+    if (isAnomalyDetectionComparison(condition.comparison)) {
+      const sensitivityLabel = getSensitivityLabel(condition.comparison.sensitivity);
+      const directionLabel = getThresholdTypeLabel(condition.comparison.thresholdType);
+      return (
+        <Stack>
+          <div>{t('Trend: %(direction)s', {direction: directionLabel})}</div>
+          <div>
+            {t('Responsiveness: %(sensitivity)s', {sensitivity: sensitivityLabel})}
+          </div>
+        </Stack>
+      );
+    }
+    return t('Dynamic threshold');
+  }
+
   if (config.detectionType === 'percent') {
     const direction =
       condition.type === DataConditionType.GREATER ? t('higher') : t('lower');
@@ -92,7 +113,7 @@ function getConditionDescription({
 
     if (condition.conditionResult === DetectorPriorityLevel.OK) {
       return t(
-        `Less than %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+        `Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
         {
           comparisonValue,
           unit,
@@ -117,10 +138,6 @@ function getConditionDescription({
 }
 
 function DetectorPriorities({detector}: {detector: MetricDetector}) {
-  if (detector.config.detectionType === 'dynamic') {
-    return <div>{t('Sentry will automatically update priority.')}</div>;
-  }
-
   const conditions = detector.conditionGroup?.conditions || [];
 
   return (

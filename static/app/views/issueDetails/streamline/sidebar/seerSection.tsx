@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,6 +6,12 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
+import {
+  getArtifactsFromBlocks,
+  useExplorerAutofix,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {ExplorerArtifactPreviews} from 'sentry/components/events/autofix/v2/artifactPreviews';
+import {ExplorerSeerSectionCtaButton} from 'sentry/components/events/autofix/v2/autofixSidebarCtaButton';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import Placeholder from 'sentry/components/placeholder';
@@ -49,9 +55,11 @@ function SeerSectionContent({
   group,
   project,
   event,
+  isExplorerEnabled,
 }: {
   event: Event | undefined;
   group: Group;
+  isExplorerEnabled: boolean;
   project: Project;
 }) {
   const aiConfig = useAiConfig(group, project);
@@ -64,7 +72,7 @@ function SeerSectionContent({
   }
 
   if (aiConfig.hasSummary) {
-    if (aiConfig.hasAutofix) {
+    if (aiConfig.hasAutofix && !isExplorerEnabled) {
       return (
         <Summary>
           <GroupSummaryWithAutofix
@@ -108,6 +116,20 @@ export default function SeerSection({
 
   const organization = useOrganization();
   const removeConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+  const isExplorerEnabled =
+    organization.features.includes('seer-explorer') &&
+    organization.features.includes('autofix-on-explorer');
+
+  // Get explorer artifacts when autofix-on-explorer is enabled
+  const {runState: explorerRunState} = useExplorerAutofix(group.id, {
+    enabled: isExplorerEnabled,
+  });
+  const explorerArtifacts = useMemo(
+    () =>
+      isExplorerEnabled ? getArtifactsFromBlocks(explorerRunState?.blocks ?? []) : {},
+    [isExplorerEnabled, explorerRunState?.blocks]
+  );
+  const hasExplorerArtifacts = Object.keys(explorerArtifacts).length > 0;
 
   if (
     (!aiConfig.areAiFeaturesAllowed || issueTypeDoesntHaveSeer) &&
@@ -137,6 +159,63 @@ export default function SeerSection({
     </HeaderContainer>
   );
 
+  // Determine what content to show in the section body
+  const renderSectionContent = () => {
+    // Welcome entrypoint for orgs that need consent
+    if (
+      (aiConfig.orgNeedsGenAiAcknowledgement ||
+        (!removeConsentFlow && !aiConfig.hasAutofixQuota)) &&
+      !aiConfig.isAutofixSetupLoading
+    ) {
+      return <SeerWelcomeEntrypoint />;
+    }
+
+    // When explorer is enabled and has artifacts, show artifact previews
+    if (isExplorerEnabled && hasExplorerArtifacts) {
+      return (
+        <ExplorerArtifactPreviews
+          artifacts={explorerArtifacts}
+          blocks={explorerRunState?.blocks ?? []}
+          prStates={explorerRunState?.repo_pr_states}
+        />
+      );
+    }
+
+    // Default: show group summary
+    if (aiConfig.hasAutofix || aiConfig.hasSummary) {
+      return (
+        <SeerSectionContent
+          group={group}
+          project={project}
+          event={event}
+          isExplorerEnabled={isExplorerEnabled}
+        />
+      );
+    }
+
+    // Resources only
+    if (issueTypeConfig.resources) {
+      return (
+        <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
+          <ResourcesContent isExpanded={hasStreamlinedUI ? true : isExpanded}>
+            <Resources
+              configResources={issueTypeConfig.resources}
+              eventPlatform={event?.platform}
+              group={group}
+            />
+          </ResourcesContent>
+          {!hasStreamlinedUI && (
+            <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
+              {isExpanded ? t('SHOW LESS') : t('READ MORE')}
+            </ExpandButton>
+          )}
+        </ResourcesWrapper>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <SidebarFoldSection
       title={titleComponent}
@@ -144,37 +223,26 @@ export default function SeerSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {(aiConfig.orgNeedsGenAiAcknowledgement ||
-          (!removeConsentFlow && !aiConfig.hasAutofixQuota)) &&
-        !aiConfig.isAutofixSetupLoading ? (
-          <SeerWelcomeEntrypoint />
-        ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
-          <SeerSectionContent group={group} project={project} event={event} />
-        ) : issueTypeConfig.resources ? (
-          <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
-            <ResourcesContent isExpanded={hasStreamlinedUI ? true : isExpanded}>
-              <Resources
-                configResources={issueTypeConfig.resources}
-                eventPlatform={event?.platform}
-                group={group}
-              />
-            </ResourcesContent>
-            {!hasStreamlinedUI && (
-              <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
-                {isExpanded ? t('SHOW LESS') : t('READ MORE')}
-              </ExpandButton>
-            )}
-          </ResourcesWrapper>
-        ) : null}
-        {event && showCtaButton && (
-          <SeerSectionCtaButton
-            aiConfig={aiConfig}
-            event={event}
-            group={group}
-            project={project}
-            hasStreamlinedUI={hasStreamlinedUI}
-          />
-        )}
+        {renderSectionContent()}
+        {event &&
+          showCtaButton &&
+          (isExplorerEnabled ? (
+            <ExplorerSeerSectionCtaButton
+              aiConfig={aiConfig}
+              event={event}
+              group={group}
+              project={project}
+              hasStreamlinedUI={hasStreamlinedUI}
+            />
+          ) : (
+            <SeerSectionCtaButton
+              aiConfig={aiConfig}
+              event={event}
+              group={group}
+              project={project}
+              hasStreamlinedUI={hasStreamlinedUI}
+            />
+          ))}
       </SeerSectionContainer>
     </SidebarFoldSection>
   );
@@ -211,7 +279,7 @@ const ResourcesContent = styled('div')<{isExpanded: boolean}>`
         left: 0;
         right: 0;
         height: 40px;
-        background: linear-gradient(transparent, ${p.theme.background});
+        background: linear-gradient(transparent, ${p.theme.tokens.background.primary});
       }
     `}
 `;
@@ -226,7 +294,7 @@ const ExpandButton = styled(Button)`
   box-shadow: none;
 
   &:hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.colors.gray500};
   }
 `;
 

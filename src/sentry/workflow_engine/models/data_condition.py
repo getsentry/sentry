@@ -1,7 +1,5 @@
 import logging
 import operator
-import time
-from datetime import timedelta
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar, cast
 
@@ -57,6 +55,7 @@ class Condition(StrEnum):
     ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
     ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
+    ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"
@@ -103,12 +102,6 @@ LEGACY_CONDITIONS = [
 
 
 T = TypeVar("T")
-
-# Threshold at which we consider a fast condition's evaluation time to
-# be long enough to be worth logging. Our systems are designed on the
-# assumption that fast conditions should be fast, and if they aren't,
-# it's worth investigating.
-FAST_CONDITION_TOO_SLOW_THRESHOLD = timedelta(milliseconds=500)
 
 
 class DataConditionSnapshot(TypedDict):
@@ -201,7 +194,6 @@ class DataCondition(DefaultFieldsModel):
             return ConditionError(msg="No registration exists for condition")
 
         should_be_fast = not is_slow_condition(self)
-        start_time = time.time()
         try:
             with metrics.timer(
                 "workflow_engine.data_condition.evaluation_duration",
@@ -221,20 +213,6 @@ class DataCondition(DefaultFieldsModel):
                 },
             )
             return ConditionError(msg=str(e))
-        finally:
-            duration = time.time() - start_time
-            if should_be_fast and duration >= FAST_CONDITION_TOO_SLOW_THRESHOLD.total_seconds():
-                logger.error(
-                    "Fast condition evaluation too slow; took %s seconds",
-                    duration,
-                    extra={
-                        "condition_id": self.id,
-                        "duration": duration,
-                        "type": self.type,
-                        "value": value,
-                        "comparison": self.comparison,
-                    },
-                )
 
         return result
 

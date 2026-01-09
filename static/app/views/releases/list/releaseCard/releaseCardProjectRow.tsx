@@ -17,12 +17,12 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
-import type {IconSize} from 'sentry/utils/theme';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
 import {
@@ -47,16 +47,19 @@ import {
 const CRASH_FREE_DANGER_THRESHOLD = 98;
 const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
-function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
+function getCrashFreeIcon(
+  crashFreePercent: number,
+  iconSize: SVGIconProps['size'] = 'sm'
+) {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire color="errorText" size={iconSize} />;
+    return <IconFire variant="danger" size={iconSize} />;
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning color="warningText" size={iconSize} />;
+    return <IconWarning variant="warning" size={iconSize} />;
   }
 
-  return <IconCheckmark color="successText" size={iconSize} />;
+  return <IconCheckmark variant="success" size={iconSize} />;
 }
 
 type Props = {
@@ -131,7 +134,9 @@ function ReleaseCardProjectRow({
                     },
                   }}
                 >
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                  <Tag variant={adoptionStageLabel.variant}>
+                    {adoptionStageLabel.name}
+                  </Tag>
                 </Link>
               </Tooltip>
             ) : (
@@ -161,7 +166,7 @@ function ReleaseCardProjectRow({
 
                     return `${value.toLocaleString()} ${suffix}`;
                   }}
-                  colors={[theme.purple300, theme.gray200]}
+                  colors={[theme.colors.blue400, theme.colors.gray200]}
                 />
               </LazyLoad>
             </AdoptionWrapper>

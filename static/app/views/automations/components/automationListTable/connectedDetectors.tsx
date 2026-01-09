@@ -1,6 +1,8 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Hovercard} from 'sentry/components/hovercard';
 import LoadingError from 'sentry/components/loadingError';
@@ -32,10 +34,10 @@ function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
     return (
       <div>
         {Array.from({length: shownDetectors.length}).map((_, index) => (
-          <HovercardSkeletonRow key={index}>
+          <Stack padding="md xl" gap="xs" minHeight="64px" key={index}>
             <Placeholder height="20px" width="100%" />
             <Placeholder height="18px" width="70%" />
-          </HovercardSkeletonRow>
+          </Stack>
         ))}
       </div>
     );
@@ -92,18 +94,10 @@ const WiderHovercard = styled(Hovercard)`
 `;
 
 const ConnectedDetectors = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
-`;
-
-const HovercardSkeletonRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(2)};
-  min-height: 64px;
 `;
 
 const HovercardRow = styled('div')`
@@ -114,7 +108,7 @@ const HovercardRow = styled('div')`
   min-height: 64px;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

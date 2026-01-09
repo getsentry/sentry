@@ -53,7 +53,7 @@ export default function ReplayMetaData({
             {replayRecord?.count_dead_clicks ? (
               <Link to={breadcrumbTab}>
                 <ClickCount>
-                  <IconCursorArrow size="sm" color="yellow300" />
+                  <IconCursorArrow size="sm" variant="warning" />
                   {replayRecord.count_dead_clicks}
                 </ClickCount>
               </Link>
@@ -71,7 +71,7 @@ export default function ReplayMetaData({
             {replayRecord?.count_rage_clicks ? (
               <Link to={breadcrumbTab}>
                 <ClickCount>
-                  <IconCursorArrow size="sm" color="red300" />
+                  <IconCursorArrow size="sm" variant="danger" />
                   {replayRecord.count_rage_clicks}
                 </ClickCount>
               </Link>
@@ -114,9 +114,9 @@ const KeyMetrics = styled('dl')`
   grid-template-rows: max-content 1fr;
   grid-template-columns: repeat(4, max-content);
   grid-auto-flow: column;
+  height: 42px;
   gap: 0 ${space(3)};
   align-items: center;
-  align-self: end;
   color: ${p => p.theme.subText};
   margin: 0;
 
@@ -126,12 +126,12 @@ const KeyMetrics = styled('dl')`
 `;
 
 const KeyMetricLabel = styled('dt')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const KeyMetricData = styled('dd')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   display: flex;
   align-items: center;
   gap: ${space(1)};

@@ -1,9 +1,8 @@
 import {connect} from 'echarts';
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
@@ -28,7 +27,6 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
-  getColumnsAndAggregates,
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
@@ -42,11 +40,10 @@ import {
 } from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
   DashboardFilters,
-  GlobalFilter,
   Widget,
   WidgetQuery,
 } from 'sentry/views/dashboards/types';
@@ -132,51 +129,6 @@ export function normalizeUnit(value: number, unit: string, dataType: string): nu
   return value * multiplier;
 }
 
-function coerceStringToArray(value?: string | string[] | null) {
-  return typeof value === 'string' ? [value] : value;
-}
-
-export function constructWidgetFromQuery(query?: Query): Widget | undefined {
-  if (query) {
-    const queryNames = coerceStringToArray(query.queryNames);
-    const queryConditions = coerceStringToArray(query.queryConditions);
-    const queryFields = coerceStringToArray(query.queryFields);
-    const widgetType = decodeScalar(query.widgetType);
-    const queries: WidgetQuery[] = [];
-    if (
-      queryConditions &&
-      queryNames &&
-      queryFields &&
-      typeof query.queryOrderby === 'string'
-    ) {
-      const {columns, aggregates} = getColumnsAndAggregates(queryFields);
-      queryConditions.forEach((condition, index) => {
-        queries.push({
-          name: queryNames[index]!,
-          conditions: condition,
-          fields: queryFields,
-          columns,
-          aggregates,
-          orderby: query.queryOrderby as string,
-        });
-      });
-    }
-    if (query.title && query.displayType && query.interval && queries.length > 0) {
-      const newWidget: Widget = {
-        ...(pick(query, ['title', 'displayType', 'interval']) as {
-          displayType: DisplayType;
-          interval: string;
-          title: string;
-        }),
-        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
-        queries,
-      };
-      return newWidget;
-    }
-  }
-  return undefined;
-}
-
 export function getWidgetInterval(
   widget: Widget,
   datetimeObj: Partial<PageFilters['datetime']>,
@@ -187,7 +139,9 @@ export function getWidgetInterval(
   const MAX_BIN_COUNT = 66;
 
   let interval =
-    widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+    widget.widgetType === WidgetType.SPANS ||
+    widget.widgetType === WidgetType.LOGS ||
+    widget.widgetType === WidgetType.TRACEMETRICS
       ? // For span based widgets, we want to permit non 1d bar charts.
         undefined
       : // Bars charts are daily totals to aligned with discover. It also makes them
@@ -217,9 +171,13 @@ export function getWidgetInterval(
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
     const highInterval = getInterval(
       datetimeObj,
-      widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+      widget.widgetType === WidgetType.SPANS ||
+        widget.widgetType === WidgetType.LOGS ||
+        widget.widgetType === WidgetType.TRACEMETRICS
         ? 'spans'
-        : 'high'
+        : widget.widgetType === WidgetType.ISSUE
+          ? 'issues'
+          : 'high'
     );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {
@@ -568,16 +526,6 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
             }
           })
           .filter(filter => filter !== null);
-      } else if (key === DashboardFilterKeys.TEMPORARY_FILTERS) {
-        dashboardFilters[key] = queryFilters
-          .map(filter => {
-            try {
-              return JSON.parse(filter);
-            } catch (error) {
-              return null;
-            }
-          })
-          .filter(filter => filter !== null);
       } else {
         dashboardFilters[key] = queryFilters;
       }
@@ -592,10 +540,7 @@ export function dashboardFiltersToString(
 ): string {
   let dashboardFilterConditions = '';
 
-  const pinnedFilters = omit(dashboardFilters, [
-    DashboardFilterKeys.GLOBAL_FILTER,
-    DashboardFilterKeys.TEMPORARY_FILTERS,
-  ]);
+  const pinnedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
   if (pinnedFilters) {
     for (const [key, activeFilters] of Object.entries(pinnedFilters)) {
       if (activeFilters.length === 1) {
@@ -608,40 +553,18 @@ export function dashboardFiltersToString(
     }
   }
 
-  const combinedFilters = getCombinedDashboardFilters(
-    dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER],
-    dashboardFilters?.[DashboardFilterKeys.TEMPORARY_FILTERS]
-  );
+  const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
+
   // If widgetType is provided, concatenate global filters that apply
-  if (widgetType && combinedFilters) {
+  if (widgetType && globalFilters) {
     dashboardFilterConditions +=
-      combinedFilters
+      globalFilters
         .filter(globalFilter => globalFilter.dataset === widgetType)
         .map(globalFilter => globalFilter.value)
         .join(' ') ?? '';
   }
 
   return dashboardFilterConditions;
-}
-
-// Combines global and temporary filters into a single array, deduplicating by dataset and key prioritizing the temporary filter.
-export function getCombinedDashboardFilters(
-  globalFilters?: GlobalFilter[],
-  temporaryFilters?: GlobalFilter[]
-): GlobalFilter[] {
-  const finalFilters = [...(globalFilters ?? [])];
-  const temporaryFiltersCopy = [...(temporaryFilters ?? [])];
-  finalFilters.forEach((filter, idx) => {
-    // if a temporary filter exists for the same dataset and key, override it and delete it from the temporary filters to avoid duplicates
-    const temporaryFilter = temporaryFiltersCopy.find(
-      tf => tf.dataset === filter.dataset && tf.tag.key === filter.tag.key
-    );
-    if (temporaryFilter) {
-      finalFilters[idx] = {...filter, value: temporaryFilter.value};
-      temporaryFiltersCopy.splice(temporaryFiltersCopy.indexOf(temporaryFilter), 1);
-    }
-  });
-  return [...finalFilters, ...temporaryFiltersCopy];
 }
 
 export function connectDashboardCharts(groupName: string) {
@@ -707,7 +630,10 @@ export const isChartDisplayType = (displayType?: DisplayType) => {
   if (!displayType) {
     return true;
   }
-  return ![DisplayType.BIG_NUMBER, DisplayType.TABLE, DisplayType.DETAILS].includes(
-    displayType
-  );
+  return ![
+    DisplayType.BIG_NUMBER,
+    DisplayType.TABLE,
+    DisplayType.DETAILS,
+    DisplayType.WHEEL,
+  ].includes(displayType);
 };

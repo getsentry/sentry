@@ -3,29 +3,18 @@ import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
 import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 
-import {
-  DEFAULT_TIER,
-  MONTHLY,
-  RESERVED_BUDGET_QUOTA,
-  SUPPORTED_TIERS,
-} from 'getsentry/constants';
+import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
+import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
@@ -56,12 +45,12 @@ import type {
   CheckoutFormData,
   PlanContent,
 } from 'getsentry/views/amCheckout/types';
+import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 import {
   normalizeOnDemandBudget,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
-} from 'getsentry/views/onDemandBudgets/utils';
-import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 const CURRENCY_LOCALE = 'en-US';
 
@@ -280,32 +269,6 @@ export function getReservedPriceCents({
   return reservedCents;
 }
 
-/**
- * Gets the price in cents per reserved category, and returns the
- * reserved total in dollars.
- */
-export function getReservedTotal({
-  plan,
-  reserved,
-  amount,
-  discountType,
-  maxDiscount,
-  creditCategory,
-  addOns,
-}: ReservedTotalProps): string {
-  return formatPrice({
-    cents: getReservedPriceCents({
-      plan,
-      reserved,
-      amount,
-      discountType,
-      maxDiscount,
-      creditCategory,
-      addOns,
-    }),
-  });
-}
-
 type DiscountedPriceProps = {
   amount: number;
   basePrice: number;
@@ -347,6 +310,21 @@ type PreviousData = {
   previous_plan: string;
 } & Partial<Record<`previous_${DataCategory}`, number>>;
 
+/**
+ * Nested structure for category reservations in checkout.upgrade event.
+ * This provides a cleaner structure for Amplitude analytics while maintaining
+ * backwards compatibility with flat fields.
+ */
+type CategoryReservations = Partial<
+  Record<
+    DataCategory,
+    {
+      previous_reserved: number | undefined;
+      reserved: number | undefined;
+    }
+  >
+>;
+
 function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
@@ -366,20 +344,45 @@ function recordAnalytics(
     previous_plan: subscription.plan,
   };
 
+  // Build nested categories structure for better Amplitude analytics
+  const categories: CategoryReservations = {};
+
+  // Parse previous data and populate both flat and nested structures
   Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
     if (
       subscription.planDetails.checkoutCategories.includes(category as DataCategory) &&
       metricHistory.reserved !== null &&
       metricHistory.reserved !== undefined
     ) {
+      const cat = category as DataCategory;
+
+      // Legacy flat structure (backwards compatibility)
       (previousData as any)[`previous_${category}`] = metricHistory.reserved;
+
+      // New nested structure
+      if (!categories[cat]) {
+        categories[cat] = {reserved: undefined, previous_reserved: undefined};
+      }
+      categories[cat].previous_reserved = metricHistory.reserved;
     }
   });
 
+  // Parse current data and populate both flat and nested structures
   Object.keys(data).forEach(key => {
     if (key.startsWith('reserved')) {
-      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
-      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+      const targetKey = (key.charAt(8).toLowerCase() + key.slice(9)) as DataCategory;
+      const value = data[key as keyof CheckoutAPIData] as number | undefined;
+
+      // Legacy flat structure (backwards compatibility)
+      (currentData as any)[targetKey] = value;
+
+      // New nested structure - only add if value is defined
+      if (value !== undefined) {
+        if (!categories[targetKey]) {
+          categories[targetKey] = {reserved: undefined, previous_reserved: undefined};
+        }
+        categories[targetKey].reserved = value;
+      }
     }
     if (key.startsWith('addOn')) {
       const targetKey = (key.charAt(5).toLowerCase() + key.slice(6)) as AddOnCategory;
@@ -392,11 +395,20 @@ function recordAnalytics(
     }
   });
 
+  // Filter out categories where both values are undefined
+  const filteredCategories: CategoryReservations = {};
+  Object.entries(categories).forEach(([category, values]) => {
+    if (values.reserved !== undefined || values.previous_reserved !== undefined) {
+      filteredCategories[category as DataCategory] = values;
+    }
+  });
+
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
     ...previousData,
     ...currentData,
+    categories: filteredCategories, // Add new nested structure
   });
 
   trackGetsentryAnalytics('checkout.product_select', {
@@ -492,7 +504,7 @@ export function getCheckoutAPIData({
       })}`,
       formatReservedData(value),
     ])
-  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
+  ) satisfies Partial<Reservations>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)
@@ -701,125 +713,10 @@ export function useSubmitCheckout({
   });
 }
 
-/**
- * @deprecated use useSubmitCheckout instead
- */
-export async function submitCheckout(
-  organization: Organization,
-  subscription: Subscription,
-  previewData: PreviewData,
-  formData: CheckoutFormData,
-  api: Client,
-  onFetchPreviewData: () => void,
-  onHandleCardAction: (intentDetails: IntentDetails) => void,
-  onSubmitting?: (b: boolean) => void,
-  intentId?: string,
-  referrer = 'billing',
-  shouldUpdateOnDemand = true
-) {
-  const endpoint = `/customers/${organization.slug}/subscription/`;
-
-  // this is necessary for recording partner billing migration-specific analytics after
-  // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
-
-  const data = normalizeAndGetCheckoutAPIData({
-    formData,
-    previewToken: previewData?.previewToken,
-    paymentIntent: intentId,
-    referrer,
-    shouldUpdateOnDemand,
-  });
-
-  addLoadingMessage(t('Saving changes\u{2026}'));
-  try {
-    onSubmitting?.(true);
-
-    await api.requestPromise(endpoint, {
-      method: 'PUT',
-      data,
-    });
-
-    addSuccessMessage(t('Success'));
-    recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
-
-    const alreadyHasSeer =
-      !isTrialPlan(subscription.plan) &&
-      (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
-    const justBoughtSeer = (data.addOnLegacySeer || data.addOnSeer) && !alreadyHasSeer;
-
-    // refresh org and subscription state
-    // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
-    // request doesn't get cancelled
-    fetchOrganizationDetails(new Client(), organization.slug);
-    SubscriptionStore.loadData(organization.slug);
-    browserHistory.push(
-      normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
-          justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
-        }`
-      )
-    );
-  } catch (error: any) {
-    const body = error.responseJSON;
-
-    if (body?.previewToken) {
-      onSubmitting?.(false);
-      addErrorMessage(t('Your preview expired, please review changes and submit again'));
-      onFetchPreviewData?.();
-    } else if (body?.paymentIntent && body?.paymentSecret && body?.detail) {
-      // When an error response contains payment intent information
-      // we can retry the payment using the client-side confirmation flow
-      // in stripe.
-      // We don't re-enable the button here as we don't want users clicking it
-      // while there are UI transitions happening.
-      addErrorMessage(body.detail);
-      const intent: IntentDetails = {
-        paymentIntent: body.paymentIntent,
-        paymentSecret: body.paymentSecret,
-      };
-      onHandleCardAction?.(intent);
-    } else {
-      const msg =
-        body?.detail || t('An unknown error occurred while saving your subscription');
-      addErrorMessage(msg);
-      onSubmitting?.(false);
-
-      // TODO: add 402 ignoring once we've confirmed all valid error states
-      Sentry.withScope(scope => {
-        scope.setExtras({data});
-        Sentry.captureException(error);
-      });
-    }
-  }
-}
-
-export function getToggleTier(checkoutTier: PlanTier | undefined) {
-  // cannot toggle from or to AM3
-  if (checkoutTier === DEFAULT_TIER || !checkoutTier || SUPPORTED_TIERS.length === 0) {
-    return null;
-  }
-
-  if (SUPPORTED_TIERS.length === 1) {
-    return SUPPORTED_TIERS[0];
-  }
-
-  const tierIndex = SUPPORTED_TIERS.indexOf(checkoutTier);
-
-  // can toggle between AM1 and AM2 for AM1 customers
-  if (tierIndex === SUPPORTED_TIERS.length - 1) {
-    return SUPPORTED_TIERS[tierIndex - 1];
-  }
-
-  return SUPPORTED_TIERS[tierIndex + 1];
-}
-
-export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanContent {
+export function getContentForPlan(plan: Plan): PlanContent {
   if (isBizPlanFamily(plan)) {
     return {
-      description: isNewCheckout
-        ? t('For teams that need more powerful debugging')
-        : t('Everything in the Team plan + deeper insight into your application health.'),
+      description: t('For teams that need more powerful debugging'),
       features: {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
@@ -836,9 +733,7 @@ export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanCont
 
   if (isTeamPlanFamily(plan)) {
     return {
-      description: isNewCheckout
-        ? t('Everything to monitor your application as it scales')
-        : t('Resolve errors and track application performance as a team.'),
+      description: t('Everything to monitor your application as it scales'),
       features: {
         unlimited_members: t('Unlimited members'),
         integrations: t('Third-party integrations'),
@@ -847,7 +742,7 @@ export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanCont
     };
   }
 
-  // TODO(checkout v3): update copy
+  // TODO(billing): update copy when Developer is available in checkout
   return {
     description: t('For solo devs working on small projects'),
     features: {
@@ -884,11 +779,6 @@ export function reservedInvoiceItemTypeToAddOn(
     default:
       return null;
   }
-}
-
-// TODO(isabella): clean this up after GA
-export function hasNewCheckout(organization: Organization) {
-  return organization.features.includes('checkout-v3');
 }
 
 /**

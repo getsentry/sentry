@@ -137,9 +137,9 @@ export default function ReplayItemDropdown({projectSlug, replay, replayRecord}: 
       position="bottom-end"
       triggerProps={{
         showChevron: false,
-        icon: <IconEllipsis color="subText" />,
+        icon: <IconEllipsis variant="muted" />,
       }}
-      size="sm"
+      size="xs"
       items={dropdownItems}
       isDisabled={dropdownItems.length === 0}
     />

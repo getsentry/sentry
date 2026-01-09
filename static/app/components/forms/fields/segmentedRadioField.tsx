@@ -99,7 +99,7 @@ const Container = styled('div')`
     grid-auto-flow: column;
   }
   overflow: hidden;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const shouldForwardProp = (p: PropertyKey) =>
@@ -117,22 +117,22 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
   font-weight: ${p => p.theme.fontWeight.normal};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0;
 
   &[aria-checked='true'] {
-    border-color: ${p => p.theme.purple300} !important;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.purple300};
+    border-color: ${p => p.theme.colors.blue400} !important;
+    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue400};
     z-index: ${p => p.theme.zIndex.initial};
   }
 
   &:first-child {
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-top-right-radius: ${p => p.theme.borderRadius};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
   }
   &:last-child {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 
   &:nth-child(n + 2) {
@@ -141,16 +141,16 @@ const RadioItem = styled('label', {shouldForwardProp})<{
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     &:nth-child(n + 2) {
-      border-top-color: ${p => p.theme.gray200};
+      border-top-color: ${p => p.theme.colors.gray200};
       border-left-color: transparent;
     }
     &:first-child {
       border-top-right-radius: 0;
-      border-bottom-left-radius: ${p => p.theme.borderRadius};
+      border-bottom-left-radius: ${p => p.theme.radius.md};
     }
     &:last-child {
       border-bottom-left-radius: 0;
-      border-top-right-radius: ${p => p.theme.borderRadius};
+      border-top-right-radius: ${p => p.theme.radius.md};
     }
   }
 
@@ -170,12 +170,12 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
   opacity: ${p => (p.disabled ? 0.4 : null)};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
 `;
 
 const Description = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.4em;
 `;
 

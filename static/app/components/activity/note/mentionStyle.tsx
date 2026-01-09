@@ -26,15 +26,15 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
     fontSize: theme.fontSize.md,
     padding: `${space(1)} ${space(1.5)}`,
     outline: 0,
-    border: `1px solid ${theme.border}`,
-    borderRadius: theme.borderRadius,
+    border: `1px solid ${theme.tokens.border.primary}`,
+    borderRadius: theme.radius.md,
     minHeight,
     overflow: 'auto',
   };
 
   return {
     control: {
-      backgroundColor: `${theme.background}`,
+      backgroundColor: `${theme.tokens.background.primary}`,
       fontSize: 15,
       fontWeight: 'normal',
     },
@@ -76,18 +76,18 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
         maxHeight: 142,
         minWidth: 220,
         overflow: 'auto',
-        backgroundColor: `${theme.background}`,
+        backgroundColor: `${theme.tokens.background.primary}`,
         border: '1px solid rgba(0,0,0,0.15)',
-        borderRadius: theme.borderRadius,
+        borderRadius: theme.radius.md,
         fontSize: theme.fontSize.sm,
         padding: space(0.5),
       },
 
       item: {
         padding: space(0.5),
-        borderRadius: theme.borderRadius,
+        borderRadius: theme.radius.md,
         '&focused': {
-          backgroundColor: theme.hover,
+          backgroundColor: theme.tokens.interactive.transparent.neutral.background.active,
         },
       },
     },

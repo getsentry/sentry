@@ -114,7 +114,7 @@ const OpenInDiscoverButton = styled(Button)`
 `;
 
 const Container = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.backgroundSecondary};
   padding: 7px ${space(1)};
@@ -124,7 +124,7 @@ const Container = styled('div')`
   gap: ${space(1)};
   align-items: start;
   flex-grow: 1;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const SearchLabel = styled('label')`

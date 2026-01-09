@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text/text';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
-import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 
 interface WorkflowEngineEditLayoutProps {
@@ -31,12 +30,12 @@ function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
 }
 
 const StyledPage = styled(Layout.Page)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   flex: unset;
 `;
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderInner = styled('div')<{maxWidth?: string}>`
@@ -65,13 +64,6 @@ const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
         ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
         : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
   }
-`;
-
-const FullWidthContent = styled('div')`
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
 
 interface RequiredChildren {
@@ -112,7 +104,11 @@ function Actions({children}: RequiredChildren) {
 }
 
 function HeaderFields({children}: RequiredChildren) {
-  return <FullWidthContent>{children}</FullWidthContent>;
+  return (
+    <Stack gap="xl" column="1 / -1">
+      {children}
+    </Stack>
+  );
 }
 
 function Body({children, maxWidth}: RequiredChildren & {maxWidth?: string}) {

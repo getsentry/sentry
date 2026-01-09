@@ -391,8 +391,8 @@ const FrameBar = styled('div')`
   overflow: auto;
   width: 100%;
   position: relative;
-  background-color: ${p => p.theme.surface200};
-  border-top: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.colors.surface300};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   flex: 1 1 100%;
   grid-area: table;
 `;

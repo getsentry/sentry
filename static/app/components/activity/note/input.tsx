@@ -159,7 +159,7 @@ function NoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <Tabs>
-        <TabList variant="floating" hideBorder>
+        <TabList variant="floating">
           <TabList.Item key="edit">{existingItem ? t('Edit') : t('Write')}</TabList.Item>
           <TabList.Item key="preview">{t('Preview')}</TabList.Item>
         </TabList>
@@ -257,7 +257,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   color: ${p.theme.error};
   margin: -1px;
   border: 1px solid ${p.theme.error};
-  border-radius: ${p.theme.borderRadius};
+  border-radius: ${p.theme.radius.md};
 
     &:before {
       display: block;
@@ -266,7 +266,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
       height: 0;
       border-top: 7px solid transparent;
       border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.red300};
+      border-right: 7px solid ${p.theme.colors.red400};
       position: absolute;
       left: -7px;
       top: 12px;
@@ -295,20 +295,20 @@ const NoteInputForm = styled('form')<{error?: string}>`
 
 const NoteInputPanel = styled(TabPanels)`
   ${textStyles}
-  border-top: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 `;
 
 const Footer = styled('div')`
   display: flex;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   justify-content: space-between;
   padding-left: ${space(1.5)};
 `;
 
 const FooterButton = styled(Button)<{error?: boolean}>`
   margin: -1px -1px -1px;
-  border-radius: 0 0 ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md};
 
   ${p =>
     p.error &&

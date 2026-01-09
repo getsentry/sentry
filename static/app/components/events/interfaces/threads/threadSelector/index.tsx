@@ -250,7 +250,7 @@ const StyledGrid = styled(ThreadSelectorGrid)`
   padding-right: 20px;
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeight.bold};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(0.5)};
 `;
 
@@ -258,7 +258,7 @@ const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
   margin-bottom: ${space(0.5)};
   cursor: pointer;
   user-select: none;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }

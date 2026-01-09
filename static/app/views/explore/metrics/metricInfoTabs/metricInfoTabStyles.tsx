@@ -107,7 +107,7 @@ export const StickyTableRow = styled(SimpleTable.Row)<{
     `
     top: 0px;
     z-index: 1;
-    background: ${p.theme.background};
+    background: ${p.theme.tokens.background.primary};
     position: sticky;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     margin-right: -15px;
@@ -155,7 +155,7 @@ export const TableRowContainer = styled('div')`
   grid-column: 1 / -1;
 
   :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   margin-right: -15px;

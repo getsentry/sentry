@@ -1,7 +1,9 @@
 import pytest
 from jsonschema import ValidationError
 
+from sentry.models.group import Group
 from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -39,8 +41,9 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
 
     def test_dual_write__min_zero(self) -> None:
         dcg = self.create_data_condition_group()
-        self.payload["value"] = "-10"
-        dc = self.translate_to_data_condition(self.payload, dcg)
+        local_payload = self.payload.copy()
+        local_payload["value"] = "-10"
+        dc = self.translate_to_data_condition(local_payload, dcg)
 
         assert dc.type == self.condition
         assert dc.comparison == {
@@ -88,3 +91,9 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
         self.dc.update(comparison={"value": "bad data"})
         self.group.update(times_seen=10)
         self.assert_does_not_pass(self.dc, self.event_data)
+
+    def test_buffer_values(self) -> None:
+        with mock_redis_buffer() as buffer:
+            self.assert_does_not_pass(self.dc, self.event_data)
+            buffer.incr(Group, {"times_seen": 15}, filters={"id": self.event_data.group.id})
+            self.assert_passes(self.dc, self.event_data)

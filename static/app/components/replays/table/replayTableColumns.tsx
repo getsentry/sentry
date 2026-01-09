@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Query} from 'history';
+import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
@@ -37,7 +37,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
@@ -56,7 +55,8 @@ interface CellProps {
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
-  query?: Query;
+  to: string | LocationDescriptor;
+  className?: string;
 }
 
 export interface ReplayTableColumn {
@@ -144,7 +144,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
         <DropdownContainer>
           <Tooltip title={t('N/A')}>
             <Flex justify="center" width="20px">
-              <IconNot size="xs" color="gray300" />
+              <IconNot size="xs" variant="muted" />
             </Flex>
           </Tooltip>
         </DropdownContainer>
@@ -198,7 +198,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_dead_clicks ? (
             <Flex gap="xs">
-              <IconCursorArrow size="sm" color="yellow300" />
+              <IconCursorArrow size="sm" variant="warning" />
               {replay.count_dead_clicks}
             </Flex>
           ) : (
@@ -252,7 +252,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_errors ? (
             <Flex gap="xs">
-              <IconFire color="red300" />
+              <IconFire variant="danger" />
               {replay.count_errors}
             </Flex>
           ) : (
@@ -293,7 +293,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_rage_clicks ? (
             <Flex gap="xs">
-              <IconCursorArrow size="sm" color="red300" />
+              <IconCursorArrow size="sm" variant="danger" />
               {replay.count_rage_clicks}
             </Flex>
           ) : (
@@ -315,15 +315,9 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({replay, query}) => {
-    const organization = useOrganization();
+  Component: ({to}) => {
     return (
-      <DetailsLink
-        to={{
-          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
-          query,
-        }}
-      >
+      <DetailsLink to={to}>
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -511,7 +505,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, query}) => {
+  Component: ({replay, to, className}) => {
     const routes = useRoutes();
     const referrer = getRouteStringFromRoutes(routes);
 
@@ -537,13 +531,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <CellLink
-        to={{
-          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
-          query,
-        }}
-        onClick={trackNavigationEvent}
-      >
+      <CellLink className={className} to={to} onClick={trackNavigationEvent}>
         <ReplayBadge replay={replay} />
       </CellLink>
     );
@@ -609,8 +597,6 @@ const PlayPauseButtonContainer = styled(Flex)`
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   flex-direction: column;
   justify-content: center;
-
-  margin: 0 -${p => p.theme.space.xl} 0 -${p => p.theme.space.md};
 `;
 
 const CheckboxHeaderContainer = styled(Flex)`
@@ -656,7 +642,7 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   border-radius: 50%;
 
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   &[data-has-viewed='true'] {
     background-color: transparent;
   }
@@ -667,7 +653,7 @@ const SpanOperationBreakdown = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   font-size: ${p => p.theme.fontSize.md};
   text-align: right;
 `;

@@ -4,7 +4,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -12,6 +12,7 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
+import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
@@ -28,6 +29,7 @@ type Results = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
 
@@ -80,8 +82,22 @@ export function WidgetCardDataLoader({
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
       >
-        {({tableResults, errorMessage, loading}) => (
-          <Fragment>{children({tableResults, errorMessage, loading})}</Fragment>
+        {({
+          tableResults,
+          timeseriesResults,
+          timeseriesResultsTypes,
+          errorMessage,
+          loading,
+        }) => (
+          <Fragment>
+            {children({
+              tableResults,
+              timeseriesResults,
+              timeseriesResultsTypes,
+              errorMessage,
+              loading,
+            })}
+          </Fragment>
         )}
       </IssueWidgetQueries>
     );
@@ -121,6 +137,23 @@ export function WidgetCardDataLoader({
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </SpansWidgetQueries>
+    );
+  }
+
+  if (widget.widgetType === WidgetType.TRACEMETRICS) {
+    return (
+      <TraceMetricsWidgetQueries
+        api={api}
+        queue={queue}
+        widget={widget}
+        selection={selection}
+        limit={tableItemLimit}
+        onDataFetchStart={onDataFetchStart}
+        onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </TraceMetricsWidgetQueries>
     );
   }
 

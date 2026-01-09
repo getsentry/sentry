@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
@@ -74,29 +74,22 @@ export default function FeedbackSummaryCategories() {
           <AiPrivacyTooltip>{t('Summary')}</AiPrivacyTooltip>
         </Disclosure.Title>
         <Disclosure.Content>
-          <SummaryContainer>
+          <Stack gap="md" width="100%">
             {organization.features.includes('user-feedback-ai-summaries') && (
               <FeedbackSummary />
             )}
             {organization.features.includes(
               'user-feedback-ai-categorization-features'
             ) && <FeedbackCategories />}
-          </SummaryContainer>
+          </Stack>
         </Disclosure.Content>
       </Disclosure>
     </SummaryIconContainer>
   );
 }
 
-const SummaryContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  width: 100%;
-`;
-
 const SummaryIconContainer = styled('div')`
   padding: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;

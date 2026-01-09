@@ -346,6 +346,10 @@ describe('ProductSelectionAvailability', () => {
         reservedProfileDuration: 0,
         reservedProfileDurationUI: 0,
         reservedLogBytes: 0,
+        reservedSpans: undefined,
+        reservedSeerAutofix: undefined,
+        reservedSeerScanner: undefined,
+        reservedSeerUsers: undefined,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});

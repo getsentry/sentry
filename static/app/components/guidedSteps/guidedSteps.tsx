@@ -16,7 +16,6 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
@@ -235,7 +234,7 @@ const StepButtonsWrapper = styled('div')`
 `;
 
 const StepsWrapper = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
@@ -252,7 +251,7 @@ const StepWrapper = styled('div')`
     position: absolute;
     height: calc(100% + ${space(2)});
     width: 1px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }
 `;
@@ -270,22 +269,9 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   line-height: 34px;
   border-radius: 50%;
   background: ${p =>
-    p.isActive
-      ? isChonkTheme(p.theme)
-        ? p.theme.tokens.graphics.accent
-        : p.theme.purple300
-      : isChonkTheme(p.theme)
-        ? p.theme.tokens.graphics.muted
-        : p.theme.gray100};
-  color: ${p =>
-    p.isActive
-      ? isChonkTheme(p.theme)
-        ? p.theme.white
-        : p.theme.white
-      : isChonkTheme(p.theme)
-        ? p.theme.white
-        : p.theme.subText};
-  border: 4px solid ${p => p.theme.background};
+    p.isActive ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
+  color: ${p => p.theme.white};
+  border: 4px solid ${p => p.theme.tokens.background.primary};
 `;
 
 const StepHeading = styled('h4')<{isActive: boolean}>`
@@ -293,13 +279,13 @@ const StepHeading = styled('h4')<{isActive: boolean}>`
   margin: 0;
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
 `;
 
 const StepDoneIcon = styled(IconCheckmark, {
   shouldForwardProp: prop => prop !== 'isActive',
 })<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.successText : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.success : p.theme.subText)};
   margin-left: ${space(1)};
   vertical-align: middle;
 `;
@@ -312,7 +298,7 @@ const StepOptionalLabel = styled('div')`
 `;
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
 
   p {
     margin-bottom: ${space(1)};

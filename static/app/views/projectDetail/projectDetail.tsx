@@ -9,6 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -21,16 +22,20 @@ import MissingProjectMembership from 'sentry/components/projects/missingProjectM
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -43,29 +48,25 @@ import ProjectLatestReleases from './projectLatestReleases';
 import ProjectQuickLinks from './projectQuickLinks';
 import ProjectTeamAccess from './projectTeamAccess';
 
-type RouteParams = {
-  orgId: string;
-  projectId: string;
-};
-
-type Props = RouteComponentProps<RouteParams> & {
-  organization: Organization;
-};
-
-export default function ProjectDetail({router, location, organization}: Props) {
+export default function ProjectDetail() {
   const api = useApi();
-  const params = useParams();
+  const params = useParams<{orgId: string; projectId: string}>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const router = useRouter();
   const {projects, fetching: loadingProjects} = useProjects();
   const {selection} = usePageFilters();
   const project = projects.find(p => p.slug === params.projectId);
-  const {query} = location.query;
+  const query = decodeScalar(location.query.query, '');
+  const projectQueryParam = decodeScalar(location.query.project);
   const hasPerformance = organization.features.includes('performance-view');
   const hasDiscover = organization.features.includes('discover-basic');
   const hasTransactions = hasPerformance && project?.firstTransactionEvent;
   const projectId = project?.id;
   const isProjectStabilized =
     defined(project?.id) &&
-    project.id === location.query.project &&
+    project.id === projectQueryParam &&
     project.id === String(selection.projects[0]);
   const hasSessions = project?.hasSessions ?? null;
   const hasOnlyBasicChart = !hasPerformance && !hasDiscover && !hasSessions;
@@ -81,21 +82,46 @@ export default function ProjectDetail({router, location, organization}: Props) {
     return ['chart1'];
   }, [hasTransactions, hasSessions]);
 
+  const {setPageInfo, pageAlert} = usePageAlert();
+  const {orgId, projectId: projectSlug} = params;
+  const msg = useMemo(
+    () =>
+      tctCode(
+        'Project Details will be removed soon. Find this project’s settings under [settingsLink:Settings]. Similar charts are available on the [sessionHealth:Session Health] and [backendOverview:Backend Overview] dashboards.',
+        {
+          settingsLink: <Link to={`/settings/${orgId}/projects/${projectSlug}/`} />,
+          sessionHealth: (
+            <Link to={`/organizations/${orgId}/insights/frontend/sessions/`} />
+          ),
+          backendOverview: <Link to={`/organizations/${orgId}/insights/backend/`} />,
+        }
+      ),
+    [orgId, projectSlug]
+  );
+  useEffect(() => {
+    if (pageAlert?.message !== msg) {
+      setPageInfo(msg);
+    }
+  }, [msg, pageAlert, setPageInfo]);
+
   const onRetryProjects = useCallback(() => {
-    fetchOrganizationDetails(api, params.orgId!);
+    fetchOrganizationDetails(api, params.orgId);
   }, [api, params.orgId]);
 
   const handleSearch = useCallback(
     (searchQuery: string) => {
-      router.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          query: searchQuery,
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            query: searchQuery,
+          },
         },
-      });
+        {replace: true}
+      );
     },
-    [router, location.query, location.pathname]
+    [navigate, location.query, location.pathname]
   );
 
   const tagValueLoader = useCallback(
@@ -105,22 +131,22 @@ export default function ProjectDetail({router, location, organization}: Props) {
         orgSlug: organization.slug,
         tagKey: key,
         search,
-        projectIds: location.query.project ? [location.query.project] : undefined,
+        projectIds: projectQueryParam ? [projectQueryParam] : undefined,
         endpointParams: location.query,
       });
     },
-    [api, organization.slug, location.query]
+    [api, organization.slug, location.query, projectQueryParam]
   );
 
   useEffect(() => {
     function syncProjectWithSlug() {
-      if (projectId && projectId !== location.query.project) {
+      if (projectId && projectId !== projectQueryParam) {
         // if someone visits /organizations/sentry/projects/javascript/ (without ?project=XXX) we need to update URL and globalSelection with the right project ID
         updateProjects([Number(projectId)], router);
       }
     }
     syncProjectWithSlug();
-  }, [location.query.project, router, projectId]);
+  }, [projectQueryParam, router, projectId]);
 
   if (!loadingProjects && !project) {
     return (
@@ -207,6 +233,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
             <Layout.Body noRowGap>
               <Layout.Main>
+                <PageAlert />
                 <ProjectFiltersWrapper>
                   <ProjectFilters
                     query={query}
@@ -263,23 +290,19 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <Feature features="incidents" organization={organization}>
                   <ProjectLatestAlerts
                     organization={organization}
-                    projectSlug={params.projectId!}
+                    projectSlug={params.projectId}
                     location={location}
                     isProjectStabilized={isProjectStabilized}
                   />
                 </Feature>
                 <ProjectLatestReleases
                   organization={organization}
-                  projectSlug={params.projectId!}
+                  projectSlug={params.projectId}
                   location={location}
                   isProjectStabilized={isProjectStabilized}
                   project={project}
                 />
-                <ProjectQuickLinks
-                  organization={organization}
-                  project={project}
-                  location={location}
-                />
+                <ProjectQuickLinks organization={organization} project={project} />
               </Layout.Side>
             </Layout.Body>
           </NoProjectMessage>

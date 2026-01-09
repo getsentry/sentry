@@ -1,10 +1,12 @@
+from typing import override
+
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
-from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 
 
 @action_handler_registry.register(Action.Type.EMAIL)
@@ -47,12 +49,6 @@ class EmailActionHandler(ActionHandler):
                 "description": "The fallthrough type for issue owners email notifications",
                 "enum": [*FallthroughChoiceType],
             },
-            # XXX(CEO): temporarily support this incorrect camel case
-            "fallthroughType": {
-                "type": "string",
-                "description": "The fallthrough type for issue owners email notifications",
-                "enum": [*FallthroughChoiceType],
-            },
         },
         "additionalProperties": False,
     }
@@ -68,9 +64,6 @@ class EmailActionHandler(ActionHandler):
         return cls._config_transformer
 
     @staticmethod
-    def execute(
-        job: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
-        execute_via_group_type_registry(job, action, detector)
+    @override
+    def execute(invocation: ActionInvocation) -> None:
+        execute_via_group_type_registry(invocation)

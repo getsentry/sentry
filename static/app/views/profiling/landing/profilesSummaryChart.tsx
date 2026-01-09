@@ -154,7 +154,7 @@ export function ProfilesSummaryChart({
           gridIndex: 0,
           scale: true,
           axisLabel: {
-            color: theme.chartLabel,
+            color: theme.tokens.content.muted,
             formatter(value: number) {
               return axisLabelFormatter(value, 'integer');
             },
@@ -164,7 +164,7 @@ export function ProfilesSummaryChart({
           gridIndex: 1,
           scale: true,
           axisLabel: {
-            color: theme.chartLabel,
+            color: theme.tokens.content.muted,
             formatter(value: number) {
               return axisLabelFormatter(value, 'duration');
             },
@@ -174,7 +174,7 @@ export function ProfilesSummaryChart({
     };
 
     return baseProps;
-  }, [hideCount, series, seriesOrder, theme.chartLabel]);
+  }, [hideCount, series, seriesOrder, theme.tokens.content.muted]);
 
   return (
     <ProfilesChartContainer>
@@ -195,12 +195,12 @@ export function ProfilesSummaryChart({
 
 const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
   padding: ${space(0.25)} ${space(1)};
 `;
 
 const ProfilesChartContainer = styled('div')`
-  background-color: ${p => p.theme.background};
-  border-bottom: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;

@@ -172,7 +172,7 @@ const DropdownWrapper = styled('div')`
     0 0 0 1px rgba(52, 60, 69, 0.2),
     0 1px 3px rgba(70, 82, 98, 0.25);
   background-clip: padding-box;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   width: 220px;
   overflow: visible;
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -205,12 +205,12 @@ const DropdownWrapper = styled('div')`
     margin-top: 9px;
 
     &:before {
-      border-bottom: 9px solid ${p => p.theme.border};
+      border-bottom: 9px solid ${p => p.theme.tokens.border.primary};
       top: -9px;
     }
 
     &:after {
-      border-bottom: 8px solid ${p => p.theme.background};
+      border-bottom: 8px solid ${p => p.theme.tokens.background.primary};
       top: -8px;
     }
   }
@@ -219,12 +219,12 @@ const DropdownWrapper = styled('div')`
     margin-bottom: 9px;
 
     &:before {
-      border-top: 9px solid ${p => p.theme.border};
+      border-top: 9px solid ${p => p.theme.tokens.border.primary};
       bottom: -9px;
     }
 
     &:after {
-      border-top: 8px solid ${p => p.theme.background};
+      border-top: 8px solid ${p => p.theme.tokens.background.primary};
       bottom: -8px;
     }
   }
@@ -234,7 +234,7 @@ const DropdownMenuItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSize.md};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

@@ -53,6 +53,7 @@ function NextBillCard({
   const paygTotal = invoiceItems
     .filter(item => item.type.startsWith('ondemand_'))
     .reduce((acc, item) => acc + item.amount, 0);
+  const seerItem = invoiceItems.find(item => item.type === 'activated_seer_users');
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
 
@@ -89,7 +90,7 @@ function NextBillCard({
           {isLoading ? (
             <Placeholder height="20px" width="150px" />
           ) : (
-            <Tag type="info">
+            <Tag variant="info">
               {tct('[billDate]・in [daysLeft] days', {
                 billDate: nextBillDate.format('MMM D, YYYY'),
                 daysLeft,
@@ -100,7 +101,7 @@ function NextBillCard({
         isLoading ? (
           <Placeholder style={{flexGrow: 1}} />
         ) : isError ? (
-          <Alert type="error">
+          <Alert variant="danger">
             {t('Could not compute next bill. Please try again later.')}
           </Alert>
         ) : (
@@ -128,6 +129,16 @@ function NextBillCard({
                   </Text>
                   <Text variant="muted" size="sm">
                     {displayPriceWithCents({cents: paygTotal})}
+                  </Text>
+                </Flex>
+              )}
+              {seerItem && (
+                <Flex justify="between" align="center">
+                  <Text variant="muted" size="sm">
+                    {seerItem.description}
+                  </Text>
+                  <Text variant="muted" size="sm">
+                    {displayPriceWithCents({cents: seerItem.amount})}
                   </Text>
                 </Flex>
               )}

@@ -295,7 +295,7 @@ const TextArea = styled('textarea')`
   outline: 0px solid transparent;
   outline-offset: 0px;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 0;
@@ -309,9 +309,9 @@ const CodeDisplayOverlay = styled('div')<{styleHeight: number}>`
   scrollbar-width: none;
   position: relative;
   height: ${p => p.styleHeight + 2}px;
-  border-left: ${space(0.25)} solid ${p => p.theme.gray200};
-  border-right: ${space(0.25)} solid ${p => p.theme.gray200};
-  border-bottom: ${space(0.25)} solid ${p => p.theme.gray200};
+  border-left: ${space(0.25)} solid ${p => p.theme.colors.gray200};
+  border-right: ${space(0.25)} solid ${p => p.theme.colors.gray200};
+  border-bottom: ${space(0.25)} solid ${p => p.theme.colors.gray200};
 `;
 
 const CodePreWrapper = styled('pre')<{isOverflowing: boolean}>`

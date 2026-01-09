@@ -137,7 +137,7 @@ const Header = styled('div')`
   }
 
   & > *:last-child {
-    color: ${p => p.theme.success};
+    color: ${p => p.theme.tokens.content.success};
   }
 `;
 
@@ -160,9 +160,9 @@ const DragIndicator = styled('div')`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -186,7 +186,7 @@ const DragHandle = styled('div')`
     top: 0;
     bottom: 0;
     width: 2px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
     left: 50%;
     transform: translateX(-50%);
   }
@@ -206,7 +206,7 @@ const DragHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.diffSliderDragHandleHover};
+      background: ${p => p.theme.colors.blue500};
     }
   }
 
@@ -219,7 +219,7 @@ const DragHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.diffSliderDragHandleHover};
+    background: ${p => p.theme.colors.blue500};
   }
 `;
 
@@ -232,7 +232,7 @@ const Cover = styled('div')`
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.success};
+  border-color: ${p => p.theme.tokens.content.success};
   & + & {
     border: ${BORDER_WIDTH}px solid;
     border-radius: ${space(0.5)} 0 0 ${space(0.5)};

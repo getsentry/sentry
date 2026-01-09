@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sentry.notifications.platform.registry import template_registry
+from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     BoldTextBlock,
     CodeBlock,
@@ -22,7 +23,7 @@ from sentry.notifications.platform.types import (
 
 @dataclass(frozen=True)
 class ErrorAlertData(NotificationData):
-    source = "error-alert-service"
+    source = NotificationTemplateSource.ERROR_ALERT
     error_type: str
     error_message: str
     project_name: str
@@ -116,7 +117,7 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
 
 @dataclass(frozen=True)
 class DeploymentData(NotificationData):
-    source = "deployment-service"
+    source = NotificationTemplateSource.DEPLOYMENT
     project_name: str
     version: str
     environment: str
@@ -186,7 +187,7 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
 
 @dataclass(frozen=True)
 class SlowLoadMetricAlertData(NotificationData):
-    source = "slow-load-metric-alert"
+    source = NotificationTemplateSource.SLOW_LOAD_METRIC_ALERT
     alert_type: str
     severity: str
     project_name: str
@@ -245,7 +246,7 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
 
 @dataclass(frozen=True)
 class PerformanceAlertData(NotificationData):
-    source = "performance-monitoring"
+    source = NotificationTemplateSource.PERFORMANCE_MONITORING
     metric_name: str
     threshold: str
     current_value: str
@@ -312,7 +313,7 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
 
 @dataclass(frozen=True)
 class TeamUpdateData(NotificationData):
-    source = "team-communication"
+    source = NotificationTemplateSource.TEAM_COMMUNICATION
     team_name: str
     update_type: str
     message: str

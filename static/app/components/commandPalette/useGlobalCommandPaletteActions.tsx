@@ -209,13 +209,6 @@ function useNavigationActions(): CommandPaletteAction[] {
   const preventChildren: CommandPaletteActionChild[] = [
     makeCommandPaletteLink({
       display: {
-        label: t('Coverage'),
-      },
-      to: `${prefix}/prevent/coverage/commits/`,
-      hidden: !organization.features.includes('codecov-ui'),
-    }),
-    makeCommandPaletteLink({
-      display: {
         label: t('Tests'),
       },
       to: `${prefix}/prevent/tests/`,

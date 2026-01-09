@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hmac
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from hashlib import sha256
 from wsgiref.util import is_hop_by_hop
 
@@ -14,6 +14,7 @@ PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 PROXY_PATH = "X-Sentry-Subnet-Path"
 PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
+PROXY_APIGATEWAY_HEADER = "X-Apigateway"
 
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
@@ -34,7 +35,7 @@ def trim_leading_slashes(path: str) -> str:
 
 def clean_headers(
     headers: Mapping[str, str] | None, invalid_headers: Iterable[str]
-) -> Mapping[str, str]:
+) -> MutableMapping[str, str]:
     if not headers:
         headers = {}
     normalized_invalid = {h.lower() for h in invalid_headers}
@@ -46,11 +47,11 @@ def clean_headers(
     return modified_headers
 
 
-def clean_proxy_headers(headers: Mapping[str, str] | None) -> Mapping[str, str]:
+def clean_proxy_headers(headers: Mapping[str, str] | None) -> MutableMapping[str, str]:
     return clean_headers(headers, invalid_headers=INVALID_PROXY_HEADERS)
 
 
-def clean_outbound_headers(headers: Mapping[str, str] | None) -> Mapping[str, str]:
+def clean_outbound_headers(headers: Mapping[str, str] | None) -> MutableMapping[str, str]:
     return clean_headers(headers, invalid_headers=INVALID_OUTBOUND_HEADERS)
 
 

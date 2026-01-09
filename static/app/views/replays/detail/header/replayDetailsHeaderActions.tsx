@@ -20,11 +20,11 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
       renderArchived={() => null}
       renderError={() => null}
       renderThrottled={() => null}
-      renderLoading={() => <Placeholder height="33px" width="203px" />}
+      renderLoading={() => <Placeholder height="32px" width="352px" />}
       renderMissing={() => null}
       renderProcessingError={({replayRecord, projectSlug}) => (
         <ButtonActionsWrapper>
-          <FeedbackButton />
+          <FeedbackButton size="xs" />
           <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
           <ReplayItemDropdown
             projectSlug={projectSlug}
@@ -36,7 +36,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
     >
       {({replay}) => (
         <ButtonActionsWrapper>
-          <FeedbackButton />
+          <FeedbackButton size="xs" />
           <ConfigureReplayCard
             isMobile={replay.isVideoReplay()}
             replayRecord={replay.getReplay()}

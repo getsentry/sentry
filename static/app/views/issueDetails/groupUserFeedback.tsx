@@ -106,8 +106,8 @@ const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
   ${p =>
     p.hasStreamlinedUI &&
     css`
-      border: 1px solid ${p.theme.border};
-      border-radius: ${p.theme.borderRadius};
+      border: 1px solid ${p.theme.tokens.border.primary};
+      border-radius: ${p.theme.radius.md};
       padding: ${space(1.5)} 0;
 
       @media (min-width: ${p.theme.breakpoints.md}) {
@@ -123,7 +123,7 @@ const FilterMessage = styled('div')`
 const StyledBreak = styled('hr')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.tokens.border.primary};
 `;
 
 export default GroupUserFeedback;

@@ -1,4 +1,6 @@
-# Sentry Frontend Development Guide
+# Frontend Development Guide
+
+> For critical commands and testing rules, see `/AGENTS.md` in the repository root.
 
 ## Frontend Tech Stack
 
@@ -12,7 +14,7 @@
 
 ## Commands
 
-#### Development Setup
+### Development Setup
 
 ```bash
 # Start the development server
@@ -22,17 +24,7 @@ pnpm run dev
 pnpm run dev-ui
 ```
 
-#### Testing
-
-```bash
-# Run JavaScript tests
-pnpm test
-
-# Run specific test file(s)
-CI=true pnpm test components/avatar.spec.tsx [...other files]
-```
-
-#### Code Quality
+### Linting
 
 ```bash
 # JavaScript/TypeScript linting
@@ -45,16 +37,15 @@ pnpm run lint:js components/avatar.tsx [...other files]
 pnpm run fix
 ```
 
-## Development
+### Testing
 
-### General Frontend Rules
+```bash
+# Run JavaScript tests (always use CI flag)
+CI=true pnpm test <file_path>
 
-1. NO new Reflux stores
-2. NO class components
-3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
-4. ALWAYS use TypeScript
-5. ALWAYS colocate tests
-6. Lazy load routes: `React.lazy(() => import('...'))`
+# Run specific test file(s)
+CI=true pnpm test components/avatar.spec.tsx
+```
 
 ### Important Files and Directories
 
@@ -90,6 +81,15 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
   }
 );
 ```
+
+## General Frontend Rules
+
+1. NO new Reflux stores
+2. NO class components
+3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
+4. ALWAYS use TypeScript
+5. ALWAYS colocate tests
+6. Lazy load routes: `React.lazy(() => import('...'))`
 
 ## Design system
 
@@ -460,13 +460,11 @@ function Component() {
 
 ## React Testing Guidelines
 
-### Running Tests
+### Testing Philosophy
 
-Always run React tests with the CI flag to use non-interactive mode:
-
-```bash
-CI=true pnpm test <file_path>
-```
+- **User-centric testing**: Write tests that resemble how users interact with the app.
+- **Avoid implementation details**: Focus on behavior, not internal component structure.
+- **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
 
 ### Imports
 
@@ -481,12 +479,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 ```
-
-### Testing Philosophy
-
-- **User-centric testing**: Write tests that resemble how users interact with the app.
-- **Avoid implementation details**: Focus on behavior, not internal component structure.
-- **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
 
 ### Query Priority (in order of preference)
 
@@ -614,6 +606,23 @@ expect(await screen.findByRole('alert')).toBeInTheDocument();
 
 // ✅ Use waitForElementToBeRemoved for disappearance
 await waitForElementToBeRemoved(() => screen.getByRole('alert'));
+```
+
+#### Avoid waiting for loading indicators
+
+Do not use `findBy` with `.not.toBeInTheDocument()` for loading indicators. `findBy` will error if the element is not found, but we're asserting it should NOT exist. Loading indicators are also flakey since they appear on screen for only a few ticks.
+
+```tsx
+// ❌ Wrong - findBy errors if element not found, and loading indicators are flakey
+expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+// ✅ Correct - wait for the actual content you care about
+await waitFor(() => {
+  expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
+});
+
+// ✅ Also correct - use findBy on the content that appears after loading
+expect(await screen.findByRole('button', {name: 'Submit'})).toBeInTheDocument();
 ```
 
 #### User interactions

@@ -68,7 +68,7 @@ export default DebugImage;
 const Wrapper = styled('div')`
   :not(:last-child) {
     > * {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
   ${p => layout(p.theme)};
@@ -86,7 +86,7 @@ const StatusColumn = styled(Column)`
 `;
 
 const FileName = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(0.5)};

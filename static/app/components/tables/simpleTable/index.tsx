@@ -102,9 +102,9 @@ const StyledPanel = styled(Panel)`
 
 const StyledPanelHeader = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: calc(${p => p.theme.borderRadius} + 1px)
-    calc(${p => p.theme.borderRadius} + 1px) 0 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: calc(${p => p.theme.radius.md} + 1px)
+    calc(${p => p.theme.radius.md} + 1px) 0 0;
   justify-content: left;
   padding: 0;
   min-height: 40px;
@@ -125,7 +125,7 @@ const StyledRow = styled('div', {
   align-items: center;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   ${p =>
@@ -140,9 +140,9 @@ const StyledRow = styled('div', {
 const HeaderDivider = styled('div')`
   position: absolute;
   left: 0;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   width: 1px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 14px;
 `;
 
@@ -173,7 +173,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   ${p =>
     p.isSorted &&
     css`
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 

@@ -36,7 +36,7 @@ from sentry.testutils.helpers.data_blobs import (
 )
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     EXCLUDED_ACTION_DATA_KEYS,
@@ -265,7 +265,16 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         mock_futures = [mock.Mock()]
         mock_activate_downstream_actions.return_value = {"some_key": (mock_callback, mock_futures)}
 
-        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
+        notification_uuid = str(uuid.uuid4())
+
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+        )
+
+        self.handler.invoke_legacy_registry(invocation)
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
@@ -605,26 +614,6 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
             )
             blob = self.handler.build_rule_action_blob(action, self.organization.id)
             assert blob == healed
-
-    def test_build_rule_action_blob_fallthrough_type_camel_case(self) -> None:
-        """
-        Test that while we are temporarily allowing both fallthroughType and fallthrough_type in Action.data
-        that both work when building the action data blob and result in the snake case version
-        """
-        action = Action.objects.create(
-            type=Action.Type.EMAIL,
-            data={"fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS},
-            config={
-                "target_type": ActionTarget.ISSUE_OWNERS,
-                "target_identifier": None,
-            },
-        )
-        blob = self.handler.build_rule_action_blob(action, self.organization.id)
-        assert blob == {
-            "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS,
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-        }
 
 
 class TestPluginIssueAlertHandler(BaseWorkflowTest):

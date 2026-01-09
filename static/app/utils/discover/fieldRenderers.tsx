@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
+import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -58,7 +59,6 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {
   DashboardFilterKeys,
   type DashboardFilters,
@@ -118,6 +118,7 @@ export type RenderFunctionBaggage = {
   disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  projects?: Project[];
   /**
    * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
    */
@@ -422,6 +423,8 @@ const DownloadCount = styled('span')`
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+  display: block;
+  text-align: right;
 `;
 
 /**
@@ -468,7 +471,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               showChevron: false,
               icon: (
                 <Fragment>
-                  <IconDownload color="gray500" size="sm" />
+                  <IconDownload variant="primary" size="sm" />
                   <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
@@ -503,7 +506,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
                 : undefined
             }
           >
-            <IconDownload color="gray500" size="sm" />
+            <IconDownload variant="primary" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
@@ -783,7 +786,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
         <Tooltip title={label.tooltipTitle} isHoverable>
-          <Tag type={label.type}>{label.name}</Tag>
+          <Tag variant={label.variant}>{label.name}</Tag>
         </Tooltip>
       ) : (
         <Container>{emptyValue}</Container>
@@ -916,6 +919,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <RightAlignedContainer>
           <PerformanceBadge score={Math.round(score * 100)} />
         </RightAlignedContainer>
+      );
+    },
+  },
+  'opportunity_score(measurements.score.total)': {
+    sortField: 'opportunity_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['opportunity_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
       );
     },
   },
@@ -1321,7 +1336,7 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 `;
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
 `;
 
 const StyledLink = styled(Link)`
@@ -1396,16 +1411,8 @@ function wrapFieldRendererInDashboardLink(
   dashboardFilters: DashboardFilters | undefined = undefined
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
-    const {organization} = baggage;
-    const value = data[field];
-    const dashboardUrl = getDashboardUrl(
-      field,
-      value,
-      organization,
-      widget,
-      dashboardFilters
-    );
-    if (hasDrillDownFlowsFeature(organization) && dashboardUrl) {
+    const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
+    if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
     return renderer(data, baggage);
@@ -1413,12 +1420,13 @@ function wrapFieldRendererInDashboardLink(
 }
 
 function getDashboardUrl(
+  data: EventData,
   field: string,
-  value: any,
-  organization: Organization,
+  baggage: RenderFunctionBaggage,
   widget: Widget | undefined = undefined,
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
+  const {organization, location, projects} = baggage;
   if (widget?.widgetType && dashboardFilters) {
     // Table widget only has one query
     const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
@@ -1427,24 +1435,51 @@ function getDashboardUrl(
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
       const newTemporaryFilters: GlobalFilter[] = [
         ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
-      ].filter(filter => Boolean(filter.value));
+      ].filter(
+        filter =>
+          Boolean(filter.value) &&
+          !(filter.tag.key === field && filter.dataset === widget.widgetType)
+      );
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
-      const formattedValue = mutableSearch.addFilterValueList(field, [value]).toString();
+      const formattedValue = mutableSearch
+        .addFilterValueList(field, [data[field]])
+        .toString();
 
       newTemporaryFilters.push({
         dataset: widget.widgetType,
         tag: {key: field, name: field, kind: FieldKind.TAG},
         value: formattedValue,
+        isTemporary: true,
       });
+
+      // Preserve project, environment, and time range query params
+      const filterParams = pick(location.query, [
+        'release',
+        'environment',
+        'project',
+        'statsPeriod',
+        'start',
+        'end',
+      ]);
+
+      if ('project' in data) {
+        const projectId = projects?.find(project => project.slug === data.project)?.id;
+        if (projectId) {
+          filterParams.project = projectId;
+        }
+      }
+
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
-          [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
+          [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),
+          ...filterParams,
         }
       )}`;
+
       return url;
     }
   }

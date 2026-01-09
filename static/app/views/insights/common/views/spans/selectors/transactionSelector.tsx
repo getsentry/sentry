@@ -52,8 +52,8 @@ export function TransactionSelector({
     pageLinks,
   });
 
-  const projectIds = pageFilters.selection.projects.sort();
-  const cacheKey = [...projectIds].join(' ');
+  const projectIds = [...pageFilters.selection.projects].sort();
+  const cacheKey = projectIds.join(' ');
 
   const {options: transactionOptions} = useCompactSelectOptionsCache(
     incomingPages.filter(Boolean).map(page => ({value: page, label: page})),
@@ -71,7 +71,6 @@ export function TransactionSelector({
       loading={isPending}
       searchable
       menuTitle={t('Page')}
-      maxMenuWidth="600px"
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
           debouncedSetSearch(newValue);

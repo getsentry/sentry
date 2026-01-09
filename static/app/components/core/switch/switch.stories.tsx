@@ -1,13 +1,13 @@
 import {Fragment, useState} from 'react';
 import documentation from '!!type-loader!sentry/components/core/switch';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Switch, type SwitchProps} from 'sentry/components/core/switch';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Switch', (story, APIReference) => {
-  APIReference(documentation.props.Switch);
+  APIReference(documentation.props?.Switch);
 
   story('Default', () => {
     return (
@@ -47,17 +47,11 @@ function SwitchCase(props: SwitchProps) {
   const [checked, setChecked] = useState(!!props.checked);
   const {checked: _checkedProp, ...rest} = props;
   return (
-    <Label>
+    <Flex as="label" align="center" gap="md">
       {checked
         ? `Switch is on ${props.disabled ? '(disabled)' : ''}`
         : `Switch is off ${props.disabled ? '(disabled)' : ''}`}
       <Switch checked={checked} onChange={() => setChecked(!checked)} {...rest} />
-    </Label>
+    </Flex>
   );
 }
-
-const Label = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;

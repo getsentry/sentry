@@ -1,5 +1,3 @@
-import type {Location} from 'history';
-
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
@@ -18,13 +16,14 @@ import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
 import type {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
-import type {Group, IssueOwnership} from 'sentry/types/group';
+import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Theme} from 'sentry/utils/theme';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
+type ModalRenderPropKeys = keyof ModalRenderProps;
 
 /**
  * Show a modal
@@ -66,16 +65,13 @@ export async function openEmailVerification({
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 
-type OpenDiffModalOptions = {
-  baseIssueId: Group['id'];
-  location: Location;
-  orgId: Organization['id'];
+interface OpenDiffModalOptions
+  extends Omit<
+    React.ComponentProps<typeof import('sentry/components/modals/diffModal').default>,
+    ModalRenderPropKeys
+  > {
   project: Project;
-  targetIssueId: string;
-  baseEventId?: Event['id'];
-  shouldBeGrouped?: string;
-  targetEventId?: string;
-};
+}
 
 export async function openDiffModal(options: OpenDiffModalOptions) {
   const {default: Modal, modalCss} = await import('sentry/components/modals/diffModal');

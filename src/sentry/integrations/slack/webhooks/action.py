@@ -40,6 +40,7 @@ from sentry.integrations.slack.analytics import (
 )
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.routing import decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -54,6 +55,8 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
+from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
+from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
@@ -476,6 +479,17 @@ class SlackActionEndpoint(Endpoint):
                     ).capture():
                         _ArchiveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
+                elif action.name == SlackAction.SEER_AUTOFIX_START:
+                    with self.record_event(
+                        MessagingInteractionType.SEER_AUTOFIX_START, group, request
+                    ).capture():
+                        self.handle_seer_autofix_start(
+                            slack_request=slack_request,
+                            action=action,
+                            group=group,
+                            user=identity_user,
+                        )
+                    defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
@@ -547,15 +561,42 @@ class SlackActionEndpoint(Endpoint):
 
         return self.respond()
 
+    def handle_seer_autofix_start(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        action: BlockKitMessageAction,
+        group: Group,
+        user: RpcUser,
+    ) -> None:
+        entrypoint = SlackEntrypoint(
+            slack_request=slack_request,
+            group=group,
+            organization_id=group.project.organization_id,
+        )
+        stopping_point = entrypoint.set_autofix_stopping_point(action=action)
+        operator = SeerOperator(entrypoint=entrypoint)
+        operator.trigger_autofix(
+            group=group,
+            user=user,
+            stopping_point=stopping_point,
+            run_id=entrypoint.get_autofix_run_id(),
+        )
+
     @classmethod
-    def get_action_option(cls, slack_request: SlackActionRequest) -> str | None:
-        action_option = None
+    def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
+        action_option, action_id = None, None
         for action_data in slack_request.data.get("actions", []):
             # Get the _first_ value in the action list.
             value = action_data.get("value")
-            if value and not action_option:
+
+            routing_data = decode_action_id(action_data.get("action_id", ""))
+            action_id = routing_data.action or None
+            if value:
                 action_option = value
-        return action_option
+                break
+
+        return action_option, action_id
 
     @classmethod
     def get_action_list(cls, slack_request: SlackActionRequest) -> list[BlockKitMessageAction]:
@@ -623,7 +664,7 @@ class SlackActionEndpoint(Endpoint):
 
         # Actions list may be empty when receiving a dialog response.
 
-        action_option = self.get_action_option(slack_request=slack_request)
+        action_option, action_id = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking a button link we return a 200
         if action_option in (
@@ -633,6 +674,12 @@ class SlackActionEndpoint(Endpoint):
             "trial_end_warning",
             "link_clicked",
         ):
+            return self.respond()
+
+        if action_id in {
+            SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
+            SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+        }:
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:

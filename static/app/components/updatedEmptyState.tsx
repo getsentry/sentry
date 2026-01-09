@@ -228,7 +228,7 @@ const ArcadeWrapper = styled('div')`
 `;
 
 const HeaderWrapper = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 
@@ -241,7 +241,7 @@ const Setup = styled('div')`
     right: 50%;
     top: 19%;
     height: 78%;
-    border-right: 1px ${p => p.theme.border} solid;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
 `;
 
@@ -282,7 +282,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;

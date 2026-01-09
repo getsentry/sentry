@@ -12,8 +12,12 @@ describe('transformLegacySeriesToPlottables', () => {
   it('returns empty array for empty or undefined legacy series', () => {
     const widget = WidgetFixture({displayType: DisplayType.LINE});
 
-    expect(transformLegacySeriesToPlottables(undefined, undefined, widget)).toEqual([]);
-    expect(transformLegacySeriesToPlottables([], undefined, widget)).toEqual([]);
+    expect(
+      transformLegacySeriesToPlottables(undefined, undefined, undefined, widget)
+    ).toEqual([]);
+    expect(transformLegacySeriesToPlottables([], undefined, undefined, widget)).toEqual(
+      []
+    );
   });
 
   it('creates correct plottable instances for different display types', () => {
@@ -30,6 +34,7 @@ describe('transformLegacySeriesToPlottables', () => {
       transformLegacySeriesToPlottables(
         series,
         undefined,
+        undefined,
         WidgetFixture({displayType: DisplayType.LINE})
       )[0]
     ).toBeInstanceOf(Line);
@@ -37,6 +42,7 @@ describe('transformLegacySeriesToPlottables', () => {
     expect(
       transformLegacySeriesToPlottables(
         series,
+        undefined,
         undefined,
         WidgetFixture({displayType: DisplayType.AREA})
       )[0]
@@ -46,6 +52,7 @@ describe('transformLegacySeriesToPlottables', () => {
       transformLegacySeriesToPlottables(
         series,
         undefined,
+        undefined,
         WidgetFixture({displayType: DisplayType.BAR})
       )[0]
     ).toBeInstanceOf(Bars);
@@ -54,9 +61,33 @@ describe('transformLegacySeriesToPlottables', () => {
       transformLegacySeriesToPlottables(
         series,
         undefined,
+        undefined,
         WidgetFixture({displayType: DisplayType.TABLE})
       )
     ).toEqual([]);
+  });
+
+  it('handles alias series names', () => {
+    const series = [
+      {
+        seriesName: 'my_alias : epm()',
+        data: [
+          {name: 1729796400000, value: 100},
+          {name: 1729800000000, value: 200},
+        ],
+      },
+    ];
+
+    const plottables = transformLegacySeriesToPlottables(
+      series,
+      undefined,
+      undefined,
+      WidgetFixture({displayType: DisplayType.LINE})
+    ) as Line[];
+    expect(plottables).toHaveLength(1);
+    // expect to be a line and have rate unit
+    expect(plottables[0]!).toBeInstanceOf(Line);
+    expect(plottables[0]!.timeSeries.meta.valueUnit).toBe('1/minute');
   });
 
   it('transforms session series data correctly', () => {
@@ -81,6 +112,7 @@ describe('transformLegacySeriesToPlottables', () => {
     const sessionResult = transformLegacySeriesToPlottables(
       sessionSeries,
       undefined,
+      undefined,
       widget
     ) as ContinuousTimeSeries[];
 
@@ -88,31 +120,31 @@ describe('transformLegacySeriesToPlottables', () => {
     expect(sessionResult[1]!.timeSeries.yAxis).toBe('sum(session)');
     expect(sessionResult[0]!.timeSeries.values).toEqual([
       {
-        timestamp: 172979640000,
+        timestamp: 172979640,
         value: 100,
         incomplete: false,
       },
       {
-        timestamp: 172980000000,
+        timestamp: 172980000,
         value: 200,
         incomplete: false,
       },
     ]);
     expect(sessionResult[1]!.timeSeries.values).toEqual([
       {
-        timestamp: 172979640000,
+        timestamp: 172979640,
         value: 300,
         incomplete: false,
       },
       {
-        timestamp: 172980000000,
+        timestamp: 172980000,
         value: 400,
         incomplete: false,
       },
     ]);
     expect(sessionResult[0]!.timeSeries.meta.valueType).toBe('percentage');
     expect(sessionResult[1]!.timeSeries.meta.valueType).toBe('number');
-    expect(sessionResult[0]!.timeSeries.meta.interval).toBe(360000);
-    expect(sessionResult[1]!.timeSeries.meta.interval).toBe(360000);
+    expect(sessionResult[0]!.timeSeries.meta.interval).toBe(360);
+    expect(sessionResult[1]!.timeSeries.meta.interval).toBe(360);
   });
 });

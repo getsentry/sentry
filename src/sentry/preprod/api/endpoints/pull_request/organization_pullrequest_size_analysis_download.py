@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,10 +16,8 @@ from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.size_analysis.download import (
     SizeAnalysisError,
     get_size_analysis_error_response,
-    get_size_analysis_file_response,
+    get_size_analysis_response,
 )
-
-logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -56,7 +52,7 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpoint(OrganizationEndpoint):
         )
 
         if not features.has("organizations:pr-page", organization, actor=request.user):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             artifact = PreprodArtifact.objects.get(
@@ -66,30 +62,9 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpoint(OrganizationEndpoint):
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise PreprodArtifactResourceDoesNotExist
 
-        try:
-            size_metrics_qs = artifact.get_size_metrics()
-            size_metrics_count = size_metrics_qs.count()
-            if size_metrics_count == 0:
-                return Response(
-                    {"error": "Size analysis results not available for this artifact"},
-                    status=404,
-                )
-            elif size_metrics_count > 1:
-                return Response(
-                    {"error": "Multiple size analysis results found for this artifact"},
-                    status=409,
-                )
+        all_size_metrics = list(artifact.get_size_metrics())
 
-            size_metrics = size_metrics_qs.first()
-            if size_metrics is None or size_metrics.analysis_file_id is None:
-                logger.info(
-                    "preprod.size_analysis.download.no_size_metrics",
-                    extra={"artifact_id": artifact_id},
-                )
-                return Response(
-                    {"error": "Size analysis not found"},
-                    status=404,
-                )
-            return get_size_analysis_file_response(size_metrics)
+        try:
+            return get_size_analysis_response(all_size_metrics)
         except SizeAnalysisError as e:
             return get_size_analysis_error_response(e)

@@ -153,7 +153,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           path: `${organizationSettingsPathPrefix}/integrations/`,
           title: t('Integrations'),
           description: t(
-            'Manage organization-level integrations, including: Slack, Github, Bitbucket, Jira, and Azure DevOps'
+            'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
           ),
           id: 'integrations',
           recordAnalytics: true,
@@ -182,7 +182,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         },
         {
           path: `${organizationSettingsPathPrefix}/seer/`,
-          title: t('Seer Automation'),
+          title: t('Seer'),
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),

@@ -44,11 +44,11 @@ const Cell = styled('div')`
   gap: ${space(1)};
   align-items: center;
   border: 1px solid transparent;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   cursor: pointer;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;

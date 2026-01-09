@@ -1,12 +1,16 @@
-import {Fragment, useCallback, useMemo, useState, type PropsWithChildren} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
 
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -48,31 +52,20 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {ellipsize} from 'sentry/utils/string/ellipsize';
-import type {Color, ColorOrAlias} from 'sentry/utils/theme';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
-import {
-  isEAPSpanNode,
-  isEAPTransactionNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
-import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {
   useTraceState,
   useTraceStateDispatch,
@@ -215,7 +208,7 @@ const IconTitleWrapper = styled(FlexBox)`
 
 const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   background-color: ${p => p.backgroundColor};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: 0;
   display: flex;
   align-items: center;
@@ -260,24 +253,26 @@ const HeaderContainer = styled(FlexBox)`
   margin-bottom: ${space(1)};
 `;
 
-const DURATION_COMPARISON_STATUS_COLORS: {
-  equal: {light: ColorOrAlias; normal: ColorOrAlias};
-  faster: {light: ColorOrAlias; normal: ColorOrAlias};
-  slower: {light: ColorOrAlias; normal: ColorOrAlias};
-} = {
-  faster: {
-    light: 'green100',
-    normal: 'green300',
-  },
-  slower: {
-    light: 'red100',
-    normal: 'red300',
-  },
-  equal: {
-    light: 'gray100',
-    normal: 'gray300',
-  },
-};
+function makeDurationComparisonStatusColors(theme: Theme): {
+  equal: {light: string; normal: string};
+  faster: {light: string; normal: string};
+  slower: {light: string; normal: string};
+} {
+  return {
+    faster: {
+      light: theme.colors.green100,
+      normal: theme.colors.green600,
+    },
+    slower: {
+      light: theme.colors.red100,
+      normal: theme.colors.red600,
+    },
+    equal: {
+      light: theme.tokens.background.transparent.neutral.muted,
+      normal: theme.tokens.content.secondary,
+    },
+  };
+}
 
 const MIN_PCT_DURATION_DIFFERENCE = 10;
 
@@ -304,7 +299,9 @@ const getDurationComparison = (
     <Tooltip
       title={baseDescription}
       showUnderline
-      underlineColor={DURATION_COMPARISON_STATUS_COLORS[status].normal}
+      underlineColor={
+        status === 'faster' ? 'success' : status === 'slower' ? 'danger' : 'muted'
+      }
     >
       {getDuration(baseline, 2, true)}
     </Tooltip>
@@ -331,8 +328,9 @@ const getDurationComparison = (
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   baseDescription?: string;
+  precision?: number;
   ratio?: number;
 };
 
@@ -341,8 +339,7 @@ function Duration(props: DurationProps) {
     return <DurationContainer>{t('unknown')}</DurationContainer>;
   }
 
-  // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
-  const precision = isTransactionNode(props.node) ? (props.duration > 1 ? 2 : 0) : 2;
+  const precision = props.precision ?? 2;
   if (props.baseline === undefined || props.baseline === 0) {
     return (
       <DurationContainer>
@@ -414,37 +411,27 @@ type HighlightProps = {
   avgDuration: number | undefined;
   bodyContent: React.ReactNode;
   headerContent: React.ReactNode;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   project: Project | undefined;
-  transaction: EventTransaction | undefined;
+  comparisonDescription?: string;
+  footerContent?: React.ReactNode;
   hideNodeActions?: boolean;
   highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
 function Highlights({
   node,
-  transaction: event,
   avgDuration,
   project,
   headerContent,
   bodyContent,
+  footerContent,
   highlightedAttributes,
+  comparisonDescription,
   hideNodeActions,
 }: HighlightProps) {
   const location = useLocation();
-  const dispatch = useTraceStateDispatch();
   const organization = useOrganization();
-
-  const onOpsBreakdownRowClick = useCallback(
-    (op: string) => {
-      dispatch({type: 'set query', query: `op:${op}`, source: 'external'});
-    },
-    [dispatch]
-  );
-
-  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return null;
-  }
 
   const isAiNode = getIsAiNode(node);
   const isMCPNode = getIsMCPNode(node);
@@ -455,22 +442,19 @@ function Highlights({
   const endTimestamp = node.space[0] + node.space[1];
   const durationInSeconds = (endTimestamp - startTimestamp) / 1e3;
 
-  const baseDescription = isTransactionNode(node)
-    ? t('Average duration for this transaction over the last 24 hours')
-    : t('Average duration for this span over the last 24 hours');
   const comparison = getDurationComparison(
     avgDuration,
     durationInSeconds,
-    baseDescription
+    comparisonDescription
   );
 
   return (
     <Fragment>
       <HighlightsWrapper>
         <HighlightsLeftColumn>
-          <Tooltip title={node.value?.project_slug}>
+          <Tooltip title={node.projectSlug}>
             <ProjectBadge
-              project={project ? project : {slug: node.value?.project_slug ?? ''}}
+              project={project ? project : {slug: node.projectSlug ?? ''}}
               avatarSize={18}
               hideName
             />
@@ -478,9 +462,7 @@ function Highlights({
           <VerticalLine />
         </HighlightsLeftColumn>
         <HighlightsRightColumn>
-          <HighlightOp>
-            {isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op}
-          </HighlightOp>
+          <HighlightOp>{node.op}</HighlightOp>
           <HighlightsDurationWrapper>
             <HighlightDuration>
               {getDuration(durationInSeconds, 2, true)}
@@ -526,17 +508,7 @@ function Highlights({
                 <StyledPanelHeader>{headerContent}</StyledPanelHeader>
                 <PanelBody>{bodyContent}</PanelBody>
               </StyledPanel>
-              {isEAPSpanNode(node) ? (
-                <HighLightEAPOpsBreakdown
-                  onRowClick={onOpsBreakdownRowClick}
-                  node={node}
-                />
-              ) : event ? (
-                <HighLightsOpsBreakdown
-                  onRowClick={onOpsBreakdownRowClick}
-                  event={event}
-                />
-              ) : null}
+              {footerContent}
             </Fragment>
           )}
         </HighlightsRightColumn>
@@ -550,15 +522,10 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-function HighLightsOpsBreakdown({
-  event,
-  onRowClick,
-}: {
-  event: EventTransaction;
-  onRowClick: (op: string) => void;
-}) {
+function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   const theme = useTheme();
   const breakdown = generateStats(event, {type: 'no_filter'});
+  const dispatch = useTraceStateDispatch();
 
   return (
     <HighlightsOpsBreakdownWrapper>
@@ -576,9 +543,15 @@ function HighLightsOpsBreakdown({
           return (
             <HighlightsOpRow
               key={operationName}
-              onClick={() => onRowClick(operationName)}
+              onClick={() =>
+                dispatch({
+                  type: 'set query',
+                  query: `op:${operationName}`,
+                  source: 'external',
+                })
+              }
             >
-              <IconCircleFill size="xs" color={color as Color} />
+              <StyledIconCircleFill size="xs" fill={color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
             </HighlightsOpRow>
@@ -589,15 +562,10 @@ function HighLightsOpsBreakdown({
   );
 }
 
-function HighLightEAPOpsBreakdown({
-  node,
-  onRowClick,
-}: {
-  node: TraceTreeNode<TraceTree.EAPSpan>;
-  onRowClick: (op: string) => void;
-}) {
+function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   const theme = useTheme();
-  const breakdown = node.eapSpanOpsBreakdown;
+  const breakdown = node.opsBreakdown;
+  const dispatch = useTraceStateDispatch();
 
   if (breakdown.length === 0) {
     return null;
@@ -632,9 +600,15 @@ function HighLightEAPOpsBreakdown({
           return (
             <HighlightsOpRow
               key={operationName}
-              onClick={() => onRowClick(operationName)}
+              onClick={() =>
+                dispatch({
+                  type: 'set query',
+                  query: `op:${operationName}`,
+                  source: 'external',
+                })
+              }
             >
-              <IconCircleFill size="xs" color={color as Color} />
+              <StyledIconCircleFill size="xs" fill={color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
             </HighlightsOpRow>
@@ -644,6 +618,10 @@ function HighLightEAPOpsBreakdown({
     </HighlightsOpsBreakdownWrapper>
   );
 }
+
+const StyledIconCircleFill = styled(IconCircleFill)<{fill: string}>`
+  fill: ${p => p.fill};
+`;
 
 const TopOpsList = styled('div')`
   display: flex;
@@ -679,9 +657,9 @@ const HiglightsDurationComparison = styled('div')<
 >`
   white-space: nowrap;
   border-radius: 12px;
-  color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
+  color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].normal};
+  background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
@@ -694,7 +672,7 @@ const HighlightsDurationWrapper = styled(FlexBox)`
 `;
 
 const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 400;
 `;
 
@@ -739,7 +717,7 @@ const SectionDivider = styled('hr')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: 100%;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   margin-top: ${space(0.5)};
 `;
 
@@ -767,13 +745,7 @@ const HighlightsRightColumn = styled('div')`
   overflow: hidden;
 `;
 
-function IssuesLink({
-  node,
-  children,
-}: {
-  children: React.ReactNode;
-  node: TraceTreeNode<TraceTree.NodeValue>;
-}) {
+function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = params.traceSlug?.trim() ?? '';
@@ -811,7 +783,12 @@ const DurationContainer = styled('span')`
 `;
 
 const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
-  color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
+  color: ${p =>
+    p.status === 'faster'
+      ? p.theme.tokens.content.success
+      : p.status === 'slower'
+        ? p.theme.tokens.content.danger
+        : p.theme.tokens.content.secondary};
 `;
 
 const TableValueRow = styled('div')`
@@ -820,7 +797,7 @@ const TableValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
   margin: 2px;
 `;
 
@@ -840,21 +817,6 @@ const TableRowButtonContainer = styled('div')`
 const ValueTd = styled('td')`
   position: relative;
 `;
-
-function getThreadIdFromNode(
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  transaction: EventTransaction | undefined
-): string | undefined {
-  if (isSpanNode(node) && node.value.data?.['thread.id']) {
-    return node.value.data['thread.id'];
-  }
-
-  if (transaction) {
-    return transaction.contexts?.trace?.data?.['thread.id'];
-  }
-
-  return undefined;
-}
 
 // Renders the dropdown menu list at the root trace drawer content container level, to prevent
 // being stacked under other content.
@@ -999,63 +961,43 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
 }
 
 function NodeActions(props: {
-  node: TraceTreeNode<any>;
-  onTabScrollToNode: (
-    node:
-      | TraceTreeNode<any>
-      | ParentAutogroupNode
-      | SiblingAutogroupNode
-      | MissingInstrumentationNode
-  ) => void;
+  node: BaseNode;
+  onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   eventSize?: number | undefined;
+  profileId?: string;
+  profilerId?: string;
+  showJSONLink?: boolean;
+  threadId?: string;
 }) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
-  const transactionId = isTransactionNode(props.node)
-    ? props.node.value.event_id
-    : isEAPTransactionNode(props.node)
-      ? props.node.value.transaction_id
-      : '';
-
-  const {data: transaction} = useTransaction({
-    event_id: transactionId,
-    project_slug: props.node.value.project_slug,
-    organization,
-  });
+  const transactionId = props.node.transactionId ?? '';
 
   const transactionProfileTarget = useMemo(() => {
-    const profileId = isTransactionNode(props.node)
-      ? props.node.value.profile_id
-      : isSpanNode(props.node)
-        ? (props.node.event?.contexts?.profile?.profile_id ?? '')
-        : '';
-    if (!profileId) {
+    if (!props.profileId) {
       return null;
     }
-    return makeTransactionProfilingLink(profileId, {
+
+    return makeTransactionProfilingLink(props.profileId, {
       organization,
-      projectSlug: props.node.metadata.project_slug ?? '',
+      projectSlug: props.node.projectSlug ?? '',
     });
-  }, [organization, props.node]);
+  }, [organization, props.node, props.profileId]);
 
   const continuousProfileTarget = useMemo(() => {
-    const profilerId = isTransactionNode(props.node)
-      ? props.node.value.profiler_id
-      : isSpanNode(props.node)
-        ? (props.node.value.sentry_tags?.profiler_id ?? null)
-        : null;
-    if (!profilerId) {
+    if (!props.profilerId) {
       return null;
     }
-    return makeTraceContinuousProfilingLink(props.node, profilerId, {
+
+    return makeTraceContinuousProfilingLink(props.node, props.profilerId, {
       organization,
-      projectSlug: props.node.metadata.project_slug ?? '',
+      projectSlug: props.node.projectSlug ?? '',
       traceId: params.traceSlug ?? '',
-      threadId: getThreadIdFromNode(props.node, transaction),
+      threadId: props.threadId,
     });
-  }, [organization, params.traceSlug, props.node, transaction]);
+  }, [organization, params.traceSlug, props.node, props.profilerId, props.threadId]);
 
   return (
     <ActionWrapper>
@@ -1070,12 +1012,11 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {transactionId &&
-      (isTransactionNode(props.node) || isEAPTransactionNode(props.node)) ? (
+      {props.showJSONLink && transactionId ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${transactionId}/json/`}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -1271,44 +1212,113 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-const MAX_TEXT_LENGTH = 300;
-const MAX_NEWLINES = 5;
-
 function MultilineText({children}: {children: string}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const newLineMatches = Array.from(children.matchAll(/\n/g));
-  const maxNewlinePosition = newLineMatches.at(MAX_NEWLINES - 1)?.index ?? Infinity;
-
-  const truncatePosition = Math.min(maxNewlinePosition, MAX_TEXT_LENGTH);
-  const needsTruncation = truncatePosition < children.length;
+  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const {hoverProps, isHovered} = useHover({});
+  const theme = useTheme();
 
   return (
-    <MultilineTextWrapper>
-      {isExpanded || !needsTruncation ? (
-        children
-      ) : (
-        <Fragment>{ellipsize(children, truncatePosition)}</Fragment>
-      )}
-      {needsTruncation ? (
-        <Flex justify="center" paddingTop="md">
-          <Button size="xs" onClick={() => setIsExpanded(!isExpanded)}>
-            {isExpanded ? t('Show less') : t('Show all')}
-          </Button>
-        </Flex>
-      ) : null}
-    </MultilineTextWrapper>
+    <Fragment>
+      <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
+        <MultilineTextWrapper {...hoverProps}>
+          <Container
+            position="absolute"
+            style={{top: theme.space.xs, right: theme.space.xs}}
+          >
+            {isHovered && (
+              <SegmentedControl
+                size="xs"
+                value={showRaw ? 'raw' : 'formatted'}
+                onChange={value => setShowRaw(value === 'raw')}
+              >
+                <SegmentedControl.Item key="formatted">
+                  {t('Pretty')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+              </SegmentedControl>
+            )}
+          </Container>
+          {showRaw ? (
+            children.trim()
+          ) : (
+            <MarkedText as={MarkdownContainer} text={children} />
+          )}
+        </MultilineTextWrapper>
+      </StyledClippedBox>
+    </Fragment>
   );
 }
 
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+/**
+ * Markdown wrapper including styles for markdown elements
+ * Optimized for inline use, with minimal padding and margin and smaller heading font size
+ */
+const MarkdownContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.sm};
+  white-space: normal;
+  p {
+    margin: 0;
+    padding: 0;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: ${p => p.theme.fontSize.md};
+    margin: 0;
+    padding-bottom: ${p => p.theme.space.sm};
+  }
+  ul,
+  ol {
+    margin: 0;
+  }
+  blockquote {
+    margin: 0;
+    padding: ${p => p.theme.space.sm};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
+  }
+  pre {
+    margin: 0;
+    padding: ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.radius.md};
+  }
+  img {
+    max-height: 200px;
+  }
+  hr {
+    margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+  table {
+    border-collapse: collapse;
+    width: auto;
+    width: max-content;
+  }
+  table th,
+  table td {
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    padding: ${p => p.theme.space.xs};
+  }
+`;
+
 const MultilineTextWrapper = styled('div')`
+  position: relative;
   white-space: pre-wrap;
   background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   word-break: break-word;
   &:not(:last-child) {
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
@@ -1327,26 +1337,61 @@ function MultilineJSON({
   value: any;
   maxDefaultDepth?: number;
 }) {
+  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const {hoverProps, isHovered} = useHover({});
+  const theme = useTheme();
+
   const json = tryParseJson(value);
   return (
-    <MultilineTextWrapperMonospace>
-      <StructuredData
-        config={{
-          isString: v => typeof v === 'string',
-          isBoolean: v => typeof v === 'boolean',
-          isNumber: v => typeof v === 'number',
-        }}
-        value={json}
-        maxDefaultDepth={maxDefaultDepth}
-        withAnnotatedText
-      />
+    <MultilineTextWrapperMonospace {...hoverProps}>
+      {isHovered && (
+        <Container
+          position="absolute"
+          style={{
+            top: theme.space.xs,
+            right: theme.space.xs,
+            // Ensure the segmented control is on top of the text StructuredData
+            zIndex: 1,
+          }}
+        >
+          <SegmentedControl
+            size="xs"
+            value={showRaw ? 'raw' : 'formatted'}
+            onChange={v => setShowRaw(v === 'raw')}
+          >
+            <SegmentedControl.Item key="formatted">{t('Pretty')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Container>
+      )}
+      {showRaw ? (
+        <pre>
+          <code>{JSON.stringify(json, null, 2)}</code>
+        </pre>
+      ) : (
+        <StructuredData
+          config={{
+            isString: v => typeof v === 'string',
+            isBoolean: v => typeof v === 'boolean',
+            isNumber: v => typeof v === 'number',
+          }}
+          value={json}
+          maxDefaultDepth={maxDefaultDepth}
+          withAnnotatedText
+        />
+      )}
     </MultilineTextWrapperMonospace>
   );
 }
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
+  pre {
+    margin: 0;
+    padding: 0;
+    font-size: ${p => p.theme.fontSize.sm};
+  }
 `;
 
 const MultilineTextLabel = styled('div')`
@@ -1379,6 +1424,8 @@ export const TraceDrawerComponents = {
   HeaderContainer,
   LegacyHeaderContainer,
   Highlights,
+  HighLightEAPOpsBreakdown,
+  HighLightsOpsBreakdown,
   Actions,
   NodeActions,
   KeyValueAction,
@@ -1404,4 +1451,5 @@ export const TraceDrawerComponents = {
   MultilineText,
   MultilineJSON,
   MultilineTextLabel,
+  MarkdownContainer,
 };

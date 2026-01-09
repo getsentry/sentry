@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 
 export const Card = styled('div')`
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px ${p => 'solid ' + p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
   box-shadow: ${p => p.theme.dropShadowMedium};
   margin: ${space(2)} 0;
   padding: ${space(2)};
@@ -26,7 +26,7 @@ export const HalvedWithDivider = styled('div')`
 `;
 
 export const Divider = styled('span')`
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0 ${space(1)};
   height: ${space(3)};
 `;

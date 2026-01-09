@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconFlag} from 'sentry/icons';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -36,7 +37,7 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
   return (
     <Wrapper className={className}>
       <ErrorHeading>
-        <IconFlag size="md" color="errorText" />
+        <IconFlag size="md" variant="danger" />
         {heading}
       </ErrorHeading>
 
@@ -83,7 +84,7 @@ const ErrorHeading = styled('h4')`
   display: flex;
   gap: ${space(1.5)};
   align-items: center;
-  margin-left: calc(-1 * (${p => p.theme.iconSizes.md} + ${space(1.5)}));
+  margin-left: calc(-1 * (${() => SvgIcon.ICON_SIZES.md} + ${space(1.5)}));
 `;
 
 const ErrorFooter = styled('div')`
@@ -91,7 +92,7 @@ const ErrorFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin-top: ${space(2)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-top: ${space(2)};
 `;
 

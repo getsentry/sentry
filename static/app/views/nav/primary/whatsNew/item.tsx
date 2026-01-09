@@ -40,7 +40,9 @@ export function WhatsNewItem({
   return (
     <SidebarPanelItemRoot>
       <TextBlock>
-        {category && <CategoryTag>{BROADCAST_CATEGORIES[category]}</CategoryTag>}
+        {category && (
+          <CategoryTag variant="muted">{BROADCAST_CATEGORIES[category]}</CategoryTag>
+        )}
         <Title hasSeen={hasSeen} href={link} onClick={handlePanelClicked}>
           {title}
         </Title>
@@ -57,13 +59,13 @@ const SidebarPanelItemRoot = styled('div')`
   padding: ${space(2)} 0;
 
   :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.colors.blue500};
   ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeight.bold}`};
   &:focus-visible {
     box-shadow: none;
@@ -82,8 +84,8 @@ const TextBlock = styled('div')`
 `;
 
 const Media = styled('img')`
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.translucentGray200};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.colors.gray200};
   max-width: 100%;
 `;
 

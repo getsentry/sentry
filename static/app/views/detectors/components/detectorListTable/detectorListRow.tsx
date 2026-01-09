@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
@@ -30,13 +30,13 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
     >
       <SimpleTable.RowCell>
         <Flex gap="md">
-          <CheckboxWrapper>
+          <Flex align="center" flexShrink={0} width="20px" height="20px">
             <Checkbox
               checked={selected}
               onChange={() => onSelect(detector.id)}
               className="select-row"
             />
-          </CheckboxWrapper>
+          </Flex>
 
           <DetectorLink detector={detector} />
         </Flex>
@@ -67,10 +67,13 @@ export function DetectorListRowSkeleton() {
   return (
     <DetectorSimpleTableRow>
       <SimpleTable.RowCell>
-        <div style={{width: '100%'}}>
-          <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
-          <Placeholder height="16px" width="20%" />
-        </div>
+        <Flex gap="md" width="100%">
+          <Flex align="center" flexShrink={0} width="20px" height="20px" />
+          <Container width="100%">
+            <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
+            <Placeholder height="16px" width="20%" />
+          </Container>
+        </Flex>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="type">
         <Placeholder height="20px" />
@@ -112,12 +115,4 @@ const DetectorSimpleTableRow = styled(SimpleTable.Row)`
       }
     }
   }
-`;
-
-const CheckboxWrapper = styled('div')`
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
 `;

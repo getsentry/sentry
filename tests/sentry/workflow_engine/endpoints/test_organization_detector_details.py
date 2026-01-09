@@ -764,6 +764,72 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.detector.refresh_from_db()
         assert self.detector.config != invalid_config
 
+    def test_update_rejects_cross_organization_condition_id(self) -> None:
+        """
+        Test that the PUT endpoint rejects condition IDs from other organizations, an IDOR test.
+        """
+        # Create another organization with its own detector and condition
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_dcg = self.create_data_condition_group(organization_id=other_org.id)
+        other_condition = self.create_data_condition(
+            condition_group=other_dcg,
+            type=Condition.GREATER,
+            comparison=100,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        self.create_detector(
+            project=other_project,
+            name="Victim Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=other_dcg,
+        )
+
+        # Verify initial state: other org's condition exists and is attached
+        assert other_condition.condition_group_id == other_dcg.id
+        assert other_dcg.conditions.count() == 1
+
+        # Attempt to update our detector with the other org's condition ID
+        data = {
+            "name": self.detector.name,
+            "type": MetricIssue.slug,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "id": other_condition.id,  # Cross-org condition ID
+                        "type": Condition.GREATER,
+                        "comparison": 999,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                    {
+                        "id": self.resolve_condition.id,
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 999,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                    },
+                ],
+            },
+        }
+
+        with self.tasks():
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=400,
+            )
+
+        # Verify the request was rejected
+        assert f"Condition with id {other_condition.id} not found" in str(response.data)
+
+        # Verify the other org's condition was NOT modified or stolen
+        other_condition.refresh_from_db()
+        assert other_condition.comparison == 100  # Original value
+        assert other_condition.condition_group_id == other_dcg.id  # Still attached to victim
+        assert other_dcg.conditions.count() == 1  # Victim still has their condition
+
     @with_feature("organizations:anomaly-detection-alerts")
     @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
     def test_anomaly_detection_to_static(self, mock_seer_request: mock.MagicMock) -> None:
@@ -789,6 +855,50 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         mock_seer_request.assert_called_once_with(
             source_id=int(self.data_source.source_id), organization=self.organization
         )
+
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    def test_update_data_source_marks_user_updated_when_snapshot_exists(
+        self, mock_schedule_update_project_config: mock.MagicMock
+    ) -> None:
+        data_source_detector = DataSourceDetector.objects.get(detector=self.detector)
+        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+
+        snuba_query.query_snapshot = {
+            "type": snuba_query.type,
+            "dataset": snuba_query.dataset,
+            "query": snuba_query.query,
+            "aggregate": snuba_query.aggregate,
+        }
+        snuba_query.save()
+
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": self.snuba_query.type,
+                    "dataset": self.snuba_query.dataset,
+                    "query": "user modified query",
+                    "aggregate": self.snuba_query.aggregate,
+                    "timeWindow": 300,
+                    "environment": self.environment.name,
+                    "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
+                }
+            ],
+        }
+
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        snuba_query.refresh_from_db()
+        assert snuba_query.query_snapshot is not None
+        assert snuba_query.query_snapshot.get("user_updated") is True
 
 
 @region_silo_test

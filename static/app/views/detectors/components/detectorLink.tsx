@@ -211,7 +211,7 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
 
   const detectorName =
     detector.type === 'issue_stream'
-      ? t('All Issues in %s', project?.name || 'project')
+      ? t('All Issues in %s', project?.slug || 'project')
       : detector.name;
 
   const detectorLink =
@@ -257,7 +257,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const Separator = styled('span')`
   height: 10px;
   width: 1px;
-  background-color: ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tokens.border.secondary};
   border-radius: 1px;
 `;
 

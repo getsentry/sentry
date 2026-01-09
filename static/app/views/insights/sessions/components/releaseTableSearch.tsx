@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import type {Tag} from 'sentry/types/group';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
@@ -59,7 +59,7 @@ export default function ReleaseTableSearch() {
     });
   };
 
-  const getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
+  const getTagValues: GetTagValues = async (tag, currentQuery) => {
     const values = await tagValueLoader(tag.key, currentQuery);
     return values.map(({value}) => value);
   };

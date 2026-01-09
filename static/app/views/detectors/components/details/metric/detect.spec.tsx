@@ -1,4 +1,7 @@
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  AnomalyDetectionConditionGroupFixture,
+  MetricDetectorFixture,
+} from 'sentry-fixture/detectors';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -55,20 +58,20 @@ describe('MetricDetectorDetailsDetect', () => {
 
     expect(screen.getByText('Resolved')).toBeInTheDocument();
     expect(
-      screen.getByText(/Less than 8% lower than the previous 1 minute/)
+      screen.getByText(/Below or equal to 8% lower than the previous 1 minute/)
     ).toBeInTheDocument();
   });
 
-  it('renders dynamic detection notice', () => {
+  it('renders dynamic detection', () => {
     const detector = MetricDetectorFixture({
       config: {detectionType: 'dynamic'},
+      conditionGroup: AnomalyDetectionConditionGroupFixture(),
     });
 
     render(<MetricDetectorDetailsDetect detector={detector} />);
 
     expect(screen.getByText('Dynamic threshold')).toBeInTheDocument();
-    expect(
-      screen.getByText('Sentry will automatically update priority.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Trend: Above and Below')).toBeInTheDocument();
+    expect(screen.getByText('Responsiveness: High')).toBeInTheDocument();
   });
 });

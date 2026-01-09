@@ -76,7 +76,7 @@ const Code = styled('div')`
 `;
 
 const Separator = styled('hr')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: ${space(1)} 0;
 `;
 

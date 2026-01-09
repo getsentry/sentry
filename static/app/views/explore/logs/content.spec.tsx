@@ -1,6 +1,7 @@
 import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TeamFixture} from 'sentry-fixture/team';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
@@ -26,7 +27,7 @@ describe('LogsPage', () => {
   let testDate: Date;
 
   let eventTableMock: jest.Mock;
-  let eventStatsMock: jest.Mock;
+  let eventsTimeSeriesMock: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -48,10 +49,12 @@ describe('LogsPage', () => {
 
     eventTableMock = setupEventsMock(baseFixtures.slice(0, 2));
 
-    eventStatsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+    eventsTimeSeriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {},
+      body: {
+        timeSeries: [TimeSeriesFixture()],
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -98,7 +101,7 @@ describe('LogsPage', () => {
     });
 
     await waitFor(() => {
-      expect(eventStatsMock).toHaveBeenCalled();
+      expect(eventsTimeSeriesMock).toHaveBeenCalled();
     });
 
     const table = screen.getByTestId('logs-table');
@@ -178,11 +181,11 @@ describe('LogsPage', () => {
     });
 
     await waitFor(() => {
-      expect(eventStatsMock).toHaveBeenCalled();
+      expect(eventsTimeSeriesMock).toHaveBeenCalled();
     });
 
     eventTableMock.mockClear();
-    eventStatsMock.mockClear();
+    eventsTimeSeriesMock.mockClear();
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand sidebar'}));
 
@@ -207,17 +210,26 @@ describe('LogsPage', () => {
     });
 
     await waitFor(() => {
-      expect(eventStatsMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/events-stats/`,
+      expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            environment: [],
-            statsPeriod: '24h',
+            caseInsensitive: undefined,
             dataset: 'ourlogs',
-            field: ['severity', 'count(message)'],
-            yAxis: 'count(message)',
-            orderby: '-count_message',
+            disableAggregateExtrapolation: '0',
+            environment: [],
+            excludeOther: 0,
+            groupBy: ['severity'],
             interval: '5m',
+            partial: 1,
+            project: [],
+            query: '',
+            referrer: 'api.explore.ourlogs-timeseries',
+            sampling: 'NORMAL',
+            sort: '-count_message',
+            statsPeriod: '24h',
+            topEvents: 5,
+            yAxis: ['count(message)'],
           }),
         })
       );

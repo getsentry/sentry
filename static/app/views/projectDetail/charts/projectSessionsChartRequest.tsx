@@ -248,7 +248,7 @@ class ProjectSessionsChartRequest extends Component<
     const timeseriesData = [
       {
         seriesName: t('This Period'),
-        color: theme.green300,
+        color: theme.colors.green400,
         data: responseData.intervals
           .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
           .map((interval, i) => {

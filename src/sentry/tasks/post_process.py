@@ -75,19 +75,6 @@ class PostProcessJob(TypedDict, total=False):
     has_escalated: bool
 
 
-def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
-    from sentry.sentry_apps.models.servicehook import ServiceHook
-
-    cache_key = f"servicehooks:1:{project_id}"
-    result = cache.get(cache_key)
-
-    if result is None:
-        hooks = ServiceHook.objects.filter(servicehookproject__project_id=project_id)
-        result = [(h.id, h.events) for h in hooks]
-        cache.set(cache_key, result, 60)
-    return result
-
-
 def _should_send_error_created_hooks(project):
     from sentry.models.organization import Organization
     from sentry.sentry_apps.models.servicehook import ServiceHook
@@ -1150,6 +1137,7 @@ def process_commits(job: PostProcessJob) -> None:
                             IntegrationProviderSlug.GITHUB.value,
                             IntegrationProviderSlug.GITLAB.value,
                             IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                            IntegrationProviderSlug.PERFORCE.value,
                         ],
                     )
                     has_integrations = len(org_integrations) > 0
@@ -1210,23 +1198,13 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
+    if _should_single_process_event(job):
+        # we will kick off service hooks in the workflow engine task
+        return
 
-    event, has_alert = job["event"], job["has_alert"]
+    from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 
-    if features.has("projects:servicehooks", project=event.project):
-        allowed_events = {"event.created"}
-        if has_alert:
-            allowed_events.add("event.alert")
-
-        for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-            if any(e in allowed_events for e in events):
-                process_service_hook.delay(
-                    servicehook_id=servicehook_id,
-                    project_id=event.project_id,
-                    group_id=event.group_id,
-                    event_id=event.event_id,
-                )
+    kick_off_service_hooks(job["event"], job["has_alert"])
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
@@ -1607,6 +1585,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.utils import (
         is_issue_eligible_for_seer_automation,
         is_seer_scanner_rate_limited,
+        is_seer_seat_based_tier_enabled,
     )
     from sentry.tasks.autofix import (
         generate_issue_summary_only,
@@ -1618,7 +1597,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     # Default behaviour
-    if not features.has("projects:triage-signals-v0", group.project):
+    if not is_seer_seat_based_tier_enabled(group.organization):
         # Only run on issues with no existing scan
         if group.seer_fixability_score is not None:
             return
@@ -1643,7 +1622,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
-                logger.info("Triage signals V0: %s: summary already exists, skipping", group.id)
                 return
 
             # Early returns for eligibility checks (cheap checks first)
@@ -1658,7 +1636,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
             if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
-            logger.info("Triage signals V0: %s: generating summary", group.id)
+
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
@@ -1683,11 +1661,17 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if not cache.add(automation_dispatch_cache_key, True, timeout=300):
                 return  # Another process already dispatched automation
 
+            # Check if project has connected repositories - requirement for new pricing
+            # which triggers Django model loading before apps are ready
+            from sentry.seer.autofix.utils import has_project_connected_repos
+
+            if not has_project_connected_repos(group.organization.id, group.project.id):
+                return
+
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
                 # Summary exists, run automation directly
-                logger.info("Triage signals V0: %s: summary exists, running automation", group.id)
                 run_automation_only_task.delay(group.id)
             else:
                 # Rate limit check before generating summary
@@ -1695,10 +1679,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     return
 
                 # No summary yet, generate summary + run automation in one go
-                logger.info(
-                    "Triage signals V0: %s: no summary, generating summary + running automation",
-                    group.id,
-                )
                 generate_summary_and_run_automation.delay(group.id)
 
 

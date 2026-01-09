@@ -100,7 +100,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
                   }}
                 >
                   <StyledInteractionStateLayer isPressed={isDragging === query.id} />
-                  <IconGrabbable color="gray300" />
+                  <IconGrabbable variant="muted" />
                 </GrabHandleWrapper>
                 <ProjectIcon
                   projectPlatforms={projects
@@ -148,8 +148,8 @@ const StyledReorderItem = styled(Reorder.Item, {
   shouldForwardProp: prop => prop !== 'grabbing',
 })<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const GrabHandleWrapper = styled('div')`

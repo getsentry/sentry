@@ -30,6 +30,7 @@ import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/feat
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {
   setApiQueryData,
   useApiQuery,
@@ -38,7 +39,6 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
@@ -1236,7 +1236,7 @@ const Actions = styled(PanelItem)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: none;
 `;
 
@@ -1248,7 +1248,7 @@ const StyledJsonForm = styled(JsonForm)`
   }
 
   ${FieldWrapper} {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   ${FieldWrapper} + ${FieldWrapper} {
@@ -1256,7 +1256,7 @@ const StyledJsonForm = styled(JsonForm)`
   }
 
   ${Panel} + ${Panel} {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   ${PanelHeader} {
@@ -1269,10 +1269,10 @@ const StyledJsonForm = styled(JsonForm)`
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 calc(${p => p.theme.borderRadius} - 1px)
-    calc(${p => p.theme.borderRadius} - 1px);
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: 0 0 calc(${p => p.theme.radius.md} - 1px)
+    calc(${p => p.theme.radius.md} - 1px);
 
   ${Actions} {
     padding: ${space(1.5)};

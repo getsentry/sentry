@@ -47,11 +47,15 @@ function ChartContextMenu({
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
     if (visualizeYAxes.length === 1) {
+      const newAlertLabel = organization.features.includes('workflow-engine-ui')
+        ? t('Create a Monitor')
+        : t('Create an Alert');
+
       const yAxis = visualizeYAxes[0]!.yAxis;
       menuItems.push({
         key: 'create-alert',
-        textValue: t('Create an Alert'),
-        label: t('Create an Alert'),
+        textValue: newAlertLabel,
+        label: newAlertLabel,
         disabled: isVisualizeEquation(visualizeYAxes[0]!),
         to: getAlertsUrl({
           project,
@@ -95,9 +99,13 @@ function ChartContextMenu({
         },
       }));
 
+      const newAlertLabel = organization.features.includes('workflow-engine-ui')
+        ? t('Create a Monitor for')
+        : t('Create an Alert for');
+
       menuItems.push({
         key: 'create-alert',
-        label: t('Create an alert for'),
+        label: newAlertLabel,
         children: alertsUrls ?? [],
         disabled: !alertsUrls || alertsUrls.length === 0,
         isSubmenu: true,
@@ -182,5 +190,5 @@ function ChartContextMenu({
 export default ChartContextMenu;
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;

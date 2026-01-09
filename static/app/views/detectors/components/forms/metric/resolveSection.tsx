@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Text} from 'sentry/components/core/text/text';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -31,13 +33,23 @@ function validateResolutionThreshold({
   form: MetricDetectorFormData;
   id: string;
 }): Array<[string, string]> {
-  const {conditionType, highThreshold, detectionType, resolutionStrategy} = form;
-  if (!conditionType || detectionType !== 'static' || resolutionStrategy !== 'custom') {
+  const {
+    conditionType,
+    highThreshold,
+    mediumThreshold,
+    detectionType,
+    resolutionStrategy,
+  } = form;
+  if (
+    !conditionType ||
+    (detectionType !== 'static' && detectionType !== 'percent') ||
+    resolutionStrategy !== 'custom'
+  ) {
     return [];
   }
 
   const resolutionNum = Number(form.resolutionValue);
-  const conditionNum = Number(highThreshold);
+  const conditionNum = Number(mediumThreshold || highThreshold);
 
   if (
     Number.isFinite(resolutionNum) &&
@@ -135,7 +147,7 @@ export function ResolveSection() {
 
   return (
     <div>
-      <FormRow>
+      <Stack>
         <StyledRadioField
           name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
           aria-label={t('Resolution method')}
@@ -143,13 +155,13 @@ export function ResolveSection() {
           defaultValue="automatic"
           preserveOnUnmount
         />
-      </FormRow>
+      </Stack>
       {resolutionStrategy === 'custom' && (
         <DescriptionContainer onClick={e => e.preventDefault()}>
           <Text>
             {conditionType === DataConditionType.GREATER
-              ? t('Less than')
-              : t('More than')}
+              ? t('Below or equal to')
+              : t('Above or equal to')}
           </Text>
           <ThresholdField
             hideLabel
@@ -169,11 +181,6 @@ export function ResolveSection() {
     </div>
   );
 }
-
-const FormRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const StyledRadioField = styled(RadioField)`
   flex: 1;

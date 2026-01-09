@@ -152,7 +152,7 @@ const ViewTitle = styled('div')`
   font-size: inherit;
   display: flex;
   align-items: center;
-  border-bottom: 1px dotted ${p => p.theme.border};
+  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
 
   ${p => p.theme.overflowEllipsis}
 `;

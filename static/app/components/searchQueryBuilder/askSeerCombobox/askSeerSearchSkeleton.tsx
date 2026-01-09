@@ -37,7 +37,7 @@ const LoadingSkeleton = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SkeletonCellsContainer = styled('div')`
@@ -47,7 +47,7 @@ const SkeletonCellsContainer = styled('div')`
 
 const SkeletonCell = styled('div')`
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   flex-direction: column;
 
@@ -59,7 +59,7 @@ const SkeletonCell = styled('div')`
 const SkeletonLine = styled('div')<{width: string}>`
   height: 16px;
   width: ${p => p.width};
-  background: ${p => p.theme.blue200};
+  background: ${p => p.theme.colors.blue200};
   border-radius: 4px;
   animation: pulse 1.5s ease-in-out infinite;
 

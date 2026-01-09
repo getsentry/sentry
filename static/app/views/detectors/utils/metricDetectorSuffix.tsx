@@ -8,6 +8,7 @@ export function getStaticDetectorThresholdSuffix(aggregate: string) {
     case 'integer':
     case 'number':
     case 'string':
+    case 'score':
       return '';
     case 'percentage':
       return '%';

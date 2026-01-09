@@ -1,4 +1,6 @@
-import {t} from 'sentry/locale';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+
+import {t, td} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -1013,7 +1015,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.PERFORMANCE_SCORE]: {
     desc: t('Returns the performance score for a given web vital'),
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
+    valueType: FieldValueType.SCORE,
     parameters: [
       {
         name: 'value',
@@ -2109,7 +2111,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
 
 const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2460,6 +2462,7 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
     valueType: FieldValueType.SIZE,
   },
 };
+
 const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
@@ -2494,6 +2497,82 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...LOG_AGGREGATION_FIELDS,
+  ...EVENT_FIELD_DEFINITIONS,
+  [OurLogKnownFieldKey.CODE_FILE_PATH]: {
+    desc: t(
+      'The source code file name that identifies the code unit as uniquely as possible (preferably an absolute file path).'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
+    desc: t(
+      'The line number in %s best representing the operation. It SHOULD point within the code unit named in %s.',
+      OurLogKnownFieldKey.CODE_FILE_PATH,
+      OurLogKnownFieldKey.CODE_FUNCTION_NAME
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: {
+    desc: t(
+      'The method or function name, or equivalent (usually rightmost part of the code unit’s name).'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.LOGGER]: {
+    desc: t('The name of the logger that generated this event.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.MESSAGE]: {
+    desc: t('Log message'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.PARENT_SPAN_ID]: {
+    desc: t(
+      'The span id of the span that was active when the log was collected. This should not be set if there was no active span.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.PAYLOAD_SIZE]: {
+    desc: t('The size of the log payload in bytes.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.SIZE,
+  },
+  [OurLogKnownFieldKey.REPLAY_ID]: {
+    desc: t('The ID of an associated sentry replay.'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.SERVER_ADDRESS]: {
+    desc: t(
+      'Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.SEVERITY]: {
+    desc: t('The severity level of the log.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.SPAN_ID]: {
+    desc: t('The associated span ID of the log.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.TEMPLATE]: {
+    desc: t('The parameterized template string.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
@@ -2902,12 +2981,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3216,7 +3295,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     allowWildcard: true,
   },
   [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

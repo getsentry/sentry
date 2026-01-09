@@ -1,26 +1,44 @@
 from __future__ import annotations
 
+from collections.abc import Generator
+from contextlib import contextmanager
+from itertools import permutations
 from time import time
 from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
+from django.core.cache import cache
 
 from sentry import audit_log
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
+from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.grouping.ingest.caching import (
+    get_grouphash_existence_cache_key,
+    get_grouphash_object_cache_key,
+)
 from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
+from sentry.grouping.ingest.hashing import (
+    _get_cache_expiry,
+    find_grouphash_with_group,
+    get_or_create_grouphashes,
+)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.mocking import count_matching_calls
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
@@ -59,6 +77,40 @@ class EventManagerGroupingTest(TestCase):
         )
 
         assert event.group_id != event2.group_id
+
+    def test_obeys_delete_and_discard_simple(self) -> None:
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        group = event1.group
+        assert group
+
+        # This mimics what happens when a delete-and-discard request is sent to the group update
+        # endpoint
+        tombstone = GroupTombstone.objects.create(
+            previous_group_id=group.id,
+            project_id=self.project.id,
+        )
+        GroupHash.objects.filter(group=group).update(group=None, group_tombstone_id=tombstone.id)
+
+        with pytest.raises(HashDiscarded):
+            save_new_event({"message": "Dogs are great!"}, self.project)
+
+    def test_obeys_delete_and_discard_regardless_of_other_hashes(self) -> None:
+        project = self.project
+
+        grouphash_with_group = GroupHash(group_id=3, project_id=project.id)
+        grouphash_without_group = GroupHash(group_id=None, project_id=project.id)
+        delete_and_discarded_grouphash = GroupHash(
+            group_id=None, project_id=project.id, group_tombstone_id=5
+        )
+
+        # Hashes are passed to `find_grouphash_with_group` in priority order. Try all the different
+        # possible orderings to prove that even if a delete-and-discarded hash is lower priority
+        # than the others, we'll still find it and obey it.
+        for ordered_grouphashes in permutations(
+            [grouphash_with_group, grouphash_without_group, delete_and_discarded_grouphash]
+        ):
+            with pytest.raises(HashDiscarded):
+                find_grouphash_with_group(ordered_grouphashes)
 
     def test_puts_events_with_only_partial_message_match_in_different_groups(self) -> None:
         # We had a regression which caused the default hash to just be 'event.message' instead of
@@ -313,6 +365,243 @@ class EventManagerGroupingTest(TestCase):
             ).exists()
             assert self.project.get_option("sentry:secondary_grouping_config") is None
             assert self.project.get_option("sentry:secondary_grouping_expiry") == 0
+
+
+class GroupHashCachingTest(TestCase):
+    @contextmanager
+    def mock_irrelevant_helpers(self) -> Generator[None]:
+        """
+        Patch the helpers called in `get_or_create_grouphashes` so nothing will break when we pass
+        dummy values for parameters which are are irrelevant for our tests but used by the helpers.
+        """
+        with (
+            patch(
+                "sentry.grouping.ingest.hashing.create_or_update_grouphash_metadata_if_needed",
+            ),
+            patch(
+                "sentry.grouping.ingest.hashing.record_grouphash_metadata_metrics",
+            ),
+        ):
+            yield
+
+    @contextmanager
+    def get_spies(self, is_secondary: bool) -> Generator[tuple[MagicMock, MagicMock, MagicMock]]:
+        """
+        Wrap various caching and database functions in mocks so we can track calls to them.
+        """
+        with (
+            patch(
+                "sentry.grouping.ingest.hashing.cache.get",
+                wraps=cache.get,
+            ) as cache_get_spy,
+            patch(
+                "sentry.grouping.ingest.hashing.cache.set",
+                wraps=cache.set,
+            ) as cache_set_spy,
+            patch(
+                "sentry.grouping.ingest.hashing.GroupHash.objects.filter",
+                wraps=GroupHash.objects.filter,
+            ) as grouphash_objects_filter_spy,
+            patch(
+                "sentry.grouping.ingest.hashing.GroupHash.objects.get_or_create",
+                wraps=GroupHash.objects.get_or_create,
+            ) as grouphash_objects_get_or_create_spy,
+        ):
+            if is_secondary:
+                yield (cache_get_spy, cache_set_spy, grouphash_objects_filter_spy)
+            else:
+                yield (cache_get_spy, cache_set_spy, grouphash_objects_get_or_create_spy)
+
+    def run_test(
+        self,
+        grouphash_exists: bool,
+        grouphash_has_group: bool,
+        is_secondary: bool,
+        cache_check_expected: bool,
+        cache_use_expected: bool,
+    ) -> None:
+        """
+        For the given setup (defined by `grouphash_exists`, `grouphash_has_group`, and
+        `is_secondary`), make sure the right information ends up in the cache (or doesn't) and that
+        calls to the cache and calls to the database happen (or don't happen) as we'd expect.
+        """
+        hash_value = "dogs_are_great"
+        event1 = Event(self.project.id, "11212012123120120415201309082013")
+        event2 = Event(self.project.id, "04152013090820131121201212312012")
+
+        if grouphash_exists:
+            group = self.group if grouphash_has_group else None
+            grouphash = GroupHash.objects.create(project=self.project, hash=hash_value, group=group)
+            assert GroupHash.objects.filter(project=self.project, hash=hash_value).exists()
+        else:
+            grouphash = None
+            assert not GroupHash.objects.filter(project=self.project, hash=hash_value).exists()
+
+        if is_secondary:
+            grouping_config_id = "old_config"
+            grouping_config_option = "sentry:secondary_grouping_config"
+            cache_key = get_grouphash_existence_cache_key(hash_value, self.project.id)
+            # TODO: This can go back to being `options.get("grouping.ingest_grouphash_existence_cache_expiry")`
+            # once we've settled on a retention period
+            cache_expiry, expiry_option_version = _get_cache_expiry(
+                cache_key, cache_type="existence"
+            )
+            cached_value: Any = grouphash_exists
+        else:
+            grouping_config_id = "new_config"
+            grouping_config_option = "sentry:grouping_config"
+            cache_key = get_grouphash_object_cache_key(hash_value, self.project.id)
+            # TODO: This can go back to being `options.get("grouping.ingest_grouphash_object_cache_expiry")`
+            # once we've settled on a retention period
+            cache_expiry, expiry_option_version = _get_cache_expiry(cache_key, cache_type="object")
+            cached_value = grouphash
+
+        self.project.update_option(grouping_config_option, grouping_config_id)
+
+        with self.mock_irrelevant_helpers(), self.get_spies(is_secondary) as spies:
+            # The database function being spied on is either `GroupHash.objects.filter` (if we're
+            # testing secondary grouphash handling) or `GroupHash.objects.get_or_create` (if we're
+            # testing grouphash object handling)
+            cache_get_spy, cache_set_spy, database_fn_spy = spies
+            cache_get_args = [cache_key]
+            cache_get_kwargs = {"version": expiry_option_version}
+            cache_set_args = [cache_key, cached_value, cache_expiry]
+            cache_set_kwargs = {"version": expiry_option_version}
+            database_fn_kwargs = {"project": self.project, "hash": hash_value}
+
+            # TODO: this (and the check below) can be simplified to use in/not in once version is gone
+            assert not cache.has_key(cache_key, version=expiry_option_version)
+
+            # ######### First call for grouphashes, with a hash we've never seen before ######### #
+
+            get_or_create_grouphashes(event1, self.project, {}, [hash_value], grouping_config_id)
+
+            assert cache.has_key(cache_key, version=expiry_option_version) == cache_use_expected
+
+            cache_get_call_count = count_matching_calls(
+                cache_get_spy, *cache_get_args, **cache_get_kwargs
+            )
+            cache_set_call_count = count_matching_calls(
+                cache_set_spy, *cache_set_args, **cache_set_kwargs
+            )
+            database_fn_call_count = count_matching_calls(database_fn_spy, **database_fn_kwargs)
+
+            assert cache_get_call_count == (1 if cache_check_expected else 0)
+            assert cache_set_call_count == (1 if cache_use_expected else 0)
+            # The first time we see a particular hash, we have to touch the database regardless
+            assert database_fn_call_count == 1
+
+            # ########################## Second call, using the same hash ######################## #
+
+            get_or_create_grouphashes(event2, self.project, {}, [hash_value], grouping_config_id)
+
+            cache_get_call_count = count_matching_calls(
+                cache_get_spy, *cache_get_args, **cache_get_kwargs
+            )
+            cache_set_call_count = count_matching_calls(
+                cache_set_spy, *cache_set_args, **cache_set_kwargs
+            )
+            database_fn_call_count = count_matching_calls(database_fn_spy, **database_fn_kwargs)
+
+            # With caching, call count increases by 1
+            assert cache_get_call_count == (2 if cache_check_expected else 0)
+
+            # With caching, neither call count increases, because we found what we needed in the
+            # cache. Without caching, we have one more call to the database than before.
+            assert cache_set_call_count == (1 if cache_use_expected else 0)
+            assert database_fn_call_count == (1 if cache_use_expected else 2)
+
+    def test_handles_existing_secondary_grouphash_with_group(self) -> None:
+        # Here we expect the cache to be used for both getting and setting, because for secondary
+        # hashes we always use it unless the killswitch is on
+        self.run_test(
+            grouphash_exists=True,
+            grouphash_has_group=True,
+            is_secondary=True,
+            cache_check_expected=True,
+            cache_use_expected=True,
+        )
+
+    def test_handles_existing_secondary_grouphash_without_group(self) -> None:
+        # Same as above - secondary grouphash cache should always be used unless killswitch is on
+        self.run_test(
+            grouphash_exists=True,
+            grouphash_has_group=False,
+            is_secondary=True,
+            cache_check_expected=True,
+            cache_use_expected=True,
+        )
+
+    def test_handles_new_secondary_grouphash(self) -> None:
+        # This follows the exact same logic as the `test_handles_existing_secondary_grouphash` test
+        # above
+        self.run_test(
+            grouphash_exists=False,
+            grouphash_has_group=False,  # It can't if it doesn't exist yet
+            is_secondary=True,
+            cache_check_expected=True,
+            cache_use_expected=True,
+        )
+
+    # Note: In this test and the one immediately below it, we're assuming the grouphash is a primary
+    # grouphash. It could also be a secondary one and nothing would change - it was just easier to
+    # split the tests up this way.
+    def test_handles_existing_grouphash_object_with_group(self) -> None:
+        # Here we expect the cache to both be checked and used to store the grouphash, since it has
+        # an assigned group.
+        self.run_test(
+            grouphash_exists=True,
+            grouphash_has_group=True,
+            is_secondary=False,
+            cache_check_expected=True,
+            cache_use_expected=True,
+        )
+
+    def test_handles_existing_grouphash_object_without_group(self) -> None:
+        # Here we expect the cache to be checked but not used to store the grouphash, since it has
+        # no assigned group.
+        self.run_test(
+            grouphash_exists=True,
+            grouphash_has_group=False,
+            is_secondary=False,
+            cache_check_expected=True,
+            cache_use_expected=False,
+        )
+
+    def test_handles_new_grouphash_object(self) -> None:
+        # This follows the exact same logic as  the
+        # `test_handles_existing_primary_grouphash_without_group` test above
+        self.run_test(
+            grouphash_exists=False,
+            grouphash_has_group=False,  # It can't if it doesn't exist yet
+            is_secondary=False,
+            cache_check_expected=True,
+            cache_use_expected=False,
+        )
+
+    @override_options({"grouping.use_ingest_grouphash_caching": False})
+    def test_secondary_grouphash_existence_cache_obeys_killswitch(self) -> None:
+        # This test has the same setup as `test_handles_existing_secondary_grouphash_with_group`, so
+        # normally we'd expect the cache to be used, but it isn't because of the killswitch
+        self.run_test(
+            grouphash_exists=True,
+            grouphash_has_group=True,
+            is_secondary=True,
+            cache_check_expected=False,
+            cache_use_expected=False,
+        )
+
+    @override_options({"grouping.use_ingest_grouphash_caching": False})
+    def test_grouphash_object_cache_obeys_killswitch(self) -> None:
+        # This test has the same setup as `test_handles_existing_grouphash_object_with_group`, so
+        # normally we'd expect the cache to be used, but it isn't because of the killswitch
+        self.run_test(
+            grouphash_exists=True,
+            grouphash_has_group=True,
+            is_secondary=False,
+            cache_check_expected=False,
+            cache_use_expected=False,
+        )
 
 
 class PlaceholderTitleTest(TestCase):

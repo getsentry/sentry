@@ -113,6 +113,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             {
                 "preference": SeerProjectPreference.validate(
                     {
+                        # TODO: this should allow passing a partial preference object, upserting the rest.
                         **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,

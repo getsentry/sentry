@@ -204,6 +204,9 @@ export type ExceptionValue = {
   type: string;
   value: string;
   frames?: Frame[] | null;
+  rawModule?: string | null;
+  rawType?: string | null;
+  rawValue?: string | null;
 };
 
 export type ExceptionType = {
@@ -525,6 +528,7 @@ export enum UnityContextKey {
   COPY_TEXTURE_SUPPORT = 'copy_texture_support',
   EDITOR_VERSION = 'editor_version',
   INSTALL_MODE = 'install_mode',
+  IS_MAIN_THREAD = 'is_main_thread',
   RENDERING_THREADING_MODE = 'rendering_threading_mode',
   TARGET_FRAME_RATE = 'target_frame_rate',
 }
@@ -534,6 +538,7 @@ export interface UnityContext {
   [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
   [UnityContextKey.EDITOR_VERSION]: string;
   [UnityContextKey.INSTALL_MODE]: string;
+  [UnityContextKey.IS_MAIN_THREAD]: boolean;
   [UnityContextKey.RENDERING_THREADING_MODE]: string;
   [UnityContextKey.TARGET_FRAME_RATE]: string;
   type: 'unity';
@@ -631,7 +636,7 @@ interface ResponseContext {
 
 // event.contexts.flags can be overriden by the user so the type is not strict
 export type FeatureFlag = {flag?: string; result?: boolean};
-type Flags = {values?: FeatureFlag[]};
+type Flags = {values?: Array<FeatureFlag | null>};
 
 export type EventContexts = {
   'Current Culture'?: CultureContext;
@@ -695,7 +700,7 @@ export type EventEvidenceDisplay = {
   value: string;
 };
 
-type EventOccurrence = {
+export type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**

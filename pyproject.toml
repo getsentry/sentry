@@ -50,7 +50,7 @@ dependencies = [
     "mmh3>=4.0.0",
     "msgspec>=0.19.0",
     "msgpack>=1.1.0",
-    "objectstore-client>=0.0.11",
+    "objectstore-client>=0.0.14",
     "openai>=1.3.5",
     "orjson>=3.10.10",
     "p4python>=2025.1.2767466",
@@ -80,15 +80,15 @@ dependencies = [
     "rfc3339-validator>=0.1.2",
     "rfc3986-validator>=0.1.1",
     # [end] jsonschema format validators
-    "sentry-arroyo>=2.33.1",
+    "sentry-arroyo>=2.35.0",
     "sentry-conventions>=0.3.0",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
-    "sentry-kafka-schemas>=2.1.15",
+    "sentry-kafka-schemas>=2.1.16",
     "sentry-ophio>=1.1.3",
-    "sentry-protos>=0.4.3",
+    "sentry-protos>=0.4.10",
     "sentry-redis-tools>=0.5.0",
     "sentry-relay>=0.9.22",
-    "sentry-sdk[http2]>=2.43.0",
+    "sentry-sdk[http2]>=2.47.0",
     "sentry-usage-accountant>=0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
     "setuptools>=70.0.0",
@@ -143,7 +143,7 @@ default = true
 dev = [
     "black>=25.1.0",
     "covdefaults>=2.3.0",
-    "devservices>=1.2.3",
+    "devservices>=1.2.4",
     "docker>=7.1.0",
     "ephemeral-port-reserve>=1.1.4",
     "flake8>=7.3.0",
@@ -239,6 +239,13 @@ filterwarnings = [
 
     # pytest has not yet implemented the replacement for this yet
     "ignore:The --looponfail command line argument.*",
+
+    # `ATTRIBUTE_NAMES` is a constant from the `sentry-conventions` library.
+    # We don't want to immediately block any sentry-conventions library updates
+    # with errors on new deprecations, and some code may depend on the value of
+    # a deprecated constant. But, still report it as a warning so that we're
+    # informed and can evaluate.
+    "default:ATTRIBUTE_NAMES\\..* is deprecated.*:DeprecationWarning",
 ]
 looponfailroots = ["src", "tests"]
 
@@ -395,7 +402,7 @@ module = [
     "sentry.dynamic_sampling.*",
     "sentry.eventstore.*",
     "sentry.eventstream.*",
-    "sentry.eventtypes.error",
+    "sentry.eventtypes.*",
     "sentry.explore.migrations.*",
     "sentry.feedback.migrations.*",
     "sentry.feedback.tasks.*",
@@ -445,6 +452,7 @@ module = [
     "sentry.integrations.msteams.handlers.*",
     "sentry.integrations.opsgenie.handlers.*",
     "sentry.integrations.pagerduty.*",
+    "sentry.integrations.perforce.*",
     "sentry.integrations.project_management.*",
     "sentry.integrations.repository.*",
     "sentry.integrations.services.*",
@@ -468,7 +476,6 @@ module = [
     "sentry.issues.endpoints",
     "sentry.issues.endpoints.actionable_items",
     "sentry.issues.endpoints.bases.*",
-    "sentry.issues.endpoints.browser_reporting_collector",
     "sentry.issues.endpoints.group_activities",
     "sentry.issues.endpoints.group_details",
     "sentry.issues.endpoints.group_event_details",
@@ -528,7 +535,6 @@ module = [
     "sentry.mail.*",
     "sentry.metrics.*",
     "sentry.middleware.integrations.*",
-    "sentry.middleware.reporting_endpoint",
     "sentry.migrations.*",
     "sentry.models.activity",
     "sentry.models.event",
@@ -593,6 +599,7 @@ module = [
     "sentry.search.eap.*",
     "sentry.search.snuba.backend",
     "sentry.security.*",
+    "sentry.seer.code_review.*",
     "sentry.seer.fetch_issues.*",
     "sentry.seer.services.*",
     "sentry.seer.similarity.*",
@@ -631,6 +638,7 @@ module = [
     "sentry.taskworker.*",
     "sentry.tempest.endpoints.*",
     "sentry.tempest.migrations.*",
+    "sentry.testutils.helpers.github",
     "sentry.testutils.helpers.task_runner",
     "sentry.testutils.helpers.usage_accountant",
     "sentry.testutils.notifications.*",
@@ -719,7 +727,6 @@ module = [
     "tests.sentry.api.endpoints.issues.*",
     "tests.sentry.api.endpoints.release_thresholds.*",
     "tests.sentry.api.endpoints.secret_scanning.*",
-    "tests.sentry.api.endpoints.test_browser_reporting_collector",
     "tests.sentry.api.endpoints.test_project_repo_path_parsing",
     "tests.sentry.api.fields.*",
     "tests.sentry.api.helpers.test_error_upsampling",
@@ -739,7 +746,7 @@ module = [
     "tests.sentry.digests.*",
     "tests.sentry.discover.translation.*",
     "tests.sentry.event_manager.test_event_manager",
-    "tests.sentry.eventstream.kafka.*",
+    "tests.sentry.eventstream.*",
     "tests.sentry.eventtypes.*",
     "tests.sentry.flags.*",
     "tests.sentry.grouping.*",
@@ -789,7 +796,6 @@ module = [
     "tests.sentry.loader.*",
     "tests.sentry.mail.activity.*",
     "tests.sentry.manager.*",
-    "tests.sentry.middleware.test_reporting_endpoint",
     "tests.sentry.models.releases.*",
     "tests.sentry.monitors.migrations.*",
     "tests.sentry.net.*",
@@ -824,6 +830,7 @@ module = [
     "tests.sentry.runner.commands.test_cleanup",
     "tests.sentry.security.*",
     "tests.sentry.seer.anomaly_detection.*",
+    "tests.sentry.seer.code_review.*",
     "tests.sentry.seer.workflows.*",
     "tests.sentry.sentry_apps.api.*",
     "tests.sentry.sentry_apps.external_issues.*",

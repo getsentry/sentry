@@ -1,47 +1,55 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text/text';
 
-import {Alert} from 'sentry/components/core/alert';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import BaseSearchBar from 'sentry/components/searchBar';
-import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
+import {CHART_SELECTION_ALERT_KEY, CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 
-const CHARTS_COLUMN_COUNT = 3;
-const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
-
 export type AttributeDistribution = Array<{
-  name: string;
+  attributeName: string;
   values: Array<{label: string; value: number}>;
 }>;
+
+type PaginationState = {
+  cursor: string | undefined;
+  page: number;
+};
 
 export function AttributeDistribution() {
   const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'attributeBreakdownsSearch',
   });
-  const [page, setPage] = useState(0);
+
+  // Little unconventional, but the /trace-items/stats/ endpoint but recommends fetching
+  // more data than we need to display the current page. We maintain a cursor to fetch the next page,
+  // and a page index to display the current page, from the accumulated data.
+  const [pagination, setPagination] = useState<PaginationState>({
+    cursor: undefined,
+    page: 0,
+  });
 
   const query = useQueryParamsQuery();
   const dataset = useSpansDataset();
@@ -63,15 +71,10 @@ export function AttributeDistribution() {
   }, [dataset, query, selection]);
 
   const {
-    data: attributeBreakdownsData,
-    isLoading: isAttributeBreakdownsLoading,
-    error: attributeBreakdownsError,
-  } = useAttributeBreakdowns();
-
-  const {
     data: cohortCountResponse,
     isLoading: isCohortCountLoading,
     error: cohortCountError,
+    refetch: refetchCohortCount,
   } = useApiQuery<{data: Array<{'count()': number}>}>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -79,12 +82,13 @@ export function AttributeDistribution() {
         query: {
           ...cohortCountEventView.getEventsAPIPayload(location),
           per_page: 1,
+          disableAggregateExtrapolation: '1',
+          sampling: SAMPLING_MODE.NORMAL,
         },
       },
     ],
     {
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
+      staleTime: 0,
     }
   );
 
@@ -92,53 +96,57 @@ export function AttributeDistribution() {
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 200);
 
-  const filteredAttributeDistribution: AttributeDistribution = useMemo(() => {
-    const attributeDistribution =
-      attributeBreakdownsData?.data[0]?.attribute_distributions.data;
-    if (!attributeDistribution) return [];
+  const {
+    data: attributeBreakdownsData,
+    getResponseHeader: getAttributeBreakdownsResponseHeader,
+    isLoading: isAttributeBreakdownsLoading,
+    error: attributeBreakdownsError,
+  } = useAttributeBreakdowns({
+    cursor: pagination.cursor,
+    substringMatch: debouncedSearchQuery,
+  });
+
+  // Refetch the cohort count when the attributeBreakdownsData changes
+  // This ensures that the population percentages are calculated correctly,
+  // for none absolute date ranges.
+  useEffect(() => {
+    if (!isAttributeBreakdownsLoading && attributeBreakdownsData) {
+      refetchCohortCount();
+    }
+  }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
+
+  // Reset pagination on any query change
+  useEffect(() => {
+    setPagination({cursor: undefined, page: 0});
+  }, [debouncedSearchQuery, selection, query]);
+
+  const parsedLinks = parseLinkHeader(
+    getAttributeBreakdownsResponseHeader?.('Link') ?? null
+  );
+
+  const uniqueAttributeDistribution: AttributeDistribution = useMemo(() => {
+    if (!attributeBreakdownsData) return [];
 
     const seen = new Set<string>();
-    const searchFor = debouncedSearchQuery.trim().toLocaleLowerCase();
-
-    const filtered = Object.entries(attributeDistribution).reduce<AttributeDistribution>(
-      (acc, [name, values]) => {
-        const prettyName = prettifyAttributeName(name);
-        const normalizedName = prettyName.toLocaleLowerCase().trim();
-        if (normalizedName.includes(searchFor) && !seen.has(normalizedName)) {
-          seen.add(normalizedName);
-          acc.push({
-            name: prettyName,
-            values,
-          });
-        }
-        return acc;
-      },
-      []
-    );
-
-    filtered.sort((a, b) => {
-      const sumA = a.values.reduce(
-        (sum, v) => sum + (typeof v.value === 'number' ? v.value : 0),
-        0
-      );
-      const sumB = b.values.reduce(
-        (sum, v) => sum + (typeof v.value === 'number' ? v.value : 0),
-        0
-      );
-      const ratioA = cohortCount > 0 ? sumA / cohortCount : 0;
-      const ratioB = cohortCount > 0 ? sumB / cohortCount : 0;
-      return ratioB - ratioA;
-    });
+    const filtered = Object.entries(
+      attributeBreakdownsData
+    ).reduce<AttributeDistribution>((acc, [name, values]) => {
+      const prettyName = prettifyAttributeName(name);
+      const normalizedName = prettyName.toLocaleLowerCase().trim();
+      if (!seen.has(normalizedName)) {
+        seen.add(normalizedName);
+        acc.push({
+          attributeName: prettyName,
+          values,
+        });
+      }
+      return acc;
+    }, []);
 
     return filtered;
-  }, [attributeBreakdownsData, debouncedSearchQuery, cohortCount]);
-
-  useEffect(() => {
-    // Ensure that we are on the first page whenever filtered attributes change.
-    setPage(0);
-  }, [filteredAttributeDistribution]);
+  }, [attributeBreakdownsData]);
 
   const error = attributeBreakdownsError ?? cohortCountError;
 
@@ -146,8 +154,8 @@ export function AttributeDistribution() {
     <Panel>
       <Flex direction="column" gap="xl" padding="xl">
         <ChartSelectionAlert />
-        <ControlsContainer>
-          <StyledBaseSearchBar
+        <AttributeBreakdownsComponent.ControlsContainer>
+          <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={q => {
               setSearchQuery(q);
@@ -156,53 +164,48 @@ export function AttributeDistribution() {
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />
-        </ControlsContainer>
+        </AttributeBreakdownsComponent.ControlsContainer>
         {isAttributeBreakdownsLoading || isCohortCountLoading ? (
-          <AttributeBreakdownsComponent.LoadingCharts />
+          <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
-        ) : filteredAttributeDistribution.length > 0 ? (
+        ) : uniqueAttributeDistribution.length > 0 ? (
           <Fragment>
-            <ChartsGrid>
-              {filteredAttributeDistribution
-                .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
-                .map(attribute => (
+            <AttributeBreakdownsComponent.ChartsGrid>
+              {uniqueAttributeDistribution
+                .slice(
+                  pagination.page * CHARTS_PER_PAGE,
+                  (pagination.page + 1) * CHARTS_PER_PAGE
+                )
+                .map(distribution => (
                   <Chart
-                    key={attribute.name}
-                    attributeDistribution={attribute}
+                    key={distribution.attributeName}
+                    attributeDistribution={distribution}
                     cohortCount={cohortCount}
                     theme={theme}
                   />
                 ))}
-            </ChartsGrid>
-            <PaginationContainer>
-              <ButtonBar merged gap="0">
-                <Button
-                  icon={<IconChevron direction="left" />}
-                  aria-label={t('Previous')}
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => {
-                    setPage(page - 1);
-                  }}
-                />
-                <Button
-                  icon={<IconChevron direction="right" />}
-                  aria-label={t('Next')}
-                  size="sm"
-                  disabled={
-                    page ===
-                    Math.ceil(
-                      (filteredAttributeDistribution?.length ?? 0) / CHARTS_PER_PAGE
-                    ) -
-                      1
-                  }
-                  onClick={() => {
-                    setPage(page + 1);
-                  }}
-                />
-              </ButtonBar>
-            </PaginationContainer>
+            </AttributeBreakdownsComponent.ChartsGrid>
+            <AttributeBreakdownsComponent.Pagination
+              isPrevDisabled={pagination.page === 0}
+              isNextDisabled={
+                pagination.page ===
+                Math.ceil(uniqueAttributeDistribution.length / CHARTS_PER_PAGE) - 1
+              }
+              onPrevClick={() => {
+                setPagination({...pagination, page: pagination.page - 1});
+              }}
+              onNextClick={() => {
+                if (parsedLinks.next?.results) {
+                  setPagination({
+                    cursor: parsedLinks.next?.cursor,
+                    page: pagination.page + 1,
+                  });
+                } else {
+                  setPagination({...pagination, page: pagination.page + 1});
+                }
+              }}
+            />
           </Fragment>
         ) : (
           <AttributeBreakdownsComponent.EmptySearchState />
@@ -213,35 +216,22 @@ export function AttributeDistribution() {
 }
 
 function ChartSelectionAlert() {
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: CHART_SELECTION_ALERT_KEY,
+  });
+
+  if (isDismissed) {
+    return null;
+  }
+
   return (
-    <Alert type="info">
-      <Text>
+    <Alert variant="info">
+      <Flex align="center" justify="between">
         {t(
           'Drag to select a region in the chart above and see how its breakdowns differ from the baseline.'
         )}
-      </Text>
+        <IconClose size="sm" onClick={dismiss} cursor="pointer" />
+      </Flex>
     </Alert>
   );
 }
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const StyledBaseSearchBar = styled(BaseSearchBar)`
-  flex: 1;
-`;
-
-const ChartsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(${CHARTS_COLUMN_COUNT}, 1fr);
-  gap: ${space(1)};
-`;
-
-const PaginationContainer = styled('div')`
-  display: flex;
-  justify-content: end;
-  align-items: center;
-`;

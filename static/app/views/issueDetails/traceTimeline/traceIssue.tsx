@@ -126,16 +126,16 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
 const TraceIssueLinkContainer = styled(Link)`
   display: flex;
   gap: ${space(2)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
   margin: ${space(1)} 0 ${space(1)} 0;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.md};
 
   &:hover {
     background-color: ${p => p.theme.backgroundTertiary};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

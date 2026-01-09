@@ -80,7 +80,7 @@ interface BaseField {
   resetsForm?: boolean;
   rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
-  saveMessageAlertType?: AlertProps['type'];
+  saveMessageAlertVariant?: AlertProps['variant'];
   /**
    * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
@@ -102,6 +102,13 @@ interface BaseField {
 
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
+
+interface CollapsibleSectionType {
+  fields: FieldObject[];
+  label: React.ReactNode | (() => React.ReactNode);
+  type: 'collapsible';
+  initiallyCollapsed?: boolean;
+}
 
 interface CustomType {
   Component: (arg: BaseField) => React.ReactElement;
@@ -189,6 +196,11 @@ type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
+type SentryMemberSelectorType = {
+  type: 'sentry_member_selector';
+  multiple?: boolean;
+};
+
 type SentryOrganizationRoleSelectorType = {
   type: 'sentry_organization_role_selector';
 };
@@ -198,6 +210,7 @@ type SelectAsyncType = {
 } & SelectAsyncFieldProps;
 
 export type Field = (
+  | CollapsibleSectionType
   | CustomType
   | SelectControlType
   | InputType
@@ -207,6 +220,7 @@ export type Field = (
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
+  | SentryMemberSelectorType
   | SentryOrganizationRoleSelectorType
   | SelectAsyncType
   | ChoiceMapperType

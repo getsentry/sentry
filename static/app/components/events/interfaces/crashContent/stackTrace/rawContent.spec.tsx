@@ -2,7 +2,6 @@ import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 import {FrameFixture} from 'sentry-fixture/frame';
 
 import displayRawContent, {
-  getJavaExceptionSummary,
   getJavaFrame,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -54,29 +53,119 @@ describe('RawStacktraceContent', () => {
     });
   });
 
-  describe('getJavaExceptionSummary()', () => {
-    it('takes a type and value', () => {
+  describe('getExceptionSummary()', () => {
+    it('renders non-minified exception for java platform', () => {
+      const exception = ExceptionValueFixture({
+        module: 'com.example.app',
+        type: 'CustomException',
+        value: 'Original error message',
+      });
+
       expect(
-        getJavaExceptionSummary(
-          ExceptionValueFixture({
-            type: 'Baz',
-            value: 'message',
-            module: undefined,
-          })
-        )
-      ).toBe('Baz: message');
+        displayRawContent({
+          data: {
+            hasSystemFrames: false,
+            framesOmitted: null,
+            registers: {},
+            frames: [],
+          },
+          platform: 'java',
+          exception,
+          isMinified: false,
+        })
+      ).toBe('com.example.app.CustomException: Original error message');
     });
 
-    it('takes a module name', () => {
+    it('renders minified exception using raw values for java platform', () => {
+      const exception = ExceptionValueFixture({
+        module: 'com.example.app',
+        type: 'CustomException',
+        value: 'Original error message',
+        rawModule: 'c.d.e',
+        rawType: 'a',
+        rawValue: 'Obfuscated error',
+      });
+
       expect(
-        getJavaExceptionSummary(
-          ExceptionValueFixture({
-            module: 'foo.bar',
-            type: 'Baz',
-            value: 'message',
-          })
-        )
-      ).toBe('foo.bar.Baz: message');
+        displayRawContent({
+          data: {
+            hasSystemFrames: false,
+            framesOmitted: null,
+            registers: {},
+            frames: [],
+          },
+          platform: 'java',
+          exception,
+          isMinified: true,
+        })
+      ).toBe('c.d.e.a: Obfuscated error');
+    });
+
+    it('falls back to deobfuscated values when raw values are missing', () => {
+      const exception = ExceptionValueFixture({
+        module: 'com.example.app',
+        type: 'CustomException',
+        value: 'Original error message',
+      });
+
+      expect(
+        displayRawContent({
+          data: {
+            hasSystemFrames: false,
+            framesOmitted: null,
+            registers: {},
+            frames: [],
+          },
+          platform: 'java',
+          exception,
+          isMinified: true,
+        })
+      ).toBe('com.example.app.CustomException: Original error message');
+    });
+
+    it('renders minified exception for non-java platforms', () => {
+      const exception = ExceptionValueFixture({
+        type: 'CustomError',
+        value: 'Original error message',
+        rawType: 'Error',
+        rawValue: 'Obfuscated error',
+      });
+
+      expect(
+        displayRawContent({
+          data: {
+            hasSystemFrames: false,
+            framesOmitted: null,
+            registers: {},
+            frames: [],
+          },
+          platform: 'javascript',
+          exception,
+          isMinified: true,
+        })
+      ).toBe('Error: Obfuscated error');
+    });
+
+    it('handles exception without module for java platform', () => {
+      const exception = ExceptionValueFixture({
+        type: 'IllegalStateException',
+        value: 'Oops!',
+        module: undefined,
+      });
+
+      expect(
+        displayRawContent({
+          data: {
+            hasSystemFrames: false,
+            framesOmitted: null,
+            registers: {},
+            frames: [],
+          },
+          platform: 'java',
+          exception,
+          isMinified: false,
+        })
+      ).toBe('IllegalStateException: Oops!');
     });
   });
 
@@ -330,7 +419,7 @@ Error: an error occurred`
     it('renders java example', () => {
       expect(displayRawContent({data, platform: 'java', exception})).toBe(
         `example.application.Error: an error occurred
-    at example.application.doThing3
+    at example.application.doThing3(:12)
     at example.application.(src/application.code:1)
     at doThing1(src/application.code:5)
     at example.application.main(src/application.code:1)`

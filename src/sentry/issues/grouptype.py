@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.apps import apps
+from django.db.models import Q
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
@@ -67,6 +68,13 @@ class GroupCategory(IntEnum):
     MOBILE = 15
 
     AI_DETECTED = 16
+
+    """
+    Issues detected from analysis of uploaded artifacts. This covers
+    both issues detected in a single build (e.g. not 16kb page ready)
+    and those detected between builds (e.g. binary size regression).
+    """
+    PREPROD = 17
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
@@ -146,6 +154,28 @@ class GroupTypeRegistry:
         if id_ not in self._registry:
             raise InvalidGroupTypeError(id_)
         return self._registry[id_]
+
+    def get_detector_type_filters(self) -> Q:
+        """
+        Build a Q object that combines all detector type-specific filters.
+
+        For detector types without filters, they're included by default via a NOT IN clause.
+        For detector types with filters, we apply the specific filter condition.
+
+        This optimizes the query since most detector types won't have filters.
+        """
+        types_with_filters = []
+        filtered_type_conditions = Q()
+
+        for group_type in self.all():
+            if group_type.detector_settings and group_type.detector_settings.filter is not None:
+                filter = group_type.detector_settings.filter
+                types_with_filters.append(group_type.slug)
+                filtered_type_conditions |= Q(type=group_type.slug) & filter
+
+        # Include all types that don't have filters (type NOT IN types_with_filters)
+        # OR match the specific filter conditions for types that do have filters
+        return ~Q(type__in=types_with_filters) | filtered_type_conditions
 
 
 registry = GroupTypeRegistry()
@@ -683,8 +713,52 @@ class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
-    # Web Vital issues are always manually created by the user for the purpose of using autofix
+    # Web Vital issues are always triggered for the purpose of using autofix
     always_trigger_seer_automation = True
+    released = True
+
+
+@dataclass(frozen=True)
+class PreprodStaticGroupType(GroupType):
+    """
+    Issues detected in a single uploaded artifact. For example an
+    Android app not being 16kb page size ready.
+    Typically these end up grouped across multiple builds e.g. if CI
+    uploads a build of an app for each commit to main each of those
+    uploads could result in an occurrence of some issue like the 16kb
+    page size.
+    """
+
+    type_id = 11001
+    slug = "preprod_static"
+    description = "Static Analysis"
+    category = GroupCategory.PREPROD.value
+    category_v2 = GroupCategory.PREPROD.value
+    default_priority = PriorityLevel.LOW
+    released = False
+    enable_auto_resolve = True
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class PreprodDeltaGroupType(GroupType):
+    """
+    Issues detected examining the delta between two uploaded artifacts.
+    For example a binary size regression. These are typically *not*
+    grouped. A size regression between v1 and v2 likely does not have
+    the same root cause (and hence resolution) as another regression
+    between v2 and v3.
+    """
+
+    type_id = 11002
+    slug = "preprod_delta"
+    description = "Static Analysis Delta"
+    category = GroupCategory.PREPROD.value
+    category_v2 = GroupCategory.PREPROD.value
+    default_priority = PriorityLevel.LOW
+    released = False
+    enable_auto_resolve = True
+    enable_escalation_detection = False
 
 
 def should_create_group(

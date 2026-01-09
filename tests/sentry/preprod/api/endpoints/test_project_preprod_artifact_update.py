@@ -4,7 +4,7 @@ import orjson
 from django.test import override_settings
 
 from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 
@@ -13,8 +13,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
-        self.preprod_artifact = PreprodArtifact.objects.create(
-            project=self.project,
+        self.preprod_artifact = self.create_preprod_artifact(
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )
@@ -404,6 +403,147 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_extras["dequeued_at"] == "2024-04-07T14:03:18+00:00"
         assert stored_extras["is_simulator"] is False
         assert stored_extras["existing_field"] == "value"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_tooling_versions_apple(self) -> None:
+        data = {
+            "apple_app_info": {
+                "cli_version": "2.39.1",
+                "fastlane_plugin_version": "2.220.0",
+            }
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert set(resp_data["updatedFields"]) == {
+            "cli_version",
+            "fastlane_plugin_version",
+            "state",
+        }
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.cli_version == "2.39.1"
+        assert self.preprod_artifact.fastlane_plugin_version == "2.220.0"
+        assert self.preprod_artifact.gradle_plugin_version is None
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_tooling_versions_android(self) -> None:
+        data = {
+            "android_app_info": {
+                "cli_version": "2.39.1",
+                "gradle_plugin_version": "8.5.2",
+            }
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert set(resp_data["updatedFields"]) == {
+            "cli_version",
+            "gradle_plugin_version",
+            "state",
+        }
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.cli_version == "2.39.1"
+        assert self.preprod_artifact.fastlane_plugin_version is None
+        assert self.preprod_artifact.gradle_plugin_version == "8.5.2"
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_creates_mobile_app_info(self) -> None:
+        data = {
+            "build_version": "1.2.3",
+            "build_number": 456,
+            "app_name": "Test App",
+            "app_icon_id": "icon-123",
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert "build_version" in resp_data["updatedFields"]
+        assert "build_number" in resp_data["updatedFields"]
+        assert "app_name" in resp_data["updatedFields"]
+        assert "app_icon_id" in resp_data["updatedFields"]
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.build_version == "1.2.3"
+        assert self.preprod_artifact.build_number == 456
+        assert self.preprod_artifact.app_name == "Test App"
+        assert self.preprod_artifact.app_icon_id == "icon-123"
+
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info.build_version == "1.2.3"
+        assert mobile_app_info.build_number == 456
+        assert mobile_app_info.app_name == "Test App"
+        assert mobile_app_info.app_icon_id == "icon-123"
+
+        assert self.preprod_artifact.mobile_app_info.id == mobile_app_info.id
+        assert mobile_app_info.preprod_artifact.id == self.preprod_artifact.id
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_updates_existing_mobile_app_info(self) -> None:
+        initial_data = {
+            "build_version": "1.0.0",
+            "build_number": 100,
+            "app_name": "Initial App",
+        }
+        response1 = self._make_request(initial_data)
+        assert response1.status_code == 200
+
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info.build_version == "1.0.0"
+        assert mobile_app_info.build_number == 100
+        assert mobile_app_info.app_name == "Initial App"
+        assert mobile_app_info.app_icon_id is None
+        initial_mobile_app_info_id = mobile_app_info.id
+
+        updated_data = {
+            "build_version": "2.0.0",
+            "build_number": 200,
+            "app_icon_id": "new-icon-456",
+        }
+        response2 = self._make_request(updated_data)
+        assert response2.status_code == 200
+
+        mobile_app_info_after = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info_after.id == initial_mobile_app_info_id
+        assert mobile_app_info_after.build_version == "2.0.0"
+        assert mobile_app_info_after.build_number == 200
+        assert mobile_app_info_after.app_name == "Initial App"
+        assert mobile_app_info_after.app_icon_id == "new-icon-456"
+
+        count = PreprodArtifactMobileAppInfo.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        ).count()
+        assert count == 1
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_partial_mobile_app_info_update(self) -> None:
+        data = {"build_version": "3.0.0"}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info.build_version == "3.0.0"
+        assert mobile_app_info.build_number is None
+        assert mobile_app_info.app_name is None
+        assert mobile_app_info.app_icon_id is None
 
 
 class FindOrCreateReleaseTest(TestCase):

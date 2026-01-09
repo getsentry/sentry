@@ -306,8 +306,8 @@ const Modal = styled(motion.div)`
 `;
 
 const Content = styled('div')`
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow:
     0 0 0 1px ${p => p.theme.translucentBorder},
     ${p => p.theme.dropShadowHeavy};

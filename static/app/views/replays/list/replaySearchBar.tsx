@@ -4,6 +4,7 @@ import orderBy from 'lodash/orderBy';
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -161,8 +162,8 @@ function ReplaySearchBar(props: Props) {
     return getFilterKeySections(customTags);
   }, [customTags]);
 
-  const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    (tag, searchQuery) => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't

@@ -5,6 +5,7 @@ import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -26,6 +27,7 @@ export enum DisplayType {
   BIG_NUMBER = 'big_number',
   DETAILS = 'details',
   TOP_N = 'top_n',
+  WHEEL = 'wheel',
 }
 
 export enum WidgetType {
@@ -37,6 +39,7 @@ export enum WidgetType {
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
   LOGS = 'logs',
+  TRACEMETRICS = 'tracemetrics',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -93,6 +96,8 @@ export type WidgetQuery = {
   // Table column alias.
   // We may want to have alias for y-axis in the future too
   fieldAliases?: string[];
+  // Used to define the units of the fields in the widget queries, currently not saved
+  fieldMeta?: Array<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'> | null>;
   // Fields is replaced with aggregates + columns. It
   // is currently used to track column order on table
   // widgets.
@@ -103,6 +108,10 @@ export type WidgetQuery = {
   onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+  // Links the widget query to a slide out panel if exists.
+  // TODO: currently not stored in the backend, only used
+  // by prebuilt dashboards in the frontend.
+  slideOutId?: SlideoutId;
 };
 
 type WidgetChangedReason = {
@@ -175,14 +184,11 @@ export type DashboardListItem = {
 export enum DashboardFilterKeys {
   RELEASE = 'release',
   GLOBAL_FILTER = 'globalFilter',
-  // temporary filters are filters that are not saved to the dashboard, they occur when you link from one dashboard to another
-  TEMPORARY_FILTERS = 'temporaryFilters',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
   [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
-  [DashboardFilterKeys.TEMPORARY_FILTERS]?: GlobalFilter[];
 };
 
 export type GlobalFilter = {
@@ -192,6 +198,7 @@ export type GlobalFilter = {
   tag: Tag;
   // The raw filter condition string (e.g. 'tagKey:[values,...]')
   value: string;
+  isTemporary?: boolean;
 };
 
 /**
@@ -234,4 +241,18 @@ export enum DashboardWidgetSource {
   TRACE_EXPLORER = 'traceExplorer',
   LOGS = 'logs',
   INSIGHTS = 'insights',
+  TRACEMETRICS = 'traceMetrics',
+}
+
+export enum SlideoutId {
+  LCP = 'lcp',
+  FCP = 'fcp',
+  INP = 'inp',
+  CLS = 'cls',
+  TTFB = 'ttfb',
+  LCP_SUMMARY = 'lcp-summary',
+  FCP_SUMMARY = 'fcp-summary',
+  INP_SUMMARY = 'inp-summary',
+  CLS_SUMMARY = 'cls-summary',
+  TTFB_SUMMARY = 'ttfb-summary',
 }

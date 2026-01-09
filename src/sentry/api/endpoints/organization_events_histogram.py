@@ -7,7 +7,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.snuba import discover
@@ -44,7 +44,7 @@ class HistogramSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsHistogramEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

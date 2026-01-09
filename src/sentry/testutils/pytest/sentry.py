@@ -217,6 +217,11 @@ def pytest_configure(config: pytest.Config) -> None:
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
+            "github-console-sdk-app.id": 42,
+            "github-console-sdk-app.client-id": "github-client-id",
+            "github-console-sdk-app.client-secret": "github-client-secret",
+            "github-console-sdk-app.installation-id": "123123123",
+            "github-console-sdk-app.private-key": "github-private-key",
             "vsts.client-id": "vsts-client-id",
             "vsts.client-secret": "vsts-client-secret",
             "vsts-limited.client-id": "vsts-limited-client-id",
@@ -283,14 +288,20 @@ def pytest_configure(config: pytest.Config) -> None:
     asset_version_patcher.start()
     from sentry.runner.initializer import initialize_app
 
-    initialize_app({"settings": settings, "options": None})
+    SENTRY_SKIP_SERVICE_VALIDATION = "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
+
+    initialize_app(
+        {"settings": settings, "options": None},
+        skip_service_validation=SENTRY_SKIP_SERVICE_VALIDATION,
+    )
     sentry_sdk.get_global_scope().set_client(None)
     register_extensions()
 
-    from sentry.utils.redis import clusters
+    if not SENTRY_SKIP_SERVICE_VALIDATION:
+        from sentry.utils.redis import clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+        with clusters.get("default").all() as client:
+            client.flushdb()
 
 
 def register_extensions() -> None:
@@ -415,7 +426,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     items[:] = keep
 
     if os.environ.get("SENTRY_SHUFFLE_TESTS"):
-        seed = int(os.environ.get("SENTRY_SHUFFLE_TESTS_SEED", time.time()))
+        seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
+        seed = int(seed_env) if seed_env else int(time.time())
         config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
         _shuffle(items, random.Random(seed))
 

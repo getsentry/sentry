@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -59,7 +59,6 @@ export function OverviewRow({
   onToggleStatus,
 }: Props) {
   const organization = useOrganization();
-  const theme = useTheme();
 
   const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
@@ -119,8 +118,8 @@ export function OverviewRow({
             {scheduleAsText(monitor.config)}
           </ScheduleDetails>
           <MonitorStatuses>
-            {monitor.isMuted && <Tag>{t('Muted')}</Tag>}
-            {isDisabled && <Tag>{t('Disabled')}</Tag>}
+            {monitor.isMuted && <Tag variant="muted">{t('Muted')}</Tag>}
+            {isDisabled && <Tag variant="muted">{t('Disabled')}</Tag>}
           </MonitorStatuses>
         </DetailsContainer>
       </DetailsLink>
@@ -195,7 +194,7 @@ export function OverviewRow({
                   <EnvActionButton
                     {...triggerProps}
                     aria-label={t('Monitor environment actions')}
-                    size={theme.isChonk ? 'zero' : 'xs'}
+                    size="zero"
                     icon={<IconEllipsis />}
                   />
                 )}
@@ -244,7 +243,7 @@ export function OverviewRow({
 const DetailsLink = styled(Link)`
   display: block;
   padding: ${space(3)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:focus-visible {
     outline: none;
@@ -252,7 +251,7 @@ const DetailsLink = styled(Link)`
 `;
 
 const DetailsArea = styled('div')`
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0;
   position: relative;
 `;
@@ -334,8 +333,8 @@ const TimelineRow = styled('li')<TimelineRowProps>`
   --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
 
   &:last-child {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;
 
@@ -363,7 +362,7 @@ const MonitorEnvContainer = styled('div')`
   padding: ${space(3)} ${space(2)};
   gap: ${space(4)};
   flex-direction: column;
-  border-right: 1px solid ${p => p.theme.innerBorder};
+  border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   text-align: right;
 `;
 

@@ -16,6 +16,7 @@ import type {
   DataConditionGroupLogicType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionHandlerGroupType} from 'sentry/types/workflowEngine/dataConditions';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
@@ -23,7 +24,10 @@ import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {validateActions} from 'sentry/views/automations/components/automationFormData';
+import {
+  stripActionFields,
+  validateActions,
+} from 'sentry/views/automations/components/automationFormData';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useSendTestNotification} from 'sentry/views/automations/hooks';
@@ -49,36 +53,39 @@ export default function AutomationBuilder() {
       <Flex direction="column" gap="md">
         <Step>
           <StepLead>
-            {tct('[when:When] [selector] of the following occur', {
-              when: <ConditionBadge />,
-              selector: showTriggerLogicTypeSelector ? (
-                <EmbeddedWrapper>
-                  <EmbeddedSelectField
-                    styles={{
-                      control: (provided: any) => ({
-                        ...provided,
-                        minHeight: '21px',
-                        height: '21px',
-                      }),
-                    }}
-                    inline={false}
-                    isSearchable={false}
-                    isClearable={false}
-                    name={`${state.triggers.id}.logicType`}
-                    value={state.triggers.logicType}
-                    onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
-                      actions.updateWhenLogicType(option.value)
-                    }
-                    required
-                    flexibleControlStateSize
-                    options={TRIGGER_MATCH_OPTIONS}
-                    size="xs"
-                  />
-                </EmbeddedWrapper>
-              ) : (
-                t('any')
-              ),
-            })}
+            {tct(
+              '[when:When] an issue event is captured and [selector] of the following occur',
+              {
+                when: <ConditionBadge />,
+                selector: showTriggerLogicTypeSelector ? (
+                  <EmbeddedWrapper>
+                    <EmbeddedSelectField
+                      styles={{
+                        control: (provided: any) => ({
+                          ...provided,
+                          minHeight: '21px',
+                          height: '21px',
+                        }),
+                      }}
+                      inline={false}
+                      isSearchable={false}
+                      isClearable={false}
+                      name={`${state.triggers.id}.logicType`}
+                      value={state.triggers.logicType}
+                      onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                        actions.updateWhenLogicType(option.value)
+                      }
+                      required
+                      flexibleControlStateSize
+                      options={TRIGGER_MATCH_OPTIONS}
+                      size="xs"
+                    />
+                  </EmbeddedWrapper>
+                ) : (
+                  <strong>{t('any')}</strong>
+                ),
+              }
+            )}
           </StepLead>
         </Step>
         <DataConditionNodeList
@@ -94,7 +101,7 @@ export default function AutomationBuilder() {
           }
         />
         {(mutationErrors as any)?.actionFilters?.all && (
-          <StyledAlert type="error">
+          <StyledAlert variant="danger">
             {(mutationErrors as any).actionFilters.all}
           </StyledAlert>
         )}
@@ -125,28 +132,35 @@ interface ActionFilterBlockProps {
 
 function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   const {state, actions} = useAutomationBuilderContext();
-  const {mutateAsync: sendTestNotification} = useSendTestNotification();
-  const {errors, setErrors} = useAutomationBuilderErrorContext();
+  const {setErrors} = useAutomationBuilderErrorContext();
+  const {mutate: sendTestNotification, isPending} = useSendTestNotification({
+    onError: (error: RequestError) => {
+      // Store test notification error in error context
+      setErrors(prev => ({
+        ...prev,
+        ...error?.responseJSON,
+      }));
+    },
+  });
 
   const numActionFilters = state.actionFilters.length;
 
-  const handleSendTestNotification = useCallback(async () => {
+  const handleSendTestNotification = useCallback(() => {
     const actionFilterActions = actionFilter.actions || [];
 
     // Validate actions before sending test notification
     const actionErrors = validateActions({actions: actionFilterActions});
-    setErrors({...errors, ...actionErrors});
+    setErrors(prev => ({...prev, ...actionErrors}));
 
     // Only send test notification if there are no validation errors
     if (Object.keys(actionErrors).length === 0) {
-      await sendTestNotification(
+      sendTestNotification(
         actionFilterActions.map(action => {
-          const {id: _id, ...actionWithoutId} = action;
-          return actionWithoutId;
+          return stripActionFields(action);
         })
       );
     }
-  }, [actionFilter.actions, sendTestNotification, errors, setErrors]);
+  }, [actionFilter.actions, sendTestNotification, setErrors]);
 
   return (
     <IfThenWrapper>
@@ -225,7 +239,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
         <Button
           icon={<IconMail />}
           onClick={handleSendTestNotification}
-          disabled={!actionFilter.actions?.length}
+          disabled={!actionFilter.actions?.length || isPending}
         >
           {t('Send Test Notification')}
         </Button>
@@ -259,8 +273,8 @@ const IfThenWrapper = styled(Flex)`
   position: relative;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};
 

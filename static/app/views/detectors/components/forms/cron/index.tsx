@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -13,18 +14,26 @@ import {
   cronFormDataToEndpointPayload,
   cronSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/cron/fields';
+import {InstrumentationGuide} from 'sentry/views/detectors/components/forms/cron/instrumentationGuide';
 import {CronDetectorFormResolveSection} from 'sentry/views/detectors/components/forms/cron/resolve';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
+import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
+
+function useIsShowingPlatformGuide() {
+  const {platformKey, guideKey} = useCronsUpsertGuideState();
+  return platformKey && guideKey !== 'manual';
+}
 
 function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const dataSource = detector?.dataSources[0];
   const theme = useTheme();
+  const showingPlatformGuide = useIsShowingPlatformGuide();
 
-  return (
-    <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
+  const formSections = (
+    <Fragment>
       {dataSource?.queryObj.isUpserting && (
-        <Alert type="warning">
+        <Alert variant="warning">
           {t(
             'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
           )}
@@ -35,11 +44,20 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
       <AssignSection />
       <DescribeSection />
       <AutomateSection />
+    </Fragment>
+  );
+
+  return (
+    <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
+      {!detector && <InstrumentationGuide />}
+      {!showingPlatformGuide && formSections}
     </Stack>
   );
 }
 
 export function NewCronDetectorForm() {
+  const showingPlatformGuide = useIsShowingPlatformGuide();
+
   return (
     <NewDetectorLayout
       detectorType="monitor_check_in_failure"
@@ -48,6 +66,13 @@ export function NewCronDetectorForm() {
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
       }}
       noEnvironment
+      disabledCreate={
+        showingPlatformGuide
+          ? t(
+              'Using Auto-Instrumentation does not require you to create a monitor via the Sentry UI'
+            )
+          : undefined
+      }
     >
       <CronDetectorForm />
     </NewDetectorLayout>

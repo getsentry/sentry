@@ -2,7 +2,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer
 from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
@@ -17,52 +16,10 @@ from sentry.notifications.notification_action.group_type_notification_registry.h
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.models import (
-    Action,
-    ActionAlertRuleTriggerAction,
-    DataCondition,
-    DataConditionAlertRuleTrigger,
-    DataConditionGroupAction,
-    DetectorWorkflow,
-    WorkflowDataConditionGroup,
-)
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
 
 
 class WorkflowEngineActionSerializer(Serializer):
-    def get_alert_rule_trigger_id(self, action: Action) -> int | None:
-        """
-        Fetches the alert rule trigger id for the detector trigger related to the given action
-        """
-        action_filter_data_condition = DataCondition.objects.filter(
-            condition_group__in=Subquery(
-                DataConditionGroupAction.objects.filter(action=action).values("condition_group")
-            ),
-            type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-            condition_result=True,
-        )
-        detector_dcg = DetectorWorkflow.objects.filter(
-            workflow__in=Subquery(
-                WorkflowDataConditionGroup.objects.filter(
-                    condition_group__in=Subquery(
-                        action_filter_data_condition.values("condition_group")
-                    )
-                ).values("workflow")
-            )
-        ).values("detector__workflow_condition_group")
-        detector_trigger = DataCondition.objects.get(
-            condition_result__in=Subquery(action_filter_data_condition.values("comparison")),
-            condition_group__in=detector_dcg,
-        )
-        try:
-            alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
-                "alert_rule_trigger_id", flat=True
-            ).get(data_condition=detector_trigger)
-            return alert_rule_trigger_id
-        except DataConditionAlertRuleTrigger.DoesNotExist:
-            # this data condition does not have an analog in the old system,
-            # but we need to return *something*
-            return get_fake_id_from_object_id(detector_trigger.id)
 
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
@@ -71,6 +28,8 @@ class WorkflowEngineActionSerializer(Serializer):
         Temporary serializer to take an Action and serialize it for the old metric alert rule endpoints
         """
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
+
+        alert_rule_trigger_id = kwargs.get("alert_rule_trigger_id", -1)
 
         try:
             aarta = ActionAlertRuleTriggerAction.objects.get(action=obj.id)
@@ -96,7 +55,7 @@ class WorkflowEngineActionSerializer(Serializer):
                 if aarta is not None
                 else str(get_fake_id_from_object_id(obj.id))
             ),
-            "alertRuleTriggerId": str(self.get_alert_rule_trigger_id(obj)),
+            "alertRuleTriggerId": str(alert_rule_trigger_id),
             "type": obj.type,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
             "targetIdentifier": get_identifier_from_action(

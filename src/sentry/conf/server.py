@@ -29,6 +29,7 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
+from sentry.conf.types.taskworker import crontab as task_crontab
 from sentry.conf.types.uptime import UptimeRegionConfig
 
 
@@ -389,7 +390,6 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.staff.StaffMiddleware",
-    "sentry.middleware.reporting_endpoint.ReportingEndpointMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -441,6 +441,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "crispy_forms",
     "rest_framework",
     "sentry",
+    "sentry.autopilot",
     "sentry.analytics",
     "sentry.auth_v2",
     "sentry.incidents.apps.Config",
@@ -487,6 +488,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.preprod",
     "sentry.releases",
     "sentry.prevent",
+    "sentry.seer",
 )
 
 # Silence internal hints from Django's system checks
@@ -825,11 +827,16 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
+# This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.autopilot.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
+    "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
+    "sentry.deletions.tasks.nodestore",
+    "sentry.deletions.tasks.overwatch",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
@@ -842,6 +849,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
     "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.integrations.github.tasks.codecov_account_link",
+    "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
@@ -851,6 +860,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.slack.tasks.link_slack_user_identities",
     "sentry.integrations.slack.tasks.post_message",
     "sentry.integrations.slack.tasks.send_notifications_on_activity",
+    "sentry.integrations.source_code_management.tasks",
     "sentry.integrations.tasks.create_comment",
     "sentry.integrations.tasks.kick_off_status_syncs",
     "sentry.integrations.tasks.migrate_repo",
@@ -862,19 +872,28 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.vsts.tasks.subscription_check",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
+    "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
+    "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
+    "sentry.replays.data_export",
     "sentry.replays.tasks",
     "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
+    "sentry.seer.autofix.issue_summary",
+    "sentry.seer.code_review.webhooks.task",
+    "sentry.seer.entrypoints.operator",
     "sentry.snuba.tasks",
+    "sentry.tasks.activity",
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
@@ -898,10 +917,13 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.files",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
+    "sentry.tasks.organization_contributors",
     "sentry.tasks.options",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
@@ -924,6 +946,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tempest.tasks",
     "sentry.uptime.autodetect.notifications",
     "sentry.uptime.autodetect.tasks",
+    "sentry.uptime.consumers.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
@@ -933,7 +956,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.taskworker.tasks.examples",
 )
 
-from sentry.conf.types.taskworker import crontab as task_crontab
 
 # Schedules for taskworker tasks to be spawned on.
 TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
@@ -1058,6 +1080,14 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
     },
+    "autopilot-run-sdk-update-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "autopilot-run-missing-sdk-integration-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
@@ -1116,7 +1146,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-issue-detection": {
         "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -1256,6 +1286,8 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "toronado": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "toronado.cssutils": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "CSSUTILS": {"level": "ERROR", "handlers": ["null"], "propagate": False},
         "urllib3.connectionpool": {
             "level": "ERROR",
             "handlers": ["console"],
@@ -2129,7 +2161,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.11.0"
+SELF_HOSTED_STABLE_VERSION = "25.12.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2510,7 +2542,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
 # WARNING(iker): there are two different formats for KAFKA_CLUSTERS: the one we
-# use below, and a legacy one still used in `getsentry`.
+# use below, and a legacy one that still might be used by self-hosted instances.
 # Reading items from this default configuration directly might break deploys.
 # To correctly read items from this dictionary and not worry about the format,
 # see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
@@ -2981,6 +3013,10 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS: ServiceOptions = {
     "options": {"cluster": "default"},
 }
 
+SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE = (
+    0.1  # relative to SENTRY_PROCESS_EVENT_APM_SAMPLING
+)
+
 ADDITIONAL_BULK_QUERY_DELETES: list[tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
@@ -3051,9 +3087,6 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 # but existing customers have been using these routes
 # on the main domain for a long time.
 REGION_PINNED_URL_NAMES = {
-    # These paths have organization scoped aliases
-    "sentry-api-0-builtin-symbol-sources",
-    "sentry-api-0-grouping-configs",
     # Unprefixed issue URLs
     "sentry-api-0-group-details",
     "sentry-api-0-group-activities",
@@ -3076,13 +3109,11 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integrations",
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
-    "sentry-api-0-shared-group-details",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
     "sentry-api-0-relay-register-response",
     "sentry-api-0-relay-projectconfigs",
-    "sentry-api-0-relay-projectids",
     "sentry-api-0-relay-publickeys",
     "sentry-api-0-relays-healthcheck",
     "sentry-api-0-relays-details",

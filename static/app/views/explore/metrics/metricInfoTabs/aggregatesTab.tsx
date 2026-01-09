@@ -198,7 +198,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       <StickyCompatibleTableBody>
         {result.isError ? (
           <SimpleTable.Empty>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </SimpleTable.Empty>
         ) : result.data?.length ? (
           result.data.map((row, i) => (
@@ -262,7 +262,7 @@ const StickyCompatibleStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
     css`
       position: sticky;
       right: 0;
-      background: ${p.theme.bodyBackground};
+      background: ${p.theme.tokens.background.secondary};
       height: 100%;
       z-index: 2;
     `};
@@ -282,7 +282,7 @@ const StickyCompatibleStyledRowCell = styled(StyledSimpleTableRowCell)<{
     css`
       position: sticky;
       right: 0;
-      background: ${p.theme.background};
+      background: ${p.theme.tokens.background.primary};
       height: 100%;
       z-index: 1;
       justify-self: end;

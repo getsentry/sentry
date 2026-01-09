@@ -26,13 +26,17 @@ import {
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
@@ -73,7 +77,7 @@ function ChartError() {
   return (
     <Flex justify="center" align="center" height={CHART_HEIGHT}>
       <ErrorPanel>
-        <IconWarning color="gray300" size="lg" />
+        <IconWarning variant="muted" size="lg" />
         <div>{t('Error loading chart data')}</div>
       </ErrorPanel>
     </Flex>
@@ -135,6 +139,10 @@ interface MetricDetectorChartProps {
    * Used in anomaly detection
    */
   thresholdType: AlertRuleThresholdType | undefined;
+  /**
+   * Detector ID - only available when editing an existing detector
+   */
+  detectorId?: string;
   extrapolationMode?: ExtrapolationMode | undefined;
 }
 
@@ -153,12 +161,22 @@ export function MetricDetectorChart({
   sensitivity,
   thresholdType,
   extrapolationMode,
+  detectorId,
 }: MetricDetectorChartProps) {
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
       dataset: getBackendDataset(detectorDataset),
       interval,
     });
+
+  const shouldAlterExtrapolationMode = useIsMigratedExtrapolation({
+    dataset: detectorDataset,
+    extrapolationMode,
+  });
+
+  const adjustedExtrapolationMode = shouldAlterExtrapolationMode
+    ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
+    : extrapolationMode;
 
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
     detectorDataset,
@@ -171,7 +189,7 @@ export function MetricDetectorChart({
     statsPeriod: selectedTimePeriod,
     comparisonDelta,
     eventTypes,
-    extrapolationMode,
+    extrapolationMode: adjustedExtrapolationMode,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
@@ -218,10 +236,27 @@ export function MetricDetectorChart({
     markLineTooltip: anomalyMarklineTooltip,
   });
 
+  const metricTimestamps = useMetricTimestamps(series);
+
+  const shouldFetchThresholds = Boolean(detectorId && isAnomalyDetection);
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: detectorId ?? '',
+    detectionType,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series: shouldFetchThresholds ? series : [],
+  });
+
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries: detectorId ? anomalyThresholdSeries : [],
+    isAnomalyDetection,
+    thresholdType,
+  });
+
   const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
   const additionalSeries = useMemo(() => {
-    const baseSeries = [...thresholdAdditionalSeries];
+    const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
 
     if (isAnomalyDetection && anomalyMarkerResult.incidentMarkerSeries) {
       // Line series not working well with the custom series type
@@ -232,6 +267,7 @@ export function MetricDetectorChart({
   }, [
     isAnomalyDetection,
     thresholdAdditionalSeries,
+    filteredAnomalyThresholdSeries,
     anomalyMarkerResult.incidentMarkerSeries,
   ]);
 
@@ -359,7 +395,7 @@ export function MetricDetectorChart({
 
 const ChartContainer = styled('div')`
   max-width: 1440px;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ChartFooter = styled('div')`
@@ -367,7 +403,7 @@ const ChartFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${p => `${p.theme.space.sm} 0 ${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AnomalyLoadingIndicator = styled(LoadingIndicator)`

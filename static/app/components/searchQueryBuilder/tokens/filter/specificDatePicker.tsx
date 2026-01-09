@@ -273,7 +273,7 @@ const StyledInput = styled(Input)`
 
 const ControlsWrapper = styled('div')`
   padding: ${space(1.5)} ${space(2)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const TimeUtcWrapper = styled('div')`
@@ -284,7 +284,7 @@ const TimeUtcWrapper = styled('div')`
 `;
 
 const UtcPickerLabel = styled('label')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -297,7 +297,7 @@ const UtcPickerLabel = styled('label')`
 
   &:has(:disabled) {
     cursor: not-allowed;
-    color: ${p => p.theme.disabled};
+    color: ${p => p.theme.tokens.content.disabled};
   }
 `;
 
@@ -307,7 +307,7 @@ const CheckboxLabel = styled('label')`
   margin: 0;
   gap: ${space(1)};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
 `;
 

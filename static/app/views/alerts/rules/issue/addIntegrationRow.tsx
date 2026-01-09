@@ -31,7 +31,7 @@ function AddIntegrationRow({onClick}: Props) {
     size: 'sm',
     priority: 'primary',
     'data-test-id': 'install-button',
-  };
+  } as const;
 
   return (
     <RowWrapper>
@@ -67,7 +67,7 @@ function AddIntegrationRow({onClick}: Props) {
 const RowWrapper = styled('div')`
   display: flex;
   border-radius: 4px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   justify-content: space-between;
   align-items: center;
   padding: ${space(3)} ${space(4)};

@@ -1,6 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
@@ -104,6 +104,8 @@ export enum IssueCategory {
   MOBILE = 'mobile',
 
   AI_DETECTED = 'ai_detected',
+
+  PREPROD = 'preprod',
 }
 
 /**
@@ -120,6 +122,7 @@ export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.FRONTEND,
   IssueCategory.MOBILE,
   IssueCategory.FEEDBACK,
+  IssueCategory.PREPROD,
 ];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
@@ -137,6 +140,7 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.REPLAY]: '',
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
+  [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
 };
 
 export enum IssueType {
@@ -185,6 +189,10 @@ export enum IssueType {
   WEB_VITALS = 'web_vitals',
 
   LLM_DETECTED_EXPERIMENTAL = 'llm_detected_experimental',
+
+  // Preprod
+  PREPROD_STATIC = 'preprod_static',
+  PREPROD_DELTA = 'preprod_delta',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -236,6 +244,9 @@ export enum IssueTitle {
   WEB_VITALS = 'Web Vitals',
 
   LLM_DETECTED_EXPERIMENTAL = 'LLM Detected Issue',
+
+  PREPROD_STATIC = 'Static Analysis',
+  PREPROD_DELTA = 'Static Analysis Delta',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -275,6 +286,9 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   web_vitals: IssueTitle.WEB_VITALS,
 
   llm_detected_experimental: IssueTitle.LLM_DETECTED_EXPERIMENTAL,
+
+  preprod_static: IssueTitle.PREPROD_STATIC,
+  preprod_delta: IssueTitle.PREPROD_DELTA,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -309,6 +323,8 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
   3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
   10001: IssueType.WEB_VITALS,
+  11001: IssueType.PREPROD_STATIC,
+  11002: IssueType.PREPROD_DELTA,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);

@@ -114,9 +114,11 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
 }
 
 const SummaryCardContainer = styled(Flex)<{isClickable?: boolean; isFiltered?: boolean}>`
-  border: 1px solid ${p => (p.isFiltered ? p.theme.purple300 : p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => (p.isFiltered ? p.theme.purple100 : p.theme.background)};
+  border: 1px solid
+    ${p => (p.isFiltered ? p.theme.colors.blue400 : p.theme.tokens.border.primary)};
+  background: ${p =>
+    p.isFiltered ? p.theme.colors.blue100 : p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
 
   ${p =>
     p.isClickable &&

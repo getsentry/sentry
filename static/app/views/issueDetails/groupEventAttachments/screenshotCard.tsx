@@ -186,7 +186,7 @@ const CardBody = styled('div')`
   max-height: 250px;
   min-height: 250px;
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.gray100};
+  border-bottom: 1px solid ${p => p.theme.colors.gray100};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
@@ -199,7 +199,7 @@ const StyledPanelBody = styled(PanelBody)`
   align-items: center;
   justify-content: center;
   flex: 1;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledLoadingIndicator = styled('div')`

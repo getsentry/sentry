@@ -1,5 +1,9 @@
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  IssueStreamDetectorFixture,
+  MetricDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -9,20 +13,31 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 import EditConnectedMonitors from './editConnectedMonitors';
 
 describe('EditConnectedMonitors', () => {
+  const project = ProjectFixture({id: '1', slug: 'test-project'});
   const detector1 = MetricDetectorFixture({
     id: '1',
     name: 'Metric Monitor 1',
     type: 'metric_issue',
+    projectId: project.id,
+  });
+  const issueStreamDetector = IssueStreamDetectorFixture({
+    id: '100',
+    name: 'Issue Stream Detector',
+    projectId: project.id,
   });
 
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
@@ -32,11 +47,45 @@ describe('EditConnectedMonitors', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
-  it('can connect an existing monitor', async () => {
+  it('renders radio buttons for monitor selection mode', async () => {
     const setConnectedIds = jest.fn();
     render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
 
-    expect(screen.getByText('Connected Monitors')).toBeInTheDocument();
+    expect(screen.getByText('Source')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('radio', {name: 'Alert on all issues in a project'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('radio', {name: 'Alert on specific monitors'})
+    ).toBeInTheDocument();
+  });
+
+  it('defaults to "all project issues" mode when no monitors are connected', async () => {
+    const setConnectedIds = jest.fn();
+    render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
+
+    expect(
+      await screen.findByRole('radio', {name: 'Alert on all issues in a project'})
+    ).toBeChecked();
+    expect(
+      screen.getByRole('radio', {name: 'Alert on specific monitors'})
+    ).not.toBeChecked();
+
+    // Should show project selector
+    expect(screen.getByText('Projects')).toBeInTheDocument();
+    expect(screen.getByText('Select projects')).toBeInTheDocument();
+  });
+
+  it('can connect an existing monitor via specific monitors mode', async () => {
+    const setConnectedIds = jest.fn();
+    render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
+
+    expect(screen.getByText('Source')).toBeInTheDocument();
+
+    // Switch to specific monitors mode
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Alert on specific monitors'})
+    );
 
     await userEvent.click(screen.getByText('Connect Monitors'));
 
@@ -61,6 +110,20 @@ describe('EditConnectedMonitors', () => {
   });
 
   it('can disconnect an existing monitor', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: [detector1],
+      match: [MockApiClient.matchQuery({id: [detector1.id]})],
+    });
+    // Mock for issue stream detectors (detector1 is not an issue stream detector)
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream'})],
+    });
+
     const setConnectedIds = jest.fn();
     render(
       <EditConnectedMonitors
@@ -69,8 +132,10 @@ describe('EditConnectedMonitors', () => {
       />
     );
 
+    // Wait for the initial mode to be determined (should be specific monitors since detector1 is not issue_stream)
+    await screen.findByRole('radio', {name: 'Alert on specific monitors'});
+
     // Should display automation as connected
-    expect(screen.getByText('Connected Monitors')).toBeInTheDocument();
     expect(await screen.findByText(detector1.name)).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit Monitors'));
@@ -94,5 +159,97 @@ describe('EditConnectedMonitors', () => {
     });
 
     expect(setConnectedIds).toHaveBeenCalledWith([]);
+  });
+
+  it('shows "all project issues" mode when connected to an issue_stream detector', async () => {
+    // Mock for getting the connected detector by ID
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: [issueStreamDetector],
+      match: [MockApiClient.matchQuery({id: [issueStreamDetector.id]})],
+    });
+    // Mock for getting all issue stream detectors (used to determine initial mode)
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: [issueStreamDetector],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream'})],
+    });
+
+    const setConnectedIds = jest.fn();
+    render(
+      <EditConnectedMonitors
+        connectedIds={[issueStreamDetector.id]}
+        setConnectedIds={setConnectedIds}
+      />
+    );
+
+    // Wait for the initial mode to be determined
+    await waitFor(() => {
+      expect(
+        screen.getByRole('radio', {name: 'Alert on all issues in a project'})
+      ).toBeChecked();
+    });
+  });
+
+  it('switches between modes correctly', async () => {
+    const setConnectedIds = jest.fn();
+    render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
+
+    // Initially in "all project issues" mode
+    expect(
+      await screen.findByRole('radio', {name: 'Alert on all issues in a project'})
+    ).toBeChecked();
+
+    // Switch to specific monitors mode
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Alert on specific monitors'})
+    );
+
+    expect(screen.getByRole('radio', {name: 'Alert on specific monitors'})).toBeChecked();
+    expect(screen.getByText('Connect Monitors')).toBeInTheDocument();
+
+    // Switch back to all project issues mode
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Alert on all issues in a project'})
+    );
+
+    expect(
+      screen.getByRole('radio', {name: 'Alert on all issues in a project'})
+    ).toBeChecked();
+  });
+
+  it('updates connected detector ids when project is selected', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: [issueStreamDetector],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream'})],
+    });
+
+    const model = new FormModel();
+    model.setInitialData({projectIds: [], detectorIds: []});
+
+    const setConnectedIds = jest.fn();
+    render(
+      <Form model={model}>
+        <EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />
+      </Form>
+    );
+
+    // Wait for project selector to be available
+    await screen.findByText('Projects');
+
+    // Open the project selector dropdown
+    await userEvent.click(screen.getByText('Select projects'));
+
+    // Select a project
+    await userEvent.click(await screen.findByText(project.slug));
+
+    // The onChange should be called with the selected project ID
+    await waitFor(() => {
+      expect(setConnectedIds).toHaveBeenCalledWith([issueStreamDetector.id]);
+    });
   });
 });

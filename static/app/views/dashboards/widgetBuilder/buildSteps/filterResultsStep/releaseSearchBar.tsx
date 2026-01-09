@@ -2,11 +2,12 @@ import {useCallback} from 'react';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -87,8 +88,8 @@ export function useReleasesSearchBarDataProvider(
     }, {});
   }, []);
 
-  const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    (tag, searchQuery) => {
       if (tag.name === 'session.status') {
         return Promise.resolve(SESSION_STATUSES);
       }

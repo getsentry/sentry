@@ -423,9 +423,9 @@ const StyledInput = styled(Input)`
 `;
 
 const InfoDisplay = styled('div')`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   max-height: 400px;
   overflow-y: auto;
@@ -435,7 +435,7 @@ const InfoDisplay = styled('div')`
     font-family: ${p => p.theme.text.familyMono};
     font-size: 12px;
     line-height: 1.4;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     white-space: pre-wrap;
     word-break: break-word;
   }

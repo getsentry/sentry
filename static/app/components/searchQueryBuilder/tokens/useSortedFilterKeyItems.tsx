@@ -14,6 +14,7 @@ import {
   createLogicFilterItem,
   createRawSearchFilterContainsValueItem,
   createRawSearchFilterIsValueItem,
+  createRawSearchFuzzyFilterItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
@@ -174,9 +175,6 @@ export function useSortedFilterKeyItems({
   } = useSearchQueryBuilder();
 
   const organization = useOrganization();
-  const hasWildcardOperators = organization.features.includes(
-    'search-query-builder-wildcard-operators'
-  );
   const hasAskSeerConsentFlowChanges = organization.features.includes(
     'gen-ai-consent-flow-removal'
   );
@@ -289,10 +287,11 @@ export function useSortedFilterKeyItems({
             : inputValue;
 
           return [
-            ...(hasWildcardOperators
-              ? [createRawSearchFilterContainsValueItem(key, value)]
-              : []),
+            createRawSearchFilterContainsValueItem(key, value),
             createRawSearchFilterIsValueItem(key, value),
+            ...(/\w \w/.test(inputValue)
+              ? [createRawSearchFuzzyFilterItem(key, inputValue)]
+              : []),
           ];
         }) ?? [];
 
@@ -367,7 +366,6 @@ export function useSortedFilterKeyItems({
     gaveSeerConsent,
     getFieldDefinition,
     hasAskSeerConsentFlowChanges,
-    hasWildcardOperators,
     includeSuggestions,
     inputValue,
     matchKeySuggestions,

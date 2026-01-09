@@ -20,7 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export enum ChartIntervalUnspecifiedStrategy {
+enum ChartIntervalUnspecifiedStrategy {
   /** Use the second biggest possible interval (e.g., pretty big buckets) */
   USE_SECOND_BIGGEST = 'use_second_biggest',
   /** Use the smallest possible interval (e.g., the smallest possible buckets) */
@@ -35,7 +35,7 @@ interface Options {
 }
 
 export function useChartInterval({
-  unspecifiedStrategy,
+  unspecifiedStrategy = ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
 }: {unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy} = {}): [
   string,
   (interval: string) => void,

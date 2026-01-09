@@ -13,8 +13,8 @@ const SettingsHeader = styled('div')`
   top: 0;
   z-index: ${p => p.theme.zIndex.header + HEADER_Z_INDEX_OFFSET};
   padding: ${space(2)} ${space(4)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 export default SettingsHeader;

@@ -3,11 +3,15 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Flex} from 'sentry/components/core/layout';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {
+  ReplayAccess,
+  ReplayAccessFallbackAlert,
+} from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
@@ -25,6 +29,27 @@ import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDet
 import ReplayDetailsPage from 'sentry/views/replays/detail/page';
 
 export default function ReplayDetails() {
+  return (
+    <AnalyticsArea name="details">
+      <ReplayAccess
+        fallback={
+          <Fragment>
+            <TopHeader justify="between" align="center" gap="md">
+              {t('Replay Details')}
+            </TopHeader>
+            <Layout.Body>
+              <ReplayAccessFallbackAlert />
+            </Layout.Body>
+          </Fragment>
+        }
+      >
+        <ReplayDetailsContent />
+      </ReplayAccess>
+    </AnalyticsArea>
+  );
+}
+
+function ReplayDetailsContent() {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
@@ -57,40 +82,42 @@ export default function ReplayDetails() {
 
   const content = (
     <Fragment>
-      <Header>
-        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-        <ReplayDetailsHeaderActions readerResult={readerResult} />
-        <ReplayDetailsUserBadge readerResult={readerResult} />
-        <ReplayDetailsMetadata readerResult={readerResult} />
-      </Header>
+      <Flex direction="column">
+        <TopHeader justify="between" align="center" gap="md">
+          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+          <ReplayDetailsHeaderActions readerResult={readerResult} />
+        </TopHeader>
+        <BottonHeader justify="between" align="center">
+          <ReplayDetailsUserBadge readerResult={readerResult} />
+          <ReplayDetailsMetadata readerResult={readerResult} />
+        </BottonHeader>
+      </Flex>
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
   );
+
   return (
-    <AnalyticsArea name="details">
-      <SentryDocumentTitle title={title}>
-        <FullViewport>
-          {replay ? (
-            <ReplayDetailsProviders
-              replay={replay}
-              projectSlug={readerResult.projectSlug}
-            >
-              {content}
-            </ReplayDetailsProviders>
-          ) : (
-            content
-          )}
-        </FullViewport>
-      </SentryDocumentTitle>
-    </AnalyticsArea>
+    <SentryDocumentTitle title={title}>
+      <FullViewport>
+        {replay ? (
+          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
+            {content}
+          </ReplayDetailsProviders>
+        ) : (
+          content
+        )}
+      </FullViewport>
+    </SentryDocumentTitle>
   );
 }
 
-const Header = styled(Layout.Header)`
-  gap: ${space(1)};
-  padding-bottom: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    gap: ${space(1)} ${space(3)};
-    padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
-  }
+const TopHeader = styled(Flex)`
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  flex-wrap: wrap;
+`;
+
+const BottonHeader = styled(Flex)`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;

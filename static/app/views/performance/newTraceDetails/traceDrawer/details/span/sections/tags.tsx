@@ -5,14 +5,13 @@ import {
   type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
 export function hasSpanTags(span: RawSpanType) {
   return !!span.tags && Object.keys(span.tags).length > 0;
 }
 
-export function Tags({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+export function Tags({node}: {node: SpanNode}) {
   const span = node.value;
   const tags: Record<string, string> | undefined = span?.tags;
 

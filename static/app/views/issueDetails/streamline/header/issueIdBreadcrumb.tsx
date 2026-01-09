@@ -27,7 +27,7 @@ interface ShortIdBreadcrumbProps {
 export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const organization = useOrganization();
   const [isHovered, setIsHovered] = useState(false);
-  const shareUrl = group?.shareId ? getShareUrl(group) : null;
+  const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
   const {copy} = useCopyToClipboard();
 
   const handleCopyShortId = useCallback(() => {
@@ -73,7 +73,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
               onClick={handleCopyShortId}
               size="zero"
               borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              icon={<IconCopy size="xs" variant="muted" />}
             />
           )}
         </ShortIdCopyable>
@@ -83,7 +83,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           size="zero"
           borderless
           aria-label={t('View issue share settings')}
-          icon={<IconGlobe size="xs" color="subText" />}
+          icon={<IconGlobe size="xs" variant="muted" />}
           title={tct('This issue has been shared [link:with a public link].', {
             link: <ExternalLink href={shareUrl} />,
           })}
