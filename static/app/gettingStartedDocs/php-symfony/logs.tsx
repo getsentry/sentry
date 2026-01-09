@@ -14,7 +14,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Logs for Symfony are supported in version [code:4.12.0] and above of the Sentry PHP SDK and version [code:5.10.0] and above of the [code:sentry-symfony] bundle.',
+            'Logs for Symfony are supported in Sentry Symfony SDK version [code:5.4.0] and above.',
             {
               code: <code />,
             }
@@ -38,12 +38,36 @@ export const logs: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'To enable logging, add the [code:enable_logs] option to your Sentry configuration:',
-            {
-              code: <code />,
-            }
+          text: t(
+            'To configure Sentry logging, add the Monolog handler to your configuration:'
           ),
+        },
+        {
+          type: 'code',
+          language: 'yaml',
+          code: `# config/packages/monolog.yaml
+monolog:
+    handlers:
+        sentry_logs:
+            type: service
+            id: Sentry\\SentryBundle\\Monolog\\LogsHandler`,
+        },
+        {
+          type: 'text',
+          text: t('Configure the service and choose a minimum log level:'),
+        },
+        {
+          type: 'code',
+          language: 'yaml',
+          code: `# config/packages/sentry.yaml
+services:
+    Sentry\\SentryBundle\\Monolog\\LogsHandler:
+        arguments:
+            - !php/const Monolog\\Logger::INFO`,
+        },
+        {
+          type: 'text',
+          text: t('Enable the logs option:'),
         },
         {
           type: 'code',
@@ -56,14 +80,11 @@ sentry:
         },
         {
           type: 'text',
-          text: tct(
-            'For integration with Monolog, see the [link:Symfony Logs documentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/php/guides/symfony/logs/" />
-              ),
-            }
-          ),
+          text: tct('For more details, see the [link:Symfony Logs documentation].', {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/php/guides/symfony/logs/" />
+            ),
+          }),
         },
       ],
     },
@@ -74,27 +95,34 @@ sentry:
       content: [
         {
           type: 'text',
-          text: t(
-            'Once configured, you can send logs using the standard PSR-3 logger interface:'
+          text: tct(
+            'Once you have configured the Sentry log handler, you can use your regular [code:LoggerInterface]. It will send logs to Sentry:',
+            {
+              code: <code />,
+            }
           ),
         },
         {
           type: 'code',
           language: 'php',
-          code: `use Psr\\Log\\LoggerInterface;
-
-class SomeService
-{
-    public function __construct(
-        private LoggerInterface $logger
-    ) {}
-
-    public function someMethod(): void
-    {
-        $this->logger->info('A test log message');
-        $this->logger->error('An error log message', ['context' => 'value']);
-    }
-}`,
+          code: `$this->logger->info("This is an info message");
+$this->logger->warning('User {id} failed to login.', ['id' => $user->id]);
+$this->logger->error("This is an error message");`,
+        },
+        {
+          type: 'text',
+          text: t(
+            'You can pass additional attributes directly to the logging functions. These properties will be sent to Sentry, and can be searched from within the Logs UI:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'php',
+          code: `$this->logger->error('Something went wrong', [
+    'user_id' => $userId,
+    'action' => 'update_profile',
+    'additional_data' => $data,
+]);`,
         },
       ],
     },
