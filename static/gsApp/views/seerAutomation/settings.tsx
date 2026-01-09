@@ -142,6 +142,7 @@ export default function SeerAutomationSettings() {
                     ['on_ready_for_review', t('On Ready for Review')],
                     ['on_new_commit', t('On New Commit')],
                   ],
+                  formatMessageValue: false,
                 },
               ],
             },
