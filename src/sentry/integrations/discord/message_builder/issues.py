@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import (
     DiscordMessage,
@@ -24,9 +24,8 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.services.eventstore.models import GroupEvent
 
 from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
@@ -62,16 +61,15 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         rule_environment_id = None
         if self.rules:
             rule_environment_id = self.rules[0].environment_id
-            if features.has("organizations:workflow-engine-ui-links", self.group.organization):
-                rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
-            elif should_fire_workflow_actions(self.group.organization, self.group.type):
-                rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
-            else:
+            key = "legacy_rule_id"
+            try:
+                key, rule_id = get_rule_or_workflow_id(self.rules[0])
+            except AssertionError:
                 rule_id = self.rules[0].id
 
         url = None
 
-        if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+        if key == "workflow_id":
             url = get_title_link_workflow_engine_ui(
                 self.group,
                 self.event,

@@ -11,7 +11,7 @@ from django.urls import reverse
 from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
 
-from sentry import analytics, features, nodestore
+from sentry import analytics, nodestore
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
     AlertRuleUiComponentWebhookSentEvent,
 )
@@ -40,7 +40,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
@@ -720,8 +720,6 @@ def send_resource_change_webhook(
 
 
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             logger.info(
@@ -742,10 +740,10 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         # if we are using the new workflow engine, we need to use the legacy rule id
         # Ignore test notifications
         if int(id) != -1:
-            if features.has("organizations:workflow-engine-ui-links", event.group.organization):
-                id = get_key_from_rule_data(f.rule, "workflow_id")
-            elif should_fire_workflow_actions(event.group.organization, event.group.type):
-                id = get_key_from_rule_data(f.rule, "legacy_rule_id")
+            try:
+                _, id = get_rule_or_workflow_id(f.rule)
+            except AssertionError:
+                pass
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:

@@ -55,7 +55,6 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import SeerAutofixTrigger
@@ -64,7 +63,7 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
@@ -669,18 +668,22 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         rule_id = None
         rule_environment_id = None
+        key = "legacy_rule_id"
         if self.rules:
-            if features.has("organizations:workflow-engine-ui-links", self.group.organization):
-                rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
-                workflow = Workflow.objects.filter(id=rule_id).first()
-                rule_environment_id = workflow.environment_id if workflow else None
-            elif should_fire_workflow_actions(self.group.organization, self.group.type):
-                rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
-                rule = Rule.objects.filter(id=rule_id).first()
-                rule_environment_id = rule.environment_id if rule else None
-            else:
+            try:
+                key, value = get_rule_or_workflow_id(self.rules[0])
+            except AssertionError:
                 rule_id = self.rules[0].id
                 rule_environment_id = self.rules[0].environment_id
+            else:
+                if key == "workflow_id":
+                    rule_id = int(value)
+                    workflow = Workflow.objects.filter(id=rule_id).first()
+                    rule_environment_id = workflow.environment_id if workflow else None
+                else:
+                    rule_id = int(value)
+                    rule = Rule.objects.filter(id=rule_id).first()
+                    rule_environment_id = rule.environment_id if rule else None
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -689,7 +692,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = True
 
         title_link = None
-        if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+        if key == "workflow_id":
             title_link = get_title_link_workflow_engine_ui(
                 self.group,
                 self.event,
