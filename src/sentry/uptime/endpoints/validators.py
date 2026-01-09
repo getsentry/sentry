@@ -11,7 +11,7 @@ from sentry import audit_log, quotas
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.uptime.models import (
     UptimeSubscription,
@@ -574,7 +574,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         # Only validate on updates when trying to enable a currently disabled detector
         if detector and value and not detector.enabled:
-            result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+            result = quotas.backend.check_assign_seat(seat_object=detector)
             if not result.assignable:
                 raise serializers.ValidationError(result.reason)
 
