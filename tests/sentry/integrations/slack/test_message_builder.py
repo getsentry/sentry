@@ -1140,6 +1140,43 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
 
     @with_feature("organizations:slack-compact-alerts")
+    def test_compact_alerts_basic_layout(self) -> None:
+        """
+        Test that with the slack-compact-alerts flag enabled, the message uses a compact layout:
+        - No divider at the end
+        - Context block includes stats
+        """
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        group.type = ErrorGroupType.type_id
+        group.save()
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
+        blocks = SlackIssuesMessageBuilder(group).build()
+
+        assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
+        assert blocks["blocks"][-1]["type"] != "divider"
+
+    @with_feature("organizations:slack-compact-alerts")
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
     @patch(

@@ -504,6 +504,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.skip_fallback = skip_fallback
         self.notes = notes
         self.issue_summary: dict[str, Any] | None = None
+        self._is_compact = features.has(
+            "organizations:slack-compact-alerts", self.group.organization
+        )
 
     def get_title_block(
         self,
@@ -514,7 +517,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         summary_headline = self.get_issue_summary_headline(event_or_group)
         title = summary_headline or build_attachment_title(event_or_group)
         title_emojis = self.get_title_emoji(has_action)
-        if features.has("organizations:slack-compact-alerts", self.group.organization):
+        if self._is_compact:
             title = build_attachment_title(event_or_group)
 
         title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
@@ -574,7 +577,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if not parts:
             return None
 
-        if features.has("organizations:slack-compact-alerts", self.group.organization):
+        if self._is_compact:
             return f"*Initial Guess*: {escape_slack_markdown_text('  '.join(parts))}"
         else:
             return escape_slack_markdown_text("\n\n".join(parts))
@@ -740,9 +743,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # Use issue summary if available (and not flagged for compact alerts), otherwise use the default text
         summary_text = self.get_issue_summary_text()
-        if summary_text and not features.has(
-            "organizations:slack-compact-alerts", self.group.organization
-        ):
+        if summary_text and not self._is_compact:
             blocks.append(self.get_text_block(summary_text, small=True))
         else:
             text = text.lstrip(" ")
@@ -771,7 +772,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 self.group.project, event_for_tags, assignee
             )
 
-        if features.has("organizations:slack-compact-alerts", self.group.organization):
+        if self._is_compact:
             blocks.append(self.get_group_context_block(suggested_assignees=suggested_assignees))
         else:
             # add event count, user count, substate, first seen
@@ -819,19 +820,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
 
-        if (
-            features.has("organizations:slack-compact-alerts", self.group.organization)
-            and summary_text
-        ):
+        if self._is_compact and summary_text:
             blocks.append(self.get_context_block(summary_text))
 
-        if (
-            not features.has("organizations:slack-compact-alerts", self.group.organization)
-            and len(suggested_assignees) > 0
-        ):
+        if not self._is_compact and len(suggested_assignees) > 0:
             blocks.append(self.get_suggested_assignees_block(suggested_assignees))
 
-        if not features.has("organizations:slack-compact-alerts", self.group.organization):
+        if not self._is_compact:
             # add suspect commit info
             suspect_commit_text = get_suspect_commit_text(self.group)
             if suspect_commit_text:
@@ -844,7 +839,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # build footer block
         blocks.append(self.get_footer())
-        if not features.has("organizations:slack-compact-alerts", self.group.organization):
+        if not self._is_compact:
             blocks.append(self.get_divider())
 
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
