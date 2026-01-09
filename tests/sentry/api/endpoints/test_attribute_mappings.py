@@ -147,3 +147,33 @@ class AttributeMappingsEndpointTest(APITestCase):
         assert "public_alias" not in item
         assert "internal_name" not in item
         assert "search_type" not in item
+
+    def test_excludes_private_attributes(self):
+        """Test that private attributes are not included in the response."""
+        url = reverse(self.endpoint)
+        response = self.client.get(url, {"type": ["spans", "logs"]})
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+
+        # sentry.links is a known private attribute in spans
+        links_mapping = next(
+            (
+                item
+                for item in data
+                if item["publicAlias"] == "sentry.links" and item["type"] == "spans"
+            ),
+            None,
+        )
+        assert links_mapping is None
+
+        # sentry.item_type is a private attribute in common columns (used by logs)
+        item_type_mapping = next(
+            (
+                item
+                for item in data
+                if item["publicAlias"] == "sentry.item_type" and item["type"] == "logs"
+            ),
+            None,
+        )
+        assert item_type_mapping is None
