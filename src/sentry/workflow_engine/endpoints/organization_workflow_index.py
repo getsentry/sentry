@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 
@@ -70,7 +69,6 @@ SORT_COL_MAP = {
     "connectedDetectors": "connected_detectors",
     "actions": "actions",
     "lastTriggered": "last_triggered",
-    "detector": "detector",
 }
 
 workflow_search_config = SearchConfig.create_from(
@@ -81,31 +79,6 @@ workflow_search_config = SearchConfig.create_from(
     free_text_key="query",
 )
 parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
-
-
-@dataclass(frozen=True)
-class ParsedSortBy:
-    sort_by: SortByParam
-    # Only used for the detector sort
-    priority_detector_id: int | None = None
-
-
-def parse_sort_by(raw_sort_by: str) -> ParsedSortBy:
-    priority_detector_id: int | None = None
-
-    # Handle parameterized sort: detector:<id> or -detector:<id>
-    if "detector:" in raw_sort_by:
-        try:
-            prefix, detector_id_str = raw_sort_by.split(":", 1)
-            priority_detector_id = int(detector_id_str)
-            raw_sort_by = prefix
-        except ValueError:
-            raise ValidationError(
-                {"sortBy": ["Invalid detector format. Use detector:<detector_id>"]}
-            )
-
-    sort_by = SortByParam.parse(raw_sort_by, SORT_COL_MAP)
-    return ParsedSortBy(sort_by=sort_by, priority_detector_id=priority_detector_id)
 
 
 class OrganizationWorkflowPermission(OrganizationPermission):
@@ -222,34 +195,34 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of workflows for a given org
         """
-        parsed = parse_sort_by(request.GET.get("sortBy", "id"))
-        sort_by = parsed.sort_by
+        sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
         queryset = self.filter_workflows(request, organization)
 
+        # When the `priorityDetector` query param is provided, workflows connected to this detector are sorted first
+        priority_detector_id: int | None = None
+        if raw_priority := request.GET.get("priorityDetector"):
+            try:
+                priority_detector_id = int(raw_priority)
+            except ValueError:
+                raise ValidationError({"priorityDetector": ["Invalid detector ID format"]})
+
+            is_priority = Exists(
+                DetectorWorkflow.objects.filter(
+                    workflow=OuterRef("pk"),
+                    detector_id=priority_detector_id,
+                )
+            )
+            queryset = queryset.annotate(
+                priority_detector_id=Case(
+                    When(condition=is_priority, then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )
+            )
+
         # Add synthetic fields to the queryset if needed.
         match sort_by.db_field_name:
-            # The detector sort is provided with an accompanying detector ID in the format `detector:<detector_id>`.
-            # This ID is prioritized in the sort order.
-            case "detector":
-                if parsed.priority_detector_id is None:
-                    raise ValidationError(
-                        {"sortBy": ["detector sort requires format detector:<detector_id>"]}
-                    )
-
-                is_priority = Exists(
-                    DetectorWorkflow.objects.filter(
-                        workflow=OuterRef("pk"),
-                        detector_id=parsed.priority_detector_id,
-                    )
-                )
-                queryset = queryset.annotate(
-                    detector=Case(
-                        When(condition=is_priority, then=Value(0)),
-                        default=Value(1),
-                        output_field=IntegerField(),
-                    )
-                )
             case "connected_detectors":
                 queryset = queryset.annotate(connected_detectors=Count("detectorworkflow"))
             case "actions":
@@ -274,12 +247,14 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     last_triggered=Coalesce(latest_fire_subquery, long_ago)
                 )
 
-        queryset = queryset.order_by(*sort_by.db_order_by)
+        order_by = sort_by.db_order_by
+        if priority_detector_id is not None:
+            order_by = ("priority_detector_id", *sort_by.db_order_by)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=sort_by.db_order_by,
+            order_by=order_by,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
             count_hits=True,
