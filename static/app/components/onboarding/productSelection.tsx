@@ -237,7 +237,7 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
-  native: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  native: [ProductSolution.LOGS],
   node: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -454,8 +454,8 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  unity: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  unreal: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  unity: [ProductSolution.LOGS],
+  unreal: [ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
