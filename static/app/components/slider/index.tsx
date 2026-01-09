@@ -322,7 +322,7 @@ const SliderLabelOutput = styled('output')`
   margin: 0;
   padding: 0;
   font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SliderTrack = styled('div', {
@@ -367,7 +367,7 @@ const SliderLowerTrack = styled('div')<{disabled: boolean; error: boolean}>`
   pointer-events: none;
 
   ${p => p.error && `background: ${p.theme.error};`}
-  ${p => p.disabled && `background: ${p.theme.subText};`}
+  ${p => p.disabled && `background: ${p.theme.tokens.content.disabled};`}
 `;
 
 const SliderTick = styled('div')<{
@@ -390,7 +390,7 @@ const SliderTick = styled('div')<{
     p.inSelection &&
     `background: ${
       p.disabled
-        ? p.theme.subText
+        ? p.theme.tokens.content.disabled
         : p.error
           ? p.theme.error
           : p.theme.tokens.interactive.link.accent.active
@@ -403,6 +403,6 @@ const SliderTickLabel = styled('small')`
   top: calc(100% + ${space(1)});
   margin: 0 -1px;
 
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;

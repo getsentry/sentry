@@ -96,7 +96,7 @@ const DescriptionList = styled('dl')`
 `;
 
 const Term = styled('dt')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
 

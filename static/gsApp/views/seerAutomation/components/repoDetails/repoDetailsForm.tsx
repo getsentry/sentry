@@ -67,6 +67,7 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
                   ['on_ready_for_review', t('On Ready for Review')],
                   ['on_new_commit', t('On New Commit')],
                 ],
+                formatMessageValue: false,
                 getData: data => ({
                   codeReviewTriggers: data.codeReviewTriggers,
                   repositoryIds: [repoWithSettings.id],

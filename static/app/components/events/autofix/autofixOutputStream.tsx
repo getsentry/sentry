@@ -399,7 +399,7 @@ const StreamContent = styled('div')`
   padding: ${space(2)};
   white-space: pre-wrap;
   word-break: break-word;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   max-height: 35vh;
   overflow-y: auto;
   display: flex;
@@ -455,7 +455,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SeerIconContainer = styled('div')`

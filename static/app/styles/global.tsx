@@ -345,7 +345,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
         }
         .group-detail h3 em {
-          color: ${theme.subText};
+          color: ${theme.tokens.content.secondary};
         }
         .event-details-container {
           background-color: ${theme.tokens.background.primary};
@@ -355,7 +355,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
         .nav-header a.help-link,
         .nav-header span.help-link a {
-          color: ${theme.subText};
+          color: ${theme.tokens.content.secondary};
         }
 
         /* Global Selection header date picker */
