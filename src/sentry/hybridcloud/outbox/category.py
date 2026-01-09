@@ -63,6 +63,7 @@ class OutboxCategory(IntEnum):
     SERVICE_HOOK_UPDATE = 40
     SENTRY_APP_DELETE = 41
     SENTRY_APP_INSTALLATION_DELETE = 42
+    IDENTITY_UPDATE = 43
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -282,6 +283,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.UNUSED_TWO,
             OutboxCategory.UNUSUED_THREE,
             OutboxCategory.AUTH_IDENTITY_UPDATE,
+            OutboxCategory.IDENTITY_UPDATE,
         },
     )
     # Webhook scope is no longer in use

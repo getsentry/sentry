@@ -4,12 +4,14 @@ from sentry.integrations.models.integration import Integration
 from sentry.models.apiapplication import ApiApplication
 from sentry.receivers.outbox.control import (
     process_api_application_updates,
+    process_identity_updates,
     process_integration_updates,
     process_sentry_app_updates,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
+from sentry.users.models.identity import Identity
 
 _TEST_REGION = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 
@@ -25,6 +27,13 @@ class ProcessControlOutboxTest(TestCase):
         )
         mock_maybe_process.assert_called_with(
             Integration, self.identifier, region_name=_TEST_REGION.name
+        )
+
+    @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
+    def test_process_identity_updates(self, mock_maybe_process: MagicMock) -> None:
+        process_identity_updates(object_identifier=self.identifier, region_name=_TEST_REGION.name)
+        mock_maybe_process.assert_called_with(
+            Identity, self.identifier, region_name=_TEST_REGION.name
         )
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
