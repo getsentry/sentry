@@ -83,7 +83,7 @@ export default function SeerAutomationSettings() {
                   name: 'autoOpenPrs',
                   label: t('Enable Autofix PR Creation by Default'),
                   help: t(
-                    'For all new projects with connected repositories, Seer will be able to make pull requests for highly actionable issues.'
+                    'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
                   ),
                   type: 'boolean',
                 },
