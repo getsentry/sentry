@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
@@ -50,6 +51,10 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
+    # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
+    if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
+        return
+
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
         logger.warning(

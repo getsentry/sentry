@@ -689,3 +689,29 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+
+    @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
+    @patch(
+        "sentry.integrations.github_enterprise.webhook.GitHubEnterprisePullRequestEventWebhook._handle"
+    )
+    def test_code_review_skipped_for_github_enterprise(
+        self,
+        mock_handle: MagicMock,
+        mock_preflight: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+    ) -> None:
+        mock_get_installation_metadata.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=0b16e932708e7bbf258794307969f2c68d09b32b",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+        mock_handle.assert_called()
+        mock_preflight.assert_not_called()
