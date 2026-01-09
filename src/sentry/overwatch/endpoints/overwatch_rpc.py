@@ -214,7 +214,10 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
                 )
             ):
                 return Response(
-                    {"enabledCodeReview": True, "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS}
+                    {
+                        "enabledCodeReview": True,
+                        "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
+                    }
                 )
 
             return Response(
