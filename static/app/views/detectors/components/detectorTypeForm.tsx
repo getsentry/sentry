@@ -119,7 +119,7 @@ function MonitorTypeField() {
   ];
 
   return (
-    <RadioOptions role="radiogroup" aria-label={t('Monitor type')}>
+    <Stack gap="md" role="radiogroup" aria-label={t('Monitor type')}>
       {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
         const checked = selectedDetectorType === id;
         return (
@@ -148,15 +148,9 @@ function MonitorTypeField() {
           </OptionLabel>
         );
       })}
-    </RadioOptions>
+    </Stack>
   );
 }
-
-const RadioOptions = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
 
 const OptionBody = styled('div')`
   display: flex;
@@ -187,8 +181,8 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   }
 
   &[aria-checked='true'] {
-    border-color: ${p => p.theme.focusBorder};
-    outline: solid 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+    outline: solid 1px ${p => p.theme.tokens.border.accent.vibrant};
   }
 
   ${OptionBody} {

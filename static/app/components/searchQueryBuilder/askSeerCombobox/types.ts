@@ -20,3 +20,14 @@ export interface QueryTokensProps {
   statsPeriod?: string;
   visualizations?: Array<{chartType: ChartType; yAxes: string[]}>;
 }
+
+export interface AskSeerSearchQuery extends QueryTokensProps {
+  end: string | null;
+  groupBys: string[];
+  mode: string;
+  query: string;
+  sort: string;
+  start: string | null;
+  statsPeriod: string;
+  visualizations: Array<{chartType: ChartType; yAxes: string[]}>;
+}
