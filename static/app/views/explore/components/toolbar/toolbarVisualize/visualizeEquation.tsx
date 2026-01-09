@@ -19,6 +19,7 @@ import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExplor
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeEquationProps {
+  canDelete: boolean;
   onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
@@ -26,6 +27,7 @@ interface VisualizeEquationProps {
 }
 
 export function VisualizeEquation({
+  canDelete,
   onDelete,
   onReplace,
   visualize,
@@ -91,13 +93,15 @@ export function VisualizeEquation({
           getSuggestedKey={getSuggestedAttribute}
         />
       </Flex>
-      <Button
-        borderless
-        icon={<IconDelete />}
-        size="zero"
-        onClick={onDelete}
-        aria-label={t('Remove Overlay')}
-      />
+      {canDelete ? (
+        <Button
+          borderless
+          icon={<IconDelete />}
+          size="zero"
+          onClick={onDelete}
+          aria-label={t('Remove Overlay')}
+        />
+      ) : null}
     </ToolbarRow>
   );
 }

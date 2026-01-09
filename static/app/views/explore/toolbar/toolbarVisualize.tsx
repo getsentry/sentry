@@ -27,7 +27,6 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   isVisualizeEquation,
-  isVisualizeFunction,
   MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
@@ -97,7 +96,7 @@ export function ToolbarVisualize({
     [setVisualizes, visualizes]
   );
 
-  const canDelete = visualizes.filter(isVisualizeFunction).length > 1;
+  const canDelete = visualizes.length > 1;
 
   return (
     <ToolbarSection data-test-id="section-visualizes">
@@ -115,6 +114,7 @@ export function ToolbarVisualize({
           return (
             <VisualizeEquationInput
               key={group}
+              canDelete={canDelete}
               onDelete={() => onDelete(group)}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
