@@ -36,4 +36,16 @@ describe('Image', () => {
 
     expect(img).toHaveAttribute('src', 'https://example.com/image.png');
   });
+
+  it('applies aspect-ratio when provided', () => {
+    render(<Image src="https://example.com/image.png" alt="Example Image" aspectRatio="16/9" />);
+    const img = screen.getByRole('img');
+    expect(img).toHaveStyle('aspect-ratio: 16/9');
+  });
+
+  it('does not apply aspect-ratio when not provided', () => {
+    render(<Image src="https://example.com/image.png" alt="Example Image" />);
+    const img = screen.getByRole('img');
+    expect(img).not.toHaveStyle('aspect-ratio: 16/9');
+  });
 });

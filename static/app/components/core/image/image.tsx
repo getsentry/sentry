@@ -1,8 +1,10 @@
+import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   alt: string;
   src: string;
+  aspectRatio?: CSSProperties['aspectRatio'];
   height?: string;
   /**
    * Determines if the image should be loaded eagerly or lazily.
@@ -24,4 +26,5 @@ const Img = styled('img')<ImageProps>`
   height: ${p => p.height ?? 'auto'};
   object-fit: ${p => p.objectFit};
   object-position: ${p => p.objectPosition};
+  ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
 `;
