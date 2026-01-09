@@ -13,7 +13,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.models import Workflow
@@ -74,6 +74,20 @@ def unsplit_key(
     target_str = target_identifier if target_identifier is not None else ""
     fallthrough = fallthrough_choice.value if fallthrough_choice is not None else ""
     return f"mail:p:{project.id}:{target_type.value}:{target_str}:{fallthrough}"
+
+
+def split_rules_by_identifier_key(rules: Sequence[Rule]) -> dict[IdentifierKey, Rule]:
+    parsed_rules = {IdentifierKey.RULE: [], IdentifierKey.WORKFLOW: []}
+    for rule in rules:
+        try:
+            key, _ = get_rule_or_workflow_id(rule)
+            if key == "workflow_id":
+                parsed_rules[IdentifierKey.WORKFLOW].append(rule)
+            else:
+                parsed_rules[IdentifierKey.RULE].append(rule)
+        except AssertionError:
+            parsed_rules[IdentifierKey.RULE].append(rule)
+    return parsed_rules
 
 
 def event_to_record(
