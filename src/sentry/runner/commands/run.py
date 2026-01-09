@@ -300,6 +300,12 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
     help="The number of seconds before touching the health check file",
     default=taskworker_constants.DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
 )
+@click.option(
+    "--grpc-port",
+    help="Port for the gRPC server to listen on. Will try subsequent ports if unavailable.",
+    default=50052,
+    type=int,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -324,6 +330,7 @@ def run_taskworker(
     processing_pool_name: str,
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
+    grpc_port: int,
     **options: Any,
 ) -> None:
     """
@@ -347,6 +354,7 @@ def run_taskworker(
             processing_pool_name=processing_pool_name,
             health_check_file_path=health_check_file_path,
             health_check_sec_per_touch=health_check_sec_per_touch,
+            grpc_port=grpc_port,
             **options,
         )
         exitcode = worker.start()
@@ -419,6 +427,7 @@ def taskbroker_send_tasks(
 
     KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
     if kafka_topic and namespace:
+        print(f"overriding {namespace} to route to {kafka_topic}")
         options.set("taskworker.route.overrides", {namespace: kafka_topic})
 
     try:

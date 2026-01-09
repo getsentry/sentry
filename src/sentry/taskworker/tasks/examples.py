@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
+import random
+import time
 from time import sleep
 from typing import Any
 
-from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import exampletasks
 from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
 from sentry.taskworker.retry import retry_task as retry_task_helper
@@ -52,8 +53,17 @@ def will_retry(failure: str) -> None:
 
 @exampletasks.register(name="examples.simple_task")
 def simple_task(*args: list[Any], **kwargs: dict[str, Any]) -> None:
-    sleep(0.1)
-    logger.debug("simple_task complete")
+    logger.info("Starting simple task...")
+    mu = 0.7
+    sigma = 0.8
+
+    sleep_duration = random.lognormvariate(mu, sigma)
+
+    final_sleep_time = max(0.20, min(sleep_duration, 20))
+
+    time.sleep(final_sleep_time)
+
+    logger.info("Simple task complete!")
 
 
 @exampletasks.register(
@@ -90,7 +100,8 @@ def timed_task(sleep_seconds: float | str, *args: list[Any], **kwargs: dict[str,
     logger.debug("timed_task complete")
 
 
-@exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)
-def simple_task_compressed(*args: list[Any], **kwargs: dict[str, Any]) -> None:
-    sleep(0.1)
-    logger.debug("simple_task_compressed complete")
+# @exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)
+# def simple_task_compressed(*args: list[Any], **kwargs: dict[str, Any]) -> None:
+#     sleep(0.1)
+#     logger.debug("simple_task_compressed complete")
+#     logger.debug("simple_task_compressed complete")

@@ -12,8 +12,10 @@ from typing import TYPE_CHECKING, Any
 import grpc
 from google.protobuf.message import Message
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    AddWorkerRequest,
     FetchNextTask,
     GetTaskRequest,
+    RemoveWorkerRequest,
     SetTaskStatusRequest,
 )
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
@@ -137,10 +139,12 @@ class TaskworkerClient:
         health_check_settings: HealthCheckSettings | None = None,
         rpc_secret: str | None = None,
         grpc_config: str | None = None,
+        port: int = 50052,
     ) -> None:
         assert len(hosts) > 0, "You must provide at least one RPC host to connect to"
         self._hosts = hosts
         self._rpc_secret = rpc_secret
+        self._port = port
 
         self._grpc_options: list[tuple[str, Any]] = [
             ("grpc.max_receive_message_length", MAX_ACTIVATION_SIZE)
@@ -304,6 +308,7 @@ class TaskworkerClient:
             id=processing_result.task_id,
             status=processing_result.status,
             fetch_next_task=fetch_next_task,
+            address=f"http://127.0.0.1:{self._port}",
         )
 
         try:
@@ -317,8 +322,11 @@ class TaskworkerClient:
                 )
 
             with metrics.timer("taskworker.update_task.rpc", tags={"host": processing_result.host}):
+                logger.debug("calling set task status...")
                 response = self._host_to_stubs[processing_result.host].SetTaskStatus(request)
+                logger.debug("Done setting task status")
         except grpc.RpcError as err:
+            logger.warning("Failed to perform RPC - %s", err)
             metrics.incr(
                 "taskworker.client.rpc_error",
                 tags={"method": "SetTaskStatus", "status": err.code().name},
@@ -342,3 +350,68 @@ class TaskworkerClient:
                 receive_timestamp=time.monotonic(),
             )
         return None
+
+    def add_worker(self, host: str, address: str) -> None:
+        """
+        Register this worker with a taskbroker.
+
+        Sends an AddWorker message to notify the broker that this worker
+        is available to receive tasks.
+        """
+        # Ensure we have a connection to this host
+        if host not in self._host_to_stubs:
+            self._host_to_stubs[host] = self._connect_to_host(host)
+
+        request = AddWorkerRequest(address=address)
+
+        try:
+            with metrics.timer("taskworker.add_worker.rpc", tags={"host": host}):
+                self._host_to_stubs[host].AddWorker(request)
+            logger.info(
+                "taskworker.client.add_worker.success",
+                extra={"host": host, "address": address},
+            )
+            metrics.incr("taskworker.client.add_worker.success", tags={"host": host})
+        except grpc.RpcError as err:
+            logger.warning(
+                "taskworker.client.add_worker.failed",
+                extra={"host": host, "error": str(err), "status": err.code().name},
+            )
+            metrics.incr(
+                "taskworker.client.rpc_error",
+                tags={"method": "AddWorker", "status": err.code().name},
+            )
+
+    def remove_worker(self, host: str, address: str) -> None:
+        """
+        Unregister this worker from a taskbroker.
+
+        Sends a RemoveWorker message to notify the broker that this worker
+        is shutting down and should no longer receive tasks.
+        """
+        if host not in self._host_to_stubs:
+            logger.warning(
+                "taskworker.client.remove_worker.unknown_host",
+                extra={"host": host},
+            )
+            return
+
+        request = RemoveWorkerRequest(address=address)
+
+        try:
+            with metrics.timer("taskworker.remove_worker.rpc", tags={"host": host}):
+                self._host_to_stubs[host].RemoveWorker(request)
+            logger.info(
+                "taskworker.client.remove_worker.success",
+                extra={"host": host, "address": address},
+            )
+            metrics.incr("taskworker.client.remove_worker.success", tags={"host": host})
+        except grpc.RpcError as err:
+            logger.warning(
+                "taskworker.client.remove_worker.failed",
+                extra={"host": host, "error": str(err), "status": err.code().name},
+            )
+            metrics.incr(
+                "taskworker.client.rpc_error",
+                tags={"method": "RemoveWorker", "status": err.code().name},
+            )

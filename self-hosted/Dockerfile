@@ -46,6 +46,7 @@ RUN set -x \
   # uwsgi-dogstatsd
   && buildDeps=" \
   gcc \
+  git \
   libpcre2-dev \
   wget \
   zlib1g-dev \

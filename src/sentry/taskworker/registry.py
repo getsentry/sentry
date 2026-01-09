@@ -153,6 +153,7 @@ class TaskNamespace:
 
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         topic = self.router.route_namespace(self.name)
+        print(f"sending task to topic {topic} in namespace {self.name}")
 
         with sentry_sdk.start_span(
             op=OP.QUEUE_PUBLISH,

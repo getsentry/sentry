@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
+import os
 import queue
 import signal
 import threading
@@ -14,6 +15,7 @@ from typing import Any
 
 import grpc
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
+from sentry_protos.taskworker.v1 import taskworker_pb2, taskworker_pb2_grpc
 
 from sentry import options
 from sentry.taskworker.app import import_app
@@ -34,6 +36,51 @@ from sentry.taskworker.workerchild import child_process
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.worker")
+
+
+class WorkerServicer(taskworker_pb2_grpc.WorkerServiceServicer):
+    """
+    gRPC servicer that receives task activations pushed from the broker
+    """
+
+    def __init__(self, worker: TaskWorker) -> None:
+        self.worker = worker
+
+    def PushTask(
+        self,
+        request: taskworker_pb2.PushTaskRequest,
+        context: grpc.ServicerContext,
+    ) -> taskworker_pb2.PushTaskResponse:
+        """Handle incoming task activation."""
+
+        logger.info(
+            "taskworker.grpc.task_received",
+            extra={
+                "task_id": request.task.id if request.task else None,
+                "callback_url": request.callback_url,
+            },
+        )
+
+        # Create `InflightTaskActivation` from the pushed task
+        inflight = InflightTaskActivation(
+            activation=request.task,
+            host=request.callback_url,
+            receive_timestamp=time.monotonic(),
+        )
+
+        # Push the task to the worker queue
+        added = self.worker._push_task(inflight)
+
+        # Read the shared counter
+        with self.worker._child_tasks_count.get_lock():
+            queue_size = self.worker._child_tasks_count.value
+
+        return taskworker_pb2.PushTaskResponse(added=added, queue_size=queue_size)
+
+
+def get_host() -> str:
+    pod_ip = os.environ.get("POD_IP")
+    return pod_ip if pod_ip else "localhost"
 
 
 class TaskWorker:
@@ -63,6 +110,7 @@ class TaskWorker:
         process_type: str = "spawn",
         health_check_file_path: str | None = None,
         health_check_sec_per_touch: float = DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
+        grpc_port: int = 50052,
         **kwargs: dict[str, Any],
     ) -> None:
         self.options = kwargs
@@ -82,6 +130,7 @@ class TaskWorker:
             ),
             rpc_secret=app.config["rpc_secret"],
             grpc_config=options.get("taskworker.grpc_service_config"),
+            port=grpc_port,
         )
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")
@@ -94,6 +143,7 @@ class TaskWorker:
         self._child_tasks: multiprocessing.Queue[InflightTaskActivation] = self.mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
+        self._child_tasks_count = self.mp_context.Value("i", 0)
         self._processed_tasks: multiprocessing.Queue[ProcessingResult] = self.mp_context.Queue(
             maxsize=result_queue_maxsize
         )
@@ -106,13 +156,14 @@ class TaskWorker:
         self._setstatus_backoff_seconds = 0
 
         self._processing_pool_name: str = processing_pool_name or "unknown"
+        self._grpc_port: int = grpc_port
 
     def start(self) -> int:
         """
-        Run the worker main loop
+        Run the worker gRPC server
 
-        Once started a Worker will loop until it is killed, or
-        completes its max_task_count when it shuts down.
+        Once started a Worker will run a gRPC server that receives task activations
+        until it is killed or shuts down.
         """
         self.start_result_thread()
         self.start_spawn_children_thread()
@@ -126,15 +177,62 @@ class TaskWorker:
         signal.signal(signal.SIGTERM, signal_handler)
 
         try:
-            while True:
-                self.run_once()
+            # Start gRPC server
+            server = grpc.server(ThreadPoolExecutor(max_workers=10))
+            taskworker_pb2_grpc.add_WorkerServiceServicer_to_server(WorkerServicer(self), server)
+            server.add_insecure_port(f"[::]:{self._grpc_port}")
+            server.start()
+            logger.info("taskworker.grpc_server.started", extra={"port": self._grpc_port})
+
+            # Register this worker with all connected taskbrokers
+            self._register_with_brokers()
+
+            # Wait for shutdown signal
+            server.wait_for_termination()
+
         except KeyboardInterrupt:
+            server.stop(grace=5)
             self.shutdown()
-            raise
+
+        return 0
 
     def run_once(self) -> None:
         """Access point for tests to run a single worker loop"""
         self._add_task()
+
+    def _register_with_brokers(self) -> None:
+        """
+        Register this worker with all connected taskbrokers.
+
+        Sends an AddWorker message to each broker to notify them that
+        this worker is available to receive tasks.
+        """
+        address = f"http://{get_host()}:{self._grpc_port}"
+
+        logger.info(
+            "taskworker.worker.registering_with_brokers",
+            extra={"broker_count": len(self.client._hosts), "address": address},
+        )
+
+        for host in self.client._hosts:
+            self.client.add_worker(host, address)
+
+    def _unregister_from_brokers(self) -> None:
+        """
+        Unregister this worker from all connected taskbrokers.
+
+        Sends a RemoveWorker message to each broker to notify them that
+        this worker is shutting down and should no longer receive tasks.
+        """
+        address = f"http://{get_host()}:{self._grpc_port}"
+
+        logger.info(
+            "taskworker.worker.unregistering_from_brokers",
+            extra={"broker_count": len(self.client._hosts), "address": address},
+        )
+
+        for host in self.client._hosts:
+            self.client.remove_worker(host, address)
 
     def shutdown(self) -> None:
         """
@@ -142,6 +240,10 @@ class TaskWorker:
         Activate the shutdown event and drain results before terminating children.
         """
         logger.info("taskworker.worker.shutdown.start")
+
+        # Unregister this worker from all connected taskbrokers
+        self._unregister_from_brokers()
+
         self._shutdown_event.set()
 
         logger.info("taskworker.worker.shutdown.spawn_children")
@@ -169,6 +271,35 @@ class TaskWorker:
 
         logger.info("taskworker.worker.shutdown.complete")
 
+    def _push_task(self, inflight: InflightTaskActivation) -> bool:
+        """
+        Push a task to child tasks queue. Returns False if the task could not be added.
+        """
+        try:
+            start_time = time.monotonic()
+            self._child_tasks.put(inflight, block=False)
+            with self._child_tasks_count.get_lock():
+                self._child_tasks_count.value += 1
+            metrics.distribution(
+                "taskworker.worker.child_task.put.duration",
+                time.monotonic() - start_time,
+                tags={"processing_pool": self._processing_pool_name},
+            )
+        except queue.Full:
+            metrics.incr(
+                "taskworker.worker.child_tasks.put.full",
+                tags={"processing_pool": self._processing_pool_name},
+            )
+            logger.warning(
+                "taskworker.add_task.child_task_queue_full",
+                extra={
+                    "task_id": inflight.activation.id,
+                    "processing_pool": self._processing_pool_name,
+                },
+            )
+            return False
+        return True
+
     def _add_task(self) -> bool:
         """
         Add a task to child tasks queue. Returns False if no new task was fetched.
@@ -194,6 +325,8 @@ class TaskWorker:
             try:
                 start_time = time.monotonic()
                 self._child_tasks.put(inflight)
+                with self._child_tasks_count.get_lock():
+                    self._child_tasks_count.value += 1
                 metrics.distribution(
                     "taskworker.worker.child_task.put.duration",
                     time.monotonic() - start_time,
@@ -273,6 +406,8 @@ class TaskWorker:
                 try:
                     start_time = time.monotonic()
                     self._child_tasks.put(next)
+                    with self._child_tasks_count.get_lock():
+                        self._child_tasks_count.value += 1
                     metrics.distribution(
                         "taskworker.worker.child_task.put.duration",
                         time.monotonic() - start_time,
@@ -352,6 +487,7 @@ class TaskWorker:
                             self._max_child_task_count,
                             self._processing_pool_name,
                             self._process_type,
+                            self._child_tasks_count,
                         ),
                     )
                     process.start()
