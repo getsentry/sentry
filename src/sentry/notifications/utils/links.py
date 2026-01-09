@@ -104,7 +104,7 @@ def get_issue_replay_link(group: Group, sentry_query_params: str = "") -> str:
 
 def get_rules(
     rules: Sequence[Rule], organization: Organization, project: Project, type_id: int | None = None
-) -> Sequence[NotificationRuleDetails]:
+) -> list[NotificationRuleDetails]:
     rules_and_workflows = split_rules_by_rule_workflow_id(rules)
 
     return get_workflow_links(
@@ -123,7 +123,7 @@ def _fetch_rule_id(rule: Rule, type_id: int | None = None) -> int:
 
 def get_rules_with_legacy_ids(
     rules: Sequence[Rule], organization: Organization, project: Project
-) -> Sequence[NotificationRuleDetails]:
+) -> list[NotificationRuleDetails]:
     rules_with_legacy_ids = []
     for rule in rules:
         rule_id = _fetch_rule_id(rule)
@@ -140,7 +140,7 @@ def get_rules_with_legacy_ids(
 
 def get_workflow_links(
     rules: Sequence[Rule], organization: Organization, project: Project
-) -> Sequence[NotificationRuleDetails]:
+) -> list[NotificationRuleDetails]:
     workflow_links = []
     for rule in rules:
         workflow_id = get_key_from_rule_data(rule, "workflow_id")
