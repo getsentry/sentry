@@ -575,7 +575,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return None
 
         if features.has("organizations:slack-compact-alerts", self.group.organization):
-            return f"*Initial Guess*: {escape_slack_markdown_text("  ".join(parts))}"
+            return f"*Initial Guess*: {escape_slack_markdown_text('  '.join(parts))}"
         else:
             return escape_slack_markdown_text("\n\n".join(parts))
 
@@ -584,7 +584,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return self.get_context_block(event_or_group.culprit)
         return None
 
-    # 'small' param be removed when 'slack-compact-alerts' is GA
+    # 'small' param can be removed when 'slack-compact-alerts' is GA
     def get_text_block(self, text, small: bool = False) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
@@ -605,10 +605,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
     def get_group_context_block(self, suggested_assignees: list[str]) -> SlackBlock:
         """Combine stats (events, users, state, first seen) with suggested assignees in one context block."""
-        # Get the stats context text
         context_text = get_context(self.group, self.rules)
 
-        # Append suggested assignees if available
         if suggested_assignees:
             suggested_text = ", ".join(suggested_assignees)
             context_text += f"   Suggested: {suggested_text}"
