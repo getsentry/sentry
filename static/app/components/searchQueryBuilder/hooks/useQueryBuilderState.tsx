@@ -464,7 +464,21 @@ function wrapTokensWithParentheses(
   const after = state.query.substring(lastToken.location.end.offset);
 
   const newQuery = removeExcessWhitespaceFromParts(before, '(', middle, ')', after);
-  const cursorPosition = firstToken.location.start.offset + middle.length + 2;
+  // Calculate cursor position in the new query: find the closing ')' that we just added.
+  const trimmedMiddle = middle.trim();
+  let cursorPosition = newQuery.length; // Fallback: position at end of query
+
+  if (trimmedMiddle.length > 0) {
+    const middleStartIndex = newQuery.indexOf(trimmedMiddle);
+    if (middleStartIndex >= 0) {
+      const middleEndIndex = middleStartIndex + trimmedMiddle.length;
+      // Find the ')' that comes after middle (there should be a space before it)
+      const closingParenIndex = newQuery.indexOf(')', middleEndIndex);
+      if (closingParenIndex >= 0) {
+        cursorPosition = closingParenIndex + 1;
+      }
+    }
+  }
   const newParsedQuery = parseQuery(newQuery);
 
   const focusedToken = newParsedQuery?.find(
