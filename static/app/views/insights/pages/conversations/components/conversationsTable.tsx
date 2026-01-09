@@ -121,7 +121,7 @@ function UserNotInstrumentedTooltip() {
         {
           code: <code />,
           link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/apis/" />
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/apis/#setUser" />
           ),
         }
       )}
