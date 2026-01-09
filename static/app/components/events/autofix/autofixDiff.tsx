@@ -895,8 +895,8 @@ const StyledTextArea = styled(TextArea)`
   min-height: 250px;
 
   &:focus {
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.focus.default};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 

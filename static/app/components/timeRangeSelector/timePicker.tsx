@@ -124,14 +124,14 @@ const Input = styled('input')`
 
     &&:focus-visible {
       outline: none;
-      border-color: ${p => p.theme.focusBorder};
-      box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+      border-color: ${p => p.theme.tokens.focus.default};
+      box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
     }
 
     &&[aria-invalid='true'] {
       outline: none;
-      border-color: ${p => p.theme.error};
-      box-shadow: 0 0 0 1px ${p => p.theme.error};
+      border-color: ${p => p.theme.tokens.focus.invalid};
+      box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.invalid};
     }
   }
 `;
