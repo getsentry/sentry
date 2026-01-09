@@ -151,6 +151,9 @@ class OAuth2Callback(AuthView):
         # hook here
         pipeline.bind_state("data", data)
 
+        # Store the actual provider key for mismatch detection
+        pipeline.bind_state("actual_provider_key", pipeline.provider.key)
+
         return pipeline.next_step()
 
 

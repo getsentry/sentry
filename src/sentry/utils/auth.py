@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from time import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode, urlparse
 
@@ -145,17 +144,22 @@ def initiate_login(
     request: HttpRequest, next_url: str | None = None, referrer: str | None = None
 ) -> None:
     """
-    initiate_login simply clears session cache
-    if provided a `next_url` will append to the session after clearing previous keys
+    Initialize login state. Clears 2FA-related session state.
+    Only updates _next and _referrer if new values are provided,
+    preserving existing redirect destinations across SSO retries.
     """
-    for key in ("_next", "_after_2fa", "_pending_2fa", "_referrer"):
+    # Always clear 2FA state
+    for key in ("_after_2fa", "_pending_2fa"):
         try:
             del request.session[key]
         except KeyError:
             pass
 
+    # Only update _next if a new URL is provided
     if next_url:
         request.session["_next"] = next_url
+
+    # Only update _referrer if a new value is provided
     if referrer:
         request.session["_referrer"] = referrer
 
@@ -187,6 +191,7 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
         return after_2fa
 
     login_url = request.session.pop("_next", None)
+
     if not login_url:
         return default
 

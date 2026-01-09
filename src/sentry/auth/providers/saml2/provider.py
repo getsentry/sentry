@@ -150,6 +150,9 @@ class SAML2ACSView(AuthView):
 
         pipeline.bind_state("auth_attributes", auth.get_attributes())
 
+        # Store the actual provider key for mismatch detection
+        pipeline.bind_state("actual_provider_key", pipeline.provider.key)
+
         return pipeline.next_step()
 
 
