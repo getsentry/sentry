@@ -8,6 +8,7 @@ from uuid import uuid4
 import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel
+from urllib3.exceptions import TimeoutError
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -273,7 +274,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
                 body=json.dumps(seer_request.dict()).encode("utf-8"),
                 timeout=SEER_TIMEOUT_S,
-                retry=0,
+                retries=0,
             )
         except TimeoutError:
             logger.exception("LLM Issue Detection Seer timeout", extra={"trace_id": trace_id})
