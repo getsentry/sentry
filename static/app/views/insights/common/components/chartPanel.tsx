@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
@@ -27,7 +29,12 @@ export default function ChartPanel({
     <PanelWithNoPadding className={className}>
       <PanelBody>
         {title && (
-          <Header data-test-id="chart-panel-header">
+          <Flex
+            justify="between"
+            align="center"
+            width="100%"
+            data-test-id="chart-panel-header"
+          >
             {title && (
               <ChartLabel>
                 {typeof title === 'string' ? (
@@ -37,7 +44,7 @@ export default function ChartPanel({
                 )}
               </ChartLabel>
             )}
-            <MenuContainer>
+            <Flex as="span">
               {button}
               <Button
                 aria-label={t('Expand Insight Chart')}
@@ -48,8 +55,8 @@ export default function ChartPanel({
                   openInsightChartModal({title, children});
                 }}
               />
-            </MenuContainer>
-          </Header>
+            </Flex>
+          </Flex>
         )}
         {subtitle && (
           <SubtitleContainer>
@@ -83,15 +90,4 @@ const ChartLabel = styled('div')`
 
 const PanelBody = styled('div')`
   padding: ${space(2)};
-`;
-
-const Header = styled('div')`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const MenuContainer = styled('span')`
-  display: flex;
 `;

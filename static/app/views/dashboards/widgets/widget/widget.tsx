@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -78,7 +80,11 @@ function WidgetLayout(props: Widget) {
     >
       <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}
-        {props.TitleBadges && <TitleBadges>{props.TitleBadges}</TitleBadges>}
+        {props.TitleBadges && (
+          <Flex align="center" gap="xs">
+            {props.TitleBadges}
+          </Flex>
+        )}
         {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
       </Header>
 
@@ -114,12 +120,6 @@ const exported = Object.assign(WidgetLayout, {
 export {exported as Widget};
 
 const HEADER_HEIGHT = '26px';
-
-const TitleBadges = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
 
 const TitleHoverItems = styled('div')`
   display: flex;

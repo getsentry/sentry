@@ -227,15 +227,15 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
-        </BodyCellContainer>
+        </Flex>
       ) : (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <Tooltip title="Sentry">
             <ActivityAvatar type="system" size={26} />
           </Tooltip>
-        </BodyCellContainer>
+        </Flex>
       );
     }
 
@@ -266,7 +266,7 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.CREATED) {
       return (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <DateSelected>
             {dataRow[ResponseKeys.CREATED] ? (
               <DateStatus>
@@ -336,7 +336,7 @@ function DashboardTable({
               }
             />
           </Flex>
-        </BodyCellContainer>
+        </Flex>
       );
     }
 
@@ -399,13 +399,6 @@ const DateSelected = styled('div')`
 const DateStatus = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   padding-left: ${space(1)};
-`;
-
-const BodyCellContainer = styled('div')`
-  display: flex;
-  gap: ${space(4)};
-  justify-content: space-between;
-  align-items: center;
 `;
 
 const StyledButton = styled(Button)`

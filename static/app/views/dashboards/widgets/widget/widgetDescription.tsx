@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export interface WidgetDescriptionProps {
   description?: React.ReactNode;
@@ -16,12 +17,12 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
   return (
     <Tooltip
       title={
-        <TooltipContents>
+        <Stack gap="xs" maxHeight="33vh" overflow="hidden">
           {props.title && <TooltipTitle>{props.title}</TooltipTitle>}
           {props.description && (
             <TooltipDescription>{props.description}</TooltipDescription>
           )}
-        </TooltipContents>
+        </Stack>
       }
       containerDisplayMode="grid"
       isHoverable
@@ -36,14 +37,6 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
     </Tooltip>
   );
 }
-
-const TooltipContents = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  max-height: 33vh;
-  overflow: hidden;
-`;
 
 const TooltipTitle = styled('div')`
   font-weight: bold;
