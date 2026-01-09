@@ -252,7 +252,7 @@ class GitHubIntegration(
         return GitHubApiClient(integration=self.model, org_integration_id=self.org_integration.id)
 
     def _get_debug_metadata_keys(self) -> list[str]:
-        return ["installation_id", "account_type", "domain_name"]
+        return ["account_type", "domain_name", "permissions"]
 
     # IntegrationInstallation methods
 

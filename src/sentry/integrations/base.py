@@ -427,24 +427,18 @@ class IntegrationInstallation(abc.ABC):
 
     def _get_debug_metadata_keys(self) -> list[str]:
         """
-        Returns a list of metadata keys that are safe to expose for debugging purposes.
+        Override this method in integration subclasses to expose additional
+        non-sensitive metadata fields via admin endpoints and logging.
 
-        These keys should contain non-sensitive information like domain names,
-        installation IDs, webhook URLs (without secrets), etc. Never include
-        credentials, tokens, passwords, or API keys.
-
-        By default, returns an empty list (no metadata exposed).
-        Override in provider-specific IntegrationInstallation subclasses.
+        Returns:
+            A list of keys that are safe to expose for debugging purposes.
         """
         return []
 
     def get_debug_metadata(self) -> dict[str, Any]:
         """
-        Returns a filtered metadata dictionary containing only non-sensitive fields.
-
-        This method uses _get_debug_metadata_keys() to determine which metadata
-        fields are safe to expose for debugging purposes. Override _get_debug_metadata_keys()
-        in provider-specific subclasses to customize which fields are exposed.
+        Returns a dictionary containing key value pairs of metadata useful for
+        debugging. These fields should be safe to log.
 
         Returns:
             A dictionary containing only the allowlisted metadata fields.
