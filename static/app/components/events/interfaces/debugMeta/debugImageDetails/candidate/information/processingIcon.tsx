@@ -25,7 +25,7 @@ function ProcessingIcon({processingInfo}: Props) {
       const {details} = processingInfo;
       return (
         <Tooltip title={details} disabled={!details}>
-          <IconWarning color="yellow300" size="xs" />
+          <IconWarning variant="warning" size="xs" />
         </Tooltip>
       );
     }

@@ -21,7 +21,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features, options, quotas
+from sentry import options, quotas
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.projects_rebalancing import (
@@ -218,25 +218,11 @@ def boost_low_volume_projects_of_org(
     organization ID. Transaction counts and rates have to be provided.
     """
 
-    org = Organization.objects.get_from_cache(id=org_id)
-    if features.has("organizations:log-project-config", org):
-        logger.info(
-            "log-project-config: Starting boost_low_volume_projects_of_org for org %s",
-            org_id,
-            extra={"org_id": org_id},
-        )
-
     try:
         rebalanced_projects = calculate_sample_rates_of_projects(
             org_id, projects_with_tx_count_and_rates
         )
     except Exception as e:
-        if features.has("organizations:log-project-config", org):
-            logger.info(
-                "log-project-config: Error calculating sample rates of for org %s",
-                org_id,
-                extra={"org_id": org_id},
-            )
         sentry_sdk.capture_exception(e)
         raise
 
@@ -298,6 +284,9 @@ def query_project_counts_by_org(
 
     Yields chunks of result rows, to allow timeouts to be handled in the caller.
     """
+    if not org_ids and options.get("dynamic-sampling.skip_snuba_query_for_empty_orgs"):
+        return
+
     if query_interval is None:
         query_interval = timedelta(hours=1)
 
@@ -432,24 +421,10 @@ def calculate_sample_rates_of_projects(
     # issues.
 
     default_sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
-    should_log_project_config = features.has("organizations:log-project-config", organization)
-
     sample_rate, success = get_org_sample_rate(
         org_id=org_id,
         default_sample_rate=default_sample_rate,
     )
-
-    if should_log_project_config:
-        logger.info(
-            "log-project-config: calculate_sample_rates_of_projects for org %s",
-            org_id,
-            extra={
-                "org": org_id,
-                "target_sample_rate": sample_rate,
-                "success": success,
-                "default_sample_rate": default_sample_rate,
-            },
-        )
 
     if success:
         sample_function(
@@ -483,13 +458,6 @@ def calculate_sample_rates_of_projects(
         project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
     }
 
-    if should_log_project_config:
-        logger.info(
-            "log-project-config: calculate_sample_rates_of_projects for org %s",
-            org_id,
-            extra={"projects_with_counts": projects_with_counts, "sample_rate": sample_rate},
-        )
-
     # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
     if not any(projects_with_counts.values()):
         return None
@@ -522,26 +490,6 @@ def calculate_sample_rates_of_projects(
     rebalanced_projects: list[RebalancedItem] | None = guarded_run(
         model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
     )
-    if should_log_project_config:
-        logger.info(
-            "log-project-config: rebalanced_projects for org %s",
-            org_id,
-            extra={
-                "rebalanced_projects": (
-                    [
-                        {
-                            "id": project.id,
-                            "count": project.count,
-                            "new_sample_rate": project.new_sample_rate,
-                        }
-                        for project in rebalanced_projects
-                    ]
-                    if rebalanced_projects
-                    else None
-                ),
-                "sample_rate": sample_rate,
-            },
-        )
 
     return rebalanced_projects
 

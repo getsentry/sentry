@@ -93,7 +93,7 @@ function IssueContext(props: BaseContextProps) {
               {issue.status === 'ignored' ? (
                 <IconMute
                   data-test-id="quick-context-ignored-icon"
-                  color="gray500"
+                  variant="muted"
                   size="xs"
                 />
               ) : issue.status === 'resolved' ? (

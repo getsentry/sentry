@@ -157,7 +157,7 @@ const InsightsContainerWithLines = styled('div')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   margin-left: 16px;
 `;
 
@@ -168,7 +168,7 @@ const CardsStack = styled('div')`
 `;
 
 const InsightsCardContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};

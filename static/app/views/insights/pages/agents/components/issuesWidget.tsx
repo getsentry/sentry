@@ -2,6 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -80,7 +82,7 @@ export function IssuesWidget() {
 function IssuesVisualization({groups}: {groups: Group[]}) {
   const organization = useOrganization();
   return (
-    <IssueList>
+    <Stack height="100%">
       {groups.map((issue, index) => (
         <IssueRow key={issue.id} isFirst={index === 0}>
           <PlatformIcon platform={issue.project.platform ?? ''} size={16} />
@@ -92,23 +94,17 @@ function IssuesVisualization({groups}: {groups: Group[]}) {
           <IssueCount value={issue.count} />
         </IssueRow>
       ))}
-    </IssueList>
+    </Stack>
   );
 }
 
 IssuesVisualization.LoadingPlaceholder = TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-const IssueList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-`;
-
 const IssueRow = styled('div')<{isFirst: boolean}>`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
-  border-top: ${p => (p.isFirst ? 'none' : `1px solid ${p.theme.border}`)};
+  border-top: ${p => (p.isFirst ? 'none' : `1px solid ${p.theme.tokens.border.primary}`)};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.md}
     ${p => p.theme.space.lg};
 `;

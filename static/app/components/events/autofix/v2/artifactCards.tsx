@@ -244,7 +244,7 @@ function ImpactTreeRow({
       return <IconFatal size="xs" variant="danger" />;
     }
     if (impact.rating === 'medium') {
-      return <IconWarning size="xs" color="yellow300" />;
+      return <IconWarning size="xs" variant="warning" />;
     }
     if (impact.rating === 'low') {
       return <IconCheckmark size="xs" variant="success" />;
@@ -791,7 +791,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
     cursor: pointer;
 
     &:hover {
-      background-color: ${p.theme.hover};
+      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   `}
 `;
@@ -799,14 +799,15 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -862,7 +863,7 @@ const RepoSection = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space['2xl']};
     padding-bottom: ${p => p.theme.space['2xl']};
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

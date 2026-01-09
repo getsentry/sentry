@@ -298,19 +298,17 @@ const Separator = styled('hr')`
   outline: 0;
   border: 0;
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
 
-const ChonkNavLinkIconContainer = styled('span')`
+const NavLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
 `;
-
-const NavLinkIconContainer = ChonkNavLinkIconContainer;
 
 const NavLinkLabel = styled('div')`
   display: flex;
@@ -321,7 +319,7 @@ const NavLinkLabel = styled('div')`
   letter-spacing: -0.05em;
 `;
 
-const ChonkNavLink = styled(Link, {
+const NavLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -369,7 +367,7 @@ const ChonkNavLink = styled(Link, {
   &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
       background-color: ${p => p.theme.colors.blue100};
     }
   }
@@ -400,9 +398,7 @@ const ChonkNavLink = styled(Link, {
   }
 `;
 
-const NavLink = ChonkNavLink;
-
-const ChonkNavButton = styled(Button, {
+const StyledNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -430,7 +426,7 @@ type NavButtonProps = ButtonProps & {
 
 const NavButton = styled((p: NavButtonProps) => {
   return (
-    <ChonkNavButton
+    <StyledNavButton
       {...p}
       aria-label={p['aria-label'] ?? ''}
       size={p.isMobile ? 'zero' : undefined}

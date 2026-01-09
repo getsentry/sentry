@@ -893,7 +893,7 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
           {
             none: <IconCircle size="md" variant="muted" />,
             checked: <IconCheckmark size="md" variant="success" />,
-            alert: <IconWarning size="md" color="yellow300" />,
+            alert: <IconWarning size="md" variant="warning" />,
             question: <IconQuestion size="md" variant="muted" />,
           }[status]
         }
@@ -2064,7 +2064,7 @@ const MonoBlock = styled('code')`
   padding: ${space(0.25)} ${space(0.5)};
   color: ${p => p.theme.colors.gray500};
   background: ${p => p.theme.colors.gray100};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.xs};
   font-weight: ${p => p.theme.fontWeight.normal};

@@ -102,7 +102,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
                 />
               ),
             })}
-            <TimeSince date={commit.dateCreated} tooltipUnderlineColor="background" />
+            <TimeSince date={commit.dateCreated} tooltipUnderlineColor="muted" />
           </Meta>
         </MetaWrapper>
       </CommitContent>
