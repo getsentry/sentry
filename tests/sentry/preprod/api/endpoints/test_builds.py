@@ -254,6 +254,90 @@ class BuildsEndpointTest(APITestCase):
         assert len(response.json()) == 1
         assert response.json()[0]["app_info"]["app_id"] == "foo"
 
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_download_count_for_installable_artifact(self) -> None:
+        # Create an installable artifact (has both installable_app_file_id and build_number)
+        artifact = self.create_preprod_artifact(
+            installable_app_file_id=12345,
+            build_number=100,
+        )
+        # Create InstallablePreprodArtifact records with download counts
+        self.create_installable_preprod_artifact(artifact, download_count=5)
+        self.create_installable_preprod_artifact(artifact, download_count=10)
+
+        response = self._request({})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        # Download count should be the sum of all InstallablePreprodArtifact records
+        assert data[0]["distribution_info"]["download_count"] == 15
+        assert data[0]["distribution_info"]["is_installable"] is True
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_download_count_zero_for_non_installable_artifact(self) -> None:
+        # Create a non-installable artifact (no installable_app_file_id)
+        self.create_preprod_artifact()
+
+        response = self._request({})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["distribution_info"]["download_count"] == 0
+        assert data[0]["distribution_info"]["is_installable"] is False
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_download_count_multiple_artifacts(self) -> None:
+        # Create multiple installable artifacts with different download counts
+        artifact1 = self.create_preprod_artifact(
+            app_id="com.app.one",
+            installable_app_file_id=11111,
+            build_number=1,
+        )
+        self.create_installable_preprod_artifact(artifact1, download_count=100)
+
+        artifact2 = self.create_preprod_artifact(
+            app_id="com.app.two",
+            installable_app_file_id=22222,
+            build_number=2,
+        )
+        self.create_installable_preprod_artifact(artifact2, download_count=50)
+        self.create_installable_preprod_artifact(artifact2, download_count=25)
+
+        response = self._request({})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+
+        # Results are ordered by date_added descending, so artifact2 comes first
+        app_two = next(b for b in data if b["app_info"]["app_id"] == "com.app.two")
+        app_one = next(b for b in data if b["app_info"]["app_id"] == "com.app.one")
+
+        assert app_one["distribution_info"]["download_count"] == 100
+        assert app_two["distribution_info"]["download_count"] == 75
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_query_install_size(self) -> None:
+        # Create artifacts with different install sizes via size metrics
+        small_artifact = self.create_preprod_artifact(app_id="small.app")
+        self.create_preprod_artifact_size_metrics(small_artifact, max_install_size=1000000)  # 1 MB
+
+        large_artifact = self.create_preprod_artifact(app_id="large.app")
+        self.create_preprod_artifact_size_metrics(large_artifact, max_install_size=5000000)  # 5 MB
+
+        # Filter for artifacts with install_size > 2 MB
+        response = self._request({"query": "install_size:>2000000"})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "large.app"
+
+        # Filter for artifacts with install_size < 2 MB
+        response = self._request({"query": "install_size:<2000000"})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "small.app"
+
 
 class BuildTagKeyValuesEndpointTest(APITestCase):
 
