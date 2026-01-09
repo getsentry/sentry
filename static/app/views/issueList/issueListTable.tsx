@@ -39,6 +39,8 @@ interface IssueListTableProps {
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
+  onSortChange?: (sort: string) => void;
+  sort?: string;
 }
 
 function IssueListTable({
@@ -63,6 +65,8 @@ function IssueListTable({
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
   pageSize,
+  onSortChange,
+  sort,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -99,6 +103,8 @@ function IssueListTable({
               groupIds={groupIds}
               allResultsVisible={allResultsVisible}
               displayReprocessingActions={displayReprocessingActions}
+              onSortChange={onSortChange}
+              sort={sort}
             />
           )}
           <PanelBody>
