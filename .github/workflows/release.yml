@@ -9,7 +9,7 @@ on:
         description: Force a release even when there are release-blockers
         required: false
   schedule:
-  - cron: '0 17 15 * *'
+    - cron: '0 17 15 * *'
 jobs:
   release:
     uses: getsentry/craft/.github/workflows/release.yml@v2
