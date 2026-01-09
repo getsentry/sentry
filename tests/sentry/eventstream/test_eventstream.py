@@ -463,7 +463,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
                 trace_item = send.call_args[0][0]
 
-                assert trace_item.item_id == event.event_id.encode("utf-8")
+                assert trace_item.item_id == int(event.event_id, 16).to_bytes(16, "little")
                 assert trace_item.item_type == TRACE_ITEM_TYPE_OCCURRENCE
                 assert trace_item.trace_id == event_data["contexts"]["trace"]["trace_id"]
                 assert trace_item.project_id == event.project_id
@@ -514,7 +514,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 mock_send_item.assert_called_once()
 
                 trace_item = mock_send_item.call_args[0][0]
-                assert trace_item.item_id == event.event_id.encode("utf-8")
+                assert trace_item.item_id == int(event.event_id, 16).to_bytes(16, "little")
                 assert trace_item.item_type == TRACE_ITEM_TYPE_OCCURRENCE
                 assert trace_item.trace_id == event_data["contexts"]["trace"]["trace_id"]
                 assert trace_item.project_id == event.project_id
