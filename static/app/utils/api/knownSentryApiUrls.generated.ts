@@ -19,6 +19,7 @@ export type KnownSentryApiUrls =
   | '/api-tokens/'
   | '/api-tokens/$tokenId/'
   | '/assistant/'
+  | '/attribute-mappings/'
   | '/auth-v2/csrf/'
   | '/auth-v2/flag/'
   | '/auth-v2/login/'
