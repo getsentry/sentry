@@ -374,7 +374,7 @@ const Item = styled(Link)<ItemProps>`
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.tokens.component.link.muted.default};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
     p.layout === NavLayout.MOBILE
       ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
@@ -402,13 +402,13 @@ const Item = styled(Link)<ItemProps>`
   }
 
   &:hover {
-    color: ${p => p.theme.tokens.interactive.transparent.neutral.content.secondary};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.interactive.transparent.accent.content.primary};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
 
@@ -417,6 +417,7 @@ const Item = styled(Link)<ItemProps>`
     }
     /* Override the default hover styles */
     &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
