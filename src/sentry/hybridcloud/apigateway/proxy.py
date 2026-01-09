@@ -22,6 +22,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.util import (
+    PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
     clean_proxy_headers,
@@ -191,6 +192,7 @@ def proxy_region_request(
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
     header_dict = clean_proxy_headers(request.headers)
+    header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
     # TODO: use requests session for connection pooling capabilities
     assert request.method is not None

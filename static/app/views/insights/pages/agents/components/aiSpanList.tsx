@@ -92,7 +92,7 @@ export function AISpanList({
   }, [nodes]);
 
   return (
-    <TraceListContainer>
+    <Stack padding="2xs" gap="xs" overflow="hidden">
       {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
         <Fragment key={transaction.id}>
           <TransactionWrapper
@@ -104,7 +104,7 @@ export function AISpanList({
           />
         </Fragment>
       ))}
-    </TraceListContainer>
+    </Stack>
   );
 }
 
@@ -223,7 +223,7 @@ const TraceListItem = memo(function TraceListItem({
               radius="full"
               style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
             >
-              <IconFire display="block" size="xs" color="red300" />
+              <IconFire display="block" size="xs" variant="danger" />
             </Container>
           </Tooltip>
         )}
@@ -401,14 +401,6 @@ function hasError(node: AITraceSpanNode) {
 
   return false;
 }
-
-const TraceListContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space['2xs']};
-  overflow: hidden;
-`;
 
 const ListItemContainer = styled('div')<{
   hasErrors: boolean;

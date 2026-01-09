@@ -260,7 +260,7 @@ export function usePRWidgetData({
           </Button>
         ) : allInSync ? (
           <Flex gap="sm">
-            <IconCheckmark size="sm" color="success" />
+            <IconCheckmark size="sm" variant="success" />
             <Text variant="success" size="sm">
               {t('All changes pushed')}
             </Text>
@@ -316,7 +316,7 @@ function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidge
         {anyCreating ? (
           <LoadingIndicator size={12} />
         ) : allInSync ? (
-          <IconCheckmark size="xs" color="success" />
+          <IconCheckmark size="xs" variant="success" />
         ) : (
           <Flex gap="xs">
             <Text size="xs">{t('Push')}</Text>
@@ -334,7 +334,7 @@ const PRLink = styled('a')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-size: ${p => p.theme.fontSize.sm};
   text-decoration: none;
 

@@ -113,7 +113,7 @@ function TeamAlertsTriggered({
     }
 
     return (
-      <SubText color={diff <= 0 ? theme.successText : theme.errorText}>
+      <SubText color={diff <= 0 ? theme.tokens.content.success : theme.errorText}>
         {formatPercentage(Math.abs(diff / weeklyAvg), 0)}
         <PaddedIconArrow direction={diff <= 0 ? 'down' : 'up'} size="xs" />
       </SubText>
@@ -212,7 +212,7 @@ export default TeamAlertsTriggered;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StyledPanelTable = styled(PanelTable)`

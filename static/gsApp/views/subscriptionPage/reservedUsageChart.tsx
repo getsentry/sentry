@@ -5,27 +5,14 @@ import moment from 'moment-timezone';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
-import OptionSelector from 'sentry/components/charts/optionSelector';
 import barSeries from 'sentry/components/charts/series/barSeries';
 import lineSeries from 'sentry/components/charts/series/lineSeries';
-import {
-  ChartControls,
-  InlineContainer,
-  SectionValue,
-} from 'sentry/components/charts/styles';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import UsageChart, {
-  CHART_OPTIONS_DATA_TRANSFORM,
-  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
-  type CategoryOption,
   type ChartStats,
 } from 'sentry/views/organizationStats/usageChart';
 import {
@@ -33,55 +20,221 @@ import {
   getTooltipFormatter,
 } from 'sentry/views/organizationStats/usageChart/utils';
 
+import {GIGABYTE} from 'getsentry/constants';
 import {
   ReservedBudgetCategoryType,
   type BillingMetricHistory,
-  type BillingStat,
   type BillingStats,
   type CustomerUsage,
-  type Plan,
   type ReservedBudgetForCategory,
   type Subscription,
 } from 'getsentry/types';
 import {
   displayBudgetName,
   formatReservedWithUnits,
+  getPercentage,
   isUnlimitedReserved,
+  MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
-  hasCategoryFeature,
+  isByteCategory,
+  isContinuousProfiling,
   isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
-  calculateCategoryOnDemandUsage,
-  calculateCategoryPrepaidUsage,
-} from 'getsentry/views/subscriptionPage/usageTotals';
+  getOnDemandBudget,
+  parseOnDemandBudgetsFromSubscription,
+} from 'getsentry/views/spendLimits/utils';
+import {
+  calculateCategorySpend,
+  calculateTotalSpend,
+} from 'getsentry/views/subscriptionPage/utils';
 
-const USAGE_CHART_OPTIONS_DATACATEGORY = [
-  ...CHART_OPTIONS_DATACATEGORY,
-  {
-    label: DATA_CATEGORY_INFO.span_indexed.titleName,
-    value: DATA_CATEGORY_INFO.span_indexed.plural,
-    yAxisMinInterval: 100,
-  },
-];
+/**
+ * Calculates usage metrics for a subscription category's prepaid (reserved) events.
+ *
+ * @param category - The data category to calculate usage for (e.g. 'errors', 'transactions')
+ * @param subscription - The subscription object containing plan and usage details
+ * @param accepted - The accepted event count for this category
+ * @param prepaid - The prepaid/reserved event limit (volume-based reserved) or commited spend (budget-based reserved) for this category
+ * @param reservedCpe - The reserved cost-per-event for this category (for reserved budget categories), in cents
+ * @param reservedSpend - The reserved spend for this category (for reserved budget categories). If provided, calculations with `totals` and `reservedCpe` are overriden to use the number provided for `prepaidSpend`
+ *
+ * @returns Object containing:
+ *   - onDemandUsage: Number of events that exceeded the prepaid limit and went to on-demand
+ *   - prepaidPercentUsed: Percentage of prepaid limit used (0-100)
+ *   - prepaidPrice: Monthly cost of the prepaid events (reserved budget if it is a reserved budget category)
+ *   - prepaidSpend: Cost of prepaid events used so far this period
+ *   - prepaidUsage: Number of events used within prepaid limit
+ */
+function calculateCategoryPrepaidUsage(
+  category: DataCategory,
+  subscription: Subscription,
+  prepaid: number,
+  accepted?: number | null,
+  reservedCpe?: number | null,
+  reservedSpend?: number | null
+): {
+  onDemandUsage: number;
+  prepaidPercentUsed: number;
+  prepaidPrice: number;
+  /**
+   * Total category spend this period
+   */
+  prepaidSpend: number;
+  prepaidUsage: number;
+} {
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category];
+  const usage = accepted ?? categoryInfo?.usage ?? 0;
 
-export function getCategoryOptions({
-  plan,
-  hadCustomDynamicSampling,
-}: {
-  hadCustomDynamicSampling: boolean;
-  plan: Plan;
-}): CategoryOption[] {
-  return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
-    opt =>
-      (plan.checkoutCategories.includes(opt.value) ||
-        plan.onDemandCategories.includes(opt.value)) &&
-      (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
+  // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
+  // try to extract them from subscription.reservedBudgets
+  let effectiveReservedCpe = reservedCpe ?? undefined;
+  let effectiveReservedSpend = reservedSpend ?? undefined;
+
+  if (
+    (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&
+    isPartOfReservedBudget(category, subscription.reservedBudgets ?? [])
+  ) {
+    // Look for the category in reservedBudgets
+    for (const budget of subscription.reservedBudgets || []) {
+      if (category in budget.categories) {
+        const categoryBudget = budget.categories[category];
+        if (categoryBudget) {
+          if (effectiveReservedCpe === undefined) {
+            effectiveReservedCpe = categoryBudget.reservedCpe;
+          }
+          if (effectiveReservedSpend === undefined) {
+            effectiveReservedSpend = categoryBudget.reservedSpend;
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // Calculate the prepaid total
+  let prepaidTotal: any;
+  if (isUnlimitedReserved(prepaid)) {
+    prepaidTotal = prepaid;
+  } else {
+    // Convert prepaid limits to the appropriate unit based on category
+    prepaidTotal =
+      prepaid *
+      (isByteCategory(category)
+        ? GIGABYTE
+        : isContinuousProfiling(category)
+          ? MILLISECONDS_IN_HOUR
+          : 1);
+  }
+
+  const hasReservedBudget = Boolean(
+    reservedCpe || typeof effectiveReservedSpend === 'number'
+  ); // reservedSpend can be 0
+
+  const prepaidUsed = hasReservedBudget
+    ? (effectiveReservedSpend ?? usage * (effectiveReservedCpe ?? 0))
+    : usage;
+  const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
+
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const slots: EventBucket[] = subscription.planDetails.planCategories[category];
+
+  // If the category billing info is not in the subscription, return 0 for all values
+  // This seems to happen sometimes on partner accounts
+  if (!categoryInfo || !slots) {
+    return {
+      prepaidPrice: 0,
+      prepaidSpend: 0,
+      prepaidPercentUsed: 0,
+      onDemandUsage: 0,
+      prepaidUsage: 0,
+    };
+  }
+
+  // Get the price bucket for the reserved event amount
+  const prepaidPriceBucket = getBucket({events: categoryInfo.reserved!, buckets: slots});
+
+  // Convert annual prices to monthly if needed
+  const isMonthly = subscription.planDetails.billingInterval === 'monthly';
+  // This will be 0 when they are using the included amount
+  const prepaidPrice = hasReservedBudget
+    ? prepaid
+    : (prepaidPriceBucket.price ?? 0) / (isMonthly ? 1 : 12);
+
+  // Calculate spend based on percentage used
+  const prepaidSpend = (prepaidPercentUsed / 100) * prepaidPrice;
+
+  // Round the usage width to avoid half pixel artifacts
+  const prepaidPercentUsedRounded = Math.round(prepaidPercentUsed);
+
+  // Calculate on-demand usage if we've exceeded prepaid limit
+  // No on-demand usage for unlimited reserved
+  const onDemandUsage =
+    (prepaidUsed > prepaidTotal && !isUnlimitedReserved(prepaidTotal)) ||
+    (hasReservedBudget && prepaidUsed >= prepaidTotal)
+      ? categoryInfo.onDemandQuantity
+      : 0;
+  const prepaidUsage = usage - onDemandUsage;
+
+  return {
+    prepaidPrice,
+    prepaidSpend,
+    prepaidPercentUsed: prepaidPercentUsedRounded,
+    onDemandUsage,
+    prepaidUsage,
+  };
+}
+
+function calculateCategoryOnDemandUsage(
+  category: DataCategory,
+  subscription: Subscription
+): {
+  /**
+   * The maximum amount of on demand spend allowed for this category
+   * This can be shared across all categories or specific to this category.
+   * Other categories may have spent some of this budget making less avilable for this category.
+   */
+  onDemandCategoryMax: number;
+  onDemandCategorySpend: number;
+  /**
+   * Will be the total on demand spend available for all categories if shared
+   * or the total available for this category if not shared.
+   */
+  onDemandTotalAvailable: number;
+  ondemandPercentUsed: number;
+} {
+  const onDemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
+  const isSharedOnDemand = 'sharedMaxBudget' in onDemandBudgets;
+  const onDemandTotalAvailable = isSharedOnDemand
+    ? onDemandBudgets.sharedMaxBudget
+    : getOnDemandBudget(onDemandBudgets, category);
+  const {onDemandTotalSpent} = calculateTotalSpend(subscription);
+  const {onDemandSpent: onDemandCategorySpend} = calculateCategorySpend(
+    subscription,
+    category
   );
+  const onDemandCategoryMax = isSharedOnDemand
+    ? // Subtract other category spend from shared on demand budget
+      onDemandTotalAvailable - onDemandTotalSpent + onDemandCategorySpend
+    : onDemandTotalAvailable;
+
+  // Round the usage width to avoid half pixel artifacts
+  const ondemandPercentUsed = Math.round(
+    getPercentage(onDemandCategorySpend, onDemandCategoryMax)
+  );
+
+  return {
+    onDemandTotalAvailable,
+    onDemandCategorySpend,
+    onDemandCategoryMax,
+    ondemandPercentUsed,
+  };
 }
 
 type DroppedBreakdown = {
@@ -89,27 +242,6 @@ type DroppedBreakdown = {
   overQuota: number;
   spikeProtection: number;
 };
-
-interface ReservedUsageChartProps {
-  displayMode: 'usage' | 'cost';
-  location: Location;
-  organization: Organization;
-  reservedBudgetCategoryInfo: Record<string, ReservedBudgetForCategory>;
-  subscription: Subscription;
-  usagePeriodEnd: string;
-  usagePeriodStart: string;
-  usageStats: CustomerUsage['stats'];
-}
-
-function selectedCategory(location: Location, categoryOptions: CategoryOption[]) {
-  const category = decodeScalar(location.query.category) as undefined | DataCategory;
-
-  if (!category || !categoryOptions.some(cat => cat.value === category)) {
-    return DataCategory.ERRORS;
-  }
-
-  return category;
-}
 
 export function selectedTransform(location: Location) {
   const transform = decodeScalar(location.query.transform) as
@@ -653,141 +785,6 @@ export function ProductUsageChart({
     />
   );
 }
-
-function ReservedUsageChart({
-  location,
-  organization,
-  subscription,
-  usagePeriodStart,
-  usagePeriodEnd,
-  usageStats,
-  displayMode,
-  reservedBudgetCategoryInfo,
-}: ReservedUsageChartProps) {
-  const categoryOptions = getCategoryOptions({
-    plan: subscription.planDetails,
-    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-  });
-  const navigate = useNavigate();
-  const category = selectedCategory(location, categoryOptions);
-  const transform = selectedTransform(location);
-
-  const shouldDisplayBudgetStats = isPartOfReservedBudget(
-    category,
-    subscription.reservedBudgets ?? []
-  );
-
-  // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
-  // since they don't have access to the usage/cost toggle
-  if (shouldDisplayBudgetStats && !subscription.canSelfServe) {
-    displayMode = 'cost';
-  }
-
-  function handleSelectDataCategory(value: DataCategory) {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, category: value},
-    });
-  }
-
-  function handleSelectDataTransform(value: ChartDataTransform) {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, transform: value},
-    });
-  }
-
-  function renderFooter() {
-    const {planDetails} = subscription;
-    const displayOptions = getCategoryOptions({
-      plan: planDetails,
-      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-    }).reduce((acc, option) => {
-      if (hasOrUsedCategory(option.value)) {
-        if (
-          option.value === DataCategory.SPANS &&
-          subscription.hadCustomDynamicSampling
-        ) {
-          option.label = t('Accepted Spans');
-        }
-        acc.push(option);
-        // Display upsell if the category is available
-      } else if (planDetails.availableCategories?.includes(option.value)) {
-        acc.push({
-          ...option,
-          tooltip: t(
-            'Your plan does not include %s. Migrate to our latest plans to access new features.',
-            option.value
-          ),
-          disabled: true,
-        });
-      }
-      return acc;
-    }, [] as CategoryOption[]);
-
-    return (
-      <ChartControls>
-        <InlineContainer>
-          <SectionValue>
-            <IconCalendar />
-          </SectionValue>
-          <SectionValue>
-            {moment(usagePeriodStart).format('ll')}
-            {' — '}
-            {moment(usagePeriodEnd).format('ll')}
-          </SectionValue>
-        </InlineContainer>
-        <InlineContainer>
-          <OptionSelector
-            title={t('Display')}
-            selected={category}
-            options={displayOptions}
-            onChange={(val: string) => handleSelectDataCategory(val as DataCategory)}
-          />
-          <OptionSelector
-            title={t('Type')}
-            selected={transform}
-            options={CHART_OPTIONS_DATA_TRANSFORM}
-            onChange={(val: string) =>
-              handleSelectDataTransform(val as ChartDataTransform)
-            }
-          />
-        </InlineContainer>
-      </ChartControls>
-    );
-  }
-
-  /**
-   * Whether the account has access to the data category
-   * or tracked usage in the current billing period.
-   */
-  function hasOrUsedCategory(dataCategory: DataCategory) {
-    return (
-      hasCategoryFeature(dataCategory, subscription, organization) ||
-      usageStats[dataCategory]?.some(
-        (item: BillingStat) => item.total > 0 && !item.isProjected
-      )
-    );
-  }
-
-  return (
-    <ProductUsageChart
-      useDisplayModeTitle
-      footer={renderFooter()}
-      usageStats={usageStats}
-      shouldDisplayBudgetStats={shouldDisplayBudgetStats}
-      reservedBudgetCategoryInfo={reservedBudgetCategoryInfo}
-      displayMode={displayMode}
-      subscription={subscription}
-      category={category}
-      transform={transform}
-      usagePeriodStart={usagePeriodStart}
-      usagePeriodEnd={usagePeriodEnd}
-    />
-  );
-}
-
-export default ReservedUsageChart;
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};

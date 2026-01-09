@@ -6,7 +6,6 @@ import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useUser} from 'sentry/utils/useUser';
 
 import {useTimezone} from './timezoneProvider';
@@ -81,7 +80,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * Change the color of the underline
    */
-  tooltipUnderlineColor?: ColorOrAlias;
+  tooltipUnderlineColor?: 'warning' | 'danger' | 'success' | 'muted';
   /**
    * How much text should be used for the suffix:
    *

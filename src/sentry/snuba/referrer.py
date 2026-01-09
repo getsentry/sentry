@@ -562,6 +562,8 @@ class Referrer(StrEnum):
     API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
     API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
     API_LOGS_TAB_VIEW = "api.logs-tab.view"
+    API_PREPROD_TAG_KEYS_RPC = "api.preprod.tags-keys.rpc"
+    API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
@@ -685,6 +687,8 @@ class Referrer(StrEnum):
     ISSUES_SUSPECT_TAGS_QUERY_BASELINE_SET = "issues.suspect_tags.query_baseline_set"
     ISSUES_SUSPECT_TAGS_QUERY_SELECTION_SET = "issues.suspect_tags.query_selection_set"
     ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS = "issues.suspect_tags.query_error_counts"
+    ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
+    ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"

@@ -24,7 +24,10 @@ const CircleIndicator = styled('div')<Props>`
   height: ${p => p.size ?? defaultProps.size}px;
   width: ${p => p.size ?? defaultProps.size}px;
   background: ${p =>
-    p.color ?? ((p.enabled ?? defaultProps.enabled) ? p.theme.success : p.theme.error)};
+    p.color ??
+    ((p.enabled ?? defaultProps.enabled)
+      ? p.theme.tokens.content.success
+      : p.theme.error)};
 `;
 
 export default CircleIndicator;

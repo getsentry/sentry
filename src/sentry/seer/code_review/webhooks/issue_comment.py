@@ -9,7 +9,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import options
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
@@ -18,8 +17,8 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.utils import metrics
 
-from ..permissions import has_code_review_enabled
 from ..utils import _get_target_commit_sha
+from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +59,7 @@ def _add_eyes_reaction_to_comment(
         metrics.incr(
             Metrics.ERROR.value,
             tags={"error_status": ErrorStatus.MISSING_INTEGRATION.value},
+            sample_rate=1.0,
         )
         logger.warning(
             Log.MISSING_INTEGRATION.value,
@@ -73,11 +73,13 @@ def _add_eyes_reaction_to_comment(
         metrics.incr(
             Metrics.OUTCOME.value,
             tags={"status": "reaction_added"},
+            sample_rate=1.0,
         )
     except Exception:
         metrics.incr(
             Metrics.ERROR.value,
             tags={"error_status": ErrorStatus.REACTION_FAILED.value},
+            sample_rate=1.0,
         )
         logger.exception(
             Log.REACTION_FAILED.value,
@@ -90,6 +92,7 @@ def handle_issue_comment_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
+    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -101,13 +104,10 @@ def handle_issue_comment_event(
     comment_id = comment.get("id")
     comment_body = comment.get("body")
 
-    if not has_code_review_enabled(organization):
-        return
-
     if not is_pr_review_command(comment_body or ""):
         return
 
-    if not options.get("github.webhook.issue-comment"):
+    if github_org in get_direct_to_seer_gh_orgs():
         if comment_id:
             _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
 

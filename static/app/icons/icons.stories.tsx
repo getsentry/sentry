@@ -1544,6 +1544,7 @@ export default function IconsStories() {
       <Heading as="h5" size="xl" variant="primary">
         Icon Variants
       </Heading>
+
       <Text as="p" density="comfortable" size="md" variant="primary">
         Just like other Core components, Icons support a set of variants that control the
         color of the icon. The full list of variants is{' '}

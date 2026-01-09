@@ -9,11 +9,11 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import ReserveAdditionalVolume from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
+import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
 import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
-import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
+} from 'getsentry/views/spendLimits/utils';
 
 function SetSpendLimit({
   activePlan,
@@ -47,15 +47,12 @@ function SetSpendLimit({
   );
 
   return (
-    <Flex direction="column" gap="2xl">
+    <Flex direction="column" gap="2xl" id={`step${stepNumber}`}>
       <SpendLimitSettings
         organization={organization}
         subscription={subscription}
         header={
-          <StepHeader
-            title={t('Set your %s limit', displayBudgetName(activePlan))}
-            stepNumber={stepNumber}
-          />
+          <StepHeader title={t('Set your %s limit', displayBudgetName(activePlan))} />
         }
         activePlan={activePlan}
         onDemandBudgets={

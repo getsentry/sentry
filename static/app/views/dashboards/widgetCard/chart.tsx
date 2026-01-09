@@ -123,6 +123,7 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesChildrenProps, 'timeseriesR
     showConfidenceWarning?: boolean;
     showLoadingText?: boolean;
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
     windowWidth?: number;
   };
 
@@ -147,6 +148,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     onLegendSelectChanged,
     widgetLegendState,
     selection,
+    timeseriesResultsUnits,
   } = props;
 
   const chartRef = useRef<ReactEchartsRef>(null);
@@ -175,7 +177,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   if (errorMessage) {
     return (
       <StyledErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </StyledErrorPanel>
     );
   }
@@ -299,9 +301,14 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       : seriesName;
     const aggregateName = decodedSeriesName?.split(':').pop()?.trim();
     if (aggregateName) {
-      return timeseriesResultsTypes
-        ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
-        : tooltipFormatter(value, aggregateOutputType(aggregateName));
+      // Metrics widgets use the series name to fully differentiate types between aggregates
+      const type =
+        timeseriesResultsTypes?.[aggregateName] ??
+        timeseriesResultsTypes?.[decodedSeriesName ?? ''];
+      const unit =
+        timeseriesResultsUnits?.[aggregateName] ??
+        timeseriesResultsUnits?.[decodedSeriesName ?? ''];
+      return tooltipFormatter(value, type ?? aggregateOutputType(aggregateName), unit);
     }
     return tooltipFormatter(value, 'number');
   };

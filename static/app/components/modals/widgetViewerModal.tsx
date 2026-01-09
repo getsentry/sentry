@@ -914,7 +914,7 @@ function OpenButton({
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.TRACEMETRICS:
-      openLabel = t('Open in Metrics');
+      openLabel = t('Open in Explore');
       path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.DISCOVER:
@@ -1263,7 +1263,7 @@ const ResultsContainer = styled('div')`
 `;
 
 const EmptyQueryContainer = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;
 
 const WidgetHeader = styled('div')`

@@ -34,6 +34,8 @@ import typescript from 'typescript-eslint';
 
 // eslint-disable-next-line boundaries/element-types
 import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
+// eslint-disable-next-line boundaries/element-types
+import * as sentryPlugin from './static/eslint/eslintPluginSentry/index.mjs';
 
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
@@ -417,6 +419,13 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/@sentry/sentry',
+    plugins: {'@sentry': sentryPlugin},
+    rules: {
+      '@sentry/no-static-translations': 'error',
     },
   },
   {

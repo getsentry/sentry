@@ -232,9 +232,7 @@ class OrganizationTraceItemsStatsEndpointTest(
 
         assert len(response.data["data"]) == 1
         attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
-        assert (
-            len(attribute_distribution) == 2
-        )  # We return limit + 1 to check if there is a next page
+        assert len(attribute_distribution) == 1
 
         if "Link" in response:
             links = {}

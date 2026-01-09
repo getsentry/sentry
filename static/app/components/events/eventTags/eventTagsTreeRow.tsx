@@ -356,7 +356,7 @@ function EventTagsTreeValue({
           projectSlug={project.slug}
           releaseVersion={content.value}
           showUnderline
-          underlineColor="linkUnderline"
+          underlineColor="muted"
         >
           <Version version={content.value} truncate shouldWrapText />
         </VersionHoverCard>
@@ -450,14 +450,16 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.danger.border : p.theme.border)};
+  border: 1px solid
+    ${p => (p.hasErrors ? p.theme.alert.danger.border : p.theme.tokens.border.primary)};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -525,8 +527,8 @@ const TreeValueErrors = styled('div')`
 `;
 
 const TagLinkText = styled('span')`
-  color: ${p => p.theme.linkColor};
-  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
   margin: 0;
   &:hover,
   &:focus {

@@ -116,7 +116,7 @@ const Input = styled('input')`
   &.rdrDateDisplayItem {
     width: 100%;
     background: ${p => p.theme.backgroundSecondary};
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
     color: ${p => p.theme.subText};
     padding: ${space(0.25)} ${space(0.5)};
     box-shadow: none;
@@ -124,14 +124,14 @@ const Input = styled('input')`
 
     &&:focus-visible {
       outline: none;
-      border-color: ${p => p.theme.focusBorder};
-      box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+      border-color: ${p => p.theme.tokens.focus.default};
+      box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
     }
 
     &&[aria-invalid='true'] {
       outline: none;
-      border-color: ${p => p.theme.error};
-      box-shadow: 0 0 0 1px ${p => p.theme.error};
+      border-color: ${p => p.theme.tokens.focus.invalid};
+      box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.invalid};
     }
   }
 `;
