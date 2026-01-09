@@ -1445,7 +1445,7 @@ const IssuePreviewLink = styled(Link)`
     background 0.15s ease;
 
   &:hover {
-    border-color: ${p => p.theme.colors.blue400};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
     background: ${p => p.theme.tokens.background.primary};
   }
 `;

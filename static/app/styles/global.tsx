@@ -177,11 +177,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   .group-detail:before {
-    background: ${theme.border};
+    background: ${theme.tokens.border.primary};
   }
 
   .form-actions {
-    border-top-color: ${theme.border};
+    border-top-color: ${theme.tokens.border.primary};
   }
 
   pre,
@@ -190,12 +190,12 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   pre {
-    background-color: ${theme.backgroundSecondary};
+    background-color: ${theme.tokens.background.secondary};
     white-space: pre-wrap;
     overflow-x: auto;
 
     &:focus-visible {
-      outline: ${theme.focusBorder} auto 1px;
+      outline: ${theme.tokens.focus.default} auto 1px;
     }
   }
 
@@ -238,7 +238,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .box,
         .box.box-modal {
           background: ${theme.tokens.background.primary};
-          border-color: ${theme.border};
+          border-color: ${theme.tokens.border.primary};
 
           .box-content,
           .box-header {
@@ -255,7 +255,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
 
           .box-header {
-            border-bottom-color: ${theme.border};
+            border-bottom-color: ${theme.tokens.border.primary};
 
             a {
               color: ${theme.tokens.content.primary};
@@ -267,8 +267,8 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
         }
         .loading .loading-indicator {
-          border-color: ${theme.backgroundSecondary};
-          border-left-color: ${theme.colors.blue400};
+          border-color: ${theme.tokens.background.transparent.neutral.muted};
+          border-left-color: ${theme.tokens.background.accent.vibrant};
         }
 
         .pattern-bg {
@@ -281,7 +281,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             &.active {
               a {
                 color: ${theme.tokens.content.primary} !important;
-                border-bottom-color: ${theme.active} !important;
+                border-bottom-color: ${theme.tokens.border.accent.vibrant} !important;
               }
             }
 
@@ -290,7 +290,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             }
           }
           &.border-bottom {
-            border-color: ${theme.border};
+            border-color: ${theme.tokens.border.primary};
           }
         }
 
@@ -299,14 +299,14 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
 
         .traceback {
-          border-color: ${theme.border};
+          border-color: ${theme.tokens.border.primary};
 
           &.in-app-traceback {
             .frame {
               &.leads-to-app {
                 &.collapsed {
                   .title {
-                    border-color: ${theme.border};
+                    border-color: ${theme.tokens.border.primary};
                     background: ${theme.tokens.background.primary};
                   }
                 }
@@ -316,7 +316,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
           .frame,
           .frame.system-frame {
-            border-top-color: ${theme.border};
+            border-top-color: ${theme.tokens.border.primary};
 
             &.is-expandable .title:hover {
               background-color: ${theme.tokens.background.primary};
@@ -326,35 +326,35 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background: transparent;
             }
             .title {
-              background-color: ${theme.backgroundSecondary};
+              background-color: ${theme.tokens.background.secondary};
             }
             &.is-expandable .title {
-              background-color: ${theme.backgroundSecondary};
+              background-color: ${theme.tokens.background.secondary};
             }
             .context {
               background: ${theme.tokens.background.primary};
 
               table.key-value {
-                border-color: ${theme.border};
+                border-color: ${theme.tokens.border.primary};
                 td {
-                  border-color: ${theme.border} !important;
+                  border-color: ${theme.tokens.border.primary} !important;
                 }
               }
             }
           }
         }
         .group-detail h3 em {
-          color: ${theme.subText};
+          color: ${theme.tokens.content.secondary};
         }
         .event-details-container {
           background-color: ${theme.tokens.background.primary};
           .secondary {
-            border-left-color: ${theme.border};
+            border-left-color: ${theme.tokens.border.primary};
           }
         }
         .nav-header a.help-link,
         .nav-header span.help-link a {
-          color: ${theme.subText};
+          color: ${theme.tokens.content.secondary};
         }
 
         /* Global Selection header date picker */
@@ -372,15 +372,15 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .dropdown-menu {
           background-color: ${theme.tokens.background.primary} !important;
           color: ${theme.tokens.content.primary};
-          border: 1px solid ${theme.border};
+          border: 1px solid ${theme.tokens.border.primary};
           &:before {
-            border-bottom-color: ${theme.border};
+            border-bottom-color: ${theme.tokens.border.primary};
           }
           &:after {
             border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
-            border-top-color: ${theme.border};
+            border-top-color: ${theme.tokens.border.primary};
           }
           &.inverted:after {
             border-top-color: ${theme.tokens.background.primary};
