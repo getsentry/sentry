@@ -3,6 +3,8 @@
 import logging
 
 from django.db import IntegrityError, migrations, router, transaction
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -10,7 +12,9 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 logger = logging.getLogger(__name__)
 
 
-def backfill_preprod_artifact_mobile_app_info(apps, schema_editor):
+def backfill_preprod_artifact_mobile_app_info(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
     PreprodArtifact = apps.get_model("preprod", "PreprodArtifact")
     PreprodArtifactMobileAppInfo = apps.get_model("preprod", "PreprodArtifactMobileAppInfo")
 
@@ -94,6 +98,6 @@ class Migration(CheckedMigration):
             backfill_preprod_artifact_mobile_app_info,
             reverse_code=migrations.RunPython.noop,
             elidable=True,
-            hints={"tables": ["preprod_preprodartifact", "sentry_preprodartifactmobileappinfo"]},
+            hints={"tables": ["sentry_preprodartifact", "sentry_preprodartifactmobileappinfo"]},
         ),
     ]

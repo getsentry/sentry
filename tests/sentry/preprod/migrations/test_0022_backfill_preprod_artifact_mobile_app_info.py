@@ -7,8 +7,8 @@ from sentry.testutils.cases import TestMigrations
 
 @pytest.mark.migrations
 class BackfillPreprodArtifactMobileAppInfoTest(TestMigrations):
-    migrate_from = "0020_add_preprod_artifact_mobile_app_info"
-    migrate_to = "0021_backfill_preprod_artifact_mobile_app_info"
+    migrate_from = "0021_add_preprod_artifact_mobile_app_info"
+    migrate_to = "0022_backfill_preprod_artifact_mobile_app_info"
     app = "preprod"
 
     def setup_before_migration(self, apps):
