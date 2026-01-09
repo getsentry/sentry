@@ -102,6 +102,9 @@ export type IssueEventParameters = {
     provider: string;
   };
   'issue-details.replay-cta-dismiss': {type: string};
+  'issue.list.ai_query_applied': {
+    query: string;
+  };
   'issue.search_sidebar_clicked': Record<string, unknown>;
   'issue.share_from_icon': Record<string, unknown>;
   'issue.shared_publicly': Record<string, unknown>;
@@ -522,6 +525,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.star_view': 'Issue Views: Star View',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
+  'issue.list.ai_query_applied': 'Issue List: AI Query Applied',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
