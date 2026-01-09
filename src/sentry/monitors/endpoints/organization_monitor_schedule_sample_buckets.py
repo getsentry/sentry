@@ -32,8 +32,8 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
     - interval: bucket size in seconds (matches rollupConfig.interval in the frontend)
     """
 
-    start = serializers.IntegerField()
-    interval = serializers.IntegerField()
+    start = serializers.IntegerField(min_value=1)
+    interval = serializers.IntegerField(min_value=1)
 
 
 # Expand grouped tick statuses into a per-tick list.

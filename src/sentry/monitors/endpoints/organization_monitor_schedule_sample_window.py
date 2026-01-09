@@ -54,7 +54,7 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
             failure_threshold=failure_threshold,
             recovery_threshold=recovery_threshold,
         )
-        num_ticks = sum(group["count"] for group in tick_groups)
+        num_ticks = sum(cast(int, group["count"]) for group in tick_groups)
 
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")
