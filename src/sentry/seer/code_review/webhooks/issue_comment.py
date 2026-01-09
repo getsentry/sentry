@@ -59,6 +59,7 @@ def _add_eyes_reaction_to_comment(
         metrics.incr(
             Metrics.ERROR.value,
             tags={"error_status": ErrorStatus.MISSING_INTEGRATION.value},
+            sample_rate=1.0,
         )
         logger.warning(
             Log.MISSING_INTEGRATION.value,
@@ -72,11 +73,13 @@ def _add_eyes_reaction_to_comment(
         metrics.incr(
             Metrics.OUTCOME.value,
             tags={"status": "reaction_added"},
+            sample_rate=1.0,
         )
     except Exception:
         metrics.incr(
             Metrics.ERROR.value,
             tags={"error_status": ErrorStatus.REACTION_FAILED.value},
+            sample_rate=1.0,
         )
         logger.exception(
             Log.REACTION_FAILED.value,
@@ -89,6 +92,7 @@ def handle_issue_comment_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
+    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -103,7 +107,6 @@ def handle_issue_comment_event(
     if not is_pr_review_command(comment_body or ""):
         return
 
-    github_org = event.get("repository", {}).get("owner", {}).get("login")
     if github_org in get_direct_to_seer_gh_orgs():
         if comment_id:
             _add_eyes_reaction_to_comment(integration, organization, repo, str(comment_id))
