@@ -314,7 +314,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     return {
       id: 'release-lines',
       seriesName: 'Releases',
-      color: theme.colors.blue200,
+      color: theme.tokens.dataviz.semantic.release,
       data: [],
       markLine,
     };

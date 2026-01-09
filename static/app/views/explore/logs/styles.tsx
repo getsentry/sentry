@@ -35,7 +35,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
-      background-color: ${p => p.theme.backgroundSecondary};
+      background-color: ${p => p.theme.tokens.background.secondary};
     }
 
     &:not(:last-child) {
@@ -49,16 +49,16 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.colors.yellow100};
-    color: ${p => p.theme.colors.red400};
+    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+    color: ${p => p.theme.tokens.content.danger};
 
     &:hover {
-      background-color: ${p => p.theme.colors.yellow200};
+      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
     }
   }
 
   &.beforeHoverTime + &.afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue200};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     left: 0;
     position: absolute;
@@ -67,7 +67,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue200};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     right: 0;
     position: absolute;

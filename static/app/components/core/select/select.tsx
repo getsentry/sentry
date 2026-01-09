@@ -167,7 +167,7 @@ const getStylesConfig = ({
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.colors.blue200} ${theme.tokens.background.primary}`,
+        scrollbarColor: `${theme.tokens.graphics.accent.moderate} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({

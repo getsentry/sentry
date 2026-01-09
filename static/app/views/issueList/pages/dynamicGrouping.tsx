@@ -1252,7 +1252,7 @@ const CardContainer = styled('div')`
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
-    border-color: ${p => p.theme.colors.blue200};
+    border-color: ${p => p.theme.tokens.border.accent.moderate};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
