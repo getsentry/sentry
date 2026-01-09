@@ -756,7 +756,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={customSelection}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
@@ -813,7 +813,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={customSelection}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
