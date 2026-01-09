@@ -110,7 +110,7 @@ export default function SeerAutomationSettings() {
                   <QuestionTooltip
                     isHoverable
                     title={tct(
-                      'These settings apply as repositories are newly connected. Any [link:existing repositories] will not be affected.',
+                      'These settings apply as repos are newly connected. Any [link:existing repos] will not be affected.',
                       {
                         link: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
                       }
