@@ -22,7 +22,7 @@ class TaskworkerApp:
             "at_most_once_timeout": None,
         }
         self._modules: Iterable[str] = []
-        self._taskregistry = taskregistry or TaskRegistry()
+        self._taskregistry = taskregistry or TaskRegistry(application="default")
         self._at_most_once_store: AtMostOnceStore | None = None
 
     @property

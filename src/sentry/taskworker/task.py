@@ -222,6 +222,7 @@ class Task(Generic[P, R]):
 
         return TaskActivation(
             id=uuid4().hex,
+            application=self._namespace.application,
             namespace=self._namespace.name,
             taskname=self.name,
             headers=headers,

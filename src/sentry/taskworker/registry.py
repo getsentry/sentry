@@ -40,12 +40,14 @@ class TaskNamespace:
     def __init__(
         self,
         name: str,
+        application: str,
         router: TaskRouter,
         retry: Retry | None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
         app_feature: str | None = None,
     ):
+        self.application = application
         self.name = name
         self.router = router
         self.default_retry = retry
@@ -212,7 +214,8 @@ class TaskRegistry:
     during startup.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, application: str) -> None:
+        self._application = application
         self._namespaces: dict[str, TaskNamespace] = {}
         self._router = self._build_router()
 
@@ -257,6 +260,7 @@ class TaskRegistry:
         if name in self._namespaces:
             raise ValueError(f"Task namespace with name {name} already exists.")
         namespace = TaskNamespace(
+            application=self._application,
             name=name,
             router=self._router,
             retry=retry,
@@ -269,4 +273,4 @@ class TaskRegistry:
         return namespace
 
 
-taskregistry = TaskRegistry()
+taskregistry = TaskRegistry(application="sentry")
