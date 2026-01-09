@@ -87,6 +87,16 @@ class SDKCrashDetector:
         # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
         # are SDK frames or from system libraries.
         iter_frames = [f for f in reversed(frames) if f is not None]
+
+        # First pass: Check if we have any SDK frames that are NOT conditional (like SentrySwizzleWrapper).
+        # We prefer to overreport rather than underreport SDK crashes, so if there's any other
+        # SDK frame anywhere in the stacktrace, we should report it.
+        has_non_conditional_sdk_frame = False
+        for frame in iter_frames:
+            if self.is_sdk_frame(frame) and not self._matches_ignore_when_only_sdk_frame(frame):
+                has_non_conditional_sdk_frame = True
+                break
+
         for frame in iter_frames:
             function = frame.get("function")
             module = frame.get("module")
@@ -103,15 +113,16 @@ class SDKCrashDetector:
 
             if self.is_sdk_frame(frame):
                 # Check if this SDK frame matches the "ignore when only SDK frame" pattern.
-                # These are instrumentation frames that don't cause crashes themselves.
+                # These are instrumentation frames (like swizzling or monkey patching) that
+                # don't cause crashes themselves.
                 if self._matches_ignore_when_only_sdk_frame(frame):
                     # Found a conditional SDK frame (like SentrySwizzleWrapper).
-                    # Since we iterate from youngest to oldest, we've already checked all
-                    # frames above this one (closer to the crash). If there were any
-                    # non-conditional SDK frames above, we would have returned True already.
-                    # Since there weren't, the crash originates from system libraries,
-                    # not the SDK.
-                    return False
+                    # Only ignore it if there are no other SDK frames anywhere in the stacktrace.
+                    # We prefer to overreport rather than underreport SDK crashes.
+                    if has_non_conditional_sdk_frame:
+                        return True
+                    else:
+                        return False
                 else:
                     # Found a non-conditional SDK frame, this is definitely an SDK crash
                     return True

@@ -658,12 +658,11 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
     """Tests for SentrySwizzleWrapper conditional SDK crash detection.
 
     SentrySwizzleWrapper is used for method swizzling to intercept UI events.
-    When it's the only SDK frame, the crash originates from system libraries,
-    not from the SDK. Only report as SDK crash if there are other SDK frames
-    above SentrySwizzleWrapper in the call stack.
+    When it's the only SDK frame, it's highly unlikely the crash stems from the SDK.
+    Only report as SDK crash if there are other SDK frames anywhere in the stacktrace.
+    We prefer to overreport rather than underreport SDK crashes.
 
     Note: Frames are ordered from oldest (caller) to youngest (exception).
-    "Above" means closer to the exception (younger frames).
     """
 
     def test_swizzle_wrapper_only_sdk_frame_not_reported(
@@ -671,7 +670,7 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
     ) -> None:
         """
         SentrySwizzleWrapper is the only SDK frame in the stack.
-        This is a false positive - the crash originates from system libraries.
+        It's highly unlikely the crash stems from SentrySwizzleWrapper.
         """
         # Frames ordered from oldest (caller) to youngest (exception)
         frames = [
@@ -771,13 +770,13 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
-    def test_swizzle_wrapper_with_sdk_frame_below_not_reported(
+    def test_swizzle_wrapper_with_sdk_frame_below_reported(
         self, mock_sdk_crash_reporter: MagicMock
     ) -> None:
         """
         SentrySwizzleWrapper is in the stack, with another SDK frame below it (further from crash).
-        The SDK frame below doesn't count - we only care about SDK frames ABOVE (closer to crash).
-        Since SentrySwizzleWrapper is the only SDK frame above, this is NOT an SDK crash.
+        Since there's another SDK frame anywhere in the stacktrace, this IS an SDK crash.
+        We prefer to overreport rather than underreport SDK crashes.
         """
         # Frames ordered from oldest (caller) to youngest (exception)
         frames = [
@@ -811,7 +810,7 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
 
         self.execute_test(
             get_crash_event_with_frames(frames),
-            False,  # Should NOT be reported - SDK frame below doesn't count
+            True,  # Should be reported - there's another SDK frame in the stack
             mock_sdk_crash_reporter,
         )
 
