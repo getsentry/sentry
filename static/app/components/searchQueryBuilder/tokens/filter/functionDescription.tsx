@@ -81,5 +81,5 @@ const Separator = styled('hr')`
 `;
 
 const FunctionName = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

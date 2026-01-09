@@ -72,7 +72,7 @@ const Centered = styled('div')`
 const NoReplaysWrapper = styled('div')`
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.md};

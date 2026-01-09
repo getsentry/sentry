@@ -1169,11 +1169,6 @@ const darkShadows = {
 
 const generateAliases = (tokens: Tokens) => ({
   /**
-   * Text that should not have as much emphasis
-   */
-  subText: tokens.content.secondary,
-
-  /**
    * Primary background color
    */
   background: tokens.background.primary,

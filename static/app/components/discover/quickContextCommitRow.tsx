@@ -78,7 +78,8 @@ const LinkToPullRequest = styled(TextOverflow)`
 
 const LinkToCommit = styled(TextOverflow)<{hasPrTitle: string | null | undefined}>`
   font-size: ${p => (p.hasPrTitle ? p.theme.fontSize.sm : p.theme.fontSize.lg)};
-  color: ${p => (p.hasPrTitle ? p.theme.subText : p.theme.tokens.content.primary)};
+  color: ${p =>
+    p.hasPrTitle ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
   line-height: 1.5;
   margin: 0;
 `;

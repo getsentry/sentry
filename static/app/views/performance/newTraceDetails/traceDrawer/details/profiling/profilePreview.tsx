@@ -313,7 +313,7 @@ const LegendItem = styled('span')`
   flex-direction: row;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

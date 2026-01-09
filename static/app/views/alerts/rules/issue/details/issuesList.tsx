@@ -150,7 +150,7 @@ const AlignRight = styled('div')`
 
 const StyledDateTime = styled(DateTime)`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TitleWrapper = styled('div')`

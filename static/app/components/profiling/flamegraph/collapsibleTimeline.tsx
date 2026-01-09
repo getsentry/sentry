@@ -101,7 +101,7 @@ export const CollapsibleTimelineMessage = styled('p')`
   height: 100%;
   width: 100%;
   position: absolute;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 export {CollapsibleTimeline};

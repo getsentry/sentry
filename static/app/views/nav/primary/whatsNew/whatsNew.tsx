@@ -161,7 +161,7 @@ const Empty = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: 0 60px;
   text-align: center;
   min-height: 150px;

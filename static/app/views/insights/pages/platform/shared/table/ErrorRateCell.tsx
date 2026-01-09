@@ -40,7 +40,9 @@ export function ErrorRateCell({
     issuesLink && errorCount > 0 ? (
       <Link to={issuesLink}>({formatAbbreviatedNumber(errorCount)})</Link>
     ) : (
-      <span style={{color: theme.subText}}>({formatAbbreviatedNumber(errorCount)})</span>
+      <span style={{color: theme.tokens.content.secondary}}>
+        ({formatAbbreviatedNumber(errorCount)})
+      </span>
     );
 
   return (

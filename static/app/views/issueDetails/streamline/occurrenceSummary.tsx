@@ -155,7 +155,7 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
 const ItemTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -174,5 +174,5 @@ const ItemLink = styled(Link)`
   font-size: ${p => p.theme.fontSize.lg};
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.subText};
+  text-decoration-color: ${p => p.theme.tokens.content.secondary};
 `;

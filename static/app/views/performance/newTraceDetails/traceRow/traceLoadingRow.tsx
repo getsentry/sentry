@@ -31,7 +31,7 @@ export function TraceLoadingRow(props: {
         transform: props.style.transform,
         height: props.style.height,
         pointerEvents: 'none',
-        color: props.theme.subText,
+        color: props.theme.tokens.content.secondary,
         paddingLeft: 8,
       }}
     >

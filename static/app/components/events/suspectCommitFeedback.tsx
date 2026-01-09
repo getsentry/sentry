@@ -88,14 +88,14 @@ const FeedbackContainer = styled('div')`
 const FeedbackText = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.5;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 
 const ThankYouText = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.5;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 

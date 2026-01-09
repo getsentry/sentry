@@ -114,7 +114,7 @@ const StepButton = styled(Button)`
   height: 50%;
   padding: 0 ${space(0.25)};
   min-height: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconChevron = styled(IconChevron)`

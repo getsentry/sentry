@@ -77,7 +77,7 @@ function makeDefaultColorConfig(theme: Theme) {
 
 const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: grid;
   align-items: start;
   grid-template: auto auto / 22px 1fr auto;
@@ -123,7 +123,7 @@ const Spacer = styled('div')`
 const Content = styled('div')`
   text-align: left;
   grid-column: span 2;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: ${space(0.25)} 0 0;
   font-size: ${p => p.theme.fontSize.sm};
   word-wrap: break-word;

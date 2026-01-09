@@ -74,5 +74,5 @@ const DateTime = styled('div')`
 `;
 
 const SecretPreview = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

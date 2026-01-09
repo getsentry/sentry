@@ -253,7 +253,7 @@ const EmptyContext = styled('div')`
   align-items: center;
   gap: ${space(1)};
   padding: 20px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 

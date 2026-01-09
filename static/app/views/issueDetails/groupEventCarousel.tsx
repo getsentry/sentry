@@ -527,7 +527,7 @@ const EventIdContainer = styled('div')`
 `;
 
 const EventTimeLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

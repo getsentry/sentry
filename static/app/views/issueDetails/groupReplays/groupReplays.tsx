@@ -358,7 +358,7 @@ const StyledBreak = styled('hr')`
 `;
 
 const ReplayFilterText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const OverlayText = styled('div')`

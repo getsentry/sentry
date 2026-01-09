@@ -382,5 +382,5 @@ const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
       ? p.theme.colors.red400
       : p.change === 'decrease'
         ? p.theme.colors.green400
-        : p.theme.subText};
+        : p.theme.tokens.content.secondary};
 `;

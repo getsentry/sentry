@@ -123,7 +123,7 @@ function JumpToLink({config}: {config: SectionConfig}) {
       borderless
       size="xs"
       css={css`
-        color: ${theme.subText};
+        color: ${theme.tokens.content.secondary};
         font-weight: ${theme.fontWeight.normal};
       `}
       analyticsEventName="Issue Details: Jump To Clicked"
@@ -144,7 +144,7 @@ const JumpTo = styled('div')`
   gap: ${p => p.theme.space.xs};
   flex-direction: row;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
   overflow: hidden;

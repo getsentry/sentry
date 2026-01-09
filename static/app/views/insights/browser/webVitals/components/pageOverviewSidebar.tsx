@@ -442,7 +442,7 @@ const ChartValue = styled('div')`
 
 const ChartSubText = styled('div')<{color?: string}>`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.color ?? p.theme.subText};
+  color: ${p => p.color ?? p.theme.tokens.content.secondary};
 `;
 
 const SectionHeading = styled('h4')`
@@ -450,7 +450,7 @@ const SectionHeading = styled('h4')`
   grid-auto-flow: column;
   gap: ${p => p.theme.space.md};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
 `;
@@ -491,7 +491,7 @@ const SpanOp = styled('p')`
 const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const CardContent = styled('div')`

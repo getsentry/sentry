@@ -163,6 +163,6 @@ function useNeedsSDKUpdateForClickSearch({search}: {search: undefined | string})
 }
 
 const EmptyStateSubheading = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;

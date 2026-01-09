@@ -7,7 +7,7 @@ export const Wrap = styled('div')`
 `;
 
 export const Title = styled('h6')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -16,7 +16,7 @@ export const Title = styled('h6')`
 `;
 
 export const IconWrapper = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;
 

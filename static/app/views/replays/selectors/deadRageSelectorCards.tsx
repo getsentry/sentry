@@ -273,7 +273,7 @@ const EmptyHeader = styled(Flex)`
   justify-content: center;
   align-items: center;
   gap: ${space(1.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

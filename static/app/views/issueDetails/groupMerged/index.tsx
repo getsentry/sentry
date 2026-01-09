@@ -147,6 +147,6 @@ const HeaderWrapper = styled('div')`
   margin-bottom: ${space(2)};
 
   small {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

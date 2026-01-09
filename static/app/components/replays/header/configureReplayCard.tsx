@@ -216,7 +216,7 @@ const ButtonTitle = styled('div')`
 `;
 
 const ButtonSubtitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
 `;

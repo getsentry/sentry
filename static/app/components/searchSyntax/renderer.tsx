@@ -358,7 +358,7 @@ const Key = styled('span')<{negated: boolean}>`
   ${filterCss};
   border-right: none;
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p =>
     p.negated
       ? css`
@@ -375,7 +375,7 @@ const Key = styled('span')<{negated: boolean}>`
 const ExplicitKey = styled('span')<{prefix: string}>`
   &:before,
   &:after {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
   &:before {
     content: '${p => p.prefix}[';
@@ -418,7 +418,7 @@ const Unit = styled('span')`
 
 const LogicBoolean = styled('span')<{invalid: boolean}>`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p => p.invalid && `color: ${p.theme.colors.red500}`}
 `;
 
@@ -431,11 +431,11 @@ const DateTime = styled('span')`
 `;
 
 const ListComma = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Paren = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InList = styled('span')`

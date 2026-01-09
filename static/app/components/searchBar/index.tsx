@@ -110,7 +110,7 @@ const StyledInput = styled(InputGroup.Input)`
 `;
 
 export const SearchBarTrailingButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.5)};
 `;
 

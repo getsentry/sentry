@@ -173,7 +173,7 @@ const UserName = styled('div')`
 
 const Description = styled('div')`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;

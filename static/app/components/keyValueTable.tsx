@@ -51,6 +51,6 @@ const Key = styled('dt')<{type: Props['type']}>`
 
 const Value = styled('dd')<{type: Props['type']}>`
   ${commonStyles};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: right;
 `;

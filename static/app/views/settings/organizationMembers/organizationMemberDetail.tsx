@@ -418,7 +418,7 @@ function OrganizationMemberDetail() {
 export default OrganizationMemberDetail;
 
 const ExtraHeaderText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.lg};
 `;

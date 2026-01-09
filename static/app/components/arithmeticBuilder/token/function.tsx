@@ -786,7 +786,7 @@ const FunctionGridCell = styled(BaseGridCell)`
 const DeleteButton = styled('button')`
   background: none;
   border: none;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   outline: none;
   user-select: none;
   padding-right: ${p => p.theme.space.xs};

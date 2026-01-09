@@ -207,12 +207,12 @@ const Total = styled('div')`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 
 const EmptyStateText = styled('div')`
   text-align: center;
   padding: ${space(0.5)} 0 ${space(3)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

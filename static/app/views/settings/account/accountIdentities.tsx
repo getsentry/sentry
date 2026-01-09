@@ -253,7 +253,7 @@ const IdentityName = styled('div')`
 `;
 const IdentityDateTime = styled(DateTime)`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TagWrapper = styled('div')`

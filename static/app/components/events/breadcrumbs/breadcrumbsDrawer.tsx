@@ -268,6 +268,6 @@ const EmptyMessage = styled('div')`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(3)} ${space(1)};
 `;

@@ -101,7 +101,7 @@ const Emphasize = styled('span')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PushRight = styled('span')`
@@ -152,7 +152,7 @@ const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWrapper = styled('span')`

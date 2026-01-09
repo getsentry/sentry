@@ -326,7 +326,7 @@ const Subtitle = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   gap: ${space(0.5)};
 `;
 
@@ -335,7 +335,7 @@ const MemberEmail = styled('div')`
   max-width: 70%;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   overflow: hidden;
 `;

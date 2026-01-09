@@ -507,7 +507,7 @@ const ExpandCell = styled('div')`
 
 const ToggleButton = styled(Button)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Registers = styled(Context)`
@@ -517,7 +517,7 @@ const Registers = styled(Context)`
 `;
 
 const PackageNote = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
 `;
 
@@ -530,7 +530,7 @@ const Package = styled('span')`
 `;
 
 const FileName = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
@@ -552,7 +552,7 @@ const RowHeader = styled('span')<{
       : `${p.theme.tokens.background.secondary}`};
   font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1)};
-  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
@@ -576,12 +576,12 @@ const SymbolicatorIcon = styled('div')`
 `;
 
 const ShowHideButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

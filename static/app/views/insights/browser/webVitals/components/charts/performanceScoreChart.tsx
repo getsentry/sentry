@@ -137,7 +137,7 @@ const PerformanceScoreLabel = styled('div')`
 export const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: ${space(1)};
 `;
 

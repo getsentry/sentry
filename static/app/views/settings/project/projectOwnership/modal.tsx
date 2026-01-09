@@ -188,7 +188,7 @@ const StyledPre = styled('pre')`
   word-break: break-word;
   padding: ${space(2)};
   line-height: 1.6;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default ProjectOwnershipModal;

@@ -152,7 +152,7 @@ const SpansHeader = styled('h6')`
 const HeaderCell = styled('div')<{align?: 'left' | 'right'}>`
   padding: 0 ${space(2)};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   align-items: center;

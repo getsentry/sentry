@@ -259,7 +259,7 @@ const StyledTimePicker = styled(TimePicker)`
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
   display: flex;
   align-items: center;

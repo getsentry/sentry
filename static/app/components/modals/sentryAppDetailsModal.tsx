@@ -233,7 +233,7 @@ const Description = styled(MarkedText)`
 `;
 
 const Author = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (

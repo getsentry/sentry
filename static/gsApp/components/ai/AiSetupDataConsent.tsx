@@ -325,7 +325,7 @@ const SingleCard = styled('div')`
 const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BulletList = styled('ul')`
@@ -344,7 +344,7 @@ const TouchCustomerMessage = styled('p')`
 
 const LegalText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 

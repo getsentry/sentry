@@ -7,7 +7,7 @@ const bulletStyle = (theme: Theme) => css`
   padding-left: ${space(3)};
   list-style-type: circle;
   & > li::marker {
-    color: ${theme.subText};
+    color: ${theme.tokens.content.secondary};
   }
 `;
 

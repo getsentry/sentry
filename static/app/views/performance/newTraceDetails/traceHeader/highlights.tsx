@@ -300,7 +300,7 @@ const HighlightsIconWrapper = styled('div')`
 
 const HighlightsSubtitle = styled(Tooltip)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledVersion = styled(Version)`

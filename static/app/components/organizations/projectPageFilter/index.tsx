@@ -445,7 +445,7 @@ function shouldCloseOnInteractOutside(target: Element) {
 }
 
 const TrailingButton = styled(LinkButton)<{visible: boolean}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 

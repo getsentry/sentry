@@ -289,7 +289,7 @@ const ExpandButton = styled(Button)`
   bottom: -${space(1)};
   right: 0;
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border: none;
   box-shadow: none;
 

@@ -27,7 +27,7 @@ const MoreLink = styled(ExternalLink)<{color?: string}>`
   gap: ${space(1)};
   align-items: center;
   align-content: center;
-  color: ${p => p.color ?? p.theme.subText};
+  color: ${p => p.color ?? p.theme.tokens.content.secondary};
 
   &:hover,
   &:focus,

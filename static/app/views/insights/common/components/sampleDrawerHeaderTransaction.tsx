@@ -82,7 +82,7 @@ const Bar = styled('h4')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TruncatedLink = styled(Link)`

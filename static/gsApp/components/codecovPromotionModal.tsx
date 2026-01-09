@@ -145,7 +145,7 @@ const PriceWrapper = styled('div')`
 
 const SeatText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const OffsetIconArrow = styled(IconArrow)`

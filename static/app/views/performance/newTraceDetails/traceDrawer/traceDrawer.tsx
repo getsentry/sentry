@@ -495,7 +495,7 @@ const StyledIconClose = styled(IconClose)`
 
 const CloseButton = styled(Button)`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 100%;
   border-bottom: 2px solid transparent;
   &:hover {

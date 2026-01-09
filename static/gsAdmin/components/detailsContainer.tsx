@@ -14,7 +14,7 @@ const DetailsContainer = styled('div')`
     padding-bottom: ${space(0.5)};
     text-transform: uppercase;
     font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;

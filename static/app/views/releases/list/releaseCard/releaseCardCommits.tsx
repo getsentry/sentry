@@ -51,7 +51,7 @@ function ReleaseCardCommits({release, withHeading = true}: Props) {
 }
 
 const ReleaseSummaryHeading = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   font-weight: ${p => p.theme.fontWeight.bold};

@@ -511,7 +511,7 @@ const HiddenProjectsMessage = styled('div')`
   overflow: hidden;
   height: 24px;
   line-height: 24px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
