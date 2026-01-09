@@ -82,7 +82,7 @@ export const StyledSpanPanelItem = styled(StyledPanelItem)`
   &:nth-child(10n + 3),
   &:nth-child(10n + 4),
   &:nth-child(10n + 5) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

@@ -30,7 +30,7 @@ export const CodeBlockWrapper = styled('div')`
 `;
 
 export const InlineCode = styled('code')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
   font-family: ${p => p.theme.text.familyMono};

@@ -1283,7 +1283,7 @@ const MarkdownContainer = styled('div')`
 const MultilineTextWrapper = styled('div')`
   position: relative;
   white-space: pre-wrap;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   word-break: break-word;
