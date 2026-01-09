@@ -32,7 +32,6 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
@@ -47,10 +46,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
-    DetectorSerializer,
-    DetectorSerializerResponse,
-)
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
@@ -230,7 +226,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     @extend_schema(
-        operation_id="Fetch an Organization's Monitors",
+        operation_id="Fetch a Project's Detectors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -239,19 +235,18 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.ID,
         ],
         responses={
-            201: inline_sentry_response_serializer(
-                "ListDetectorSerializerResponse", list[DetectorSerializerResponse]
-            ),
+            201: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        List an Organization's Monitors
+        List an Organization's Detectors
+        `````````````````````````````
+        Return a list of detectors for a given organization.
         """
         if not request.user.is_authenticated:
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)

@@ -446,8 +446,6 @@ Available fields are:
 - `id`
 - `type`
 - `connectedWorkflows`
-- `latestGroup`
-- `openIssues`
 
 Prefix with `-` to sort in descending order.
         """,
