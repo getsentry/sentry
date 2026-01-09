@@ -380,7 +380,7 @@ const TokensTooltipTitle = styled('div')`
 
 const SubTextCell = styled('span')`
   margin-left: ${p => p.theme.space.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TokensSpan = styled('span')`

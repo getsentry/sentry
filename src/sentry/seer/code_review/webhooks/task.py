@@ -23,6 +23,7 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
+from ..metrics import WebhookFilteredReason, record_webhook_filtered
 from ..utils import get_seer_endpoint_for_event, make_seer_request
 from .config import get_direct_to_seer_gh_orgs
 
@@ -38,6 +39,7 @@ METRICS_PREFIX = "seer.code_review.task"
 
 def schedule_task(
     github_event: GithubWebhookType,
+    github_event_action: str,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -57,9 +59,8 @@ def schedule_task(
     )
 
     if transformed_event is None:
-        metrics.incr(
-            f"{METRICS_PREFIX}.{github_event.value}.skipped",
-            tags={"reason": "failed_to_transform", "github_event": github_event.value},
+        record_webhook_filtered(
+            github_event, github_event_action, WebhookFilteredReason.TRANSFORM_FAILED
         )
         return
 
@@ -67,10 +68,6 @@ def schedule_task(
         github_event=github_event,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
-    )
-    metrics.incr(
-        f"{METRICS_PREFIX}.{github_event.value}.enqueued",
-        tags={"status": "success", "github_event": github_event.value},
     )
 
 
@@ -100,13 +97,21 @@ def process_github_webhook_event(
     should_record_latency = True
     option_key = get_webhook_option_key(github_event)
 
-    # Check if repo owner is in the whitelist (always send to Seer for these orgs)
-    # Otherwise, check option key to see if Overwatch should handle this
-    repo_owner = event_payload.get("data", {}).get("repo", {}).get("owner")
-    if repo_owner not in get_direct_to_seer_gh_orgs():
-        # If option is True, Overwatch handles this - skip Seer processing
-        if option_key and options.get(option_key):
-            return
+    # Skip this check for CHECK_RUN events (always go to Seer)
+    if github_event != GithubWebhookType.CHECK_RUN:
+        # Check if repo owner is in the whitelist (always send to Seer for these orgs)
+        # Otherwise, check option key to see if Overwatch should handle this
+        repo_owner = event_payload.get("data", {}).get("repo", {}).get("owner")
+        logger.info("payload: %s", event_payload)
+        if repo_owner:
+            logger.info("repo_owner: %s", repo_owner)
+        else:
+            logger.info("repo_owner not found")
+        logger.info("get_direct_to_seer_gh_orgs: %s", get_direct_to_seer_gh_orgs())
+        if repo_owner not in get_direct_to_seer_gh_orgs():
+            # If option is True, Overwatch handles this - skip Seer processing
+            if option_key and options.get(option_key):
+                return
 
     try:
         path = get_seer_endpoint_for_event(github_event).value
@@ -121,7 +126,7 @@ def process_github_webhook_event(
         raise
     finally:
         if status != "success":
-            metrics.incr(f"{PREFIX}.error", tags={"error_status": status})
+            metrics.incr(f"{PREFIX}.error", tags={"error_status": status}, sample_rate=1.0)
         if should_record_latency:
             record_latency(status, enqueued_at_str)
 

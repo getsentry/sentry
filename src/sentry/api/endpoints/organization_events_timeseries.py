@@ -27,6 +27,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -43,6 +44,7 @@ from sentry.snuba import (
     transactions,
 )
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
@@ -59,6 +61,7 @@ TOP_EVENTS_DATASETS = {
     spans_metrics,
     Spans,
     OurLogs,
+    PreprodSize,
     TraceMetrics,
     errors,
     transactions,
@@ -248,6 +251,17 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
 
                 return TraceMetricsSearchResolverConfig(
                     metric=metric,
+                    auto_fields=False,
+                    use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation=request.GET.get(
+                        "disableAggregateExtrapolation", "0"
+                    )
+                    == "1",
+                    extrapolation_mode=extrapolation_mode,
+                )
+
+            if dataset == PreprodSize:
+                return PreprodSizeSearchResolverConfig(
                     auto_fields=False,
                     use_aggregate_conditions=True,
                     disable_aggregate_extrapolation=request.GET.get(

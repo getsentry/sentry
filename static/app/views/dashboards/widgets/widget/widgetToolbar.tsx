@@ -1,8 +1,5 @@
-import styled from '@emotion/styled';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
-export const WidgetToolbar = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
+export function WidgetToolbar(props: FlexProps<'div'>) {
+  return <Flex gap="xs" {...props} />;
+}
