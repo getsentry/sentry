@@ -754,11 +754,7 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     """
 
     enforce_single_datasource = True
-    data_sources = MonitorDataSourceListField(
-        child=MonitorDataSourceValidator(),
-        required=False,
-        help_text="The data sources for the monitor to use.",
-    )
+    data_sources = MonitorDataSourceListField(child=MonitorDataSourceValidator(), required=False)
 
     def validate_enabled(self, value: bool) -> bool:
         """

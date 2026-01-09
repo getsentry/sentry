@@ -191,13 +191,9 @@ def format_extrapolation_mode(extrapolation_mode) -> ExtrapolationMode | None:
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     data_sources = serializers.ListField(
-        child=SnubaQueryValidator(timeWindowSeconds=True),
-        required=False,
-        help_text="The data sources for the monitor to use.",
+        child=SnubaQueryValidator(timeWindowSeconds=True), required=False
     )
-    condition_group = MetricIssueConditionGroupValidator(
-        required=True, help_text="The condition group for the monitor."
-    )
+    condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate_eap_rule(self, attrs):
         """

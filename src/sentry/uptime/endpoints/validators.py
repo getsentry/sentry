@@ -625,11 +625,7 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
 
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     enforce_single_datasource = True
-    data_sources = serializers.ListField(
-        child=UptimeMonitorDataSourceValidator(),
-        required=False,
-        help_text="The data sources for the monitor to use.",
-    )
+    data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)
     config = UptimeDomainCheckFailureConfigValidator(required=False)  # type: ignore[assignment]
 
     def validate_enabled(self, value: bool) -> bool:

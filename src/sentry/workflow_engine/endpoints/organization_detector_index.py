@@ -294,7 +294,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Detector",
+        operation_id="Create a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
