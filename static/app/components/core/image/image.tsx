@@ -26,5 +26,5 @@ const Img = styled('img')<ImageProps>`
   height: ${p => p.height ?? 'auto'};
   object-fit: ${p => p.objectFit};
   object-position: ${p => p.objectPosition};
-  ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
+  aspect-ratio: ${p => p.aspectRatio};
 `;
