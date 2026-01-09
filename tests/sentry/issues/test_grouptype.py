@@ -9,6 +9,7 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
+    InstrumentationIssueExperimentalGroupType,
     NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -224,3 +225,51 @@ class GroupRegistryTest(BaseGroupTypeTest):
             PerformanceSlowDBQueryGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
         }
+
+
+class InstrumentationIssueExperimentalGroupTypeTest(TestCase):
+    """Tests for the InstrumentationIssueExperimentalGroupType."""
+
+    def test_group_type_registered(self) -> None:
+        """Verify the group type is registered and can be retrieved by slug."""
+        group_type = get_group_type_by_slug("instrumentation_issue_experimental")
+        assert group_type is not None
+        assert group_type == InstrumentationIssueExperimentalGroupType
+
+    def test_group_type_category(self) -> None:
+        """Verify the group type has the correct category."""
+        assert (
+            InstrumentationIssueExperimentalGroupType.category
+            == GroupCategory.INSTRUMENTATION.value
+        )
+        assert (
+            InstrumentationIssueExperimentalGroupType.category_v2
+            == GroupCategory.INSTRUMENTATION.value
+        )
+
+    def test_in_default_search_is_false(self) -> None:
+        """Verify instrumentation issues are hidden from default search."""
+        assert InstrumentationIssueExperimentalGroupType.in_default_search is False
+
+    def test_enable_auto_resolve_is_true(self) -> None:
+        """Verify instrumentation issues support auto-resolve."""
+        assert InstrumentationIssueExperimentalGroupType.enable_auto_resolve is True
+
+    def test_not_released(self) -> None:
+        """Verify the group type is not released (feature-flagged)."""
+        assert InstrumentationIssueExperimentalGroupType.released is False
+
+    def test_feature_flags_generated(self) -> None:
+        """Verify feature flags are generated for the unreleased group type."""
+        visible_flag = InstrumentationIssueExperimentalGroupType.build_visible_feature_name()
+        ingest_flag = InstrumentationIssueExperimentalGroupType.build_ingest_feature_name()
+
+        assert visible_flag == "organizations:issue-instrumentation-issue-experimental-visible"
+        assert ingest_flag == "organizations:issue-instrumentation-issue-experimental-ingest"
+
+    def test_category_in_registry(self) -> None:
+        """Verify the instrumentation category can be queried from registry."""
+        from sentry.issues.grouptype import registry
+
+        instrumentation_types = registry.get_by_category(GroupCategory.INSTRUMENTATION.value)
+        assert InstrumentationIssueExperimentalGroupType.type_id in instrumentation_types
