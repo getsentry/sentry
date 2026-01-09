@@ -116,6 +116,20 @@ class GroupEventsEndpoint(GroupEndpoint):
     ) -> Response:
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
+        referrer = f"api.group-events.{group.issue_category.name.lower()}"
+
+        direct_hit_snuba_params = SnubaParams(
+            start=start if start else default_start,
+            end=end if end else default_end,
+            projects=[group.project],
+            organization=group.project.organization,
+        )
+        direct_hit_resp = get_direct_hit_response(
+            request, query, direct_hit_snuba_params, f"{referrer}.direct-hit", group
+        )
+        if direct_hit_resp:
+            return direct_hit_resp
+
         snuba_params = SnubaParams(
             start=start if start else default_start,
             end=end if end else default_end,
@@ -123,13 +137,6 @@ class GroupEventsEndpoint(GroupEndpoint):
             projects=[group.project],
             organization=group.project.organization,
         )
-        referrer = f"api.group-events.{group.issue_category.name.lower()}"
-
-        direct_hit_resp = get_direct_hit_response(
-            request, query, snuba_params, f"{referrer}.direct-hit", group
-        )
-        if direct_hit_resp:
-            return direct_hit_resp
 
         full = request.GET.get("full") in ("1", "true")
         sample = request.GET.get("sample") in ("1", "true")

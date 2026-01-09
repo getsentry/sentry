@@ -5,8 +5,10 @@ import random
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import sentry_sdk
 from django.conf import settings
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
+from urllib3.exceptions import TimeoutError
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -23,14 +25,16 @@ from sentry.tasks.llm_issue_detection.trace_data import (
 )
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
+from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 180
 START_TIME_DELTA_MINUTES = 60
-TRANSACTION_BATCH_SIZE = 100
-NUM_TRANSACTIONS_TO_PROCESS = 20
+TRANSACTION_BATCH_SIZE = 50
+NUM_TRANSACTIONS_TO_PROCESS = 10
+TRACE_PROCESSING_TTL_SECONDS = 7200
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -39,6 +43,17 @@ seer_issue_detection_connection_pool = connection_from_url(
     retries=0,
     maxsize=10,
 )
+
+
+def mark_trace_as_processed(trace_id: str) -> bool:
+    """
+    Mark trace as processed for LLM issue detection to prevent duplicate analysis.
+    Returns True if successfully marked, False if already marked.
+    """
+    cluster = redis_clusters.get("default")
+    key = f"llm_detection:processed:{trace_id}"
+    result = cluster.set(key, "1", nx=True, ex=TRACE_PROCESSING_TTL_SECONDS)
+    return bool(result)
 
 
 class DetectedIssue(BaseModel):
@@ -228,15 +243,6 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not evidence_traces:
         return
 
-    logger.info(
-        "Getting traces for detection",
-        extra={
-            "organization_id": organization_id,
-            "project_id": project_id,
-            "num_traces": len(evidence_traces),
-            "num_unique_traces": len({trace.trace_id for trace in evidence_traces}),
-        },
-    )
     # Shuffle to randomize order
     random.shuffle(evidence_traces)
     processed_traces = 0
@@ -245,14 +251,16 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
             break
 
-        logger.info(
-            "Sending Seer Request for Detection",
-            extra={
-                "trace_id": trace.trace_id,
-                "transaction_name": trace.transaction_name,
-                "organization_id": organization_id,
-                "project_id": project_id,
-            },
+        if not mark_trace_as_processed(trace.trace_id):
+            sentry_sdk.metrics.count(
+                "llm_issue_detection.trace.skipped",
+                1,
+            )
+            continue
+
+        trace_id = trace.trace_id
+        sentry_sdk.metrics.count(
+            "llm_issue_detection.seer_request", 1, attributes={"trace_id": trace_id}
         )
         seer_request = IssueDetectionRequest(
             traces=[trace],
@@ -265,98 +273,40 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 connection_pool=seer_issue_detection_connection_pool,
                 path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
                 body=json.dumps(seer_request.dict()).encode("utf-8"),
+                timeout=SEER_TIMEOUT_S,
+                retries=0,
             )
-        except Exception:
-            logger.exception(
-                "Seer network error",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": organization_id,
-                    "trace_id": trace.trace_id,
-                },
-            )
+        except TimeoutError:
+            logger.exception("LLM Issue Detection Seer timeout", extra={"trace_id": trace_id})
             continue
 
         if response.status < 200 or response.status >= 300:
             logger.error(
-                "Seer HTTP error",
+                "LLM issue Detection Seer response failure",
                 extra={
-                    "project_id": project_id,
-                    "organization_id": organization_id,
-                    "status": response.status,
-                    "response_data": response.data.decode("utf-8"),
-                    "trace_id": trace.trace_id,
+                    "status_code": response.status,
+                    "response_data": response.data,
+                    "trace_id": trace_id,
                 },
             )
             continue
 
-        try:
-            raw_response_data = response.json()
-            logger.info(
-                "Raw Seer response",
-                extra={
-                    "response_data": raw_response_data,
-                    "trace_id": trace.trace_id,
-                },
-            )
-            response_data = IssueDetectionResponse.parse_obj(raw_response_data)
-        except (ValueError, TypeError, ValidationError) as e:
-            logger.exception(
-                "Seer response parsing error",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": organization_id,
-                    "status": response.status,
-                    "response_data": response.data.decode("utf-8"),
-                    "trace_id": trace.trace_id,
-                    "error_detail": str(e),
-                },
-            )
-            continue
-
-        n_found_issues = len(response_data.issues)
-        num_traces_analyzed = response_data.traces_analyzed
+        raw_response_data = response.json()
+        response_data = IssueDetectionResponse.parse_obj(raw_response_data)
         processed_traces += response_data.traces_analyzed
-        if num_traces_analyzed > 0:
+
+        for detected_issue in response_data.issues:
             logger.info(
-                "Seer issue detection success",
+                "LLM Issue Detection Result",
                 extra={
-                    "num_traces": 1,
-                    "num_issues": n_found_issues,
-                    "organization_id": organization_id,
+                    "title": detected_issue.title,
+                    "trace_id": trace_id,
                     "project_id": project_id,
-                    "titles": (
-                        [issue.title for issue in response_data.issues]
-                        if n_found_issues > 0
-                        else None
-                    ),
-                    "trace_id": trace.trace_id,
-                    "traces_analyzed": num_traces_analyzed,
+                    "category": detected_issue.category,
+                    "subcategory": detected_issue.subcategory,
                 },
             )
-        for detected_issue in response_data.issues:
-            try:
-                create_issue_occurrence_from_detection(
-                    detected_issue=detected_issue,
-                    project_id=project_id,
-                )
-                logger.info(
-                    "LLM Issue Detection Category",
-                    extra={
-                        "category": detected_issue.category,
-                        "subcategory": detected_issue.subcategory,
-                        "verification_reason": detected_issue.verification_reason,
-                        "trace_id": trace.trace_id,
-                    },
-                )
-            except Exception:
-                logger.exception(
-                    "Error creating issue occurrence",
-                    extra={
-                        "project_id": project_id,
-                        "organization_id": organization_id,
-                        "issue_title": detected_issue.title,
-                        "trace_id": trace.trace_id,
-                    },
-                )
-                continue
+            create_issue_occurrence_from_detection(
+                detected_issue=detected_issue,
+                project_id=project_id,
+            )
