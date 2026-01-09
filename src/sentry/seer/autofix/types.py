@@ -18,6 +18,7 @@ class AutofixStateResponse(TypedDict):
 class AutofixSelectRootCausePayload(TypedDict):
     type: Literal["select_root_cause"]
     cause_id: int
+    stopping_point: Literal["solution", "code_changes", "open_pr"] | None = None
 
 
 class AutofixSelectSolutionPayload(TypedDict):
