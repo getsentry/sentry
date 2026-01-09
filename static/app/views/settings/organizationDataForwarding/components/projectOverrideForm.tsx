@@ -110,7 +110,7 @@ const OverrideForm = styled(JsonForm)`
   }
   ${PanelHeader} {
     text-transform: none;
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   }
   margin: 0;

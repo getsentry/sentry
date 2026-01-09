@@ -175,7 +175,7 @@ const MergedGroup = styled('div')<{busy: boolean}>`
 const Controls = styled('div')<{expanded: boolean}>`
   display: flex;
   justify-content: space-between;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.tokens.border.secondary}`};
   padding: ${space(0.5)} ${space(1)};
 

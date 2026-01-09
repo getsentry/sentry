@@ -171,7 +171,7 @@ function TeamStatsControls({
             alignItems: 'center',
             gridGap: space(1),
             ':before': {
-              backgroundColor: state.theme.backgroundSecondary,
+              backgroundColor: state.theme.tokens.background.secondary,
               height: 24,
               width: 38,
               borderRadius: 3,
