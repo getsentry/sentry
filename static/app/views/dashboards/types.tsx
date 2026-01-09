@@ -40,7 +40,7 @@ export enum WidgetType {
   SPANS = 'spans',
   LOGS = 'logs',
   TRACEMETRICS = 'tracemetrics',
-  MOBILE_BUILDS = 'mobile-builds',
+  MOBILE_APP_SIZE = 'mobile-app-size',
 }
 
 // These only pertain to on-demand warnings at this point in time

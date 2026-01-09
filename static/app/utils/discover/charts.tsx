@@ -4,7 +4,6 @@ import type {LegendComponentOption} from 'echarts';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   AggregationOutputType,
   DataUnit,
@@ -53,8 +52,6 @@ export function tooltipFormatterUsingAggregateOutputType(
       return getDuration(value / 1000, 2, true);
     case 'size':
       return formatBytesBase2(value);
-    case 'size_base10':
-      return formatBytesBase10(value);
     case 'rate':
       if (unit) {
         return formatRate(value, unit as RateUnit);
@@ -108,8 +105,6 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return axisDuration(value, durationUnit);
     case 'size':
       return formatBytesBase2(value, 0);
-    case 'size_base10':
-      return formatBytesBase10(value, 0);
     case 'rate':
       return formatRate(value, rateUnit);
     default:

@@ -179,7 +179,7 @@ describe('MobileAppSizeConfig', () => {
     it('uses install size aggregate by default', async () => {
       const api = new MockApiClient();
       const widget = WidgetFixture({
-        widgetType: WidgetType.MOBILE_BUILDS,
+        widgetType: WidgetType.MOBILE_APP_SIZE,
         queries: [
           {
             conditions: 'app_id:com.example.app',
@@ -223,7 +223,7 @@ describe('MobileAppSizeConfig', () => {
     it('uses download size aggregate when specified', async () => {
       const api = new MockApiClient();
       const widget = WidgetFixture({
-        widgetType: WidgetType.MOBILE_BUILDS,
+        widgetType: WidgetType.MOBILE_APP_SIZE,
         queries: [
           {
             conditions: 'app_id:com.example.app',
@@ -266,7 +266,7 @@ describe('MobileAppSizeConfig', () => {
   });
 
   describe('getSeriesResultType', () => {
-    it('returns size_base10 output type for both install and download aggregates', () => {
+    it('returns size output type for both install and download aggregates', () => {
       const data: AppSizeResponse[] = [];
       const widgetQuery = {
         conditions: '',
@@ -282,8 +282,8 @@ describe('MobileAppSizeConfig', () => {
 
       // Both aggregates should be registered to handle multi-query widgets
       expect(result).toEqual({
-        'max(install_size)': 'size_base10',
-        'max(download_size)': 'size_base10',
+        'max(install_size)': 'size',
+        'max(download_size)': 'size',
       });
     });
   });

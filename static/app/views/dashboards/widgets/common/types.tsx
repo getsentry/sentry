@@ -12,7 +12,6 @@ type AttributeValueType =
   | 'percent_change'
   | 'string'
   | 'size'
-  | 'size_base10'
   | 'rate'
   | 'score'
   | 'currency';

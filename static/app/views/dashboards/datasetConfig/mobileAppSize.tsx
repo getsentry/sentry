@@ -383,8 +383,8 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
     _widgetQuery: WidgetQuery
   ): Record<string, AggregationOutputType> => {
     return {
-      'max(install_size)': 'size_base10',
-      'max(download_size)': 'size_base10',
+      'max(install_size)': 'size',
+      'max(download_size)': 'size',
     };
   },
   filterAggregateParams,
