@@ -523,7 +523,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                         "status": resp.status,
                         "organization_id": trace_item.organization_id,
                         "project_id": trace_item.project_id,
-                        "item_id": trace_item.item_id.decode("utf-8"),
+                        "event_id": format(int.from_bytes(trace_item.item_id, "little"), "032x"),
                         "trace_id": trace_item.trace_id,
                         "backend": "snuba_http",
                     },
@@ -538,7 +538,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                 extra={
                     "organization_id": trace_item.organization_id,
                     "project_id": trace_item.project_id,
-                    "item_id": trace_item.item_id.decode("utf-8"),
+                    "event_id": format(int.from_bytes(trace_item.item_id, "little"), "032x"),
                     "trace_id": trace_item.trace_id,
                     "backend": "snuba_http",
                 },
