@@ -802,6 +802,34 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
 
+    def test_get_trace_waterfall_includes_status_code(self) -> None:
+        """Test that span.status_code is included in additional_attributes."""
+        transaction_name = "api/test/status"
+        trace_id = uuid.uuid4().hex
+
+        # Create a span with status_code
+        span = self.create_span(
+            {
+                "description": "http-request",
+                "sentry_tags": {
+                    "transaction": transaction_name,
+                    "status_code": "500",
+                },
+                "trace_id": trace_id,
+                "is_segment": True,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span], is_eap=True)
+
+        result = get_trace_waterfall(trace_id, self.organization.id)
+        assert isinstance(result, EAPTrace)
+
+        # Find the span and verify additional_attributes contains status_code
+        root_span = result.trace[0]
+        assert "additional_attributes" in root_span
+        assert root_span["additional_attributes"].get("span.status_code") == "500"
+
 
 class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     def setUp(self) -> None:
