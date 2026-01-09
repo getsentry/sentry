@@ -30,7 +30,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:Experimental.EnableLogs] option set to [code:true].',
+            'To enable logging, you need to initialize the SDK with the [code:EnableLogs] option set to [code:true].',
             {
               code: <code />,
             }
@@ -43,7 +43,7 @@ export const logs: OnboardingConfig = {
 {
     options.Dsn = "${params.dsn.public}";
     // Enable logs to be sent to Sentry
-    options.Experimental.EnableLogs = true;
+    options.EnableLogs = true;
 });`,
         },
       ],
