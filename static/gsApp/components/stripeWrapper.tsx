@@ -59,7 +59,7 @@ function StripeWrapper({
             },
             '.Label': {
               fontSize: theme.fontSize.sm,
-              color: theme.subText,
+              color: theme.tokens.content.secondary,
             },
           },
         },

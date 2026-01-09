@@ -56,7 +56,7 @@ export default function MessageTitle({feedbackItem, eventData}: Props) {
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   align-self: center;
   white-space: nowrap;

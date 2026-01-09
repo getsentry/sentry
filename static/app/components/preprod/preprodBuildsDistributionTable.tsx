@@ -96,7 +96,7 @@ const BuildsDistributionTable = styled(SimpleTable)<{showProjectColumn?: boolean
 
 const DisabledRow = styled(SimpleTable.Row)`
   [role='cell'] {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     cursor: not-allowed;
     opacity: 0.5;
   }

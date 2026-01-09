@@ -1166,7 +1166,7 @@ const ShowMoreWrapper = styled('div')`
 `;
 
 const ShowMoreTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   display: inline-grid;
   grid-template-columns: auto auto;
