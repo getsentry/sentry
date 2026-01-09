@@ -2,6 +2,8 @@ import type {ComponentProps, ReactNode} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -40,7 +42,7 @@ function Resource({
 
 function Buttons() {
   return (
-    <ButtonContainer>
+    <Stack align="start" gap="md">
       <Resource
         title={t('Debugging Hydration Errors')}
         subtitle={t(
@@ -55,7 +57,7 @@ function Buttons() {
         )}
         link="https://sentry.io/answers/hydration-error-nextjs/"
       />
-    </ButtonContainer>
+    </Stack>
   );
 }
 
@@ -86,13 +88,6 @@ export default function LearnMoreButton(
     </ClassNames>
   );
 }
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: flex-start;
-`;
 
 const ButtonContent = styled('div')`
   display: flex;

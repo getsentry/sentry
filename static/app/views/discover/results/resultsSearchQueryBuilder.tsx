@@ -14,6 +14,10 @@ import {
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {
   CallbackSearchState,
   FilterKeySection,
@@ -50,6 +54,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import {IssueListSeerComboBox} from 'sentry/views/discover/results/issueListSeerComboBox';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type DataProviderProps = {
@@ -74,6 +79,56 @@ type Props = {
   supportedTags?: TagCollection | undefined;
 } & DataProviderProps;
 
+interface ErrorsSearchBarProps {
+  filterKeySections: FilterKeySection[];
+  filterKeys: TagCollection;
+  getTagValues: (tag: any, query: any) => Promise<string[]>;
+  initialQuery: string;
+  placeholderText: string;
+  recentSearches: SavedSearchType;
+  searchSource: string;
+  disabled?: boolean;
+  onChange?: (query: string, state: CallbackSearchState) => void;
+  onSearch?: (query: string) => void;
+  portalTarget?: HTMLElement | null;
+}
+
+function ErrorsSearchBar({
+  disabled,
+  filterKeys,
+  filterKeySections,
+  getTagValues,
+  initialQuery,
+  onChange,
+  onSearch,
+  placeholderText,
+  portalTarget,
+  recentSearches,
+  searchSource,
+}: ErrorsSearchBarProps) {
+  const {displayAskSeer} = useSearchQueryBuilder();
+
+  if (displayAskSeer && onSearch) {
+    return <IssueListSeerComboBox onSearch={onSearch} />;
+  }
+
+  return (
+    <SearchQueryBuilder
+      placeholder={placeholderText}
+      disabled={disabled}
+      filterKeys={filterKeys}
+      filterKeySections={filterKeySections}
+      getTagValues={getTagValues}
+      initialQuery={initialQuery}
+      onSearch={onSearch}
+      onChange={onChange}
+      searchSource={searchSource}
+      recentSearches={recentSearches}
+      portalTarget={portalTarget}
+    />
+  );
+}
+
 function ResultsSearchQueryBuilder(props: Props) {
   const {
     placeholder,
@@ -87,6 +142,8 @@ function ResultsSearchQueryBuilder(props: Props) {
     dataset,
     includeTransactions = true,
   } = props;
+
+  const organization = useOrganization();
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for events, users, tags, and more');
@@ -103,6 +160,53 @@ function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
+  // AI search is only enabled for Errors dataset
+  const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
+  const areAiFeaturesAllowed =
+    isErrorsDataset &&
+    !organization?.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('gen-ai-search-agent-translate');
+
+  const searchBarProps = {
+    placeholderText,
+    disabled,
+    filterKeys: getFilterKeys(),
+    filterKeySections: getFilterKeySections(),
+    getTagValues,
+    initialQuery: props.query ?? '',
+    onSearch: props.onSearch,
+    onChange: props.onChange,
+    searchSource: props.searchSource || 'eventsv2',
+    recentSearches: props.recentSearches ?? SavedSearchType.EVENT,
+    portalTarget,
+  };
+
+  // For Errors dataset, wrap with SearchQueryBuilderProvider to enable AI search
+  if (isErrorsDataset) {
+    return (
+      <SearchQueryBuilderProvider
+        initialQuery={props.query ?? ''}
+        enableAISearch={areAiFeaturesAllowed}
+        aiSearchBadgeType="alpha"
+        disabled={disabled}
+        fieldDefinitionGetter={undefined}
+        filterKeys={getFilterKeys()}
+        filterKeySections={getFilterKeySections()}
+        getTagValues={getTagValues}
+        searchSource={props.searchSource || 'eventsv2'}
+        placeholder={placeholderText}
+        recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
+        onSearch={props.onSearch}
+        onChange={props.onChange}
+        portalTarget={portalTarget}
+      >
+        <ErrorsSearchBar {...searchBarProps} />
+      </SearchQueryBuilderProvider>
+    );
+  }
+
+  // For non-Errors datasets, use the regular SearchQueryBuilder
   return (
     <SearchQueryBuilder
       placeholder={placeholderText}

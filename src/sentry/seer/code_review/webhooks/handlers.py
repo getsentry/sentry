@@ -1,29 +1,24 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 from ..preflight import CodeReviewPreflightService
-
-if TYPE_CHECKING:
-    from sentry.integrations.github.webhook import WebhookProcessor
-
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
 from .pull_request import handle_pull_request_event
 
 logger = logging.getLogger(__name__)
 
-METRICS_PREFIX = "seer.code_review.webhook"
 
-
-EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, WebhookProcessor] = {
+EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, Callable[..., None]] = {
     GithubWebhookType.CHECK_RUN: handle_check_run_event,
     GithubWebhookType.ISSUE_COMMENT: handle_issue_comment_event,
     GithubWebhookType.PULL_REQUEST: handle_pull_request_event,
@@ -50,6 +45,10 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
+    # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
+    if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
+        return
+
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
         logger.warning(
@@ -70,11 +69,23 @@ def handle_webhook_event(
         # TODO: add metric
         return
 
+    repository = event.get("repository", {})
+    if repository:
+        logger.info("repository: %s", repository)
+    github_org = event.get("repository", {}).get("owner", {}).get("login")
+    if github_org:
+        logger.info("github_org: %s", github_org)
+    else:
+        logger.info("github_org not found")
+    from .config import get_direct_to_seer_gh_orgs
+
+    gh_orgs_to_only_send_to_seer = get_direct_to_seer_gh_orgs()
+    logger.info("gh_orgs_to_only_send_to_seer: %s", gh_orgs_to_only_send_to_seer)
     handler(
         github_event=github_event,
         event=event,
         organization=organization,
+        github_org=github_org,
         repo=repo,
         integration=integration,
-        **kwargs,
     )

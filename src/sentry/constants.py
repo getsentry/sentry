@@ -82,7 +82,7 @@ PROJECT_SLUG_MAX_LENGTH = 100
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
-MAX_ROLLUP_POINTS = 10000
+MAX_ROLLUP_POINTS = 10081
 
 
 # Organization slugs which may not be used. Generally these are top level URL patterns
@@ -732,8 +732,12 @@ DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
 # Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
 ALLOW_BACKGROUND_AGENT_DELEGATION = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
+CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
+
+# Repository owner for console SDK repositories. Helpful for testing: add your test org here
+CONSOLE_SDK_REPO_OWNER = "getsentry"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

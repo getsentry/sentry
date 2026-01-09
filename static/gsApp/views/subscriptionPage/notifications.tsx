@@ -292,7 +292,6 @@ function NotificationButtons({
           }
           setNotificationThresholds(backendThresholds);
         }}
-        analyticsParams={{isNewBillingUI: true}}
       >
         {t('Reset')}
       </Button>
@@ -308,7 +307,6 @@ function NotificationButtons({
             notificationThresholds.perProductOndemandPercent.length === 0)
         }
         onClick={onSubmit}
-        analyticsParams={{isNewBillingUI: true}}
       >
         {t('Save changes')}
       </Button>
