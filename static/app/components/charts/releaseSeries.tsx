@@ -251,7 +251,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     const markLine = MarkLine({
       animation: false,
       lineStyle: {
-        color: theme.colors.blue400,
+        color: theme.tokens.dataviz.semantic.release,
         opacity: 0.3,
         type: 'solid',
         ...lineStyle,
