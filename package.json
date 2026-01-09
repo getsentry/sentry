@@ -185,7 +185,7 @@
   "devDependencies": {
     "@codecov/webpack-plugin": "^1.9.0",
     "@emotion/eslint-plugin": "^11.12.0",
-    "@eslint/js": "9.32.0",
+    "@eslint/js": "9.39.2",
     "@ianvs/prettier-plugin-sort-imports": "4.6.1",
     "@prettier/plugin-oxc": "0.0.4",
     "@sentry-internal/rrweb-types": "2.40.0",
