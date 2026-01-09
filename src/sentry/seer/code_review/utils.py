@@ -27,6 +27,13 @@ class ClientError(Exception):
 
 
 class SeerCodeReviewTrigger(StrEnum):
+    """
+    Internal code review trigger type used for Seer flows.
+
+    This includes all user-configurable CodeReviewTrigger values, plus on_command_phrase,
+    which is always enabled and cannot be turned off by users.
+    """
+
     ON_COMMAND_PHRASE = "on_command_phrase"
     ON_NEW_COMMIT = "on_new_commit"
     ON_READY_FOR_REVIEW = "on_ready_for_review"
