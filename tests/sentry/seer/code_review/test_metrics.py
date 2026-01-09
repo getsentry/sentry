@@ -23,6 +23,7 @@ class TestCodeReviewMetrics:
         mock_metrics.incr.assert_called_once_with(
             f"{METRICS_PREFIX}.webhook.received",
             tags={"github_event": "check_run", "github_event_action": "rerequested"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.seer.code_review.metrics.metrics")
@@ -32,6 +33,7 @@ class TestCodeReviewMetrics:
         mock_metrics.incr.assert_called_once_with(
             f"{METRICS_PREFIX}.webhook.received",
             tags={"github_event": "issue_comment", "github_event_action": "created"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.seer.code_review.metrics.metrics")
@@ -49,6 +51,7 @@ class TestCodeReviewMetrics:
                 "github_event_action": "completed",
                 "reason": "unsupported_action",
             },
+            sample_rate=1.0,
         )
 
     @patch("sentry.seer.code_review.metrics.metrics")
@@ -66,6 +69,7 @@ class TestCodeReviewMetrics:
                 "github_event_action": "created",
                 "reason": "org_not_eligible_for_code_review",
             },
+            sample_rate=1.0,
         )
 
     @patch("sentry.seer.code_review.metrics.metrics")
@@ -75,6 +79,7 @@ class TestCodeReviewMetrics:
         mock_metrics.incr.assert_called_once_with(
             f"{METRICS_PREFIX}.webhook.enqueued",
             tags={"github_event": "check_run", "github_event_action": "rerequested"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.seer.code_review.metrics.metrics")
@@ -92,6 +97,7 @@ class TestCodeReviewMetrics:
                 "github_event_action": "rerequested",
                 "error_type": "invalid_payload",
             },
+            sample_rate=1.0,
         )
 
     @patch("sentry.seer.code_review.metrics.metrics")
@@ -111,4 +117,5 @@ class TestCodeReviewMetrics:
                 "github_event_action": "created",
                 "error_type": "missing_integration",
             },
+            sample_rate=1.0,
         )
