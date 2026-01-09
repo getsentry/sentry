@@ -582,7 +582,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/uptime-preview-check/'
   | '/organizations/$organizationIdOrSlug/uptime-stats/'
   | '/organizations/$organizationIdOrSlug/uptime-summary/'
-  | '/organizations/$organizationIdOrSlug/uptime-validate-check/'
   | '/organizations/$organizationIdOrSlug/uptime/'
   | '/organizations/$organizationIdOrSlug/user-feedback/'
   | '/organizations/$organizationIdOrSlug/user-teams/'
