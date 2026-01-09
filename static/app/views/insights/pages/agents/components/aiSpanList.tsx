@@ -92,7 +92,7 @@ export function AISpanList({
   }, [nodes]);
 
   return (
-    <TraceListContainer>
+    <Stack padding="2xs" gap="xs" overflow="hidden">
       {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
         <Fragment key={transaction.id}>
           <TransactionWrapper
@@ -104,7 +104,7 @@ export function AISpanList({
           />
         </Fragment>
       ))}
-    </TraceListContainer>
+    </Stack>
   );
 }
 
@@ -401,14 +401,6 @@ function hasError(node: AITraceSpanNode) {
 
   return false;
 }
-
-const TraceListContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space['2xs']};
-  overflow: hidden;
-`;
 
 const ListItemContainer = styled('div')<{
   hasErrors: boolean;

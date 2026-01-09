@@ -77,7 +77,7 @@ function WebVitalsLandingPage() {
       <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main width="full">
-            <TopMenuContainer>
+            <Flex gap="xl">
               <ModulePageFilterBar
                 moduleName={ModuleName.VITAL}
                 extraFilters={
@@ -87,7 +87,7 @@ function WebVitalsLandingPage() {
                   </Fragment>
                 }
               />
-            </TopMenuContainer>
+            </Flex>
             <MainContentContainer>
               <ModulesOnboarding moduleName={ModuleName.VITAL}>
                 <PerformanceScoreChartContainer>
@@ -174,11 +174,6 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const TopMenuContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-`;
 
 const PerformanceScoreChartContainer = styled('div')`
   margin-bottom: ${space(1)};
