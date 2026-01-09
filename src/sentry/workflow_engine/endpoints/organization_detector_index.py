@@ -5,8 +5,8 @@ from typing import assert_never
 from django.db import router, transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.query import QuerySet
-from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
-from rest_framework import serializers, status
+from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -73,26 +73,6 @@ detector_search_config = SearchConfig.create_from(
     free_text_key="query",
 )
 parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
-
-
-class APIDocsDetectorSerializer(serializers.Serializer):
-    """
-    Create a monitor
-    ```json
-    {
-        "name": "The name of the monitor",
-        "type": "The type of monitor. Options are: metric_issue, uptime_domain_failure, bar",
-        "config": {
-            "detection_type": "static, TODO: add others",
-            // TODO add anomaly detection config options
-        },
-        "owner": "The user or team who owns the monitor.",
-        "description": "A description of the monitor. Will be displayed in the resulting notification.",
-        "enabled": True,
-        "condition_group": "The condition group. TODO add more here. or just 'see example'?",
-    }
-    ```
-    """
 
 
 def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
@@ -318,16 +298,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
-        request=PolymorphicProxySerializer(
-            "GenericDetectorSerializer",
-            serializers=[
-                gt.detector_settings.validator
-                for gt in grouptype.registry.all()
-                if gt.detector_settings and gt.detector_settings.validator
-            ],
-            resource_type_field_name=None,
-        ),
-        # request=APIDocsDetectorSerializer,
+        request=BaseDetectorTypeValidator,
         responses={
             201: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -335,6 +306,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_DETECTOR,
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
