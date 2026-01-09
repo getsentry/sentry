@@ -102,6 +102,9 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
     for org in RangeQuerySetWrapper(organizations):
         workflows = (
             Workflow.objects.filter(organization=org)
+            .exclude(
+                detectorworkflow__detector__type="error"
+            )  # grouping.grouptype ErrorGroupType.slug
             .select_related("when_condition_group")
             .prefetch_related(
                 Prefetch(
