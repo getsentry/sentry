@@ -107,6 +107,12 @@ def process_github_webhook_event(
         # Check if repo owner is in the whitelist (always send to Seer for these orgs)
         # Otherwise, check option key to see if Overwatch should handle this
         repo_owner = event_payload.get("data", {}).get("repo", {}).get("owner")
+        logger.info("payload: %s", event_payload)
+        if repo_owner:
+            logger.info("repo_owner: %s", repo_owner)
+        else:
+            logger.info("repo_owner not found")
+        logger.info("get_direct_to_seer_gh_orgs: %s", get_direct_to_seer_gh_orgs())
         if repo_owner not in get_direct_to_seer_gh_orgs():
             # If option is True, Overwatch handles this - skip Seer processing
             if option_key and options.get(option_key):
