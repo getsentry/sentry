@@ -24,6 +24,15 @@ pnpm run dev
 pnpm run dev-ui
 ```
 
+### Typechecking
+
+Typecheck the application using the native TypeScript compiler.
+DO NOT attempt to typecheck specific files or directories.
+
+```bash
+pnpm run typecheck
+```
+
 ### Linting
 
 ```bash

@@ -199,6 +199,7 @@
     "@testing-library/user-event": "14.6.1",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
+    "@typescript/native-preview": "7.0.0-dev.20260109.1",
     "babel-jest": "30.0.4",
     "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
@@ -249,6 +250,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
+    "typecheck": "tsgo -p tsconfig.json",
     "type-coverage": "NODE_OPTIONS='--experimental-transform-types' node scripts/type-coverage.ts -p tsconfig.json",
     "test": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --watch",
     "test-ci": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --ci --maxWorkers=75% --colors",
