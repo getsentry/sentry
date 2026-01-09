@@ -223,7 +223,7 @@ describe('NotificationSettingsByType', () => {
 
     expect(await screen.findByText('foo')).toBeInTheDocument();
     await selectEvent.select(screen.getAllByText('On')[1]!, 'Off');
-
+    await userEvent.tab();
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -258,6 +258,7 @@ describe('NotificationSettingsByType', () => {
     });
     const multiSelect = await screen.findByRole('textbox', {name: 'Delivery Method'});
     await selectEvent.select(multiSelect, ['Email']);
+    await userEvent.tab();
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
   });
 
