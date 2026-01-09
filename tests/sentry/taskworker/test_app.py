@@ -12,9 +12,16 @@ def clear_cache():
 
 
 def test_taskregistry_param_and_property():
-    registry = TaskRegistry()
+    registry = TaskRegistry(application="sentry")
     app = TaskworkerApp(taskregistry=registry)
     assert app.taskregistry == registry
+
+
+def test_default_application_name():
+    app = TaskworkerApp()
+    ns = app.taskregistry.create_namespace(name="testing")
+    assert ns.application == "default"
+    assert ns.name == "testing"
 
 
 def test_set_config():
