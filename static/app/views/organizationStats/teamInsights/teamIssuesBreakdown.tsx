@@ -186,7 +186,7 @@ function TeamIssuesBreakdown({
                   .map(action => action.replace('ignore', 'archive'))
                   .map(action => <AlignRight key={action}>{action}</AlignRight>),
                 <AlignRight key="total">
-                  {t('total')} <IconArrow direction="down" size="xs" color="gray300" />
+                  {t('total')} <IconArrow direction="down" size="xs" variant="muted" />
                 </AlignRight>,
               ]}
               isLoading={isPending}
@@ -228,7 +228,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const IssuesChartWrapper = styled(ChartWrapper)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StyledPanelTable = styled(PanelTable)<{numActions: number}>`

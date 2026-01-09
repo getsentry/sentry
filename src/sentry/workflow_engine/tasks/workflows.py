@@ -11,6 +11,8 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import namespaces
@@ -136,6 +138,12 @@ def process_workflows_event(
             evaluation = process_workflows(
                 batch_client, event_data, event_start_time=event_start_time
             )
+            if isinstance(event_data.event, GroupEvent):
+                kick_off_service_hooks(
+                    event_data.event,
+                    evaluation.data.triggered_actions is not None
+                    and len(evaluation.data.triggered_actions) > 0,
+                )
 
     evaluation.log_to(logger)
     duration = time.time() - start_time

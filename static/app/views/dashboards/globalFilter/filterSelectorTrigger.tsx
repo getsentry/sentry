@@ -41,6 +41,8 @@ function FilterSelectorTrigger({
   const filterValue = activeFilterValues[0] ?? '';
   const isDefaultOperator = operator === TermOperator.DEFAULT;
   const opLabel = isDefaultOperator ? ':' : OP_LABELS[operator];
+  const label =
+    options.find(option => option.value === filterValue)?.label || filterValue;
 
   return (
     <ButtonLabelWrapper gap="xs">
@@ -53,7 +55,7 @@ function FilterSelectorTrigger({
           {isAllSelected ? (
             t('All')
           ) : (
-            <FilterValueTruncated>{filterValue}</FilterValueTruncated>
+            <FilterValueTruncated>{label}</FilterValueTruncated>
           )}
         </span>
       )}

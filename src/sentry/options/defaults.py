@@ -690,11 +690,14 @@ register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABL
 # enable verbose debug logging for overwatch webhook forwarding
 register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Control forwarding of specific GitHub webhook types to overwatch (True) or seer (False)
+# Control forwarding of GitHub webhook events to Overwatch
 register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("github.webhook.pr-review-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("github.webhook.pr-review", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# List of GitHub org names that should always send directly to Seer (bypass Overwatch)
+register(
+    "seer.code-review.direct-to-seer-enabled-gh-orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2241,6 +2244,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Skip Snuba query when there are no orgs to query for. This is a rollout flag for a fix
+# that prevents unnecessary Snuba queries.
+register(
+    "dynamic-sampling.skip_snuba_query_for_empty_orgs",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
@@ -3083,6 +3094,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.process-segments.drop-segments",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -3478,13 +3495,6 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Secret Scanning. Email allowlist for notifications.
-register(
-    "secret-scanning.github.notifications.email-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate limiting for the occurrence consumer
 register(
@@ -3784,6 +3794,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Disable paranoia for sentry apps
+register(
+    "sentry-apps.hard-delete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Manual option for hard deleting sentry apps and installations
+register(
+    "sentry-apps.disable-paranoia",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for web vital issue detection
 register(
     "issue-detection.web-vitals-detection.enabled",
@@ -3823,22 +3849,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Project ID allowlist to enable detailed search debug logging for diagnosing
-# bugs with issue feed search.
-register(
-    "snuba.search.debug-log-project-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable truncation of group IDs in Snuba query
+# Option to enable truncation of group IDs in Snuba query
 # when search filters are selective.
 register(
-    "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "snuba.search.truncate-group-ids-for-selective-filters-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organization slug allowlist to enable Autopilot for specific organizations.
@@ -3846,5 +3863,13 @@ register(
     "autopilot.organization-allowlist",
     type=Sequence,
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Global flag to enable API token async flush
+register(
+    "api-token-async-flush",
+    default=False,
+    type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

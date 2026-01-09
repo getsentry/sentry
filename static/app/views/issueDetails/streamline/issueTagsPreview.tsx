@@ -356,7 +356,7 @@ const TagBarPlaceholder = styled('div')`
   height: 8px;
   width: 100%;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
@@ -366,7 +366,7 @@ const TagBarSegment = styled('div')`
   position: absolute;
   top: 0;
   min-width: ${p => p.theme.space['2xs']};
-  border-right: 1px solid ${p => p.theme.translucentBorder};
+  border-right: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &:last-child {
     border-right: none;

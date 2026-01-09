@@ -129,7 +129,7 @@ const TraceIssueLinkContainer = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
   margin: ${space(1)} 0 ${space(1)} 0;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.md};
 

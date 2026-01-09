@@ -1,4 +1,4 @@
-import {Component, Fragment, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -10,16 +10,14 @@ import {
   registerAnchor,
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
-import type {Guide} from 'sentry/components/assistant/types';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import type {GuideStoreState} from 'sentry/stores/guideStore';
 import GuideStore from 'sentry/stores/guideStore';
-import type {Organization} from 'sentry/types/organization';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-type Props = {
+interface Props {
   target: string;
   children?: React.ReactNode;
   /**
@@ -36,12 +34,7 @@ type Props = {
    */
   onStepComplete?: (e: React.MouseEvent) => void;
   position?: React.ComponentProps<typeof Hovercard>['position'];
-  wrapperComponent?: React.ComponentType<{
-    'aria-expanded': React.AriaAttributes['aria-expanded'];
-    children: React.ReactNode;
-    ref: React.RefAttributes<HTMLElement>['ref'];
-  }>;
-};
+}
 
 function ScrollToGuide({children}: {children: React.ReactNode}) {
   const containerElement = useRef<HTMLSpanElement>(null);
@@ -62,55 +55,25 @@ function ScrollToGuide({children}: {children: React.ReactNode}) {
   return <span ref={containerElement}>{children}</span>;
 }
 
-type State = {
-  active: boolean;
-  org: Organization | null;
-  orgId: string | null;
-  orgSlug: string | null;
-  step: number;
-  currentGuide?: Guide;
-};
+function BaseGuideAnchor({
+  target,
+  children,
+  position,
+  offset,
+  containerClassName,
+  onFinish,
+  onStepComplete,
+}: Props) {
+  const {currentGuide, currentStep: step, orgId, forceHide} = useLegacyStore(GuideStore);
 
-class BaseGuideAnchor extends Component<Props, State> {
-  state: State = {
-    active: false,
-    step: 0,
-    orgId: null,
-    orgSlug: null,
-    org: null,
-  };
-
-  componentDidMount() {
-    const {target} = this.props;
+  useEffect(() => {
     registerAnchor(target);
-    this.unsubscribe = GuideStore.listen(
-      (data: GuideStoreState) => this.onGuideStateChange(data),
-      undefined
-    );
-  }
+    return () => {
+      unregisterAnchor(target);
+    };
+  }, [target]);
 
-  componentWillUnmount() {
-    const {target} = this.props;
-    unregisterAnchor(target);
-    this.unsubscribe?.();
-  }
-
-  unsubscribe: ReturnType<typeof GuideStore.listen> | undefined;
-
-  onGuideStateChange(data: GuideStoreState) {
-    const active =
-      data.currentGuide?.steps[data.currentStep]?.target === this.props.target &&
-      !data.forceHide;
-
-    this.setState({
-      active,
-      currentGuide: data.currentGuide ?? undefined,
-      step: data.currentStep,
-      orgId: data.orgId,
-      orgSlug: data.orgSlug,
-      org: data.organization,
-    });
-  }
+  const active = currentGuide?.steps[step]?.target === target && !forceHide;
 
   /**
    * Terminology:
@@ -119,106 +82,101 @@ class BaseGuideAnchor extends Component<Props, State> {
    *  - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x)
    *  - In both cases we consider it CLOSED
    */
-  handleFinish = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    this.props.onStepComplete?.(e);
-    this.props.onFinish?.(e);
+  const handleFinish = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onStepComplete?.(e);
+      onFinish?.(e);
 
-    const {currentGuide, orgId} = this.state;
-    if (currentGuide) {
-      recordFinish(currentGuide.guide, orgId);
-    }
-    closeGuide();
-  };
+      if (currentGuide) {
+        recordFinish(currentGuide.guide, orgId);
+      }
+      closeGuide();
+    },
+    [currentGuide, onFinish, onStepComplete, orgId]
+  );
 
-  handleNextStep = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    this.props.onStepComplete?.(e);
-    nextStep();
-  };
+  const handleNextStep = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onStepComplete?.(e);
+      nextStep();
+    },
+    [onStepComplete]
+  );
 
-  handleDismiss = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const {currentGuide, step, orgId} = this.state;
-    if (currentGuide) {
-      dismissGuide(currentGuide.guide, step, orgId);
-    }
-  };
+  const handleDismiss = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (currentGuide) {
+        dismissGuide(currentGuide.guide, step, orgId);
+      }
+    },
+    [currentGuide, orgId, step]
+  );
 
-  render() {
-    const {children, position, offset, containerClassName, wrapperComponent} = this.props;
-    const {active, currentGuide, step} = this.state;
-
-    if (!active) {
-      return children ? children : null;
-    }
-
-    const totalStepCount = currentGuide?.steps.length ?? 0;
-    const currentStepCount = step + 1;
-    const currentStep = currentGuide?.steps[step]!;
-    const lastStep = currentStepCount === totalStepCount && !currentStep.hasNextGuide;
-    const hasManySteps = totalStepCount > 1;
-
-    return (
-      <TourGuide
-        isOpen
-        title={currentStep.title}
-        description={currentStep.description}
-        stepCount={currentStepCount}
-        stepTotal={totalStepCount}
-        handleDismiss={e => {
-          this.handleDismiss(e);
-          window.location.hash = '';
-        }}
-        wrapperComponent={wrapperComponent ?? GuideAnchorWrapper}
-        actions={
-          <ButtonBar>
-            {lastStep ? (
-              <TourAction size="xs" onClick={this.handleFinish}>
-                {currentStep.nextText ||
-                  (hasManySteps ? t('Enough Already') : t('Got It'))}
-              </TourAction>
-            ) : (
-              <TourAction size="xs" onClick={this.handleNextStep}>
-                {currentStep.nextText || t('Next')}
-              </TourAction>
-            )}
-          </ButtonBar>
-        }
-        className={containerClassName}
-        position={position}
-        offset={offset}
-      >
-        <ScrollToGuide>{children}</ScrollToGuide>
-      </TourGuide>
-    );
+  if (!active) {
+    return children ? children : null;
   }
+
+  const totalStepCount = currentGuide?.steps.length ?? 0;
+  const currentStepCount = step + 1;
+  const currentStep = currentGuide?.steps[step]!;
+  const lastStep = currentStepCount === totalStepCount && !currentStep.hasNextGuide;
+  const hasManySteps = totalStepCount > 1;
+
+  return (
+    <TourGuide
+      isOpen
+      title={currentStep.title}
+      description={currentStep.description}
+      stepCount={currentStepCount}
+      stepTotal={totalStepCount}
+      handleDismiss={e => {
+        handleDismiss(e);
+        window.location.hash = '';
+      }}
+      wrapperComponent={GuideAnchorWrapper}
+      actions={
+        <ButtonBar>
+          {lastStep ? (
+            <TourAction size="xs" onClick={handleFinish}>
+              {currentStep.nextText || (hasManySteps ? t('Enough Already') : t('Got It'))}
+            </TourAction>
+          ) : (
+            <TourAction size="xs" onClick={handleNextStep}>
+              {currentStep.nextText || t('Next')}
+            </TourAction>
+          )}
+        </ButtonBar>
+      }
+      className={containerClassName}
+      position={position}
+      offset={offset}
+    >
+      <ScrollToGuide>{children}</ScrollToGuide>
+    </TourGuide>
+  );
 }
 
 /**
  * Wraps the GuideAnchor so we don't have to render it if it's disabled
  * Using a class so we automatically have children as a typed prop
  */
-type WrapperProps = Props & {
-  children?: React.ReactNode;
+interface WrapperProps extends Props {
   disabled?: boolean;
-  wrapperComponent?: React.CSSProperties;
-};
+}
 
 /**
  * A GuideAnchor puts an informative hovercard around an element. Guide anchors
  * register with the GuideStore, which uses registrations from one or more
  * anchors on the page to determine which guides can be shown on the page.
  */
-function GuideAnchor({disabled, children, wrapperComponent, ...rest}: WrapperProps) {
+function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
   if (disabled) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
-  return (
-    <BaseGuideAnchor wrapperComponent={wrapperComponent} {...rest}>
-      {children}
-    </BaseGuideAnchor>
-  );
+  return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
 }
 
 const GuideAnchorWrapper = styled('span')`

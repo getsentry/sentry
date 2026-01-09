@@ -762,7 +762,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.subText};
   }
   .tooltip-footer {
-    border-top: solid 1px ${p.theme.innerBorder};
+    border-top: solid 1px ${p.theme.tokens.border.secondary};
     text-align: center;
     position: relative;
     width: auto;
@@ -785,7 +785,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
       border-top: none;
       &:before {
         border-top: none;
-        border-bottom: 8px solid ${p.theme.translucentBorder};
+        border-bottom: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
         bottom: -7px;
         top: auto;
       }
@@ -802,7 +802,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &:before {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid ${p.theme.translucentBorder};
+      border-top: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
       content: '';
       display: block;
       position: absolute;

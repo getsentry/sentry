@@ -19,7 +19,7 @@ export function RoleOverwriteIcon(props: Props) {
 
   return (
     <Tooltip title={getOverwriteString(props)}>
-      <IconInfo size="sm" color="gray300" />
+      <IconInfo size="sm" variant="muted" />
     </Tooltip>
   );
 }

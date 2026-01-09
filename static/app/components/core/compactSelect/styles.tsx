@@ -58,7 +58,7 @@ export const ListLabel = styled('p')`
 `;
 
 export const ListSeparator = styled('div')`
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)};
 
   :first-child {
@@ -137,7 +137,7 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
 
 export const SectionSeparator = styled('li')`
   list-style-type: none;
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)};
 
   &:first-of-type {
@@ -175,7 +175,7 @@ export const EmptyMessage = styled('p')`
 `;
 
 export const SizeLimitMessage = styled('li')`
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)} ${space(0.5)};
   padding: ${space(0.75)} ${space(1)} 0;
 

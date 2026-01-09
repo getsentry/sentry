@@ -131,6 +131,6 @@ const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   }
 
   [disabled] {
-    color: ${p => p.theme.disabled};
+    color: ${p => p.theme.tokens.content.disabled};
   }
 `;

@@ -209,7 +209,8 @@ const Timestamp = styled('div')`
   min-width: 50px;
   text-align: right;
   span {
-    text-decoration: underline dashed ${p => p.theme.translucentBorder};
+    text-decoration: underline dashed
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
@@ -223,7 +224,7 @@ const BreadcrumbItem = styled(Timeline.Item)`
     border-image: linear-gradient(
         to right,
         transparent 20px,
-        ${p => p.theme.translucentInnerBorder} 20px
+        ${p => p.theme.tokens.border.secondary} 20px
       )
       100% 1;
   }
