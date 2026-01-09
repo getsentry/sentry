@@ -21,8 +21,6 @@ from .pull_request import handle_pull_request_event
 
 logger = logging.getLogger(__name__)
 
-METRICS_PREFIX = "seer.code_review.webhook"
-
 
 EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, WebhookProcessor] = {
     GithubWebhookType.CHECK_RUN: handle_check_run_event,
@@ -75,10 +73,18 @@ def handle_webhook_event(
         # TODO: add metric
         return
 
+    github_org = event.get("repository", {}).get("owner", {}).get("login")
+    logger.info("github_org: %s", github_org)
+    logger.info("repository: %s", event.get("repository", {}))
+    from .config import get_direct_to_seer_gh_orgs
+
+    gh_orgs_to_only_send_to_seer = get_direct_to_seer_gh_orgs()
+    logger.info("gh_orgs_to_only_send_to_seer: %s", gh_orgs_to_only_send_to_seer)
     handler(
         github_event=github_event,
         event=event,
         organization=organization,
+        github_org=github_org,
         repo=repo,
         integration=integration,
         **kwargs,
