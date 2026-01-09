@@ -29,7 +29,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "crontab",
-                "schedule": '{"value":"0 * * * *"}',  # every hour
+                "schedule": "0 * * * *",  # every hour
                 "failure_issue_threshold": failure_threshold,
                 "recovery_threshold": recovery_threshold,
             },
@@ -56,7 +56,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "crontab",
-                "schedule": '{"value":"0 0 * * *"}',  # daily at midnight
+                "schedule": "0 0 * * *",  # daily at midnight
                 "timezone": tz,
                 "failure_issue_threshold": failure_threshold,
                 "recovery_threshold": recovery_threshold,
@@ -79,7 +79,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "interval",
-                "schedule": '{"value":1,"unit":"hour"}',  # every hour
+                "schedule": [1, "hour"],  # every hour
                 "failure_issue_threshold": failure_threshold,
                 "recovery_threshold": recovery_threshold,
             },
@@ -99,7 +99,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "crontab",
-                "schedule": '{"value":"0 * * * *"}',
+                "schedule": "0 * * * *",
                 "recovery_threshold": 3,
             },
             status_code=400,
@@ -108,7 +108,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "crontab",
-                "schedule": '{"value":"0 * * * *"}',
+                "schedule": "0 * * * *",
                 "failure_issue_threshold": 2,
             },
             status_code=400,
@@ -120,7 +120,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "crontab",
-                "schedule": '{"value":"0 * * * *"}',
+                "schedule": "0 * * * *",
                 "failure_issue_threshold": "",
                 "recovery_threshold": 3,
             },
@@ -152,7 +152,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "crontab",
-                "schedule": '{"value":"0 * * *"}',
+                "schedule": "0 * * *",
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
             },
@@ -164,7 +164,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "interval",
-                "schedule": '{"value":1,"unit":"second"}',
+                "schedule": [1, "second"],
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
             },
@@ -176,7 +176,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "interval",
-                "schedule": '{"value":-1,"unit":"month"}',
+                "schedule": [-1, "month"],
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
             },
@@ -188,7 +188,7 @@ class SampleScheduleWindowTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "schedule_type": "crontab",
-                "schedule": '{"value":"0 * * * *"}',
+                "schedule": "0 * * * *",
                 "failure_issue_threshold": -1,
                 "recovery_threshold": 3,
             },

@@ -19,7 +19,6 @@ from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
 from sentry.monitors.validators import ConfigValidator
-from sentry.utils import json
 
 
 @region_silo_endpoint
@@ -28,10 +27,13 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CRONS
 
     def get(self, request: Request, organization: Organization) -> Response:
-        config_data = request.GET.dict()
-        config_data["schedule"] = (
-            json.loads(config_data.get("schedule")) if config_data.get("schedule") else None
-        )
+        # Convert query params to a form the validator can use
+        config_data: dict[str, list | str] = {}
+        for key, val in request.GET.lists():
+            if key == "schedule" and len(val) > 1:
+                config_data[key] = [int(val[0]), val[1]]
+            else:
+                config_data[key] = val[0]
 
         validator = ConfigValidator(data=config_data)
         if not validator.is_valid():
