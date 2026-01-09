@@ -311,6 +311,40 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
+  it('allows deleting chart when equation is added', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar extras={['equations']} />;
+    }
+
+    render(
+      <Wrapper>
+        <Component />
+      </Wrapper>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default - one chart, no delete button
+    expect(visualizes).toHaveLength(1);
+    expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
+
+    // add an equation
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Equation'}));
+    expect(visualizes).toHaveLength(2);
+
+    // now delete buttons should appear for both chart and equation
+    expect(within(section).getAllByLabelText('Remove Overlay')).toHaveLength(2);
+
+    // delete the first item (the chart)
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
+    expect(visualizes).toHaveLength(1);
+
+    // only one left so we hide the delete button
+    expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
+  });
+
   it('allows changing group bys', async () => {
     let groupBys: any;
 
