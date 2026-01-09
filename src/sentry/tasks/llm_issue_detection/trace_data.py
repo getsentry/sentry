@@ -49,8 +49,6 @@ def get_project_top_transaction_traces_for_llm_detection(
         )
 
     transaction_snuba_params = _build_snuba_params(start_time)
-    random_offset = random.randint(1, 8)
-    trace_snuba_params = _build_snuba_params(start_time + timedelta(minutes=random_offset))
 
     transactions_result = Spans.run_table_query(
         params=transaction_snuba_params,
@@ -62,7 +60,7 @@ def get_project_top_transaction_traces_for_llm_detection(
         orderby=["-sum(span.duration)"],
         offset=0,
         limit=limit,
-        referrer=Referrer.SEER_RPC,
+        referrer=Referrer.ISSUES_LLM_ISSUE_DETECTION_TRANSACTION,
         config=config,
         sampling_mode="NORMAL",
     )
@@ -70,6 +68,8 @@ def get_project_top_transaction_traces_for_llm_detection(
     trace_metadata = []
     seen_names = set()
     seen_trace_ids = set()
+    random_offset = random.randint(1, 8)
+    trace_snuba_params = _build_snuba_params(start_time + timedelta(minutes=random_offset))
 
     for row in transactions_result.get("data", []):
         transaction_name = row.get("transaction")
@@ -88,7 +88,7 @@ def get_project_top_transaction_traces_for_llm_detection(
             orderby=["precise.start_ts"],  # First trace in the window
             offset=0,
             limit=1,
-            referrer=Referrer.SEER_RPC,
+            referrer=Referrer.ISSUES_LLM_ISSUE_DETECTION_TRACE,
             config=config,
             sampling_mode="NORMAL",
         )
@@ -99,10 +99,7 @@ def get_project_top_transaction_traces_for_llm_detection(
             continue
 
         trace_id = data[0].get("trace")
-        if not trace_id:
-            continue
-
-        if trace_id in seen_trace_ids:
+        if not trace_id or trace_id in seen_trace_ids:
             continue
 
         trace_metadata.append(
