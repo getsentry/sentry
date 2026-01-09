@@ -251,12 +251,15 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             break
 
         if not mark_trace_as_processed(trace.trace_id):
-            sentry_sdk.metrics.count("llm_issue_detection.trace.skipped")
+            sentry_sdk.metrics.count(
+                "llm_issue_detection.trace.skipped",
+                1,
+            )
             continue
 
         trace_id = trace.trace_id
         sentry_sdk.metrics.count(
-            "llm_issue_detection.seer_request", attributes={"trace_id": trace_id}
+            "llm_issue_detection.seer_request", 1, attributes={"trace_id": trace_id}
         )
         seer_request = IssueDetectionRequest(
             traces=[trace],
@@ -285,6 +288,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     "trace_id": trace_id,
                 },
             )
+            continue
 
         raw_response_data = response.json()
         response_data = IssueDetectionResponse.parse_obj(raw_response_data)
