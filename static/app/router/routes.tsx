@@ -2650,10 +2650,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
     },
     {
-      path: 'top-issues/',
-      redirectTo: '/organizations/:orgId/issues/dynamic-groups/',
-    },
-    {
       path: 'views/:viewId/',
       component: errorHandler(OverviewWrapper),
     },
