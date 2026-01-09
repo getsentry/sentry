@@ -213,3 +213,40 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
         assert response.status_code == 200, response.content
         data = [attrs for time, attrs in response.data["data"]]
         assert data[0] == [{"count": 3000000}]
+
+    def test_top_events_group_by_app_id(self) -> None:
+        """Test top events with group by app_id."""
+        # Create data for multiple apps
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(hours=1),
+            max_install_size=3000000,
+            size_metric_id=1,
+            app_id="com.example.app1",
+        )
+        Factories.store_preprod_size_metric(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            timestamp=self.start + timedelta(hours=1),
+            max_install_size=1000000,
+            size_metric_id=2,
+            app_id="com.example.app2",
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "max(install_size)",
+                "field": ["app_id", "max(install_size)"],
+                "topEvents": 5,
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        # Response should have data for each app
+        assert "com.example.app1" in response.data
+        assert "com.example.app2" in response.data

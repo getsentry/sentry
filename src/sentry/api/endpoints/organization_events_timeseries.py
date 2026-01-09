@@ -57,6 +57,7 @@ TOP_EVENTS_DATASETS = {
     spans_metrics,
     Spans,
     OurLogs,
+    PreprodSize,
     TraceMetrics,
     errors,
     transactions,
