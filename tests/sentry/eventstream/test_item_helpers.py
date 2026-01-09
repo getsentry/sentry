@@ -7,6 +7,7 @@ from sentry.db.models import NodeData
 from sentry.eventstream.item_helpers import encode_attributes, serialize_event_data_as_item
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
+from sentry.utils.eap import hex_to_item_id, item_id_to_hex
 
 
 class ItemHelpersTest(TestCase):
@@ -282,7 +283,7 @@ class ItemHelpersTest(TestCase):
         event = self.create_group_event(event_data)
         result = serialize_event_data_as_item(event, event_data, project)
 
-        assert result.item_id == int("a" * 32, 16).to_bytes(16, "little")
+        assert result.item_id == hex_to_item_id("a" * 32)
         assert result.item_type == TRACE_ITEM_TYPE_OCCURRENCE
         assert result.trace_id == "b" * 32
         assert result.timestamp.seconds == 1234567890
@@ -422,7 +423,7 @@ class ItemHelpersTest(TestCase):
                 f"for event_id {original_event_id}"
             )
 
-            recovered_event_id = format(int.from_bytes(result.item_id, "little"), "032x")
+            recovered_event_id = item_id_to_hex(result.item_id)
             assert (
                 recovered_event_id == original_event_id
             ), f"Encoding scheme failed for event_id {original_event_id}: got {recovered_event_id}"
