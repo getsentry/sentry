@@ -76,8 +76,11 @@ def unsplit_key(
     return f"mail:p:{project.id}:{target_type.value}:{target_str}:{fallthrough}"
 
 
-def split_rules_by_identifier_key(rules: Sequence[Rule]) -> dict[IdentifierKey, Rule]:
-    parsed_rules = {IdentifierKey.RULE: [], IdentifierKey.WORKFLOW: []}
+def split_rules_by_identifier_key(rules: Sequence[Rule]) -> dict[IdentifierKey, list[Rule]]:
+    parsed_rules: dict[IdentifierKey, list[Rule]] = {
+        IdentifierKey.RULE: [],
+        IdentifierKey.WORKFLOW: [],
+    }
     for rule in rules:
         try:
             key, _ = get_rule_or_workflow_id(rule)
