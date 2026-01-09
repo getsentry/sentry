@@ -148,7 +148,7 @@ function ActionDetails({action, handler}: ActionDetailsProps) {
     <Fragment>
       {action.status === 'disabled' && (
         <IconPadding>
-          <IconWarning color="danger" />
+          <IconWarning variant="danger" />
         </IconPadding>
       )}
       {!Component || !handler ? (
@@ -165,7 +165,7 @@ const Panel = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
   background-color: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.translucentBorder};
+  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   word-break: break-word;
@@ -185,7 +185,7 @@ const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`
     p.showDivider &&
     css`
       padding-top: ${p.theme.space.lg};
-      border-top: 1px solid ${p.theme.translucentBorder};
+      border-top: 1px solid ${p.theme.tokens.border.transparent.neutral.muted};
     `}
 `;
 

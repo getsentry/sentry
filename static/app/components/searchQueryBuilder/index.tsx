@@ -25,11 +25,16 @@ import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SavedSearchType, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import type {FieldKind} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
+
+export type GetTagValues = (
+  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
+  searchQuery: string
+) => Promise<string[]>;
 
 export interface SearchQueryBuilderProps {
   /**
@@ -44,6 +49,11 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  /**
+   * The badge type to display for the AI search option.
+   * Defaults to 'beta'.
+   */
+  aiSearchBadgeType?: 'alpha' | 'beta';
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
@@ -211,7 +221,7 @@ function ActionButtons({
             aria-label={caseInsensitiveLabel}
             aria-pressed={isCaseInsensitive}
             size="zero"
-            icon={<IconCase color={isCaseInsensitive ? 'subText' : 'active'} />}
+            icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
             borderless
             active={!isCaseInsensitive}
             onClick={() => {

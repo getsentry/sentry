@@ -496,7 +496,7 @@ class ActionsPanel extends PureComponent<Props> {
         <ActionSection>
           <Button
             disabled={disabled || loading}
-            icon={<IconAdd color="gray300" />}
+            icon={<IconAdd variant="muted" />}
             onClick={this.handleAddAction}
           >
             {t('Add Action')}
@@ -538,7 +538,7 @@ const PanelItemSelects = styled('div')`
 
 const RuleRowContainer = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
-  border: 1px ${p => p.theme.border} solid;
+  border: 1px ${p => p.theme.tokens.border.primary} solid;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   &:last-child {
     border-radius: ${p => p.theme.radius.md};

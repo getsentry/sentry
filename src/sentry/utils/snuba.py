@@ -940,7 +940,7 @@ class SnubaQueryParams:
         out_groups: set[int | str] = set()
         if "group_id" in self.filter_keys:
             self.filter_keys = self.filter_keys.copy()
-            in_groups = get_all_merged_group_ids(self.filter_keys["group_id"])
+            in_groups = set(self.filter_keys["group_id"])
             del self.filter_keys["group_id"]
 
         new_conditions = []
@@ -953,12 +953,12 @@ class SnubaQueryParams:
             op = triple[1]
             # IN statements need to intersect
             if op == "IN":
-                new_in_groups = get_all_merged_group_ids(triple[2])
+                new_in_groups = set(triple[2])
                 if in_groups is not None:
                     new_in_groups = in_groups.intersection(new_in_groups)
                 in_groups = new_in_groups
             elif op == "=":
-                new_in_groups = get_all_merged_group_ids([triple[2]])
+                new_in_groups = {triple[2]}
                 if in_groups is not None:
                     new_in_groups = in_groups.intersection(new_in_groups)
                 in_groups = new_in_groups
@@ -968,13 +968,13 @@ class SnubaQueryParams:
             elif op == "!=":
                 out_groups.add(triple[2])
 
-        out_groups = get_all_merged_group_ids(list(out_groups))
+        out_groups = get_all_merged_group_ids(out_groups)
         triple = None
         # If there is an "IN" statement, we don't need a "NOT IN" statement. We can
         # just subtract the NOT IN groups from the IN groups.
         if in_groups is not None:
             in_groups.difference_update(out_groups)
-            triple = ["group_id", "IN", in_groups]
+            triple = ["group_id", "IN", get_all_merged_group_ids(in_groups)]
         elif len(out_groups) > 0:
             triple = ["group_id", "NOT IN", out_groups]
 

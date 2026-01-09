@@ -78,7 +78,7 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrDayInPreview {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
 
   .rdrMonth {

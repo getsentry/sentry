@@ -143,17 +143,17 @@ const ConsoleLog = styled('div')<{
 const ICONS = {
   [BreadcrumbLevelType.ERROR]: (
     <Tooltip title={BreadcrumbLevelType.ERROR}>
-      <IconClose size="xs" color="red400" />
+      <IconClose size="xs" variant="danger" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.WARNING]: (
     <Tooltip title={BreadcrumbLevelType.WARNING}>
-      <IconWarning color="yellow400" size="xs" />
+      <IconWarning variant="warning" size="xs" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.INFO]: (
     <Tooltip title={BreadcrumbLevelType.INFO}>
-      <IconInfo color="gray400" size="xs" />
+      <IconInfo variant="primary" size="xs" />
     </Tooltip>
   ),
 };

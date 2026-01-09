@@ -251,7 +251,7 @@ const DetailsLink = styled(Link)`
 `;
 
 const DetailsArea = styled('div')`
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0;
   position: relative;
 `;
@@ -362,7 +362,7 @@ const MonitorEnvContainer = styled('div')`
   padding: ${space(3)} ${space(2)};
   gap: ${space(4)};
   flex-direction: column;
-  border-right: 1px solid ${p => p.theme.innerBorder};
+  border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   text-align: right;
 `;
 

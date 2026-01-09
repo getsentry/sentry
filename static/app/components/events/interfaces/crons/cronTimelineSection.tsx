@@ -147,7 +147,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineLabels)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TimelineWidthTracker = styled('div')`
@@ -158,7 +158,7 @@ const TimelineWidthTracker = styled('div')`
 `;
 
 const EventLineTick = styled('div')<{left: number}>`
-  background: ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   width: 2px;
   height: 100%;
   grid-row: 2 / 3;

@@ -39,7 +39,7 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
+from sentry.taskworker.namespaces import preprod_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -52,8 +52,6 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     retry=Retry(times=3),
     namespace=preprod_tasks,
-    # TODO(EME-242): Remove once inflight tasks done.
-    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -644,8 +642,6 @@ def _assemble_preprod_artifact_size_analysis(
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
-    # TODO(EME-242): Remove once inflight tasks done.
-    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -759,8 +755,6 @@ def _assemble_preprod_artifact_installable_app(
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
     namespace=preprod_tasks,
-    # TODO(EME-242): Remove once inflight tasks done.
-    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )

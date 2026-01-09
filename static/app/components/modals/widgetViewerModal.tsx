@@ -914,7 +914,7 @@ function OpenButton({
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.TRACEMETRICS:
-      openLabel = t('Open in Metrics');
+      openLabel = t('Open in Explore');
       path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.DISCOVER:
@@ -1048,9 +1048,7 @@ function ViewerTableV2({
   const aliases = decodeColumnAliases(
     tableColumns,
     tableWidget.queries[selectedQueryIndex]?.fieldAliases ?? [],
-    tableWidget.widgetType === WidgetType.ISSUE
-      ? datasetConfig?.getFieldHeaderMap?.()
-      : {}
+    datasetConfig?.getFieldHeaderMap?.(tableWidget.queries[selectedQueryIndex]) ?? {}
   );
 
   // Inject any prettified function names that aren't currently aliased into the aliases
@@ -1265,7 +1263,7 @@ const ResultsContainer = styled('div')`
 `;
 
 const EmptyQueryContainer = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;
 
 const WidgetHeader = styled('div')`
