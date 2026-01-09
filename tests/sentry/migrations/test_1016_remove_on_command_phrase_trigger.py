@@ -27,9 +27,7 @@ class RemoveOnCommandPhraseTriggerTest(TestMigrations):
         self.project3 = self.create_project(organization=org)
         self.repo3 = self.create_repo(project=self.project3, name="org/repo3")
         self.repo_settings3 = RepositorySettings.objects.create(
-            repository=self.repo3,
-            enabled_code_review=True,
-            code_review_triggers=[],
+            repository=self.repo3, enabled_code_review=True
         )
 
     def test(self) -> None:
