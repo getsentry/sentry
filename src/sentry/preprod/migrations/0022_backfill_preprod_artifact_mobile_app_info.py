@@ -74,7 +74,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("preprod", "0020_add_preprod_artifact_mobile_app_info"),
+        ("preprod", "0021_add_preprod_artifact_mobile_app_info"),
     ]
 
     operations = [
