@@ -155,8 +155,17 @@ class SlackEntrypointTest(TestCase):
                     {
                         "type": "actions",
                         "elements": [
-                            {"type": "button", "action_id": "seer_autofix_start_root_cause"},
-                            {"type": "button", "action_id": "other_action"},
+                            {
+                                "type": "button",
+                                "action_id": "seer_autofix_start",
+                                "value": AutofixStoppingPoint.SOLUTION.value,
+                                "text": {"type": "plain_text", "text": "Plan a Solution"},
+                            },
+                            {
+                                "type": "button",
+                                "action_id": "other_action",
+                                "text": {"type": "plain_text", "text": "Other Action"},
+                            },
                         ],
                     },
                 ],
@@ -177,8 +186,10 @@ class SlackEntrypointTest(TestCase):
         assert call_args.kwargs["message_ts"] == self.thread_ts
         renderable = call_args.kwargs["renderable"]
         assert len(renderable["blocks"]) == 2
-        assert len(renderable["blocks"][1]["elements"]) == 1
-        assert renderable["blocks"][1]["elements"][0]["action_id"] == "other_action"
+        # The second block is an ActionsBlock with only the non-autofix button remaining
+        actions_block = renderable["blocks"][1]
+        assert len(actions_block.elements) == 1
+        assert actions_block.elements[0].action_id == "other_action"
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
@@ -193,7 +204,12 @@ class SlackEntrypointTest(TestCase):
                     {
                         "type": "actions",
                         "elements": [
-                            {"type": "button", "action_id": "seer_autofix_start_root_cause"}
+                            {
+                                "type": "button",
+                                "action_id": "seer_autofix_start",
+                                "value": AutofixStoppingPoint.SOLUTION.value,
+                                "text": {"type": "plain_text", "text": "Plan a Solution"},
+                            },
                         ],
                     }
                 ],

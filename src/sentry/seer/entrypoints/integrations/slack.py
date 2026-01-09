@@ -122,7 +122,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 channel_id=self.channel_id,
                 message_ts=self.thread_ts,
             )
-        except IntegrationError:
+        except (IntegrationError, TypeError, KeyError):
             logger.exception(
                 "slack.autofix.update_message_failed",
                 extra={
