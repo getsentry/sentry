@@ -134,16 +134,12 @@ class AuthIdentityHandler:
             skip_internal=False,
         )
 
-        # Get the original intended destination for after_2fa, not the current SSO URL
+        # Use the user's original destination (from _next) for 2FA redirect,
+        # falling back to current URL if not set or invalid
         after_2fa_url = self.request.session.get("_next")
-
-        # Validate the URL to prevent open redirect attacks
-        if after_2fa_url and not auth.is_valid_redirect(
+        if not after_2fa_url or not auth.is_valid_redirect(
             after_2fa_url, allowed_hosts=(self.request.get_host(),)
         ):
-            after_2fa_url = None
-
-        if not after_2fa_url:
             after_2fa_url = self.request.build_absolute_uri()
 
         user_was_logged_in = auth.login(
@@ -794,14 +790,18 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             return self.error(ERR_INVALID_IDENTITY)
 
         # Check for provider mismatch - user authenticated with a different provider
-        # than what the organization requires. provider_key is stored in the pipeline
-        # state by the OAuth2/SAML2 callback handlers.
+        # than what the organization requires. This can happen when a user has multiple
+        # SSO sessions in different tabs and completes the wrong one.
         provider_key = data.get("provider_key")
-        expected_provider_key = self.provider.key
-        if provider_key and provider_key != expected_provider_key:
+        if (
+            self.state.flow == FLOW_LOGIN
+            and self.provider_model
+            and provider_key
+            and provider_key != self.provider_model.provider
+        ):
             return self._handle_provider_mismatch(
                 provider_key=provider_key,
-                expected_provider_key=expected_provider_key,
+                expected_provider_key=self.provider_model.provider,
             )
 
         try:
