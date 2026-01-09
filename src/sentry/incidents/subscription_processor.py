@@ -204,13 +204,21 @@ class SubscriptionProcessor:
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
-            self.subscription.project
+            self.subscription.set_cached_field_value(
+                "project",
+                Project.objects.get_from_cache(id=self.subscription.project_id),
+            )
         except Project.DoesNotExist:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
             return False
         if self.subscription.project.status != ObjectStatus.ACTIVE:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
             return False
+
+        self.subscription.project.set_cached_field_value(
+            "organization",
+            Organization.objects.get_from_cache(id=self.subscription.project.organization_id),
+        )
 
         organization = self.subscription.project.organization
 
