@@ -583,22 +583,7 @@ def generate_incident_trigger_email_context(
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
-    if features.has("organizations:workflow-engine-ui-links", organization):
-        assert (
-            metric_issue_context.group is not None
-        ), "Group should not be None when workflow engine ui links are enabled"
-        alert_link = organization.absolute_url(
-            reverse(
-                "sentry-group",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "project_id": project.id,
-                    "group_id": metric_issue_context.group.id,
-                },
-            ),
-            query=urlencode(alert_link_params),
-        )
-    elif should_fire_workflow_actions(organization, MetricIssue.type_id):
+    if should_fire_workflow_actions(organization, MetricIssue.type_id):
         # lookup the incident_id from the open_period_identifier
         try:
             incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
@@ -632,14 +617,10 @@ def generate_incident_trigger_email_context(
             ),
             query=urlencode(alert_link_params),
         )
-
-    snooze_alert_url = None
-    snooze_alert = False
     # We don't have user muting for workflows in the new workflow engine system
     # so we don't need to show the snooze alert url
-    if not features.has("organizations:workflow-engine-ui-links", organization):
-        snooze_alert = True
-        snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
+    snooze_alert_url = None
+    snooze_alert = False
 
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     return {
