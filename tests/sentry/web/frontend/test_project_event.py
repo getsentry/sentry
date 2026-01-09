@@ -29,6 +29,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         self.assertRedirects(
             resp,
             f"http://testserver/organizations/{self.org.slug}/issues/{self.event.group_id}/events/{self.event.event_id}/",
+            fetch_redirect_response=False,
         )
 
     def test_event_not_found(self) -> None:
@@ -79,7 +80,7 @@ class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
         self.org.refresh_from_db()
         resp = self.client.get(
             reverse(
-                "sentry-project-event-redirect",
+                "sentry-organization-project-event-redirect",
                 args=[self.org.slug, self.project.slug, self.event.event_id],
             )
         )
