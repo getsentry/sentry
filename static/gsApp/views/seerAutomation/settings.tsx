@@ -104,7 +104,6 @@ export default function SeerAutomationSettings() {
               ],
             },
             {
-              // title: t('Default Code Review for New Repos'),
               title: (
                 <Flex gap="md">
                   <span>{t('Default Code Review for New Repos')}</span>
