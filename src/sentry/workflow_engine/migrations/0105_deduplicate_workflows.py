@@ -21,11 +21,21 @@ class WorkflowData:
     def serialize(self) -> str:
         # Extract triggers
         trigger_conditions = []
-        if self.workflow.when_condition_group and hasattr(
-            self.workflow.when_condition_group, "prefetched_trigger_conditions"
-        ):
-            for condition in self.workflow.when_condition_group.prefetched_trigger_conditions:
-                trigger_conditions.append(
+        for condition in self.workflow.when_condition_group.prefetched_trigger_conditions:
+            trigger_conditions.append(
+                {
+                    "type": condition.type,
+                    "comparison": condition.comparison,
+                    "result": condition.condition_result,
+                }
+            )
+
+        # Extract action groups
+        action_groups = []
+        for wdcg in self.workflow.prefetched_action_groups:
+            group_conditions = []
+            for condition in wdcg.condition_group.prefetched_conditions:
+                group_conditions.append(
                     {
                         "type": condition.type,
                         "comparison": condition.comparison,
@@ -33,59 +43,49 @@ class WorkflowData:
                     }
                 )
 
-        # Extract action groups
-        action_groups = []
-        if hasattr(self.workflow, "prefetched_action_groups"):
-            for wdcg in self.workflow.prefetched_action_groups:
-                group_conditions = []
-                for condition in wdcg.condition_group.prefetched_conditions:
-                    group_conditions.append(
-                        {
-                            "type": condition.type,
-                            "comparison": condition.comparison,
-                            "result": condition.condition_result,
-                        }
-                    )
-
-                group_actions = []
-                for action_data in wdcg.condition_group.prefetched_actions:
-                    group_actions.append(
-                        {
-                            "type": action_data.action.type,
-                            "config": action_data.action.config,
-                        }
-                    )
-
-                # Sort conditions and actions for consistent hashing
-                group_conditions.sort(key=lambda c: (c["type"], json.dumps(c["comparison"])))
-                group_actions.sort(key=lambda a: (a["type"], json.dumps(a["config"])))
-
-                action_groups.append(
+            group_actions = []
+            for action_data in wdcg.condition_group.prefetched_actions:
+                group_actions.append(
                     {
-                        "conditions": group_conditions,
-                        "actions": group_actions,
+                        "type": action_data.action.type,
+                        "config": action_data.action.config,
                     }
                 )
 
+            # Sort conditions and actions for consistent hashing
+            group_conditions.sort(
+                key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
+            )
+            group_actions.sort(key=lambda a: (a["type"], json.dumps(a["config"], sort_keys=True)))
+
+            action_groups.append(
+                {
+                    "conditions": group_conditions,
+                    "actions": group_actions,
+                }
+            )
+
         # Sort trigger conditions and action groups for consistent hashing
-        trigger_conditions.sort(key=lambda c: (c["type"], json.dumps(c["comparison"])))
-        action_groups.sort(key=lambda g: json.dumps(g))
+        trigger_conditions.sort(
+            key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
+        )
+        action_groups.sort(key=lambda g: json.dumps(g, sort_keys=True))
 
         workflow_data = {
-            "organization_id": self.workflow.organization_id,
+            "action_groups": action_groups,
+            "config": self.workflow.config,
             "environment_id": self.workflow.environment_id,
             "enabled": self.workflow.enabled,
-            # "config": self.workflow.config,  # TODO - this is breaking deduplication for some reason?
+            "organization_id": self.workflow.organization_id,
             "trigger_conditions": trigger_conditions,
-            "action_groups": action_groups,
         }
 
         return json.dumps(workflow_data)
 
 
+# TODO - This seems like it shouldn't be a migration, and instead a button the user clicks.
 def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Organization = app.get_model("sentry", "Organization")
-
     Action = app.get_model("workflow_engine", "Action")
     AlertRuleWorkflow = app.get_model("workflow_engine", "AlertRuleWorkflow")
     DataCondition = app.get_model("workflow_engine", "DataCondition")
@@ -155,8 +155,7 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
             if len(workflow_ids) <= 1:
                 continue
 
-            # Get the canonical version of the workflow, just use the first one created
-            canonical_workflow_id = workflow_ids.pop(0)
+            canonical_workflow_id = workflow_ids.pop()
 
             # Update the DetectorWorkflow references to use the canonical version
             DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
