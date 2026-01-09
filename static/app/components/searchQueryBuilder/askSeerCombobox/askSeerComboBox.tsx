@@ -249,6 +249,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             query={item?.query}
             groupBys={item?.groupBys}
             statsPeriod={item?.statsPeriod}
+            start={item?.start}
+            end={item?.end}
             visualizations={item?.visualizations}
           />
         </Item>
@@ -520,7 +522,7 @@ const PositionedSearchIconContainer = styled('div')`
 `;
 
 const SearchIcon = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
 `;
 
@@ -558,7 +560,7 @@ const InvisibleInput = styled('input')`
   }
 
   [disabled] {
-    color: ${p => p.theme.disabled};
+    color: ${p => p.theme.tokens.content.disabled};
   }
 `;
 
@@ -576,7 +578,7 @@ const SeerFooter = styled('div')`
   display: flex;
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 

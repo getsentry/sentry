@@ -412,7 +412,7 @@ const TopFrameworkIcon = styled(PlatformIcon, {
   position: absolute;
   top: 50%;
   left: 50%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TopFrameworksImageWrapper = styled('div')`
@@ -469,12 +469,12 @@ const PlatformListItem = styled(ListItem)`
   text-align: left;
   cursor: pointer;
   :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const PlatformListItemIcon = styled(PlatformIcon)`
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RadioLabel = styled(RadioLineItem)`

@@ -198,7 +198,7 @@ function AssigneeAvatar({
         </TooltipWrapper>
       }
     >
-      <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
+      <StyledIconUser data-test-id="unassigned" size="md" variant="primary" />
     </Tooltip>
   );
 }
@@ -599,16 +599,16 @@ const TooltipWrapper = styled('div')`
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FooterWrapper = styled('div')`

@@ -1,5 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -7,7 +7,7 @@ import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node} from '@react-types/shared';
+import type {Node, Orientation} from '@react-types/shared';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 
@@ -21,9 +21,45 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
-import type {BaseTabProps} from './tab.chonk';
-import {ChonkStyledTabListOverflowWrap, ChonkStyledTabListWrap} from './tabList.chonk';
+import type {BaseTabProps} from './tab';
 import {TabsContext} from './tabs';
+import {tabsShouldForwardProp} from './utils';
+
+const StyledTabListWrap = styled('ul', {
+  shouldForwardProp: tabsShouldForwardProp,
+})<{
+  orientation: Orientation;
+  variant: BaseTabProps['variant'];
+}>`
+  position: relative;
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  flex-shrink: 0;
+  gap: ${p => p.theme.space.xs};
+
+  ${p =>
+    p.orientation === 'horizontal'
+      ? css`
+          grid-auto-flow: column;
+          justify-content: start;
+        `
+      : css`
+          height: 100%;
+          grid-auto-flow: row;
+          align-content: start;
+          padding-right: ${space(0.5)};
+        `};
+`;
+
+const StyledTabListOverflowWrap = styled('div')`
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;
 
 /**
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
@@ -293,9 +329,9 @@ const TabListOuterWrap = styled('div')`
   position: relative;
 `;
 
-const TabListWrap = ChonkStyledTabListWrap;
+const TabListWrap = StyledTabListWrap;
 
-const TabListOverflowWrap = ChonkStyledTabListOverflowWrap;
+const TabListOverflowWrap = StyledTabListOverflowWrap;
 
 const OverflowMenuTrigger = styled(SelectTrigger.IconButton)`
   padding-left: ${space(1)};

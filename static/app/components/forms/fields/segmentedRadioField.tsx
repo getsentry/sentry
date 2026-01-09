@@ -117,7 +117,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
   font-weight: ${p => p.theme.fontWeight.normal};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0;
 
   &[aria-checked='true'] {
@@ -174,7 +174,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.4em;
 `;

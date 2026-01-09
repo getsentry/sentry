@@ -190,7 +190,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   if (props.disabled) {
     return css`
       ${common}
-      color: ${props.theme.disabled};
+      color: ${props.theme.tokens.content.disabled};
       background: transparent;
       cursor: not-allowed;
     `;
@@ -212,7 +212,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     ${common}
 
     &:hover {
-      background: ${props.theme.hover};
+      background: ${props.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   `;
 }
@@ -242,7 +242,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
   ${p =>
     p.withBorder &&
     css`
-      border-bottom: 1px solid ${p.theme.innerBorder};
+      border-bottom: 1px solid ${p.theme.tokens.border.secondary};
 
       &:last-child {
         border-bottom: none;
@@ -254,7 +254,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
       height: 1px;
       margin: ${space(0.5)} 0;
       overflow: hidden;
-      background-color: ${p.theme.innerBorder};
+      background-color: ${p.theme.tokens.border.secondary};
     `}
   ${p =>
     p.header &&
@@ -262,7 +262,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
       padding: ${space(0.25)} ${space(0.5)};
       font-size: ${p.theme.fontSize.sm};
       line-height: 1.4;
-      color: ${p.theme.subText};
+      color: ${p.theme.tokens.content.secondary};
     `}
 
   ${getChildStyles}

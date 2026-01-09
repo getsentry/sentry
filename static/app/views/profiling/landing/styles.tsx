@@ -26,7 +26,7 @@ export const HeaderTitleLegend = styled(_HeaderTitleLegend)`
 `;
 
 export const Subtitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   display: inline-block;
 `;
@@ -57,7 +57,7 @@ export const AccordionItem = styled('li')`
   line-height: ${p => p.theme.text.lineHeightBody};
   align-items: center;
   gap: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(0.5)} ${space(2)};
   font-size: ${p => p.theme.fontSize.md};
   min-height: 35px;

@@ -674,7 +674,7 @@ export default function ProjectSeerContainer() {
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
       <FeatureDisabled
-        features={['autofix-seer-preferences']}
+        features={['organizations:autofix-seer-preferences']}
         hideHelpToggle
         message={t('Autofix is not enabled for this organization.')}
         featureName={t('Autofix')}
@@ -687,7 +687,7 @@ export default function ProjectSeerContainer() {
 
 const Subheading = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
   margin-top: ${space(1)};

@@ -36,4 +36,11 @@ describe('Image', () => {
 
     expect(img).toHaveAttribute('src', 'https://example.com/image.png');
   });
+
+  it('renders with aspect-ratio prop', () => {
+    render(
+      <Image src="https://example.com/image.png" alt="Example Image" aspectRatio="16/9" />
+    );
+    expect(screen.getByRole('img')).toBeInTheDocument();
+  });
 });

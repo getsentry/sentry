@@ -259,7 +259,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <Button
                         size="sm"
                         borderless
-                        icon={<IconDelete size="sm" color="subText" />}
+                        icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
                         title={t('Remove override')}
@@ -332,7 +332,7 @@ const RepoName = styled('div')`
 
 const RepoProvider = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 
@@ -342,11 +342,11 @@ const ExpandedContent = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SettingsGroup = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-bottom: ${p => p.theme.space.lg};
   padding-top: ${p => p.theme.space.lg};
 
@@ -366,7 +366,7 @@ const BranchInputLabel = styled('label')`
 
 const SubHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -414,7 +414,7 @@ const RepoInfoWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 const AddOverrideButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BranchOverridesList = styled('div')`

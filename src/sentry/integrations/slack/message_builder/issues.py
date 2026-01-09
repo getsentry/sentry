@@ -59,7 +59,6 @@ from sentry.notifications.notification_action.utils import should_fire_workflow_
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import SeerAutofixTrigger
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -71,6 +70,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.users.services.user.model import RpcUser
+from sentry.workflow_engine.models import Workflow
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -672,10 +672,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.rules:
             if features.has("organizations:workflow-engine-ui-links", self.group.organization):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
+                workflow = Workflow.objects.filter(id=rule_id).first()
+                rule_environment_id = workflow.environment_id if workflow else None
             elif should_fire_workflow_actions(self.group.organization, self.group.type):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
+                rule = Rule.objects.filter(id=rule_id).first()
+                rule_environment_id = rule.environment_id if rule else None
             else:
                 rule_id = self.rules[0].id
+                rule_environment_id = self.rules[0].environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -768,7 +773,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if features.has("organizations:seer-slack-workflows", self.group.organization):
             autofix_button: ButtonElement = SeerSlackRenderer.render_autofix_button(
-                data=SeerAutofixTrigger(source=NotificationTemplateSource.SEER_AUTOFIX_TRIGGER)
+                data=SeerAutofixTrigger(
+                    group_id=self.group.id,
+                    project_id=self.group.project_id,
+                    organization_id=self.group.project.organization_id,
+                )
             )
             # We have to coerce this since we're not using the proper SlackSDK client to emit this
             # notification yet, it just takes JSON.

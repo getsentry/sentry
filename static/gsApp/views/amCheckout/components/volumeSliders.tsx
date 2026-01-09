@@ -53,7 +53,7 @@ export function renderPerformanceHovercard() {
       body={renderHovercardBody()}
     >
       <IconContainer>
-        <IconQuestion size="xs" color="subText" />
+        <IconQuestion size="xs" variant="muted" />
       </IconContainer>
     </StyledHovercard>
   );
@@ -245,7 +245,7 @@ export default VolumeSliders;
 const SlidersContainer = styled('div')`
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.xl};
   > :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -277,7 +277,7 @@ const SpaceBetweenGrid = styled('div')`
 
 const Description = styled(SpaceBetweenGrid)`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MinMax = styled(Description)`
@@ -295,7 +295,7 @@ const StyledHovercard = styled(Hovercard)`
   width: 400px;
 
   ${Header} {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-transform: uppercase;
     font-size: ${p => p.theme.fontSize.sm};
     border-radius: 6px 6px 0px 0px;

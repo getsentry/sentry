@@ -70,15 +70,15 @@ export function getArtifactIcon(
 ): React.ReactNode {
   switch (artifactType) {
     case 'root_cause':
-      return <IconFocus size={size} color="pink400" />;
+      return <IconFocus size={size} variant="promotion" />;
     case 'solution':
-      return <IconFix size={size} color="success" />;
+      return <IconFix size={size} variant="success" />;
     case 'impact_assessment':
-      return <IconFire size={size} color="error" />;
+      return <IconFire size={size} variant="danger" />;
     case 'triage':
-      return <IconGroup size={size} color="blue400" />;
+      return <IconGroup size={size} variant="accent" />;
     case 'code_changes':
-      return <IconCode size={size} color="blue400" />;
+      return <IconCode size={size} variant="accent" />;
     default:
       return null;
   }
@@ -241,13 +241,13 @@ function ImpactTreeRow({
 
   const getSeverityIcon = () => {
     if (impact.rating === 'high') {
-      return <IconFatal size="xs" color="error" />;
+      return <IconFatal size="xs" variant="danger" />;
     }
     if (impact.rating === 'medium') {
-      return <IconWarning size="xs" color="warning" />;
+      return <IconWarning size="xs" variant="warning" />;
     }
     if (impact.rating === 'low') {
-      return <IconCheckmark size="xs" color="success" />;
+      return <IconCheckmark size="xs" variant="success" />;
     }
     return null;
   };
@@ -641,7 +641,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                         {hasAssigneeMatch && userForAvatar ? (
                           <UserAvatar user={userForAvatar} size={24} gravatar />
                         ) : (
-                          <IconUser size="md" color="gray400" />
+                          <IconUser size="md" variant="muted" />
                         )}
                         <Flex direction="column" gap="xs">
                           <Text size="lg">{typedData.suggested_assignee?.name}</Text>
@@ -783,7 +783,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
   :nth-child(odd) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.background};
   ${p =>
     p.$isClickable &&
@@ -791,7 +791,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
     cursor: pointer;
 
     &:hover {
-      background-color: ${p.theme.hover};
+      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   `}
 `;
@@ -799,14 +799,15 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -847,22 +848,22 @@ const ImpactTreeKeyContainer = styled('div')`
 `;
 
 const TreeSubValue = styled(TreeValue)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SolutionTreeValue = styled(TreeValue)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoName = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoSection = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space['2xl']};
     padding-bottom: ${p => p.theme.space['2xl']};
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

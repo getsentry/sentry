@@ -126,7 +126,7 @@ const Heading = styled('span')`
 `;
 
 const SubText = styled(TextBlock)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;
 

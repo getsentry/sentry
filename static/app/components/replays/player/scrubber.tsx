@@ -149,7 +149,7 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${Meter} {
     border-radius: ${p => p.theme.radius.md};
-    background: ${p => p.theme.translucentInnerBorder};
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   ${RangeWrapper} {
@@ -180,7 +180,7 @@ export const PlayerScrubber = styled(Scrubber)`
   }
 
   ${MouseTrackingValue} {
-    background: ${p => p.theme.translucentBorder};
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
     border-radius: ${p => p.theme.radius.md};
 
     /**

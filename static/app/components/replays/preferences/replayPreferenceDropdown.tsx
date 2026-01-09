@@ -118,5 +118,5 @@ export default function ReplayPreferenceDropdown({
 }
 
 const DurationDisplay = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

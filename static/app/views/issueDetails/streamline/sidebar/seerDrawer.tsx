@@ -558,7 +558,7 @@ const PlaceholderStack = styled('div')`
 const StyledCard = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   overflow: visible;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -577,7 +577,7 @@ const SeerDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SeerDrawerNavigator = styled('div')`
@@ -587,7 +587,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
 const SeerDrawerBody = styled(DrawerBody)`

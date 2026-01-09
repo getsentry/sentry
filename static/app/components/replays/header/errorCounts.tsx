@@ -140,7 +140,7 @@ const Count = styled('span')`
 `;
 
 const ErrorCount = styled(Count)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ColumnTooltipContent = styled(CountTooltipContent)`

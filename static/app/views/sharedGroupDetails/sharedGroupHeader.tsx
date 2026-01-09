@@ -64,7 +64,7 @@ export default SharedGroupHeader;
 
 const Wrapper = styled('div')`
   padding: ${space(3)} ${space(4)} ${space(3)} ${space(4)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
 `;
 
@@ -97,6 +97,6 @@ const TimeStamp = styled('div')`
 `;
 
 const EventTimeLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.25)};
 `;

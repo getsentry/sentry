@@ -239,6 +239,17 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID.",
         },
     ),
+    "spans.process-segments.drop-segments": KillswitchInfo(
+        description="""
+        Drop segments in the process-segments consumer based on organization ID.
+
+        This allows shedding load quickly if a particular organization is generating
+        excessive segments.
+        """,
+        fields={
+            "org_id": "An organization ID to filter segments by.",
+        },
+    ),
 }
 
 

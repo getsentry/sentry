@@ -698,7 +698,7 @@ class _QueryField extends Component<Props> {
           />
           {error ? (
             <ArithmeticError title={error}>
-              <IconWarning color="errorText" data-test-id="arithmeticErrorWarning" />
+              <IconWarning variant="danger" data-test-id="arithmeticErrorWarning" />
             </ArithmeticError>
           ) : null}
         </Container>
@@ -865,7 +865,7 @@ const BlankSpace = styled('div')`
   &:after {
     font-size: ${p => p.theme.fontSize.md};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
