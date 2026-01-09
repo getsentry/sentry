@@ -721,7 +721,7 @@ const RadioMarker = styled(Container)<{isSelected: boolean}>`
 `;
 
 const InnerContainer = styled(Flex)`
-  border-bottom: 3px solid ${p => p.theme.border};
+  border-bottom: 3px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
 `;
 

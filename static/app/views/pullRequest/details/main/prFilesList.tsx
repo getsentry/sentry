@@ -252,7 +252,7 @@ const LineNumber = styled('td')`
   width: 50px;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   text-align: right;
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.subText};
   font-size: 10px;
@@ -260,11 +260,11 @@ const LineNumber = styled('td')`
   vertical-align: top;
 
   &.old-line-number {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   &.new-line-number {
-    border-right: 2px solid ${p => p.theme.border};
+    border-right: 2px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

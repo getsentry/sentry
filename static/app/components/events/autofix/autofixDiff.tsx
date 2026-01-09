@@ -692,8 +692,9 @@ const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   }
   line-height: 20px;
   vertical-align: middle;
-  border: 1px solid ${p => p.theme.border};
-  border-color: ${p => (p.integratedStyle ? 'transparent' : p.theme.border)};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-color: ${p =>
+    p.integratedStyle ? 'transparent' : p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   background-color: ${p => p.theme.tokens.background.primary};
@@ -717,7 +718,7 @@ const FileAddedRemoved = styled('div')`
 `;
 
 const FileAdded = styled('div')`
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const FileRemoved = styled('div')`
@@ -837,7 +838,7 @@ const EditOverlay = styled('div')`
   left: 50%;
   right: ${space(2)};
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -852,7 +853,7 @@ const EditOverlay = styled('div')`
 
 const OverlayHeader = styled('div')`
   padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayContent = styled('div')`
@@ -862,7 +863,7 @@ const OverlayContent = styled('div')`
 
 const OverlayFooter = styled('div')`
   padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayButtonGroup = styled('div')`
@@ -889,13 +890,13 @@ const RemovedLine = styled('div')`
 const StyledTextArea = styled(TextArea)`
   font-family: ${p => p.theme.text.familyMono};
   background-color: ${DIFF_COLORS.addedRow};
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.tokens.border.primary};
   position: relative;
   min-height: 250px;
 
   &:focus {
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.focus.default};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 

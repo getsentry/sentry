@@ -1168,6 +1168,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:toolbar_allowed_origins": "\n".join(
                 self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
             ),
+            "sentry:preprod_size_status_checks_enabled": options.get(
+                "sentry:preprod_size_status_checks_enabled", False
+            ),
+            "sentry:preprod_size_status_checks_rules": options.get(
+                "sentry:preprod_size_status_checks_rules"
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
 

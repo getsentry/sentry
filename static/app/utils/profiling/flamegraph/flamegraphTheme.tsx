@@ -337,10 +337,10 @@ export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
       CHART_CURSOR_INDICATOR: theme.subText,
       CHART_LABEL_COLOR: theme.subText,
-      CURSOR_CROSSHAIR: theme.border,
+      CURSOR_CROSSHAIR: theme.tokens.border.primary,
 
       // Special states
-      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
+      FOCUSED_FRAME_BORDER_COLOR: theme.tokens.focus.default,
       HIGHLIGHTED_LABEL_COLOR: theme.tokens.background.warning.vibrant,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
       SELECTED_FRAME_BORDER_COLOR: theme.tokens.graphics.accent.vibrant,

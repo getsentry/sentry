@@ -125,7 +125,7 @@ const Table = styled('table')`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border-collapse: separate;
-  border: 1px ${p => 'solid ' + p.theme.border};
+  border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
   box-shadow: ${p => p.theme.dropShadowMedium};
   margin-bottom: ${space(2)};
   width: 100%;

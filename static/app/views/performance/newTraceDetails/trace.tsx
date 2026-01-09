@@ -740,7 +740,7 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     height: 38px;
     background-color: ${p => p.theme.tokens.background.primary};
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     z-index: 10;
   }
 
@@ -873,7 +873,7 @@ const TraceStylingWrapper = styled('div')`
 
     &.None {
       color: ${p => p.theme.subText};
-      border: 1px solid ${p => p.theme.border};
+      border: 1px solid ${p => p.theme.tokens.border.primary};
 
       &.light {
         background-color: rgb(245 245 245);

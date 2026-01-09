@@ -59,7 +59,7 @@ const SidebarPanelItemRoot = styled('div')`
   padding: ${space(2)} 0;
 
   :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

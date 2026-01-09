@@ -55,6 +55,7 @@ class Condition(StrEnum):
     ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
     ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
+    ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"

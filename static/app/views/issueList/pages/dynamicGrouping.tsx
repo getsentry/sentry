@@ -1239,7 +1239,7 @@ const CardsColumn = styled('div')`
 const CardContainer = styled('div')`
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
@@ -1438,7 +1438,7 @@ const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   transition:
     border-color 0.15s ease,
@@ -1503,7 +1503,7 @@ const TagPill = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -1537,7 +1537,7 @@ const ShowMoreButton = styled('button')`
   margin-top: ${space(3)};
   padding: ${space(2)} ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
@@ -1558,7 +1558,7 @@ const JsonInputContainer = styled('div')`
   margin-bottom: ${space(2)};
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 

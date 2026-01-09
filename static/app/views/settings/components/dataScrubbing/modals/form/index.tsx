@@ -473,7 +473,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
     p.isExpanded &&
     css`
       border-radius: ${p.theme.radius.md};
-      border: 1px solid ${p.theme.border};
+      border: 1px solid ${p.theme.tokens.border.primary};
       box-shadow: ${p.theme.dropShadowMedium};
       margin: ${space(2)} 0 ${space(3)} 0;
       padding: ${space(2)};

@@ -168,8 +168,8 @@ export const DetailsWrapper = styled('tr')`
   white-space: nowrap;
   grid-column: 1 / -1;
   display: grid;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${1 /* place above the grid resizing lines */};
 `;
 
