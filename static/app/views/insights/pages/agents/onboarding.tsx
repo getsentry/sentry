@@ -386,7 +386,7 @@ function NoDocsOnboarding({project}: {project: Project}) {
             'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/" />
+                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
               ),
             }
           )}
