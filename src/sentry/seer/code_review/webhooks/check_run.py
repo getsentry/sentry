@@ -18,7 +18,6 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -78,7 +77,6 @@ def handle_check_run_event(
     *,
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
-    organization: Organization,
     **kwargs: Any,
 ) -> None:
     """
