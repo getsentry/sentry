@@ -35,10 +35,26 @@ def invoke_checker_validator(
     validation_enabled: bool, check_config: CheckConfig, region: UptimeRegionConfig
 ) -> requests.Response | None:
     if not validation_enabled:
-        return
+        return None
 
     result = requests.post(
         f"http://{region.api_endpoint}/validate_check",
+        json=check_config,
+        timeout=10,
+    )
+
+    return result
+
+
+# Call into the uptime checker to execute the check config
+def invoke_checker_preview(
+    assertions_enabled: bool, check_config: CheckConfig, region: UptimeRegionConfig
+) -> requests.Response | None:
+    if not assertions_enabled:
+        return None
+
+    result = requests.post(
+        f"http://{region.api_endpoint}/execute_config",
         json=check_config,
         timeout=10,
     )

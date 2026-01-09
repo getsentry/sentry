@@ -179,9 +179,9 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
         choices=[r.slug for r in settings.UPTIME_REGIONS],
     )
 
-    def __init__(self, validation_enabled, **kwargs: Any):
+    def __init__(self, assertions_enabled, **kwargs: Any):
         super().__init__(**kwargs)
-        self.validation_enabled = validation_enabled
+        self.assertions_enabled = assertions_enabled
 
     def validate(self, attrs):
         _validate_request_size(
@@ -191,10 +191,11 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
             attrs.get("body", None),
         )
         region_config = get_region_config(attrs["region"])
+        assert region_config is not None
         check_config = checker_api.create_preview_check(attrs, region_config)
 
         result = checker_api.invoke_checker_validator(
-            self.validation_enabled, check_config, region_config
+            self.assertions_enabled, check_config, region_config
         )
         if result is not None and result.status_code >= 400:
             raise serializers.ValidationError({"assertion": result.json()})
@@ -207,9 +208,9 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
         return _validate_headers(headers)
 
     def create(self, validated_data):
-        return checker_api.create_preview_check(
-            validated_data, get_region_config(validated_data["region"])
-        )
+        region_config = get_region_config(validated_data["region"])
+        assert region_config is not None
+        return checker_api.create_preview_check(validated_data, region_config)
 
 
 @extend_schema_serializer()
@@ -259,9 +260,9 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         help_text="Number of consecutive failed checks required to mark monitor as down.",
     )
 
-    def __init__(self, validation_enabled, **kwargs):
+    def __init__(self, assertions_enabled, **kwargs):
         super().__init__(**kwargs)
-        self.validation_enabled = validation_enabled
+        self.assertions_enabled = assertions_enabled
 
     def validate(self, attrs):
         # When creating a new uptime monitor, check if we would exceed the organization limit
@@ -293,8 +294,9 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         )
 
         region = get_region_config(get_active_regions()[0].slug)
+        assert region is not None
         check_config = checker_api.create_preview_check(attrs, region)
-        result = checker_api.invoke_checker_validator(self.validation_enabled, check_config, region)
+        result = checker_api.invoke_checker_validator(self.assertions_enabled, check_config, region)
         if result is not None and result.status_code >= 400:
             raise serializers.ValidationError({"assertion": result.json()})
 

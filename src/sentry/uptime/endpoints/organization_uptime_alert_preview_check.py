@@ -1,6 +1,5 @@
 import logging
 
-import requests
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,6 +20,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.uptime import checker_api
 from sentry.uptime.endpoints.validators import UptimeCheckPreviewValidator
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.types import CheckConfig
@@ -76,13 +76,10 @@ class OrganizationUptimeAlertPreviewCheckEndpoint(OrganizationEndpoint):
         region = get_region_config(check_config["active_regions"][0])
         assert region is not None
 
-        api_endpoint = region.api_endpoint
+        result = checker_api.invoke_checker_preview(assertions_enabled, check_config, region)
 
-        result = requests.post(
-            f"http://{api_endpoint}/execute_config",
-            json=check_config,
-            timeout=10,
-        )
+        if result is None:
+            return self.respond(status=400)
 
         # Make sure we propagate the error json in the case of a 400 error
         if result.status_code >= 400 and result.status_code < 500:

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_DISALLOWED_BY_ROBOTS,
+    CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
     CHECKSTATUSREASONTYPE_ASSERTION_COMPILATION_ERROR,
     CheckResult,
@@ -31,7 +32,6 @@ from sentry.uptime.models import (
     load_regions_for_uptime_subscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
-    CHECKSTATUS_FAILURE,
     check_and_update_regions,
     delete_uptime_subscription,
     disable_uptime_detector,
@@ -474,6 +474,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         if (
             result["status"] == CHECKSTATUS_FAILURE
+            and result["status_reason"] is not None
             and result["status_reason"]["type"] == CHECKSTATUSREASONTYPE_ASSERTION_COMPILATION_ERROR
         ):
             try:
