@@ -187,7 +187,7 @@ export function TeamUnresolvedIssues({
                           totals.percentChange === 0
                             ? theme.subText
                             : totals.percentChange > 0
-                              ? theme.errorText
+                              ? theme.tokens.content.danger
                               : theme.tokens.content.success
                         }
                       >

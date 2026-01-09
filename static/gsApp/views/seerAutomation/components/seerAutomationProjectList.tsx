@@ -90,7 +90,7 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 }
 
 const ValueWrapper = styled('span')<{isDangerous?: boolean}>`
-  color: ${p => (p.isDangerous ? p.theme.errorText : p.theme.subText)};
+  color: ${p => (p.isDangerous ? p.theme.tokens.content.danger : p.theme.subText)};
 `;
 
 const Subheading = styled('span')`

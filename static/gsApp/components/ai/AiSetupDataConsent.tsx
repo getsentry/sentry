@@ -361,7 +361,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const ErrorText = styled('div')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const AddBudgetButton = styled(Button)`

@@ -72,6 +72,6 @@ export const ColorizedRating = styled('div')<{
     p.rating === 'good'
       ? p.theme.tokens.content.success
       : p.rating === 'bad'
-        ? p.theme.errorText
+        ? p.theme.tokens.content.danger
         : p.theme.subText};
 `;

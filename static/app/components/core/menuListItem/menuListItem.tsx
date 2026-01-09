@@ -34,7 +34,7 @@ function getTextColor({
     case 'primary':
       return theme.tokens.content.accent;
     case 'danger':
-      return theme.errorText;
+      return theme.tokens.content.danger;
     case 'default':
     default:
       return theme.tokens.content.primary;
