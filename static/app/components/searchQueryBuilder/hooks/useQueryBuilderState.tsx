@@ -488,16 +488,15 @@ function wrapTokensWithParentheses(
       token.type === Token.FREE_TEXT && token.location.start.offset >= cursorPosition
   );
 
-  const focusOverride = focusedToken
-    ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
-    : newParsedQuery?.length
-      ? {
-          itemKey: makeTokenKey(
-            newParsedQuery[newParsedQuery.length - 1]!,
-            newParsedQuery
-          ),
-        }
-      : null;
+  let focusOverride: FocusOverride | null = null;
+  if (focusedToken) {
+    focusOverride = {itemKey: makeTokenKey(focusedToken, newParsedQuery)};
+  } else if (newParsedQuery?.[newParsedQuery.length - 1]) {
+    focusOverride = {
+      // We know that the last token exists because of the check above, but TS isn't happy
+      itemKey: makeTokenKey(newParsedQuery[newParsedQuery.length - 1]!, newParsedQuery),
+    };
+  }
 
   return {
     ...state,
