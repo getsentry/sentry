@@ -23,7 +23,7 @@ describe('DatasetSelector', () => {
       </WidgetBuilderProvider>
     );
 
-    await userEvent.click(await screen.findByText('Dataset'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
     await userEvent.click(await screen.findByRole('option', {name: 'Issues'}));
 
@@ -52,12 +52,10 @@ describe('DatasetSelector', () => {
       }
     );
 
-    await userEvent.click(await screen.findByText('Dataset'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
-    const transactionsOption = await screen.findByText('Transactions');
-    expect(transactionsOption.closest('[aria-disabled="true"]')).not.toBeNull();
-
-    await userEvent.hover(transactionsOption);
+    const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
+    expect(transactionsOption).toHaveAttribute('aria-disabled', 'true');
 
     expect(
       await screen.findByText(/This dataset is no longer supported./i)
@@ -92,12 +90,11 @@ describe('DatasetSelector', () => {
       }
     );
 
-    await userEvent.click(await screen.findByText('Dataset'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
     const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
-    expect(transactionsOption.closest('[aria-disabled="true"]')).toBeNull();
+    expect(transactionsOption).not.toHaveAttribute('aria-disabled', 'true');
 
-    await userEvent.hover(transactionsOption);
     expect(
       await screen.findByText(
         'Transaction events that track the performance of operations in your application. Use for endpoint performance, throughput, and trends.'
