@@ -97,6 +97,7 @@ export enum FieldKey {
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
+  RELEASE_CREATED = 'release.created',
   RELEASE_PACKAGE = 'release.package',
   RELEASE_STAGE = 'release.stage',
   RELEASE_VERSION = 'release.version',
@@ -251,6 +252,7 @@ type OsFieldKey =
 type ReleaseFieldKey =
   | FieldKey.RELEASE
   | FieldKey.RELEASE_BUILD
+  | FieldKey.RELEASE_CREATED
   | FieldKey.RELEASE_PACKAGE
   | FieldKey.RELEASE_STAGE
   | FieldKey.RELEASE_VERSION;
@@ -2280,6 +2282,11 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
     allowWildcard: false,
+  },
+  [FieldKey.RELEASE_CREATED]: {
+    desc: t('The date the release was created'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
