@@ -606,13 +606,16 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             suggested_assignee_text += assignee + ", "
         return self.get_context_block(suggested_assignee_text[:-2])  # get rid of comma at the end
 
-    def get_group_context_block(self, suggested_assignees: list[str]) -> SlackBlock:
+    def get_group_context_block(self, suggested_assignees: list[str]) -> SlackBlock | None:
         """Combine stats (events, users, state, first seen) with suggested assignees in one context block."""
         context_text = get_context(self.group, self.rules)
 
         if suggested_assignees:
             suggested_text = ", ".join(suggested_assignees)
             context_text += f"   Suggested: {suggested_text}"
+
+        if not context_text:
+            return None
 
         return self.get_context_block(context_text)
 
@@ -773,7 +776,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             )
 
         if self._is_compact:
-            blocks.append(self.get_group_context_block(suggested_assignees=suggested_assignees))
+            if group_context_block := self.get_group_context_block(
+                suggested_assignees=suggested_assignees
+            ):
+                blocks.append(group_context_block)
         else:
             # add event count, user count, substate, first seen
             context = get_context(self.group, self.rules)
