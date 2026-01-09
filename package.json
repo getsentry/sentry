@@ -161,7 +161,7 @@
     "react-lazyload": "^3.2.1",
     "react-mentions": "4.4.10",
     "react-popper": "^2.3.0",
-    "react-router-dom": "6.30.1",
+    "react-router-dom": "6.30.3",
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
     "react-virtualized": "^9.22.6",
