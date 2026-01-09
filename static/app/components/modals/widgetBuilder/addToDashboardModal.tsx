@@ -66,7 +66,7 @@ export type AddToDashboardModalProps = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
-  widget: Widget;
+  widgets: Widget[];
   actions?: AddToDashboardModalActions[];
   source?: DashboardWidgetSource;
 };
@@ -97,7 +97,7 @@ function AddToDashboardModal({
   location,
   organization,
   selection,
-  widget,
+  widgets,
   actions = DEFAULT_ACTIONS,
   source,
 }: Props) {
@@ -108,6 +108,8 @@ function AddToDashboardModal({
     null
   );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
+  // Use first widget for current add to dashboard previews
+  const widget = widgets[0]!;
   const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
     getFallbackWidgetTitle(widget)
   );
@@ -186,8 +188,30 @@ function AddToDashboardModal({
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
-    const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+    if (page === 'preview') {
+      // For dashboard preview, pass widgets via location state
+      navigate(
+        normalizeUrl({
+          pathname,
+          query: {
+            ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+          },
+        }),
+        {
+          state: {
+            widgets: widgets.map(w => ({
+              ...w,
+              title: w.title || DEFAULT_WIDGET_NAME,
+            })),
+          },
+        }
+      );
+      closeModal();
+      return;
+    }
 
+    // For widget builder, use query params so builder can set its initial state
+    const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
     navigate(
       normalizeUrl({
         pathname,

@@ -135,7 +135,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -165,7 +165,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -193,7 +193,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -217,7 +217,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -269,7 +269,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -303,7 +303,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
@@ -319,6 +319,7 @@ describe('add to dashboard modal', () => {
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/dashboard/1/widget-builder/widget/new/'
     );
+    // Widget builder uses query params for initial state
     expect(router.location.query).toEqual({
       title: 'Test title',
       description: 'Test description',
@@ -343,7 +344,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
@@ -360,6 +361,7 @@ describe('add to dashboard modal', () => {
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/dashboard/1/widget-builder/widget/new/'
     );
+    // Widget builder uses query params for initial state
     expect(router.location.query).toEqual({
       title: 'Test title',
       description: 'Test description',
@@ -372,6 +374,49 @@ describe('add to dashboard modal', () => {
       legendAlias: '',
       statsPeriod: '1h',
       source: DashboardWidgetSource.DISCOVERV2,
+    });
+  });
+
+  it('navigates to create new dashboard with widget builder using query params', async () => {
+    const {router} = render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widgets={[widget]}
+        selection={defaultSelection}
+        source={DashboardWidgetSource.DISCOVERV2}
+        location={LocationFixture()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(
+      screen.getByText('Select Dashboard'),
+      '+ Create New Dashboard'
+    );
+
+    await userEvent.click(screen.getByText('Open in Widget Builder'));
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboards/new/widget-builder/widget/new/'
+    );
+    // Widget builder uses query params for initial state (even for new dashboard)
+    expect(router.location.query).toEqual({
+      title: 'Test title',
+      description: 'Test description',
+      dataset: 'error-events',
+      source: DashboardWidgetSource.DISCOVERV2,
+      displayType: 'line',
+      legendAlias: '',
+      query: '',
+      sort: '',
+      yAxis: 'count()',
     });
   });
 
@@ -393,7 +438,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={{...widget, widgetType: WidgetType.ERRORS}}
+        widgets={[{...widget, widgetType: WidgetType.ERRORS}]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -453,7 +498,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -532,7 +577,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -588,7 +633,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -615,7 +660,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture({pathname: '/organizations/org-slug/dashboard/1/'})}
       />,
@@ -660,7 +705,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -716,7 +761,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
