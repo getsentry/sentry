@@ -873,7 +873,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
   );
 }
 
-export const TagPill = styled('span')`
+const TagPill = styled('span')`
   display: inline-block;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.fontSize.xs};
