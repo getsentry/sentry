@@ -14,11 +14,13 @@ import {
 } from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -26,6 +28,7 @@ import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplayIndexContainer from 'sentry/views/replays/list/replayIndexContainer';
 import ReplayIndexTimestampPrefPicker from 'sentry/views/replays/list/replayIndexTimestampPrefPicker';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
+import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 import ReplaysSearch from 'sentry/views/replays/list/search';
 
 const ReplayListPageHeaderHook = HookOrDefault({
@@ -36,6 +39,7 @@ const ReplayListPageHeaderHook = HookOrDefault({
 export default function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
+  const location = useLocation();
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
 
   const hasSessionReplay = organization.features.includes('session-replay');
@@ -43,6 +47,8 @@ export default function ReplaysListContainer() {
   const {
     selection: {projects},
   } = usePageFilters();
+
+  const searchQuery = decodeScalar(location.query.query, '');
   const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
     minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
     projectId: projects.map(String),
@@ -87,6 +93,7 @@ export default function ReplaysListContainer() {
                       <Flex gap="xl" wrap="wrap">
                         <ReplaysFilters />
                         <ReplaysSearch />
+                        <SaveReplayQueryButton query={searchQuery} />
                       </Flex>
                       <ReplayOnboardingPanel />
                     </Fragment>

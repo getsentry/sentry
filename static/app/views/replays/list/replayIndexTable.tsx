@@ -27,6 +27,7 @@ import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import BulkDeleteAlert from 'sentry/views/replays/list/bulkDeleteAlert';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
+import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 import ReplaysSearch from 'sentry/views/replays/list/search';
 import useReplayIndexTableColumns from 'sentry/views/replays/list/useReplayIndexTableColumns';
 import DeadRageSelectorCards from 'sentry/views/replays/selectors/deadRageSelectorCards';
@@ -86,11 +87,14 @@ export default function ReplayIndexTable({
 
   const playlistQuery = usePlaylistQuery('replayList');
 
+  const searchQuery = (queryKey[1]?.query?.query as string) ?? '';
+
   return (
     <Fragment>
       <Flex gap="md" wrap="wrap">
         <ReplaysFilters />
         <ReplaysSearch />
+        <SaveReplayQueryButton query={searchQuery} />
         {showDeadRageClickCards ? (
           <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
             {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}

@@ -653,6 +653,31 @@ export function getSavedQueryTraceItemUrl({
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
 }
 
+export function getReplayUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const start =
+    savedQuery.start instanceof Date ? savedQuery.start.toISOString() : savedQuery.start;
+  const end =
+    savedQuery.end instanceof Date ? savedQuery.end.toISOString() : savedQuery.end;
+  const queryParams = {
+    query: firstQuery?.query,
+    project: savedQuery.projects,
+    environment: savedQuery.environment,
+    start,
+    end,
+    statsPeriod: savedQuery.range,
+  };
+
+  const queryString = qs.stringify(queryParams, {skipNull: true});
+  return `/organizations/${organization.slug}/replays/?${queryString}`;
+}
+
 const TRACE_ITEM_TO_URL_FUNCTION: Record<
   TraceItemDataset,
   | (({
@@ -669,6 +694,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
   [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
   [TraceItemDataset.PREPROD]: undefined,
+  [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
 };
 
 /**

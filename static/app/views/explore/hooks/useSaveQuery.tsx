@@ -31,7 +31,7 @@ export type ExploreQueryChangedReason = {
 };
 
 type ExploreSavedQueryRequest = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics';
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   name: string;
   projects: number[];
   changedReason?: ExploreQueryChangedReason;
