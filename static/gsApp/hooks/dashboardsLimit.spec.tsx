@@ -107,7 +107,7 @@ describe('useDashboardsLimit', () => {
         {id: '2', title: 'Dashboard 2'},
         {id: '3', title: 'Dashboard 3'},
       ],
-      match: [MockApiClient.matchQuery({per_page: 11})],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -149,7 +149,7 @@ describe('useDashboardsLimit', () => {
         {id: '2', title: 'Dashboard 2'},
         {id: '3', title: 'Dashboard 3'},
       ],
-      match: [MockApiClient.matchQuery({per_page: 4})],
+      match: [MockApiClient.matchQuery({per_page: 3, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -195,7 +195,7 @@ describe('useDashboardsLimit', () => {
         {id: '2', title: 'Dashboard 2'},
         {id: '3', title: 'Dashboard 3'},
       ],
-      match: [MockApiClient.matchQuery({per_page: 3})],
+      match: [MockApiClient.matchQuery({per_page: 2, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -237,7 +237,7 @@ describe('useDashboardsLimit', () => {
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [],
-      match: [MockApiClient.matchQuery({per_page: 11})],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -271,7 +271,7 @@ describe('useDashboardsLimit', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       statusCode: 500,
-      match: [MockApiClient.matchQuery({per_page: 11})],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
