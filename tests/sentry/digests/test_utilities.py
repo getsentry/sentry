@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 
 from sentry.digests.notifications import (
     Digest,
@@ -19,6 +19,7 @@ from sentry.digests.utils import (
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule as RuleModel
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -26,8 +27,8 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.types.actor import ActorType
 
 
-def _get_records(project: Project, rules: Sequence[Rule], event: Event) -> list[Record]:
-    split_rules = split_rules_by_identifier_key(rules)
+def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -> list[Record]:
+    split_rules = split_rules_by_identifier_key(list(rules))
     return [
         event_to_record(event, parsed_rules, identifier_key=identifier_key)
         for identifier_key, parsed_rules in split_rules.items()
