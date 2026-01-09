@@ -11,7 +11,7 @@ const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
   ${p =>
     p.highlighted &&
     css`
-      color: ${p.theme.activeText};
+      color: ${p.theme.tokens.interactive.link.accent.rest};
       background: ${p.theme.backgroundSecondary};
     `};
 

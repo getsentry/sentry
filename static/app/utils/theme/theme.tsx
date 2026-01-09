@@ -1193,14 +1193,6 @@ const generateAliases = (tokens: Tokens) => ({
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
-
-  /**
-   * Indicates that something is "active" or "selected"
-   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
-   */
-  active: tokens.interactive.link.accent.active,
-  activeHover: tokens.interactive.link.accent.hover,
-  activeText: tokens.interactive.link.accent.rest,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens);

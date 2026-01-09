@@ -103,7 +103,7 @@ const FileName = styled('span')<{hasFile: boolean}>`
 `;
 
 const BrowseIndicator = styled('span')`
-  color: ${p => p.theme.activeText};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FileInput = styled(InputGroup.Input)`

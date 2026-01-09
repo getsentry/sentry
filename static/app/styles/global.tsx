@@ -281,7 +281,8 @@ const styles = (theme: Theme, isDark: boolean) => css`
             &.active {
               a {
                 color: ${theme.tokens.content.primary} !important;
-                border-bottom-color: ${theme.active} !important;
+                border-bottom-color: ${theme.tokens.interactive.link.accent
+                  .active} !important;
               }
             }
 
