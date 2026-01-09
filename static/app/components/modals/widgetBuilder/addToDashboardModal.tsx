@@ -15,6 +15,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Select} from 'sentry/components/core/select';
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -196,7 +197,9 @@ function AddToDashboardModal({
           title: newWidgetTitle,
           sort: orderBy ?? widgetAsQueryParams.sort,
           source,
-          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+          ...(selectedDashboard
+            ? getSavedPageFilters(selectedDashboard)
+            : pageFiltersToQueryParams(selection)),
         },
       })
     );

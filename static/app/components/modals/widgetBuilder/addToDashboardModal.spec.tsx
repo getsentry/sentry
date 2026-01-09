@@ -7,7 +7,11 @@ import selectEvent from 'sentry-test/selectEvent';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
   DisplayType,
@@ -26,6 +30,7 @@ const mockDashboardCreateLimitWrapper = jest.mocked(DashboardCreateLimitWrapper)
 describe('add to dashboard modal', () => {
   let eventsStatsMock!: jest.Mock;
   let initialData!: ReturnType<typeof initializeOrg>;
+  let widget: Widget;
 
   const testDashboardListItem: DashboardListItem = {
     id: '1',
@@ -49,23 +54,6 @@ describe('add to dashboard modal', () => {
     period: '1h',
     filters: {release: ['abc@v1.2.0']},
   };
-  let widget = {
-    title: 'Test title',
-    description: 'Test description',
-    displayType: DisplayType.LINE,
-    interval: '5m',
-    queries: [
-      {
-        conditions: '',
-        fields: ['count()'],
-        aggregates: ['count()'],
-        fieldAliases: [],
-        columns: [] as string[],
-        orderby: '',
-        name: '',
-      },
-    ],
-  };
   const defaultSelection = {
     projects: [],
     environments: [],
@@ -79,6 +67,23 @@ describe('add to dashboard modal', () => {
 
   beforeEach(() => {
     initialData = initializeOrg();
+    widget = {
+      title: 'Test title',
+      description: 'Test description',
+      displayType: DisplayType.LINE,
+      interval: '5m',
+      queries: [
+        {
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          fieldAliases: [],
+          columns: [] as string[],
+          orderby: '',
+          name: '',
+        },
+      ],
+    };
 
     // Default behaviour for dashboard create limit wrapper
     mockDashboardCreateLimitWrapper.mockImplementation(({children}: {children: any}) =>
@@ -729,5 +734,115 @@ describe('add to dashboard modal', () => {
     expect(screen.queryByText('Prebuilt Dashboard')).not.toBeInTheDocument();
     expect(screen.getByText('Test Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Other Dashboard')).toBeInTheDocument();
+  });
+
+  it('preserves user page filters when creating a new dashboard', async () => {
+    const customSelection = {
+      projects: [2, 3],
+      environments: ['production', 'staging'],
+      datetime: {
+        start: null,
+        end: null,
+        period: '7d',
+        utc: false,
+      },
+    };
+
+    const {router} = render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={customSelection}
+        source={DashboardWidgetSource.DISCOVERV2}
+        location={LocationFixture()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(
+      screen.getByText('Select Dashboard'),
+      '+ Create New Dashboard'
+    );
+
+    await userEvent.click(screen.getByText('Open in Widget Builder'));
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboards/new/widget-builder/widget/new/'
+    );
+    expect(router.location.query).toEqual({
+      title: 'Test title',
+      description: 'Test description',
+      query: '',
+      yAxis: 'count()',
+      sort: '',
+      displayType: DisplayType.LINE,
+      dataset: WidgetType.ERRORS,
+      legendAlias: '',
+      source: DashboardWidgetSource.DISCOVERV2,
+      // User's page filters should be preserved
+      project: ['2', '3'],
+      environment: ['production', 'staging'],
+      statsPeriod: '7d',
+    });
+  });
+
+  it('uses dashboard saved filters when adding to existing dashboard', async () => {
+    const customSelection = {
+      projects: [2, 3],
+      environments: ['production', 'staging'],
+      datetime: {
+        start: null,
+        end: null,
+        period: '7d',
+        utc: false,
+      },
+    };
+
+    const {router} = render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={customSelection}
+        source={DashboardWidgetSource.DISCOVERV2}
+        location={LocationFixture()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    await userEvent.click(screen.getByText('Open in Widget Builder'));
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboard/1/widget-builder/widget/new/'
+    );
+    expect(router.location.query).toEqual({
+      title: 'Test title',
+      description: 'Test description',
+      query: '',
+      yAxis: 'count()',
+      sort: '',
+      displayType: DisplayType.LINE,
+      dataset: WidgetType.ERRORS,
+      legendAlias: '',
+      source: DashboardWidgetSource.DISCOVERV2,
+      // Dashboard's saved filters should be used, not user's selection
+      project: '1',
+      statsPeriod: '1h',
+    });
   });
 });
