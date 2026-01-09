@@ -101,7 +101,7 @@ def _warn_and_increment_metric(
     tags = {"error_status": error_status.value}
     if action:
         tags["action"] = action
-    metrics.incr(Metrics.ERROR.value, tags=tags)
+    metrics.incr(Metrics.ERROR.value, tags=tags, sample_rate=1.0)
 
 
 def handle_pull_request_event(
@@ -109,6 +109,7 @@ def handle_pull_request_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
+    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -139,10 +140,8 @@ def handle_pull_request_event(
         return
 
     if pull_request.get("draft") is True:
-        _warn_and_increment_metric(ErrorStatus.DRAFT_PR, action=action_value, extra=extra)
         return
 
-    github_org = event.get("repository", {}).get("owner", {}).get("login")
     if github_org in get_direct_to_seer_gh_orgs():
         from .task import schedule_task
 

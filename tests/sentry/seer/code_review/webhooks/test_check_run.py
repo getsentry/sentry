@@ -150,3 +150,25 @@ class CheckRunEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
             )
             mock_make_seer_request.assert_not_called()
+
+    @patch("sentry.seer.code_review.webhooks.task.get_direct_to_seer_gh_orgs")
+    @patch("sentry.seer.code_review.webhooks.task.make_seer_request")
+    def test_check_run_bypasses_org_whitelist_check(
+        self, mock_make_seer_request: MagicMock, mock_get_orgs: MagicMock
+    ) -> None:
+        """Test that CHECK_RUN events go to Seer even when org is not whitelisted.
+
+        This verifies the bug fix: CHECK_RUN events should bypass the org whitelist
+        check because they are user-initiated reruns from GitHub UI.
+        """
+        mock_get_orgs.return_value = []
+
+        with self.code_review_setup(), self.tasks():
+            self._send_webhook_event(
+                GithubWebhookType.CHECK_RUN,
+                CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
+            )
+
+            mock_make_seer_request.assert_called_once()
+            call_kwargs = mock_make_seer_request.call_args[1]
+            assert call_kwargs["path"] == "/v1/automation/codegen/pr-review/rerun"
