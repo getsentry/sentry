@@ -6,10 +6,12 @@ statusProvider:
   name: github
   config:
     contexts:
-      - 'self-hosted-ubuntu-24.04-amd64'
-      - 'self-hosted-ubuntu-24.04-arm-arm64'
-      - 'assemble'
+    - 'self-hosted-ubuntu-24.04-amd64'
+    - 'self-hosted-ubuntu-24.04-arm-arm64'
+    - 'assemble'
 artifactProvider:
   name: none
 targets:
-  - name: github
+- name: github
+versioning:
+  policy: calver
