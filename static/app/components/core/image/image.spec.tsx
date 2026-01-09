@@ -38,7 +38,9 @@ describe('Image', () => {
   });
 
   it('applies aspect-ratio when provided', () => {
-    render(<Image src="https://example.com/image.png" alt="Example Image" aspectRatio="16/9" />);
+    render(
+      <Image src="https://example.com/image.png" alt="Example Image" aspectRatio="16/9" />
+    );
     const img = screen.getByRole('img');
     expect(img).toHaveStyle('aspect-ratio: 16/9');
   });
