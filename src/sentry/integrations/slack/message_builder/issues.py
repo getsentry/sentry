@@ -514,6 +514,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         summary_headline = self.get_issue_summary_headline(event_or_group)
         title = summary_headline or build_attachment_title(event_or_group)
         title_emojis = self.get_title_emoji(has_action)
+        if features.has("organizations:slack-compact-alerts", self.group.organization):
+            title = build_attachment_title(event_or_group)
 
         title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
         return self.get_markdown_block(title_text)
@@ -537,6 +539,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return " ".join(title_emojis)
 
+    # Can be removed when 'slack-compact-alerts' is GA
     def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
         if self.issue_summary is None:
             return None
@@ -570,13 +573,18 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if not parts:
             return None
-        return escape_slack_markdown_text("\n\n".join(parts))
+
+        if features.has("organizations:slack-compact-alerts", self.group.organization):
+            return f"*Initial Guess*: {escape_slack_markdown_text("  ".join(parts))}"
+        else:
+            return escape_slack_markdown_text("\n\n".join(parts))
 
     def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
 
+    # 'small' param be removed when 'slack-compact-alerts' is GA
     def get_text_block(self, text, small: bool = False) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
@@ -588,11 +596,24 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         else:
             return self.get_context_block(text)
 
+    # Can be removed when 'slack-compact-alerts' is GA
     def get_suggested_assignees_block(self, suggested_assignees: list[str]) -> SlackBlock:
         suggested_assignee_text = "Suggested Assignees: "
         for assignee in suggested_assignees:
             suggested_assignee_text += assignee + ", "
         return self.get_context_block(suggested_assignee_text[:-2])  # get rid of comma at the end
+
+    def get_group_context_block(self, suggested_assignees: list[str]) -> SlackBlock:
+        """Combine stats (events, users, state, first seen) with suggested assignees in one context block."""
+        # Get the stats context text
+        context_text = get_context(self.group, self.rules)
+
+        # Append suggested assignees if available
+        if suggested_assignees:
+            suggested_text = ", ".join(suggested_assignees)
+            context_text += f"   Suggested: {suggested_text}"
+
+        return self.get_context_block(context_text)
 
     def get_footer(self) -> SlackBlock:
         # This link does not contain user input (it's a static label and a url), must not escape it.
@@ -719,17 +740,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if culprit_block := self.get_culprit_block(event_or_group):
             blocks.append(culprit_block)
 
-        # Use issue summary if available, otherwise use the default text
-        if summary_text := self.get_issue_summary_text():
+        # Use issue summary if available (and not flagged for compact alerts), otherwise use the default text
+        summary_text = self.get_issue_summary_text()
+        if summary_text and not features.has(
+            "organizations:slack-compact-alerts", self.group.organization
+        ):
             blocks.append(self.get_text_block(summary_text, small=True))
         else:
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
             if text:
                 blocks.append(self.get_text_block(text))
-
-        if self.actions:
-            blocks.append(self.get_markdown_block(action_text))
 
         # set up block id
         block_id = {"issue": self.group.id}
@@ -741,18 +762,31 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if tags:
             blocks.append(self.get_tags_block(tags, block_id))
 
-        # add event count, user count, substate, first seen
-        context = get_context(self.group, self.rules)
-        if context:
-            blocks.append(self.get_context_block(context))
-
-        # build actions
-        actions = []
         try:
             assignee = self.group.get_assignee()
         except Actor.InvalidActor:
             assignee = None
 
+        suggested_assignees = []
+        if event_for_tags:
+            suggested_assignees = get_suggested_assignees(
+                self.group.project, event_for_tags, assignee
+            )
+
+        if features.has("organizations:slack-compact-alerts", self.group.organization):
+            blocks.append(self.get_group_context_block(suggested_assignees=suggested_assignees))
+        else:
+            # add event count, user count, substate, first seen
+            context = get_context(self.group, self.rules)
+            if context:
+                blocks.append(self.get_context_block(context))
+
+        # If an action has been taken, add the text for it (e.g. "Issue resolved by <@U0234567890>")
+        if self.actions:
+            blocks.append(self.get_markdown_block(action_text))
+
+        # build actions
+        actions = []
         for action in payload_actions:
             if action.label in (
                 "Archive",
@@ -787,19 +821,23 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
 
-        # suggested assignees
-        suggested_assignees = []
-        if event_for_tags:
-            suggested_assignees = get_suggested_assignees(
-                self.group.project, event_for_tags, assignee
-            )
-        if len(suggested_assignees) > 0:
+        if (
+            features.has("organizations:slack-compact-alerts", self.group.organization)
+            and summary_text
+        ):
+            blocks.append(self.get_context_block(summary_text))
+
+        if (
+            not features.has("organizations:slack-compact-alerts", self.group.organization)
+            and len(suggested_assignees) > 0
+        ):
             blocks.append(self.get_suggested_assignees_block(suggested_assignees))
 
-        # add suspect commit info
-        suspect_commit_text = get_suspect_commit_text(self.group)
-        if suspect_commit_text:
-            blocks.append(self.get_context_block(suspect_commit_text))
+        if not features.has("organizations:slack-compact-alerts", self.group.organization):
+            # add suspect commit info
+            suspect_commit_text = get_suspect_commit_text(self.group)
+            if suspect_commit_text:
+                blocks.append(self.get_context_block(suspect_commit_text))
 
         # add notes
         if self.notes:
@@ -808,7 +846,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # build footer block
         blocks.append(self.get_footer())
-        blocks.append(self.get_divider())
+        if not features.has("organizations:slack-compact-alerts", self.group.organization):
+            blocks.append(self.get_divider())
 
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
         if chart_block:
