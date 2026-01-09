@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
@@ -128,7 +127,6 @@ class Occurrences(rpc_dataset_common.RPCBase):
         referrer: str,
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
-        comparison_delta: timedelta | None = None,
         additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         """Run a simple timeseries query (no groupby)."""
