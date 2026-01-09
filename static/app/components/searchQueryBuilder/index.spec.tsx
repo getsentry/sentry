@@ -1818,7 +1818,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('(');
 
       expect(mockOnChange).toHaveBeenCalledWith(
-        '(is:unresolved browser.name:chrome)',
+        '( is:unresolved browser.name:chrome )',
         expect.anything()
       );
     });
@@ -1838,7 +1838,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard(')');
 
       expect(mockOnChange).toHaveBeenCalledWith(
-        '(is:unresolved browser.name:chrome)',
+        '( is:unresolved browser.name:chrome )',
         expect.anything()
       );
     });
@@ -1863,7 +1863,7 @@ describe('SearchQueryBuilder', () => {
       });
       await userEvent.keyboard('(');
 
-      expect(mockOnChange).toHaveBeenCalledWith('(is:unresolved)', expect.anything());
+      expect(mockOnChange).toHaveBeenCalledWith('( is:unresolved )', expect.anything());
     });
 
     it('does not wrap when nothing is selected', async () => {
@@ -1890,7 +1890,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('(');
 
       expect(mockOnChange).toHaveBeenCalledWith(
-        '(is:unresolved browser.name:chrome)',
+        '( is:unresolved browser.name:chrome )',
         expect.anything()
       );
 
