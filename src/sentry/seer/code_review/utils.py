@@ -11,7 +11,6 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
@@ -25,6 +24,19 @@ class ClientError(Exception):
     "Non-retryable client error from Seer"
 
     pass
+
+
+class SeerCodeReviewTrigger(StrEnum):
+    """
+    Internal code review trigger type used for Seer flows.
+
+    This includes all user-configurable CodeReviewTrigger values, plus on_command_phrase,
+    which is always enabled and cannot be turned off by users.
+    """
+
+    ON_COMMAND_PHRASE = "on_command_phrase"
+    ON_NEW_COMMIT = "on_new_commit"
+    ON_READY_FOR_REVIEW = "on_ready_for_review"
 
 
 # These values need to match the value defined in the Seer API.
@@ -194,7 +206,7 @@ def transform_webhook_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    trigger: CodeReviewTrigger,
+    trigger: SeerCodeReviewTrigger,
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
