@@ -179,9 +179,7 @@ class DetectorSerializer(Serializer):
 
         return attrs
 
-    def serialize(
-        self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs
-    ) -> DetectorSerializerResponse:
+    def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
