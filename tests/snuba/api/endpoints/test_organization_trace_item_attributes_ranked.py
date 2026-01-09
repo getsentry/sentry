@@ -358,10 +358,11 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_failure_rate_filters_to_failed_spans_only(self, mock_compare_distributions) -> None:
-        """Test that failure_rate() and failure_count() filter cohorts to only include failed spans.
+        """Test that failure_rate() and failure_count() filter the selected cohort to failed spans.
 
-        When failure_rate() or failure_count() is selected, the endpoint should compare
-        failed spans in the selected region vs failed spans in the baseline, not all spans.
+        When failure_rate() or failure_count() is selected, the endpoint should:
+        - Filter the selected cohort (cohort1) to only include failed spans
+        - Keep the baseline (cohort2) as all other spans for meaningful comparison
         Sentry treats spans with status other than "ok", "cancelled", and "unknown" as failures.
         """
         mock_compare_distributions.return_value = {
@@ -406,20 +407,21 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         # With failure_rate filtering:
         # - cohort1 (selected): only failed spans with duration <= 100
         #   = 3 spans (chrome internal_error, chrome invalid_argument, safari internal_error)
-        # - cohort2 (baseline): all failed spans - cohort1 failed spans
-        #   = 5 total failed - 3 = 2 spans (chrome internal_error 500, firefox invalid_argument 500)
+        # - cohort2 (baseline): all other spans (not filtered to failures)
+        #   = 9 total spans - 3 = 6 spans
         #
         # Without filtering (old behavior), cohort1 would be 6 spans (all short duration)
         # and cohort2 would be 3 spans (all long duration)
 
-        # Verify that only failed spans are counted
+        # Verify that cohort1 contains only failed spans
         assert response.data["cohort1Total"] == 3, (
             f"Expected 3 failed spans in selected region, got {response.data['cohort1Total']}. "
-            "failure_rate() should filter to only failed spans."
+            "failure_rate() should filter selected cohort to only failed spans."
         )
-        assert response.data["cohort2Total"] == 2, (
-            f"Expected 2 failed spans in baseline, got {response.data['cohort2Total']}. "
-            "failure_rate() should filter baseline to only failed spans too."
+        # Baseline is all other spans (not filtered to failures)
+        assert response.data["cohort2Total"] == 6, (
+            f"Expected 6 spans in baseline (all other spans), got {response.data['cohort2Total']}. "
+            "Baseline should include all spans not in the selected cohort."
         )
 
         # Also test with failure_count() - should behave the same way
@@ -436,5 +438,5 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             response_count.data["cohort1Total"] == 3
         ), f"Expected 3 failed spans for failure_count(), got {response_count.data['cohort1Total']}."
         assert (
-            response_count.data["cohort2Total"] == 2
-        ), f"Expected 2 failed spans in baseline for failure_count(), got {response_count.data['cohort2Total']}."
+            response_count.data["cohort2Total"] == 6
+        ), f"Expected 6 spans in baseline for failure_count(), got {response_count.data['cohort2Total']}."

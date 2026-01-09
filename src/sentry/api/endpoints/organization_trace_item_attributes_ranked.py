@@ -99,14 +99,16 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         query_1 = request.GET.get("query_1", "")  # Suspect query
         query_2 = request.GET.get("query_2", "")  # Query for all the spans with the base query
 
-        # For failure_rate and failure_count, we want to compare failed spans specifically,
-        # not all spans. Sentry treats spans with status other than "ok",
-        # "cancelled", and "unknown" as failures.
+        # For failure_rate and failure_count, we want the selected cohort to be
+        # specifically failed spans. Sentry treats spans with status other than
+        # "ok", "cancelled", and "unknown" as failures.
+        # The baseline remains all other spans (not filtered to failures) to provide
+        # a meaningful comparison with enough data points.
         is_failure_function = function_name in ("failure_rate", "failure_count")
         if is_failure_function:
             failure_filter = "has:span.status !span.status:[ok,cancelled,unknown]"
             query_1 = f"({query_1}) {failure_filter}" if query_1 else failure_filter
-            query_2 = f"({query_2}) {failure_filter}" if query_2 else failure_filter
+            # query_2 (baseline) intentionally not filtered - compare failed spans vs all other spans
 
         # Only segment on percentile functions
         function_value = None
