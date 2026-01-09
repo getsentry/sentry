@@ -10,6 +10,13 @@ import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useComb
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {SpanFields} from 'sentry/views/insights/types';
 
+export interface ConversationUser {
+  email: string | null;
+  id: string | null;
+  ip_address: string | null;
+  username: string | null;
+}
+
 interface ConversationApiResponse extends Omit<Conversation, 'firstInput'> {
   firstInput?: Array<{text: string; type: string}> | string | null;
 }
@@ -27,6 +34,7 @@ export interface Conversation {
   totalTokens: number;
   traceCount: number;
   traceIds: string[];
+  user: ConversationUser | null;
 }
 
 export function useConversations() {
