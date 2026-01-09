@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from snuba_sdk import Entity, Join, Relationship
@@ -126,9 +126,10 @@ class ErrorsQueryBuilderTest(TestCase):
 
     def test_error_received_filter_uses_datetime(self) -> None:
         """Test that error.received filter uses datetime comparison, not epoch integer."""
-        start = datetime(2025, 12, 1, tzinfo=timezone.utc)
-        end = datetime(2025, 12, 31, tzinfo=timezone.utc)
-        filter_date = datetime(2025, 12, 17, tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        start = now - timedelta(days=1)
+        end = now
+        filter_date = now - timedelta(hours=12)
 
         query = ErrorsQueryBuilder(
             dataset=Dataset.Events,
