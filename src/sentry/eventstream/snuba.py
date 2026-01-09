@@ -17,7 +17,6 @@ from sentry.eventstream.base import EventStream, GroupStates
 from sentry.eventstream.item_helpers import serialize_event_data_as_item
 from sentry.eventstream.types import EventStreamEventType
 from sentry.models.project import Project
-from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, metrics, snuba
 from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
@@ -215,7 +214,9 @@ class SnubaProtocolEventStream(EventStream):
             event_type=event_type,
         )
 
-        if in_rollout_group("eventstream.eap_forwarding_rate", event.project_id):
+        # if in_rollout_group("eventstream.eap_forwarding_rate", event.project_id):
+        if True:
+            logger.info("Forwarding event to items")
             self._forward_event_to_items(event, event_data, event_type, project)
 
     def _missing_required_item_fields(self, event_data: Mapping[str, Any]) -> list[str]:

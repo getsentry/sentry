@@ -179,6 +179,25 @@ def run_group_events_query(
             orderby=orderby,
             referrer=referrer,
         )
+
+        # TEMPORARY: Log comparison results for local testing - remove before merging
+        snuba_ids = {r.get("id") for r in snuba_data}
+        eap_ids = {r.get("id") for r in eap_data}
+        logger.info(
+            "EAP double-read comparison",
+            extra={
+                "group_id": group.id,
+                "snuba_count": len(snuba_data),
+                "eap_count": len(eap_data),
+                "snuba_ids": list(snuba_ids),
+                "eap_ids": list(eap_ids),
+                "is_subset": eap_ids.issubset(snuba_ids),
+                "exact_match": snuba_ids == eap_ids,
+                "missing_from_eap": list(snuba_ids - eap_ids),
+                "extra_in_eap": list(eap_ids - snuba_ids),
+            },
+        )
+
         results = EAPOccurrencesComparator.check_and_choose(
             snuba_data,
             eap_data,
