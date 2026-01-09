@@ -1,9 +1,10 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.db.models import Count
+from drf_spectacular.utils import extend_schema_serializer
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
@@ -23,14 +24,23 @@ from sentry.workflow_engine.models import (
 )
 
 
+class OwnerSerializerResponse(TypedDict):
+    type: str
+    id: str
+    name: str
+    email: NotRequired[str]
+
+
 class DetectorSerializerResponseOptional(TypedDict, total=False):
-    owner: str | None
-    createdById: str | None
+    owner: OwnerSerializerResponse | None
+    createdBy: str | None
     alertRuleId: int | None
     ruleId: int | None
     latestGroup: dict | None
+    description: str | None
 
 
+@extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
 class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     id: str
     projectId: str
@@ -39,8 +49,8 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     workflowIds: list[str]
     dateCreated: datetime
     dateUpdated: datetime
-    dataSources: list[dict]
-    conditionGroup: dict
+    dataSources: list[dict] | None
+    conditionGroup: dict | None
     config: dict
     enabled: bool
     openIssues: int
@@ -169,7 +179,9 @@ class DetectorSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs
+    ) -> DetectorSerializerResponse:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
