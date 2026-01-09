@@ -1334,3 +1334,4 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         data = response.data
         assert data["query"]["query"] == "user.email:*@sentry.io"
+        assert data["query"]["mode"] == "samples"
