@@ -43,12 +43,15 @@ class AttributeMappingsEndpoint(Endpoint):
                 )
             types_to_include = requested_types
         else:
-            types_to_include = VALID_TYPES
+            types_to_include = list(VALID_TYPES)
 
         result = []
         for type_name in types_to_include:
             definitions = TYPE_TO_DEFINITIONS[type_name]
             for definition in definitions.values():
+                if definition.private:
+                    continue
+
                 result.append(
                     {
                         "type": type_name,
