@@ -8,32 +8,6 @@ from django.db.migrations.state import StateApps
 from sentry.new_migrations.migrations import CheckedMigration
 
 
-def remove_on_command_phrase_from_org_options(
-    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
-) -> None:
-    """Remove 'on_command_phrase' from organization defaultCodeReviewTriggers."""
-    OrganizationOption = apps.get_model("sentry", "OrganizationOption")
-
-    org_options_to_update = list(
-        OrganizationOption.objects.filter(key="sentry:default_code_review_triggers")
-    )
-
-    updated_org_options = []
-    for org_option in org_options_to_update:
-        if (
-            org_option.value
-            and isinstance(org_option.value, list)
-            and "on_command_phrase" in org_option.value
-        ):
-            org_option.value = [
-                trigger for trigger in org_option.value if trigger != "on_command_phrase"
-            ]
-            updated_org_options.append(org_option)
-
-    if updated_org_options:
-        OrganizationOption.objects.bulk_update(updated_org_options, fields=["value"])
-
-
 def remove_on_command_phrase_from_repository_settings(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
@@ -80,11 +54,6 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RunPython(
-            remove_on_command_phrase_from_org_options,
-            reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_organizationoptions"]},
-        ),
         migrations.RunPython(
             remove_on_command_phrase_from_repository_settings,
             reverse_code=migrations.RunPython.noop,
