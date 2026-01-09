@@ -606,7 +606,7 @@ class ProviderMismatchTest(TestCase):
         self.request = _set_up_request()
         self.request.session["auth_key"] = self.auth_key
 
-    def _create_helper_with_state(self, actual_provider_key=None):
+    def _create_helper_with_state(self, provider_key=None):
         """Create an AuthHelper with initial state and optional provider key mismatch."""
         initial_state = {
             "org_id": self.organization.id,
@@ -617,7 +617,7 @@ class ProviderMismatchTest(TestCase):
             "step_index": 1,
             "signature": None,
             "config": {},
-            "data": {"actual_provider_key": actual_provider_key} if actual_provider_key else {},
+            "data": {"provider_key": provider_key} if provider_key else {},
         }
         local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
         local_client.set(self.auth_key, json.dumps(initial_state))
@@ -632,7 +632,7 @@ class ProviderMismatchTest(TestCase):
         self, mock_metrics: mock.MagicMock, mock_messages: mock.MagicMock
     ) -> None:
         """Test that authenticating with wrong provider redirects to correct SSO."""
-        helper = self._create_helper_with_state(actual_provider_key="google")
+        helper = self._create_helper_with_state(provider_key="google")
 
         # Mock the provider to have a build_identity that would fail
         with mock.patch.object(helper.provider, "build_identity") as mock_build:
@@ -661,7 +661,7 @@ class ProviderMismatchTest(TestCase):
     @mock.patch("sentry.auth.helper.messages")
     def test_provider_match_continues_normally(self, mock_messages: mock.MagicMock) -> None:
         """Test that matching provider continues with normal flow."""
-        helper = self._create_helper_with_state(actual_provider_key=self.provider)
+        helper = self._create_helper_with_state(provider_key=self.provider)
 
         # Mock build_identity to return a valid identity
         with mock.patch.object(
@@ -677,9 +677,9 @@ class ProviderMismatchTest(TestCase):
             assert "SSO" not in str(call)
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_no_actual_provider_key_continues_normally(self, mock_messages: mock.MagicMock) -> None:
-        """Test that missing actual_provider_key doesn't trigger mismatch (backward compat)."""
-        helper = self._create_helper_with_state(actual_provider_key=None)
+    def test_no_provider_key_continues_normally(self, mock_messages: mock.MagicMock) -> None:
+        """Test that missing provider_key doesn't trigger mismatch (backward compat)."""
+        helper = self._create_helper_with_state(provider_key=None)
 
         # Mock build_identity to return a valid identity
         with mock.patch.object(

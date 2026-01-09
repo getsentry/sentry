@@ -794,12 +794,13 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             return self.error(ERR_INVALID_IDENTITY)
 
         # Check for provider mismatch - user authenticated with a different provider
-        # than what the organization requires
-        actual_provider_key = data.get("actual_provider_key")
+        # than what the organization requires. provider_key is stored in the pipeline
+        # state by the OAuth2/SAML2 callback handlers.
+        provider_key = data.get("provider_key")
         expected_provider_key = self.provider.key
-        if actual_provider_key and actual_provider_key != expected_provider_key:
+        if provider_key and provider_key != expected_provider_key:
             return self._handle_provider_mismatch(
-                actual_provider_key=actual_provider_key,
+                provider_key=provider_key,
                 expected_provider_key=expected_provider_key,
             )
 
@@ -821,7 +822,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
 
     def _handle_provider_mismatch(
         self,
-        actual_provider_key: str,
+        provider_key: str,
         expected_provider_key: str,
     ) -> HttpResponseRedirect:
         """
@@ -836,7 +837,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             extra={
                 "organization_id": self.organization.id,
                 "expected_provider": expected_provider_key,
-                "actual_provider": actual_provider_key,
+                "actual_provider": provider_key,
             },
         )
 
@@ -844,7 +845,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             "sso.provider_mismatch",
             tags={
                 "expected_provider": expected_provider_key,
-                "actual_provider": actual_provider_key,
+                "actual_provider": provider_key,
             },
         )
 
