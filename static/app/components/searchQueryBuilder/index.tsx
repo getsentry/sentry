@@ -49,6 +49,11 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  /**
+   * The badge type to display for the AI search option.
+   * Defaults to 'beta'.
+   */
+  aiSearchBadgeType?: 'alpha' | 'beta';
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
