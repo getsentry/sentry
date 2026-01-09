@@ -45,9 +45,12 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
             return response
 
-    def _store_span(self, description=None, tags=None, duration=None):
+    def _store_span(self, description=None, tags=None, duration=None, status=None):
         if tags is None:
             tags = {"foo": "bar"}
+
+        if status is not None:
+            tags["status"] = status
 
         self.store_span(
             self.create_span(
@@ -352,3 +355,69 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Regular attribute should be included
         assert "regular_attr" in returned_attrs, "Regular attributes should be included"
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_failure_rate_filters_to_failed_spans_only(self, mock_compare_distributions) -> None:
+        """Test that failure_rate() function filters cohorts to only include failed spans.
+
+        When failure_rate() is selected, the endpoint should compare failed spans
+        in the selected region vs failed spans in the baseline, not all spans.
+        Sentry treats spans with status other than "ok", "cancelled", and "unknown" as failures.
+        """
+        mock_compare_distributions.return_value = {
+            "results": [
+                ("sentry.browser", 0.8),
+            ]
+        }
+
+        # Store spans with various statuses:
+        # - "ok", "cancelled", "unknown" are NOT failures
+        # - "internal_error", "invalid_argument" ARE failures
+        spans_data = [
+            # Failed spans (short duration - will be in selected region)
+            ({"browser": "chrome"}, 100, "internal_error"),
+            ({"browser": "chrome"}, 100, "invalid_argument"),
+            ({"browser": "safari"}, 100, "internal_error"),
+            # Non-failed spans (short duration - would be in selected region if not filtered)
+            ({"browser": "firefox"}, 100, "ok"),
+            ({"browser": "edge"}, 100, "cancelled"),
+            ({"browser": "opera"}, 100, "unknown"),
+            # Failed spans (long duration - baseline only)
+            ({"browser": "chrome"}, 500, "internal_error"),
+            ({"browser": "firefox"}, 500, "invalid_argument"),
+            # Non-failed spans (long duration - should be excluded from baseline too)
+            ({"browser": "edge"}, 500, "ok"),
+        ]
+
+        for tags, duration, status in spans_data:
+            self._store_span(tags=tags, duration=duration, status=status)
+
+        # Request with failure_rate() function
+        response = self.do_request(
+            query={
+                "function": "failure_rate()",
+                "query_1": "span.duration:<=100",
+                "query_2": "",
+            }
+        )
+
+        assert response.status_code == 200, response.data
+
+        # With failure_rate filtering:
+        # - cohort1 (selected): only failed spans with duration <= 100
+        #   = 3 spans (chrome internal_error, chrome invalid_argument, safari internal_error)
+        # - cohort2 (baseline): all failed spans - cohort1 failed spans
+        #   = 5 total failed - 3 = 2 spans (chrome internal_error 500, firefox invalid_argument 500)
+        #
+        # Without filtering (old behavior), cohort1 would be 6 spans (all short duration)
+        # and cohort2 would be 3 spans (all long duration)
+
+        # Verify that only failed spans are counted
+        assert response.data["cohort1Total"] == 3, (
+            f"Expected 3 failed spans in selected region, got {response.data['cohort1Total']}. "
+            "failure_rate() should filter to only failed spans."
+        )
+        assert response.data["cohort2Total"] == 2, (
+            f"Expected 2 failed spans in baseline, got {response.data['cohort2Total']}. "
+            "failure_rate() should filter baseline to only failed spans too."
+        )
