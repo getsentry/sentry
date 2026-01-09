@@ -78,6 +78,9 @@ export type IssueEventParameters = {
   'device.classification.unclassified.ios.device': {
     model: string;
   };
+  'errors.ai_query_applied': {
+    query: string;
+  };
   'event_cause.dismissed': Record<string, unknown>;
   'event_cause.docs_clicked': Record<string, unknown>;
   'event_cause.snoozed': Record<string, unknown>;
@@ -426,6 +429,7 @@ type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
+  'errors.ai_query_applied': 'Errors: AI Query Applied',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
   'event_cause.viewed': null,
