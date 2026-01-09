@@ -208,7 +208,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
         workflow_ids
     )
 
-    # Try to fetch rules for workflows, if not use the rule_id
+    # Try to fetch rules for workflows, if not use the workflow id
     alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
     alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
 
