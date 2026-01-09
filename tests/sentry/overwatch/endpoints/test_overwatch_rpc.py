@@ -574,7 +574,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp.status_code == 200
         assert resp.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS + ["on_command_phrase"],
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
         }
 
     @patch(
@@ -598,7 +598,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp.status_code == 200
         assert resp.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS + ["on_command_phrase"],
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
         }
 
     @patch(
@@ -620,7 +620,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_new_commit"],
+            code_review_triggers=["on_new_commit", "on_ready_for_review"],
         )
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -632,11 +632,10 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data["enabledCodeReview"] is True
-        triggers = resp.data["codeReviewTriggers"]
-        assert "on_new_commit" in triggers
-        assert "on_command_phrase" in triggers
-        assert len(triggers) == 2
+        assert resp.data == {
+            "enabledCodeReview": True,
+            "codeReviewTriggers": ["on_new_commit", "on_ready_for_review"],
+        }
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -716,11 +715,10 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params1, "test-secret")
         resp1 = self.client.get(url, params1, HTTP_AUTHORIZATION=auth)
         assert resp1.status_code == 200
-        assert resp1.data["enabledCodeReview"] is True
-        triggers = resp1.data["codeReviewTriggers"]
-        assert "on_new_commit" in triggers
-        assert "on_command_phrase" in triggers
-        assert len(triggers) == 2
+        assert resp1.data == {
+            "enabledCodeReview": True,
+            "codeReviewTriggers": ["on_new_commit"],
+        }
 
         # Request for org2 should return defaults (no settings created)
         params2 = {

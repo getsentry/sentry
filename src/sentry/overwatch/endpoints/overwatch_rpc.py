@@ -214,10 +214,7 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
                 )
             ):
                 return Response(
-                    {
-                        "enabledCodeReview": True,
-                        "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS + ["on_command_phrase"],
-                    }
+                    {"enabledCodeReview": True, "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS}
                 )
 
             return Response(
@@ -227,12 +224,10 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
                 }
             )
 
-        triggers = set(repo_settings.code_review_triggers)
-        triggers.add("on_command_phrase")
         return Response(
             {
                 "enabledCodeReview": repo_settings.enabled_code_review,
-                "codeReviewTriggers": list(triggers),
+                "codeReviewTriggers": repo_settings.code_review_triggers,
             }
         )
 
