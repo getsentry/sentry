@@ -2,13 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
 
-from sentry.digests.notifications import (
-    Digest,
-    DigestInfo,
-    build_digest,
-    event_to_record,
-    split_rules_by_identifier_key,
-)
+from sentry.digests.notifications import Digest, DigestInfo, build_digest, event_to_record
 from sentry.digests.types import IdentifierKey, Record
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
@@ -21,6 +15,7 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule as RuleModel
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.utils.rules import split_rules_by_rule_workflow_id
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -28,10 +23,14 @@ from sentry.types.actor import ActorType
 
 
 def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -> list[Record]:
-    split_rules = split_rules_by_identifier_key(list(rules))
+    rules_and_workflows = split_rules_by_rule_workflow_id(list(rules))
+    rules_by_identifier_key = {
+        IdentifierKey.RULE: rules_and_workflows.rules,
+        IdentifierKey.WORKFLOW: rules_and_workflows.workflow_rules,
+    }
     return [
         event_to_record(event, parsed_rules, identifier_key=identifier_key)
-        for identifier_key, parsed_rules in split_rules.items()
+        for identifier_key, parsed_rules in rules_by_identifier_key.items()
         if parsed_rules
     ]
 
