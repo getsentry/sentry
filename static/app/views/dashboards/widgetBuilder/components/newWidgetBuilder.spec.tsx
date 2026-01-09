@@ -133,12 +133,16 @@ describe('NewWidgetBuilder', () => {
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByText('+ Add Description')).toBeInTheDocument();
 
-    expect(await screen.findByLabelText('Dataset')).toHaveAttribute('role', 'radiogroup');
-    expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Issues')).toBeInTheDocument();
-    expect(screen.getByText('Releases')).toBeInTheDocument();
+    // Dataset is now a CompactSelect dropdown instead of radio buttons
+    expect(await screen.findByRole('button', {name: 'Errors'})).toBeInTheDocument();
+
+    // Open the dataset dropdown to verify all options are available
+    await userEvent.click(screen.getByRole('button', {name: 'Errors'}));
+    expect(await screen.findByRole('option', {name: 'Errors'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Transactions'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Spans'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Issues'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
 
     expect(screen.getByText('Table')).toBeInTheDocument();
     // ensure the dropdown input has the default value 'table'
