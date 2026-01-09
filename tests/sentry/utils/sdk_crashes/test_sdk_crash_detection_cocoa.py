@@ -814,6 +814,47 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
+    def test_swizzle_wrapper_with_always_ignored_sdk_frame_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        SentrySwizzleWrapper with an always-ignored SDK frame ([SentrySDK crash]).
+        The always-ignored frame should not count as another SDK frame.
+        """
+        frames = [
+            {
+                "function": "+[SentrySDK crash]",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[UIApplication sendEvent:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSString substringWithRange:]",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
 
 class SDKCrashDetectionCocoaTest(
     TestCase,

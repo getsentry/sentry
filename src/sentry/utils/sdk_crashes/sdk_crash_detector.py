@@ -88,12 +88,13 @@ class SDKCrashDetector:
         # are SDK frames or from system libraries.
         iter_frames = [f for f in reversed(frames) if f is not None]
 
-        # First pass: Check if we have any SDK frames that are NOT conditional (like SentrySwizzleWrapper).
-        # We prefer to overreport rather than underreport SDK crashes, so if there's any other
-        # SDK frame anywhere in the stacktrace, we should report it.
         has_non_conditional_sdk_frame = False
         for frame in iter_frames:
-            if self.is_sdk_frame(frame) and not self._matches_ignore_when_only_sdk_frame(frame):
+            if (
+                self.is_sdk_frame(frame)
+                and not self._matches_ignore_when_only_sdk_frame(frame)
+                and not self._matches_sdk_crash_ignore(frame)
+            ):
                 has_non_conditional_sdk_frame = True
                 break
 
@@ -112,20 +113,9 @@ class SDKCrashDetector:
                         return False
 
             if self.is_sdk_frame(frame):
-                # Check if this SDK frame matches the "ignore when only SDK frame" pattern.
-                # These are instrumentation frames (like swizzling or monkey patching) that
-                # don't cause crashes themselves.
                 if self._matches_ignore_when_only_sdk_frame(frame):
-                    # Found a conditional SDK frame (like SentrySwizzleWrapper).
-                    # Only ignore it if there are no other SDK frames anywhere in the stacktrace.
-                    # We prefer to overreport rather than underreport SDK crashes.
-                    if has_non_conditional_sdk_frame:
-                        return True
-                    else:
-                        return False
-                else:
-                    # Found a non-conditional SDK frame, this is definitely an SDK crash
-                    return True
+                    return has_non_conditional_sdk_frame
+                return True
 
             if not self.is_system_library_frame(frame):
                 return False
@@ -142,6 +132,21 @@ class SDKCrashDetector:
 
         module = frame.get("module")
         for matcher in self.config.sdk_crash_ignore_when_only_sdk_frame_matchers:
+            function_matches = glob_match(function, matcher.function_pattern, ignorecase=True)
+            module_matches = glob_match(module, matcher.module_pattern, ignorecase=True)
+
+            if function_matches and module_matches:
+                return True
+
+        return False
+
+    def _matches_sdk_crash_ignore(self, frame: Mapping[str, Any]) -> bool:
+        function = frame.get("function")
+        if not function:
+            return False
+
+        module = frame.get("module")
+        for matcher in self.config.sdk_crash_ignore_matchers:
             function_matches = glob_match(function, matcher.function_pattern, ignorecase=True)
             module_matches = glob_match(module, matcher.module_pattern, ignorecase=True)
 
