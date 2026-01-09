@@ -14,10 +14,11 @@ def remove_on_command_phrase_from_triggers(
     """Remove 'on_command_phrase' from organization defaultCodeReviewTriggers."""
     OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
-    org_options_to_update = OrganizationOption.objects.filter(
-        key="sentry:default_code_review_triggers"
+    org_options_to_update = list(
+        OrganizationOption.objects.filter(key="sentry:default_code_review_triggers")
     )
 
+    updated_org_options = []
     for org_option in org_options_to_update:
         if (
             org_option.value
@@ -27,7 +28,10 @@ def remove_on_command_phrase_from_triggers(
             org_option.value = [
                 trigger for trigger in org_option.value if trigger != "on_command_phrase"
             ]
-            org_option.save(update_fields=["value"])
+            updated_org_options.append(org_option)
+
+    if updated_org_options:
+        OrganizationOption.objects.bulk_update(updated_org_options, fields=["value"])
 
 
 class Migration(CheckedMigration):
