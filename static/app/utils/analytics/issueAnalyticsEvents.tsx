@@ -78,6 +78,9 @@ export type IssueEventParameters = {
   'device.classification.unclassified.ios.device': {
     model: string;
   };
+  'errors.ai_query_applied': {
+    query: string;
+  };
   'event_cause.dismissed': Record<string, unknown>;
   'event_cause.docs_clicked': Record<string, unknown>;
   'event_cause.snoozed': Record<string, unknown>;
@@ -99,6 +102,9 @@ export type IssueEventParameters = {
     provider: string;
   };
   'issue-details.replay-cta-dismiss': {type: string};
+  'issue.list.ai_query_applied': {
+    query: string;
+  };
   'issue.search_sidebar_clicked': Record<string, unknown>;
   'issue.share_from_icon': Record<string, unknown>;
   'issue.shared_publicly': Record<string, unknown>;
@@ -426,6 +432,7 @@ type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
+  'errors.ai_query_applied': 'Errors: AI Query Applied',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
   'event_cause.viewed': null,
@@ -518,6 +525,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.star_view': 'Issue Views: Star View',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
+  'issue.list.ai_query_applied': 'Issue List: AI Query Applied',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
