@@ -262,7 +262,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Cron Monitor",
+        operation_id="Create a Monitor",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=MonitorValidator,
         responses={
