@@ -367,8 +367,8 @@ const NavLink = styled(Link, {
   &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
-      background-color: ${p => p.theme.colors.blue100};
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
+      background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     }
   }
 
@@ -387,12 +387,12 @@ const NavLink = styled(Link, {
       opacity: 1;
     }
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.blue100};
+      background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     }
 
     &:hover {
       ${NavLinkIconContainer} {
-        background-color: ${p => p.theme.colors.blue100};
+        background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
       }
     }
   }

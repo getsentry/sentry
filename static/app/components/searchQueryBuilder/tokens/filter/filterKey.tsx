@@ -88,7 +88,7 @@ const KeyButton = styled(UnstyledButton)`
   max-width: 400px;
 
   :focus {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }

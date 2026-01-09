@@ -7,7 +7,7 @@ export const AskSeerPane = styled('div')`
   justify-content: flex-start;
   padding: 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  background-color: ${p => p.theme.colors.blue100};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   width: 100%;
 `;
 
@@ -39,7 +39,7 @@ export const AskSeerListItem = styled('div')<{
   }
 
   &[aria-selected='true'] {
-    background: ${p => p.theme.colors.blue100};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
     color: ${p => p.theme.tokens.content.accent};
   }
 `;
