@@ -1875,6 +1875,79 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
     });
 
+    it('wraps selected tokens correctly when existing parentheses are present', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="( is:unresolved ) browser.name:chrome"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      // Select only the browser.name token (shift+left)
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'browser.name:chrome'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+      await userEvent.keyboard('(');
+
+      // Should wrap only the selected token, preserving existing parens
+      expect(mockOnChange).toHaveBeenCalledWith(
+        '( is:unresolved ) ( browser.name:chrome )',
+        expect.anything()
+      );
+    });
+
+    it('wraps selected tokens correctly when duplicate content appears earlier', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      // Select only the last browser.name token (shift+left)
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        // Both have the same name, so just check something is selected
+        const rows = screen.getAllByRole('row', {name: 'browser.name:firefox'});
+        expect(rows[1]).toHaveAttribute('aria-selected', 'true');
+      });
+      await userEvent.keyboard('(');
+
+      // Should wrap the second occurrence correctly
+      expect(mockOnChange).toHaveBeenCalledWith(
+        'browser.name:firefox ( browser.name:firefox )',
+        expect.anything()
+      );
+    });
+
+    it('places focus after the closing paren when wrapping', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved browser.name:chrome"
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('(');
+
+      // After wrapping, focus should be at the end (last input)
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
+    });
+
     it('can undo wrapping with ctrl-z', async () => {
       const mockOnChange = jest.fn();
       render(

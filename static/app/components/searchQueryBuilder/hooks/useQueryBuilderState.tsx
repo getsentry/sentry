@@ -464,20 +464,22 @@ function wrapTokensWithParentheses(
   const after = state.query.substring(lastToken.location.end.offset);
 
   const newQuery = removeExcessWhitespaceFromParts(before, '(', middle, ')', after);
-  // Calculate cursor position in the new query: find the closing ')' that we just added.
-  const trimmedMiddle = middle.trim();
-  let cursorPosition = newQuery.length; // Fallback: position at end of query
 
-  if (trimmedMiddle.length > 0) {
-    const middleStartIndex = newQuery.indexOf(trimmedMiddle);
-    if (middleStartIndex >= 0) {
-      const middleEndIndex = middleStartIndex + trimmedMiddle.length;
-      // Find the ')' that comes after middle (there should be a space before it)
-      const closingParenIndex = newQuery.indexOf(')', middleEndIndex);
-      if (closingParenIndex >= 0) {
-        cursorPosition = closingParenIndex + 1;
-      }
-    }
+  // Calculate cursor position: position right after the closing ')' we just added.
+  let cursorPosition: number;
+  const trimmedBefore = before.trim();
+  const trimmedMiddle = middle.trim();
+  if (trimmedMiddle.length === 0) {
+    // Edge case: empty middle, position at end
+    cursorPosition = newQuery.length;
+  } else if (trimmedBefore.length > 0) {
+    // Format: "trimmedBefore ( trimmedMiddle ) ..."
+    // Position: trimmedBefore + " " + "(" + " " + trimmedMiddle + " " + ")" = len + 4 + len + 1
+    cursorPosition = trimmedBefore.length + trimmedMiddle.length + 5;
+  } else {
+    // Format: "( trimmedMiddle ) ..."
+    // Position: "(" + " " + trimmedMiddle + " " + ")" = 2 + len + 2
+    cursorPosition = trimmedMiddle.length + 4;
   }
   const newParsedQuery = parseQuery(newQuery);
 
