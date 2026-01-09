@@ -14,6 +14,7 @@ __all__ = [
     "IssuePriorityGreaterOrEqualConditionHandler",
     "IssuePriorityDeescalatingConditionHandler",
     "IssueResolutionConditionHandler",
+    "IssueResolvedTriggerCondition",
     "LatestAdoptedReleaseConditionHandler",
     "LatestReleaseConditionHandler",
     "LevelConditionHandler",
@@ -39,6 +40,7 @@ from .issue_priority_deescalating_handler import IssuePriorityDeescalatingCondit
 from .issue_priority_equals import IssuePriorityCondition
 from .issue_priority_greater_or_equal_handler import IssuePriorityGreaterOrEqualConditionHandler
 from .issue_resolution_condition_handler import IssueResolutionConditionHandler
+from .issue_resolved_trigger_condition import IssueResolvedTriggerCondition
 from .latest_adopted_release_handler import LatestAdoptedReleaseConditionHandler
 from .latest_release_handler import LatestReleaseConditionHandler
 from .level_handler import LevelConditionHandler

@@ -123,6 +123,7 @@ export default class InstalledIntegration extends Component<Props> {
           const canConfigure =
             (hasAccess || superuser) && this.integrationStatus === 'active';
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
+          const isPendingDeletion = this.integrationStatus === 'pending_deletion';
           return (
             <Fragment>
               <IntegrationItemBox>
@@ -174,11 +175,11 @@ export default class InstalledIntegration extends Component<Props> {
                   <Confirm
                     priority="danger"
                     onConfirming={this.handleUninstallClick}
-                    disabled={!hasAccess}
+                    disabled={!hasAccess || isPendingDeletion}
                     {...removeConfirmProps}
                   >
                     <StyledButton
-                      disabled={!hasAccess}
+                      disabled={!hasAccess || isPendingDeletion}
                       borderless
                       icon={<IconDelete />}
                       data-test-id="integration-remove-button"
@@ -221,7 +222,7 @@ function IntegrationStatus(
 ) {
   const theme = useTheme();
   const {status, hideTooltip, ...p} = props;
-  const color = status === 'active' ? theme.success : theme.colors.gray400;
+  const color = status === 'active' ? theme.tokens.content.success : theme.colors.gray400;
   const inner = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />

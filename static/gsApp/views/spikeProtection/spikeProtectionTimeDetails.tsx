@@ -30,7 +30,7 @@ function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
       <SpikeTimeDetailsTextWrapper>
         <strong>{formattedTime.toLowerCase()}</strong>
         <span>
-          <StyledIconCalendar size="xs" color="gray300" />
+          <StyledIconCalendar size="xs" variant="muted" />
           {dateFormat}
         </span>
       </SpikeTimeDetailsTextWrapper>

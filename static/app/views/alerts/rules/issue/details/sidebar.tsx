@@ -34,7 +34,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
       <Step>
         <StepContainer>
           <ChevronContainer>
-            <IconChevron color="gray200" direction="right" size="sm" />
+            <IconChevron variant="muted" direction="right" size="sm" />
           </ChevronContainer>
           <StepContent>
             <StepLead>
@@ -55,7 +55,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
         <Step>
           <StepContainer>
             <ChevronContainer>
-              <IconChevron color="gray200" direction="right" size="sm" />
+              <IconChevron variant="muted" direction="right" size="sm" />
             </ChevronContainer>
             <StepContent>
               <StepLead>
@@ -76,7 +76,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
       <Step>
         <StepContainer>
           <ChevronContainer>
-            <IconChevron color="gray200" direction="right" size="sm" />
+            <IconChevron variant="muted" direction="right" size="sm" />
           </ChevronContainer>
           <div>
             <StepLead>

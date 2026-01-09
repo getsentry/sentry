@@ -1,4 +1,4 @@
-from collections.abc import Collection, Sequence
+from collections.abc import Sequence
 from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum
@@ -30,7 +30,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
     process_data_condition_group,
 )
-from sentry.workflow_engine.processors.detector import get_detectors_for_event
+from sentry.workflow_engine.processors.detector import get_detectors_for_event_data
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
     WorkflowEvaluation,
@@ -380,7 +380,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
 @scopedstats.timer()
 def _get_associated_workflows(
-    detectors: Collection[Detector], environment: Environment | None, event_data: WorkflowEventData
+    detector: Detector, environment: Environment | None, event_data: WorkflowEventData
 ) -> set[Workflow]:
     """
     This is a wrapper method to get the workflows associated with a detector and environment.
@@ -394,7 +394,7 @@ def _get_associated_workflows(
     workflows = set(
         Workflow.objects.filter(
             environment_filter,
-            detectorworkflow__detector_id__in=[detector.id for detector in detectors],
+            detectorworkflow__detector_id=detector.id,
             enabled=True,
         )
         .select_related("environment")
@@ -421,7 +421,7 @@ def _get_associated_workflows(
                 "event_data": asdict(event_data),
                 "event_environment_id": environment.id if environment else None,
                 "workflows": [workflow.id for workflow in workflows],
-                "detector_types": [detector.type for detector in detectors],
+                "detector_type": detector.type,
             },
         )
 
@@ -454,7 +454,7 @@ def process_workflows(
     )
 
     try:
-        event_detectors = get_detectors_for_event(event_data, detector)
+        event_detectors = get_detectors_for_event_data(event_data, detector)
 
         if not event_detectors:
             raise Detector.DoesNotExist("No Detectors associated with the issue were found")
@@ -500,7 +500,9 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = _get_associated_workflows(event_detectors.detectors, environment, event_data)
+    workflows = _get_associated_workflows(
+        event_detectors.preferred_detector, environment, event_data
+    )
     workflow_evaluation_data.workflows = workflows
 
     if not workflows:
@@ -547,7 +549,7 @@ def process_workflows(
         )
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
-    create_workflow_fire_histories(
+    fire_histories = create_workflow_fire_histories(
         actions,
         event_data,
         should_trigger_actions,
@@ -555,6 +557,13 @@ def process_workflows(
         start_timestamp=event_start_time,
     )
 
-    fire_actions(actions, event_data)
+    # Create mapping: workflow_id -> notification_uuid for propagation
+    workflow_uuid_map: dict[int, str] = {}
+    if fire_histories:
+        workflow_uuid_map = {
+            history.workflow_id: str(history.notification_uuid) for history in fire_histories
+        }
+
+    fire_actions(actions, event_data, workflow_uuid_map=workflow_uuid_map)
 
     return WorkflowEvaluation(tainted=False, data=workflow_evaluation_data)

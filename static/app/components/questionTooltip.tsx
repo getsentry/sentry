@@ -42,9 +42,9 @@ function QuestionTooltip({
     <QuestionIconContainer size={size} className={className}>
       <Tooltip skipWrapper title={title} {...tooltipProps}>
         {icon === 'info' ? (
-          <IconInfo size={size} color="subText" data-test-id="more-information" />
+          <IconInfo size={size} variant="muted" data-test-id="more-information" />
         ) : (
-          <IconQuestion size={size} color="subText" data-test-id="more-information" />
+          <IconQuestion size={size} variant="muted" data-test-id="more-information" />
         )}
       </Tooltip>
     </QuestionIconContainer>

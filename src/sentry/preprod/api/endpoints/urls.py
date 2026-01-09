@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.urls import re_path
 
+from sentry.preprod.api.endpoints.builds import BuildsEndpoint, BuildTagKeyValuesEndpoint
 from sentry.preprod.api.endpoints.project_preprod_artifact_image import (
     ProjectPreprodArtifactImageEndpoint,
 )
@@ -35,7 +36,6 @@ from .project_preprod_artifact_install_details import ProjectPreprodInstallDetai
 from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
-from .project_preprod_list_builds import ProjectPreprodListBuildsEndpoint
 from .project_preprod_size import (
     ProjectPreprodSizeEndpoint,
     ProjectPreprodSizeWithIdentifierEndpoint,
@@ -62,11 +62,6 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/check-for-updates/$",
         ProjectPreprodArtifactCheckForUpdatesEndpoint.as_view(),
         name="sentry-api-0-project-preprod-check-for-updates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/list-builds/$",
-        ProjectPreprodListBuildsEndpoint.as_view(),
-        name="sentry-api-0-project-preprod-list-builds",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size-analysis/$",
@@ -147,6 +142,16 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/pr-comments/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
         OrganizationPrCommentsEndpoint.as_view(),
         name="sentry-api-0-organization-pr-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/builds/$",
+        BuildsEndpoint.as_view(),
+        name="sentry-api-0-organization-builds",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/build-tags/(?P<key>[^/]+)/values/$",
+        BuildTagKeyValuesEndpoint.as_view(),
+        name="sentry-api-0-organization-build-tagKey-values",
     ),
 ]
 

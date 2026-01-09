@@ -73,7 +73,7 @@ export const CallTreeTable = styled('div')`
   .${CallTreeTableClassNames.CELL} {
     position: relative;
     width: 164px;
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     display: flex;
     align-items: center;
     padding-right: ${space(1)};
@@ -151,7 +151,7 @@ export const CallTreeTable = styled('div')`
   .${CallTreeTableClassNames.GHOST_ROW_CELL} {
     width: 164px;
     height: 100%;
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     position: absolute;
     left: 0;
     top: 0;
@@ -210,7 +210,7 @@ export const CallTreeTableHeader = styled('div')`
 
   > div {
     position: relative;
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     background-color: ${p => p.theme.tokens.background.primary};
     white-space: nowrap;
 
@@ -219,7 +219,7 @@ export const CallTreeTableHeader = styled('div')`
     }
 
     &:not(:last-child) {
-      border-right: 1px solid ${p => p.theme.border};
+      border-right: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;

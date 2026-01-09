@@ -4,7 +4,11 @@ import type {LegendComponentOption} from 'echarts';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import type {
+  AggregationOutputType,
+  DataUnit,
+  RateUnit,
+} from 'sentry/utils/discover/fields';
 import {axisDuration} from 'sentry/utils/duration/axisDuration';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
@@ -18,12 +22,13 @@ import {categorizeDuration} from './categorizeDuration';
  */
 export function tooltipFormatter(
   value: number | null,
-  outputType: AggregationOutputType = 'number'
+  outputType: AggregationOutputType = 'number',
+  unit?: DataUnit
 ): string {
   if (!defined(value)) {
     return '\u2014';
   }
-  return tooltipFormatterUsingAggregateOutputType(value, outputType);
+  return tooltipFormatterUsingAggregateOutputType(value, outputType, unit);
 }
 
 /**
@@ -31,7 +36,8 @@ export function tooltipFormatter(
  */
 export function tooltipFormatterUsingAggregateOutputType(
   value: number | null,
-  type: string
+  type: string,
+  unit?: DataUnit
 ): string {
   if (!defined(value)) {
     return '\u2014';
@@ -46,6 +52,11 @@ export function tooltipFormatterUsingAggregateOutputType(
       return getDuration(value / 1000, 2, true);
     case 'size':
       return formatBytesBase2(value);
+    case 'rate':
+      if (unit) {
+        return formatRate(value, unit as RateUnit);
+      }
+      return formatRate(value);
     default:
       return value.toString();
   }

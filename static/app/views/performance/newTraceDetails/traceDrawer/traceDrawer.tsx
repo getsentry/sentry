@@ -11,7 +11,6 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -455,7 +454,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >
-      <StyledIconCircleFilled size="xs" color={node.makeBarColor(props.theme) as Color} />
+      <StyledIconCircleFilled size="xs" fill={node.makeBarColor(props.theme)} />
       <TabButton>{node.drawerTabsTitle}</TabButton>
       <TabPinButton
         pinned={props.pinned}
@@ -504,8 +503,9 @@ const CloseButton = styled(Button)`
   }
 `;
 
-const StyledIconCircleFilled = styled(IconCircleFill)`
+const StyledIconCircleFilled = styled(IconCircleFill)<{fill: string}>`
   margin-right: ${space(0.25)};
+  fill: ${p => p.fill};
 `;
 
 const ResizeableHandle = styled('div')<{
@@ -532,11 +532,11 @@ const PanelWrapper = styled('div')<{
   overflow: hidden;
   width: 100%;
   border-top: ${p =>
-    p.layout === 'drawer bottom' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer bottom' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   border-left: ${p =>
-    p.layout === 'drawer right' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer right' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   border-right: ${p =>
-    p.layout === 'drawer left' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer left' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   bottom: 0;
   right: 0;
   position: relative;
@@ -556,7 +556,7 @@ const TabsHeightContainer = styled('div')<{
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
   height: 38px;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
 `;
 
@@ -599,7 +599,7 @@ const TabSeparator = styled('span')`
   margin-right: ${space(0.5)};
   height: 16px;
   width: 1px;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   transform: translateY(3px);
 `;
 
@@ -633,7 +633,7 @@ const Tab = styled('li')`
       transform: translateY(-50%);
       height: 16px;
       width: 1px;
-      background-color: ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.border.primary};
     }
   }
 

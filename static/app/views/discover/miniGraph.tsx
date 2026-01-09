@@ -172,7 +172,7 @@ class MiniGraph extends Component<Props> {
           if (errored) {
             return (
               <StyledGraphContainer>
-                <IconWarning color="gray300" size="md" />
+                <IconWarning variant="muted" size="md" />
                 <StyledErrorMessage>{errorMessage}</StyledErrorMessage>
               </StyledGraphContainer>
             );
