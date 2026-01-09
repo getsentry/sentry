@@ -33,20 +33,19 @@ class ReconnectingMemcache(PyMemcacheCache):
         """
         Overload PyMemcacheCache._cache with periodic reconnections.
         """
-        reconnect = False
         age = time.time() - self._last_reconnect_at
         if not self._backend or age >= self._reconnect_age:
-            reconnect = True
+            try:
+                if self._backend_lock.acquire(timeout=1.0):
+                    # Close the underlying cache connection if we haven't done that recently.
+                    if self._backend:
+                        self._backend.close()
+                        self._backend = None
+                        metrics.incr("cache.memcache.reconnect")
 
-        if reconnect and self._backend_lock.acquire(timeout=1.0):
-            # Close the underlying cache connection if we haven't done that recently.
-            if self._backend:
-                self._backend.close()
-                self._backend = None
-
-            metrics.incr("cache.memcache.reconnect")
-            self._backend = self._class(self.client_servers, **self._options)
-            self._last_reconnect_at = time.time()
-            self._backend_lock.release()
+                    self._backend = self._class(self.client_servers, **self._options)
+                    self._last_reconnect_at = time.time()
+            finally:
+                self._backend_lock.release()
 
         return self._backend
