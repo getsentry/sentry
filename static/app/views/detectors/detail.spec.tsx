@@ -85,6 +85,10 @@ describe('DetectorDetails', () => {
       },
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [GroupFixture()],
     });
