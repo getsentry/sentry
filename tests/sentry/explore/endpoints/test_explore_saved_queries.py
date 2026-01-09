@@ -1325,6 +1325,7 @@ class ExploreSavedQueriesTest(APITestCase):
                     "query": [
                         {
                             "query": "user.email:*@sentry.io",
+                            "mode": "samples",
                         }
                     ],
                     "range": "48h",
