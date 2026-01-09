@@ -9,6 +9,7 @@ from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
+from sentry.api.serializers.rest_framework import EnvironmentField
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
     InvalidSearchQuery,
@@ -79,7 +80,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
-    environment = serializers.CharField(required=True, allow_null=True)
+    environment = EnvironmentField(required=True, allow_null=True)
     event_types = serializers.ListField(
         child=serializers.CharField(),
     )
