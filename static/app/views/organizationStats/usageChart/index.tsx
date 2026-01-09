@@ -23,7 +23,7 @@ import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
 
-export type CategoryOption = {
+type CategoryOption = {
   /**
    * Scale of y-axis with no usage data.
    */

@@ -116,7 +116,7 @@ const Input = styled('input')`
   &.rdrDateDisplayItem {
     width: 100%;
     background: ${p => p.theme.backgroundSecondary};
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
     color: ${p => p.theme.subText};
     padding: ${space(0.25)} ${space(0.5)};
     box-shadow: none;

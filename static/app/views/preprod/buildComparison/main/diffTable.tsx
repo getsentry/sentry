@@ -91,7 +91,7 @@ export const DiffTableChangeAmountCell = styled(SimpleTable.RowCell)<{
     switch (p.changeType) {
       case 'increased':
       case 'added':
-        return p.theme.dangerText;
+        return p.theme.tokens.content.danger;
       case 'removed':
       case 'decreased':
         return p.theme.tokens.content.success;

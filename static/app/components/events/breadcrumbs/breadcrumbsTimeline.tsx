@@ -209,7 +209,8 @@ const Timestamp = styled('div')`
   min-width: 50px;
   text-align: right;
   span {
-    text-decoration: underline dashed ${p => p.theme.translucentBorder};
+    text-decoration: underline dashed
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 

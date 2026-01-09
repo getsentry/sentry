@@ -141,7 +141,7 @@ const TimelineContainer = styled(Panel)`
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
   grid-column: 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AlignedGridLineOverlay = styled(GridLineOverlay)`
