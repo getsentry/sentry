@@ -19,7 +19,7 @@ def serialize_event_data_as_item(
     event: Event | GroupEvent, event_data: Mapping[str, Any], project: Project
 ) -> TraceItem:
     return TraceItem(
-        item_id=event_data["event_id"].encode("utf-8"),
+        item_id=int(event_data["event_id"], 16).to_bytes(16, "little"),
         item_type=TRACE_ITEM_TYPE_OCCURRENCE,
         trace_id=event_data["contexts"]["trace"]["trace_id"],
         timestamp=Timestamp(seconds=int(event_data["timestamp"])),

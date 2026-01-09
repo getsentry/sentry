@@ -282,7 +282,7 @@ class ItemHelpersTest(TestCase):
         event = self.create_group_event(event_data)
         result = serialize_event_data_as_item(event, event_data, project)
 
-        assert result.item_id == ("a" * 32).encode("utf-8")
+        assert result.item_id == int("a" * 32, 16).to_bytes(16, "little")
         assert result.item_type == TRACE_ITEM_TYPE_OCCURRENCE
         assert result.trace_id == "b" * 32
         assert result.timestamp.seconds == 1234567890
@@ -338,9 +338,9 @@ class ItemHelpersTest(TestCase):
         project = self.create_project()
 
         event_data = {
-            "event_id": "g" * 32,
+            "event_id": "1" * 32,
             "timestamp": 1234567890,
-            "contexts": {"trace": {"trace_id": "h" * 32}},
+            "contexts": {"trace": {"trace_id": "2" * 32}},
             "other_field": "should_be_included",
             "tags": [("level", "info")],
             "empty": None,
@@ -365,9 +365,9 @@ class ItemHelpersTest(TestCase):
         project = self.create_project()
 
         event_data = {
-            "event_id": "i" * 32,
+            "event_id": "3" * 32,
             "timestamp": 1234567890,
-            "contexts": {"trace": {"trace_id": "j" * 32}},
+            "contexts": {"trace": {"trace_id": "4" * 32}},
             "level": "error",
             "logger": "django",
             "server_name": "web-1",
@@ -377,7 +377,7 @@ class ItemHelpersTest(TestCase):
         }
 
         event = Event(
-            event_id="i" * 32,
+            event_id="3" * 32,
             data=event_data,
             project_id=project.id,
         )
@@ -388,3 +388,41 @@ class ItemHelpersTest(TestCase):
         assert result.attributes["server_name"] == AnyValue(string_value="web-1")
         assert result.attributes["release"] == AnyValue(string_value="1.0.0")
         assert result.attributes["environment"] == AnyValue(string_value="production")
+
+    def test_event_id_encoding_as_item_id(self) -> None:
+        project = self.create_project()
+
+        test_event_ids = [
+            "0fe53e4887e143549dd0cc65c0370d38",
+            "b87e618e18dc428b9dbd9afc56c9e4cd",
+            "00000000000000000000000000000000",
+            "ffffffffffffffffffffffffffffffff",
+            "0123456789abcdef0123456789abcdef",
+            "fedcba9876543210fedcba9876543210",
+            "a" * 32,
+            "12345678123456781234567812345678",
+        ]
+
+        for original_event_id in test_event_ids:
+            event_data = {
+                "event_id": original_event_id,
+                "timestamp": 1234567890,
+                "contexts": {"trace": {"trace_id": "b" * 32}},
+                "tags": [],
+            }
+            event = Event(
+                event_id=original_event_id,
+                data=event_data,
+                project_id=project.id,
+            )
+            result = serialize_event_data_as_item(event, event_data, project)
+
+            assert len(result.item_id) == 16, (
+                f"item_id must be exactly 16 bytes, got {len(result.item_id)} bytes "
+                f"for event_id {original_event_id}"
+            )
+
+            recovered_event_id = format(int.from_bytes(result.item_id, "little"), "032x")
+            assert (
+                recovered_event_id == original_event_id
+            ), f"Encoding scheme failed for event_id {original_event_id}: got {recovered_event_id}"
