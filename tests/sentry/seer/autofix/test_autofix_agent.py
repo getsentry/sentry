@@ -347,7 +347,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
 
         assert len(result["failures"]) == 1
-        assert "No repositories found" in result["failures"][0]["error"]
+        assert "No repositories found" in result["failures"][0]["error_message"]
         mock_client.launch_coding_agents.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")

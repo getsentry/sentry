@@ -309,7 +309,10 @@ def trigger_coding_agent_handoff(
     repos = list(state.get_diffs_by_repo().keys())
     repos.extend(r for r in state.repo_pr_states.keys() if r not in repos)
     if not repos:
-        return {"successes": [], "failures": [{"error": "No repositories found in run state"}]}
+        return {
+            "successes": [],
+            "failures": [{"error_message": "No repositories found in run state"}],
+        }
 
     prompt = generate_autofix_handoff_prompt(state)
 
