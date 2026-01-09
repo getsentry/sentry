@@ -1313,3 +1313,23 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         data = response.data
         assert data["query"][0]["caseInsensitive"] is True
+
+    def test_save_replay_query(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Replay dataset",
+                    "projects": self.project_ids,
+                    "dataset": "replays",
+                    "query": [
+                        {
+                            "query": "user.email:*@sentry.io",
+                        }
+                    ],
+                    "range": "48h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"]["query"] == "user.email:*@sentry.io"
