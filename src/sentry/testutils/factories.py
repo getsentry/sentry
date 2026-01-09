@@ -138,6 +138,7 @@ from sentry.organizations.services.organization import RpcOrganization, RpcUserO
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
@@ -2648,11 +2649,12 @@ class Factories:
         commit_comparison: CommitComparison | None = None,
         file_id: int | None = None,
         installable_app_file_id: int | None = None,
+        date_added: datetime | None = None,
         build_configuration: PreprodBuildConfiguration | None = None,
         extras: dict | None = None,
         **kwargs,
     ) -> PreprodArtifact:
-        return PreprodArtifact.objects.create(
+        artifact = PreprodArtifact.objects.create(
             project=project,
             state=state,
             artifact_type=artifact_type,
@@ -2667,6 +2669,24 @@ class Factories:
             extras=extras,
             **kwargs,
         )
+        if date_added is not None:
+            artifact.update(date_added=date_added)
+
+        mobile_app_info_fields: dict[str, Any] = {}
+        if build_version is not None:
+            mobile_app_info_fields["build_version"] = build_version
+        if build_number is not None:
+            mobile_app_info_fields["build_number"] = build_number
+        if app_name is not None:
+            mobile_app_info_fields["app_name"] = app_name
+
+        if mobile_app_info_fields:
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=artifact,
+                **mobile_app_info_fields,
+            )
+
+        return artifact
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2720,3 +2740,28 @@ class Factories:
             expiration_date=expiration_date,
             download_count=download_count,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_github_identity(
+        user: User | None = None, idp: IdentityProvider | None = None, **kwargs: Any
+    ) -> Identity:
+        if idp is None:
+            idp = Factories.create_github_provider()
+        if user is None:
+            user = Factories.create_user()
+        if "external_id" not in kwargs:
+            kwargs["external_id"] = f"github-user-{user.id}"
+        if "status" not in kwargs:
+            kwargs["status"] = IdentityStatus.VALID
+
+        identity, _ = Identity.objects.update_or_create(user=user, idp=idp, defaults=kwargs)
+        return identity
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_github_provider(**kwargs) -> IdentityProvider:
+        identity_provider, _ = IdentityProvider.objects.update_or_create(
+            type="github", external_id="github-app", defaults=kwargs
+        )
+        return identity_provider

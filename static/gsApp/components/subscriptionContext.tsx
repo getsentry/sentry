@@ -8,7 +8,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-function SubscriptionContext(props: Props) {
+export default function SubscriptionContext(props: Props) {
   const organization = useOrganization();
   return organization.access.includes('org:billing') ? (
     <Fragment>{props.children}</Fragment>
@@ -16,5 +16,3 @@ function SubscriptionContext(props: Props) {
     <ContactBillingMembers />
   );
 }
-
-export default SubscriptionContext;

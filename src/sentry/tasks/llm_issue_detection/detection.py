@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from django.conf import settings
 from pydantic import BaseModel, ValidationError
-from urllib3 import Retry
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -23,22 +22,34 @@ from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
 )
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils import json
+from sentry.utils import json, metrics
+from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 180
-SEER_RETRIES = Retry(total=1, backoff_factor=2, status_forcelist=[408, 429, 502, 503, 504])
-START_TIME_DELTA_MINUTES = 30
+START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 100
 NUM_TRANSACTIONS_TO_PROCESS = 20
+TRACE_PROCESSING_TTL_SECONDS = 7200
+
+
+def mark_trace_as_processed(trace_id: str) -> bool:
+    """
+    Mark trace as processed for LLM issue detection to prevent duplicate analysis.
+    Returns True if successfully marked, False if already marked.
+    """
+    cluster = redis_clusters.get("default")
+    key = f"llm_detection:processed:{trace_id}"
+    result = cluster.set(key, "1", nx=True, ex=TRACE_PROCESSING_TTL_SECONDS)
+    return bool(result)
 
 
 seer_issue_detection_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
     timeout=SEER_TIMEOUT_S,
-    retries=SEER_RETRIES,
+    retries=0,
     maxsize=10,
 )
 
@@ -195,7 +206,8 @@ def run_llm_issue_detection() -> None:
     for index, project_id in enumerate(enabled_project_ids):
         detect_llm_issues_for_project.apply_async(
             args=[project_id],
-            countdown=index * 60,
+            countdown=index * 120,
+            headers={"sentry-propagate-traces": False},
         )
 
 
@@ -246,6 +258,10 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
             break
 
+        if not mark_trace_as_processed(trace.trace_id):
+            metrics.incr("llm_issue_detection.trace.skipped")
+            continue
+
         logger.info(
             "Sending Seer Request for Detection",
             extra={
@@ -293,8 +309,15 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
         try:
             raw_response_data = response.json()
+            logger.info(
+                "Raw Seer response",
+                extra={
+                    "response_data": raw_response_data,
+                    "trace_id": trace.trace_id,
+                },
+            )
             response_data = IssueDetectionResponse.parse_obj(raw_response_data)
-        except (ValueError, TypeError, ValidationError):
+        except (ValueError, TypeError, ValidationError) as e:
             logger.exception(
                 "Seer response parsing error",
                 extra={
@@ -303,6 +326,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     "status": response.status,
                     "response_data": response.data.decode("utf-8"),
                     "trace_id": trace.trace_id,
+                    "error_detail": str(e),
                 },
             )
             continue

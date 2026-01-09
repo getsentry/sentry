@@ -318,7 +318,7 @@ const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
     // The pseudo element is used to create the left-most notch
     css`
       height: 24px;
-      border-top: 1px solid ${p.theme.translucentBorder};
+      border-top: 1px solid ${p.theme.tokens.border.transparent.neutral.muted};
       top: 68px;
       &:before {
         content: '';
@@ -328,7 +328,7 @@ const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
         height: ${space(0.5)};
         width: 1px;
         border-radius: 1px;
-        background: ${p.theme.translucentBorder};
+        background: ${p.theme.tokens.border.transparent.neutral.muted};
       }
     `}
 `;
@@ -340,7 +340,7 @@ export const Gridline = styled('div')<{labelPosition: LabelPosition; left: numbe
     p.labelPosition === 'left-top' &&
     css`
       height: 100%;
-      border-left: 1px solid ${p.theme.translucentInnerBorder};
+      border-left: 1px solid ${p.theme.tokens.border.transparent.neutral.muted};
     `}
   ${p =>
     p.labelPosition === 'center-bottom' &&
@@ -348,7 +348,7 @@ export const Gridline = styled('div')<{labelPosition: LabelPosition; left: numbe
       height: 6px;
       width: 1px;
       border-radius: 1px;
-      background: ${p.theme.translucentBorder};
+      background: ${p.theme.tokens.border.transparent.neutral.muted};
       top: 68px;
     `}
 `;

@@ -265,7 +265,7 @@ export function getMenuOptions(
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
     menuOptions.push({
       key: 'open-in-metrics',
-      label: t('Open in Metrics'),
+      label: t('Open in Explore'),
       to: getWidgetMetricsUrl(widget, dashboardFilters, selection, organization),
       onAction: () => {
         trackAnalytics('dashboards_views.open_in_metrics.opened', {

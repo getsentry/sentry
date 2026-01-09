@@ -132,7 +132,7 @@ function TeamMisery({
                 <Fragment key={idx}>
                   <KeyTransactionTitleWrapper>
                     <div>
-                      <StyledIconStar isSolid color="yellow300" />
+                      <StyledIconStar isSolid variant="warning" />
                     </div>
                     <TransactionWrapper>
                       <Link
@@ -161,7 +161,11 @@ function TeamMisery({
                         {t('change')}
                       </SubText>
                     ) : (
-                      <TrendText color={trend >= 0 ? theme.successText : theme.errorText}>
+                      <TrendText
+                        color={
+                          trend >= 0 ? theme.tokens.content.success : theme.errorText
+                        }
+                      >
                         {`${trendValue}\u0025 `}
                         {trend >= 0 ? t('better') : t('worse')}
                       </TrendText>

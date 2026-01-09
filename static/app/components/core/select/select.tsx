@@ -82,7 +82,9 @@ const getStylesConfig = ({
     padding: '0 4px 0 4px',
     alignItems: 'center',
     cursor: state.isDisabled ? 'not-allowed' : 'pointer',
-    color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
+    color: state.isDisabled
+      ? theme.tokens.content.disabled
+      : theme.tokens.content.primary,
     ':hover': {
       color: 'currentcolor',
     },
@@ -92,9 +94,11 @@ const getStylesConfig = ({
   return {
     control: (_, state) => ({
       display: 'flex',
-      color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.primary,
       ...debossedBackground(theme),
-      border: `1px solid ${theme.border}`,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow,
       borderRadius: theme.form[size].borderRadius,
       transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
@@ -102,7 +106,7 @@ const getStylesConfig = ({
       ...(state.isFocused && theme.focusRing(boxShadow)),
       ...(state.isDisabled && {
         background: theme.tokens.background.primary,
-        color: theme.disabled,
+        color: theme.tokens.content.disabled,
         cursor: 'not-allowed',
         opacity: '60%',
       }),
@@ -120,7 +124,7 @@ const getStylesConfig = ({
       zIndex: theme.zIndex.dropdown,
       background: theme.tokens.background.primary,
       borderRadius: theme.radius.md,
-      border: `1px solid ${theme.border}`,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow: 'none',
       width: 'auto',
       minWidth: '100%',
@@ -128,7 +132,7 @@ const getStylesConfig = ({
     }),
     noOptionsMessage: provided => ({
       ...provided,
-      color: theme.disabled,
+      color: theme.tokens.content.disabled,
     }),
     menuPortal: provided => ({
       ...provided,
@@ -173,7 +177,9 @@ const getStylesConfig = ({
     }),
     singleValue: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.primary,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,
@@ -182,14 +188,14 @@ const getStylesConfig = ({
     }),
     placeholder: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.subText,
+      color: state.isDisabled ? theme.tokens.content.disabled : theme.subText,
     }),
     multiValue: provided => ({
       ...provided,
       backgroundColor: theme.tokens.background.primary,
-      color: isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: isDisabled ? theme.tokens.content.disabled : theme.tokens.content.primary,
       borderRadius: '4px',
-      border: `1px solid ${theme.border}`,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,
       display: 'flex',
       margin: 0,
@@ -199,7 +205,7 @@ const getStylesConfig = ({
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: isDisabled ? theme.tokens.content.disabled : theme.tokens.content.primary,
       padding: multiValueSizeMapping[size].spacing,
       paddingLeft: multiValueSizeMapping[size].spacing,
       height: multiValueSizeMapping[size].height,
@@ -218,7 +224,7 @@ const getStylesConfig = ({
         : {
             '&:hover': {
               cursor: 'pointer',
-              background: theme.hover,
+              background: theme.tokens.interactive.transparent.neutral.background.hover,
             },
           }),
     }),
@@ -258,7 +264,7 @@ const getStylesConfig = ({
         left: space(1.5),
         right: space(1.5),
         bottom: 0,
-        borderBottom: `solid 1px ${theme.innerBorder}`,
+        borderBottom: `solid 1px ${theme.tokens.border.secondary}`,
       },
     }),
   } satisfies StylesConfig;
@@ -308,7 +314,7 @@ export const CheckWrap = styled('div')<{
     p.isMultiple
       ? css`
           padding: 1px;
-          border: solid 1px ${p.theme.border};
+          border: solid 1px ${p.theme.tokens.border.primary};
           background: ${p.theme.tokens.background.primary};
           border-radius: 2px;
           height: 1em;

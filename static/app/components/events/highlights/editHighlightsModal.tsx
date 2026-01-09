@@ -488,7 +488,7 @@ const Title = styled('h3')`
 `;
 
 const Subtitle = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(1.5)};
   padding-bottom: ${space(0.5)};
   display: flex;
@@ -510,7 +510,7 @@ const FooterInfo = styled('div')`
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: 4px;
   padding: ${space(2)};
   display: grid;
@@ -540,12 +540,12 @@ const EditHighlightSectionContent = styled('div')<{columnCount: number}>`
 const EditHighlightColumn = styled('div')`
   grid-column: span 1;
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-right: ${space(2)};
   }
 `;
@@ -586,8 +586,6 @@ const EditContextContainer = styled(EditTagContainer)`
 
 const EditButton = styled(Button)`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
-  border-color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.border)};
   width: 18px;
   height: 18px;
   min-height: 18px;
@@ -598,14 +596,11 @@ const EditButton = styled(Button)`
     height: 10px;
     width: 10px;
   }
-  &:hover {
-    color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
-  }
 `;
 
 const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
+  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.subText)};
   font-family: ${p => p.theme.text.familyMono};
   margin-bottom: 0;
   word-wrap: break-word;

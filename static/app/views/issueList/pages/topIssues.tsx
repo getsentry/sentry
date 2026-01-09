@@ -45,6 +45,9 @@ import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeInteger} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
@@ -545,6 +548,9 @@ function DenseTagFacets({groupIds}: DenseTagFacetsProps) {
           {t('Tag')}
         </Text>
         <Text size="xs" uppercase variant="muted">
+          {t('Distribution')}
+        </Text>
+        <Text size="xs" uppercase variant="muted">
           {t('Top %')}
         </Text>
         <Text size="xs" uppercase variant="muted">
@@ -572,7 +578,7 @@ interface TagDistributionPreviewProps {
 
 function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
   const theme = useTheme();
-  const topValues = tag.topValues.slice(0, 3);
+  const topValues = tag.topValues.slice(0, 4);
   const totalCount = tag.totalValues;
   const hasValues = topValues.length > 0;
 
@@ -637,48 +643,74 @@ function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
 }
 
 function DenseTagItem({tag, colors}: DenseTagItemProps) {
+  const theme = useTheme();
   const topValue = tag.topValues[0];
   const totalCount = tag.totalValues;
   const topValuePct =
     topValue && totalCount > 0 ? Math.round((topValue.count / totalCount) * 100) : null;
+  const barValues = tag.topValues.slice(0, 4);
   const hasValues = Boolean(topValue);
 
   return (
-    <Tooltip
-      title={<TagDistributionPreview tag={tag} colors={colors} />}
-      skipWrapper
-      maxWidth={360}
-    >
-      <TagRow>
-        <Text size="sm" bold ellipsis>
-          {tag.key}
-        </Text>
-        <TagPctCell>
-          {hasValues && topValuePct !== null ? (
-            <Text size="xs" variant="muted" style={{flexShrink: 0}}>
-              {topValuePct}%
-            </Text>
-          ) : (
-            <Text size="sm" variant="muted">
-              {t('—')}
-            </Text>
-          )}
-        </TagPctCell>
+    <TagRow>
+      <Text size="sm" bold ellipsis>
+        {tag.key}
+      </Text>
+      <TagBarCell>
         {hasValues ? (
-          <TagValueCell>
-            <Text size="sm" ellipsis>
-              {topValue?.name || t('(empty)')}
-            </Text>
-          </TagValueCell>
+          <Tooltip
+            title={<TagDistributionPreview tag={tag} colors={colors} />}
+            skipWrapper
+            maxWidth={360}
+          >
+            <TagBarHoverArea>
+              <TagMiniBar aria-hidden="true">
+                {barValues.map((value, index) => {
+                  const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
+                  return (
+                    <DenseTagSegment
+                      key={value.value}
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: colors[index] ?? theme.colors.gray300,
+                      }}
+                    />
+                  );
+                })}
+              </TagMiniBar>
+            </TagBarHoverArea>
+          </Tooltip>
         ) : (
-          <TagValueCell>
-            <Text size="sm" variant="muted">
-              {t('No values')}
-            </Text>
-          </TagValueCell>
+          <Text size="xs" variant="muted">
+            {t('—')}
+          </Text>
         )}
-      </TagRow>
-    </Tooltip>
+      </TagBarCell>
+      <TagPctCell>
+        {hasValues && topValuePct !== null ? (
+          <Text size="xs" variant="muted" style={{flexShrink: 0}}>
+            {topValuePct}%
+          </Text>
+        ) : (
+          <Text size="sm" variant="muted">
+            {t('—')}
+          </Text>
+        )}
+      </TagPctCell>
+      {hasValues ? (
+        <TagValueCell>
+          <Text size="sm" ellipsis>
+            {topValue?.name || t('(empty)')}
+          </Text>
+        </TagValueCell>
+      ) : (
+        <TagValueCell>
+          <Text size="sm" variant="muted">
+            {t('No values')}
+          </Text>
+        </TagValueCell>
+      )}
+    </TagRow>
   );
 }
 
@@ -932,8 +964,13 @@ function TopIssues() {
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const {selection} = usePageFilters();
-  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasClusterParam = location.query.cluster !== undefined;
+  const filterFromUrl = location.query.assigned === '1';
+  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(
+    hasClusterParam ? filterFromUrl : true
+  );
   const [showDevTools, setShowDevTools] = useState(false);
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInputValue, setJsonInputValue] = useState('');
@@ -942,6 +979,8 @@ function TopIssues() {
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [disableFilters, setDisableFilters] = useState(false);
+
+  const selectedClusterId = decodeInteger(location.query.cluster);
 
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
     [`/organizations/${organization.slug}/top-issues/`],
@@ -962,7 +1001,6 @@ function TopIssues() {
       setCustomClusterData(clusters as ClusterSummary[]);
       setJsonError(null);
       setShowJsonInput(false);
-      setCurrentIndex(0);
     } catch (e) {
       setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
     }
@@ -973,7 +1011,6 @@ function TopIssues() {
     setJsonInputValue('');
     setJsonError(null);
     setDisableFilters(false);
-    setCurrentIndex(0);
   };
 
   const isUsingCustomData = customClusterData !== null;
@@ -1021,15 +1058,38 @@ function TopIssues() {
     userTeams,
   ]);
 
+  const currentIndex = useMemo(() => {
+    if (selectedClusterId === undefined) {
+      return 0;
+    }
+    const idx = filteredClusters.findIndex(c => c.cluster_id === selectedClusterId);
+    return idx >= 0 ? idx : 0;
+  }, [filteredClusters, selectedClusterId]);
+
   const currentCluster = filteredClusters[currentIndex];
   const totalClusters = filteredClusters.length;
 
+  const navigateToCluster = (clusterId: number) => {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, cluster: String(clusterId)},
+    });
+  };
+
   const handlePrevious = () => {
-    setCurrentIndex(prev => Math.max(0, prev - 1));
+    const prevIndex = Math.max(0, currentIndex - 1);
+    const prevCluster = filteredClusters[prevIndex];
+    if (prevCluster) {
+      navigateToCluster(prevCluster.cluster_id);
+    }
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => Math.min(totalClusters - 1, prev + 1));
+    const nextIndex = Math.min(totalClusters - 1, currentIndex + 1);
+    const nextCluster = filteredClusters[nextIndex];
+    if (nextCluster) {
+      navigateToCluster(nextCluster.cluster_id);
+    }
   };
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
@@ -1089,7 +1149,8 @@ function TopIssues() {
                   checked={filterByAssignedToMe}
                   onChange={e => {
                     setFilterByAssignedToMe(e.target.checked);
-                    setCurrentIndex(0);
+                    const newQuery = {...location.query, cluster: undefined};
+                    navigate({pathname: location.pathname, query: newQuery});
                   }}
                   aria-label={t('Assigned to me')}
                   size="sm"
@@ -1208,7 +1269,7 @@ const JsonInputContainer = styled('div')`
   margin-top: ${space(2)};
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -1234,14 +1295,14 @@ const EmptyState = styled('div')`
   align-items: center;
   padding: ${p => p.theme.space['3xl']};
   background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
 const CardContainer = styled('div')`
   display: flex;
   background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -1260,12 +1321,12 @@ const CardSidebar = styled('div')`
   width: 280px;
   flex-shrink: 0;
   padding: ${p => p.theme.space['2xl']};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     width: 100%;
     border-left: none;
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -1273,13 +1334,13 @@ const SidebarSection = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space['2xl']};
     padding-bottom: ${p => p.theme.space['2xl']};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const CardHeader = styled('div')`
   padding: ${p => p.theme.space['2xl']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const TagPill = styled('span')`
@@ -1288,13 +1349,13 @@ const TagPill = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 20px;
 `;
 
 const CardFooter = styled('div')`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const AvatarStack = styled('div')`
@@ -1333,8 +1394,8 @@ const SingleGraphContainer = styled('div')`
 
 const TagsTable = styled('div')`
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) 70px minmax(180px, 2fr);
-  border: 1px solid ${p => p.theme.border};
+  grid-template-columns: minmax(160px, 1fr) minmax(90px, 1fr) 70px minmax(180px, 2fr);
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
@@ -1346,7 +1407,7 @@ const TagsTableHeader = styled('div')`
   gap: ${p => p.theme.space.xl};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const DenseTagsGrid = styled('div')`
@@ -1378,6 +1439,24 @@ const DenseTagSegment = styled('div')`
   min-width: 2px;
 `;
 
+const TagMiniBar = styled('div')`
+  display: flex;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: ${p => p.theme.backgroundSecondary};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
+`;
+
+const TagBarHoverArea = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: ${p => p.theme.space.xs} 0;
+`;
+
 const DenseTagChip = styled('div')`
   display: flex;
   align-items: center;
@@ -1406,7 +1485,7 @@ const TagRow = styled('div')`
   cursor: default;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   &:hover {
@@ -1426,6 +1505,13 @@ const TagPctCell = styled('div')`
   align-items: center;
   justify-content: flex-start;
   min-width: 0;
+`;
+
+const TagBarCell = styled('div')`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  align-self: stretch;
 `;
 
 const CodeChangesContainer = styled('div')`
