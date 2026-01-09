@@ -334,6 +334,16 @@ class Fixtures:
     def create_tempest_credentials(self, project: Project, *args, **kwargs) -> TempestCredentials:
         return Factories.create_tempest_credentials(project, *args, **kwargs)
 
+    def create_github_identity(
+        self, user: User | None = None, idp: IdentityProvider | None = None, **kwargs
+    ) -> Identity:
+        if not user:
+            user = self.user
+        return Factories.create_github_identity(user=user, idp=idp, **kwargs)
+
+    def create_github_provider(self, **kwargs) -> IdentityProvider:
+        return Factories.create_github_provider(**kwargs)
+
     def create_group(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
