@@ -645,10 +645,17 @@ function getMetricChartTooltipFormatter({
     const lowerThresholdSeries = pointSeries.find(
       ({seriesName: _sn}) => _sn === 'Lower Threshold'
     );
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type
-    const upperThresholdValue = upperThresholdSeries?.data[1] as number | undefined;
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type
-    const lowerThresholdValue = lowerThresholdSeries?.data[1] as number | undefined;
+
+    const upperThresholdValue =
+      Array.isArray(upperThresholdSeries?.data) && upperThresholdSeries.data.length > 1
+        ? (upperThresholdSeries.data[1] as number)
+        : undefined;
+
+    const lowerThresholdValue =
+      Array.isArray(lowerThresholdSeries?.data) && lowerThresholdSeries.data.length > 1
+        ? (lowerThresholdSeries.data[1] as number)
+        : undefined;
+
     const upperThresholdFormatted =
       upperThresholdValue === undefined
         ? undefined
@@ -690,9 +697,11 @@ function getMetricChartTooltipFormatter({
       comparisonSeries &&
         `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
       upperThresholdSeries &&
-        `<div><span class="tooltip-label">${upperThresholdSeries.marker as string} <strong>${t('Upper Threshold')}</strong></span>${upperThresholdFormatted ?? ''}</div>`,
+        upperThresholdFormatted &&
+        `<div><span class="tooltip-label">${upperThresholdSeries.marker as string} <strong>${t('Upper Threshold')}</strong></span>${upperThresholdFormatted}</div>`,
       lowerThresholdSeries &&
-        `<div><span class="tooltip-label">${lowerThresholdSeries.marker as string} <strong>${t('Lower Threshold')}</strong></span>${lowerThresholdFormatted ?? ''}</div>`,
+        lowerThresholdFormatted &&
+        `<div><span class="tooltip-label">${lowerThresholdSeries.marker as string} <strong>${t('Lower Threshold')}</strong></span>${lowerThresholdFormatted}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
