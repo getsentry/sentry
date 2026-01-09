@@ -1386,7 +1386,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
 # NOTE: Features can have their default value set when calling
