@@ -404,7 +404,12 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         projects=projects,
         organization=organization,
     )
-    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_EXPLORER_TOOLS)
+    events = query_trace_data(
+        snuba_params,
+        full_trace_id,
+        additional_attributes=["span.status_code"],
+        referrer=Referrer.SEER_EXPLORER_TOOLS,
+    )
 
     return EAPTrace(
         trace_id=full_trace_id,
