@@ -137,8 +137,10 @@ class PreprodArtifact(DefaultFieldsModel):
     error_message = models.TextField(null=True)
 
     # E.g. 1.2.300
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     build_version = models.CharField(max_length=255, null=True)
     # E.g. 9999
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     build_number = BoundedBigIntegerField(null=True)
 
     # Version of tooling used to upload/build the artifact, extracted from metadata files
@@ -162,6 +164,7 @@ class PreprodArtifact(DefaultFieldsModel):
     installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
     # The name of the app, e.g. "My App"
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     app_name = models.CharField(max_length=255, null=True)
 
     # The identifier of the app, e.g. "com.myapp.MyApp"
@@ -171,6 +174,7 @@ class PreprodArtifact(DefaultFieldsModel):
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
     # The objectstore id of the app icon
+    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
     app_icon_id = models.CharField(max_length=255, null=True)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
@@ -584,3 +588,31 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizecomparison"
         unique_together = ("organization_id", "head_size_analysis", "base_size_analysis")
+
+
+@region_silo_model
+class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
+    """
+    Information about a mobile app, e.g. iOS or Android.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    preprod_artifact = models.OneToOneField(
+        "preprod.PreprodArtifact", related_name="mobile_app_info", on_delete=models.CASCADE
+    )
+
+    # E.g. 1.2.300
+    build_version = models.CharField(max_length=255, null=True)
+    # E.g. 9999
+    build_number = BoundedBigIntegerField(null=True)
+    # The objectstore id of the app icon
+    app_icon_id = models.CharField(max_length=255, null=True)
+    # The name of the app, e.g. "My App"
+    app_name = models.CharField(max_length=255, null=True)
+    # Miscellaneous fields that we don't need columns for
+    extras = models.JSONField(null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodartifactmobileappinfo"

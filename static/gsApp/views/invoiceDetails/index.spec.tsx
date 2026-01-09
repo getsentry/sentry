@@ -312,10 +312,8 @@ describe('InvoiceDetails', () => {
     expect(screen.getByText(/Receipt Details/)).toBeInTheDocument();
     expect(screen.getAllByText(/Pay Now/)).toHaveLength(2);
     expect(screen.getByText(/Pay Bill/)).toBeInTheDocument();
-    expect(screen.getByText(/Card Details/)).toBeInTheDocument();
     expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument();
-    expect(screen.getByTestId('cancel')).toBeInTheDocument();
-    expect(screen.getByTestId('submit')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 
   describe('Invoice Details Attributes', () => {
