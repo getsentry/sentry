@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -607,7 +608,6 @@ function DynamicGrouping() {
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const {selection} = usePageFilters();
-  const lastOpenedClusterIdRef = useRef<number | undefined>(undefined);
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [showJsonInput, setShowJsonInput] = useState(false);
@@ -668,8 +668,8 @@ function DynamicGrouping() {
     [customClusterData, topIssuesResponse?.data]
   );
 
+  const selectedClusterId = decodeInteger(location.query.cluster);
   useEffect(() => {
-    const selectedClusterId = decodeInteger(location.query.cluster);
     const selectedCluster = clusterData.find(
       cluster => cluster.cluster_id === selectedClusterId
     );
@@ -677,34 +677,21 @@ function DynamicGrouping() {
       return;
     }
 
-    if (lastOpenedClusterIdRef.current === selectedClusterId && isDrawerOpen) {
-      return;
-    }
-
-    lastOpenedClusterIdRef.current = selectedClusterId;
-
     openDrawer(() => <ClusterDetailDrawer cluster={selectedCluster} />, {
       ariaLabel: t('Top issue details'),
       drawerKey: 'top-issues-cluster-drawer',
       onClose: () => {
         navigate(
           {
-            pathname: location.pathname,
-            query: {...location.query, cluster: undefined},
+            pathname: window.location.pathname,
+            query: {...qs.parse(window.location.search), cluster: undefined},
           },
           {replace: true, preventScrollReset: true}
         );
       },
       shouldCloseOnLocationChange: nextLocation => !nextLocation.query.cluster,
     });
-  }, [
-    clusterData,
-    openDrawer,
-    navigate,
-    location.pathname,
-    location.query,
-    isDrawerOpen,
-  ]);
+  }, [clusterData, openDrawer, navigate, isDrawerOpen, selectedClusterId]);
 
   // Extract all unique teams from the cluster data (for dev tools filter UI)
   const teamsInData = useMemo(() => {
