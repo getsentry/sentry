@@ -2651,7 +2651,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'top-issues/',
-      component: make(() => import('sentry/views/issueList/pages/topIssues')),
+      redirectTo: '/organizations/:orgId/issues/dynamic-groups/',
     },
     {
       path: 'views/:viewId/',
