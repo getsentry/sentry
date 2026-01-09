@@ -683,7 +683,6 @@ function DynamicGrouping() {
       onClose: () => {
         navigate(
           {
-            pathname: window.location.pathname,
             query: {...qs.parse(window.location.search), cluster: undefined},
           },
           {replace: true, preventScrollReset: true}
