@@ -36,7 +36,7 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default SeerBadge;

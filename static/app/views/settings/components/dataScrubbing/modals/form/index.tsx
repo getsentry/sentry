@@ -494,7 +494,7 @@ const DatasetRadioField = styled(RadioField)`
 
 const Toggle = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   &:hover,
   &:focus {
     color: ${p => p.theme.tokens.content.primary};

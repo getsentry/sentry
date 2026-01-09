@@ -26,5 +26,5 @@ export function DetectorAssigneeCell({assignee, className}: DetectorAssigneeCell
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

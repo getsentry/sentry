@@ -182,6 +182,6 @@ const ChangeContainer = styled(NumberContainer)<{
   change: 'positive' | 'neutral' | 'negative';
 }>`
   ${p => p.change === 'positive' && `color: ${p.theme.colors.red400};`}
-  ${p => p.change === 'neutral' && `color: ${p.theme.subText};`}
+  ${p => p.change === 'neutral' && `color: ${p.theme.tokens.content.secondary};`}
   ${p => p.change === 'negative' && `color: ${p.theme.colors.green400};`}
 `;

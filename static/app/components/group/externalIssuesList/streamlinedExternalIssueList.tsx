@@ -276,5 +276,5 @@ const HorizontalSeparator = styled('div')`
 `;
 
 const UnlinkButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

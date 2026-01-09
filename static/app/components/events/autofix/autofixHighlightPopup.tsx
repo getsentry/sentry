@@ -745,7 +745,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 2;
 `;
 
@@ -761,7 +761,7 @@ const Header = styled('div')`
 
 const SelectedText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
   white-space: nowrap;
   overflow: hidden;
@@ -865,7 +865,7 @@ const HeaderRight = styled('div')`
 
 const ReworkText = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${ReworkHeaderSection}:hover & {
     color: ${p => p.theme.tokens.content.primary};

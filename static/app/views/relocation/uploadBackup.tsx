@@ -193,7 +193,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};

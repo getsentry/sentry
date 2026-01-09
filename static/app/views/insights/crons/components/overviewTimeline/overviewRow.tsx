@@ -269,7 +269,7 @@ const OwnershipDetails = styled('div')`
   flex-wrap: wrap;
   gap: ${space(0.75)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
@@ -283,7 +283,7 @@ const ScheduleDetails = styled('small')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

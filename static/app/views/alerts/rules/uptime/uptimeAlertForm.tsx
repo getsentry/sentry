@@ -480,7 +480,7 @@ const AlertListItem = styled(ListItem)`
 
 const ListItemSubText = styled(Text)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FormRow = styled('div')`

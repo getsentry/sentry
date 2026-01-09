@@ -234,7 +234,7 @@ const StyledDrawerHeader = styled(DrawerHeader)`
 `;
 
 const ConversationIdLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
 `;

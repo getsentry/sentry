@@ -48,11 +48,11 @@ const Description = styled('p')`
   font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 0px;
   font-weight: normal;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const UnitTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: 600;

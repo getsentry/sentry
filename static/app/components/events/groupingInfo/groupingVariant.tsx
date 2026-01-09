@@ -212,7 +212,7 @@ const VariantHint = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ContributionIcon = styled(({isContributing, ...p}: any) =>

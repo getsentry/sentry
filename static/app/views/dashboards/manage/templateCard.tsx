@@ -77,7 +77,7 @@ const Title = styled('div')`
 const Detail = styled(Title)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledButton = styled(Button)`

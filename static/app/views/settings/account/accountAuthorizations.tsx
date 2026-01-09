@@ -152,6 +152,6 @@ const Url = styled('div')`
 `;
 
 const DetailRow = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;

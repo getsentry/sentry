@@ -495,7 +495,7 @@ const TimestampContainer = styled('div')`
 `;
 
 const ExpectedDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledShortId = styled(ShortId)`

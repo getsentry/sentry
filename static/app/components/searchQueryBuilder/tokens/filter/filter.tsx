@@ -323,7 +323,7 @@ const ValueEditing = styled('div')`
 const DeleteButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 1px solid transparent;
 
   :focus {
@@ -341,7 +341,7 @@ const FilterValueList = styled('div')`
 `;
 
 const FilterValueOr = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FilterMultiValueTruncated = styled('div')`

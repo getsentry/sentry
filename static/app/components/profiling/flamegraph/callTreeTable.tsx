@@ -98,7 +98,7 @@ export const CallTreeTable = styled('div')`
     display: inline-block;
     min-width: 7ch;
     padding-right: 0px;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     opacity: 1;
   }
   .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
@@ -120,7 +120,7 @@ export const CallTreeTable = styled('div')`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     opacity: ${_p => 1};
   }
 

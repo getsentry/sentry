@@ -519,7 +519,7 @@ const BlockRow = styled('div')`
 `;
 
 const BlockChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: 18px;
   margin-left: ${space(2)};
   margin-right: ${space(1)};
@@ -622,7 +622,7 @@ const UserBlockContent = styled('div')`
   padding: ${space(2)} ${space(2)} ${space(2)} 0;
   white-space: pre-wrap;
   word-wrap: break-word;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ToolCallStack = styled(Stack)`
@@ -690,7 +690,9 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
   color: ${p =>
-    p.isHighlighted ? p.theme.tokens.interactive.link.accent.hover : p.theme.subText};
+    p.isHighlighted
+      ? p.theme.tokens.interactive.link.accent.hover
+      : p.theme.tokens.content.secondary};
   flex-shrink: 0;
 `;
 
@@ -708,5 +710,5 @@ const TodoListContent = styled(MarkedText)`
   margin-bottom: -${p => p.theme.space.xl};
   font-size: ${p => p.theme.fontSize.xs};
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

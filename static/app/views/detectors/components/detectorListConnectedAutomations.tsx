@@ -135,11 +135,11 @@ const HovercardRow = styled(Link)`
 
 const AutomationActionWrapper = styled('div')`
   margin-top: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MoreText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   margin: 0;
   padding: ${space(1)} ${space(2)};

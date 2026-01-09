@@ -194,7 +194,7 @@ const ResizeHandle = styled(Flex)`
   }
 
   svg {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     transform: rotate(90deg);
   }
 `;

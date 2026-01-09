@@ -93,6 +93,6 @@ const DeployRows = styled('div')`
 `;
 
 const DeployTime = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p => p.theme.overflowEllipsis}
 `;

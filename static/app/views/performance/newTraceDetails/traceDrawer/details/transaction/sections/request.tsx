@@ -300,7 +300,7 @@ const Path = styled('span')`
 const StyledIconOpen = styled(IconOpen)`
   transition: 0.1s linear color;
   margin: 0 ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   position: relative;
   top: 1px;
 

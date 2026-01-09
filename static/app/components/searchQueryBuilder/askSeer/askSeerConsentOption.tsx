@@ -62,7 +62,7 @@ const AskSeerConsentLabelWrapper = styled('div')`
 `;
 
 const SeerConsentText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
   font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;

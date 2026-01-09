@@ -30,7 +30,7 @@ export const NumberContainer = styled('div')`
 `;
 
 export const FieldDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
   ${p => p.theme.overflowEllipsis};
 `;

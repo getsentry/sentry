@@ -224,7 +224,7 @@ import {Heading} from '@sentry/scraps/text';
 
 // ❌ Do not use styled and create a new styled component
 const Title = styled('h4')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSizes.small};
 `;
 
@@ -251,7 +251,7 @@ import {Text} from '@sentry/scraps/text';
 
 // ❌ Do not use styled and create a new styled component
 const Label = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSizes.small};
 `;
 
@@ -268,7 +268,7 @@ import {Text} from '@sentry/scraps/text';
 
 // ❌ Do not style intrinsic elements directly
 const Paragraph = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
 `;
 
@@ -313,7 +313,7 @@ function Content() {
 const Component = styled('div')`
   display: flex;
   flex-directon: column;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.lg};
 `;
 

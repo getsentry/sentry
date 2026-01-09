@@ -203,11 +203,11 @@ export default class InstalledIntegration extends Component<Props> {
 }
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const IntegrationItemBox = styled('div')`
@@ -257,7 +257,7 @@ function IntegrationStatus(
 const StyledIntegrationStatus = styled(IntegrationStatus)`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: light;
   text-transform: capitalize;
   &:before {

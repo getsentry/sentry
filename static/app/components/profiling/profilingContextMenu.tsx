@@ -255,7 +255,7 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
   text-transform: uppercase;
   line-height: 1.5;
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
   cursor: default;
   font-size: 75%;

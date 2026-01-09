@@ -40,7 +40,7 @@ export const SectionSubHeading = styled('h5')`
 const SectionDescription = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;
 

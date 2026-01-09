@@ -67,7 +67,7 @@ function getTrendColor(p: TrendProps & {theme: Theme}) {
     case 'bad':
       return p.theme.errorText;
     default:
-      return p.theme.subText;
+      return p.theme.tokens.content.secondary;
   }
 }
 

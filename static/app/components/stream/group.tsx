@@ -890,14 +890,14 @@ const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value
   font-size: ${p => p.theme.fontSize.sm};
   display: flex;
   justify-content: right;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -910,7 +910,7 @@ const CountTooltipContent = styled('div')`
   align-items: center;
 
   h4 {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;

@@ -465,7 +465,7 @@ const timezones: Array<[group: TimezoneGroup, value: string, label: string]> = [
 ];
 
 const OffsetLabel = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   display: flex;
   align-items: center;

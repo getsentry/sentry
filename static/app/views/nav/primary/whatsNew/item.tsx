@@ -73,7 +73,7 @@ const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
 `;
 
 const Message = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TextBlock = styled('div')`

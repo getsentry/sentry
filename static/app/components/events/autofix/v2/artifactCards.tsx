@@ -783,7 +783,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
   :nth-child(odd) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.background};
   ${p =>
     p.$isClickable &&
@@ -848,15 +848,15 @@ const ImpactTreeKeyContainer = styled('div')`
 `;
 
 const TreeSubValue = styled(TreeValue)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SolutionTreeValue = styled(TreeValue)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoName = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoSection = styled('div')`

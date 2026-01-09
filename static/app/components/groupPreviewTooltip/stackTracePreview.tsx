@@ -199,7 +199,7 @@ const StackTracePreviewWrapper = styled('div')`
 `;
 
 const NoStackTraceWrapper = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(1.5)};
   font-size: ${p => p.theme.fontSize.md};
   display: flex;

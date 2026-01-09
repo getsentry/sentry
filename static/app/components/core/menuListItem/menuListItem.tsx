@@ -28,7 +28,7 @@ function getTextColor({
   theme: Theme;
 }) {
   if (disabled) {
-    return theme.subText;
+    return theme.tokens.content.secondary;
   }
   switch (priority) {
     case 'primary':
@@ -151,7 +151,7 @@ const StyledLabelWrap = styled('div')`
 
 const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.4;
   margin-bottom: 0;
 

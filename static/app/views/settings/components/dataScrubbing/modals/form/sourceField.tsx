@@ -501,7 +501,7 @@ const Suggestion = styled('li')<{active: boolean}>`
 const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.2;
 `;
 

@@ -144,15 +144,15 @@ const StyledActivityAvatar = styled(ActivityAvatar)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledDateTimeWindow = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledActivityBubble = styled(ActivityBubble)`

@@ -114,7 +114,7 @@ export function IssueDetailsEventNavigation({
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
   const grayText = css`
-    color: ${theme.subText};
+    color: ${theme.tokens.content.secondary};
     font-weight: ${theme.fontWeight.normal};
   `;
 

@@ -60,7 +60,7 @@ const IssueWrapper = styled(Link)`
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex: 1;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p => css`
     &:hover [data-group-title] {

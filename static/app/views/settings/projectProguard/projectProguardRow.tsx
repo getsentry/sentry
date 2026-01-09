@@ -125,7 +125,7 @@ const TimeWrapper = styled('div')`
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.fontSize.md};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 

@@ -267,7 +267,7 @@ const SlowestFunctionsTypeSelect = styled(CompactSelect)`
 const SlowestFunctionsQueryState = styled('div')`
   text-align: center;
   padding: ${space(2)} ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SlowestFunctionRow = styled('div')`
@@ -292,7 +292,7 @@ const SlowestFunctionMetricsRow = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 

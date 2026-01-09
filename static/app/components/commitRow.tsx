@@ -301,10 +301,10 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
   font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSize.md : '13px')};
   line-height: 1.5;
   margin: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   a {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-decoration: underline;
     text-decoration-style: dotted;
   }
@@ -324,7 +324,7 @@ const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   padding-top: ${space(0.25)};
 `;
@@ -343,7 +343,7 @@ const AuthorWrapper = styled('span')`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   & svg {
     transition: 120ms opacity;

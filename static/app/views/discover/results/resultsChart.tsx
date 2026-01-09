@@ -313,6 +313,6 @@ const NoChartContainer = styled('div')<{height?: string}>`
   position: relative;
   border-color: transparent;
   margin-bottom: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xl};
 `;

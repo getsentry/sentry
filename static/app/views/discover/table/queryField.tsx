@@ -865,7 +865,7 @@ const BlankSpace = styled('div')`
   &:after {
     font-size: ${p => p.theme.fontSize.md};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 

@@ -90,7 +90,7 @@ const RepoName = styled(`span`)`
 const ProjectAndBranch = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 // match the line height of the badge

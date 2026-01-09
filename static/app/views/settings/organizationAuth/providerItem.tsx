@@ -160,7 +160,7 @@ const ProviderName = styled('div')`
 
 const ProviderDescription = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FeatureBadge = styled('div')`

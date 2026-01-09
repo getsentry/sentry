@@ -872,7 +872,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.None {
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
       border: 1px solid ${p => p.theme.tokens.border.primary};
 
       &.light {
@@ -949,7 +949,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.subText} 4px 8px
+            ${p => p.theme.tokens.content.secondary} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1018,7 +1018,7 @@ const TraceStylingWrapper = styled('div')`
         width: auto;
         border: none;
         background-color: transparent;
-        color: ${p => p.theme.subText};
+        color: ${p => p.theme.tokens.content.secondary};
       }
 
       .TraceIndicatorLine {
@@ -1346,7 +1346,7 @@ const TraceStylingWrapper = styled('div')`
       .TraceLeftColumn {
         padding-left: 14px;
         width: 100%;
-        color: ${p => p.theme.subText};
+        color: ${p => p.theme.tokens.content.secondary};
 
         .TraceLeftColumnInner {
           padding-left: 0 !important;
@@ -1436,13 +1436,13 @@ const TraceStylingWrapper = styled('div')`
     border: none;
     transition: 60ms ease-out;
     font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     padding: 0 2px;
     display: flex;
     align-items: center;
 
     svg {
-      fill: ${p => p.theme.subText};
+      fill: ${p => p.theme.tokens.content.secondary};
     }
 
     &.Left {
@@ -1458,7 +1458,7 @@ const TraceStylingWrapper = styled('div')`
     display: inline-block;
     transform-origin: left center;
     font-size: ${p => p.theme.fontSize.xs};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;

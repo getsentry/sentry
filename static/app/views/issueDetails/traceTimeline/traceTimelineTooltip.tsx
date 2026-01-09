@@ -161,7 +161,7 @@ const EventItemsTitle = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSize.xs};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const YouAreHere = styled('div')`

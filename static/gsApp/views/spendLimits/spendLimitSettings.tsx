@@ -739,7 +739,7 @@ const Currency = styled('div')`
     position: absolute;
     padding: 9px ${p => p.theme.space.lg};
     content: '$';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.md};
   }
 `;

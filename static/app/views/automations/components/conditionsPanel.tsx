@@ -179,7 +179,7 @@ const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.showDivider &&

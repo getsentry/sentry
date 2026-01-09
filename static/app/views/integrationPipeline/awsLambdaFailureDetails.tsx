@@ -78,7 +78,7 @@ const StyledRow = styled(PanelItem)`
 `;
 
 const Error = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledPanel = styled(Panel)`

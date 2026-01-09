@@ -226,7 +226,7 @@ const BackgroundStar = styled('img')`
 `;
 
 const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.5;
 `;
 

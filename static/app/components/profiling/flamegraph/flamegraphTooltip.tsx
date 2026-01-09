@@ -226,7 +226,7 @@ const FlamegraphInlineIndicator = styled('span')`
 `;
 
 export const FlamegraphTooltipTimelineInfo = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export const FlamegraphTooltipFrameMainInfo = styled('div')`

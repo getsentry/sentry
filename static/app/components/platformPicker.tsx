@@ -386,7 +386,8 @@ const PlatformCard = styled(
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: ${p => (p.selected ? p.theme.tokens.content.primary : p.theme.subText)};
+    color: ${p =>
+      p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
     text-align: center;
     font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;

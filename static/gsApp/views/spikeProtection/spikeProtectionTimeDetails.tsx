@@ -49,7 +49,7 @@ const SpikeTimeDetailsWrapper = styled('div')`
     white-space: nowrap;
   }
   span {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     display: inline-block;
   }
 `;

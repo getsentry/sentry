@@ -156,7 +156,7 @@ const Grid = styled('div')<{isCompact: boolean}>`
   grid-template-columns: max-content auto max-content;
   align-items: center;
 
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-variant-numeric: tabular-nums;
   font-weight: ${p => p.theme.fontWeight.bold};

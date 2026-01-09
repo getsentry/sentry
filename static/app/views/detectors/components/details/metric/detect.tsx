@@ -243,7 +243,7 @@ const Query = styled('dl')`
 `;
 
 const Label = styled('dt')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   justify-self: flex-end;
   margin: 0;
   font-weight: ${p => p.theme.fontWeight.normal};

@@ -222,7 +222,7 @@ const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
 
 const FooterContainer = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   display: flex;

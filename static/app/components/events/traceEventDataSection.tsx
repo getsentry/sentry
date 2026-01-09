@@ -561,7 +561,7 @@ function InlineThreadSection({
 const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};

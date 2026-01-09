@@ -188,7 +188,9 @@ const getStylesConfig = ({
     }),
     placeholder: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.tokens.content.disabled : theme.subText,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.secondary,
     }),
     multiValue: provided => ({
       ...provided,
@@ -240,7 +242,7 @@ const getStylesConfig = ({
       ...provided,
       lineHeight: '1.5',
       fontWeight: 600,
-      color: theme.subText,
+      color: theme.tokens.content.secondary,
       marginBottom: 0,
       padding: `${space(0.5)} ${space(1.5)}`,
       ':empty': {

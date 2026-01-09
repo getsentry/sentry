@@ -200,7 +200,7 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Cell = styled('div')`

@@ -188,11 +188,11 @@ const Container = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const IntegrationItemBox = styled('div')`

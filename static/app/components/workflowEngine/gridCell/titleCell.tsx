@@ -134,6 +134,6 @@ const DetailsWrapper = styled('div')`
   gap: ${space(0.75)};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;

@@ -136,14 +136,14 @@ const HeaderWrapper = styled('div')`
 const HeaderText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const NoInsightsYet = styled('div')`
   display: flex;
   justify-content: center;
   flex-direction: column;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InsightsContainerWithLines = styled('div')`

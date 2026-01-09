@@ -336,7 +336,7 @@ const LeftGridCell = styled(GridCell)`
 const DeleteButton = styled('button')`
   background: none;
   border: none;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   outline: none;
   user-select: none;
   padding-right: ${space(0.5)};

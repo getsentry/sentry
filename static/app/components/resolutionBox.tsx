@@ -138,7 +138,7 @@ function ResolutionBox(props: Props) {
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.sm};
 `;

@@ -312,7 +312,7 @@ const NoAttributesMessage = styled('div')`
   justify-content: center;
   align-items: center;
   margin-top: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledInputGroup = styled(InputGroup)`

@@ -175,7 +175,7 @@ export default function TokenUsageWidget() {
 }
 
 const ModelText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   min-width: 0px;

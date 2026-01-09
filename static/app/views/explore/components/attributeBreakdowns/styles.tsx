@@ -70,15 +70,15 @@ function FeedbackLink() {
 }
 
 const StyledIconSearch = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconTimer = styled(IconTimer)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ERROR_STATE_CONFIG: Record<

@@ -73,14 +73,14 @@ const SectionHeading = styled('div')`
 
 const Count = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Empty = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;

@@ -119,7 +119,7 @@ const Heading = styled('div')`
 const FeatureLink = styled(motion.div)`
   cursor: pointer;
   transition: color 300ms;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   position: relative;
   display: grid;
   grid-template-columns: max-content auto;
