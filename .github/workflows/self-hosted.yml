@@ -59,12 +59,6 @@ jobs:
           echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
           echo "WEBPACK_CACHE_PATH=.webpack_cache" >> "$GITHUB_ENV"
 
-      - name: webpack cache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: ${{ steps.config.outputs.webpack-path }}
-          key: ${{ runner.os }}-self-hosted-webpack-cache-${{ hashFiles('rspack.config.ts', 'pnpm-lock.yaml', 'package.json') }}
-
       - name: node_modules cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
