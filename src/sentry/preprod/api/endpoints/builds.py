@@ -28,24 +28,30 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 from sentry.preprod.models import PreprodArtifact
 
 ERR_FEATURE_REQUIRED = "Feature {} is not enabled for the organization."
+ERR_BAD_KEY = "Key {} is unknown."
 
 search_config = SearchConfig.create_from(
     SearchConfig(),
     # Text keys we allow operators to be used on
     # text_operator_keys={"app_id"},
     # Keys that support numeric comparisons
-    # numeric_keys={"state", "pr_number"},
+    numeric_keys={"download_count", "build_number", "download_size", "install_size"},
     # Keys that support date filtering
     # date_keys={"date_built", "date_added"},
     # Key mappings for user-friendly names
     key_mappings={
-        "app_id": ["app_id", "package_name", "bundle_id"],
+        "app_id": ["package_name", "bundle_id"],
     },
     # Allowed search keys
     allowed_keys={
         "app_id",
         "package_name",
         "bundle_id",
+        "download_count",
+        "build_version",
+        "build_number",
+        "download_size",
+        "install_size",
     },
     # Enable boolean operators
     # allow_boolean=True,
@@ -56,6 +62,16 @@ search_config = SearchConfig.create_from(
 )
 
 
+def get_field_type(key: str) -> str | None:
+    match key:
+        case "download_size":
+            return "byte"
+        case "install_size":
+            return "byte"
+        case _:
+            return None
+
+
 def apply_filters(
     queryset: BaseQuerySet[PreprodArtifact], filters: Sequence[QueryToken]
 ) -> BaseQuerySet[PreprodArtifact]:
@@ -63,10 +79,10 @@ def apply_filters(
         # Skip operators and other non-filter types
         if isinstance(token, str):  # Handles "AND", "OR" literals
             raise InvalidSearchQuery(f"Boolean operators are not supported: {token}")
-        if isinstance(token, AggregateFilter):
-            raise InvalidSearchQuery("Aggregate filters are not supported")
         if isinstance(token, ParenExpression):
             raise InvalidSearchQuery("Parenthetical expressions are not supported")
+        if isinstance(token, AggregateFilter):
+            raise InvalidSearchQuery("Aggregate filters are not supported")
 
         assert isinstance(token, SearchFilter)
 
@@ -80,9 +96,17 @@ def apply_filters(
         # since allow_boolean is not set in SearchConfig.
         d = {}
         if token.is_in_filter:
-            d[f"{token.key.name}__in"] = token.value.value
+            d[f"{name}__in"] = token.value.value
+        elif token.operator == ">":
+            d[f"{name}__gt"] = token.value.value
+        elif token.operator == "<":
+            d[f"{name}__lt"] = token.value.value
+        elif token.operator == ">=":
+            d[f"{name}__gte"] = token.value.value
+        elif token.operator == "<=":
+            d[f"{name}__lte"] = token.value.value
         else:
-            d[token.key.name] = token.value.value
+            d[name] = token.value.value
 
         q = Q(**d)
         if token.is_negation:
@@ -135,9 +159,14 @@ class BuildsEndpoint(OrganizationEndpoint):
         if end:
             queryset = queryset.filter(date_added__lte=end)
 
+        queryset = queryset.annotate_download_count()  # type: ignore[attr-defined]
+        queryset = queryset.annotate_main_size_metrics()
+
         query = request.GET.get("query", "").strip()
         try:
-            search_filters = parse_search_query(query, config=search_config)
+            search_filters = parse_search_query(
+                query, config=search_config, get_field_type=get_field_type
+            )
             queryset = apply_filters(queryset, search_filters)
         except InvalidSearchQuery as e:
             # CodeQL complains about str(e) below but ~all handlers
@@ -161,6 +190,12 @@ class BuildTagKeyValuesEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": ERR_FEATURE_REQUIRED.format("organizations:preprod-frontend-routes")},
                 status=403,
+            )
+
+        if key not in search_config.allowed_keys:
+            return Response(
+                {"detail": ERR_BAD_KEY.format(key)},
+                status=400,
             )
 
         match key:
@@ -214,6 +249,8 @@ class BuildTagKeyValuesEndpoint(OrganizationEndpoint):
 
         queryset = queryset.values(db_key)
         queryset = queryset.exclude(**{f"{db_key}__isnull": True})
+        queryset = queryset.annotate_download_count()
+        queryset = queryset.annotate_main_size_metrics()
         queryset = queryset.annotate(
             count=Count("*"), first_seen=Min("date_added"), last_seen=Max("date_added")
         )

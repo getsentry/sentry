@@ -7,7 +7,7 @@ from typing import ClassVar, Self
 
 import sentry_sdk
 from django.db import models
-from django.db.models import IntegerField, Sum
+from django.db.models import IntegerField, OuterRef, Subquery, Sum
 from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
@@ -33,6 +33,20 @@ class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
                 0,
                 output_field=IntegerField(),
             )
+        )
+
+    def annotate_main_size_metrics(self) -> Self:
+        # Import here to avoid circular import since PreprodArtifactSizeMetrics
+        # is defined later in this file
+        from sentry.preprod.models import PreprodArtifactSizeMetrics
+
+        main_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=OuterRef("pk"),
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        )
+        return self.annotate(
+            install_size=Subquery(main_metrics.values("max_install_size")[:1]),
+            download_size=Subquery(main_metrics.values("max_download_size")[:1]),
         )
 
 
