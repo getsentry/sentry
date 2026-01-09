@@ -137,7 +137,7 @@ export const Header = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
   background: ${p => p.theme.tokens.background.primary};
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.header};

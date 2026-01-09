@@ -309,7 +309,7 @@ const Content = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow:
-    0 0 0 1px ${p => p.theme.translucentBorder},
+    0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted},
     ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};

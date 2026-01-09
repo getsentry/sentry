@@ -570,7 +570,7 @@ const TaskGroupWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
 
   hr {
-    border-color: ${p => p.theme.translucentBorder};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
     margin: ${space(1)} -${space(1)};
   }
 `;

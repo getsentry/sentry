@@ -231,7 +231,7 @@ const generateButtonTheme = (
     backgroundActive: tokens.background.transparent.neutral.muted,
     border: tokens.border.primary,
     borderActive: tokens.border.primary,
-    borderTranslucent: alias.translucentBorder,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -1187,8 +1187,6 @@ const generateAliases = (tokens: Tokens) => ({
    * Tertiary background color used as a stronger contrast against primary background
    */
   backgroundTertiary: tokens.background.tertiary,
-
-  translucentBorder: tokens.border.transparent.neutral.muted,
 
   /**
    * A color that denotes an error, or something that is wrong
