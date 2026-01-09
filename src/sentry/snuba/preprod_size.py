@@ -3,8 +3,6 @@ from datetime import timedelta
 
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
@@ -62,7 +60,6 @@ class PreprodSize(rpc_dataset_common.RPCBase):
                 resolver=search_resolver or cls.get_resolver(params=params, config=config),
                 page_token=page_token,
                 additional_queries=additional_queries,
-                extra_conditions=cls._get_sub_item_type_filter(),
             ),
             debug=debug,
         )
@@ -83,7 +80,6 @@ class PreprodSize(rpc_dataset_common.RPCBase):
     ) -> SnubaTSResult:
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
-        sub_item_type_filter = cls._get_sub_item_type_filter()
 
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
@@ -93,7 +89,6 @@ class PreprodSize(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
-            extra_conditions=sub_item_type_filter,
             additional_queries=additional_queries,
         )
 
@@ -127,14 +122,4 @@ class PreprodSize(rpc_dataset_common.RPCBase):
             params.start,
             params.end,
             params.granularity_secs,
-        )
-
-    @classmethod
-    def _get_sub_item_type_filter(cls) -> TraceItemFilter:
-        return TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sub_item_type", type=AttributeKey.Type.TYPE_STRING),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str="size_metric"),
-            )
         )

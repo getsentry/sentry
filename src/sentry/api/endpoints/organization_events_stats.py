@@ -18,6 +18,7 @@ from sentry.api.helpers.error_upsampling import (
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -186,8 +187,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
-                        PreprodSize,
                         ProfileFunctions,
+                        PreprodSize,
                         TraceMetrics,
                         errors,
                         transactions,
@@ -241,6 +242,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
                     return TraceMetricsSearchResolverConfig(
                         metric=metric,
+                        auto_fields=False,
+                        use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation=request.GET.get(
+                            "disableAggregateExtrapolation", "0"
+                        )
+                        == "1",
+                        extrapolation_mode=extrapolation_mode,
+                    )
+
+                if scoped_dataset == PreprodSize:
+                    return PreprodSizeSearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
                         disable_aggregate_extrapolation=request.GET.get(
