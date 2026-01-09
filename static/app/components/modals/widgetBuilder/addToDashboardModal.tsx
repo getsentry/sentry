@@ -67,7 +67,8 @@ export type AddToDashboardModalProps = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
-  widgets: Widget[];
+  // There must always be at least one widget for this component
+  widgets: [Widget, ...Widget[]];
   actions?: AddToDashboardModalActions[];
   source?: DashboardWidgetSource;
 };
@@ -110,7 +111,7 @@ function AddToDashboardModal({
   );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   // Use first widget for current add to dashboard previews
-  const widget = widgets[0]!;
+  const widget = widgets[0];
   const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
     getFallbackWidgetTitle(widget)
   );
