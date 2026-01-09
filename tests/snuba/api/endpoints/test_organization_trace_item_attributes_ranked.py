@@ -358,10 +358,10 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_failure_rate_filters_to_failed_spans_only(self, mock_compare_distributions) -> None:
-        """Test that failure_rate() function filters cohorts to only include failed spans.
+        """Test that failure_rate() and failure_count() filter cohorts to only include failed spans.
 
-        When failure_rate() is selected, the endpoint should compare failed spans
-        in the selected region vs failed spans in the baseline, not all spans.
+        When failure_rate() or failure_count() is selected, the endpoint should compare
+        failed spans in the selected region vs failed spans in the baseline, not all spans.
         Sentry treats spans with status other than "ok", "cancelled", and "unknown" as failures.
         """
         mock_compare_distributions.return_value = {
@@ -421,3 +421,20 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             f"Expected 2 failed spans in baseline, got {response.data['cohort2Total']}. "
             "failure_rate() should filter baseline to only failed spans too."
         )
+
+        # Also test with failure_count() - should behave the same way
+        response_count = self.do_request(
+            query={
+                "function": "failure_count()",
+                "query_1": "span.duration:<=100",
+                "query_2": "",
+            }
+        )
+
+        assert response_count.status_code == 200, response_count.data
+        assert (
+            response_count.data["cohort1Total"] == 3
+        ), f"Expected 3 failed spans for failure_count(), got {response_count.data['cohort1Total']}."
+        assert (
+            response_count.data["cohort2Total"] == 2
+        ), f"Expected 2 failed spans in baseline for failure_count(), got {response_count.data['cohort2Total']}."
