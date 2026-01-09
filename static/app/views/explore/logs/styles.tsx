@@ -168,8 +168,8 @@ export const DetailsWrapper = styled('tr')`
   white-space: nowrap;
   grid-column: 1 / -1;
   display: grid;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${1 /* place above the grid resizing lines */};
 `;
 
@@ -323,8 +323,8 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       return {
         background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
-        border: theme.border,
-        borderHover: theme.border,
+        border: theme.tokens.border.primary,
+        borderHover: theme.tokens.border.primary,
         color: theme.colors.gray200,
       };
     case SeverityLevel.TRACE:

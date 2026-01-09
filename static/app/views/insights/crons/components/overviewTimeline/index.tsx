@@ -189,8 +189,8 @@ const Header = styled(Sticky)`
 
   &[data-stuck] {
     border-radius: 0;
-    border-left: 1px solid ${p => p.theme.border};
-    border-right: 1px solid ${p => p.theme.border};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     margin: 0 -1px;
   }
 `;
