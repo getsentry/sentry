@@ -17,9 +17,19 @@ def backfill_preprod_artifact_mobile_app_info(apps, schema_editor):
     all_artifacts = PreprodArtifact.objects.all()
     mobile_app_info_to_create = []
 
+    # Batch up the query for existing PreprodArtifactMobileAppInfo entries to avoid N+1 queries.
+    # Fetch all artifact IDs that already have a PreprodArtifactMobileAppInfo
+    existing_mobile_app_info_artifact_ids = set(
+        PreprodArtifactMobileAppInfo.objects.values_list("preprod_artifact_id", flat=True)
+    )
+
+    # Loop through all artifacts, but skip if already exists
     for artifact in RangeQuerySetWrapperWithProgressBar(all_artifacts):
-        # Skip if PreprodArtifactMobileAppInfo already exists for this artifact
-        if PreprodArtifactMobileAppInfo.objects.filter(preprod_artifact_id=artifact.id).exists():
+        if artifact.id in existing_mobile_app_info_artifact_ids:
+            logger.info(
+                "Skipping artifact %s because it already has a PreprodArtifactMobileAppInfo entry",
+                artifact.id,
+            )
             continue
 
         # Only create if there's at least one mobile app field with data
