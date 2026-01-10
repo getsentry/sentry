@@ -192,7 +192,6 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
         return after_2fa
 
     login_url = request.session.pop("_next", None)
-
     if not login_url:
         return default
 
