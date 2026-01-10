@@ -670,7 +670,7 @@ class ProviderMismatchTest(TestCase):
             return_value={"id": "123", "email": "test@example.com", "name": "Test"},
         ):
             # The flow will continue and eventually redirect
-            response = helper.finish_pipeline()
+            helper.finish_pipeline()
 
         # Should not have shown provider mismatch warning
         for call in mock_messages.add_message.call_args_list:
@@ -687,7 +687,7 @@ class ProviderMismatchTest(TestCase):
             "build_identity",
             return_value={"id": "123", "email": "test@example.com", "name": "Test"},
         ):
-            response = helper.finish_pipeline()
+            helper.finish_pipeline()
 
         # Should not have shown provider mismatch warning
         for call in mock_messages.add_message.call_args_list:
