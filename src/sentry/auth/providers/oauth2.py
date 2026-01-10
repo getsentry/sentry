@@ -70,7 +70,11 @@ class OAuth2Login(AuthView):
         if "code" in request.GET:
             return pipeline.next_step()
 
-        state = secrets.token_hex()
+        # Encode provider key in the state parameter so it survives the OAuth redirect.
+        # This allows detecting when a user completes an OAuth flow that was started
+        # for a different provider (e.g., multiple SSO tabs open).
+        nonce = secrets.token_hex()
+        state = f"{nonce}:{pipeline.provider.key}"
 
         params = self.get_authorize_params(state=state, redirect_uri=_get_redirect_url())
         authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"
@@ -151,9 +155,14 @@ class OAuth2Callback(AuthView):
         # hook here
         pipeline.bind_state("data", data)
 
-        # Store which provider handled this callback, used to detect when a user
-        # authenticates with a different provider than the org requires
-        pipeline.bind_state("provider_key", pipeline.provider.key)
+        # Extract the provider key from the OAuth state parameter.
+        # This was encoded when the OAuth flow started (in OAuth2Login) and survives
+        # the redirect through the IdP, allowing us to detect if the user completed
+        # an OAuth flow that was started for a different provider.
+        provider_key = None
+        if state and ":" in state:
+            provider_key = state.split(":", 1)[1]
+        pipeline.bind_state("provider_key", provider_key)
 
         return pipeline.next_step()
 

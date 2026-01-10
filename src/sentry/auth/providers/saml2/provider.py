@@ -78,7 +78,13 @@ class SAML2LoginView(AuthView):
         saml_config = build_saml_config(provider.config, pipeline.organization.slug)
         auth = build_auth(request, saml_config)
 
-        return HttpResponseRedirect(auth.login())
+        # Encode provider key in RelayState so it survives the SAML redirect.
+        # This allows detecting when a user completes a SAML flow that was started
+        # for a different provider (e.g., multiple SSO tabs open).
+        # Format: "provider_key:{key}" or just return_to URL for backward compat
+        relay_state = f"provider_key:{pipeline.provider.key}"
+
+        return HttpResponseRedirect(auth.login(return_to=relay_state))
 
 
 # With SAML, the SSO request can be initiated by both the Service Provider
@@ -150,9 +156,15 @@ class SAML2ACSView(AuthView):
 
         pipeline.bind_state("auth_attributes", auth.get_attributes())
 
-        # Store which provider handled this callback, used to detect when a user
-        # authenticates with a different provider than the org requires
-        pipeline.bind_state("provider_key", pipeline.provider.key)
+        # Extract the provider key from the RelayState parameter.
+        # This was encoded when the SAML flow started (in SAML2LoginView) and survives
+        # the redirect through the IdP, allowing us to detect if the user completed
+        # a SAML flow that was started for a different provider.
+        provider_key = None
+        relay_state = request.POST.get("RelayState") or request.GET.get("RelayState")
+        if relay_state and relay_state.startswith("provider_key:"):
+            provider_key = relay_state.split(":", 1)[1]
+        pipeline.bind_state("provider_key", provider_key)
 
         return pipeline.next_step()
 
