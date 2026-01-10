@@ -25,7 +25,7 @@
       const delay = {{ delay_ms|escapejs }};
       const cookie = '{{ cookie|escapejs }}';
       const csrfCookieName = '{{ csrf_cookie_name|escapejs }}';
-      const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith(csrfCookieName + '=')).split('=')[1];
+      const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith(csrfCookieName + '='))?.split('=')[1] ?? '';
       const token = '{{ token|escapejs }}';
 
       if (window.location.origin === 'https://sentry.io') {

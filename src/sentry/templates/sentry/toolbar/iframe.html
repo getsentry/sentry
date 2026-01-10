@@ -139,6 +139,9 @@ Required context variables:
             document.cookie = getCookieValue(cookie, regionUrl);
             log('Cleared the current cookie');
 
+            sessionStorage.removeItem('csrfToken');
+            log('Removed CSRF token from sessionStorage');
+
             const accessToken = localStorage.removeItem('accessToken')
             log('Removed accessToken from localStorage');
 
