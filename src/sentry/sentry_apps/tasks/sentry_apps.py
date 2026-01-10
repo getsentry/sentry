@@ -749,7 +749,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         if settings:
             extra_kwargs["additional_payload_key"] = "issue_alert"
             extra_kwargs["additional_payload"] = {
-                "id": id,
+                "id": int(id),
                 "title": f.rule.label,
                 "sentry_app_id": f.kwargs["sentry_app"].id,
                 "settings": settings,
