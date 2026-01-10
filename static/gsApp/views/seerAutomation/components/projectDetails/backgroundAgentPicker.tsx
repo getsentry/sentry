@@ -121,7 +121,8 @@ export default function BackgroundAgentPicker({
 
   return (
     <SelectField
-      disabled={!canWrite}
+      disabled={isDisabled}
+      disabledReason={disabledReason ?? undefined}
       name="integrationId"
       label={t('Coding Agent Integration')}
       allowEmpty
