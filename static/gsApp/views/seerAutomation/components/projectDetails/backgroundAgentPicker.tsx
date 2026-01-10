@@ -29,6 +29,17 @@ export default function BackgroundAgentPicker({
 }: Props) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
+  const isAutoTriggeredFixesEnabled = Boolean(
+    project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
+  );
+
+  const isDisabled = !canWrite || !isAutoTriggeredFixesEnabled;
+
+  let disabledReason: string | null = null;
+  if (!isAutoTriggeredFixesEnabled) {
+    disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
+  }
+
   if (supportedIntegrations.length === 0) {
     // There are no supported integrations, so we don't need to show anything
     // Users will need to add an integration first (See <BackgroundAgentSetup />)
@@ -43,7 +54,8 @@ export default function BackgroundAgentPicker({
       case 'cursor':
         return (
           <BooleanField
-            disabled={!canWrite}
+            disabled={isDisabled}
+            disabledReason={disabledReason ?? undefined}
             name="connectCursorIntegration"
             label={
               <Flex align="center" gap="sm">
