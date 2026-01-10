@@ -46,15 +46,13 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {} as TagCollection);
 };
 
-const typeMap: Record<
-  TraceItemDataset,
-  'span' | 'log' | 'uptime' | 'tracemetric' | undefined
+const typeMap: Partial<
+  Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric'>
 > = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
   [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
-  [TraceItemDataset.PREPROD]: undefined,
 };
 
 function getTraceItemFieldDefinitionFunction(
@@ -62,7 +60,8 @@ function getTraceItemFieldDefinitionFunction(
   tags: TagCollection
 ) {
   return (key: string) => {
-    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
+    const type = typeMap[itemType];
+    return getFieldDefinition(key, type, tags[key]?.kind);
   };
 }
 

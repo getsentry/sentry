@@ -181,7 +181,7 @@ function MobileAppSizeSearchBar({
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.PREPROD,
-    enabled: organization.features.includes('preprod-frontend-routes'),
+    enabled: organization.features.includes('preprod-app-size-dashboard'),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -216,7 +216,7 @@ function useMobileAppSizeSearchBarDataProvider(
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.PREPROD,
-    enabled: organization.features.includes('preprod-frontend-routes'),
+    enabled: organization.features.includes('preprod-app-size-dashboard'),
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =

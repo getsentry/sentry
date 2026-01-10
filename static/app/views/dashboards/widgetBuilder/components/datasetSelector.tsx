@@ -79,10 +79,7 @@ function WidgetBuilderDatasetSelector() {
   datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
   datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
   datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
-  if (
-    organization.features.includes('preprod-frontend-routes') &&
-    organization.features.includes('preprod-app-size-dashboard')
-  ) {
+  if (organization.features.includes('preprod-app-size-dashboard')) {
     datasetChoices.push([WidgetType.MOBILE_APP_SIZE, t('Mobile Builds')]);
   }
 
