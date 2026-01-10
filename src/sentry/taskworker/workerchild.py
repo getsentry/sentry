@@ -100,7 +100,6 @@ def child_process(
     max_task_count: int | None,
     processing_pool_name: str,
     process_type: str,
-    child_tasks_count: Any,
 ) -> None:
     """
     The entrypoint for spawned worker children.
@@ -146,7 +145,6 @@ def child_process(
         max_task_count: int | None,
         processing_pool_name: str,
         process_type: str,
-        child_tasks_count: Any,
     ) -> None:
         processed_task_count = 0
 
@@ -180,9 +178,6 @@ def child_process(
 
             try:
                 inflight = child_tasks.get(timeout=1.0)
-                # Decrement the counter after successfully getting a task
-                with child_tasks_count.get_lock():
-                    child_tasks_count.value -= 1
             except queue.Empty:
                 metrics.incr(
                     "taskworker.worker.child_task_queue_empty",
@@ -240,8 +235,6 @@ def child_process(
                         },
                     )
                     continue
-
-            print(f"Task func is {task_func}")
 
             set_current_task(inflight.activation)
 
@@ -475,5 +468,4 @@ def child_process(
         max_task_count,
         processing_pool_name,
         process_type,
-        child_tasks_count,
     )

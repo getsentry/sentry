@@ -52,15 +52,6 @@ class WorkerServicer(taskworker_pb2_grpc.WorkerServiceServicer):
         context: grpc.ServicerContext,
     ) -> taskworker_pb2.PushTaskResponse:
         """Handle incoming task activation."""
-
-        logger.info(
-            "taskworker.grpc.task_received",
-            extra={
-                "task_id": request.task.id if request.task else None,
-                "callback_url": request.callback_url,
-            },
-        )
-
         # Create `InflightTaskActivation` from the pushed task
         inflight = InflightTaskActivation(
             activation=request.task,
@@ -72,8 +63,7 @@ class WorkerServicer(taskworker_pb2_grpc.WorkerServiceServicer):
         added = self.worker._push_task(inflight)
 
         # Read the shared counter
-        with self.worker._child_tasks_count.get_lock():
-            queue_size = self.worker._child_tasks_count.value
+        queue_size = self.worker._child_tasks.qsize()
 
         return taskworker_pb2.PushTaskResponse(added=added, queue_size=queue_size)
 
@@ -143,7 +133,6 @@ class TaskWorker:
         self._child_tasks: multiprocessing.Queue[InflightTaskActivation] = self.mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
-        self._child_tasks_count = self.mp_context.Value("i", 0)
         self._processed_tasks: multiprocessing.Queue[ProcessingResult] = self.mp_context.Queue(
             maxsize=result_queue_maxsize
         )
@@ -278,8 +267,6 @@ class TaskWorker:
         try:
             start_time = time.monotonic()
             self._child_tasks.put(inflight, block=False)
-            with self._child_tasks_count.get_lock():
-                self._child_tasks_count.value += 1
             metrics.distribution(
                 "taskworker.worker.child_task.put.duration",
                 time.monotonic() - start_time,
@@ -325,8 +312,6 @@ class TaskWorker:
             try:
                 start_time = time.monotonic()
                 self._child_tasks.put(inflight)
-                with self._child_tasks_count.get_lock():
-                    self._child_tasks_count.value += 1
                 metrics.distribution(
                     "taskworker.worker.child_task.put.duration",
                     time.monotonic() - start_time,
@@ -406,8 +391,6 @@ class TaskWorker:
                 try:
                     start_time = time.monotonic()
                     self._child_tasks.put(next)
-                    with self._child_tasks_count.get_lock():
-                        self._child_tasks_count.value += 1
                     metrics.distribution(
                         "taskworker.worker.child_task.put.duration",
                         time.monotonic() - start_time,
@@ -487,7 +470,6 @@ class TaskWorker:
                             self._max_child_task_count,
                             self._processing_pool_name,
                             self._process_type,
-                            self._child_tasks_count,
                         ),
                     )
                     process.start()

@@ -322,9 +322,22 @@ class TaskworkerClient:
                 )
 
             with metrics.timer("taskworker.update_task.rpc", tags={"host": processing_result.host}):
-                logger.debug("calling set task status...")
+                logger.debug(
+                    "Calling set task status",
+                    extra={
+                        "task_id": processing_result.task_id,
+                        "status": processing_result.status,
+                        "host": processing_result.host,
+                        "receive_timestamp": processing_result.receive_timestamp,
+                    },
+                )
+                start_time = time.time()
                 response = self._host_to_stubs[processing_result.host].SetTaskStatus(request)
-                logger.debug("Done setting task status")
+                duration_ms = (time.time() - start_time) * 1000
+                logger.debug(
+                    "Done setting task status",
+                    extra={"duration_ms": duration_ms},
+                )
         except grpc.RpcError as err:
             logger.warning("Failed to perform RPC - %s", err)
             metrics.incr(
