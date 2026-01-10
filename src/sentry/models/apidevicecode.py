@@ -211,5 +211,4 @@ class ApiDeviceCode(Model):
                     )
                 continue
 
-        # This should never be reached, but satisfies type checker
         raise UserCodeCollisionError("Unable to generate unique device code")

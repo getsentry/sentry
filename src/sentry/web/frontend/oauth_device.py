@@ -182,7 +182,7 @@ class OAuthDeviceView(AuthLoginView):
         if error_response:
             return error_response
 
-        assert device_code is not None  # for type checker
+        assert device_code is not None
         application = device_code.application
         scopes = device_code.get_scopes()
 
@@ -406,7 +406,7 @@ class OAuthDeviceView(AuthLoginView):
         if error_response:
             return error_response
 
-        assert device_code is not None  # for type checker
+        assert device_code is not None
 
         # Clear session data before processing
         request.session.pop(session_key, None)
