@@ -60,8 +60,7 @@ function getTraceItemFieldDefinitionFunction(
   tags: TagCollection
 ) {
   return (key: string) => {
-    const type = typeMap[itemType];
-    return getFieldDefinition(key, type, tags[key]?.kind);
+    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
   };
 }
 
