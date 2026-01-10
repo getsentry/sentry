@@ -277,7 +277,7 @@ const SpaceBetweenGrid = styled('div')`
 
 const Description = styled(SpaceBetweenGrid)`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MinMax = styled(Description)`
@@ -295,7 +295,7 @@ const StyledHovercard = styled(Hovercard)`
   width: 400px;
 
   ${Header} {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-transform: uppercase;
     font-size: ${p => p.theme.fontSize.sm};
     border-radius: 6px 6px 0px 0px;

@@ -783,7 +783,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
   :nth-child(odd) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.background};
   ${p =>
     p.$isClickable &&
@@ -799,14 +799,15 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -847,22 +848,22 @@ const ImpactTreeKeyContainer = styled('div')`
 `;
 
 const TreeSubValue = styled(TreeValue)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SolutionTreeValue = styled(TreeValue)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoName = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoSection = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space['2xl']};
     padding-bottom: ${p => p.theme.space['2xl']};
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

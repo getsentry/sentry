@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Link} from 'sentry/components/core/link';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -97,7 +99,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
           </TitleContainer>
         </HeaderContainer>
         <PageAlert />
-        <ChartsContainer>
+        <Flex gap="xl">
           <ChartsContainerItem>
             <SpanSamplesContainer
               groupId={groupId}
@@ -111,7 +113,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
               additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
-        </ChartsContainer>
+        </Flex>
       </SampleDrawerBody>
     </PageAlertProvider>
   );
@@ -153,13 +155,6 @@ const SpanDescription = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 35vw;
-`;
-
-const ChartsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(2)};
-  align-items: top;
 `;
 
 const ChartsContainerItem = styled('div')`

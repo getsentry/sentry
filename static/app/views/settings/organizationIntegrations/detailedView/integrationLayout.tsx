@@ -340,7 +340,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.dangerText};
+  color: ${p => p.theme.tokens.content.danger};
   margin-right: ${space(1)};
 `;
 
@@ -377,7 +377,7 @@ const AuthorInfo = styled('div')`
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 12px;
 `;

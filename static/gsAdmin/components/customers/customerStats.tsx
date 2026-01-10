@@ -505,10 +505,10 @@ export const CustomerStats = memo(
 const Footer = styled('div')`
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(3)} -${space(2)} -${space(2)} -${space(2)};
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const LegendContainer = styled('div')`

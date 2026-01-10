@@ -153,7 +153,7 @@ export function AutomationsTableActions({
   return (
     <Fragment>
       <SimpleTable.Header>
-        <ActionsBarWrapper>
+        <Flex align="center" padding="0 xl" gap="md" width="100%" column="1 / -1">
           <Checkbox
             checked={pageSelected || (anySelected ? 'indeterminate' : false)}
             onChange={s => {
@@ -187,7 +187,7 @@ export function AutomationsTableActions({
           >
             {t('Delete')}
           </Button>
-        </ActionsBarWrapper>
+        </Flex>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
         <FullWidthAlert variant="warning" system showIcon={false}>
@@ -218,14 +218,5 @@ export function AutomationsTableActions({
 }
 
 const FullWidthAlert = styled(Alert)`
-  grid-column: 1 / -1;
-`;
-
-const ActionsBarWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: 0 ${p => p.theme.space.xl};
-  width: 100%;
   grid-column: 1 / -1;
 `;

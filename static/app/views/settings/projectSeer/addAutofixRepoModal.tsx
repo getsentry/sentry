@@ -211,12 +211,12 @@ const FooterRow = styled('div')`
 const ModalReposContainer = styled('div')`
   height: 35vh;
   overflow-y: auto;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   & > div > div {
     &:not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;
@@ -228,7 +228,7 @@ const SearchContainer = styled('div')<{hasAlert: boolean}>`
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
 `;
@@ -248,6 +248,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingMessage = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
