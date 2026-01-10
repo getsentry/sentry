@@ -441,6 +441,38 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
 
             assert original_data == cached_data
 
+    def test_overlapping_tag(self) -> None:
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"status": "404", "project": "test"},
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+
+        response = self.client.get(url, {"statsPeriod": "14d", "dataset": "events"}, format="json")
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        data.sort(key=lambda val: val["name"])
+        assert data == [
+            {"name": "Level", "key": "level", "totalValues": 1},
+            {"name": "Status", "key": "status", "totalValues": 1},
+        ]
+
 
 class ReplayOrganizationTagsTest(APITestCase, ReplaysSnubaTestCase):
     def test_dataset_replays(self) -> None:
