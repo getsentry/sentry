@@ -21,7 +21,7 @@ class LoginSuccessView(OrganizationView):
                 "delay_sec": int(delay_ms / 1000),
                 "delay_ms": delay_ms,
                 "cookie": f"{session_cookie_name}={request.COOKIES.get(session_cookie_name)}",
-                "csrf_token": f"{csrf_cookie_name}={request.COOKIES.get(csrf_cookie_name)}",
+                "csrf_token": request.COOKIES.get(csrf_cookie_name),
                 "token": "",
             },
         )
