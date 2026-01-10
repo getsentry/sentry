@@ -288,5 +288,8 @@ function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.TRACEMETRICS) {
     return t('Search for metrics, users, tags, and more');
   }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return t('Search for builds, versions, and more');
+  }
   return t('Search for logs, users, tags, and more');
 }

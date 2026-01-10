@@ -332,7 +332,7 @@ export const MobileAppSizeConfig: DatasetConfig<AppSizeResponse[], TableData> = 
       const seriesWithOrder: Array<{order: number; series: Series}> = [];
 
       for (const [groupName, groupData] of Object.entries(multiResponse)) {
-        if (!groupData.data || !Array.isArray(groupData.data)) {
+        if (!groupData?.data || !Array.isArray(groupData.data)) {
           continue;
         }
 
