@@ -59,9 +59,9 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         obj: Group | GroupEvent = self.event if self.event is not None else self.group
         rule_id = None
         rule_environment_id = None
+        key = "legacy_rule_id"
         if self.rules:
             rule_environment_id = self.rules[0].environment_id
-            key = "legacy_rule_id"
             try:
                 key, rule_id = get_rule_or_workflow_id(self.rules[0])
             except AssertionError:
