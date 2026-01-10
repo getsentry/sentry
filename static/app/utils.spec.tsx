@@ -5,6 +5,7 @@ import {
   explodeSlug,
   extractMultilineFields,
   generateQueryWithTag,
+  isWebpackChunkLoadingError,
 } from 'sentry/utils';
 
 describe('utils.escapeIssueTagKey', () => {
@@ -104,5 +105,61 @@ describe('utils.generateQueryWithTag', () => {
       referrer: 'tag-details-drawer',
       query: '!has:device',
     });
+  });
+});
+
+describe('utils.isWebpackChunkLoadingError', () => {
+  it('detects standard webpack chunk loading errors', () => {
+    const error = new Error('Loading chunk 123 failed');
+    expect(isWebpackChunkLoadingError(error)).toBe(true);
+  });
+
+  it('detects chunk loading errors with different casing', () => {
+    const error = new Error('LOADING CHUNK 456 FAILED');
+    expect(isWebpackChunkLoadingError(error)).toBe(true);
+  });
+
+  it('detects SyntaxError: Unexpected EOF from incomplete chunks', () => {
+    const error = new SyntaxError('Unexpected EOF');
+    expect(isWebpackChunkLoadingError(error)).toBe(true);
+  });
+
+  it('detects SyntaxError: Unexpected end of script from incomplete chunks', () => {
+    const error = new SyntaxError('Unexpected end of script');
+    expect(isWebpackChunkLoadingError(error)).toBe(true);
+  });
+
+  it('detects SyntaxError: Unexpected end of input from incomplete chunks', () => {
+    const error = new SyntaxError('Unexpected end of input');
+    expect(isWebpackChunkLoadingError(error)).toBe(true);
+  });
+
+  it('handles mixed case in SyntaxError messages', () => {
+    const error = new SyntaxError('UNEXPECTED EOF');
+    expect(isWebpackChunkLoadingError(error)).toBe(true);
+  });
+
+  it('does not detect other SyntaxErrors', () => {
+    const error = new SyntaxError('Invalid or unexpected token');
+    expect(isWebpackChunkLoadingError(error)).toBe(false);
+  });
+
+  it('does not detect other generic errors', () => {
+    const error = new Error('Something else went wrong');
+    expect(isWebpackChunkLoadingError(error)).toBe(false);
+  });
+
+  it('handles null error gracefully', () => {
+    expect(isWebpackChunkLoadingError(null as any)).toBe(false);
+  });
+
+  it('handles undefined error gracefully', () => {
+    expect(isWebpackChunkLoadingError(undefined as any)).toBe(false);
+  });
+
+  it('handles error without message gracefully', () => {
+    const error = new Error();
+    delete (error as any).message;
+    expect(isWebpackChunkLoadingError(error)).toBe(false);
   });
 });

@@ -90,11 +90,29 @@ export function descopeFeatureName<T>(feature: T): T | string {
 }
 
 export function isWebpackChunkLoadingError(error: Error): boolean {
-  return (
-    error &&
-    typeof error.message === 'string' &&
-    error.message.toLowerCase().includes('loading chunk')
-  );
+  if (!error || typeof error.message !== 'string') {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  // Webpack ChunkLoadError messages
+  if (message.includes('loading chunk')) {
+    return true;
+  }
+
+  // SyntaxError from incomplete/truncated chunk downloads
+  // These occur when network issues cause partial file downloads
+  if (
+    error.name === 'SyntaxError' &&
+    (message.includes('unexpected eof') ||
+      message.includes('unexpected end of script') ||
+      message.includes('unexpected end of input'))
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
