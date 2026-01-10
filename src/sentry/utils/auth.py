@@ -145,22 +145,17 @@ def initiate_login(
     request: HttpRequest, next_url: str | None = None, referrer: str | None = None
 ) -> None:
     """
-    Initialize login state. Clears 2FA-related session state.
-    Only updates _next and _referrer if new values are provided,
-    preserving existing redirect destinations across SSO retries.
+    Clears existing login state and initializes a new login flow.
+    Optionally sets the post-login redirect destination and referrer.
     """
-    # Always clear 2FA state
-    for key in ("_after_2fa", "_pending_2fa"):
+    for key in ("_next", "_after_2fa", "_pending_2fa", "_referrer"):
         try:
             del request.session[key]
         except KeyError:
             pass
 
-    # Only update _next if a new URL is provided
     if next_url:
         request.session["_next"] = next_url
-
-    # Only update _referrer if a new value is provided
     if referrer:
         request.session["_referrer"] = referrer
 
