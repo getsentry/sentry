@@ -6,7 +6,6 @@ from typing import Any, NotRequired, Protocol, TypedDict
 
 from django.core.exceptions import ValidationError
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -193,48 +192,38 @@ class BaseIssueAlertHandler(ABC):
         workflow_id = getattr(action, "workflow_id", None)
 
         label = detector.name
-        # We need to pass the legacy rule id when the workflow-engine-ui-links feature flag is disabled
-        # This is so we can build the old link to the rule
-        if not features.has(
-            "organizations:workflow-engine-ui-links", detector.project.organization
-        ):
-            if workflow_id is None:
-                raise ValueError("Workflow ID is required when triggering an action")
+        # Build link to the rule if it exists, otherwise build link to the workflow.
+        # FE will handle redirection if necessary from rule -> workflow
 
-            # If test event, just set the legacy rule id to -1
-            if workflow_id == TEST_NOTIFICATION_ID:
-                data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
-
-            else:
-                try:
-                    alert_rule_workflow = AlertRuleWorkflow.objects.get(
-                        workflow_id=workflow_id,
-                    )
-                except AlertRuleWorkflow.DoesNotExist:
-                    raise ValueError(
-                        "AlertRuleWorkflow not found when querying for AlertRuleWorkflow"
-                    )
-
-                if alert_rule_workflow.rule_id is None:
-                    raise ValueError("Rule not found when querying for AlertRuleWorkflow")
-
-                data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
-
-                # Get the legacy rule label
-                try:
-                    rule = Rule.objects.get(id=alert_rule_workflow.rule_id)
-                    label = rule.label
-                except Rule.DoesNotExist:
-                    logger.exception(
-                        "Rule not found when querying for AlertRuleWorkflow",
-                        extra={"rule_id": alert_rule_workflow.rule_id},
-                    )
-                    # We shouldn't fail badly here since we can still send the notification, so just set it to the rule id
-                    label = f"Rule {alert_rule_workflow.rule_id}"
-
-        # In the new UI, we need this for to build the link to the new rule in the notification action
+        # If test event, just set the legacy rule id to -1
+        if workflow_id == TEST_NOTIFICATION_ID:
+            data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
         else:
             data["actions"][0]["workflow_id"] = workflow_id
+
+            # attempt to find legacy_rule_id from the alert rule workflow
+            rule_id = None
+            try:
+                alert_rule_workflow = AlertRuleWorkflow.objects.get(
+                    workflow_id=workflow_id,
+                )
+
+                rule = Rule.objects.get(id=alert_rule_workflow.rule_id)
+                label = rule.label
+                rule_id = rule.id
+            except AlertRuleWorkflow.DoesNotExist:
+                pass
+            except Rule.DoesNotExist:
+                logger.exception(
+                    "Rule not found when querying for AlertRuleWorkflow",
+                    extra={"rule_id": alert_rule_workflow.rule_id},
+                )
+
+            if rule_id:
+                data["actions"][0]["legacy_rule_id"] = rule_id
+
+            if workflow_id is None and rule_id is None:
+                raise ValueError("Workflow ID or rule ID is required to fire notification")
 
         if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
             # mail action needs to have skipDigests set to True
