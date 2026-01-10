@@ -19,7 +19,7 @@ We can use this as a basepoint to build out our templating system in the future
 """
 
 
-def create_link_to_workflow(organization_id: int, workflow_id: int) -> str:
+def create_link_to_workflow(organization_id: int, workflow_id: str) -> str:
     """
     Create a link to a workflow
     """

@@ -65,7 +65,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
             try:
                 key, rule_id = get_rule_or_workflow_id(self.rules[0])
             except AssertionError:
-                rule_id = self.rules[0].id
+                rule_id = str(self.rules[0].id)
 
         url = None
 
@@ -77,7 +77,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                 self.issue_details,
                 self.notification,
                 ExternalProviders.DISCORD,
-                rule_id,
+                int(rule_id) if rule_id else None,
                 rule_environment_id,
                 notification_uuid=notification_uuid,
             )
@@ -89,7 +89,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                 self.issue_details,
                 self.notification,
                 ExternalProviders.DISCORD,
-                rule_id,
+                int(rule_id) if rule_id else None,
                 rule_environment_id,
                 notification_uuid=notification_uuid,
             )

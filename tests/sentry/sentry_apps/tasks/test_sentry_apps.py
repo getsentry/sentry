@@ -380,7 +380,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert payload["data"]["triggered_rule"] == rule.label
         assert payload["data"]["issue_alert"] == {
             # Use the legacy rule id
-            "id": 123,
+            "id": "123",
             "title": rule.label,
             "sentry_app_id": self.sentry_app.id,
             "settings": settings,
