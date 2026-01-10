@@ -98,10 +98,14 @@ Required context variables:
         }
 
         const loginWindowMessageDispatch = {
-          'did-login': ({ cookie, token }) => {
+          'did-login': ({ cookie, csrfToken, token }) => {
             if (cookie) {
               document.cookie = getCookieValue(cookie, window.location.hostname);
               log('Saved a cookie', document.cookie.indexOf(cookie) >= 0);
+            }
+            if (csrfToken) {
+              sessionStorage.setItem('csrfToken', csrfToken);
+              log('Saved a CSRF token to sessionStorage');
             }
             if (token) {
               localStorage.setItem('accessToken', token);
@@ -150,6 +154,9 @@ Required context variables:
             const accessToken = localStorage.getItem('accessToken');
             const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
 
+            const csrfToken = sessionStorage.getItem('csrfToken');
+            const csrfHeader = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+
             // If either of these is invalid, or both are missing, we will
             // forward the resulting 401 to the application, which will request
             // tokens be destroyed and reload the iframe in an unauth state.
@@ -158,7 +165,7 @@ Required context variables:
             const url = new URL('/api/0' + path, organizationUrl);
             const initWithCreds = {
               ...init,
-              headers: { ...init.headers, ...bearer },
+              headers: { ...init.headers, ...bearer, ...csrfHeader },
               credentials: 'include',
             };
             const response = await fetch(url, initWithCreds);

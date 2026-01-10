@@ -24,6 +24,7 @@
       const orgSlug = '{{ organization_slug|escape }}';
       const delay = {{ delay_ms|escapejs }};
       const cookie = '{{ cookie|escapejs }}';
+      const csrfToken = '{{ csrf_token|escapejs }}';
       const token = '{{ token|escapejs }}';
 
       if (window.location.origin === 'https://sentry.io') {
@@ -42,6 +43,7 @@
           source: 'sentry-toolbar',
           message: 'did-login',
           cookie,
+          csrfToken,
           token,
         }, window.location.origin);
 
