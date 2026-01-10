@@ -1835,3 +1835,127 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
         )
 
         assert self.github_client.get_blame_for_files([self.file], extra={}) == []
+
+
+class GitHubClientFileBlameInvalidRepoNameTest(GitHubClientFileBlameBase):
+    """
+    Tests that get_blame_for_files handles invalid repository names gracefully
+    """
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_files_invalid_repo_name(self, get_jwt) -> None:
+        """
+        When a repository has an invalid name (e.g., a UUID instead of owner/repo format),
+        it should be skipped gracefully without raising an exception.
+        """
+        # Create a repository with an invalid name (UUID instead of owner/repo format)
+        invalid_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="da99c52fc2e740e4a347bb61b26a9ed6",  # UUID, not owner/repo
+            url="https://github.com/Test-Organization/invalid",
+            provider="integrations:github",
+            external_id=999,
+            integration_id=self.repo_1.integration_id,
+            config={},  # No config name
+        )
+        
+        # Create another repo with valid config
+        valid_repo_with_config = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="another-uuid-12345",  # Invalid name
+            url="https://github.com/Test-Organization/valid",
+            provider="integrations:github",
+            external_id=888,
+            integration_id=self.repo_1.integration_id,
+            config={"name": "Test-Organization/valid"},  # But valid config
+        )
+
+        file_invalid = SourceLineInfo(
+            path="src/lib/api/sendFuneralPlanLeadsRequest.ts",
+            lineno=359,
+            ref="main",
+            repo=invalid_repo,
+            code_mapping=None,  # type: ignore[arg-type]
+        )
+        
+        file_valid_config = SourceLineInfo(
+            path="src/components/valid.ts",
+            lineno=10,
+            ref="main",
+            repo=valid_repo_with_config,
+            code_mapping=None,  # type: ignore[arg-type]
+        )
+        
+        file_normal = SourceLineInfo(
+            path="src/sentry/integrations/github/client.py",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,  # Normal repo with owner/repo format
+            code_mapping=None,  # type: ignore[arg-type]
+        )
+
+        # Mock GraphQL response for only the valid repos
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {
+                    "repository0": {
+                        "ref0": {
+                            "target": {
+                                "blame0": {
+                                    "ranges": [
+                                        {
+                                            "commit": {
+                                                "oid": "abc123",
+                                                "author": {"name": "test", "email": "test@example.com"},
+                                                "message": "test commit",
+                                                "committedDate": "2022-01-01T00:00:00Z",
+                                            },
+                                            "startingLine": 10,
+                                            "endingLine": 10,
+                                            "age": 0,
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "repository1": {
+                        "ref0": {
+                            "target": {
+                                "blame0": {
+                                    "ranges": [
+                                        {
+                                            "commit": {
+                                                "oid": "def456",
+                                                "author": {"name": "test2", "email": "test2@example.com"},
+                                                "message": "test commit 2",
+                                                "committedDate": "2022-01-02T00:00:00Z",
+                                            },
+                                            "startingLine": 10,
+                                            "endingLine": 10,
+                                            "age": 0,
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            content_type="application/json",
+        )
+
+        # Call get_blame_for_files with all three files
+        response = self.github_client.get_blame_for_files(
+            [file_invalid, file_valid_config, file_normal], extra={}
+        )
+        
+        # Should only get blame for the two valid repos
+        assert len(response) == 2
+        assert response[0].commit.commitId == "abc123"
+        assert response[0].path == "src/components/valid.ts"
+        assert response[1].commit.commitId == "def456"
+        assert response[1].path == "src/sentry/integrations/github/client.py"

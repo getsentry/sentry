@@ -68,7 +68,23 @@ def generate_file_path_mapping(files: Sequence[SourceLineInfo]) -> FilePathMappi
     """
     file_path_mapping: FilePathMapping = {}
     for file in files:
-        repo = file_path_mapping.setdefault(file.repo.name, {})
+        # Use config name if available (should be in owner/repo format for GitHub)
+        # Fall back to repo.name if config doesn't have it
+        repo_name = file.repo.config.get("name", file.repo.name)
+        
+        # Skip repositories that don't have a valid owner/repo format
+        if "/" not in repo_name:
+            logger.warning(
+                "generate_file_path_mapping.invalid_repo_name",
+                extra={
+                    "repo_id": file.repo.id,
+                    "repo_name": repo_name,
+                    "path": file.path,
+                },
+            )
+            continue
+            
+        repo = file_path_mapping.setdefault(repo_name, {})
         paths = repo.setdefault(file.ref, OrderedSet())
         paths.add(file.path)
 
@@ -174,7 +190,9 @@ def extract_commits_from_blame_response(
                 matching_files = [
                     f
                     for f in files
-                    if f.path == file_path and f.repo.name == full_repo_name and f.ref == ref_name
+                    if f.path == file_path 
+                    and f.repo.config.get("name", f.repo.name) == full_repo_name 
+                    and f.ref == ref_name
                 ]
                 for file in matching_files:
                     log_info = {
