@@ -25,6 +25,10 @@ DEFAULT_INTERVAL = 5
 # Reference: RFC 8628 §5.1
 USER_CODE_ALPHABET = "BCDFGHJKLMNPQRSTVWXZ"
 USER_CODE_LENGTH = 8
+USER_CODE_GROUP_LENGTH = USER_CODE_LENGTH // 2  # Characters per group in "XXXX-XXXX" format
+
+# Device code entropy: 32 bytes = 256 bits
+DEVICE_CODE_BYTES = 32
 
 
 def default_expiration():
@@ -33,7 +37,7 @@ def default_expiration():
 
 def generate_device_code():
     """Generate a cryptographically secure device code (256-bit entropy)."""
-    return secrets.token_hex(nbytes=32)
+    return secrets.token_hex(nbytes=DEVICE_CODE_BYTES)
 
 
 def generate_user_code():
@@ -45,7 +49,7 @@ def generate_user_code():
     Reference: RFC 8628 §5.1
     """
     chars = [secrets.choice(USER_CODE_ALPHABET) for _ in range(USER_CODE_LENGTH)]
-    return f"{''.join(chars[:4])}-{''.join(chars[4:])}"
+    return f"{''.join(chars[:USER_CODE_GROUP_LENGTH])}-{''.join(chars[USER_CODE_GROUP_LENGTH:])}"
 
 
 # Maximum retries for generating unique codes
@@ -127,7 +131,7 @@ class ApiDeviceCode(Model):
         db_table = "sentry_apidevicecode"
 
     def __str__(self) -> str:
-        return f"device_code={self.id}, application={self.application.id}, status={self.status}"
+        return f"id={self.id}, user_code={self.user_code}, application={self.application_id}, status={self.status}"
 
     def get_scopes(self) -> list[str]:
         """Return the list of requested scopes."""

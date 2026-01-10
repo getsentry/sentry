@@ -10,7 +10,12 @@ from django.http.response import HttpResponseBase
 
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
-from sentry.models.apidevicecode import ApiDeviceCode, DeviceCodeStatus
+from sentry.models.apidevicecode import (
+    USER_CODE_GROUP_LENGTH,
+    USER_CODE_LENGTH,
+    ApiDeviceCode,
+    DeviceCodeStatus,
+)
 from sentry.ratelimits import backend as ratelimiter
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -46,8 +51,8 @@ def _normalize_user_code(user_code: str) -> str:
     Handles case variations, missing dashes, and extra whitespace.
     """
     normalized = user_code.replace("-", "").upper().strip()
-    if len(normalized) == 8:
-        return f"{normalized[:4]}-{normalized[4:]}"
+    if len(normalized) == USER_CODE_LENGTH:
+        return f"{normalized[:USER_CODE_GROUP_LENGTH]}-{normalized[USER_CODE_GROUP_LENGTH:]}"
     return user_code.upper().strip()
 
 
