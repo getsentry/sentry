@@ -216,7 +216,7 @@ function AttributesHighlights({
         }
 
         return {
-          icon: <IconReleases size="sm" color="subText" />,
+          icon: <IconReleases size="sm" variant="muted" />,
           description: (
             <VersionHoverCard
               organization={organization}
@@ -239,7 +239,7 @@ function AttributesHighlights({
         }
 
         return {
-          icon: <IconGlobe size="sm" color="subText" />,
+          icon: <IconGlobe size="sm" variant="muted" />,
           description: t('Check from %s', region),
         };
       },
@@ -252,7 +252,7 @@ function AttributesHighlights({
           return null;
         }
         return {
-          icon: <IconWindow size="sm" color="subText" />,
+          icon: <IconWindow size="sm" variant="muted" />,
           description: <Tooltip title={t('Environment')}>{environment}</Tooltip>,
         };
       },
@@ -300,7 +300,7 @@ const HighlightsIconWrapper = styled('div')`
 
 const HighlightsSubtitle = styled(Tooltip)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledVersion = styled(Version)`

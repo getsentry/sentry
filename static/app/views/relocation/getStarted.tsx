@@ -153,7 +153,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   max-width: 769px;
   max-height: 525px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   h2 {
     color: ${p => p.theme.colors.gray800};
   }

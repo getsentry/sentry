@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -6,7 +5,6 @@ import BroadcastDetails from 'admin/views/broadcastDetails';
 
 describe('Broadcast Details', () => {
   it('renders', async () => {
-    const {router} = initializeOrg();
     const broadcast = {
       id: '1359',
       message:
@@ -36,16 +34,14 @@ describe('Broadcast Details', () => {
       body: broadcast,
     });
 
-    render(
-      <BroadcastDetails
-        location={router.location}
-        router={router}
-        params={{broadcastId: broadcast.id}}
-        route={router.routes[0]!}
-        routeParams={router.params}
-        routes={router.routes}
-      />
-    );
+    render(<BroadcastDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/_admin/broadcasts/${broadcast.id}/`,
+        },
+        route: '/_admin/broadcasts/:broadcastId/',
+      },
+    });
 
     expect(await screen.findByRole('heading', {name: 'Broadcasts'})).toBeInTheDocument();
     expect(

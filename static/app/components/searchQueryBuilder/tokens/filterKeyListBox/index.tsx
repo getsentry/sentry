@@ -6,7 +6,6 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
@@ -220,11 +219,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <Fragment>
-      {enableAISearch ? (
-        <Feature features="organizations:gen-ai-explore-traces">
-          <AskSeer state={state} />
-        </Feature>
-      ) : null}
+      {enableAISearch ? <AskSeer state={state} /> : null}
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (
@@ -478,7 +473,7 @@ const SectionedOverlayFooter = styled('div')`
   align-items: center;
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFiltersPane = styled('ul')`
@@ -488,7 +483,7 @@ const RecentFiltersPane = styled('ul')`
   background: ${p => p.theme.backgroundSecondary};
   padding: ${p => p.theme.space.md} 10px;
   gap: ${p => p.theme.space['2xs']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
 
@@ -500,7 +495,7 @@ const SectionedListBoxPane = styled('div')`
 const DetailsPane = styled('div')`
   grid-area: details;
   overflow-y: auto;
-  border-left: 1px solid ${p => p.theme.innerBorder};
+  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const SectionedListBoxTabPane = styled('div')`
@@ -509,7 +504,7 @@ const SectionedListBoxTabPane = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${p => p.theme.space['2xs']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFilterPill = styled('li')`
@@ -521,7 +516,7 @@ const RecentFilterPill = styled('li')`
   font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 
@@ -552,7 +547,7 @@ const SectionButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${p => p.theme.space.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border: 0;
 
   &[aria-selected='true'] {
@@ -576,7 +571,7 @@ const EmptyState = styled('div')`
   height: 100%;
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   div {
     max-width: 280px;

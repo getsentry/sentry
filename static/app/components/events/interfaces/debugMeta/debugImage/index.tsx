@@ -68,7 +68,7 @@ export default DebugImage;
 const Wrapper = styled('div')`
   :not(:last-child) {
     > * {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
   ${p => layout(p.theme)};
@@ -95,12 +95,12 @@ const FileName = styled('span')`
 `;
 
 const CodeFilename = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ImageColumn = styled(Column)`
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   overflow: hidden;
   flex-direction: column;

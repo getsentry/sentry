@@ -143,7 +143,7 @@ const Item = styled('div')`
   padding: ${space(2)};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;
@@ -186,7 +186,7 @@ const Name = styled(`span`)`
 const RuntimeAndVersion = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DetailWrapper = styled('div')`

@@ -21,13 +21,13 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
   groupId?: string;
@@ -113,7 +113,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <IconSeer animation="waiting" color="subText" size="lg" />
+          <IconSeer animation="waiting" variant="muted" size="lg" />
         </Flex>
         <Paragraph>
           {t(
@@ -317,7 +317,7 @@ const SingleCard = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(2)} ${space(2)};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-top: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
@@ -325,7 +325,7 @@ const SingleCard = styled('div')`
 const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BulletList = styled('ul')`
@@ -344,7 +344,7 @@ const TouchCustomerMessage = styled('p')`
 
 const LegalText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 

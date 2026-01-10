@@ -469,7 +469,7 @@ const CardTitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding-bottom: ${space(0.5)};
 `;
 
@@ -482,7 +482,7 @@ const CardTitleText = styled('p')`
 const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const CardContentContainer = styled('div')`
@@ -503,7 +503,7 @@ const CardLineDecorationWrapper = styled('div')`
 const CardLineDecoration = styled('div')`
   width: 1px;
   align-self: stretch;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
 `;
 
 const CardContent = styled('div')`
@@ -547,7 +547,7 @@ const CollapsedHeaderContent = styled('div')`
 const ChevronIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   transition: transform 0.2s ease-in-out;
   flex-shrink: 0;
 `;
