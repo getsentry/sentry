@@ -9,6 +9,7 @@ from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
+import psycopg2.errors
 from django.db.utils import OperationalError
 from django.urls import reverse
 from django.utils import timezone
@@ -2802,7 +2803,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     )
     def test_postgres_query_timeout(self, mock_query: MagicMock) -> None:
         """Test that a Postgres OperationalError with QueryCanceled pgcode becomes a 429 error
-        only when it's a statement timeout, and remains a 500 for user cancellation"""
+        for both statement timeout and user request (which can indicate timeout)"""
 
         class TimeoutError(OperationalError):
             def __str__(self) -> str:
@@ -2814,6 +2815,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
 
+        # Explicit statement timeout should become 429
         mock_query.side_effect = TimeoutError()
         response = self.get_response()
         assert response.status_code == 429
@@ -2822,6 +2824,22 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == "Query timeout. Please try with a smaller date range or fewer conditions."
         )
 
+        # User request with QueryCanceled cause should also become 429
+        # (this is the case in the actual issue)
+        user_cancel_with_cause = UserCancelError()
+        user_cancel_with_cause.__cause__ = psycopg2.errors.QueryCanceled(
+            "canceling statement due to user request"
+        )
+        mock_query.side_effect = user_cancel_with_cause
+        response = self.get_response()
+        assert response.status_code == 429
+        assert (
+            response.data["detail"]
+            == "Query timeout. Please try with a smaller date range or fewer conditions."
+        )
+
+        # User request WITHOUT QueryCanceled cause should remain 500
+        # (this would be a different type of error)
         mock_query.side_effect = UserCancelError()
         response = self.get_response()
         assert response.status_code == 500

@@ -439,9 +439,9 @@ def handle_query_errors() -> Generator[None]:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
     except OperationalError as error:
-        error_message = str(error)
-        is_timeout = "canceling statement due to statement timeout" in error_message
-        if is_timeout:
+        from sentry.db.postgres.helpers import is_statement_timeout
+        
+        if is_statement_timeout(error):
             sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
             sentry_sdk.capture_exception(error, level="warning")
             raise Throttled(

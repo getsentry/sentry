@@ -2,6 +2,7 @@ import datetime
 import unittest
 from unittest.mock import MagicMock, patch
 
+import psycopg2.errors
 import pytest
 from django.db import OperationalError
 from django.utils import timezone
@@ -213,15 +214,41 @@ class HandleQueryErrorsTest(APITestCase):
             )
 
     def test_handle_postgres_user_cancel(self) -> None:
+        """Test that user cancellation (QueryCanceled) is treated as timeout"""
+
+        class UserCancelError(OperationalError):
+            def __str__(self) -> str:
+                return "canceling statement due to user request"
+
+        # Simulate psycopg2.errors.QueryCanceled as the cause
+        try:
+            with handle_query_errors():
+                exc = UserCancelError()
+                exc.__cause__ = psycopg2.errors.QueryCanceled(
+                    "canceling statement due to user request"
+                )
+                raise exc
+        except Exception as e:
+            # Should be converted to Throttled since QueryCanceled is treated as timeout
+            assert isinstance(e, Throttled)
+            assert (
+                str(e) == "Query timeout. Please try with a smaller date range or fewer conditions."
+            )
+
+    def test_handle_postgres_user_cancel_without_query_canceled(self) -> None:
+        """Test that user cancellation without QueryCanceled cause is not treated as timeout"""
+
         class UserCancelError(OperationalError):
             def __str__(self) -> str:
                 return "canceling statement due to user request"
 
         try:
             with handle_query_errors():
+                # No __cause__ attribute - not a QueryCanceled
                 raise UserCancelError()
         except Exception as e:
-            assert isinstance(e, UserCancelError)  # Should propagate original error
+            # Should propagate original error since it's not QueryCanceled
+            assert isinstance(e, UserCancelError)
 
     @patch("sentry.api.utils.ParseError")
     def test_handle_other_operational_error(self, mock_parse_error: MagicMock) -> None:
