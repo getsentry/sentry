@@ -17,7 +17,7 @@ from sentry.models.organization import Organization
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
-from sentry.monitors.utils import get_schedule_sample_window_tick_groups
+from sentry.monitors.utils import get_schedule_sample_window_tick_statuses
 from sentry.monitors.validators import ConfigValidator
 
 
@@ -50,11 +50,11 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
                 errors["recovery_threshold"] = ["This field is required."]
             return self.respond(errors, status=400)
 
-        tick_groups = get_schedule_sample_window_tick_groups(
+        tick_statuses = get_schedule_sample_window_tick_statuses(
             failure_threshold=failure_threshold,
             recovery_threshold=recovery_threshold,
         )
-        num_ticks = sum(cast(int, group["count"]) for group in tick_groups)
+        num_ticks = len(tick_statuses)
 
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")

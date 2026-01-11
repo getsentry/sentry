@@ -83,9 +83,6 @@ class SampleScheduleBucketsTest(APITestCase):
         for i in range(26):
             assert buckets[i][0] == start + i * interval
 
-        for i in range(26):
-            assert buckets[i][0] == start + i * interval
-
         for i in range(0, 3):
             assert buckets[i][1] == {"ok": 1}
         for i in range(3, 20):

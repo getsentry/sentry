@@ -463,9 +463,9 @@ def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
         return None
 
 
-def get_schedule_sample_window_tick_groups(
+def get_schedule_sample_window_tick_statuses(
     failure_threshold: int, recovery_threshold: int
-) -> list[dict[str, int | str]]:
+) -> list[str]:
     total_threshold = failure_threshold + recovery_threshold
     padding_ticks = ceil(total_threshold / 2)
     open_period_ticks = total_threshold * 3
@@ -474,10 +474,10 @@ def get_schedule_sample_window_tick_groups(
     ok = status_to_name[CheckInStatus.OK]
     error = status_to_name[CheckInStatus.ERROR]
 
-    return [
-        {"status": ok, "count": padding_ticks},
-        {"status": error, "count": failure_threshold},
-        {"status": error, "count": open_period_ticks},
-        {"status": ok, "count": recovery_threshold},
-        {"status": ok, "count": padding_ticks},
-    ]
+    return (
+        [ok] * padding_ticks
+        + [error] * failure_threshold
+        + [error] * open_period_ticks
+        + [ok] * recovery_threshold
+        + [ok] * padding_ticks
+    )

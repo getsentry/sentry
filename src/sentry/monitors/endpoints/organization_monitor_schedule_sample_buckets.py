@@ -18,7 +18,7 @@ from sentry.models.organization import Organization
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
-from sentry.monitors.utils import get_schedule_sample_window_tick_groups
+from sentry.monitors.utils import get_schedule_sample_window_tick_statuses
 from sentry.monitors.validators import ConfigValidator
 
 
@@ -34,20 +34,6 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
 
     start = serializers.IntegerField(min_value=1)
     interval = serializers.IntegerField(min_value=1)
-
-
-# Expand grouped tick statuses into a per-tick list.
-# Input:  [{"status": "ok", "count": 3}, {"status": "error", "count": 2}]
-# Output: ["ok", "ok", "ok", "error", "error"]
-def _status_by_tick_index(
-    tick_groups: list[dict[str, int | str]],
-) -> list[str]:
-    statuses: list[str] = []
-    for group in tick_groups:
-        status = cast(str, group["status"])
-        count = cast(int, group["count"])
-        statuses.extend([status] * count)
-    return statuses
 
 
 @region_silo_endpoint
@@ -80,11 +66,10 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
                 errors["recovery_threshold"] = ["This field is required."]
             return self.respond(errors, status=400)
 
-        tick_groups = get_schedule_sample_window_tick_groups(
+        tick_statuses = get_schedule_sample_window_tick_statuses(
             failure_threshold=failure_threshold,
             recovery_threshold=recovery_threshold,
         )
-        tick_statuses = _status_by_tick_index(tick_groups)
         num_ticks = len(tick_statuses)
 
         schedule_type = config.get("schedule_type")
@@ -135,6 +120,8 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
         duration = window_end_ts - window_start_ts
         num_buckets = (duration // bucket_interval) + 1
 
+        # For each bucket based on the bucket interval assign a status
+        # if there is a tick in the bucket, OTHERWISE assign {}.
         buckets = []
         for i in range(num_buckets):
             bucket_start = window_start_ts + i * bucket_interval
