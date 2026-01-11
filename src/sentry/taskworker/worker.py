@@ -14,7 +14,12 @@ from pathlib import Path
 from typing import Any
 
 import grpc
-from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    TASK_ACTIVATION_STATUS_COMPLETE,
+    TASK_ACTIVATION_STATUS_FAILURE,
+    FetchNextTask,
+    TaskActivation,
+)
 from sentry_protos.taskworker.v1 import taskworker_pb2, taskworker_pb2_grpc
 
 from sentry import options
@@ -32,7 +37,8 @@ from sentry.taskworker.constants import (
     DEFAULT_WORKER_QUEUE_SIZE,
     MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE,
 )
-from sentry.taskworker.workerchild import child_process
+from sentry.taskworker.task import Task
+from sentry.taskworker.workerchild import child_process, load_parameters
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.worker")
@@ -40,32 +46,93 @@ logger = logging.getLogger("sentry.taskworker.worker")
 
 class WorkerServicer(taskworker_pb2_grpc.WorkerServiceServicer):
     """
-    gRPC servicer that receives task activations pushed from the broker
+    gRPC server that receives task activations pushed from the broker.
     """
 
     def __init__(self, worker: TaskWorker) -> None:
         self.worker = worker
 
-    def PushTask(
+        app = import_app(worker._app_module)
+        app.load_modules()
+
+        self.taskregistry = app.taskregistry
+
+    def _get_known_task(self, activation: TaskActivation) -> Task[Any, Any] | None:
+        """Get a task function from the registry."""
+
+        if not self.taskregistry.contains(activation.namespace):
+            logger.error(
+                "taskworker.invalid_namespace",
+                extra={"namespace": activation.namespace, "taskname": activation.taskname},
+            )
+
+            return None
+
+        namespace = self.taskregistry.get(activation.namespace)
+
+        if not namespace.contains(activation.taskname):
+            logger.error(
+                "taskworker.invalid_taskname",
+                extra={"namespace": activation.namespace, "taskname": activation.taskname},
+            )
+
+            return None
+
+        return namespace.get(activation.taskname)
+
+    def _execute_activation(self, fun: Task[Any, Any], activation: TaskActivation) -> None:
+        """Execute a task activation synchronously."""
+
+        headers = {k: v for k, v in activation.headers.items()}
+        parameters = load_parameters(activation.parameters, headers)
+
+        args = parameters.get("args", [])
+        kwargs = parameters.get("kwargs", {})
+
+        if "__start_time" in kwargs:
+            kwargs.pop("__start_time")
+
+        # Execute the task function
+        fun(*args, **kwargs)
+
+    def RunTask(
         self,
-        request: taskworker_pb2.PushTaskRequest,
+        request: taskworker_pb2.RunTaskRequest,
         context: grpc.ServicerContext,
-    ) -> taskworker_pb2.PushTaskResponse:
-        """Handle incoming task activation."""
-        # Create `InflightTaskActivation` from the pushed task
-        inflight = InflightTaskActivation(
-            activation=request.task,
-            host=request.callback_url,
-            receive_timestamp=time.monotonic(),
-        )
+    ) -> taskworker_pb2.RunTaskResponse:
+        """Handle incoming task activation and execute it synchronously."""
 
-        # Push the task to the worker queue
-        added = self.worker._push_task(inflight)
+        activation = request.task
 
-        # Read the shared counter
-        queue_size = self.worker._child_tasks.qsize()
+        # Get the task function from the registry
+        fun = self._get_known_task(activation)
 
-        return taskworker_pb2.PushTaskResponse(added=added, queue_size=queue_size)
+        if not fun:
+            logger.error(
+                "taskworker.unknown_task",
+                extra={
+                    "namespace": activation.namespace,
+                    "taskname": activation.taskname,
+                },
+            )
+
+            return taskworker_pb2.RunTaskResponse(status=TASK_ACTIVATION_STATUS_FAILURE)
+
+        # Execute the task synchronously
+        try:
+            self._execute_activation(fun, activation)
+            return taskworker_pb2.RunTaskResponse(status=TASK_ACTIVATION_STATUS_COMPLETE)
+        except Exception as e:
+            logger.exception(
+                "taskworker.task_execution_failed",
+                extra={
+                    "namespace": activation.namespace,
+                    "taskname": activation.taskname,
+                    "error": str(e),
+                },
+            )
+
+            return taskworker_pb2.RunTaskResponse(status=TASK_ACTIVATION_STATUS_FAILURE)
 
 
 def get_host() -> str:
@@ -154,8 +221,6 @@ class TaskWorker:
         Once started a Worker will run a gRPC server that receives task activations
         until it is killed or shuts down.
         """
-        self.start_result_thread()
-        self.start_spawn_children_thread()
 
         # Convert signals into KeyboardInterrupt.
         # Running shutdown() within the signal handler can lead to deadlocks
@@ -167,14 +232,11 @@ class TaskWorker:
 
         try:
             # Start gRPC server
-            server = grpc.server(ThreadPoolExecutor(max_workers=10))
+            server = grpc.server(ThreadPoolExecutor(max_workers=self._concurrency))
             taskworker_pb2_grpc.add_WorkerServiceServicer_to_server(WorkerServicer(self), server)
             server.add_insecure_port(f"[::]:{self._grpc_port}")
             server.start()
             logger.info("taskworker.grpc_server.started", extra={"port": self._grpc_port})
-
-            # Register this worker with all connected taskbrokers
-            self._register_with_brokers()
 
             # Wait for shutdown signal
             server.wait_for_termination()
@@ -189,49 +251,12 @@ class TaskWorker:
         """Access point for tests to run a single worker loop"""
         self._add_task()
 
-    def _register_with_brokers(self) -> None:
-        """
-        Register this worker with all connected taskbrokers.
-
-        Sends an AddWorker message to each broker to notify them that
-        this worker is available to receive tasks.
-        """
-        address = f"http://{get_host()}:{self._grpc_port}"
-
-        logger.info(
-            "taskworker.worker.registering_with_brokers",
-            extra={"broker_count": len(self.client._hosts), "address": address},
-        )
-
-        for host in self.client._hosts:
-            self.client.add_worker(host, address)
-
-    def _unregister_from_brokers(self) -> None:
-        """
-        Unregister this worker from all connected taskbrokers.
-
-        Sends a RemoveWorker message to each broker to notify them that
-        this worker is shutting down and should no longer receive tasks.
-        """
-        address = f"http://{get_host()}:{self._grpc_port}"
-
-        logger.info(
-            "taskworker.worker.unregistering_from_brokers",
-            extra={"broker_count": len(self.client._hosts), "address": address},
-        )
-
-        for host in self.client._hosts:
-            self.client.remove_worker(host, address)
-
     def shutdown(self) -> None:
         """
         Shutdown cleanly
         Activate the shutdown event and drain results before terminating children.
         """
         logger.info("taskworker.worker.shutdown.start")
-
-        # Unregister this worker from all connected taskbrokers
-        self._unregister_from_brokers()
 
         self._shutdown_event.set()
 
