@@ -254,11 +254,13 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         tenant_info = channel_data["tenant"]
         tenant_id = tenant_info["id"]
+        # Use the conversation ID from the data, not the team ID
+        conversation_id = data["conversation"]["id"]
         params = {
             "service_url": service_url,
             "user_id": user_id,
             "tenant_id": tenant_id,
-            "conversation_id": team_id,
+            "conversation_id": conversation_id,
             "external_id": team_id,
             "external_name": team_name,
             "installation_type": "team",
@@ -356,7 +358,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def _handle_team_member_added(self, request: Request) -> Response:
         data = request.data
         team = data["channelData"]["team"]
-        data["conversation_id"] = team["id"]
+        data["conversation_id"] = data["conversation"]["id"]
 
         params = {
             "external_id": team["id"],

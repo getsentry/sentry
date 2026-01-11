@@ -229,6 +229,49 @@ class MsTeamsWebhookTest(APITestCase):
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
+    def test_team_member_added_with_different_conversation_id(
+        self, mock_time: MagicMock, mock_decode: MagicMock
+    ) -> None:
+        """Test that when team ID differs from conversation ID, we use conversation ID for messages."""
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        # The message should be sent to the conversation ID, not the team ID
+        conversation_id = "19:ed48zJ6NS0jo26K67yLfdSrELfVz0q4WhLJkUFZkKdU1@thread.tacv2"
+        responses.add(
+            responses.POST,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % conversation_id,
+            json={},
+        )
+
+        # Create test data where team ID differs from conversation ID
+        team_member_added = deepcopy(EXAMPLE_TEAM_MEMBER_ADDED)
+        team_member_added["conversation"]["id"] = conversation_id
+        # Keep team_member_added["channelData"]["team"]["id"] as the original team_id
+
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=team_member_added,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+        )
+
+        assert resp.status_code == 201
+        # Verify the message was sent to the correct conversation ID
+        assert (
+            responses.calls[3].request.url
+            == "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % conversation_id
+        )
+        assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+    @responses.activate
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
     def test_member_removed(self, mock_time: MagicMock, mock_decode: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(external_id=team_id, provider="msteams")
