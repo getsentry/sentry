@@ -87,7 +87,11 @@ export function SizeCompareSelectionContent({
     build_configuration: headBuildDetails.app_info?.build_configuration,
     ...(cursor && {cursor}),
     ...(searchQuery && {query: searchQuery}),
-    ...(projectId && {project: projectId}),
+    ...(projectId
+      ? /^\d+$/.test(projectId)
+        ? {project: projectId}
+        : {projectSlug: projectId}
+      : {}),
   };
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =

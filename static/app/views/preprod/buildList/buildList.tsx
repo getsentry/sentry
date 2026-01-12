@@ -37,7 +37,11 @@ export default function BuildList() {
   }
 
   if (projectId) {
-    queryParams.project = projectId;
+    if (/^\d+$/.test(projectId)) {
+      queryParams.project = projectId;
+    } else {
+      queryParams.projectSlug = projectId;
+    }
   }
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
