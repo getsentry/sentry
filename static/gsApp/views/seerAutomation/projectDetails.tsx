@@ -83,7 +83,7 @@ function SeerProjectDetails() {
       {isPending ? (
         <LoadingIndicator />
       ) : (
-        <Stack gap="2xl">
+        <Fragment>
           <SeerSettingsContainer
             canWrite={canWrite}
             preference={preference ?? DEFAULT_PREFERENCE}
@@ -95,7 +95,7 @@ function SeerProjectDetails() {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
-        </Stack>
+        </Fragment>
       )}
     </Fragment>
   );

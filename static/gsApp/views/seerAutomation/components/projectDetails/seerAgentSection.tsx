@@ -1,8 +1,10 @@
+import {ExternalLink} from '@sentry/scraps/link/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 
 interface Props {
@@ -44,8 +46,11 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
       disabledReason={disabledReason ?? undefined}
       name="automated_run_stopping_point"
       label={t('Allow PR Auto Creation')}
-      help={t(
-        'Seer will be able to automatically make a pull requests for highly actionable issues.'
+      help={tct(
+        'Seer will identify the root cause and propose a solution for error and performance issues. [docsLink:Read the docs] to learn more.',
+        {
+          docsLink: <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />,
+        }
       )}
       value={isAutoCreatePREnabled}
       onChange={value => {

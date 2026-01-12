@@ -64,10 +64,10 @@ export default function BackgroundAgentPicker({
               </Flex>
             }
             help={tct(
-              '[docsLink:Read the docs] to learn more about Cursor Cloud Agents integration.',
+              'Seer will identify the root cause and hand off to an external coding agent for solutions and fixes. [docsLink:Read the docs] to learn more.',
               {
                 docsLink: (
-                  <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />
                 ),
               }
             )}
@@ -125,6 +125,12 @@ export default function BackgroundAgentPicker({
       disabledReason={disabledReason ?? undefined}
       name="integrationId"
       label={t('Coding Agent Integration')}
+      help={tct(
+        'Seer will identify the root cause and hand off to an external coding agent for solutions and fixes. [docsLink:Read the docs] to learn more.',
+        {
+          docsLink: <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />,
+        }
+      )}
       allowEmpty
       allowClear
       options={options}

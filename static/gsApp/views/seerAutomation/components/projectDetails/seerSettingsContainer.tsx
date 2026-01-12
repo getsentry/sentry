@@ -1,13 +1,11 @@
-import {Fragment, useMemo, type ReactNode} from 'react';
-
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {Fragment, useMemo} from 'react';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
-import {t, tct} from 'sentry/locale';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -50,54 +48,31 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
   const showBackgroundAgentSection =
     organization.features.includes('integrations-cursor');
 
-  // const isBackgroundAgentActive = Boolean(preference?.automation_handoff);
-
   return (
     <Fragment>
-      <Container border="primary" radius="md">
-        <Stack>
-          <Title title={t('Issue Scan & Fix')} first />
-
+      <Panel>
+        <PanelHeader>{t('Issue Scan & Fix')}</PanelHeader>
+        <PanelBody>
           <AutoTriggeredFixesToggle canWrite={canWrite} project={project} />
+        </PanelBody>
+      </Panel>
 
-          <Title title={t('Seer Agent')} />
-
-          <Flex direction="column" padding="lg lg 0 lg">
-            <Text variant="muted">
-              {tct(
-                'Seer will identify the root cause and propose a solution for error and performance issues. [docsLink:Read the docs] to learn more.',
-                {
-                  docsLink: (
-                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />
-                  ),
-                }
-              )}
-            </Text>
-          </Flex>
-
+      <Panel>
+        <PanelHeader>{t('Seer Agent')}</PanelHeader>
+        <PanelBody>
           <SeerAgentSection
             canWrite={canWrite}
             project={project}
             preference={preference}
           />
+        </PanelBody>
+      </Panel>
 
-          {showBackgroundAgentSection && (
-            <Fragment>
-              <Title title={t('Agent Delegation')} />
-
-              <Flex direction="column" padding="lg lg 0 lg">
-                <Text variant="muted">
-                  {tct(
-                    'Seer will identify the root cause and hand off to an external coding agent for solutions and fixes. [docsLink:Read the docs] to learn more.',
-                    {
-                      docsLink: (
-                        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />
-                      ),
-                    }
-                  )}
-                </Text>
-              </Flex>
-
+      {showBackgroundAgentSection && (
+        <Fragment>
+          <Panel>
+            <PanelHeader>{t('Agent Delegation')}</PanelHeader>
+            <PanelBody>
               <BackgroundAgentPicker
                 supportedIntegrations={supportedIntegrations}
                 canWrite={canWrite}
@@ -113,23 +88,10 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
                 selectedIntegration={selectedIntegration}
                 isLoadingIntegrations={isLoadingIntegrations}
               />
-            </Fragment>
-          )}
-        </Stack>
-      </Container>
+            </PanelBody>
+          </Panel>
+        </Fragment>
+      )}
     </Fragment>
-  );
-}
-
-function Title({title, first}: {title: ReactNode; first?: boolean}) {
-  return (
-    <Container
-      background="secondary"
-      padding="xl"
-      borderBottom="primary"
-      radius={first ? 'md md 0 0' : '0'}
-    >
-      <Heading as="h3">{title}</Heading>
-    </Container>
   );
 }
