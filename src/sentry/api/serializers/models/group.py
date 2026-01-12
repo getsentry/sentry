@@ -1201,3 +1201,58 @@ class SimpleGroupSerializer(Serializer):
             firstSeen=obj.first_seen,
             lastSeen=obj.last_seen,
         )
+
+
+class WebhookGroupSerializer(GroupSerializer):
+    """
+    Optimized serializer for webhook notifications that skips expensive integration annotations.
+    This avoids N+1 queries to external issue tracking integrations which can cause timeouts.
+    """
+
+    def get_attrs(
+        self, item_list: Sequence[Group], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Group, dict[str, Any]]:
+        # Get base attributes but skip the expensive integration annotations
+        GroupMeta.objects.populate_cache(item_list)
+        prefetch_related_objects(item_list, "project__organization")
+
+        # Initialize basic attributes without user-specific data (webhooks are system-triggered)
+        bookmarks = set()
+        seen_groups = {}
+        resolved_assignees = {}
+        ignore_items = {}
+        ignore_actors = {}
+        release_resolutions = {}
+        commit_resolutions = {}
+        subscriptions = {}
+        share_ids = {}
+        actors = {}
+
+        # Get seen stats (lightweight queries)
+        seen_stats = self._get_seen_stats(item_list, user) or {}
+        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
+
+        result = {}
+        for item in item_list:
+            active_date = item.active_at or item.first_seen
+            result[item] = {
+                "id": item.id,
+                "assigned_to": None,
+                "is_bookmarked": False,
+                "subscription": None,
+                "has_seen": False,
+                "annotations": [],  # Empty annotations to avoid expensive queries
+                "ignore_until": None,
+                "ignore_actor": None,
+                "resolution": None,
+                "resolution_type": None,
+                "resolution_actor": None,
+                "share_id": None,
+            }
+            if snuba_stats is not None:
+                result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+
+            if seen_stats:
+                result[item].update(seen_stats.get(item, {}))
+        return result
+

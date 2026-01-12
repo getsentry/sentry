@@ -544,6 +544,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
     name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
 @retry_decorator
@@ -559,7 +560,10 @@ def workflow_notification(
 
         install, issue, user = webhook_data
         data = kwargs.get("data", {})
-        data.update({"issue": serialize(issue)})
+        # Use WebhookGroupSerializer to avoid expensive integration annotation queries
+        from sentry.api.serializers.models.group import WebhookGroupSerializer
+        
+        data.update({"issue": serialize(issue, serializer=WebhookGroupSerializer())})
 
     send_webhooks(installation=install, event=event, data=data, actor=user)
 

@@ -2436,7 +2436,7 @@ register(
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
-    default=1.0,
+    default=0.5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
