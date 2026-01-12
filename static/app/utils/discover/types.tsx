@@ -20,6 +20,7 @@ export enum DiscoverDatasets {
   METRICS_ENHANCED = 'metricsEnhanced',
   ISSUE_PLATFORM = 'issuePlatform',
   OURLOGS = 'ourlogs',
+  PREPROD_SIZE = 'preprodSize',
   SPANS = 'spans',
   TRANSACTIONS = 'transactions',
   TRACEMETRICS = 'tracemetrics',
