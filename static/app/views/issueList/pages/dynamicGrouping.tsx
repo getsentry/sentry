@@ -777,7 +777,16 @@ function DynamicGrouping() {
       );
     }
 
-    return result.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+    return result.sort((a, b) => {
+      // Sort clusters with >1 group before clusters with exactly 1 group
+      const aHasMultipleGroups = a.group_ids.length > 1 ? 1 : 0;
+      const bHasMultipleGroups = b.group_ids.length > 1 ? 1 : 0;
+      if (bHasMultipleGroups !== aHasMultipleGroups) {
+        return bHasMultipleGroups - aHasMultipleGroups;
+      }
+      // Within the same category, sort by fixability_score descending
+      return (b.fixability_score ?? 0) - (a.fixability_score ?? 0);
+    });
   }, [
     clusterData,
     isUsingCustomData,
