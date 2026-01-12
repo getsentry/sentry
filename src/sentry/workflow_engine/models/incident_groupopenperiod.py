@@ -38,6 +38,9 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
     class Meta:
         db_table = "workflow_engine_incidentgroupopenperiod"
         app_label = "workflow_engine"
+        indexes = [
+            models.Index(fields=["incident_identifier"]),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(incident_identifier__isnull=False) & Q(incident_id__isnull=False)
