@@ -55,6 +55,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -871,6 +872,10 @@ class ExhaustiveFixtures(Fixtures):
             expires_at="2022-01-01 11:11+00:00",
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
+        )
+        ApiDeviceCode.objects.create(
+            application=app.application,
+            scope_list=["openid", "profile"],
         )
 
         # ServiceHook

@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
@@ -1075,3 +1076,286 @@ class OAuthTokenPKCETest(TestCase):
 
         # Grant should be immediately deleted on validation failure
         assert not ApiGrant.objects.filter(id=grant.id).exists()
+
+
+@control_silo_test
+class OAuthTokenDeviceCodeTest(TestCase):
+    """Tests for device code grant type (RFC 8628 §3.4/§3.5)."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        from sentry.models.apidevicecode import ApiDeviceCode, DeviceCodeStatus
+
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+        self.client_secret = self.application.client_secret
+        self.device_code = ApiDeviceCode.objects.create(
+            application=self.application,
+            scope_list=["project:read"],
+        )
+        self.DeviceCodeStatus = DeviceCodeStatus
+
+    def test_missing_device_code(self) -> None:
+        """Missing device_code should return invalid_request."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_request"}
+
+    def test_invalid_device_code(self) -> None:
+        """Invalid device_code should return invalid_grant."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": "invalid",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_authorization_pending(self) -> None:
+        """Pending device code should return authorization_pending."""
+        assert self.device_code.status == self.DeviceCodeStatus.PENDING
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "authorization_pending"}
+
+        # Device code should still exist
+        assert ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+    def test_access_denied(self) -> None:
+        """Denied device code should return access_denied and delete the code."""
+        self.device_code.status = self.DeviceCodeStatus.DENIED
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "access_denied"}
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+    def test_expired_token(self) -> None:
+        """Expired device code should return expired_token and delete the code."""
+        from datetime import timedelta
+
+        self.device_code.expires_at = timezone.now() - timedelta(minutes=1)
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "expired_token"}
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+    def test_success_approved(self) -> None:
+        """Approved device code should return access token and delete the code."""
+        from sentry.models.apidevicecode import ApiDeviceCode
+
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert data["token_type"] == "Bearer"
+        assert "expires_in" in data
+        assert data["scope"] == "project:read"
+        assert data["user"]["id"] == str(self.user.id)
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+        # Token should be created
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.user == self.user
+        assert token.application == self.application
+
+    def test_success_with_organization(self) -> None:
+        """Approved device code with org should include organization_id."""
+        organization = self.create_organization(owner=self.user)
+
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.organization_id = organization.id
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert data["organization_id"] == str(organization.id)
+
+    def test_wrong_application(self) -> None:
+        """Device code for different application should return invalid_grant."""
+        other_app = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://other.com"
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": other_app.client_id,
+                "client_secret": other_app.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_slow_down(self) -> None:
+        """Polling too fast should return slow_down error."""
+        from unittest.mock import patch
+
+        # First request should succeed (returns authorization_pending)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "authorization_pending"}
+
+        # Second request within the rate limit window should return slow_down
+        with patch("sentry.ratelimits.backend.is_limited", return_value=True):
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                    "device_code": self.device_code.device_code,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+            assert resp.status_code == 400
+            assert json.loads(resp.content) == {"error": "slow_down"}
+
+    def test_success_returns_refresh_token(self) -> None:
+        """Approved device code should return refresh_token for token renewal.
+
+        Per RFC 6749 §5.1, refresh_token is OPTIONAL but RECOMMENDED for
+        headless clients that cannot easily re-authenticate interactively.
+        """
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "refresh_token" in data
+        assert data["refresh_token"]
+
+        # Verify the refresh_token can be used
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.refresh_token == data["refresh_token"]
+
+    def test_inactive_application_rejects_device_code_grant(self) -> None:
+        """Inactive applications cannot exchange approved device codes for tokens.
+
+        This prevents tokens from being issued after an application is disabled
+        (e.g., for security reasons) even if the device code was approved while
+        the application was still active.
+        """
+        from sentry.models.apiapplication import ApiApplicationStatus
+
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        # Deactivate the application after approval
+        self.application.status = ApiApplicationStatus.inactive
+        self.application.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        # Per RFC 6749 §5.2, invalid_grant when grant is "revoked"
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+        # No token should be created
+        assert not ApiToken.objects.filter(application=self.application, user=self.user).exists()

@@ -1,6 +1,7 @@
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
+from .apidevicecode import *  # NOQA
 from .apigrant import *  # NOQA
 from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
