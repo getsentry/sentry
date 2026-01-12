@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container as ScrapsContainer} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -170,33 +171,38 @@ function BaseExploreFieldRenderer({
         queryString.addFilterValue('span.description', data['span.description']);
       }
       return (
-        <Tooltip
-          isHoverable
-          showUnderline
-          title={
-            <Text>
-              {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
-                similarTraces: (
-                  <Link
-                    to={getSimilarEventsUrl({
-                      queryString: queryString.formatString(),
-                      table: 'trace',
-                      organization,
-                      projectIds: defined(project?.id)
-                        ? [parseInt(project.id, 10)]
-                        : selection.projects,
-                      selection,
-                    })}
-                  >
-                    {t('View similar traces')}
-                  </Link>
-                ),
-              })}
-            </Text>
-          }
-        >
-          <Text variant="muted">{rendered}</Text>
-        </Tooltip>
+        <ScrapsContainer maxWidth="fit-content">
+          <Tooltip
+            isHoverable
+            showUnderline
+            title={
+              <Text>
+                {tct(
+                  'Trace is older than 30 days. [similarTraces] in the past 24 hours.',
+                  {
+                    similarTraces: (
+                      <Link
+                        to={getSimilarEventsUrl({
+                          queryString: queryString.formatString(),
+                          table: 'trace',
+                          organization,
+                          projectIds: defined(project?.id)
+                            ? [parseInt(project.id, 10)]
+                            : selection.projects,
+                          selection,
+                        })}
+                      >
+                        {t('View similar traces')}
+                      </Link>
+                    ),
+                  }
+                )}
+              </Text>
+            }
+          >
+            <Text variant="muted">{rendered}</Text>
+          </Tooltip>
+        </ScrapsContainer>
       );
     }
 
@@ -231,32 +237,34 @@ function BaseExploreFieldRenderer({
       }
 
       return (
-        <Tooltip
-          isHoverable
-          showUnderline
-          title={
-            <Text>
-              {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
-                similarSpans: (
-                  <Link
-                    to={getSimilarEventsUrl({
-                      queryString: queryString.formatString(),
-                      organization,
-                      projectIds: defined(project?.id)
-                        ? [parseInt(project.id, 10)]
-                        : selection.projects,
-                      selection,
-                    })}
-                  >
-                    {t('View similar spans')}
-                  </Link>
-                ),
-              })}
-            </Text>
-          }
-        >
-          <Text variant="muted">{rendered}</Text>
-        </Tooltip>
+        <ScrapsContainer maxWidth="fit-content">
+          <Tooltip
+            isHoverable
+            showUnderline
+            title={
+              <Text>
+                {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
+                  similarSpans: (
+                    <Link
+                      to={getSimilarEventsUrl({
+                        queryString: queryString.formatString(),
+                        organization,
+                        projectIds: defined(project?.id)
+                          ? [parseInt(project.id, 10)]
+                          : selection.projects,
+                        selection,
+                      })}
+                    >
+                      {t('View similar spans')}
+                    </Link>
+                  ),
+                })}
+              </Text>
+            }
+          >
+            <Text variant="muted">{rendered}</Text>
+          </Tooltip>
+        </ScrapsContainer>
       );
     }
 
