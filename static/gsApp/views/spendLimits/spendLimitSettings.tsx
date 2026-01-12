@@ -43,7 +43,7 @@ import {
   displayPriceWithCents,
   getBucket,
 } from 'getsentry/views/amCheckout/utils';
-import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
+import {convertOnDemandBudget} from 'getsentry/views/spendLimits/utils';
 
 const LARGE_INPUT_WIDTH = '300px';
 
@@ -185,13 +185,7 @@ export function SharedSpendLimitPriceTable({
 
   return (
     <Stack borderTop="primary">
-      <Flex
-        borderBottom="primary"
-        padding="md xl"
-        background="secondary"
-        justify="between"
-        align="center"
-      >
+      <Flex padding="md xl" background="secondary" justify="between" align="center">
         <Text bold>{t('Product')}</Text>
         <Text bold>{t('Price')}</Text>
       </Flex>
@@ -727,7 +721,7 @@ const RadioMarker = styled(Container)<{isSelected: boolean}>`
 `;
 
 const InnerContainer = styled(Flex)`
-  border-bottom: 3px solid ${p => p.theme.border};
+  border-bottom: 3px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
 `;
 
@@ -745,7 +739,7 @@ const Currency = styled('div')`
     position: absolute;
     padding: 9px ${p => p.theme.space.lg};
     content: '$';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.md};
   }
 `;

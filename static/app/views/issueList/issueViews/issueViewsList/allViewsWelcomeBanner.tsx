@@ -67,7 +67,7 @@ const Banner = styled('div')`
   margin-bottom: 0;
   padding: 12px;
   gap: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   background: linear-gradient(
@@ -132,5 +132,5 @@ const DismissButton = styled(Button)`
   position: absolute;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

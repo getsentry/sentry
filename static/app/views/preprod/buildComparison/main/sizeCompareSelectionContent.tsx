@@ -42,6 +42,7 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -122,7 +123,12 @@ export function SizeCompareSelectionContent({
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
+        getCompareBuildPath({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId: headBuildDetails.id,
+          baseArtifactId: selectedBaseBuild?.id,
+        })
       );
     },
     onError: error => {
@@ -167,7 +173,11 @@ export function SizeCompareSelectionContent({
             // Clear cursor when search query changes to avoid pagination issues
             if (cursor) {
               navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                getCompareBuildPath({
+                  organizationSlug: organization.slug,
+                  projectId,
+                  headArtifactId: headBuildDetails.id,
+                }),
                 {replace: true}
               );
             }
@@ -266,7 +276,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
       <Flex direction="column" gap="sm" flex={1}>
         {(hasGitInfo || versionInfo) && (
           <Flex align="center" gap="md">
-            {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
+            {(prNumber || branchName) && <IconBranch size="xs" variant="muted" />}
             {prNumber && (
               <Flex align="center" gap="sm">
                 <Text>#{prNumber}</Text>
@@ -277,13 +287,13 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
             )}
             {commitHash && (
               <Flex align="center" gap="sm">
-                <IconCommit size="xs" color="gray300" />
+                <IconCommit size="xs" variant="muted" />
                 <Text>{commitHash}</Text>
               </Flex>
             )}
             {versionInfo && (
               <Flex align="center" gap="sm">
-                <IconTag size="xs" color="gray300" />
+                <IconTag size="xs" variant="muted" />
                 <Text>{versionInfo}</Text>
               </Flex>
             )}
@@ -293,13 +303,13 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
         <Flex align="center" gap="md">
           {dateAdded && (
             <Flex align="center" gap="sm">
-              <IconCalendar size="xs" color="gray300" />
+              <IconCalendar size="xs" variant="muted" />
               <TimeSince date={dateAdded} />
             </Flex>
           )}
           {build.app_info?.build_configuration && (
             <Flex align="center" gap="sm">
-              <IconMobile size="xs" color="gray300" />
+              <IconMobile size="xs" variant="muted" />
               <Tooltip title={t('Build configuration')}>
                 <Text monospace>{build.app_info.build_configuration}</Text>
               </Tooltip>
@@ -307,13 +317,13 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconCode size="xs" color="gray300" />
+              <IconCode size="xs" variant="muted" />
               <Text>{formattedPrimaryMetricInstallSize(sizeInfo)}</Text>
             </Flex>
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconDownload size="xs" color="gray300" />
+              <IconDownload size="xs" variant="muted" />
               <Text>{formattedPrimaryMetricDownloadSize(sizeInfo)}</Text>
             </Flex>
           )}
@@ -325,7 +335,11 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 }
 
 const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
-  border: 1px solid ${p => (p.isSelected ? p.theme.focusBorder : p.theme.border)};
+  border: 1px solid
+    ${p =>
+      p.isSelected
+        ? p.theme.tokens.border.accent.vibrant
+        : p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;

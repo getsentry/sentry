@@ -93,7 +93,7 @@ export function Sidebar() {
 const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   padding: ${space(1.5)} 0 ${space(1)} 0;
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
@@ -123,7 +123,7 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   margin-bottom: ${space(0.5)};
 `;
 
-const ChonkSuperuserBadgeContainer = styled('div')`
+const SuperuserBadge = styled('div')`
   position: absolute;
   top: -${p => p.theme.space.lg};
   z-index: ${p => p.theme.zIndex.initial};
@@ -131,5 +131,3 @@ const ChonkSuperuserBadgeContainer = styled('div')`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   background: ${p => p.theme.colors.chonk.red400};
 `;
-
-const SuperuserBadge = ChonkSuperuserBadgeContainer;

@@ -37,7 +37,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
     return (
       <Flex gap="md" align="center" justify="center">
         <ArchivedWrapper>
-          <IconDelete color="gray500" size="md" />
+          <IconDelete variant="primary" size="md" />
         </ArchivedWrapper>
 
         <Flex direction="column" gap="xs">
@@ -88,7 +88,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
               {project ? <span>{project.slug}</span> : null}
               <span>{getShortEventId(replay.id)}</span>
               <Flex gap="xs">
-                <IconCalendar color="gray300" size="xs" />
+                <IconCalendar variant="muted" size="xs" />
                 <TimeSince date={replay.started_at} />
               </Flex>
             </Flex>
@@ -114,7 +114,7 @@ const ArchivedWrapper = styled(Flex)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p => p.theme.overflowEllipsis};
   display: flex;
   flex-direction: column;

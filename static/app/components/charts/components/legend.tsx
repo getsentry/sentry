@@ -42,12 +42,12 @@ export default function Legend(
         fontFamily: theme.text.family,
         lineHeight: 14,
       },
-      inactiveColor: theme.subText,
+      inactiveColor: theme.tokens.content.secondary,
       pageTextStyle: {
         color: theme.tokens.content.primary,
       },
       pageIconColor: theme.tokens.content.primary,
-      pageIconInactiveColor: theme.disabled,
+      pageIconInactiveColor: theme.tokens.content.disabled,
       pageIconSize: 8.75,
       pageIcons: {
         horizontal: [

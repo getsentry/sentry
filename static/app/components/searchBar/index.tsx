@@ -70,7 +70,7 @@ function SearchBar({
     <FormWrap onSubmit={onSubmit} className={className}>
       <InputGroup>
         <InputGroup.LeadingItems disablePointerEvents>
-          <IconSearch color="subText" size={size === 'xs' ? 'xs' : 'sm'} />
+          <IconSearch variant="muted" size={size === 'xs' ? 'xs' : 'sm'} />
         </InputGroup.LeadingItems>
         <StyledInput
           {...inputProps}
@@ -110,7 +110,7 @@ const StyledInput = styled(InputGroup.Input)`
 `;
 
 export const SearchBarTrailingButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.5)};
 `;
 

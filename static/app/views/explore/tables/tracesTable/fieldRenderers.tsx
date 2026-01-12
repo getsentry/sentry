@@ -157,7 +157,7 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   text-align: center;
   font-weight: ${p => p.theme.fontWeight.bold};
   background-color: ${p => p.theme.colors.gray200};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.fontSize}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
@@ -370,7 +370,7 @@ export function SpanBreakdownSliceRenderer({
 
 const Subtext = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 const FlexContainer = styled('div')`
   display: flex;

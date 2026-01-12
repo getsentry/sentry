@@ -85,7 +85,7 @@ export function PreprodBuildsRowCells({
                         <span>
                           <Button
                             aria-label={t('Not installable')}
-                            icon={<IconNot color="red300" size="xs" />}
+                            icon={<IconNot variant="danger" size="xs" />}
                             priority="transparent"
                             size="zero"
                             disabled
@@ -137,7 +137,7 @@ export function PreprodBuildsRowCells({
                 ({build.app_info?.build_number})
               </Text>
             )}
-            {build.state === 3 && <IconCheckmark size="sm" color="green300" />}
+            {build.state === 3 && <IconCheckmark size="sm" variant="success" />}
           </Flex>
           <Flex align="center" gap="xs">
             <IconCommit size="xs" />

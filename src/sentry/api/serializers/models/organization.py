@@ -34,6 +34,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
@@ -514,6 +515,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
+    consoleSdkInviteQuota: int
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -811,6 +813,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ENABLED_CONSOLE_PLATFORMS_DEFAULT,
         )
 
+        context["consoleSdkInviteQuota"] = obj.get_option(
+            "sentry:console_sdk_invite_quota_limit",
+            CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+        )
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -841,6 +848,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "consoleSdkInviteQuota",
         "hasGranularReplayPermissions",
         "replayAccessMembers",
     ]

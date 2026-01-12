@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import re
 import secrets
 from collections.abc import Collection, Mapping
 from datetime import timedelta
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeGuard
 
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -20,6 +22,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
@@ -33,6 +36,9 @@ from sentry.utils.locking import UnableToAcquireLock
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 TOKEN_REDACTED = "***REDACTED***"
+
+logger = logging.getLogger("sentry.apitoken")
+
 
 # RFC 7636 §4.1: code_verifier is 43-128 unreserved characters
 # ABNF: code-verifier = 43*128unreserved
@@ -171,6 +177,10 @@ class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
     category = OutboxCategory.API_TOKEN_UPDATE
+
+    # Outbox settings
+    enqueue_after_flush = True
+    _default_flush: bool | None = None
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -554,8 +564,23 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         return installation.organization_id
 
+    @property
+    def default_flush(self) -> bool:
+        from sentry import options
 
-def is_api_token_auth(auth: object) -> bool:
+        has_async_flush = options.get("api-token-async-flush")
+
+        if self._default_flush is not None:
+            return self._default_flush
+
+        return not has_async_flush
+
+    @default_flush.setter
+    def default_flush(self, value: bool) -> None:
+        self._default_flush = value
+
+
+def is_api_token_auth(auth: object) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:
     """:returns True when an API token is hitting the API."""
     from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica

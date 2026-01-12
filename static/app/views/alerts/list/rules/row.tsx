@@ -222,7 +222,7 @@ function RuleListRow({
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
-      <IconUser size="md" color="gray400" />
+      <IconUser size="md" variant="primary" />
     </Tooltip>
   );
 
@@ -373,7 +373,7 @@ const AlertName = styled('div')`
 `;
 
 const AlertIncidentDate = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ProjectBadgeContainer = styled('div')`

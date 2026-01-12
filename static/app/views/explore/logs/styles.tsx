@@ -168,8 +168,8 @@ export const DetailsWrapper = styled('tr')`
   white-space: nowrap;
   grid-column: 1 / -1;
   display: grid;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${1 /* place above the grid resizing lines */};
 `;
 
@@ -193,7 +193,7 @@ export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right
 
 export const DetailsBody = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding: ${space(1)} 0;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
@@ -234,7 +234,7 @@ export const ColoredLogText = styled('span')<{
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: ${p => p.align || 'left'};
 `;
 
@@ -248,7 +248,7 @@ export const LogsHighlight = styled(HighlightComponent)`
 export const LogsFilteredHelperText = styled('span')`
   margin-left: 4px;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.colors.gray200};
 `;
 
@@ -323,8 +323,8 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       return {
         background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
-        border: theme.border,
-        borderHover: theme.border,
+        border: theme.tokens.border.primary,
+        borderHover: theme.tokens.border.primary,
         color: theme.colors.gray200,
       };
     case SeverityLevel.TRACE:

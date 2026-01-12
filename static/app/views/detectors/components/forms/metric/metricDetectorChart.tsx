@@ -18,6 +18,7 @@ import type {
   MetricCondition,
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
+import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -77,7 +78,7 @@ function ChartError() {
   return (
     <Flex justify="center" align="center" height={CHART_HEIGHT}>
       <ErrorPanel>
-        <IconWarning color="gray300" size="lg" />
+        <IconWarning variant="muted" size="lg" />
         <div>{t('Error loading chart data')}</div>
       </ErrorPanel>
     </Flex>
@@ -194,9 +195,9 @@ export function MetricDetectorChart({
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
+      aggregate,
       conditions,
       detectionType,
-      aggregate,
       comparisonSeries,
     });
 
@@ -253,7 +254,11 @@ export function MetricDetectorChart({
     thresholdType,
   });
 
-  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
+  const {maxValue, minValue} = useDetectorChartAxisBounds({
+    series,
+    thresholdMaxValue,
+    aggregate,
+  });
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
@@ -278,18 +283,33 @@ export function MetricDetectorChart({
     });
 
     const isPercentage = outputType === 'percentage';
-    // For percentage aggregates, use fixed max of 1 (100%) and calculated min
-    const yAxisMax = isPercentage ? 1 : maxValue > 0 ? maxValue : undefined;
-    const yAxisMin = isPercentage ? minValue : 0;
+    // Use calculated max/min values from data and thresholds for appropriate scaling
+    const yAxisMax = maxValue > 0 ? maxValue : undefined;
+    const yAxisMin = minValue;
+
+    // For percentages, use 2 decimal places (consistent with metric alerts)
+    const customFormatter = (value: number): string => {
+      if (isPercentage) {
+        return axisLabelFormatterUsingAggregateOutputType(
+          value,
+          outputType,
+          true,
+          undefined,
+          undefined,
+          2 // Fixed 2 decimal places for percentages
+        );
+      }
+      return formatYAxisLabel(value);
+    };
 
     const mainYAxis: YAXisComponentOption = {
       max: yAxisMax,
       min: yAxisMin,
       axisLabel: {
-        // Show max label for percentage (100%) but hide for other types to avoid arbitrary values
+        // Show max label for percentage but hide for other types to avoid arbitrary values
         showMaxLabel: isPercentage,
         // Format the axis labels with units
-        formatter: formatYAxisLabel,
+        formatter: customFormatter,
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -395,7 +415,7 @@ export function MetricDetectorChart({
 
 const ChartContainer = styled('div')`
   max-width: 1440px;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ChartFooter = styled('div')`
@@ -403,7 +423,7 @@ const ChartFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${p => `${p.theme.space.sm} 0 ${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AnomalyLoadingIndicator = styled(LoadingIndicator)`

@@ -482,12 +482,12 @@ const TreeColumn = styled('div')`
     margin-left: -${space(1)};
   }
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-right: ${space(2)};
   }
 `;
@@ -514,7 +514,8 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
       visibility: visible;
     }
   }
-  color: ${p => (p.hasErrors ? p.theme.alert.danger.color : p.theme.subText)};
+  color: ${p =>
+    p.hasErrors ? p.theme.alert.danger.color : p.theme.tokens.content.secondary};
   background-color: ${p =>
     p.hasErrors
       ? p.theme.alert.danger.backgroundLight
@@ -526,14 +527,16 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.danger.border : p.theme.border)};
+  border: 1px solid
+    ${p => (p.hasErrors ? p.theme.alert.danger.border : p.theme.tokens.border.primary)};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -571,7 +574,7 @@ const TreeValue = styled('div')<{hasErrors?: boolean}>`
 `;
 
 const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
 `;
 
 /**

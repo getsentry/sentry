@@ -163,15 +163,21 @@ export default function FeedbackListPage() {
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
-              <Background>
+              <Stack align="stretch" gap="xl" background="primary" overflow="hidden">
                 <LayoutGrid hideTop={hideTop}>
                   {!hideTop && (
-                    <FiltersContainer style={{gridArea: 'top'}}>
+                    <Stack
+                      flexGrow={1}
+                      gap="md"
+                      area="top"
+                      direction={{xs: 'column', sm: 'row'}}
+                      align={{xs: 'stretch', sm: 'start'}}
+                    >
                       <FeedbackFilters />
                       <SearchContainer>
                         <FeedbackSearch />
                       </SearchContainer>
-                    </FiltersContainer>
+                    </Stack>
                   )}
                   {hasSetupOneFeedback || hasSlug ? (
                     isMediumOrSmaller ? (
@@ -185,7 +191,7 @@ export default function FeedbackListPage() {
                     </SetupContainer>
                   )}
                 </LayoutGrid>
-              </Background>
+              </Stack>
             </ErrorBoundary>
           </PageFiltersContainer>
         </FeedbackQueryKeys>
@@ -193,15 +199,6 @@ export default function FeedbackListPage() {
     </SentryDocumentTitle>
   );
 }
-
-const Background = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: ${space(2)};
-`;
 
 const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   overflow: hidden;
@@ -238,7 +235,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
 `;
 
 const Container = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
@@ -250,19 +247,6 @@ const Container = styled('div')`
 const SetupContainer = styled('div')`
   overflow: hidden;
   grid-column: 1 / -1;
-`;
-
-const FiltersContainer = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  gap: ${space(1)};
-  align-items: flex-start;
-
-  /* moves search bar to second row on small screens */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-    align-items: stretch;
-  }
 `;
 
 /**

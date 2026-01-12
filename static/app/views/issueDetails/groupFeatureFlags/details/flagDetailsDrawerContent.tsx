@@ -37,7 +37,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
 
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const {
     data: flagLog,
@@ -231,7 +231,7 @@ const Table = styled('div')`
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -242,7 +242,7 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0 ${space(1)};
 `;
 
