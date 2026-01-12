@@ -158,6 +158,7 @@ describe('AutomationNewSettings', () => {
               logicType: 'any-short',
               conditions: [
                 {type: 'first_seen_event', comparison: true, conditionResult: true},
+                {type: 'issue_resolved_trigger', comparison: true, conditionResult: true},
                 {type: 'reappeared_event', comparison: true, conditionResult: true},
                 {type: 'regression_event', comparison: true, conditionResult: true},
               ],

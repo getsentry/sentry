@@ -124,6 +124,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.ISSUE_RESOLVED_TRIGGER,
+    {
+      label: t('An issue is resolved'),
+      validate: undefined,
+    },
+  ],
+  [
     DataConditionType.REGRESSION_EVENT,
     {
       label: t('A resolved issue becomes unresolved'),
