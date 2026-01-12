@@ -647,7 +647,7 @@ const Tab = styled('li')`
     }
   }
   &[aria-selected='true'] {
-    border-bottom: 2px solid ${p => p.theme.tokens.border.accent.vibrant};
+    border-bottom: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
