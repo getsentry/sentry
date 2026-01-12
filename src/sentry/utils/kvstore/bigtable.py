@@ -1,5 +1,6 @@
 import enum
 import logging
+import os
 import struct
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import timedelta
@@ -78,6 +79,15 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         if compression is not None and compression not in self.compression_strategies:
             raise ValueError(f'"compression" must be one of {self.compression_strategies.keys()!r}')
 
+        # If project is not provided, try to get it from environment variables
+        # This is necessary when the Google Cloud metadata server is not available
+        if project is None:
+            project = (
+                os.environ.get("GOOGLE_CLOUD_PROJECT")
+                or os.environ.get("GCLOUD_PROJECT")
+                or os.environ.get("GCP_PROJECT")
+            )
+
         self.project = project
         self.instance = instance
         self.table_name = table_name
@@ -91,11 +101,20 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
     def _get_table(self, admin: bool = False) -> Table:
         if admin is True:
-            return (
-                bigtable.Client(project=self.project, admin=True, **self.client_options)
-                .instance(self.instance)
-                .table(self.table_name, app_profile_id=self.app_profile)
-            )
+            try:
+                return (
+                    bigtable.Client(project=self.project, admin=True, **self.client_options)
+                    .instance(self.instance)
+                    .table(self.table_name, app_profile_id=self.app_profile)
+                )
+            except EnvironmentError as e:
+                if "Project was not passed" in str(e):
+                    raise EnvironmentError(
+                        f"Google Cloud project must be specified either via the 'project' "
+                        f"parameter or via environment variables (GOOGLE_CLOUD_PROJECT, "
+                        f"GCLOUD_PROJECT, or GCP_PROJECT). Original error: {e}"
+                    ) from e
+                raise
 
         try:
             # Fast check for an existing table
@@ -109,11 +128,20 @@ class BigtableKVStorage(KVStorage[str, bytes]):
                 try:
                     table = self.__table
                 except AttributeError:
-                    table = self.__table = (
-                        bigtable.Client(project=self.project, **self.client_options)
-                        .instance(self.instance)
-                        .table(self.table_name, app_profile_id=self.app_profile)
-                    )
+                    try:
+                        table = self.__table = (
+                            bigtable.Client(project=self.project, **self.client_options)
+                            .instance(self.instance)
+                            .table(self.table_name, app_profile_id=self.app_profile)
+                        )
+                    except EnvironmentError as e:
+                        if "Project was not passed" in str(e):
+                            raise EnvironmentError(
+                                f"Google Cloud project must be specified either via the 'project' "
+                                f"parameter or via environment variables (GOOGLE_CLOUD_PROJECT, "
+                                f"GCLOUD_PROJECT, or GCP_PROJECT). Original error: {e}"
+                            ) from e
+                        raise
             return table
 
     def get(self, key: str) -> bytes | None:
