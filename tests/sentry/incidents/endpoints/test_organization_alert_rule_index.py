@@ -656,6 +656,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(
                 {
+                    "organizations:incidents": True,
                     "organizations:performance-view": True,
                     "organizations:tracemetrics-alerts": False,
                     "organizations:tracemetrics-enabled": False,
@@ -664,10 +665,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         ):
             resp = self.get_error_response(
                 self.organization.slug,
-                status_code=404,
+                status_code=400,
                 **data,
             )
-            assert "The requested resource does not exist" in str(resp.data["detail"])
+            assert "You do not have access to the metrics alerts feature" in str(resp.data)
 
     @patch(
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
