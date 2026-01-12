@@ -93,7 +93,7 @@ export function getAutomationFormData(
   return {
     detectorIds: automation.detectorIds,
     environment: automation.environment,
-    frequency: automation.config.frequency || null,
+    frequency: automation.config.frequency ?? 0,
     name: automation.name,
     enabled: automation.enabled,
     projectIds: [],
