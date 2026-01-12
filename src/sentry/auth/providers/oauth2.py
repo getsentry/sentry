@@ -129,7 +129,12 @@ class OAuth2Callback(AuthView):
         code = request.GET.get("code")
 
         if error:
-            return pipeline.error(error)
+            # Sanitize error parameter to prevent injection attacks
+            # Only allow alphanumeric characters, spaces, and basic punctuation
+            sanitized_error = "".join(
+                c for c in error if c.isalnum() or c in " .-_"
+            )[:200]  # Limit length
+            return pipeline.error(sanitized_error)
 
         if state != pipeline.fetch_state("state"):
             return pipeline.error(ERR_INVALID_STATE)
@@ -140,10 +145,20 @@ class OAuth2Callback(AuthView):
         data = self.exchange_token(request, pipeline, code)
 
         if "error_description" in data:
-            return pipeline.error(data["error_description"])
+            # Sanitize error_description from OAuth provider to prevent injection attacks
+            error_description = data.get("error_description", "")
+            sanitized_error_description = "".join(
+                c for c in error_description if c.isalnum() or c in " .-_"
+            )[:200]
+            return pipeline.error(sanitized_error_description)
 
         if "error" in data:
-            logging.info("Error exchanging token: %s", data["error"])
+            error = data.get("error", "")
+            # Sanitize error for logging to prevent injection attacks
+            sanitized_error = "".join(
+                c for c in error if c.isalnum() or c in " .-_"
+            )[:200]
+            logging.info("Error exchanging token: %s", sanitized_error)
             return pipeline.error("Unable to retrieve your token")
 
         # we can either expect the API to be implicit and say "im looking for

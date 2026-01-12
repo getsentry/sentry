@@ -157,6 +157,71 @@ class OAuth2CallbackViewTest(TestCase):
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
+    def test_error_parameter_sanitization(self, mock_record: MagicMock) -> None:
+        """Test that malicious error parameters are sanitized"""
+        # Simulate Acunetix scanner payload
+        malicious_error = '1ACUSTART\'"*/\r\n <?phpACUEND'
+        self.request = RequestFactory().get("/?error=" + malicious_error)
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.initialize()
+
+        response = self.view.dispatch(self.request, pipeline)
+
+        # Should return an error response
+        assert response.status_code == 200
+        # The sanitized error should only contain safe characters
+        assert b'ACUSTART' in response.content or b"1ACUSTART" in response.content
+        # Should NOT contain dangerous characters like quotes, angle brackets, PHP open tag
+        assert b"<?" not in response.content
+        assert b"*/" not in response.content
+        assert b"'" not in response.content
+        assert b'"' not in response.content
+
+    def test_error_parameter_with_xss_attempt(self, mock_record: MagicMock) -> None:
+        """Test that XSS attempts in error parameter are neutralized"""
+        xss_error = '<script>alert("xss")</script>'
+        self.request = RequestFactory().get("/?error=" + xss_error)
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.initialize()
+
+        response = self.view.dispatch(self.request, pipeline)
+
+        # Should return an error response
+        assert response.status_code == 200
+        # Should NOT contain script tags or angle brackets
+        assert b"<script>" not in response.content
+        assert b"</script>" not in response.content
+        assert b"<" not in response.content
+        assert b">" not in response.content
+        # The sanitized error should only have alphanumerics
+        assert b"script" in response.content.lower()  # The word is fine, just not the tags
+
+    def test_error_parameter_length_limit(self, mock_record: MagicMock) -> None:
+        """Test that very long error parameters are truncated"""
+        long_error = "A" * 500
+        self.request = RequestFactory().get("/?error=" + long_error)
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.initialize()
+
+        response = self.view.dispatch(self.request, pipeline)
+
+        # Should return an error response
+        assert response.status_code == 200
+        # The error message should be truncated (200 char limit)
+        content = response.content.decode()
+        # Count how many A's are in the response - should be <= 200
+        a_count = content.count("A")
+        assert a_count <= 200
+
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
