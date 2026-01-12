@@ -22,7 +22,7 @@ import {DetectorDetailsAutomations} from './automations';
 describe('DetectorDetailsAutomations', () => {
   const organization = OrganizationFixture();
   const automation1 = AutomationFixture({id: '1', name: 'Alert 1'});
-  const issueStreamDetector = IssueStreamDetectorFixture({id: 'issue-stream-1'});
+  const issueStreamDetector = IssueStreamDetectorFixture({id: '4'});
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,11 +38,6 @@ describe('DetectorDetailsAutomations', () => {
           project: [1],
         }),
       ],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/workflows/',
-      method: 'GET',
-      body: [],
     });
   });
 
@@ -68,9 +63,57 @@ describe('DetectorDetailsAutomations', () => {
         query: expect.objectContaining({
           // Should query for both the issue stream detector of the project and the detector itself
           detector: [detector.id, issueStreamDetector.id],
+          // Sorted desc by default: prioritize workflows connected to the monitor detector
+          priorityDetector: detector.id,
         }),
       })
     );
+  });
+
+  it('can sort triggered by issues column', async () => {
+    const automation2 = AutomationFixture({id: '2', name: 'Alert 2'});
+    const detector = UptimeDetectorFixture({
+      workflowIds: [automation1.id, automation2.id],
+    });
+
+    const descRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      method: 'GET',
+      body: [automation1, automation2],
+      match: [
+        (_url, options) =>
+          options.query?.priorityDetector === detector.id &&
+          Array.isArray(options.query?.detector),
+      ],
+    });
+
+    const ascRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      method: 'GET',
+      body: [automation2, automation1],
+      match: [
+        (_url, options) =>
+          options.query?.priorityDetector === issueStreamDetector.id &&
+          Array.isArray(options.query?.detector),
+      ],
+    });
+
+    render(<DetectorDetailsAutomations detector={detector} />, {organization});
+
+    expect(await screen.findByRole('link', {name: automation1.name})).toBeInTheDocument();
+    await waitFor(() => expect(descRequest).toHaveBeenCalled());
+
+    const initialLinks = screen.getAllByRole('link', {name: /Alert/});
+    expect(initialLinks[0]).toHaveTextContent(automation1.name);
+
+    await userEvent.click(
+      screen.getByRole('columnheader', {name: 'Triggered By Issues'})
+    );
+
+    await waitFor(() => expect(ascRequest).toHaveBeenCalled());
+
+    const sortedLinks = await screen.findAllByRole('link', {name: /Alert/});
+    expect(sortedLinks[0]).toHaveTextContent(automation2.name);
   });
 
   it('renders empty state when no alerts are connected', async () => {
