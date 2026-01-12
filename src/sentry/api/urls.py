@@ -3563,6 +3563,12 @@ INTERNAL_URLS = [
         EmailCaptureEndpoint.as_view(),
         name="sentry-demo-mode-email-capture",
     ),
+    # Cell routing endpoints
+    re_path(
+        r"^org-cell-mappings/$",
+        OrgCellMappingsEndpoint.as_view(),
+        name="sentry-api-0-org-cell-mappings",
+    ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,
 ]
@@ -3774,12 +3780,6 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
-    ),
-    # Cell routing endpoints
-    re_path(
-        r"^org-cell-mappings/$",
-        OrgCellMappingsEndpoint.as_view(),
-        name="sentry-api-0-org-cell-mappings",
     ),
     # Catch all
     re_path(
