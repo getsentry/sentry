@@ -156,9 +156,9 @@ const DateTime = styled('div')`
 `;
 
 const NeverUsed = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TokenPreview = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -308,9 +308,6 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPARTUP_SPAN_TABLE = "api.insights.mobile-spartup-span-table"
     API_INSIGHTS_MOBILE_SCREENS_METRICS = "api.insights.mobile-screens-metrics"
     API_INSIGHTS_MOBILE_SCREENS_SPAN_METRICS = "api.insights.mobile-screens-span-metrics"
-    API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_METRICS = (
-        "api.insights.mobile-screens-screen-table-metrics"
-    )
     API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_SPAN_METRICS = (
         "api.insights.mobile-screens-screen-table-span-metrics"
     )
@@ -562,6 +559,8 @@ class Referrer(StrEnum):
     API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
     API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
     API_LOGS_TAB_VIEW = "api.logs-tab.view"
+    API_PREPROD_TAG_KEYS_RPC = "api.preprod.tags-keys.rpc"
+    API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"

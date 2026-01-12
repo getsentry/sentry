@@ -447,7 +447,7 @@ const Title = styled('div')`
 `;
 
 const PullRequestTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoChangesHeader = styled('div')`
@@ -505,7 +505,7 @@ const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
 `;
 
 const TerminationReasonText = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: ${p => p.theme.fontSize.sm};
   flex: 1;
   min-width: 0;

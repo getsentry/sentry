@@ -25,7 +25,7 @@ describe('DetectorDetailsAutomations', () => {
   const issueStreamDetector = IssueStreamDetectorFixture({id: 'issue-stream-1'});
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -96,6 +96,47 @@ describe('DetectorDetailsAutomations', () => {
       'href',
       `/organizations/org-slug/monitors/alerts/new/?connectedIds=${detector.id}`
     );
+  });
+
+  it('can search connected alerts', async () => {
+    const automation2 = AutomationFixture({id: '2', name: 'Alert 2'});
+    const detector = UptimeDetectorFixture({
+      workflowIds: [automation1.id, automation2.id],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      method: 'GET',
+      body: [automation1, automation2],
+      match: [
+        (_url, options) =>
+          options.query?.detector !== undefined && options.query?.query === undefined,
+      ],
+    });
+
+    const searchRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      method: 'GET',
+      body: [automation2],
+      match: [
+        (_url, options) =>
+          options.query?.detector !== undefined &&
+          typeof options.query?.query === 'string' &&
+          options.query.query.includes('Alert 2'),
+      ],
+    });
+
+    render(<DetectorDetailsAutomations detector={detector} />, {organization});
+
+    expect(await screen.findByText(automation1.name)).toBeInTheDocument();
+
+    const searchInput = screen.getByRole('combobox', {name: 'Add a search term'});
+    await userEvent.click(searchInput);
+    await userEvent.keyboard('Alert 2{Enter}');
+
+    await waitFor(() => expect(searchRequest).toHaveBeenCalled());
+    expect(await screen.findByRole('link', {name: automation2.name})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: automation1.name})).not.toBeInTheDocument();
   });
 
   it('can connect a new automation from drawer', async () => {
