@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
-import {Stack} from 'sentry/components/core/layout';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -13,6 +14,7 @@ import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
 import FeedbackSummaryCategories from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
+import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
 import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
@@ -22,12 +24,14 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 export default function FeedbackListPage() {
   const organization = useOrganization();
@@ -35,6 +39,7 @@ export default function FeedbackListPage() {
   const pageFilters = usePageFilters();
 
   const feedbackId = useCurrentFeedbackId();
+  const feedbackProjectSlug = useCurrentFeedbackProject();
   const hasSlug = Boolean(feedbackId);
 
   const {query: locationQuery} = useLocation();
@@ -148,17 +153,36 @@ export default function FeedbackListPage() {
               </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
-              <FeedbackButton
-                size="sm"
-                feedbackOptions={{
-                  messagePlaceholder: t(
-                    'How can we improve the User Feedback experience?'
-                  ),
-                  tags: {
-                    ['feedback.source']: 'feedback-list',
-                  },
-                }}
-              />
+              <Flex gap="lg">
+                <FeedbackButton
+                  size="sm"
+                  feedbackOptions={{
+                    messagePlaceholder: t(
+                      'How can we improve the User Feedback experience?'
+                    ),
+                    tags: {
+                      ['feedback.source']: 'feedback-list',
+                    },
+                  }}
+                />
+                <LinkButton
+                  size="sm"
+                  icon={<IconSiren />}
+                  to={{
+                    pathname: makeAlertsPathname({
+                      path: '/new/issue/',
+                      organization,
+                    }),
+                    query: {
+                      alert_option: 'issues',
+                      referrer: 'feedback-list-page',
+                      ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
+                    },
+                  }}
+                >
+                  {t('Create Alert')}
+                </LinkButton>
+              </Flex>
             </Layout.HeaderActions>
           </Layout.Header>
           <PageFiltersContainer>
