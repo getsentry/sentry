@@ -177,3 +177,76 @@ def test_get_detector_project_type_cache_key() -> None:
     cache_key = Detector._get_detector_project_type_cache_key(project_id, detector_type)
 
     assert cache_key == f"detector:by_proj_type:{project_id}:{detector_type}"
+
+
+def test_get_detector_data_source_cache_key() -> None:
+    source_id = "12345"
+    source_type = "test"
+
+    cache_key = Detector._get_detector_data_source_cache_key(source_id, source_type)
+
+    assert cache_key == f"detector:by_data_source:{source_type}:{source_id}"
+
+
+class TestGetDetectorByDataSource(BaseWorkflowTest):
+    def test_get_detector_by_data_source__success(self) -> None:
+        detector = self.create_detector(project=self.project, name="Test Detector")
+        data_source = self.create_data_source(source_id="12345", type="test")
+        data_source.detectors.set([detector])
+
+        result = Detector.get_detector_by_data_source("12345", "test")
+
+        assert result == detector
+        assert result.project_id == self.project.id
+
+    def test_get_detector_by_data_source__not_found(self) -> None:
+        result = Detector.get_detector_by_data_source("nonexistent", "test")
+        assert result is None
+
+    def test_get_detector_by_data_source__cache_miss(self) -> None:
+        detector = self.create_detector(project=self.project, name="Test Detector")
+        data_source = self.create_data_source(source_id="12345", type="test")
+        data_source.detectors.set([detector])
+
+        with (
+            patch("sentry.utils.cache.cache.get") as mock_cache_get,
+            patch("sentry.utils.cache.cache.set") as mock_cache_set,
+        ):
+            mock_cache_get.return_value = None
+
+            result = Detector.get_detector_by_data_source("12345", "test")
+
+            assert result == detector
+
+            expected_cache_key = Detector._get_detector_data_source_cache_key("12345", "test")
+            mock_cache_get.assert_called_once_with(expected_cache_key)
+            mock_cache_set.assert_called_once_with(expected_cache_key, detector, Detector.CACHE_TTL)
+
+    def test_get_detector_by_data_source__cache_hit(self) -> None:
+        detector = self.create_detector(project=self.project, name="Test Detector")
+
+        with patch("sentry.utils.cache.cache.get") as mock_cache_get:
+            mock_cache_get.return_value = detector
+
+            result = Detector.get_detector_by_data_source("12345", "test")
+
+            assert result == detector
+
+            expected_cache_key = Detector._get_detector_data_source_cache_key("12345", "test")
+            mock_cache_get.assert_called_once_with(expected_cache_key)
+
+    def test_get_detector_by_data_source__negative_cache(self) -> None:
+        with (
+            patch("sentry.utils.cache.cache.get") as mock_cache_get,
+            patch("sentry.utils.cache.cache.set") as mock_cache_set,
+        ):
+            mock_cache_get.return_value = None
+
+            result = Detector.get_detector_by_data_source("nonexistent", "test")
+
+            assert result is None
+
+            expected_cache_key = Detector._get_detector_data_source_cache_key("nonexistent", "test")
+            mock_cache_get.assert_called_once_with(expected_cache_key)
+            # Verify False is cached (negative cache)
+            mock_cache_set.assert_called_once_with(expected_cache_key, False, Detector.CACHE_TTL)
