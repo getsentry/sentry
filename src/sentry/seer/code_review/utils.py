@@ -93,7 +93,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
         The response data from the Seer API
     """
     response = make_signed_seer_api_request(
-        connection_pool=connection_from_url(settings.SEER_AUTOFIX_URL),
+        connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
         path=path,
         body=orjson.dumps(payload),
     )
