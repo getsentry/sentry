@@ -37,7 +37,10 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
     def get(self, request: Request, sentry_app) -> Response:
         return self.paginate(
             request=request,
-            queryset=sentry_app.components.all(),
+            # Prefetch avatars to avoid N+1 queries in serializer
+            queryset=sentry_app.components.select_related("sentry_app").prefetch_related(
+                "sentry_app__avatar"
+            ),
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
                 x, request.user, errors={}, serializer=SentryAppComponentSerializer()
@@ -63,15 +66,17 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
 
         with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
             with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
+                # Prefetch sentry_app to avoid N+1 queries when accessing install.sentry_app
                 installs = SentryAppInstallation.objects.get_installed_for_organization(
                     organization.id
-                ).order_by("pk")
+                ).select_related("sentry_app").order_by("pk")
 
             for install in installs:
                 with sentry_sdk.start_span(op="sentry-app-components.filter_components"):
+                    # Prefetch sentry_app and its avatars to avoid N+1 queries in serializer
                     _components = SentryAppComponent.objects.filter(
                         sentry_app_id=install.sentry_app_id
-                    ).order_by("pk")
+                    ).select_related("sentry_app").prefetch_related("sentry_app__avatar").order_by("pk")
 
                     if "filter" in request.GET:
                         _components = _components.filter(type=request.GET["filter"])
