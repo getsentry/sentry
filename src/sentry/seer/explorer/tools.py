@@ -8,7 +8,7 @@ from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry import eventstore, features
+from sentry import eventstore, features, quotas
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
@@ -45,7 +45,7 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
-from sentry.utils.dates import outside_retention_with_modified_start, parse_stats_period
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
 
@@ -750,8 +750,13 @@ def _get_recommended_event(
     if end is None:
         end = group.last_seen + timedelta(seconds=5)
 
-    expired, _ = outside_retention_with_modified_start(start, end, organization)
-    if expired:
+    # Clamp start to retention boundary to avoid QueryOutsideRetentionError
+    retention_days = quotas.backend.get_event_retention(organization=organization) or 90
+    now = datetime.now(UTC) if start.tzinfo else datetime.now(UTC).replace(tzinfo=None)
+    retention_boundary = now - timedelta(days=retention_days)
+    start = max(start, retention_boundary)
+
+    if start >= end:
         logger.warning(
             "_get_recommended_event: Time range outside retention",
             extra={
@@ -759,6 +764,7 @@ def _get_recommended_event(
                 "organization_id": organization.id,
                 "start": start,
                 "end": end,
+                "retention_days": retention_days,
             },
         )
         return None
@@ -802,7 +808,8 @@ def _get_recommended_event(
         if len(trace_ids) > 0:
             # Query EAP to get the span count of each trace.
             # Extend the time range by +-1 day to account for min/max trace start/end times.
-            spans_start = w_start - timedelta(days=1)
+            # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
+            spans_start = max(w_start - timedelta(days=1), retention_boundary)
             spans_end = w_end + timedelta(days=1)
 
             count_field = "count(span.duration)"
