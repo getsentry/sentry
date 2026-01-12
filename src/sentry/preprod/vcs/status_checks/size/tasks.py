@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from django.db import router, transaction
 
+from sentry.api.event_search import SearchConfig, SearchFilter, parse_search_query
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.status_check import GitHubCheckConclusion, GitHubCheckStatus
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -33,8 +36,77 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+ENABLED_OPTION_KEY = "sentry:preprod_size_status_checks_enabled"
+RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
+
+preprod_artifact_search_config = SearchConfig.create_from(
+    SearchConfig[Literal[True]](),
+    key_mappings={
+        "build.platform": ["build.platform"],
+        "build.branch": ["build.branch"],
+        "build.package_name": ["build.package_name"],
+        "build.build_configuration": ["build.build_configuration"],
+    },
+    allowed_keys={
+        "build.platform",
+        "build.branch",
+        "build.package_name",
+        "build.build_configuration",
+    },
+)
+
+
+@dataclass
+class StatusCheckRule:
+    """A rule that defines when a status check should fail.
+
+    Measurement types:
+    - absolute: Fail if size exceeds threshold (e.g., "fail if > 50MB")
+    - absolute_diff: Fail if size increases by more than threshold (e.g., "fail if +5MB")
+    - relative_diff: Fail if size increases by more than percentage (e.g., "fail if +10%")
+
+    Examples:
+        StatusCheckRule(
+            id="rule-1",
+            metric="install_size",
+            measurement="absolute",
+            value=50.0,
+            unit="MB",
+            filter_query="platform:iOS"
+        )
+        Triggers failure if any iOS build exceeds 50MB.
+
+        StatusCheckRule(
+            id="rule-2",
+            metric="install_size",
+            measurement="absolute_diff",
+            value=5.0,
+            unit="MB",
+            filter_query="platform:iOS"
+        )
+        Triggers failure if any iOS build increases by more than 5MB.
+
+        StatusCheckRule(
+            id="rule-3",
+            metric="download_size",
+            measurement="relative_diff",
+            value=10.0,
+            unit="%",
+            filter_query=""
+        )
+        Triggers failure if any build's download size increases by more than 10%.
+    """
+
+    id: str
+    metric: str
+    measurement: str
+    value: float
+    unit: str
+    filter_query: str = ""
 
 
 @instrumented_task(
@@ -87,6 +159,17 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
         )
         return
 
+    status_checks_enabled = preprod_artifact.project.get_option(ENABLED_OPTION_KEY, default=False)
+    if not status_checks_enabled:
+        logger.info(
+            "preprod.status_checks.create.disabled",
+            extra={
+                "artifact_id": preprod_artifact.id,
+                "project_id": preprod_artifact.project.id,
+            },
+        )
+        return
+
     # Get all artifacts for this commit across all projects in the organization
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
@@ -122,7 +205,12 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
                 size_metrics_map[metrics.preprod_artifact_id] = []
             size_metrics_map[metrics.preprod_artifact_id].append(metrics)
 
-    status = _compute_overall_status(all_artifacts, size_metrics_map)
+    rules = _get_status_check_rules(preprod_artifact.project)
+    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts, preprod_artifact.project)
+
+    status = _compute_overall_status(
+        all_artifacts, size_metrics_map, rules=rules, base_size_metrics_map=base_size_metrics_map
+    )
 
     title, subtitle, summary = format_status_check_messages(all_artifacts, size_metrics_map, status)
 
@@ -226,8 +314,272 @@ class StatusCheckErrorType(StrEnum):
     """An integration configuration error (permissions, invalid request, etc.)."""
 
 
+def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
+    """
+    Fetch and parse status check rules from project options.
+
+    Returns an empty list if feature is disabled or no rules configured.
+    """
+
+    rules_json = project.get_option(RULES_OPTION_KEY, default=None)
+    if not rules_json:
+        return []
+
+    try:
+        rules_data = json.loads(rules_json)
+        if not isinstance(rules_data, list):
+            logger.warning(
+                "preprod.status_checks.rules.invalid_format",
+                extra={"project_id": project.id, "rules_type": type(rules_data).__name__},
+            )
+            return []
+
+        rules: list[StatusCheckRule] = []
+        for rule_dict in rules_data:
+            filter_query = rule_dict.get("filterQuery", "")
+            if not filter_query and "filters" in rule_dict:
+                logger.info(
+                    "preprod.status_checks.rules.legacy_format",
+                    extra={"project_id": project.id, "rule_id": rule_dict.get("id")},
+                )
+                continue
+
+            rules.append(
+                StatusCheckRule(
+                    id=rule_dict.get("id", ""),
+                    metric=rule_dict.get("metric", ""),
+                    measurement=rule_dict.get("measurement", ""),
+                    value=float(rule_dict.get("value", 0)),
+                    unit=rule_dict.get("unit", "MB"),
+                    filter_query=filter_query,
+                )
+            )
+        return rules
+    except (json.JSONDecodeError, TypeError, ValueError) as e:
+        logger.warning(
+            "preprod.status_checks.rules.parse_error",
+            extra={"project_id": project.id, "error": str(e)},
+        )
+        return []
+
+
+def _fetch_base_size_metrics(
+    artifacts: list[PreprodArtifact], project: Project
+) -> dict[int, PreprodArtifactSizeMetrics]:
+    """
+    Fetch base artifact main size metrics for size comparison in absolute_diff rules.
+
+    Returns a map of {head_artifact_id: base_main_size_metrics} for artifacts that have
+    base artifacts with matching build configurations. Only returns the main artifact metrics.
+    """
+    base_artifact_map: dict[int, PreprodArtifact] = {}
+
+    for artifact in artifacts:
+        base_artifact = artifact.get_base_artifact_for_commit().first()
+        if base_artifact and base_artifact.build_configuration == artifact.build_configuration:
+            base_artifact_map[artifact.id] = base_artifact
+
+    if not base_artifact_map:
+        return {}
+
+    base_artifact_ids = list(base_artifact_map.values())
+    base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+        preprod_artifact_id__in=[ba.id for ba in base_artifact_ids],
+        preprod_artifact__project__organization_id=project.organization_id,
+        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+    ).select_related("preprod_artifact")
+
+    result: dict[int, PreprodArtifactSizeMetrics] = {}
+    for head_artifact_id, base_artifact in base_artifact_map.items():
+        for metrics in base_size_metrics_qs:
+            if metrics.preprod_artifact_id == base_artifact.id:
+                result[head_artifact_id] = metrics
+                break
+
+    return result
+
+
+def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str | None]:
+    """
+    Extract build metadata from an artifact for filter matching.
+
+    Returns a dict with keys matching the filter key format:
+    - build.branch: The branch name (from commit_comparison.head_ref)
+    - build.platform: "ios" or "android" (derived from artifact_type)
+    - build.package_name: The app ID (e.g., "com.example.app")
+    - build.build_configuration: The build configuration name
+    """
+    context: dict[str, str | None] = {}
+
+    if artifact.commit_comparison and artifact.commit_comparison.head_ref:
+        context["build.branch"] = artifact.commit_comparison.head_ref
+
+    if artifact.artifact_type is not None:
+        if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+            context["build.platform"] = "ios"
+        elif artifact.artifact_type in (
+            PreprodArtifact.ArtifactType.AAB,
+            PreprodArtifact.ArtifactType.APK,
+        ):
+            context["build.platform"] = "android"
+
+    if artifact.app_id:
+        context["build.package_name"] = artifact.app_id
+
+    if artifact.build_configuration_id:
+        try:
+            context["build.build_configuration"] = artifact.build_configuration.name
+        except Exception:
+            pass
+
+    return context
+
+
+def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str | None]) -> bool:
+    """
+    Check if a rule's filters match the artifact's context.
+
+    Filter logic:
+    - Filters with the same key AND negation status are OR'd together
+    - Different groups (different key or negation) are AND'd together
+    - negated=True means the value should NOT match
+
+    If a rule has no filters, it matches all artifacts.
+    """
+    if not rule.filter_query.strip():
+        return True
+
+    try:
+        search_filters = parse_search_query(
+            rule.filter_query, config=preprod_artifact_search_config
+        )
+    except InvalidSearchQuery:
+        logger.warning(
+            "preprod.status_checks.invalid_filter_query",
+            extra={"rule_id": rule.id, "filter_query": rule.filter_query},
+        )
+        return False
+
+    filters_by_group: dict[str, list[SearchFilter]] = {}
+    for f in search_filters:
+        if not isinstance(f, SearchFilter):
+            continue
+        group_key = f"{f.key.name}:{'negated' if f.is_negation else 'normal'}"
+        if group_key not in filters_by_group:
+            filters_by_group[group_key] = []
+        filters_by_group[group_key].append(f)
+
+    for group_key, group_filters in filters_by_group.items():
+        artifact_value = context.get(group_filters[0].key.name)
+
+        group_matches = False
+        for f in group_filters:
+            if f.is_in_filter:
+                matches = artifact_value in f.value.value
+            else:
+                matches = artifact_value == f.value.value
+
+            if f.is_negation:
+                matches = not matches
+
+            if matches:
+                group_matches = True
+                break
+
+        if not group_matches:
+            return False
+
+    return True
+
+
+def _convert_to_bytes(value: float, unit: str) -> float:
+    """Convert a value from the given unit to bytes."""
+    if unit == "MB":
+        return value * 1024 * 1024
+    elif unit == "%":
+        # Percentage is handled separately in threshold evaluation
+        return value
+    else:
+        # Assume bytes if unknown
+        return value
+
+
+def _get_metric_value(size_metrics: PreprodArtifactSizeMetrics, metric: str) -> int | None:
+    """Get the relevant size value from metrics based on the metric type."""
+    if metric == "install_size":
+        return size_metrics.max_install_size
+    elif metric == "download_size":
+        return size_metrics.max_download_size
+    return None
+
+
+def _evaluate_rule_threshold(
+    rule: StatusCheckRule,
+    size_metrics: PreprodArtifactSizeMetrics | None,
+    base_size_metrics: PreprodArtifactSizeMetrics | None = None,
+) -> bool:
+    """
+    Check if the size metric exceeds the rule's threshold.
+
+    Returns True if the threshold is exceeded (rule triggers failure).
+
+    Measurement types:
+    - absolute: Compare the absolute size against the threshold
+    - absolute_diff: Compare the absolute size difference (in MB) from baseline
+    - relative_diff: Compare the relative size difference (in %) from baseline
+    """
+    if not size_metrics:
+        return False
+
+    if size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+        return False
+
+    current_value = _get_metric_value(size_metrics, rule.metric)
+    if current_value is None:
+        return False
+
+    threshold_bytes = _convert_to_bytes(rule.value, rule.unit)
+
+    if rule.measurement == "absolute":
+        return current_value > threshold_bytes
+
+    elif rule.measurement == "absolute_diff":
+        if not base_size_metrics:
+            return False
+
+        if base_size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+            return False
+
+        base_value = _get_metric_value(base_size_metrics, rule.metric)
+        if base_value is None:
+            return False
+
+        diff = current_value - base_value
+        return diff > threshold_bytes
+
+    elif rule.measurement == "relative_diff":
+        if not base_size_metrics:
+            return False
+
+        if base_size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+            return False
+
+        base_value = _get_metric_value(base_size_metrics, rule.metric)
+        if base_value is None or base_value == 0:
+            return False
+
+        diff = current_value - base_value
+        percent_diff = (diff / base_value) * 100
+        return percent_diff > rule.value
+
+    return False
+
+
 def _compute_overall_status(
-    artifacts: list[PreprodArtifact], size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]]
+    artifacts: list[PreprodArtifact],
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
+    rules: list[StatusCheckRule] | None = None,
+    base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
 ) -> StatusCheckStatus:
     if not artifacts:
         raise ValueError("Cannot compute status for empty artifact list")
@@ -253,6 +605,40 @@ def _compute_overall_status(
                         size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                     ):
                         return StatusCheckStatus.IN_PROGRESS
+
+        if rules:
+            for artifact in artifacts:
+                context = _get_artifact_filter_context(artifact)
+                size_metrics_list = size_metrics_map.get(artifact.id, [])
+
+                main_metrics_list = [
+                    m
+                    for m in size_metrics_list
+                    if m.metrics_artifact_type
+                    == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+                ]
+                main_metric = main_metrics_list[0] if main_metrics_list else None
+
+                base_main_metric = (
+                    base_size_metrics_map.get(artifact.id) if base_size_metrics_map else None
+                )
+
+                for rule in rules:
+                    if _rule_matches_artifact(rule, context):
+                        if _evaluate_rule_threshold(rule, main_metric, base_main_metric):
+                            logger.info(
+                                "preprod.status_checks.rule_triggered",
+                                extra={
+                                    "artifact_id": artifact.id,
+                                    "rule_id": rule.id,
+                                    "metric": rule.metric,
+                                    "measurement": rule.measurement,
+                                    "threshold": rule.value,
+                                    "unit": rule.unit,
+                                },
+                            )
+                            return StatusCheckStatus.FAILURE
+
         return StatusCheckStatus.SUCCESS
     else:
         return StatusCheckStatus.IN_PROGRESS
