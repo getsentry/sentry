@@ -47,9 +47,10 @@ class OwnerActorField(ActorField):
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
         request = self.context.get("request")
+        access = getattr(request, "access", None)
 
         # Users with team:admin scope can assign any team
-        if request and request.access.has_scope("team:admin"):
+        if access and access.has_scope("team:admin"):
             return
 
         # Fail closed if we can't verify the user
