@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import orjson
 import requests
 import sentry_sdk
-from django.db.models import Case, CharField, Min, Subquery, Value, When
+from django.db.models import Case, CharField, Min, Q, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
@@ -146,8 +146,34 @@ def schedule_webhook_delivery() -> None:
             .order_by("id")
             .values("id")[:MAX_MAILBOX_DRAIN]
         )
-        updated_count = WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch)).update(
-            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
+        # Filter to only update valid records that satisfy the CHECK constraint.
+        # Records with destination_type='sentry_region' must have a non-NULL region_name.
+        # Also delete any invalid records that would violate the constraint.
+        invalid_count, _ = (
+            WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch))
+            .filter(destination_type=DestinationType.SENTRY_REGION, region_name__isnull=True)
+            .delete()
+        )
+        if invalid_count > 0:
+            logger.warning(
+                "schedule_webhook_delivery.deleted_invalid_payloads",
+                extra={
+                    "mailbox_name": record["mailbox_name"],
+                    "deleted": invalid_count,
+                },
+            )
+            metrics.incr(
+                "hybridcloud.schedule_webhook_delivery.invalid_payloads_deleted",
+                amount=invalid_count,
+            )
+
+        updated_count = (
+            WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch))
+            .filter(
+                Q(destination_type=DestinationType.SENTRY_REGION, region_name__isnull=False)
+                | ~Q(destination_type=DestinationType.SENTRY_REGION)
+            )
+            .update(schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET)
         )
         # If we have 1/5 or more in a mailbox we should process in parallel as we're likely behind.
         if updated_count >= int(MAX_MAILBOX_DRAIN / 5):

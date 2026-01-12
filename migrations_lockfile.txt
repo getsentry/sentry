@@ -13,7 +13,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0024_add_project_distribution_scope
+hybridcloud: 0025_cleanup_invalid_webhook_payloads
 
 insights: 0002_backfill_team_starred
 

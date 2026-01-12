@@ -256,6 +256,59 @@ class ScheduleWebhooksTest(TestCase):
         # Null provider (default priority) should be last
         assert call_args_list[1] == null_provider_webhook.id
 
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_handles_invalid_constraint_records(self, mock_deliver: MagicMock) -> None:
+        """Test that webhooks violating CHECK constraint are deleted and don't block scheduling."""
+        # Create a valid webhook
+        valid_webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+        )
+
+        # Create an invalid webhook that violates the CHECK constraint
+        # (destination_type='sentry_region' but region_name=NULL)
+        # We need to bypass the model's validation by using raw SQL
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO hybridcloud_webhookpayload
+                (mailbox_name, provider, destination_type, region_name, request_method,
+                 request_path, request_headers, request_body, schedule_for, attempts, date_added)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                [
+                    "github:123",
+                    "github",
+                    "sentry_region",
+                    None,  # This violates the CHECK constraint
+                    "POST",
+                    "/webhook/",
+                    "{}",
+                    "{}",
+                    timezone.now() - timedelta(minutes=5),
+                    0,
+                    timezone.now(),
+                ],
+            )
+            invalid_id = cursor.fetchone()[0]
+
+        # Verify both records exist
+        assert WebhookPayload.objects.count() == 2
+
+        # Run the scheduler - should delete invalid record and schedule valid one
+        schedule_webhook_delivery()
+
+        # Verify invalid record was deleted
+        assert not WebhookPayload.objects.filter(id=invalid_id).exists()
+        # Verify valid record still exists and was scheduled
+        assert WebhookPayload.objects.filter(id=valid_webhook.id).exists()
+        # Verify drain_mailbox was called for the valid webhook
+        assert mock_deliver.delay.call_count == 1
+        mock_deliver.delay.assert_called_with(valid_webhook.id)
+
 
 def create_payloads(num: int, mailbox: str) -> list[WebhookPayload]:
     created = []
