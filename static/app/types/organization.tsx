@@ -15,7 +15,7 @@ import type {Relay} from './relay';
 import type {User} from './user';
 
 // Matches `PrReviewTrigger` in Seer
-type CodeReviewTriggers = 'on_command_phrase' | 'on_ready_for_review' | 'on_new_commit';
+type CodeReviewTriggers = 'on_ready_for_review' | 'on_new_commit';
 
 /**
  * Organization summaries are sent when you request a list of all organizations
