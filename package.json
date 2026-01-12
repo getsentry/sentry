@@ -199,7 +199,7 @@
     "@testing-library/user-event": "14.6.1",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
-    "@typescript/native-preview": "7.0.0-dev.20260109.1",
+    "@typescript/native-preview": "7.0.0-dev.20260112.1",
     "babel-jest": "30.0.4",
     "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
