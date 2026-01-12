@@ -185,9 +185,9 @@ export function TeamUnresolvedIssues({
                       <SubText
                         color={
                           totals.percentChange === 0
-                            ? theme.subText
+                            ? theme.tokens.content.secondary
                             : totals.percentChange > 0
-                              ? theme.errorText
+                              ? theme.tokens.content.danger
                               : theme.tokens.content.success
                         }
                       >

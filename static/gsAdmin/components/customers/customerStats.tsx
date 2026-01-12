@@ -72,7 +72,7 @@ export const useSeries = (): Record<string, SeriesItem> => {
     overQuota: {
       seriesName: SeriesName.OVER_QUOTA,
       data: [],
-      color: theme.pink200,
+      color: theme.colors.pink200,
     },
     totalFiltered: {
       seriesName: SeriesName.FILTERED,
@@ -508,7 +508,7 @@ const Footer = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(3)} -${space(2)} -${space(2)} -${space(2)};
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const LegendContainer = styled('div')`
