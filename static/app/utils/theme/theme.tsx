@@ -1293,23 +1293,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   get yellow100() {
     return colors.yellow100;
   },
-
-  /** @deprecated */
-  get green400() {
-    return colors.green500;
-  },
-  /** @deprecated */
-  get green300() {
-    return colors.green400;
-  },
-  /** @deprecated */
-  get green200() {
-    return colors.green200;
-  },
-  /** @deprecated */
-  get green100() {
-    return colors.green100;
-  },
 });
 
 const lightThemeDefinition = {
