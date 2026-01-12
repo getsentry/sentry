@@ -174,20 +174,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
     def has_is_segment_tag(self, generic_metric: GenericMetric) -> bool:
-        if (tag_value := generic_metric["tags"].get(self.span_is_segment_tag)) is None:
-            return False
-
-        return "true" == self._resolve(generic_metric["mapping_meta"], tag_value)
-
-    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int | str) -> str | None:
-        if isinstance(indexed_value, str):
-            return indexed_value
-
-        for _, inner_meta in mapping_meta.items():
-            if (string_value := inner_meta.get(str(indexed_value))) is not None:
-                return string_value
-
-        return None
+        return generic_metric["tags"].get(self.span_is_segment_tag) == "true"
 
     def join(self, timeout: float | None = None) -> None:
         self.__next_step.join(timeout)
