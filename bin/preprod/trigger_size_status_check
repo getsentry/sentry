@@ -17,7 +17,14 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import (
+    _evaluate_rule_threshold,
+    _fetch_base_size_metrics,
+    _get_artifact_filter_context,
+    _get_status_check_rules,
+    _rule_matches_artifact,
+    create_preprod_status_check_task,
+)
 
 #################
 # Configuration #
@@ -352,14 +359,6 @@ def get_artifact_state_from_config(state_str: str) -> tuple:
 
 def show_rule_evaluation(artifact_id: int) -> None:
     """Show which rules matched and which triggered for all artifacts in the commit."""
-    from sentry.preprod.vcs.status_checks.size.tasks import (
-        _evaluate_rule_threshold,
-        _fetch_base_size_metrics,
-        _get_artifact_filter_context,
-        _get_status_check_rules,
-        _rule_matches_artifact,
-    )
-
     artifact = PreprodArtifact.objects.get(id=artifact_id)
 
     all_artifacts = list(artifact.get_sibling_artifacts_for_commit())
@@ -453,11 +452,19 @@ def show_rule_evaluation(artifact_id: int) -> None:
 def main() -> None:
     """Main function to test size analysis status checks."""
     try:
-        # Get project
         project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
         logger.info("Found project: %s (ID: %s)", project.name, project.id)
 
-        # Get or create commit comparison
+        status_checks_enabled = project.get_option(
+            "sentry:preprod_size_status_checks_enabled", default=False
+        )
+
+        if not status_checks_enabled:
+            logger.info("⚠️  Status checks: DISABLED (no checks will be posted)")
+            sys.exit(0)
+
+        logger.info("✅ Status checks: ENABLED")
+
         commit_comparison, created = CommitComparison.objects.get_or_create(
             head_repo_name=REPO_NAME,
             head_sha=COMMIT_SHA,
