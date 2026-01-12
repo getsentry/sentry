@@ -251,7 +251,7 @@ const ImageHeader = styled('div')`
 const Divider = styled('hr')`
   width: 95%;
   height: 1px;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.colors.gray100};
   border: none;
   margin-top: ${space(1.5)};
   margin-bottom: ${space(1.5)};

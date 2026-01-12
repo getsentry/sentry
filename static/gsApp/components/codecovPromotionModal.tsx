@@ -120,7 +120,7 @@ const Subheader = styled('div')`
 
 const DisclaimerText = styled('div')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   margin-top: ${space(1)};
 `;
 

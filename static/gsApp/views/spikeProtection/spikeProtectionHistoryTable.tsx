@@ -283,7 +283,7 @@ const SectionHeading = styled('div')`
 const Title = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   display: flex;
   flex: 1;
   align-items: center;
