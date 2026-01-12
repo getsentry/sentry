@@ -25,11 +25,13 @@ export default function ConsoleSDKInvitesSettings() {
 
   if ((organization.enabledConsolePlatforms?.length ?? 0) === 0) {
     return (
-      <Alert variant="warning">
-        {t(
-          'Your organization does not have any console platforms enabled. Please contact your sales representative to enable console SDK access.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert variant="warning" showIcon={false}>
+          {t(
+            'Your organization does not have any console platforms enabled. Please contact your sales representative to enable console SDK access.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -49,14 +51,16 @@ export default function ConsoleSDKInvitesSettings() {
         organization.consoleSdkInviteQuota !== undefined &&
         organization.consoleSdkInviteQuota > 0 &&
         organization.consoleSdkInviteQuota <= (invites?.length ?? 0) && (
-          <Alert variant="info">
-            {tct(
-              'This organization ([orgSlug]) has used all GitHub invites available. Contact your sales representative to increase the quota.',
-              {
-                orgSlug: organization.slug,
-              }
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert variant="info" showIcon={false}>
+              {tct(
+                'This organization ([orgSlug]) has used all GitHub invites available. Contact your sales representative to increase the quota.',
+                {
+                  orgSlug: organization.slug,
+                }
+              )}
+            </Alert>
+          </Alert.Container>
         )}
       <InvitesTable>
         <SimpleTable.Header>
