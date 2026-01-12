@@ -16,7 +16,7 @@ import type {
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {isSessionPercentageOperation} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return MarkLine({
@@ -79,22 +79,6 @@ function createPercentThresholdSeries(
     seriesName,
     data: thresholdData,
   };
-}
-
-/**
- * Checks if an aggregate function is a SESSIONS_OPERATION with percentage output type.
- */
-function isSessionPercentageOperation(aggregate: string): boolean {
-  // Extract function name from aggregate (e.g., "crash_free_rate" from "crash_free_rate(session)")
-  const match = aggregate.match(/^([^(]+)/);
-  const functionName = match?.[1];
-
-  if (!functionName) {
-    return false;
-  }
-
-  const sessionOp = SESSIONS_OPERATIONS[functionName as keyof typeof SESSIONS_OPERATIONS];
-  return sessionOp?.outputType === 'percentage';
 }
 
 /**
