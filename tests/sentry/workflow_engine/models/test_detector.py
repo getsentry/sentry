@@ -156,6 +156,38 @@ class DetectorTest(BaseWorkflowTest):
             )
             mock_cache_get.assert_called_once_with(expected_cache_key)
 
+    def test_get_error_detector_for_project__cache_collision_protection(self) -> None:
+        """Test that cache collision protection works when cache returns invalid type"""
+        error_detector = self.create_detector(
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
+        )
+
+        # Mock cache returning an invalid type (e.g., an integer PK from BaseManager)
+        with (
+            patch("sentry.utils.cache.cache.get") as mock_cache_get,
+            patch("sentry.utils.cache.cache.delete") as mock_cache_delete,
+            patch("sentry.utils.cache.cache.set") as mock_cache_set,
+        ):
+            # First call returns invalid type, then after delete it returns None
+            mock_cache_get.side_effect = [123, None]  # Invalid type (int), then None
+
+            result = Detector.get_error_detector_for_project(self.project.id)
+
+            # Should still return correct detector by fetching from DB
+            assert result == error_detector
+            assert isinstance(result, Detector)
+
+            # Verify the invalid cache entry was deleted
+            expected_cache_key = Detector._get_detector_project_type_cache_key(
+                self.project.id, ErrorGroupType.slug
+            )
+            mock_cache_delete.assert_called_once_with(expected_cache_key)
+            
+            # Verify correct value was set in cache after DB fetch
+            mock_cache_set.assert_called_once_with(
+                expected_cache_key, error_detector, Detector.CACHE_TTL
+            )
+
     def test_settings(self) -> None:
         detector = self.create_detector()
         assert detector.settings
@@ -176,4 +208,4 @@ def test_get_detector_project_type_cache_key() -> None:
 
     cache_key = Detector._get_detector_project_type_cache_key(project_id, detector_type)
 
-    assert cache_key == f"detector:by_proj_type:{project_id}:{detector_type}"
+    assert cache_key == f"detector:custom:by_proj_type:{project_id}:{detector_type}"

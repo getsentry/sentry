@@ -114,12 +114,30 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     @classmethod
     def _get_detector_project_type_cache_key(cls, project_id: int, detector_type: str) -> str:
         """Generate cache key for detector lookup by project and type."""
-        return f"detector:by_proj_type:{project_id}:{detector_type}"
+        # Use a more specific prefix to avoid collision with BaseManager's cache keys
+        return f"detector:custom:by_proj_type:{project_id}:{detector_type}"
 
     @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
         cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
         detector = cache.get(cache_key)
+        
+        # Validate the cached value is actually a Detector instance
+        if detector is not None and not isinstance(detector, cls):
+            logger.error(
+                "Cache response returned invalid value",
+                extra={
+                    "cache_key": cache_key,
+                    "project_id": project_id,
+                    "detector_type": detector_type,
+                    "cached_value_type": type(detector).__name__,
+                    "expected_type": cls.__name__,
+                },
+            )
+            # Clear the invalid cache entry and fetch from database
+            cache.delete(cache_key)
+            detector = None
+        
         if detector is None:
             detector = cls.objects.get(project_id=project_id, type=detector_type)
             cache.set(cache_key, detector, cls.CACHE_TTL)
