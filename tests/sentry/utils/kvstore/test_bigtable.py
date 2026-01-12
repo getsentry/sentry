@@ -104,3 +104,33 @@ def test_get_uses_5s_timeout_for_retry() -> None:
         retry_arg = kwargs["retry"]
         assert hasattr(retry_arg, "_timeout")
         assert retry_arg._timeout == 5.0
+
+
+def test_project_from_environment_variable() -> None:
+    """Test that project is read from environment variables when not provided."""
+    # Test with GOOGLE_CLOUD_PROJECT
+    with mock.patch.dict(os.environ, {"GOOGLE_CLOUD_PROJECT": "test-project-1"}):
+        store = BigtableKVStorage(instance="test", table_name="test")
+        assert store.project == "test-project-1"
+
+    # Test with GCLOUD_PROJECT (fallback)
+    with mock.patch.dict(os.environ, {"GCLOUD_PROJECT": "test-project-2"}):
+        store = BigtableKVStorage(instance="test", table_name="test")
+        assert store.project == "test-project-2"
+
+    # Test that GOOGLE_CLOUD_PROJECT takes precedence over GCLOUD_PROJECT
+    with mock.patch.dict(
+        os.environ, {"GOOGLE_CLOUD_PROJECT": "test-project-1", "GCLOUD_PROJECT": "test-project-2"}
+    ):
+        store = BigtableKVStorage(instance="test", table_name="test")
+        assert store.project == "test-project-1"
+
+    # Test that explicit project parameter takes precedence over environment variables
+    with mock.patch.dict(os.environ, {"GOOGLE_CLOUD_PROJECT": "test-project-env"}):
+        store = BigtableKVStorage(instance="test", table_name="test", project="test-project-arg")
+        assert store.project == "test-project-arg"
+
+    # Test that project is None when not provided anywhere
+    with mock.patch.dict(os.environ, {}, clear=True):
+        store = BigtableKVStorage(instance="test", table_name="test")
+        assert store.project is None

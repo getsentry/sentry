@@ -1,5 +1,6 @@
 import enum
 import logging
+import os
 import struct
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import timedelta
@@ -77,6 +78,11 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
         if compression is not None and compression not in self.compression_strategies:
             raise ValueError(f'"compression" must be one of {self.compression_strategies.keys()!r}')
+
+        # If project is not provided, try to get it from environment variables
+        # This follows the standard Google Cloud environment variable conventions
+        if project is None:
+            project = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCLOUD_PROJECT")
 
         self.project = project
         self.instance = instance
