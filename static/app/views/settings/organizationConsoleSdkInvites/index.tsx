@@ -8,6 +8,7 @@ import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAc
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -76,7 +77,9 @@ export default function ConsoleSDKInvitesSettings() {
 
         {invites?.map(invite => (
           <SimpleTable.Row key={invite.user_id}>
-            <SimpleTable.RowCell>{invite.email}</SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <TextOverflow>{invite.email}</TextOverflow>
+            </SimpleTable.RowCell>
             <SimpleTable.RowCell>{invite.platforms.join(', ')}</SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <Button
