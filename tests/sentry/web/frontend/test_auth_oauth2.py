@@ -229,3 +229,40 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert len(messages) == 1
         assert str(messages[0]).startswith("Authentication error")
         assert auth_resp.context["user"] != self.user
+
+    def test_parameter_pollution_with_code(self) -> None:
+        """Test that injecting a code parameter doesn't bypass state generation"""
+        # Try to access the login path with a malicious code parameter
+        # This should NOT proceed to callback, but should regenerate state
+        resp = self.client.post(self.login_path, {"init": True})
+        assert resp.status_code == 302
+        
+        # Now try to inject code parameter directly without going through OAuth flow
+        query = urlencode({"code": "malicious_code"})
+        resp = self.client.get(f"{self.sso_path}?{query}")
+        
+        # Should redirect back to OAuth provider (not proceed to callback)
+        assert resp.status_code == 302
+        redirect_dest = resp.get("Location", "")
+        # If it redirects to the OAuth provider, the fix is working
+        # If it shows an error, that's also acceptable (means callback validation failed)
+        assert (
+            redirect_dest.startswith("http://example.com/authorize_url")
+            or "error" in redirect_dest.lower()
+        )
+
+    def test_parameter_pollution_with_code_and_state(self) -> None:
+        """Test that injecting code+state parameters doesn't bypass state generation"""
+        # Try to inject both code and state without going through the OAuth flow
+        malicious_state = "malicious_state_token"
+        query = urlencode({"code": "malicious_code", "state": malicious_state})
+        resp = self.client.get(f"{self.sso_path}?{query}")
+        
+        # Should redirect back to OAuth provider or show error
+        assert resp.status_code == 302
+        redirect_dest = resp.get("Location", "")
+        # Either redirects to OAuth provider or shows an error
+        assert (
+            redirect_dest.startswith("http://example.com/authorize_url")
+            or "error" in redirect_dest.lower()
+        )

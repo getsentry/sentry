@@ -209,3 +209,128 @@ class OAuth2LoginViewTest(TestCase):
         assert query["response_type"][0] == "code"
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
+
+    def test_parameter_pollution_with_state_only(self) -> None:
+        """Test that injecting only a state parameter doesn't bypass state generation"""
+        # Simulate an attacker injecting a malicious state parameter
+        self.request = RequestFactory().get("/?state=malicious_state_value")
+        self.request.session = Client().session
+        self.request.subdomain = None
+        
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # Should still redirect to OAuth provider with newly generated state
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+        redirect_url = urlparse(response["Location"])
+        query = parse_qs(redirect_url.query)
+        
+        # Verify a new state was generated (not the malicious one)
+        assert "state" in query
+        assert query["state"][0] != "malicious_state_value"
+        
+        # Verify the state was stored in the pipeline
+        stored_state = pipeline.fetch_state("state")
+        assert stored_state is not None
+        assert stored_state == query["state"][0]
+
+    def test_parameter_pollution_with_code_and_state(self) -> None:
+        """Test that injecting code+state parameters doesn't bypass state generation"""
+        # Simulate an attacker injecting both code and state parameters
+        malicious_state = "1yrphmgdpgulaszriylqiipemefmacafkxycjaxjs\x00.jpg"
+        self.request = RequestFactory().get(f"/?state={malicious_state}&code=fake_code")
+        self.request.session = Client().session
+        self.request.subdomain = None
+        
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # Should still redirect to OAuth provider with newly generated state
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+        redirect_url = urlparse(response["Location"])
+        query = parse_qs(redirect_url.query)
+        
+        # Verify a new state was generated (not the malicious one)
+        assert "state" in query
+        assert query["state"][0] != malicious_state
+        
+        # Verify the state was stored in the pipeline
+        stored_state = pipeline.fetch_state("state")
+        assert stored_state is not None
+        assert stored_state == query["state"][0]
+
+    def test_parameter_pollution_with_error(self) -> None:
+        """Test that injecting an error parameter doesn't bypass state generation"""
+        self.request = RequestFactory().get("/?error=access_denied")
+        self.request.session = Client().session
+        self.request.subdomain = None
+        
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # Should still redirect to OAuth provider with newly generated state
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+        redirect_url = urlparse(response["Location"])
+        query = parse_qs(redirect_url.query)
+        
+        # Verify a state was generated
+        assert "state" in query
+        
+        # Verify the state was stored in the pipeline
+        stored_state = pipeline.fetch_state("state")
+        assert stored_state is not None
+        assert stored_state == query["state"][0]
+
+    def test_parameter_pollution_with_code_only(self) -> None:
+        """Test that injecting only a code parameter doesn't bypass state generation"""
+        self.request = RequestFactory().get("/?code=fake_code_value")
+        self.request.session = Client().session
+        self.request.subdomain = None
+        
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # Should still redirect to OAuth provider with newly generated state
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+        redirect_url = urlparse(response["Location"])
+        query = parse_qs(redirect_url.query)
+        
+        # Verify a new state was generated
+        assert "state" in query
+        
+        # Verify the state was stored in the pipeline
+        stored_state = pipeline.fetch_state("state")
+        assert stored_state is not None
+        assert stored_state == query["state"][0]
+
+    def test_legitimate_callback_with_stored_state(self) -> None:
+        """Test that legitimate OAuth callbacks work correctly when state is stored"""
+        # First, initialize the pipeline and simulate the initial OAuth redirect
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        initial_response = self.view.dispatch(self.request, pipeline)
+        
+        # Verify initial redirect happened and state was stored
+        assert initial_response.status_code == 302
+        assert initial_response["Location"].startswith("https://example.org/oauth2/authorize")
+        stored_state = pipeline.fetch_state("state")
+        assert stored_state is not None
+        
+        # Now simulate the OAuth callback with code and state using the same session
+        callback_request = RequestFactory().get(f"/?state={stored_state}&code=auth_code_123")
+        callback_request.session = self.request.session
+        callback_request.subdomain = None
+        
+        # Create a new pipeline instance that shares the same session
+        callback_pipeline = IdentityPipeline(request=callback_request, provider_key="dummy")
+        
+        # The dispatch should proceed to next_step because stored state exists
+        response = self.view.dispatch(callback_request, callback_pipeline)
+        
+        # The response should NOT redirect back to the OAuth provider
+        # It should proceed to the next step in the pipeline
+        if response.status_code == 302:
+            assert not response["Location"].startswith("https://example.org/oauth2/authorize")

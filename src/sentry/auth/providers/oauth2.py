@@ -67,8 +67,27 @@ class OAuth2Login(AuthView):
         }
 
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
-        if "code" in request.GET:
+        # Check if we're in a callback phase by verifying the pipeline state has been initialized
+        # and contains a valid state token. This prevents parameter pollution attacks where
+        # malicious actors inject OAuth parameters to bypass state generation.
+        has_code_param = "code" in request.GET
+        stored_state = pipeline.fetch_state("state")
+        
+        # Only proceed to callback if we have a stored state (meaning we initiated the flow)
+        # AND we have the code parameter. This ensures we don't skip state generation.
+        if has_code_param and stored_state:
             return pipeline.next_step()
+        
+        # If code parameter is present but no stored state exists, this is likely
+        # an attack attempt - regenerate state and redirect to OAuth provider
+        if has_code_param:
+            logging.warning(
+                "oauth2.invalid_callback_attempt",
+                extra={
+                    "has_code_param": has_code_param,
+                    "stored_state_exists": bool(stored_state),
+                },
+            )
 
         state = secrets.token_hex()
 

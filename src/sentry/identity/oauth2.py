@@ -246,9 +246,30 @@ class OAuth2LoginView:
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
-            for param in ("code", "error", "state"):
-                if param in request.GET:
-                    return pipeline.next_step()
+            # Check if we're in a callback phase by verifying the pipeline state has been initialized
+            # and contains a valid state token. This prevents parameter pollution attacks where
+            # malicious actors inject OAuth parameters to bypass state generation.
+            has_state_param = "state" in request.GET
+            has_callback_params = "code" in request.GET or "error" in request.GET
+            stored_state = pipeline.fetch_state("state")
+            
+            # Only proceed to callback if we have a stored state (meaning we initiated the flow)
+            # AND we have callback parameters. This ensures we don't skip state generation.
+            if has_callback_params and stored_state:
+                return pipeline.next_step()
+            
+            # If callback parameters are present but no stored state exists, this is likely
+            # an attack attempt - regenerate state and redirect to OAuth provider
+            if has_state_param or has_callback_params:
+                logger.warning(
+                    "oauth2.invalid_callback_attempt",
+                    extra={
+                        "provider": pipeline.provider.key,
+                        "has_state_param": has_state_param,
+                        "has_callback_params": has_callback_params,
+                        "stored_state_exists": bool(stored_state),
+                    },
+                )
 
             state = secrets.token_hex()
 
