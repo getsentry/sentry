@@ -2,6 +2,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
@@ -60,7 +62,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
 
   return (
     <StyledPanelItem key={commit.id} data-test-id="commit-row">
-      <CommitContent>
+      <Stack gap="2xs">
         <Message>{formatCommitMessage(commit.message)}</Message>
         <MetaWrapper>
           <UserAvatar size={16} user={commit.author} />
@@ -105,7 +107,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
             <TimeSince date={commit.dateCreated} tooltipUnderlineColor="muted" />
           </Meta>
         </MetaWrapper>
-      </CommitContent>
+      </Stack>
 
       {commit.pullRequest?.externalUrl && (
         <LinkButton external href={commit.pullRequest.externalUrl}>
@@ -156,13 +158,6 @@ const Meta = styled(TextOverflow)`
   a:hover {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const CommitContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-  ${p => p.theme.overflowEllipsis};
 `;
 
 const MetaWrapper = styled('div')`
