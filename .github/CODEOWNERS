@@ -664,8 +664,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 
 # Taskbroker workers
-/src/sentry/taskworker/                                       @getsentry/taskbroker
-/tests/sentry/taskworker/                                     @getsentry/taskbroker
+/src/sentry/taskworker/                                       @getsentry/streaming-platform
+/tests/sentry/taskworker/                                     @getsentry/streaming-platform
 
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx
