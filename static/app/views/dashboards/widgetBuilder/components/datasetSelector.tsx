@@ -94,7 +94,7 @@ function WidgetBuilderDatasetSelector() {
     datasetOptions.push({
       value: WidgetType.TRACEMETRICS,
       label: t('Metrics'),
-      details: t('Counters, guages, and distributions'),
+      details: t('Counters, gauges, and distributions'),
     });
   }
   datasetOptions.push({
