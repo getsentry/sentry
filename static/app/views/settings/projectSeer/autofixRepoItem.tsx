@@ -332,7 +332,7 @@ const RepoName = styled('div')`
 
 const RepoProvider = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 
@@ -366,7 +366,7 @@ const BranchInputLabel = styled('label')`
 
 const SubHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -414,7 +414,7 @@ const RepoInfoWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 const AddOverrideButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BranchOverridesList = styled('div')`

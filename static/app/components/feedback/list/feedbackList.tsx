@@ -111,7 +111,7 @@ const Centered = styled('div')`
 const NoFeedbackWrapper = styled('div')`
   padding: ${space(4)} ${space(4)};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.md};

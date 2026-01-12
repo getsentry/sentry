@@ -40,7 +40,7 @@ export const StripedTable = styled('table')`
 
 export const AlertStripedTable = styled(StripedTable)`
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   th {
     text-transform: uppercase;
