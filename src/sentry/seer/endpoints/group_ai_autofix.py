@@ -27,6 +27,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_autofix
@@ -104,6 +105,19 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         }
     )
 
+    def _should_use_explorer(self, request: Request, organization: Organization) -> bool:
+        """Check if explorer mode should be used based on query params and feature flags."""
+        if request.GET.get("mode") != "explorer":
+            return False
+
+        if not features.has("organizations:seer-explorer", organization, actor=request.user):
+            return False
+
+        if not features.has("organizations:autofix-on-explorer", organization, actor=request.user):
+            return False
+
+        return True
+
     @extend_schema(
         operation_id="Start Seer Issue Fix",
         parameters=[
@@ -133,12 +147,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
-        # Route based on feature flags - requires both seer-explorer and autofix-on-explorer
-        if features.has(
-            "organizations:seer-explorer", group.organization, actor=request.user
-        ) and features.has(
-            "organizations:autofix-on-explorer", group.organization, actor=request.user
-        ):
+        if self._should_use_explorer(request, group.organization):
             return self._post_explorer(request, group)
         return self._post_legacy(request, group)
 
@@ -209,12 +218,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         This endpoint although documented is still experimental and the payload may change in the future.
         """
-        # Route based on feature flags - requires both seer-explorer and autofix-on-explorer
-        if features.has(
-            "organizations:seer-explorer", group.organization, actor=request.user
-        ) and features.has(
-            "organizations:autofix-on-explorer", group.organization, actor=request.user
-        ):
+        if self._should_use_explorer(request, group.organization):
             return self._get_explorer(request, group)
         return self._get_legacy(request, group)
 

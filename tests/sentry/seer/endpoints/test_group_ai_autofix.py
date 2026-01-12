@@ -871,37 +871,89 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         self.organization.save()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_explorer_state")
-    def test_get_routes_to_explorer_with_both_flags(
+    def test_get_routes_to_explorer_with_mode_param(
         self, mock_get_explorer_state, mock_get_seer_org_acknowledgement
     ):
-        """GET routes to explorer when both seer-explorer and autofix-on-explorer flags are enabled."""
+        """GET routes to explorer when mode=explorer is in query params and both flags are enabled."""
         group = self.create_group()
         mock_get_explorer_state.return_value = None
 
         self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id), format="json")
+        response = self.client.get(f"{self._get_url(group.id)}?mode=explorer", format="json")
 
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
         mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    def test_get_routes_to_legacy_without_mode_param(
+        self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
+    ):
+        """GET routes to legacy when mode=explorer is NOT in query params even with both flags enabled."""
+        group = self.create_group()
+        mock_get_autofix_state.return_value = None
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        mock_get_autofix_state.assert_called_once()
+
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
-    def test_post_routes_to_explorer_with_both_flags(
+    def test_post_routes_to_explorer_with_mode_param(
         self, mock_trigger_explorer, mock_get_seer_org_acknowledgement
     ):
-        """POST routes to explorer when both seer-explorer and autofix-on-explorer flags are enabled."""
+        """POST routes to explorer when mode=explorer is in query params and both flags are enabled."""
         group = self.create_group()
         mock_trigger_explorer.return_value = 123
 
         self.login_as(user=self.user)
         response = self.client.post(
-            self._get_url(group.id),
+            f"{self._get_url(group.id)}?mode=explorer",
             data={"step": "root_cause"},
             format="json",
         )
 
-        assert response.status_code == 202
+        assert response.status_code == 202, response.data
         assert response.data["run_id"] == 123
         mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
+    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    def test_post_routes_to_legacy_without_mode_param(
+        self,
+        mock_check_autofix_status,
+        mock_get_trace_tree,
+        mock_call_autofix,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """POST routes to legacy when mode=explorer is NOT in query params even with both flags enabled."""
+        release = self.create_release(project=self.project, version="1.0.0")
+
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {"values": [{"type": "exception", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+
+        group = event.group
+
+        mock_get_trace_tree.return_value = None
+        mock_call_autofix.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "test"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_call_autofix.assert_called_once()
 
 
 @with_feature("organizations:gen-ai-features")
@@ -928,5 +980,5 @@ class GroupAutofixEndpointLegacyRoutingTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.client.get(self._get_url(group.id), format="json")
 
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
         mock_get_autofix_state.assert_called_once()
