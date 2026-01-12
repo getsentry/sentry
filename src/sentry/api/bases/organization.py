@@ -22,6 +22,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.apikey import is_api_key_auth
+from sentry.models.apitoken import is_api_token_auth
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
@@ -668,6 +669,14 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             if request.auth.organization_id != organization.id:
                 return []
             has_valid_api_key = request.auth.has_scope("org:ci")
+
+        # Check if authenticated via API token (used by Sentry CLI) with appropriate release scopes.
+        # This ensures consistency with the project releases endpoint which allows
+        # API tokens with project:releases scope to create releases even if the user
+        # is not a direct team member of the project.
+        has_valid_api_key = has_valid_api_key or (
+            is_api_token_auth(request.auth) and request.access.has_scope("project:releases")
+        )
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)

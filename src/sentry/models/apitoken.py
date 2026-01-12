@@ -7,13 +7,14 @@ import re
 import secrets
 from collections.abc import Collection, Mapping
 from datetime import timedelta
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeGuard
 
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -21,6 +22,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
@@ -578,7 +580,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         self._default_flush = value
 
 
-def is_api_token_auth(auth: object) -> bool:
+def is_api_token_auth(auth: object) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:
     """:returns True when an API token is hitting the API."""
     from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
