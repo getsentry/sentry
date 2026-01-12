@@ -14,6 +14,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
+import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -1515,6 +1516,16 @@ export default function IconsStories() {
       .map((name): TIcon => ({id: name, name})),
   };
 
+  const variants: Array<SVGIconProps['variant']> = [
+    'primary',
+    'muted',
+    'accent',
+    'success',
+    'warning',
+    'danger',
+    'promotion',
+  ];
+
   return (
     <Fragment>
       <Text as="p" density="comfortable" size="md" variant="primary">
@@ -1548,7 +1559,7 @@ export default function IconsStories() {
       <Text as="p" density="comfortable" size="md" variant="primary">
         Just like other Core components, Icons support a set of variants that control the
         color of the icon. The full list of variants is{' '}
-        {Object.keys(theme.tokens.content).map((v, idx) => (
+        {variants.map((v, idx) => (
           <Fragment key={v}>
             <InlineCode>{v}</InlineCode>
             {idx < Object.keys(theme.tokens.content).length - 1 ? ', ' : ''}
@@ -1557,7 +1568,7 @@ export default function IconsStories() {
         .
       </Text>
       <Flex direction="row" gap="md" justify="between" width="100%">
-        {Object.keys(theme.tokens.content).map(v => (
+        {variants.map(v => (
           <Stack key={v} align="center" gap="md">
             <Icons.IconSentry size="md" variant={v as any} />
             <InlineCode>
