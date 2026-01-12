@@ -412,6 +412,12 @@ def check_field_cardinality(
 
     if not query_columns:
         return {}
+    
+    # Deduplicate query_columns to ensure cache logic works correctly
+    # Preserves order while removing duplicates
+    seen = set()
+    query_columns = [col for col in query_columns if not (col in seen or seen.add(col))]
+    
     if is_task:
         cache_identifier = TASK_CACHE_KEY
         cache_ttl = _WIDGET_QUERY_CARDINALITY_TTL
@@ -432,6 +438,10 @@ def check_field_cardinality(
         return cardinality_map
 
     query_columns = [col for col, key in cache_keys.items() if key not in cardinality_map]
+    
+    # If all columns are already cached, return early
+    if not query_columns:
+        return {key: cardinality_map.get(value, True) for key, value in cache_keys.items()}
 
     with sentry_sdk.isolation_scope() as scope:
         if widget_query:

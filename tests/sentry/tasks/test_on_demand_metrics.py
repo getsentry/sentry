@@ -569,3 +569,74 @@ def assert_on_demand_model(
         return
 
     assert model.spec_hashes == expected_hashes[model.spec_version]  # Still include hashes
+
+
+@pytest.mark.parametrize(
+    ["query_columns", "cached_columns", "expected_query_cardinality_calls"],
+    [
+        pytest.param(
+            ["issue", "boundaryId", "issue"],  # Duplicate columns
+            [],
+            1,
+            id="duplicate_columns_no_cache",
+        ),
+        pytest.param(
+            ["issue", "boundaryId", "issue"],  # Duplicate columns, all cached
+            ["issue", "boundaryId"],
+            0,
+            id="duplicate_columns_all_cached",
+        ),
+        pytest.param(
+            ["issue", "boundaryId", "issue"],  # Duplicate columns, partially cached
+            ["issue"],
+            1,
+            id="duplicate_columns_partially_cached",
+        ),
+    ],
+)
+@django_db_all
+def test_check_field_cardinality_with_duplicates(
+    query_columns: list[str],
+    cached_columns: list[str],
+    expected_query_cardinality_calls: int,
+    project: Project,
+) -> None:
+    """Test that check_field_cardinality handles duplicate columns correctly."""
+    cache.clear()
+    
+    # Pre-populate cache for specified columns
+    for column in cached_columns:
+        cache_key = get_field_cardinality_cache_key(
+            column, project.organization, "task-cache"
+        )
+        cache.set(cache_key, True)
+    
+    # Create a minimal widget query for testing
+    _, widget_query, _ = create_widget(
+        ["count()"], "transaction.duration:>=1", project, columns=query_columns, id=1
+    )
+    
+    with (
+        mock.patch(
+            "sentry.tasks.on_demand_metrics._query_cardinality",
+            return_value=(
+                {"data": [{f"count_unique({col})": 50 for col in set(query_columns)}]},
+                list(set(query_columns)),
+            ),
+        ) as _query_cardinality,
+        Feature(_WIDGET_EXTRACTION_FEATURES),
+    ):
+        result = on_demand_metrics.check_field_cardinality(
+            query_columns,
+            project.organization,
+            max_cardinality=10000,
+            is_task=True,
+            widget_query=widget_query,
+        )
+        
+        # Verify the function returns results for all unique columns
+        unique_columns = list(dict.fromkeys(query_columns))  # Preserves order
+        assert len(result) == len(unique_columns)
+        
+        # Verify _query_cardinality is called the expected number of times
+        assert _query_cardinality.call_count == expected_query_cardinality_calls
