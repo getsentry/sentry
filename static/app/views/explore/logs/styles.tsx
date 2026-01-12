@@ -11,7 +11,6 @@ import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
   TableBody,
@@ -169,8 +168,8 @@ export const DetailsWrapper = styled('tr')`
   white-space: nowrap;
   grid-column: 1 / -1;
   display: grid;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${1 /* place above the grid resizing lines */};
 `;
 
@@ -194,7 +193,7 @@ export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right
 
 export const DetailsBody = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding: ${space(1)} 0;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
@@ -235,7 +234,7 @@ export const ColoredLogText = styled('span')<{
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: ${p => p.align || 'left'};
 `;
 
@@ -249,7 +248,7 @@ export const LogsHighlight = styled(HighlightComponent)`
 export const LogsFilteredHelperText = styled('span')`
   margin-left: 4px;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.colors.gray200};
 `;
 
@@ -324,8 +323,8 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       return {
         background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
-        border: theme.border,
-        borderHover: theme.border,
+        border: theme.tokens.border.primary,
+        borderHover: theme.tokens.border.primary,
         color: theme.colors.gray200,
       };
     case SeverityLevel.TRACE:
@@ -391,43 +390,25 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   }
 }
 
-export const LogsSidebarCollapseButton = withChonk(
-  styled(Button)<{sidebarOpen: boolean}>`
-    display: none;
+export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
+  display: none;
 
-    ${p =>
-      p.sidebarOpen &&
-      css`
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    display: inline-flex;
+  }
+
+  ${p =>
+    p.sidebarOpen &&
+    css`
+      margin-left: -13px;
+
+      &::after {
         border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
-        margin-left: -13px;
-      `}
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) {
-      display: block;
-    }
-  `,
-  styled(Button)<{sidebarOpen: boolean}>`
-    display: none;
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) {
-      display: inline-flex;
-    }
-
-    ${p =>
-      p.sidebarOpen &&
-      css`
-        margin-left: -13px;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.background.primary};
-          border-top-left-radius: 0px;
-          border-bottom-left-radius: 0px;
-        }
-      `}
-  `
-);
+      }
+    `}
+`;
 
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;

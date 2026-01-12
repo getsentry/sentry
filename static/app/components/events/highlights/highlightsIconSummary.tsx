@@ -132,7 +132,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
                 type="button"
                 borderless
                 size="zero"
-                icon={<IconAttachment color="subText" />}
+                icon={<IconAttachment variant="muted" />}
                 title={t('View Screenshot')}
                 onClick={() => {
                   const downloadUrl = `/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/attachments/${screenshot.id}/`;
@@ -202,7 +202,7 @@ function ReleaseHighlight({
   return (
     <IconContainer key="release">
       <IconWrapper>
-        <IconReleases size="sm" color="subText" />
+        <IconReleases size="sm" variant="muted" />
       </IconWrapper>
       <IconDescription aria-label={t('Event release')}>
         <VersionHoverCard
@@ -225,7 +225,7 @@ function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag | unde
   return (
     <IconContainer key="environment">
       <IconWrapper>
-        <IconWindow size="sm" color="subText" />
+        <IconWindow size="sm" variant="muted" />
       </IconWrapper>
       <IconDescription aria-label={t('Event environment')}>
         <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
@@ -260,7 +260,7 @@ const IconWrapper = styled('div')`
 
 const IconSubtitle = styled(Tooltip)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledVersion = styled(Version)`

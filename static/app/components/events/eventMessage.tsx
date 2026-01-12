@@ -53,7 +53,7 @@ const Message = styled('div')`
 `;
 
 const NoMessage = styled(Message)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ErrorLevelWithMargin = styled(ErrorLevel)`

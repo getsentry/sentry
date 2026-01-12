@@ -33,6 +33,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 import {useBuildDetailsActions} from './useBuildDetailsActions';
@@ -50,9 +51,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const {buildDetailsQuery, projectId, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
+    isRerunningStatusChecks,
     handleDeleteArtifact,
     handleRerunAction,
     handleDownloadAction,
+    handleRerunStatusChecksAction,
   } = useBuildDetailsActions({
     projectId,
     artifactId,
@@ -163,7 +166,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             }}
           />
           <Link
-            to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
+            to={getCompareBuildPath({
+              organizationSlug: organization.slug,
+              projectId,
+              headArtifactId: buildDetailsData.id,
+            })}
             onClick={handleCompareClick}
           >
             <Button size="sm" priority="default" icon={<IconTelescope />}>
@@ -188,10 +195,21 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             {({open: openDeleteModal}) => {
               const menuItems: MenuItemProps[] = [
                 {
+                  key: 'rerun-status-checks',
+                  label: (
+                    <Flex align="center" gap="sm">
+                      <IconRefresh size="sm" />
+                      {t('Rerun Status Checks')}
+                    </Flex>
+                  ),
+                  onAction: handleRerunStatusChecksAction,
+                  textValue: t('Rerun Status Checks'),
+                },
+                {
                   key: 'delete',
                   label: (
                     <Flex align="center" gap="sm">
-                      <IconDelete size="sm" color="danger" />
+                      <IconDelete size="sm" variant="danger" />
                       <Text variant="danger">{t('Delete Build')}</Text>
                     </Flex>
                   ),
@@ -240,7 +258,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                       size="sm"
                       aria-label="More actions"
                       showChevron={false}
-                      disabled={isDeletingArtifact || !artifactId}
+                      disabled={
+                        isDeletingArtifact || isRerunningStatusChecks || !artifactId
+                      }
                     >
                       <IconEllipsis />
                     </DropdownButton>

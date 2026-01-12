@@ -23,7 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {AddAutofixRepoModalContent} from './addAutofixRepoModal';
+import {AddAutofixRepoModal} from './addAutofixRepoModal';
 import {AutofixRepoItem} from './autofixRepoItem';
 import {MAX_REPOS_LIMIT} from './constants';
 
@@ -231,16 +231,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
   const openAddRepoModal = useCallback(() => {
     openModal(deps => (
-      <AddAutofixRepoModalContent
+      <AddAutofixRepoModal
         {...deps}
-        repositories={repositories || []}
         selectedRepoIds={selectedRepoIds}
         onSave={handleSaveModalSelections}
-        isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
       />
     ));
-  }, [repositories, selectedRepoIds, handleSaveModalSelections, isFetchingRepositories]);
+  }, [selectedRepoIds, handleSaveModalSelections]);
 
   return (
     <Panel>
@@ -322,7 +319,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" system>
+        <Alert variant="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}
@@ -369,7 +366,7 @@ const ReposContainer = styled('div')`
   flex-direction: column;
 
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -395,6 +392,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingMessage = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;

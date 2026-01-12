@@ -175,7 +175,7 @@ function useCreateInvestigationRuleMutation() {
 
 const InvestigationInProgressNotification = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   display: inline-flex;
   align-items: center;
@@ -250,7 +250,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
             }
           )}
         >
-          <StyledIconQuestion size="sm" color="subText" />
+          <StyledIconQuestion size="sm" variant="muted" />
         </Tooltip>
       </InvestigationInProgressNotification>
     );

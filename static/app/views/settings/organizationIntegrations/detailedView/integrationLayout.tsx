@@ -66,7 +66,9 @@ function TopSection({
           </Flex>
           <Flex align="center">
             {tags.map(feature => (
-              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+              <StyledTag key={feature} variant="muted">
+                {startCase(feature)}
+              </StyledTag>
             ))}
           </Flex>
         </NameContainer>
@@ -252,7 +254,7 @@ function InformationCard({
           {permissions}
           {alerts.map((alert, i) => (
             <Alert.Container key={i}>
-              <Alert key={i} type={alert.type}>
+              <Alert variant={alert.variant}>
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
                 />
@@ -267,8 +269,8 @@ function InformationCard({
               <div>{author}</div>
             </AuthorInfo>
           )}
-          {resourceLinks.map(({title, url}) => (
-            <ExternalLinkContainer key={url}>
+          {resourceLinks.map(({title, url}, index) => (
+            <ExternalLinkContainer key={index}>
               <ResourceIcon title={title} />
               <ExternalLink href={url}>{title}</ExternalLink>
             </ExternalLinkContainer>
@@ -338,7 +340,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.dangerText};
+  color: ${p => p.theme.tokens.content.danger};
   margin-right: ${space(1)};
 `;
 
@@ -375,7 +377,7 @@ const AuthorInfo = styled('div')`
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 12px;
 `;

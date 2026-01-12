@@ -223,7 +223,7 @@ describe('NotificationSettingsByType', () => {
 
     expect(await screen.findByText('foo')).toBeInTheDocument();
     await selectEvent.select(screen.getAllByText('On')[1]!, 'Off');
-
+    await userEvent.tab();
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -258,6 +258,7 @@ describe('NotificationSettingsByType', () => {
     });
     const multiSelect = await screen.findByRole('textbox', {name: 'Delivery Method'});
     await selectEvent.select(multiSelect, ['Email']);
+    await userEvent.tab();
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
   });
 
@@ -326,6 +327,7 @@ describe('NotificationSettingsByType', () => {
         'seer-billing',
         'logs-billing',
         'seer-user-billing',
+        'seer-user-billing-launch',
       ],
     });
     renderComponent({
@@ -346,7 +348,7 @@ describe('NotificationSettingsByType', () => {
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
     expect(screen.getByText('Logs')).toBeInTheDocument();
-    expect(screen.getByText('Prevent Users')).toBeInTheDocument();
+    expect(screen.getByText('Active Contributors')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -523,6 +525,6 @@ describe('NotificationSettingsByType', () => {
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
     expect(screen.queryByText('Seer Budget')).not.toBeInTheDocument();
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Prevent Users')).not.toBeInTheDocument();
+    expect(screen.queryByText('Active Contributors')).not.toBeInTheDocument();
   });
 });

@@ -128,6 +128,16 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
   return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
+function borderValue(key: BorderVariant, theme: Theme): string {
+  if (key === 'primary') {
+    return theme.tokens.border[key];
+  }
+  if (key === 'muted') {
+    return theme.tokens.border.secondary;
+  }
+  return theme.tokens.border[key].vibrant;
+}
+
 export function getBorder(
   border: BorderVariant,
   _breakpoint: BreakpointSize | undefined,
@@ -135,7 +145,7 @@ export function getBorder(
 ) {
   return border
     .split(' ')
-    .map(b => `1px solid ${theme.tokens.border[b as keyof Theme['tokens']['border']]}`)
+    .map(b => `1px solid ${borderValue(b as BorderVariant, theme)}`)
     .join(' ');
 }
 

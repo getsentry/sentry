@@ -5,6 +5,8 @@ import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
+import {Text} from '@sentry/scraps/text';
+
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -41,7 +43,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
       <ActionImage src={src} />
       <TextWrapper>
         <ActionTitle>{title}</ActionTitle>
-        <SubText>{subText}</SubText>
+        <Text variant="muted">{subText}</Text>
       </TextWrapper>
       <ButtonWrapper>{cta}</ButtonWrapper>
     </Fragment>
@@ -165,7 +167,7 @@ const ActionItem = styled(motion.div)`
   padding: ${space(2)};
   margin-bottom: ${space(2)};
   justify-content: space-around;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 125px auto 125px;
@@ -195,13 +197,8 @@ const ActionTitle = styled('h5')`
   color: ${p => p.theme.tokens.content.primary};
 `;
 
-const SubText = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.tokens.content.muted};
-`;
-
 const SubHeaderText = styled(motion.h6)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ButtonWrapper = styled('div')`

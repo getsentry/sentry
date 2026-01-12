@@ -4,6 +4,8 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
@@ -148,7 +150,9 @@ function EditAccessSelector({
       return (
         <CollapsedAvatarTooltip>
           {allSelectedTeams.map((team, index) => (
-            <CollapsedAvatarTooltipListItem
+            <Flex
+              align="center"
+              gap="md"
               key={team.id}
               style={{
                 marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
@@ -156,7 +160,7 @@ function EditAccessSelector({
             >
               <TeamAvatar team={team} size={18} />
               <div>#{team.name}</div>
-            </CollapsedAvatarTooltipListItem>
+            </Flex>
           ))}
         </CollapsedAvatarTooltip>
       );
@@ -221,7 +225,7 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" size={listOnly ? 26 : 20} type="info">
+      <StyledBadge key="_all" size={listOnly ? 26 : 20} variant="info">
         {t('All')}
       </StyledBadge>
     ) : selectedOptions.length === 2 ? (
@@ -442,12 +446,6 @@ const FilterButtons = styled(ButtonBar)`
 const CollapsedAvatarTooltip = styled('div')`
   max-height: 200px;
   overflow-y: auto;
-`;
-
-const CollapsedAvatarTooltipListItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const Plus = styled('span')`

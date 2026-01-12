@@ -29,6 +29,7 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
+import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
@@ -418,6 +419,7 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventExtraData event={event} />
       <EventViewHierarchy event={event} project={project} />
+      <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventAttachments event={event} project={project} group={group} />

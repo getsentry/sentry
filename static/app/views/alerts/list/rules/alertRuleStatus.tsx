@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow, IconMute, IconNot} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
@@ -25,7 +25,7 @@ export default function AlertRuleStatus({rule}: Props) {
   function renderSnoozeStatus(): React.ReactNode {
     return (
       <IssueAlertStatusWrapper>
-        <IconMute size="sm" color="subText" />
+        <IconMute size="sm" variant="muted" />
         {t('Muted')}
       </IssueAlertStatusWrapper>
     );
@@ -35,7 +35,7 @@ export default function AlertRuleStatus({rule}: Props) {
     if (rule.status === 'disabled') {
       return (
         <IssueAlertStatusWrapper>
-          <IconNot size="sm" color="subText" />
+          <IconNot size="sm" variant="muted" />
           {t('Disabled')}
         </IssueAlertStatusWrapper>
       );
@@ -63,7 +63,7 @@ export default function AlertRuleStatus({rule}: Props) {
       ? criticalTrigger
       : (warningTrigger ?? criticalTrigger);
 
-  let iconColor: ColorOrAlias = 'successText';
+  let iconVariant: SVGIconProps['variant'] = 'success';
   let iconDirection: 'up' | 'down' | undefined;
   let thresholdTypeText =
     activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
@@ -74,12 +74,12 @@ export default function AlertRuleStatus({rule}: Props) {
   const statusLabel = activeIncident ? t('Critical') : t('Resolved');
 
   if (activeIncident) {
-    iconColor =
+    iconVariant =
       trigger?.label === AlertRuleTriggerType.CRITICAL
-        ? 'errorText'
+        ? 'danger'
         : trigger?.label === AlertRuleTriggerType.WARNING
-          ? 'warningText'
-          : 'successText';
+          ? 'warning'
+          : 'success';
     iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
   } else {
     // Use the Resolved threshold type, which is opposite of Critical
@@ -91,7 +91,7 @@ export default function AlertRuleStatus({rule}: Props) {
   return (
     <Flex align="center">
       {rule.detectionType !== AlertRuleComparisonType.DYNAMIC && (
-        <IconArrow color={iconColor} direction={iconDirection} />
+        <IconArrow variant={iconVariant} direction={iconDirection} />
       )}
       {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
         <TriggerText>{statusLabel}</TriggerText>

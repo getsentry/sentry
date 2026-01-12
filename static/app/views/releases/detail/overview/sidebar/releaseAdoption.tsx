@@ -252,7 +252,9 @@ function ReleaseAdoption({
             {adoptionStageLabel && !multipleEnvironments ? (
               <div>
                 <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                  <Tag variant={adoptionStageLabel.variant}>
+                    {adoptionStageLabel.name}
+                  </Tag>
                 </Tooltip>
                 <AdoptionEnvironment>
                   {tct(`in [environment]`, {environment})}
@@ -305,7 +307,7 @@ function ReleaseAdoption({
 
             {errored ? (
               <ErrorPanel height="280px">
-                <IconWarning color="gray300" size="lg" />
+                <IconWarning variant="muted" size="lg" />
               </ErrorPanel>
             ) : (
               <TransitionChart loading={loading} reloading={reloading} height="280px">

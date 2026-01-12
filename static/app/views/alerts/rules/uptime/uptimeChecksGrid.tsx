@@ -152,7 +152,7 @@ function CheckInBodyCell({
         return <Cell>{emptyCell}</Cell>;
       }
       if (httpStatusCode === null) {
-        return <Cell style={{color: theme.subText}}>{t('None')}</Cell>;
+        return <Cell style={{color: theme.tokens.content.secondary}}>{t('None')}</Cell>;
       }
       return <Cell>{httpStatusCode}</Cell>;
     }
@@ -201,10 +201,10 @@ function CheckInBodyCell({
                   )
             }
           >
-            <Tag type="default">{t('%s spans', totalSpanCount)}</Tag>
+            <Tag variant="muted">{t('%s spans', totalSpanCount)}</Tag>
           </Tooltip>
         ) : (
-          <Tag type="info">{t('%s spans', totalSpanCount)}</Tag>
+          <Tag variant="info">{t('%s spans', totalSpanCount)}</Tag>
         );
 
       return (
@@ -239,7 +239,7 @@ const Cell = styled('div')`
 `;
 
 const TimeCell = styled(Cell)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

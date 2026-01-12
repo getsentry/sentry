@@ -5,6 +5,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -453,7 +455,7 @@ function Visualize({error, setError}: VisualizeProps) {
             items={draggableFieldIds}
             strategy={verticalListSortingStrategy}
           >
-            <Fields>
+            <Stack gap="md">
               {fields?.map((field, index) => {
                 const canDelete = canDeleteField(
                   state.dataset ?? WidgetType.ERRORS,
@@ -868,56 +870,60 @@ function Visualize({error, setError}: VisualizeProps) {
                                 }}
                               />
                             )}
-                          <Button
-                            borderless
-                            icon={<IconDelete />}
-                            size="zero"
-                            disabled={
-                              fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
-                            }
-                            onClick={() => {
-                              dispatch({
-                                type: updateAction,
-                                payload: fields?.filter((_field, i) => i !== index) ?? [],
-                              });
-
-                              if (
-                                state.displayType === DisplayType.BIG_NUMBER &&
-                                selectedAggregateSet
-                              ) {
-                                // Unset the selected aggregate if it's the last one
-                                // so the state will automatically choose the last aggregate
-                                // as new fields are added
-                                if (state.selectedAggregate === fields.length - 1) {
-                                  dispatch({
-                                    type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                                    payload: undefined,
-                                  });
-                                }
+                          {(state.displayType !== DisplayType.BIG_NUMBER ||
+                            datasetConfig.enableEquations) && (
+                            <Button
+                              borderless
+                              icon={<IconDelete />}
+                              size="zero"
+                              disabled={
+                                fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
                               }
+                              onClick={() => {
+                                dispatch({
+                                  type: updateAction,
+                                  payload:
+                                    fields?.filter((_field, i) => i !== index) ?? [],
+                                });
 
-                              trackAnalytics('dashboards_views.widget_builder.change', {
-                                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                field:
-                                  field.kind === FieldValueKind.EQUATION
-                                    ? 'visualize.deleteEquation'
-                                    : 'visualize.deleteField',
-                                from: source,
-                                new_widget: !isEditing,
-                                value: '',
-                                widget_type: state.dataset ?? '',
-                                organization,
-                              });
-                            }}
-                            aria-label={t('Remove field')}
-                          />
+                                if (
+                                  state.displayType === DisplayType.BIG_NUMBER &&
+                                  selectedAggregateSet
+                                ) {
+                                  // Unset the selected aggregate if it's the last one
+                                  // so the state will automatically choose the last aggregate
+                                  // as new fields are added
+                                  if (state.selectedAggregate === fields.length - 1) {
+                                    dispatch({
+                                      type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                                      payload: undefined,
+                                    });
+                                  }
+                                }
+
+                                trackAnalytics('dashboards_views.widget_builder.change', {
+                                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                  field:
+                                    field.kind === FieldValueKind.EQUATION
+                                      ? 'visualize.deleteEquation'
+                                      : 'visualize.deleteField',
+                                  from: source,
+                                  new_widget: !isEditing,
+                                  value: '',
+                                  widget_type: state.dataset ?? '',
+                                  organization,
+                                });
+                              }}
+                              aria-label={t('Remove field')}
+                            />
+                          )}
                         </FieldExtras>
                       </FieldRow>
                     )}
                   </SortableVisualizeFieldWrapper>
                 );
               })}
-            </Fields>
+            </Stack>
           </SortableContext>
           <DragOverlay dropAnimation={null}>
             {activeId && (
@@ -934,71 +940,75 @@ function Visualize({error, setError}: VisualizeProps) {
         </DndContext>
       </StyledFieldGroup>
 
-      <AddButtons>
-        <AddButton
-          priority="link"
-          disabled={disableTransactionWidget}
-          aria-label={
-            isChartWidget
-              ? t('Add Series')
+      {(isChartWidget ||
+        isTableWidget ||
+        (isBigNumberWidget && datasetConfig.enableEquations)) && (
+        <AddButtons>
+          <AddButton
+            priority="link"
+            disabled={disableTransactionWidget}
+            aria-label={
+              isChartWidget
+                ? t('Add Series')
+                : isBigNumberWidget
+                  ? t('Add Field')
+                  : t('Add Column')
+            }
+            onClick={() => {
+              dispatch({
+                type: updateAction,
+                payload: [...(fields ?? []), cloneDeep(defaultField)],
+              });
+
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'visualize.addField',
+                from: source,
+                new_widget: !isEditing,
+                value: '',
+                widget_type: state.dataset ?? '',
+                organization,
+              });
+            }}
+          >
+            {isChartWidget
+              ? t('+ Add Series')
               : isBigNumberWidget
-                ? t('Add Field')
-                : t('Add Column')
-          }
-          onClick={() => {
-            dispatch({
-              type: updateAction,
-              payload: [...(fields ?? []), cloneDeep(defaultField)],
-            });
+                ? t('+ Add Field')
+                : t('+ Add Column')}
+          </AddButton>
+          {datasetConfig.enableEquations &&
+            (state.dataset !== WidgetType.SPANS ||
+              (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
+              <AddButton
+                priority="link"
+                disabled={disableTransactionWidget}
+                aria-label={t('Add Equation')}
+                onClick={() => {
+                  dispatch({
+                    type: updateAction,
+                    payload: [
+                      ...(fields ?? []),
+                      {kind: FieldValueKind.EQUATION, field: ''},
+                    ],
+                  });
 
-            trackAnalytics('dashboards_views.widget_builder.change', {
-              builder_version: WidgetBuilderVersion.SLIDEOUT,
-              field: 'visualize.addField',
-              from: source,
-              new_widget: !isEditing,
-              value: '',
-              widget_type: state.dataset ?? '',
-              organization,
-            });
-          }}
-        >
-          {isChartWidget
-            ? t('+ Add Series')
-            : isBigNumberWidget
-              ? t('+ Add Field')
-              : t('+ Add Column')}
-        </AddButton>
-        {datasetConfig.enableEquations &&
-          (state.dataset !== WidgetType.SPANS ||
-            (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
-            <AddButton
-              priority="link"
-              disabled={disableTransactionWidget}
-              aria-label={t('Add Equation')}
-              onClick={() => {
-                dispatch({
-                  type: updateAction,
-                  payload: [
-                    ...(fields ?? []),
-                    {kind: FieldValueKind.EQUATION, field: ''},
-                  ],
-                });
-
-                trackAnalytics('dashboards_views.widget_builder.change', {
-                  builder_version: WidgetBuilderVersion.SLIDEOUT,
-                  field: 'visualize.addEquation',
-                  from: source,
-                  new_widget: !isEditing,
-                  value: '',
-                  widget_type: state.dataset ?? '',
-                  organization,
-                });
-              }}
-            >
-              {t('+ Add Equation')}
-            </AddButton>
-          )}
-      </AddButtons>
+                  trackAnalytics('dashboards_views.widget_builder.change', {
+                    builder_version: WidgetBuilderVersion.SLIDEOUT,
+                    field: 'visualize.addEquation',
+                    from: source,
+                    new_widget: !isEditing,
+                    value: '',
+                    widget_type: state.dataset ?? '',
+                    organization,
+                  });
+                }}
+              >
+                {t('+ Add Equation')}
+              </AddButton>
+            )}
+        </AddButtons>
+      )}
     </Fragment>
   );
 }
@@ -1011,49 +1021,49 @@ function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
       case 'boolean':
       case 'date':
       case 'string':
-        return <Tag type="highlight">{t('string')}</Tag>;
+        return <Tag variant="info">{t('string')}</Tag>;
       case 'duration':
       case 'integer':
       case 'percentage':
       case 'number':
-        return <Tag type="success">{t('number')}</Tag>;
+        return <Tag variant="success">{t('number')}</Tag>;
       default:
-        return <Tag>{dataType}</Tag>;
+        return <Tag variant="muted">{dataType}</Tag>;
     }
   }
-  let text: string | undefined, tagType: TagProps['type'] | undefined;
+  let text: string | undefined, tagVariant: TagProps['variant'] | undefined;
 
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.TAG:
       text = kind;
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     default:
       text = kind;
   }
 
-  return <Tag type={tagType}>{text}</Tag>;
+  return <Tag variant={tagVariant ?? 'muted'}>{text}</Tag>;
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{
@@ -1119,13 +1129,9 @@ export const PrimarySelectRow = styled('div')<{
   }
 `;
 
-export const FieldRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-  width: 100%;
-  min-width: 0;
-`;
+export function FieldRow(props: FlexProps<'div'>) {
+  return <Flex gap="md" width="100%" minWidth="0" {...props} />;
+}
 
 export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;
@@ -1142,12 +1148,6 @@ const AddButton = styled(Button)`
 const AddButtons = styled('div')`
   display: inline-flex;
   gap: ${space(1.5)};
-`;
-
-const Fields = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 export const StyledArithmeticInput = styled(ArithmeticInput)`

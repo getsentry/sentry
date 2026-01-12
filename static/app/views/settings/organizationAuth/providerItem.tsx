@@ -160,7 +160,7 @@ const ProviderName = styled('div')`
 
 const ProviderDescription = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FeatureBadge = styled('div')`
@@ -192,7 +192,7 @@ function LockedFeature({provider, features, className}: LockedFeatureProps) {
         />
       }
     >
-      <Tag role="status" icon={<IconLock locked />}>
+      <Tag variant="muted" role="status" icon={<IconLock locked />}>
         {t('disabled')}
       </Tag>
     </DisabledHovercard>

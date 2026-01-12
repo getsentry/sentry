@@ -22,6 +22,7 @@ import {
   makeAutofixQueryKey,
   useCodingAgentIntegrations,
   useLaunchCodingAgent,
+  type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -246,12 +247,6 @@ function CopyRootCauseButton({
     </Button>
   );
 }
-
-type CodingAgentIntegration = {
-  id: string;
-  name: string;
-  provider: string;
-};
 
 function SolutionActionButton({
   cursorIntegrations,
@@ -515,7 +510,7 @@ function AutofixRootCauseDisplay({
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No root cause available.')}</Alert>
+        <Alert variant="danger">{t('No root cause available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -527,7 +522,7 @@ function AutofixRootCauseDisplay({
           <HeaderWrapper>
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFocusRef}>
-                <IconFocus size="md" color="pink400" />
+                <IconFocus size="md" variant="promotion" />
               </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
@@ -559,7 +554,7 @@ function AutofixRootCauseDisplay({
       <HeaderWrapper>
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFocusRef}>
-            <IconFocus size="md" color="pink400" />
+            <IconFocus size="md" variant="promotion" />
           </Flex>
           {t('Root Cause')}
           <Button
@@ -650,7 +645,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
               </Alert>
             </Alert.Container>
@@ -670,7 +665,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -680,7 +675,7 @@ const NoCausesPadding = styled('div')`
 `;
 
 const CausesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -722,7 +717,7 @@ const AnimationWrapper = styled(motion.div)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const BottomButtonContainer = styled('div')`
@@ -749,5 +744,5 @@ const DropdownTrigger = styled(Button)`
 
 const SmallIntegrationIdText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

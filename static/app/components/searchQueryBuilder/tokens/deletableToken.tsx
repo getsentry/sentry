@@ -90,9 +90,9 @@ const FloatingCloseButton = styled('button')`
   user-select: none;
   padding: 0;
   border: none;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-radius: 2px 2px 0 0;
-  box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,7 +109,7 @@ const FloatingCloseButton = styled('button')`
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -136,7 +136,7 @@ const Wrapper = styled('div')`
 
   /* Need to hide visually but keep focusable */
   &:not(:hover):not(:focus-within) {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
 
     &[aria-invalid='true'] {
       color: ${p => p.theme.colors.red500};
@@ -160,6 +160,6 @@ const HoverFocusBorder = styled('div')`
 
   &:focus-within,
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   }
 `;

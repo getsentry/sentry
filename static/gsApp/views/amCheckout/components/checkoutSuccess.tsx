@@ -595,7 +595,7 @@ function CheckoutSuccess({
             <LinkButton
               priority="primary"
               aria-label={t('View your subscription')}
-              to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
+              to={`/settings/${organization.slug}/billing/overview/${viewSubscriptionQueryParams}`}
             >
               {t('View your subscription')}
             </LinkButton>
@@ -616,6 +616,7 @@ function CheckoutSuccess({
                   ['feedback.owner']: 'billing',
                 },
               }}
+              size="md"
             />
           </Flex>
         </Flex>
@@ -696,7 +697,7 @@ const DateSeparator = styled('div')`
 `;
 
 const DashedContainer = styled(Container)`
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const ZigZagEdge = styled('div')`
@@ -704,7 +705,7 @@ const ZigZagEdge = styled('div')`
   --s: 10px; /* size of the zig-zag */
   --b: 2px; /* control the thickness */
 
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   height: calc(var(--b) + var(--s) / (2 * tan(var(--a) / 2)));
   --_g: var(--s) repeat-x
     conic-gradient(

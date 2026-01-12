@@ -251,13 +251,13 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
 }
 
 const StyledProjectBadge = styled(ProjectBadge)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Separator = styled('span')`
   height: 10px;
   width: 1px;
-  background-color: ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tokens.border.secondary};
   border-radius: 1px;
 `;
 

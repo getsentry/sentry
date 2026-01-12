@@ -24,7 +24,7 @@ export default function MessageTitle({feedbackItem, eventData}: Props) {
       <FeedbackItemUsername feedbackIssue={feedbackItem} />
       <Flex gap="md">
         {isSpam ? (
-          <Tag key="spam" type="error">
+          <Tag key="spam" variant="danger">
             <Tooltip
               isHoverable
               position="left"
@@ -56,7 +56,7 @@ export default function MessageTitle({feedbackItem, eventData}: Props) {
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   align-self: center;
   white-space: nowrap;

@@ -802,6 +802,34 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
 
+    def test_get_trace_waterfall_includes_status_code(self) -> None:
+        """Test that span.status_code is included in additional_attributes."""
+        transaction_name = "api/test/status"
+        trace_id = uuid.uuid4().hex
+
+        # Create a span with status_code
+        span = self.create_span(
+            {
+                "description": "http-request",
+                "sentry_tags": {
+                    "transaction": transaction_name,
+                    "status_code": "500",
+                },
+                "trace_id": trace_id,
+                "is_segment": True,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span], is_eap=True)
+
+        result = get_trace_waterfall(trace_id, self.organization.id)
+        assert isinstance(result, EAPTrace)
+
+        # Find the span and verify additional_attributes contains status_code
+        root_span = result.trace[0]
+        assert "additional_attributes" in root_span
+        assert root_span["additional_attributes"].get("span.status_code") == "500"
+
 
 class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     def setUp(self) -> None:
@@ -1025,7 +1053,7 @@ class TestGetIssueAndEventDetailsV2(
         self,
         mock_get_tags,
         expected_event_idx: int,
-        should_include_issue: bool = True,
+        include_issue: bool = True,
         **kwargs,
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
@@ -1038,7 +1066,7 @@ class TestGetIssueAndEventDetailsV2(
                 "description": "SELECT * FROM users WHERE id = ?",
                 "trace_id": event0_trace_id,
             },
-            start_ts=before_now(minutes=10),
+            start_ts=before_now(days=5, minutes=10),
             duration=100,
         )
         span1 = self.create_span(
@@ -1046,14 +1074,14 @@ class TestGetIssueAndEventDetailsV2(
                 "description": "SELECT * FROM users WHERE id = ?",
                 "trace_id": event1_trace_id,
             },
-            start_ts=before_now(minutes=6),
+            start_ts=before_now(days=3, hours=23),
             duration=100,
         )
         self.store_spans([span0, span1], is_eap=True)
 
         # Create events with shared stacktrace (should have same group)
         events: list[Event] = []
-        timestamps = [before_now(minutes=9), before_now(minutes=3), before_now(minutes=1)]
+        timestamps = [before_now(days=5), before_now(days=4), before_now(hours=3)]
         for i in range(3):
             data = load_data("python", timestamp=timestamps[i])
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
@@ -1082,6 +1110,7 @@ class TestGetIssueAndEventDetailsV2(
             result = get_issue_and_event_details_v2(
                 organization_id=self.organization.id,
                 issue_id=issue_id_param,
+                include_issue=include_issue,
                 **kwargs,
             )
 
@@ -1090,7 +1119,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["project_slug"] == self.project.slug
 
             # Validate issues fields
-            if should_include_issue:
+            if include_issue:
                 assert result["tags_overview"] == mock_get_tags.return_value
                 _validate_event_timeseries(result["event_timeseries"], expected_total=3)
                 assert isinstance(result["issue"], dict)
@@ -1113,9 +1142,10 @@ class TestGetIssueAndEventDetailsV2(
     def test_get_ie_details_from_issue_id_basic(
         self,
     ):
-        # event1 should be returned since its span is more recent.
+        # event1 should be returned since it's more recent.
         self._test_get_ie_details_from_issue_id(
             expected_event_idx=1,
+            include_issue=True,
         )
 
     def test_get_ie_details_from_issue_id_exclude_issue(
@@ -1123,7 +1153,6 @@ class TestGetIssueAndEventDetailsV2(
     ):
         self._test_get_ie_details_from_issue_id(
             expected_event_idx=1,
-            should_include_issue=False,
             include_issue=False,
         )
 
@@ -1133,8 +1162,18 @@ class TestGetIssueAndEventDetailsV2(
         # event0 should be returned since the time range excludes event1.
         self._test_get_ie_details_from_issue_id(
             expected_event_idx=0,
-            start=before_now(minutes=15).isoformat(),
-            end=before_now(minutes=5).isoformat(),
+            start=before_now(days=7).isoformat(),
+            end=before_now(days=4, hours=3).isoformat(),
+        )
+
+    def test_get_ie_details_from_issue_id_time_range_fallback(
+        self,
+    ):
+        # event2 should be returned since the time range excludes 0 and 1.
+        self._test_get_ie_details_from_issue_id(
+            expected_event_idx=2,
+            start=before_now(days=1).isoformat(),
+            end=before_now(days=0).isoformat(),
         )
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")

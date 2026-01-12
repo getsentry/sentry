@@ -581,6 +581,30 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
+    def test_returns_enabled_with_default_triggers_when_pr_review_test_generation_enabled(self):
+        org = self.create_organization()
+        org.update_option("sentry:enable_pr_review_test_generation", True)
+
+        url = reverse("sentry-api-0-code-review-repo-settings")
+        params = {
+            "sentryOrgId": str(org.id),
+            "externalRepoId": "nonexistent-repo-id",
+            "provider": "integrations:github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+
+        assert resp.status_code == 200
+        assert resp.data == {
+            "enabledCodeReview": True,
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
+        }
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
     def test_returns_repo_settings_when_exist(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -596,7 +620,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase", "on_ready_for_review"],
+            code_review_triggers=["on_new_commit", "on_ready_for_review"],
         )
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -610,7 +634,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         assert resp.status_code == 200
         assert resp.data == {
             "enabledCodeReview": True,
-            "codeReviewTriggers": ["on_command_phrase", "on_ready_for_review"],
+            "codeReviewTriggers": ["on_new_commit", "on_ready_for_review"],
         }
 
     @patch(
@@ -634,7 +658,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -840,7 +864,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-eligibility")
@@ -854,7 +878,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     def test_returns_false_when_quota_check_fails(self, mock_check_quota):
         mock_check_quota.return_value = False
 
@@ -881,7 +905,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         OrganizationContributors.objects.create(
@@ -903,7 +927,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     def test_returns_true_when_code_review_enabled_and_quota_available(self, mock_check_quota):
         mock_check_quota.return_value = True
 
@@ -930,7 +954,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
 
         contributor = OrganizationContributors.objects.create(
@@ -956,7 +980,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     def test_returns_true_when_any_org_is_eligible(self, mock_check_quota):
         mock_check_quota.return_value = True
 
@@ -997,7 +1021,7 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         RepositorySettings.objects.create(
             repository=repo2,
             enabled_code_review=True,
-            code_review_triggers=["on_command_phrase"],
+            code_review_triggers=["on_new_commit"],
         )
         OrganizationContributors.objects.create(
             organization=org2,

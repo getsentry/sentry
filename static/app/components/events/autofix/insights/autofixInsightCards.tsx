@@ -136,14 +136,14 @@ const HeaderWrapper = styled('div')`
 const HeaderText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const NoInsightsYet = styled('div')`
   display: flex;
   justify-content: center;
   flex-direction: column;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InsightsContainerWithLines = styled('div')`
@@ -157,7 +157,7 @@ const InsightsContainerWithLines = styled('div')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   margin-left: 16px;
 `;
 
@@ -168,7 +168,7 @@ const CardsStack = styled('div')`
 `;
 
 const InsightsCardContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};

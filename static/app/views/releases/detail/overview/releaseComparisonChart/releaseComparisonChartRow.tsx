@@ -114,7 +114,7 @@ function ReleaseComparisonChartRow({
 
 const Cell = styled('div')`
   text-align: right;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p => p.theme.overflowEllipsis}
   font-size: ${p => p.theme.fontSize.md};
 `;
@@ -195,7 +195,7 @@ const ChartTableRow = styled('label')<{
     css`
       &:not(:last-child) {
         ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
-          border-bottom: 1px solid ${p.theme.border};
+          border-bottom: 1px solid ${p.theme.tokens.border.primary};
         }
       }
     `}
@@ -213,8 +213,8 @@ const ChartTableRow = styled('label')<{
           position: absolute;
           top: -17px;
           left: 24px;
-          border-bottom: 1px solid ${p.theme.border};
-          border-left: 1px solid ${p.theme.border};
+          border-bottom: 1px solid ${p.theme.tokens.border.primary};
+          border-left: 1px solid ${p.theme.tokens.border.primary};
         }
       }
     `}

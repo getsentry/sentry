@@ -2,6 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -84,10 +86,10 @@ export function MonitorProcessingErrors({
         const errortype = errors[0]!.error.type;
         return (
           <ErrorGroup key={index}>
-            <ErrorHeader>
-              <Tag type="error">{errors.length}x</Tag>
+            <Flex gap="md">
+              <Tag variant="danger">{errors.length}x</Tag>
               <ProcessingErrorTitle type={errortype} />
-              <ErrorHeaderActions>
+              <Flex gap="xs">
                 <Button
                   icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
                   aria-label={isExpanded ? t('Collapse') : t('Expand')}
@@ -116,8 +118,8 @@ export function MonitorProcessingErrors({
                     }
                   />
                 )}
-              </ErrorHeaderActions>
-            </ErrorHeader>
+              </Flex>
+            </Flex>
             {isExpanded && (
               <List symbol="bullet">
                 {errors.map(({error, checkin}, errorIndex) => (
@@ -151,7 +153,7 @@ export function MonitorProcessingErrors({
 
   return (
     <ScrollableAlert
-      type="error"
+      variant="danger"
       expand={
         showingMultipleProjects ? (
           <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>
@@ -178,16 +180,6 @@ const ProjectGroupsList = styled(ErrorsList)`
 const ErrorGroup = styled('div')`
   display: Flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const ErrorHeader = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
-const ErrorHeaderActions = styled('div')`
-  display: flex;
   gap: ${space(0.5)};
 `;
 

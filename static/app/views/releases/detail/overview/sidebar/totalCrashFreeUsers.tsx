@@ -120,7 +120,7 @@ const Timeline = styled('div')`
 
 const DOT_SIZE = 10;
 const Row = styled('div')`
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   padding-left: ${space(2)};
   padding-bottom: ${space(1)};
   margin-left: ${space(1)};
@@ -152,7 +152,8 @@ const InnerRow = styled('div')`
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   text-align: ${p => (p.right ? 'right' : 'left')};
-  color: ${p => (p.bold ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.bold ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   padding-bottom: ${space(0.25)};
   ${p => p.theme.overflowEllipsis};
 `;

@@ -338,7 +338,7 @@ const NavigationLabel = styled('div')`
 const LargeInThisIssueText = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1;
 `;
 
@@ -377,9 +377,9 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
 `;
 
 const ItemCount = styled(Count)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const CustomItemCount = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

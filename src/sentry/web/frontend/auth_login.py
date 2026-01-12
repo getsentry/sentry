@@ -7,6 +7,7 @@ from collections.abc import Callable
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.core.exceptions import BadRequest
 from django.forms.utils import ErrorList
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
@@ -231,7 +232,8 @@ class AuthLoginView(BaseView):
                 request=request, organization=organization, **kwargs
             )
         else:
-            assert op == "login"
+            if op != "login":
+                raise BadRequest()
             return self.handle_login_form_submit(
                 request=request, organization=organization, **kwargs
             )

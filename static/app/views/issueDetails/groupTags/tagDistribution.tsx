@@ -124,7 +124,7 @@ const TagPanel = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1)};
 `;
 
@@ -140,7 +140,7 @@ const progressBarWidth = '45px'; // Prevent percentages from overflowing
 const TagValueContent = styled('div')`
   display: grid;
   grid-template-columns: 4fr auto ${progressBarWidth};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-column-gap: ${space(1)};
 
   & > :nth-child(2n) {
@@ -166,7 +166,7 @@ const TagBarPlaceholder = styled('div')`
   height: ${space(1)};
   width: 100%;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;

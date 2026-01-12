@@ -95,6 +95,8 @@ export const enum SectionKey {
 
   SPAN_LINKS = 'span-links',
 
+  XRAY_DIFF = 'xray-diff',
+  
   PROFILE_PREVIEW = 'profile-preview',
 }
 
