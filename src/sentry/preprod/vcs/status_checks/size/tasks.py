@@ -365,7 +365,7 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
                 )
             )
         return rules
-    except (json.JSONDecodeError, TypeError, ValueError) as e:
+    except (json.JSONDecodeError, TypeError, ValueError, AttributeError) as e:
         logger.warning(
             "preprod.status_checks.rules.parse_error",
             extra={"project_id": project.id, "error": str(e)},
