@@ -1,6 +1,10 @@
 import {ActorFixture} from 'sentry-fixture/actor';
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {ErrorDetectorFixture, MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  ErrorDetectorFixture,
+  IssueStreamDetectorFixture,
+  MetricDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {UserFixture} from 'sentry-fixture/user';
@@ -114,23 +118,57 @@ describe('DetectorsList', () => {
   });
 
   it('displays connected automations', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/1/',
+      body: UserFixture(),
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [MetricDetectorFixture({id: '1', name: 'Detector 1', workflowIds: ['100']})],
+      body: [
+        MetricDetectorFixture({
+          id: '1',
+          name: 'Detector 1',
+          projectId: '1',
+          workflowIds: ['100'],
+        }),
+      ],
+      match: [MockApiClient.matchQuery({query: '!type:issue_stream'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [
+        IssueStreamDetectorFixture({
+          id: 'issue-stream-1',
+          projectId: '1',
+          workflowIds: ['200'],
+        }),
+      ],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
-      body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
+      body: [
+        AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']}),
+        AutomationFixture({
+          id: '200',
+          name: 'Project-wide Automation',
+          detectorIds: ['issue-stream-1'],
+        }),
+      ],
     });
 
     render(<AllMonitors />, {organization});
     const row = await screen.findByTestId('detector-list-row');
-    expect(within(row).getByText('1 alert')).toBeInTheDocument();
+    expect(await within(row).findByText('2 alerts')).toBeInTheDocument();
 
     // Tooltip should fetch and display the automation name/action
-    await userEvent.hover(within(row).getByText('1 alert'));
+    // 2 alerts, 1 directly connected and the other associated with the issue stream detector
+    await userEvent.hover(within(row).getByText('2 alerts'));
     expect(await screen.findByText('Automation 1')).toBeInTheDocument();
-    expect(await screen.findByText('Slack')).toBeInTheDocument();
+    expect(await screen.findByText('Project-wide Automation')).toBeInTheDocument();
+    expect(await screen.findAllByText('Slack')).toHaveLength(2);
   });
 
   it('can filter by project', async () => {

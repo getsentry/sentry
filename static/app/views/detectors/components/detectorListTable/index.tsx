@@ -31,6 +31,7 @@ import {
   DetectorListRow,
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 import {
@@ -49,6 +50,29 @@ type DetectorListTableProps = {
   isSuccess: boolean;
   queryCount: string;
 };
+
+// We want to display all workflows which might trigger an alert for a given detector.
+// This includes those directly connected to the detector as well as those connected to
+// issue stream detectors of the same project.
+function getConnectedWorkflowIdsForDetector({
+  detector,
+  issueStreamDetectorByProjectId,
+}: {
+  detector: Detector;
+  issueStreamDetectorByProjectId: Map<string, Detector>;
+}) {
+  const issueStreamDetector = issueStreamDetectorByProjectId.get(detector.projectId);
+  const issueStreamWorkflowIds =
+    issueStreamDetector && issueStreamDetector.id !== detector.id
+      ? issueStreamDetector.workflowIds
+      : [];
+
+  const combinedWorkflowIds = new Set([
+    ...detector.workflowIds,
+    ...issueStreamWorkflowIds,
+  ]);
+  return [...combinedWorkflowIds];
+}
 
 function LoadingSkeletons() {
   return Array.from({length: DETECTOR_LIST_PAGE_LIMIT}).map((_, index) => (
@@ -98,6 +122,34 @@ function DetectorListTable({
 }: DetectorListTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false);
+
+  const projectIds = useMemo(
+    () =>
+      Array.from(
+        new Set(detectors.map(d => Number(d.projectId)).filter(Number.isFinite))
+      ),
+    [detectors]
+  );
+
+  const {data: issueStreamDetectors, isPending: issueStreamDetectorsPending} =
+    useDetectorsQuery(
+      {
+        query: 'type:issue_stream',
+        projects: projectIds,
+        includeIssueStreamDetectors: true,
+      },
+      {enabled: projectIds.length > 0}
+    );
+
+  const issueStreamDetectorByProjectId = useMemo(() => {
+    const mapping = new Map<string, Detector>();
+    for (const detector of issueStreamDetectors ?? []) {
+      if (!mapping.has(detector.projectId)) {
+        mapping.set(detector.projectId, detector);
+      }
+    }
+    return mapping;
+  }, [issueStreamDetectors]);
 
   const detectorIds = new Set(detectors.map(d => d.id));
   const togglePageSelected = (pageSelected: boolean) => {
@@ -257,6 +309,11 @@ function DetectorListTable({
           <DetectorListRow
             key={detector.id}
             detector={detector}
+            connectedWorkflowsPending={issueStreamDetectorsPending}
+            connectedWorkflowIds={getConnectedWorkflowIdsForDetector({
+              detector,
+              issueStreamDetectorByProjectId,
+            })}
             selected={selected.has(detector.id)}
             onSelect={handleSelect}
           />

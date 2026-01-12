@@ -18,9 +18,17 @@ interface DetectorListRowProps {
   detector: Detector;
   onSelect: (id: string) => void;
   selected: boolean;
+  connectedWorkflowIds?: string[];
+  connectedWorkflowsPending?: boolean;
 }
 
-export function DetectorListRow({detector, selected, onSelect}: DetectorListRowProps) {
+export function DetectorListRow({
+  connectedWorkflowsPending,
+  detector,
+  connectedWorkflowIds,
+  selected,
+  onSelect,
+}: DetectorListRowProps) {
   const {additionalColumns = [], renderVisualization} = useMonitorViewContext();
 
   return (
@@ -51,7 +59,13 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
         <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="connected-automations">
-        <DetectorListConnectedAutomations automationIds={detector.workflowIds} />
+        {connectedWorkflowsPending ? (
+          <Placeholder height="20px" />
+        ) : (
+          <DetectorListConnectedAutomations
+            automationIds={connectedWorkflowIds ?? detector.workflowIds}
+          />
+        )}
       </SimpleTable.RowCell>
       {additionalColumns.map(col => (
         <Fragment key={col.id}>{col.renderCell(detector)}</Fragment>
