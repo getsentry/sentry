@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from uuid import uuid4
 
 from django.urls import reverse
@@ -230,7 +231,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 trace_id=trace_id,
             )
 
-        query = {
+        query: dict[str, Any] = {
             "project": [self.project.id],
             "per_page": "2",
             "start": (now - timedelta(hours=1)).isoformat(),
