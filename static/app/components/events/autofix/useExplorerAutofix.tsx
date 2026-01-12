@@ -427,7 +427,6 @@ export function useExplorerAutofix(
           const errorMessage =
             response.failures[0]?.error_message ?? 'Failed to launch coding agent';
           addErrorMessage(errorMessage);
-          return;
         }
 
         // Invalidate to fetch fresh data
@@ -435,9 +434,10 @@ export function useExplorerAutofix(
           queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
         });
       } catch (e: any) {
-        setWaitingForResponse(false);
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
         throw e;
+      } finally {
+        setWaitingForResponse(false);
       }
     },
     [api, orgSlug, groupId, queryClient]
