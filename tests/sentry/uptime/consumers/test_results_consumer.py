@@ -26,7 +26,7 @@ from sentry.conf.types import kafka_definition
 from sentry.conf.types.kafka_definition import Topic as KafkaTopic
 from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
@@ -672,8 +672,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             remove_call_vals = []
 
-            def capture_remove_seat(data_category, seat_object):
-                remove_call_vals.append((data_category, seat_object.id))
+            def capture_remove_seat(data_category=None, seat_object=None):
+                remove_call_vals.append(seat_object.id)
 
             mock_remove_seat.side_effect = capture_remove_seat
 
@@ -712,7 +712,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert remove_call_vals == [(DataCategory.UPTIME, self.detector.id)]
+        assert remove_call_vals == [self.detector.id]
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()

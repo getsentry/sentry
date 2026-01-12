@@ -8,7 +8,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry import quotas
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -459,7 +459,7 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         detector.update(enabled=False)
 
         if not skip_quotas:
-            quotas.backend.disable_seat(DataCategory.UPTIME, detector)
+            quotas.backend.disable_seat(seat_object=detector)
 
         # Are there any other detectors associated to the subscription
         # that are still enabled?
@@ -482,9 +482,9 @@ def ensure_uptime_seat(detector: Detector) -> None:
 
     Raises UptimeMonitorNoSeatAvailable if no seats are available.
     """
-    outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
+    outcome = quotas.backend.assign_seat(seat_object=detector)
     if outcome != Outcome.ACCEPTED:
-        result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+        result = quotas.backend.check_assign_seat(seat_object=detector)
         raise UptimeMonitorNoSeatAvailable(result)
 
 
@@ -526,7 +526,7 @@ def enable_uptime_detector(
 
 
 def remove_uptime_seat(detector: Detector):
-    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
+    quotas.backend.remove_seat(seat_object=detector)
 
 
 def delete_uptime_detector(detector: Detector):
