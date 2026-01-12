@@ -1,8 +1,10 @@
 import types
-from unittest.mock import Mock, patch
 
 import pytest
+from django.core.cache import caches
+from django.test import override_settings
 
+from sentry.options import default_store
 from sentry.runner.initializer import (
     ConfigurationError,
     apply_legacy_settings,
@@ -259,33 +261,28 @@ def test_require_secret_key(settings) -> None:
 
 
 def test_bind_cache_to_option_store_with_options_cache() -> None:
-    """Test that bind_cache_to_option_store prefers 'options' cache when available"""
-    mock_options_cache = Mock()
-    mock_default_cache = Mock()
-    mock_caches = {"options": mock_options_cache, "default": mock_default_cache}
-    mock_store = Mock()
+    from django.conf import settings
 
-    with (
-        patch("django.core.cache.caches", mock_caches),
-        patch("sentry.options.default_store", mock_store),
-    ):
+    cache_config = settings.CACHES.copy()
+    cache_config["options"] = {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+
+    with override_settings(CACHES=cache_config):
         bind_cache_to_option_store()
 
         # Should use 'options' cache, not 'default'
-        mock_store.set_cache_impl.assert_called_once_with(mock_options_cache)
+        default_store.cache = caches["options"]
 
 
 def test_bind_cache_to_option_store_without_options_cache() -> None:
-    """Test that bind_cache_to_option_store falls back to 'default' cache"""
-    mock_default_cache = Mock()
-    mock_caches = {"default": mock_default_cache}
-    mock_store = Mock()
+    from django.conf import settings
 
-    with (
-        patch("django.core.cache.caches", mock_caches),
-        patch("sentry.options.default_store", mock_store),
-    ):
+    cache_config = settings.CACHES.copy()
+    cache_config.pop("options", None)
+
+    with override_settings(CACHES=cache_config):
         bind_cache_to_option_store()
 
         # Should use 'default' cache when 'options' doesn't exist
-        mock_store.set_cache_impl.assert_called_once_with(mock_default_cache)
+        default_store.cache = caches["default"]
