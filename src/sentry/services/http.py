@@ -1,43 +1,34 @@
 from __future__ import annotations
 
 import os
-import sys
-from collections.abc import Generator, MutableMapping
+from collections.abc import MutableMapping
 from typing import Any, NoReturn
+
+from granian import Granian
+from granian.constants import Interfaces as GranianInterfaces
 
 from sentry.services.base import Service
 
-PYUWSGI_PROG = """\
-import os
-import sys
 
-orig = sys.getdlopenflags()
-sys.setdlopenflags(orig | os.RTLD_GLOBAL)
-try:
-    import pyuwsgi
-finally:
-    sys.setdlopenflags(orig)
-
-pyuwsgi.run()
-"""
-
-
-def convert_options_to_env(options: dict[str, Any]) -> Generator[tuple[str, str]]:
-    for k, v in options.items():
-        if v is None:
-            continue
-        key = "UWSGI_" + k.upper().replace("-", "_")
-        if isinstance(v, str):
-            value = v
-        elif v is True:
-            value = "true"
-        elif v is False:
-            value = "false"
-        elif isinstance(v, int):
-            value = str(v)
-        else:
-            raise TypeError(f"Unknown option type: {k!r} ({type(v)})")
-        yield key, value
+def _run_server(options: dict[str, Any]):
+    server = Granian(
+        target=options["module"],
+        address=options["host"],
+        port=options["port"],
+        interface=GranianInterfaces.WSGI,
+        workers=options["workers"],
+        backlog=options["backlog"],
+        workers_kill_timeout=30,
+        blocking_threads=options["threads"],
+        respawn_failed_workers=True,
+        reload=options["reload"],
+        reload_ignore_worker_failure=options["reload_ignore_worker_failure"],
+        process_name=options["process-name"],
+        workers_max_rss=options["reload-on-rss"],
+        log_access=options["log-enabled"],
+        log_access_format=options["log-format"],
+    )
+    server.serve()
 
 
 class SentryHTTPServer(Service):
@@ -56,89 +47,45 @@ class SentryHTTPServer(Service):
         from sentry import options as sentry_options
         from sentry.logging import LoggingFormat
 
-        host = host or settings.SENTRY_WEB_HOST
-        port = port or settings.SENTRY_WEB_PORT
+        host = host or settings.SENTRY_WEB_HOST or "127.0.0.1"
+        port = port or settings.SENTRY_WEB_PORT or 9000
+        workers = workers or 1
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         if extra_options is not None:
             for k, v in extra_options.items():
                 options[k] = v
+
         options.setdefault("module", "sentry.wsgi:application")
-        options.setdefault("protocol", "http")
-        options.setdefault("auto-procname", True)
-        options.setdefault("procname-prefix-spaced", "[Sentry]")
-        options.setdefault("workers", 1)
-        options.setdefault("threads", 2)
-        options.setdefault("http-timeout", 30)
-        options.setdefault("vacuum", True)
-        options.setdefault("thunder-lock", True)
-        options.setdefault("log-x-forwarded-for", False)
-        options.setdefault("buffer-size", 32768)
-        options.setdefault("post-buffering", 65536)
-        options.setdefault("limit-post", 20971520)
-        options.setdefault("need-app", True)
-        options.setdefault("disable-logging", False)
-        options.setdefault("memory-report", True)
+        options.setdefault("host", host)
+        options.setdefault("port", port)
+        options.setdefault("workers", workers)
+        options.setdefault("threads", None)
+        options.setdefault("backlog", max(128, 64 * workers))
+        options.setdefault("log-enabled", True)
+        options.setdefault("proc-name", "sentry")
+        options.setdefault("reload", False)
+        options.setdefault("reload-ignore-worker-failure", False)
+        options.setdefault("workers-kill-timeout", 30)
         options.setdefault("reload-on-rss", 600)
-        options.setdefault("ignore-sigpipe", True)
-        options.setdefault("ignore-write-errors", True)
-        options.setdefault("disable-write-exception", True)
-        options.setdefault("binary-path", sys.executable)
-        options.setdefault("virtualenv", sys.prefix)
-        options.setdefault("die-on-term", True)
         options.setdefault(
-            "log-format",
-            '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"',
+            "log-format", '%(addr)s - [%(time)s] "%(method)s %(path)s %(scheme)s" %(status)d'
         )
 
-        options.setdefault("%s-socket" % options["protocol"], f"{host}:{port}")
-
-        # We only need to set uid/gid when stepping down from root, but if
-        # we are trying to run as root, then ignore it entirely.
-        uid = os.getuid()
-        if uid > 0:
-            options.setdefault("uid", uid)
-        gid = os.getgid()
-        if gid > 0:
-            options.setdefault("gid", gid)
-
-        # Required arguments that should not be overridden
-        options["master"] = True
-        options["enable-threads"] = True
-        options["lazy-apps"] = True
-        options["single-interpreter"] = True
-
-        if workers:
-            options["workers"] = workers
-
-        # Old options from gunicorn
-        if "bind" in options:
-            options["%s-socket" % options["protocol"]] = options.pop("bind")
-        if "accesslog" in options:
-            if options["accesslog"] != "-":
-                options["logto"] = options["accesslog"]
-            del options["accesslog"]
-        if "errorlog" in options:
-            if options["errorlog"] != "-":
-                options["logto2"] = options["errorlog"]
-            del options["errorlog"]
-        if "timeout" in options:
-            options["http-timeout"] = options.pop("timeout")
-        if "proc_name" in options:
-            options["procname-prefix-spaced"] = options.pop("proc_name")
-        if "secure_scheme_headers" in options:
-            del options["secure_scheme_headers"]
-        if "loglevel" in options:
-            del options["loglevel"]
-
         # For machine logging, we are choosing to 100% disable logging
-        # from uwsgi since it's currently not possible to get a nice json
+        # from granian since it's currently not possible to get a nice json
         # logging out of uwsgi, so it's better to just opt out. There's
         # also an assumption that anyone operating at the scale of needing
         # machine formatted logs, they are also using nginx in front which
         # has it's own logs that can be formatted correctly.
         if sentry_options.get("system.logging-format") == LoggingFormat.MACHINE:
             options["disable-logging"] = True
+
+        # Old options from uwsgi
+        if "procname-prefix-spaced" in options:
+            options["proc-name"] = options.pop("procname-prefix-spaced")
+        if "disable-logging" in options:
+            options["log-enabled"] = not options.pop("disable-logging")
 
         self.options = options
         self.debug = debug
@@ -148,10 +95,6 @@ class SentryHTTPServer(Service):
 
         if env is None:
             env = os.environ
-
-        # Move all of the options into UWSGI_ env vars
-        for k, v in convert_options_to_env(self.options):
-            env.setdefault(k, v)
 
         # Signal that we're running within uwsgi
         env["SENTRY_RUNNING_UWSGI"] = "1" if settings.SENTRY_USE_UWSGI else "0"
@@ -166,13 +109,8 @@ class SentryHTTPServer(Service):
 
             from sentry.wsgi import application
 
-            assert os.environ.get("UWSGI_MODULE") == "sentry.wsgi:application"
-
-            host, port = os.environ["UWSGI_HTTP_SOCKET"].split(":")
-            httpd = make_server(host, int(port), application)
+            httpd = make_server(self.options["host"], self.options["port"], application)
             httpd.serve_forever()
             raise AssertionError("unreachable")
         else:
-            # TODO: https://github.com/lincolnloop/pyuwsgi-wheels/pull/17
-            cmd = (sys.executable, "-c", PYUWSGI_PROG)
-            os.execvp(cmd[0], cmd)
+            _run_server(self.options)

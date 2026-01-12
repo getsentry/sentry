@@ -35,8 +35,6 @@ RUN python3 -m venv /.venv
 ENV \
   # Sentry config params
   SENTRY_CONF=/etc/sentry \
-  # UWSGI dogstatsd plugin
-  UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
 
@@ -53,14 +51,6 @@ RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && uv sync --frozen --quiet --no-install-project \
-  && mkdir /tmp/uwsgi-dogstatsd \
-  # pinned the same as in getsentry
-  && wget -O - https://github.com/DataDog/uwsgi-dogstatsd/archive/1a04f784491ab0270b4e94feb94686b65d8d2db1.tar.gz | \
-  tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
-  && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
-  && mkdir -p /var/lib/uwsgi \
-  && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
-  && rm -rf /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
   && apt-get purge -y --auto-remove $buildDeps \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import re
 import threading
 from collections.abc import MutableSequence, Sequence
 from typing import NoReturn
@@ -215,27 +214,18 @@ def devserver(
 
         from sentry.services.http import SentryHTTPServer
 
-        uwsgi_overrides: dict[str, int | bool | str | None] = {
-            "protocol": "http",
-            "uwsgi-socket": None,
-            "http-keepalive": True,
+        server_overrides: dict[str, int | bool | str | None] = {
             # Make sure we reload really quickly for local dev in case it
             # doesn't want to shut down nicely on it's own, NO MERCY
-            "worker-reload-mercy": 2,
-            # We need stdin to support pdb in devserver
-            "honour-stdin": True,
-            # accept ridiculously large files
-            "limit-post": 1 << 30,
-            # do something with chunked
-            "http-chunked-input": True,
-            "thunder-lock": False,
-            "timeout": 600,
-            "harakiri": 600,
+            "workers-kill-timeout": 3,
+            # ? We need stdin to support pdb in devserver
+            # "honour-stdin": True,
             "workers": 1 if debug_server else 2,
         }
 
         if reload:
-            uwsgi_overrides["py-autoreload"] = 1
+            server_overrides["reload"] = True
+            server_overrides["reload-ignore-worker-failure"] = True
 
         daemons: MutableSequence[tuple[str, Sequence[str]]] = []
         kafka_consumers: set[str] = set()
@@ -416,9 +406,9 @@ def devserver(
         # A better log-format for local dev when running through honcho,
         # but if there aren't any other daemons, we don't want to override.
         if daemons:
-            uwsgi_overrides["log-format"] = "%(method) %(status) %(uri) %(proto) %(size)"
+            server_overrides["log-format"] = "%(method)s %(status)d %(path)s %(proto)s"
         else:
-            uwsgi_overrides["log-format"] = "[%(ltime)] %(method) %(status) %(uri) %(proto) %(size)"
+            server_overrides["log-format"] = "[%(time)s] %(method)s %(status)d %(path)s %(proto)s"
 
         # Prevent logging of requests to specified endpoints.
         #
@@ -427,10 +417,10 @@ def devserver(
         # escaping, using raw strings, or any combo thereof seems to actually work if you include a
         # regex pattern string in the list. Docs are here:
         # https://uwsgi-docs.readthedocs.io/en/latest/Options.html?highlight=log-format#log-drain
-        if settings.DEVSERVER_REQUEST_LOG_EXCLUDES:
-            filters = settings.DEVSERVER_REQUEST_LOG_EXCLUDES
-            filter_pattern = "|".join(map(lambda s: re.escape(s), filters))
-            uwsgi_overrides["log-drain"] = filter_pattern
+        # if settings.DEVSERVER_REQUEST_LOG_EXCLUDES:
+        #    filters = settings.DEVSERVER_REQUEST_LOG_EXCLUDES
+        #    filter_pattern = "|".join(map(lambda s: re.escape(s), filters))
+        #    uwsgi_overrides["log-drain"] = filter_pattern
 
         server_port = os.environ["SENTRY_BACKEND_PORT"]
 
@@ -448,7 +438,7 @@ def devserver(
         server = SentryHTTPServer(
             host=host,
             port=int(server_port),
-            extra_options=uwsgi_overrides,
+            extra_options=server_overrides,
             debug=debug_server,
         )
 

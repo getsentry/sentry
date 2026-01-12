@@ -1728,17 +1728,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyuwsgi"
-version = "2.0.28.post1"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pyuwsgi-2.0.28.post1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:787fd67086df87921bc8837ef018cd7cf02834136f4735811375c1e17b776b40" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pyuwsgi-2.0.28.post1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:f27ee3445eab37fabbe3afc6af68220c8f0bd28c5228d6a2ec7886d080614ad4" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pyuwsgi-2.0.28.post1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5bdd7ec17f795049ef346dc10efbfce6c1a9500f3f39262c86107c70b9a83cb9" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pyuwsgi-2.0.28.post1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:32838668eab84ac6847876d9da72768552fca556e09a1fe3a63facb976bd12ad" },
-]
-
-[[package]]
 name = "pyvat"
 version = "1.3.15"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2013,7 +2002,6 @@ dependencies = [
     { name = "python-rapidjson", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "python-u2flib-server", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "python3-saml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "pyuwsgi", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pyvat", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "rb", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "redis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2181,7 +2169,6 @@ requires-dist = [
     { name = "python-rapidjson", specifier = ">=1.8" },
     { name = "python-u2flib-server", specifier = ">=5.0.0" },
     { name = "python3-saml", specifier = ">=1.15.0" },
-    { name = "pyuwsgi", specifier = ">=2.0.28.post1" },
     { name = "pyvat", specifier = ">=1.3.15" },
     { name = "rb", specifier = ">=1.10.0" },
     { name = "redis", specifier = ">=3.4.1" },
