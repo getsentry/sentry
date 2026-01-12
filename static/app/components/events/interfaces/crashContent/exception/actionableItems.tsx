@@ -490,7 +490,7 @@ const StyledListItem = styled(ListItem)`
 `;
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover,

@@ -253,3 +253,302 @@ class BuildsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert len(response.json()) == 1
         assert response.json()[0]["app_info"]["app_id"] == "foo"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_download_count_for_installable_artifact(self) -> None:
+        # Create an installable artifact (has both installable_app_file_id and build_number)
+        artifact = self.create_preprod_artifact(
+            installable_app_file_id=12345,
+            build_number=100,
+        )
+        # Create InstallablePreprodArtifact records with download counts
+        self.create_installable_preprod_artifact(artifact, download_count=5)
+        self.create_installable_preprod_artifact(artifact, download_count=10)
+
+        response = self._request({})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        # Download count should be the sum of all InstallablePreprodArtifact records
+        assert data[0]["distribution_info"]["download_count"] == 15
+        assert data[0]["distribution_info"]["is_installable"] is True
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_download_count_zero_for_non_installable_artifact(self) -> None:
+        # Create a non-installable artifact (no installable_app_file_id)
+        self.create_preprod_artifact()
+
+        response = self._request({})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["distribution_info"]["download_count"] == 0
+        assert data[0]["distribution_info"]["is_installable"] is False
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_download_count_multiple_artifacts(self) -> None:
+        # Create multiple installable artifacts with different download counts
+        artifact1 = self.create_preprod_artifact(
+            app_id="com.app.one",
+            installable_app_file_id=11111,
+            build_number=1,
+        )
+        self.create_installable_preprod_artifact(artifact1, download_count=100)
+
+        artifact2 = self.create_preprod_artifact(
+            app_id="com.app.two",
+            installable_app_file_id=22222,
+            build_number=2,
+        )
+        self.create_installable_preprod_artifact(artifact2, download_count=50)
+        self.create_installable_preprod_artifact(artifact2, download_count=25)
+
+        response = self._request({})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+
+        # Results are ordered by date_added descending, so artifact2 comes first
+        app_two = next(b for b in data if b["app_info"]["app_id"] == "com.app.two")
+        app_one = next(b for b in data if b["app_info"]["app_id"] == "com.app.one")
+
+        assert app_one["distribution_info"]["download_count"] == 100
+        assert app_two["distribution_info"]["download_count"] == 75
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_query_install_size(self) -> None:
+        # Create artifacts with different install sizes via size metrics
+        small_artifact = self.create_preprod_artifact(app_id="small.app")
+        self.create_preprod_artifact_size_metrics(small_artifact, max_install_size=1000000)  # 1 MB
+
+        large_artifact = self.create_preprod_artifact(app_id="large.app")
+        self.create_preprod_artifact_size_metrics(large_artifact, max_install_size=5000000)  # 5 MB
+
+        # Filter for artifacts with install_size > 2 MB
+        response = self._request({"query": "install_size:>2000000"})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "large.app"
+
+        # Filter for artifacts with install_size < 2 MB
+        response = self._request({"query": "install_size:<2000000"})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "small.app"
+
+
+class BuildTagKeyValuesEndpointTest(APITestCase):
+
+    @cached_property
+    def user_auth_token(self):
+        auth_token = self.create_user_auth_token(
+            self.user, scope_list=["org:admin", "project:admin"]
+        )
+        return auth_token.token
+
+    def _request(self, key, query=None, token=None):
+        token = self.user_auth_token if token is None else token
+        query = {} if query is None else query
+        url = reverse(
+            "sentry-api-0-organization-build-tagKey-values",
+            args=[self.organization.slug, key],
+            query=query,
+        )
+        return self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def test_needs_feature(self) -> None:
+        response = self._request("app_id")
+        assert response.status_code == 403
+        assert response.json() == {
+            "detail": "Feature organizations:preprod-frontend-routes is not enabled for the organization."
+        }
+
+    def test_invalid_token(self) -> None:
+        response = self._request("app_id", token="Invalid")
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Invalid token"}
+
+    def test_wrong_user(self) -> None:
+        random_user = self.create_user("foo@localhost")
+        auth_token = self.create_user_auth_token(
+            random_user, scope_list=["org:admin", "project:admin"]
+        )
+
+        response = self._request("app_id", token=auth_token.token)
+        assert response.status_code == 403
+        assert response.json() == {"detail": "You do not have permission to perform this action."}
+
+    def test_missing_scopes(self) -> None:
+        auth_token = self.create_user_auth_token(self.user, scope_list=[])
+
+        response = self._request("app_id", token=auth_token.token)
+        assert response.status_code == 403
+        assert response.json() == {"detail": "You do not have permission to perform this action."}
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_no_builds(self) -> None:
+        response = self._request("app_id")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_single_app_id(self) -> None:
+        self.create_preprod_artifact(app_id="com.example.app")
+        response = self._request("app_id")
+        assert response.status_code == 200
+        assert response.json() == [
+            {
+                "count": 1,
+                "name": "app_id",
+                "value": "com.example.app",
+                "firstSeen": ANY,
+                "lastSeen": ANY,
+            }
+        ]
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_multiple_app_ids_with_counts(self) -> None:
+        # Create 3 artifacts with app_id "foo" and 2 with "bar"
+        for _ in range(3):
+            self.create_preprod_artifact(app_id="foo")
+        for _ in range(2):
+            self.create_preprod_artifact(app_id="bar")
+
+        response = self._request("app_id")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+
+        # Results should be ordered by last_seen descending
+        foo_result = next(r for r in data if r["value"] == "foo")
+        bar_result = next(r for r in data if r["value"] == "bar")
+
+        assert foo_result["count"] == 3
+        assert bar_result["count"] == 2
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_bundle_id_alias(self) -> None:
+        self.create_preprod_artifact(app_id="com.example.ios")
+        response = self._request("bundle_id")
+        assert response.status_code == 200
+        assert response.json() == [
+            {
+                "count": 1,
+                "name": "bundle_id",  # Note: name is the requested key, not db key
+                "value": "com.example.ios",
+                "firstSeen": ANY,
+                "lastSeen": ANY,
+            }
+        ]
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_package_name_alias(self) -> None:
+        self.create_preprod_artifact(app_id="com.example.android")
+        response = self._request("package_name")
+        assert response.status_code == 200
+        assert response.json() == [
+            {
+                "count": 1,
+                "name": "package_name",  # Note: name is the requested key, not db key
+                "value": "com.example.android",
+                "firstSeen": ANY,
+                "lastSeen": ANY,
+            }
+        ]
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_null_values_excluded(self) -> None:
+        # Create artifact with null app_id
+        self.create_preprod_artifact(app_id=None)
+        self.create_preprod_artifact(app_id="valid")
+
+        response = self._request("app_id")
+        assert response.status_code == 200
+        assert len(response.json()) == 1
+        assert response.json()[0]["value"] == "valid"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_date_filtering(self) -> None:
+        self.create_preprod_artifact(app_id="old", date_added=before_now(days=10))
+        self.create_preprod_artifact(app_id="middle", date_added=before_now(days=5))
+        self.create_preprod_artifact(app_id="recent", date_added=before_now(days=1))
+
+        # Filter to only include middle artifact
+        response = self._request(
+            "app_id",
+            {"start": before_now(days=7), "end": before_now(days=3)},
+        )
+        assert response.status_code == 200
+        assert len(response.json()) == 1
+        assert response.json()[0]["value"] == "middle"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_first_seen_last_seen(self) -> None:
+        first_time = before_now(days=5)
+        last_time = before_now(days=1)
+
+        self.create_preprod_artifact(app_id="test", date_added=first_time)
+        self.create_preprod_artifact(app_id="test", date_added=last_time)
+
+        response = self._request("app_id")
+        assert response.status_code == 200
+        result = response.json()[0]
+        assert result["value"] == "test"
+        assert result["count"] == 2
+        # Timestamps should match the first and last artifact dates
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_project_filtering(self) -> None:
+        other_project = self.create_project(name="Other", slug="other")
+        self.create_preprod_artifact(app_id="this_project")
+        self.create_preprod_artifact(app_id="other_project", project=other_project)
+
+        response = self._request("app_id", {"project": [self.project.id]})
+        assert response.status_code == 200
+        assert len(response.json()) == 1
+        assert response.json()[0]["value"] == "this_project"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_ordering_by_last_seen(self) -> None:
+        # Create artifacts with different last seen times
+        self.create_preprod_artifact(app_id="old", date_added=before_now(days=10))
+        self.create_preprod_artifact(app_id="recent", date_added=before_now(days=1))
+        self.create_preprod_artifact(app_id="old", date_added=before_now(days=5))
+
+        response = self._request("app_id")
+        assert response.status_code == 200
+        data = response.json()
+
+        # "recent" should come first because it has most recent last_seen
+        assert data[0]["value"] == "recent"
+        assert data[1]["value"] == "old"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_pagination(self) -> None:
+        # Create many different app_ids
+        for i in range(5):
+            self.create_preprod_artifact(app_id=f"app_{i}")
+
+        response = self._request("app_id", {"per_page": 2})
+        assert response.status_code == 200
+        assert len(response.json()) == 2
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_other_tag_keys(self) -> None:
+        # Test that non-aliased keys work directly
+        self.create_preprod_artifact(build_version="1.0.0")
+        self.create_preprod_artifact(build_version="1.0.1")
+        self.create_preprod_artifact(build_version="1.0.0")
+
+        response = self._request("build_version")
+        assert response.status_code == 200
+        data = response.json()
+
+        v100 = next(r for r in data if r["value"] == "1.0.0")
+        v101 = next(r for r in data if r["value"] == "1.0.1")
+
+        assert v100["count"] == 2
+        assert v101["count"] == 1
+        assert v100["name"] == "build_version"

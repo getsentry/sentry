@@ -15,7 +15,7 @@ export const ContextHeader = styled('div')`
 `;
 
 export const ContextTitle = styled('h6')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0 !important;
 `;
 
@@ -35,7 +35,7 @@ export const Wrapper = styled('div')`
 `;
 
 export const NoContextWrapper = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 50px;
   padding: ${space(1)};
   font-size: ${p => p.theme.fontSize.md};

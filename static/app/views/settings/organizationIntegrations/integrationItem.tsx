@@ -49,7 +49,7 @@ const IntegrationName = styled('div')`
 // as it sets width 100% which causes layout issues in the
 // integration list.
 const DomainName = styled('div')<{compact: boolean}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (p.compact ? 'inherit' : 0)};
   font-size: ${p => p.theme.fontSize.sm};
