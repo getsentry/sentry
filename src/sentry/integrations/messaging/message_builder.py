@@ -292,10 +292,11 @@ def build_footer(
     footer = f"{group.qualified_short_id}"
     if rules:
         key, value = get_rule_or_workflow_id(rules[0])
-        if key == "workflow_id":
-            rule_url = absolute_uri(create_link_to_workflow(group.organization.id, value))
-        else:
-            rule_url = build_rule_url(rules[0], group, project)
+        match key:
+            case "workflow_id":
+                rule_url = absolute_uri(create_link_to_workflow(group.organization.id, value))
+            case "legacy_rule_id":
+                rule_url = build_rule_url(rules[0], group, project)
 
         # If this notification is triggered via the "Send Test Notification"
         # button then the label is not defined, but the url works.

@@ -670,18 +670,14 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         rule_environment_id = None
         key = "legacy_rule_id"
         if self.rules:
-            try:
-                key, value = get_rule_or_workflow_id(self.rules[0])
-            except AssertionError:
-                rule_id = self.rules[0].id
-                rule_environment_id = self.rules[0].environment_id
-            else:
-                if key == "workflow_id":
-                    rule_id = int(value)
+            key, value = get_rule_or_workflow_id(self.rules[0])
+            rule_id = int(value)
+
+            match key:
+                case "workflow_id":
                     workflow = Workflow.objects.filter(id=rule_id).first()
                     rule_environment_id = workflow.environment_id if workflow else None
-                else:
-                    rule_id = int(value)
+                case "legacy_rule_id":
                     rule = Rule.objects.filter(id=rule_id).first()
                     rule_environment_id = rule.environment_id if rule else None
 
@@ -692,30 +688,31 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = True
 
         title_link = None
-        if key == "workflow_id":
-            title_link = get_title_link_workflow_engine_ui(
-                self.group,
-                self.event,
-                self.link_to_event,
-                self.issue_details,
-                self.notification,
-                ExternalProviders.SLACK,
-                rule_id,
-                rule_environment_id,
-                notification_uuid=notification_uuid,
-            )
-        else:
-            title_link = get_title_link(
-                self.group,
-                self.event,
-                self.link_to_event,
-                self.issue_details,
-                self.notification,
-                ExternalProviders.SLACK,
-                rule_id,
-                rule_environment_id,
-                notification_uuid=notification_uuid,
-            )
+        match key:
+            case "workflow_id":
+                title_link = get_title_link_workflow_engine_ui(
+                    self.group,
+                    self.event,
+                    self.link_to_event,
+                    self.issue_details,
+                    self.notification,
+                    ExternalProviders.SLACK,
+                    rule_id,
+                    rule_environment_id,
+                    notification_uuid=notification_uuid,
+                )
+            case "legacy_rule_id":
+                title_link = get_title_link(
+                    self.group,
+                    self.event,
+                    self.link_to_event,
+                    self.issue_details,
+                    self.notification,
+                    ExternalProviders.SLACK,
+                    rule_id,
+                    rule_environment_id,
+                    notification_uuid=notification_uuid,
+                )
 
         blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 

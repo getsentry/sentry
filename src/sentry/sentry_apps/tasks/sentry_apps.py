@@ -740,10 +740,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         # if we are using the new workflow engine, we need to use the legacy rule id
         # Ignore test notifications
         if int(id) != -1:
-            try:
-                _, id = get_rule_or_workflow_id(f.rule)
-            except AssertionError:
-                pass
+            _, id = get_rule_or_workflow_id(f.rule)
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:
