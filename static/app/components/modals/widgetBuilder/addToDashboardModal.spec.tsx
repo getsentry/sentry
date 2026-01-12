@@ -140,7 +140,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -170,7 +170,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -198,7 +198,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -222,7 +222,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -274,7 +274,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -308,7 +308,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
@@ -348,7 +348,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
@@ -398,7 +398,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={{...widget, widgetType: WidgetType.ERRORS}}
+        widgets={[{...widget, widgetType: WidgetType.ERRORS}]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -458,7 +458,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -537,7 +537,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -593,7 +593,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -620,7 +620,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture({pathname: '/organizations/org-slug/dashboard/1/'})}
       />,
@@ -665,7 +665,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -721,7 +721,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -756,7 +756,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={customSelection}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
@@ -813,7 +813,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widgets={[widget]}
         selection={customSelection}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}

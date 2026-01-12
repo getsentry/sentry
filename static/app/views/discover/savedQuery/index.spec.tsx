@@ -163,23 +163,25 @@ describe('Discover > SaveQueryButtonGroup', () => {
 
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
-          widget: {
-            displayType: 'area',
-            interval: undefined,
-            limit: undefined,
-            queries: [
-              {
-                aggregates: ['count()', 'failure_count()'],
-                columns: [],
-                conditions: '',
-                fields: [],
-                name: '',
-                orderby: '-count()',
-              },
-            ],
-            title: 'Errors by Title',
-            widgetType: 'error-events',
-          },
+          widgets: [
+            {
+              displayType: 'area',
+              interval: undefined,
+              limit: undefined,
+              queries: [
+                {
+                  aggregates: ['count()', 'failure_count()'],
+                  columns: [],
+                  conditions: '',
+                  fields: [],
+                  name: '',
+                  orderby: '-count()',
+                },
+              ],
+              title: 'Errors by Title',
+              widgetType: 'error-events',
+            },
+          ],
         })
       );
     });

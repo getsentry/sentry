@@ -734,21 +734,23 @@ describe('ExploreToolbar', () => {
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
-          widget: expect.objectContaining({
-            displayType: 'bar',
-            queries: [
-              {
-                aggregates: ['count(span.duration)'],
-                columns: [],
-                conditions: '',
-                fields: [],
-                name: '',
-                orderby: '',
-              },
-            ],
-            title: 'Custom Widget',
-            widgetType: 'spans',
-          }),
+          widgets: [
+            {
+              displayType: 'bar',
+              queries: [
+                {
+                  aggregates: ['count(span.duration)'],
+                  columns: [],
+                  conditions: '',
+                  fields: [],
+                  name: '',
+                  orderby: '',
+                },
+              ],
+              title: 'Custom Widget',
+              widgetType: 'spans',
+            },
+          ],
         })
       );
     });
