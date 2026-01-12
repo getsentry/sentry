@@ -5,28 +5,17 @@ from sentry import tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.servicehook import ServiceHookEndpoint
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
-class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
+class ProjectServiceHookStatsEndpoint(ServiceHookEndpoint, StatsMixin):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-
-    def convert_args(self, request: Request, hook_id: str, *args, **kwargs):
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-        project = kwargs["project"]
-        try:
-            kwargs["hook"] = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
-        except ServiceHook.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        return (args, kwargs)
 
     def get(self, request: Request, hook: ServiceHook, **kwargs) -> Response:
         project = kwargs["project"]

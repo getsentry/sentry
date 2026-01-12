@@ -7,17 +7,17 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.servicehook import ServiceHookEndpoint
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
 from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
 from sentry.sentry_apps.models.servicehook import ServiceHook
 
 
 @region_silo_endpoint
-class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
+class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
@@ -25,18 +25,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def convert_args(self, request: Request, hook_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-        project = kwargs["project"]
-
-        try:
-            kwargs["hook"] = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
-        except ServiceHook.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        return (args, kwargs)
-
-    def get(self, request: Request, project, hook: ServiceHook) -> Response:
+    def get(self, request: Request, hook: ServiceHook, **kwargs) -> Response:
         """
         Retrieve a Service Hook
         ```````````````````````
@@ -52,7 +41,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         """
         return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
-    def put(self, request: Request, project, hook: ServiceHook) -> Response:
+    def put(self, request: Request, project: Project, hook: ServiceHook) -> Response:
         """
         Update a Service Hook
         `````````````````````
@@ -100,7 +89,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
-    def delete(self, request: Request, project, hook: ServiceHook) -> Response:
+    def delete(self, request: Request, project: Project, hook: ServiceHook) -> Response:
         """
         Remove a Service Hook
         `````````````````````
