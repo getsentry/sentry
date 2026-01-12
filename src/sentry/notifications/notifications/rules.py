@@ -298,15 +298,13 @@ class AlertRuleNotification(ProjectNotification):
         title_str = "Alert triggered"
 
         if self.rules:
-            rule_url = build_rule_url(self.rules[0], self.group, self.project)
-            key = "legacy_rule_id"
-            try:
-                key, value = get_rule_or_workflow_id(self.rules[0])
-            except AssertionError:
-                pass
+            key, value = get_rule_or_workflow_id(self.rules[0])
 
-            if key == "workflow_id":
-                rule_url = absolute_uri(create_link_to_workflow(self.organization.id, value))
+            match key:
+                case "workflow_id":
+                    rule_url = absolute_uri(create_link_to_workflow(self.organization.id, value))
+                case "legacy_rule_id":
+                    rule_url = build_rule_url(self.rules[0], self.group, self.project)
 
             title_str += (
                 f" {self.format_url(text=self.rules[0].label, url=rule_url, provider=provider)}"
