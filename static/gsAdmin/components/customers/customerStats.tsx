@@ -428,7 +428,7 @@ export const CustomerStats = memo(
       zeroFillDates(
         zeroFillStart,
         new Date(dataDatetime.end ?? moment().format()).valueOf() / 1000,
-        {color: theme.purple200}
+        {color: theme.tokens.graphics.accent.moderate}
       ),
     ];
 

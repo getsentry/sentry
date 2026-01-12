@@ -730,7 +730,7 @@ describe('Customer Details', () => {
           {name: '2021-07-19T00:00:00Z', value: 1000},
           {name: '2021-07-20T00:00:00Z', value: 0},
         ],
-        color: theme.tokens.dataviz.semantic.accent,
+        color: theme.tokens.graphics.accent.vibrant,
       },
       {
         seriesName: 'Filtered (Server)',
@@ -841,7 +841,7 @@ describe('Customer Details', () => {
             ],
           },
         ],
-        color: theme.purple200,
+        color: theme.tokens.graphics.accent.moderate,
       },
       {
         seriesName: 'Over Quota',
