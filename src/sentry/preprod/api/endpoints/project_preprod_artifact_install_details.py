@@ -4,8 +4,6 @@ import logging
 from typing import Any
 
 import sentry_sdk
-from django.http import JsonResponse
-from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -41,7 +39,7 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
         project: Project,
         head_artifact_id: int,
         head_artifact: PreprodArtifact,
-    ) -> HttpResponseBase:
+    ) -> Response:
         try:
             analytics.record(
                 PreprodArtifactApiInstallDetailsEvent(
@@ -60,7 +58,7 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
                 not head_artifact.extras
                 or head_artifact.extras.get("is_code_signature_valid") is not True
             ):
-                return JsonResponse(
+                return Response(
                     {
                         "is_code_signature_valid": False,
                         "code_signature_errors": (
@@ -107,5 +105,5 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
                 }
             )
 
-        response = JsonResponse(response_data)
+        response = Response(response_data)
         return response

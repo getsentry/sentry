@@ -102,7 +102,7 @@ const StyledPanel = styled(Panel)`
 
 const StyledPanelHeader = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
     calc(${p => p.theme.radius.md} + 1px) 0 0;
   justify-content: left;
@@ -125,7 +125,7 @@ const StyledRow = styled('div', {
   align-items: center;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   ${p =>

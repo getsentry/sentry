@@ -345,7 +345,7 @@ const Content = styled('div')`
 
 const InsightCardButton = styled(motion.div)`
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   width: 100%;
   min-height: 0;
   position: relative;
@@ -377,7 +377,7 @@ const InsightGrid = styled('div')`
     top: ${space(4)};
     bottom: ${space(2)};
     width: 1px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }
 `;
@@ -435,7 +435,7 @@ const CardContent = styled('div')`
   }
 
   a {
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     text-decoration: none;
 
     &:hover {

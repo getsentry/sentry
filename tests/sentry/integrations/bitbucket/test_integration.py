@@ -208,6 +208,28 @@ class BitbucketIntegrationTest(APITestCase):
         )
 
     @responses.activate
+    def test_extract_source_path_from_source_url_strips_query_params(self) -> None:
+        installation = self.integration.get_installation(self.organization.id)
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://bitbucket.org/Test-Organization/repo",
+                provider="integrations:bitbucket",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://bitbucket.org/Test-Organization/repo/src/master/src/sentry/integrations/bitbucket/integration.py?at=master"
+
+        assert (
+            installation.extract_source_path_from_source_url(repo, source_url)
+            == "src/sentry/integrations/bitbucket/integration.py"
+        )
+
+    @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     def test_get_repository_choices_halt_lifecycle(

@@ -282,20 +282,20 @@ export default function MetricChart({
               <SectionHeading>{t('Summary')}</SectionHeading>
               <StyledSectionValue>
                 <ValueItem>
-                  <IconCheckmark color="successText" />
+                  <IconCheckmark variant="success" />
                   {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconWarning color="warningText" />
+                  <IconWarning variant="warning" />
                   {warningPercent ? warningPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconFire color="errorText" />
+                  <IconFire variant="danger" />
                   {criticalPercent ? criticalPercent.toFixed(2) : 0}%
                 </ValueItem>
                 {waitingForDataPercent > 0 && (
                   <StyledTooltip
-                    underlineColor="gray200"
+                    underlineColor="muted"
                     showUnderline
                     title={t(
                       'The time spent waiting for metrics matching the filters used.'

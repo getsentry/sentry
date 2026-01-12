@@ -137,7 +137,7 @@ function IssueViewStarButton() {
       icon={
         <IconStar
           isSolid={groupSearchView?.starred}
-          color={groupSearchView?.starred ? 'yellow300' : 'subText'}
+          variant={groupSearchView?.starred ? 'warning' : 'muted'}
         />
       }
       size="sm"

@@ -61,7 +61,11 @@ interface CartProps {
     invoice,
     nextQueryParams,
     isSubmitted,
-  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
+    previewData,
+  }: Pick<
+    CheckoutState,
+    'invoice' | 'nextQueryParams' | 'isSubmitted' | 'previewData'
+  >) => void;
   organization: Organization;
   subscription: Subscription;
   referrer?: string;

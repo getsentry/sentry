@@ -1,0 +1,188 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2023-01-11",
+  "variants": {
+    "app_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because system stacktrace takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because it contains no in-app frames",
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "non app frame",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": [
+                      "dogs.are.great"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "great.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "non app frame",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "ignored bad javascript module",
+                    "id": "module",
+                    "name": null,
+                    "values": [
+                      "adopt/dont/shop.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "shop.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": false,
+      "description": "event-level stacktrace — in-app frames",
+      "hash": null,
+      "hint": "ignored because system stacktrace takes precedence",
+      "key": "app_stacktrace",
+      "type": "component"
+    },
+    "system_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": [
+                      "dogs.are.great"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "great.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "ignored bad javascript module",
+                    "id": "module",
+                    "name": null,
+                    "values": [
+                      "adopt/dont/shop.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "shop.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "event-level stacktrace — all frames",
+      "hash": "1001e7b7dd0155a6d4021cd6d6b9f50d",
+      "hint": null,
+      "key": "system_stacktrace",
+      "type": "component"
+    }
+  }
+}

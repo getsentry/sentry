@@ -11,7 +11,10 @@ import {
 import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
+import type {
+  GetTagValues,
+  SearchQueryBuilderProps,
+} from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
@@ -31,10 +34,10 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitSeer: boolean;
@@ -95,6 +98,7 @@ export const SearchQueryBuilderContext =
 
 export function SearchQueryBuilderProvider({
   children,
+  aiSearchBadgeType = 'beta',
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
@@ -142,15 +146,6 @@ export function SearchQueryBuilderProvider({
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
-  const {state, dispatch} = useQueryBuilderState({
-    initialQuery,
-    getFieldDefinition: fieldDefinitionGetter,
-    disabled,
-    displayAskSeerFeedback,
-    setDisplayAskSeerFeedback,
-    replaceRawSearchKeys,
-  });
-
   const stableFieldDefinitionGetter = useMemo(
     () => fieldDefinitionGetter,
     [fieldDefinitionGetter]
@@ -189,6 +184,17 @@ export function SearchQueryBuilderProvider({
       filterKeyAliases,
     ]
   );
+
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+    displayAskSeerFeedback,
+    setDisplayAskSeerFeedback,
+    replaceRawSearchKeys,
+    parseQuery,
+  });
+
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
   const previousQuery = usePrevious(state.query);
@@ -234,6 +240,7 @@ export function SearchQueryBuilderProvider({
   const contextValue = useMemo((): SearchQueryBuilderContextData => {
     return {
       ...state,
+      aiSearchBadgeType,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
@@ -274,6 +281,7 @@ export function SearchQueryBuilderProvider({
       onCaseInsensitiveClick,
     };
   }, [
+    aiSearchBadgeType,
     autoSubmitSeer,
     caseInsensitive,
     disabled,

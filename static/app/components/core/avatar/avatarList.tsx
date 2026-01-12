@@ -173,7 +173,7 @@ const AvatarStyle = (p: {theme: Theme}) => css`
   }
 
   ${AvatarListWrapper}:hover & {
-    border-color: ${p.theme.translucentBorder};
+    border-color: ${p.theme.tokens.border.transparent.neutral.muted};
     cursor: pointer;
   }
 `;

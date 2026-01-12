@@ -70,7 +70,7 @@ function Banner(props: BannerProps) {
         triggerProps={{
           showChevron: false,
           borderless: true,
-          icon: <IconClose color="subText" />,
+          icon: <IconClose variant="muted" />,
         }}
         size="xs"
         items={[
@@ -92,7 +92,7 @@ function Banner(props: BannerProps) {
 
 const BannerWrapper = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(3)};
   background: linear-gradient(
