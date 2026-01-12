@@ -467,7 +467,7 @@ def get_schedule_sample_window_tick_statuses(
     failure_threshold: int, recovery_threshold: int
 ) -> list[str]:
     total_threshold = failure_threshold + recovery_threshold
-    padding_ticks = ceil(total_threshold / 2)
+    padding_ticks = max(2, ceil(total_threshold / 2))
     open_period_ticks = total_threshold * 3
     status_to_name = dict(CheckInStatus.as_choices())
 
