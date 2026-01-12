@@ -136,12 +136,11 @@ class AcceptOrganizationInvite(Endpoint):
     def get(
         self,
         request: Request,
+        member_id: int,
+        token: str,
         invite_context: RpcUserInviteContext,
         **kwargs,
     ) -> Response | HttpResponse:
-        member_id = kwargs["member_id"]
-        token = kwargs["token"]
-
         # Demo user can't accept invites, this invite is probably meant for another user
         # so we log out the demo user and let the invite flow continue since it can handle
         # unauthenticated users.
@@ -236,11 +235,10 @@ class AcceptOrganizationInvite(Endpoint):
     def post(
         self,
         request: Request,
+        token: str,
         invite_context: RpcUserInviteContext,
         **kwargs,
     ) -> Response:
-        token = kwargs["token"]
-
         if is_demo_user(request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
