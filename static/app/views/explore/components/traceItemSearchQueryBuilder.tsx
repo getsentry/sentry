@@ -268,6 +268,9 @@ function itemTypeToRecentSearches(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.TRACEMETRICS) {
     return SavedSearchType.TRACEMETRIC;
   }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SavedSearchType.PREPROD_APP_SIZE;
+  }
   return SavedSearchType.LOG;
 }
 
@@ -276,6 +279,9 @@ function itemTypeToFilterKeySections(itemType: TraceItemDataset) {
     return SPANS_FILTER_KEY_SECTIONS;
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return [];
+  }
+  if (itemType === TraceItemDataset.PREPROD) {
     return [];
   }
   return LOGS_FILTER_KEY_SECTIONS;
