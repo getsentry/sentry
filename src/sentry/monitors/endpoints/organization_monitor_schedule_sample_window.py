@@ -27,15 +27,7 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CRONS
 
     def get(self, request: Request, organization: Organization) -> Response:
-        # Convert query params to a form the validator can use
-        config_data: dict[str, list | str] = {}
-        for key, val in request.GET.lists():
-            if key == "schedule" and len(val) > 1:
-                config_data[key] = [int(val[0]), val[1]]
-            else:
-                config_data[key] = val[0]
-
-        validator = ConfigValidator(data=config_data)
+        validator = ConfigValidator(data=request.GET)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 

@@ -11,6 +11,7 @@ from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
+from rest_framework.fields import empty
 
 from sentry import audit_log, quotas
 from sentry.api.fields.actor import ActorField
@@ -91,6 +92,38 @@ class ObjectField(serializers.Field):
         return data
 
 
+@extend_schema_field(OpenApiTypes.ANY)
+class ScheduleField(ObjectField):
+    """
+    DRF's default Field.get_value() doesn't handle QueryDict
+    multi-values for interval schedules.
+
+    For example, we want the following query params:
+      ?schedule=1&schedule=hour
+    to be interpreted as:
+      [1, "hour"]
+    """
+
+    def get_value(self, dictionary: Any) -> Any:
+        if hasattr(dictionary, "getlist"):
+            values = dictionary.getlist(self.field_name)
+            if not values:
+                return empty
+            if len(values) == 1:
+                return values[0]
+
+            count: Any = values[0]
+            try:
+                count = int(values[0])
+            except (TypeError, ValueError):
+                # We let the validator surface a consistent error message.
+                pass
+
+            return [count, values[1]]
+
+        return super().get_value(dictionary)
+
+
 class MonitorAlertRuleTargetValidator(serializers.Serializer):
     target_identifier = serializers.IntegerField(help_text="ID of target object")
     target_type = serializers.CharField(help_text="One of [Member, Team]")
@@ -135,7 +168,7 @@ class ConfigValidator(serializers.Serializer):
         required=False,
     )
 
-    schedule = ObjectField(
+    schedule = ScheduleField(
         help_text="Varies depending on the schedule_type. Is either a crontab string, or a 2 element tuple for intervals (e.g. [1, 'day'])",
     )
     """

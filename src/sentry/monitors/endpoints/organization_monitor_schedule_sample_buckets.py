@@ -29,7 +29,8 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
 
     - start: unix timestamp (seconds) for the first *scheduled tick* in the
       window
-    - interval: bucket size in seconds (matches rollupConfig.interval in the frontend)
+    - interval: bucket size in seconds (matches rollupConfig.interval in the
+      frontend)
     """
 
     start = serializers.IntegerField(min_value=1)
@@ -42,15 +43,7 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CRONS
 
     def get(self, request: Request, organization: Organization) -> Response:
-        # Convert query params to a form the validator can use
-        config_data: dict[str, list | str] = {}
-        for key, val in request.GET.lists():
-            if key == "schedule" and len(val) > 1:
-                config_data[key] = [int(val[0]), val[1]]
-            else:
-                config_data[key] = val[0]
-
-        validator = SampleScheduleBucketsConfigValidator(data=config_data)
+        validator = SampleScheduleBucketsConfigValidator(data=request.GET)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
@@ -85,7 +78,10 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
         if schedule_type == ScheduleType.CRONTAB:
             # Seed the simulator just before the provided first scheduled tick,
             # so the first returned tick is expected to match start.
-            schedule_iter = CronSim(schedule, window_start - timedelta(seconds=1))
+            schedule_iter = CronSim(
+                schedule,
+                window_start - timedelta(seconds=1),
+            )
             ticks = [next(schedule_iter) for _ in range(num_ticks)]
 
         elif schedule_type == ScheduleType.INTERVAL:
