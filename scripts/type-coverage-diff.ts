@@ -629,7 +629,7 @@ async function main() {
 }
 
 try {
-  main();
+  await main();
 } catch (err) {
   console.error(colors.red(String(err)));
   process.exit(1);
