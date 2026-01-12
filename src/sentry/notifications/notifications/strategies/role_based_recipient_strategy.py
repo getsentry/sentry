@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from abc import ABCMeta
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING
@@ -15,6 +16,8 @@ from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+
+logger = logging.getLogger(__name__)
 
 
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):
@@ -47,14 +50,30 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     def determine_recipients(
         self,
     ) -> list[RpcUser]:
+        from sentry.hybridcloud.rpc.service import RpcRemoteException
+
         members = self.determine_member_recipients()
         # store the members in our cache
         for member in members:
             self.set_member_in_cache(member)
         # convert members to users
-        return user_service.get_many_by_id(
-            ids=[member.user_id for member in members if member.user_id]
-        )
+        user_ids = [member.user_id for member in members if member.user_id]
+        
+        try:
+            return user_service.get_many_by_id(ids=user_ids)
+        except RpcRemoteException:
+            logger.exception(
+                "role_based_recipient_strategy.rpc_timeout",
+                extra={
+                    "organization_id": self.organization.id,
+                    "user_ids_count": len(user_ids),
+                    "role": self.role.id if self.role else None,
+                    "scope": self.scope,
+                },
+            )
+            # Return empty list to allow task to complete gracefully
+            # This means the notification won't be sent, but the task won't fail
+            return []
 
     def determine_member_recipients(self) -> QuerySet[OrganizationMember]:
         """
