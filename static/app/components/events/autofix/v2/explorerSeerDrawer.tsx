@@ -20,6 +20,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesCard,
+  CodingAgentHandoffCard,
   ImpactCard,
   RootCauseCard,
   SolutionCard,
@@ -143,9 +144,15 @@ export function ExplorerSeerDrawer({
   aiConfig,
 }: ExplorerSeerDrawerProps) {
   const organization = useOrganization();
-  const {runState, isLoading, isPolling, startStep, createPR, reset} = useExplorerAutofix(
-    group.id
-  );
+  const {
+    runState,
+    isLoading,
+    isPolling,
+    startStep,
+    createPR,
+    reset,
+    triggerCodingAgentHandoff,
+  } = useExplorerAutofix(group.id);
 
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
@@ -154,6 +161,7 @@ export function ExplorerSeerDrawer({
   const loadingBlock = useMemo(() => blocks.find(block => block.loading), [blocks]);
   const hasChanges = checkHasCodeChanges(blocks);
   const prStates = runState?.repo_pr_states;
+  const codingAgents = runState?.coding_agents;
 
   const orderedArtifactKeys = useMemo(
     () => getOrderedArtifactKeys(blocks, artifacts),
@@ -188,6 +196,15 @@ export function ExplorerSeerDrawer({
       openSeerExplorer({startNewRun: true});
     }
   }, [runState?.run_id]);
+
+  const handleCodingAgentHandoff = useCallback(
+    async (integrationId: number) => {
+      if (runState?.run_id) {
+        await triggerCodingAgentHandoff(runState.run_id, integrationId);
+      }
+    },
+    [triggerCodingAgentHandoff, runState?.run_id]
+  );
 
   const {copy} = useCopyToClipboard();
   const handleCopyMarkdown = useCallback(() => {
@@ -361,6 +378,10 @@ export function ExplorerSeerDrawer({
                 onCreatePR={handleCreatePR}
               />
             )}
+            {/* Coding agent handoff status */}
+            {codingAgents && Object.keys(codingAgents).length > 0 && (
+              <CodingAgentHandoffCard codingAgents={codingAgents} />
+            )}
           </AnimatePresence>
 
           {/* Status card when processing */}
@@ -381,7 +402,11 @@ export function ExplorerSeerDrawer({
             <ExplorerNextSteps
               artifacts={artifacts}
               hasCodeChanges={hasChanges}
+              hasCodingAgents={
+                codingAgents !== undefined && Object.keys(codingAgents).length > 0
+              }
               onStartStep={handleStartStep}
+              onCodingAgentHandoff={handleCodingAgentHandoff}
               onOpenChat={handleOpenChat}
               isLoading={isPolling}
             />
@@ -414,7 +439,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.background};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
 const SeerDrawerBody = styled(DrawerBody)`

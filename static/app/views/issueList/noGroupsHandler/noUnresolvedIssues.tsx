@@ -34,7 +34,7 @@ const Wrapper = styled('div')`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.md};

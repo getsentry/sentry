@@ -706,7 +706,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
-    color: ${p.theme.subText};
+    color: ${p.theme.tokens.content.secondary};
     font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
@@ -759,7 +759,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   .tooltip-code-no-margin {
     padding-left: 0;
     margin-left: 0;
-    color: ${p.theme.subText};
+    color: ${p.theme.tokens.content.secondary};
   }
   .tooltip-footer {
     border-top: solid 1px ${p.theme.tokens.border.secondary};
@@ -785,7 +785,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
       border-top: none;
       &:before {
         border-top: none;
-        border-bottom: 8px solid ${p.theme.translucentBorder};
+        border-bottom: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
         bottom: -7px;
         top: auto;
       }
@@ -802,7 +802,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &:before {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid ${p.theme.translucentBorder};
+      border-top: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
       content: '';
       display: block;
       position: absolute;

@@ -231,9 +231,9 @@ const generateButtonTheme = (
     backgroundActive: tokens.background.transparent.neutral.muted,
     border: tokens.border.primary,
     borderActive: tokens.border.primary,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   primary: {
     color: colors.white,
@@ -243,8 +243,8 @@ const generateButtonTheme = (
     border: colors.blue400,
     borderActive: colors.blue400,
     borderTranslucent: colors.blue400,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   danger: {
     color: colors.white,
@@ -265,8 +265,8 @@ const generateButtonTheme = (
     border: 'transparent',
     borderActive: 'transparent',
     borderTranslucent: 'transparent',
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   disabled: {
     color: tokens.content.disabled,
@@ -571,8 +571,8 @@ const commonTheme = {
   ...formTheme,
 };
 
-export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
 type Aliases = typeof lightAliases;
+
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
@@ -1169,11 +1169,6 @@ const darkShadows = {
 
 const generateAliases = (tokens: Tokens) => ({
   /**
-   * Text that should not have as much emphasis
-   */
-  subText: tokens.content.secondary,
-
-  /**
    * Primary background color
    */
   background: tokens.background.primary,
@@ -1188,14 +1183,6 @@ const generateAliases = (tokens: Tokens) => ({
    */
   backgroundTertiary: tokens.background.tertiary,
 
-  translucentBorder: tokens.border.transparent.neutral.muted,
-
-  /**
-   * A color that denotes an error, or something that is wrong
-   */
-  error: tokens.content.danger,
-  errorText: tokens.content.danger,
-
   /**
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
@@ -1203,13 +1190,6 @@ const generateAliases = (tokens: Tokens) => ({
   active: tokens.interactive.link.accent.active,
   activeHover: tokens.interactive.link.accent.hover,
   activeText: tokens.interactive.link.accent.rest,
-
-  /**
-   * Indicates that something has "focus", which is different than "active" state as it is more temporal
-   * and should be a bit subtler than active
-   */
-  focus: tokens.border.accent.vibrant,
-  focusBorder: tokens.border.accent.vibrant,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens);
@@ -1281,23 +1261,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
 
   /** @deprecated */
-  get pink400() {
-    return colors.pink500;
-  },
-  /** @deprecated */
-  get pink300() {
-    return colors.pink400;
-  },
-  /** @deprecated */
-  get pink200() {
-    return colors.pink200;
-  },
-  /** @deprecated */
-  get pink100() {
-    return colors.pink100;
-  },
-
-  /** @deprecated */
   get red400() {
     return colors.red500;
   },
@@ -1361,7 +1324,7 @@ const lightThemeDefinition = {
   tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
@@ -1410,7 +1373,7 @@ export const darkTheme: SentryTheme = {
   tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported

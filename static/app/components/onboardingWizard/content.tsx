@@ -570,14 +570,15 @@ const TaskGroupWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
 
   hr {
-    border-color: ${p => p.theme.translucentBorder};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
     margin: ${space(1)} -${space(1)};
   }
 `;
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
-    color: ${p => (p.hasProgress ? p.theme.tokens.content.accent : p.theme.subText)};
+    color: ${p =>
+      p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
   }
 `;
 
@@ -591,7 +592,7 @@ const TaskGroupBody = styled('ul')`
 const TaskWrapper = styled('li')`
   gap: ${space(1)};
   p {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 

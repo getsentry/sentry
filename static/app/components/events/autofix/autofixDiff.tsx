@@ -722,7 +722,7 @@ const FileAdded = styled('div')`
 `;
 
 const FileRemoved = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const FileName = styled('div')`
@@ -749,7 +749,7 @@ const HunkHeaderEmptySpace = styled('div')`
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
   white-space: pre-wrap;
 `;
@@ -760,7 +760,7 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
   user-select: none;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -895,8 +895,8 @@ const StyledTextArea = styled(TextArea)`
   min-height: 250px;
 
   &:focus {
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.focus.default};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 
@@ -921,7 +921,7 @@ const SectionTitle = styled('p')`
 
 const NoChangesMessage = styled('p')`
   margin: ${space(1)} 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.family};
 `;
 

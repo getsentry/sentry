@@ -1,9 +1,9 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -89,7 +89,7 @@ export function StreamlinedExternalIssueList({
   }
 
   return (
-    <Flex direction="row" gap="md">
+    <Fragment>
       {linkedIssues.length > 0 && (
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
@@ -201,7 +201,7 @@ export function StreamlinedExternalIssueList({
           })}
         </IssueActionWrapper>
       )}
-    </Flex>
+    </Fragment>
   );
 }
 
@@ -276,5 +276,5 @@ const HorizontalSeparator = styled('div')`
 `;
 
 const UnlinkButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

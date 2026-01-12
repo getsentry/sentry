@@ -182,3 +182,9 @@ register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuning
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
+
+# Structured search filter to determine which preprod builds get size analysis.
+register(key="sentry:preprod_size_enabled_query", default="")
+
+# Structured search filter to determine which preprod builds get build distribution.
+register(key="sentry:preprod_distribution_enabled_query", default="")

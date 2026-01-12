@@ -42,6 +42,7 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -122,7 +123,12 @@ export function SizeCompareSelectionContent({
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
+        getCompareBuildPath({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId: headBuildDetails.id,
+          baseArtifactId: selectedBaseBuild?.id,
+        })
       );
     },
     onError: error => {
@@ -167,7 +173,11 @@ export function SizeCompareSelectionContent({
             // Clear cursor when search query changes to avoid pagination issues
             if (cursor) {
               navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                getCompareBuildPath({
+                  organizationSlug: organization.slug,
+                  projectId,
+                  headArtifactId: headBuildDetails.id,
+                }),
                 {replace: true}
               );
             }
@@ -326,7 +336,10 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 
 const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   border: 1px solid
-    ${p => (p.isSelected ? p.theme.focusBorder : p.theme.tokens.border.primary)};
+    ${p =>
+      p.isSelected
+        ? p.theme.tokens.border.accent.vibrant
+        : p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;

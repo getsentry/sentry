@@ -118,7 +118,7 @@ const TimestampColumns = styled('div')`
   justify-content: space-between;
   margin-top: ${space(1)};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

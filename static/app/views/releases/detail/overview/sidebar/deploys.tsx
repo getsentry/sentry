@@ -45,7 +45,7 @@ const Row = styled('div')`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default Deploys;
