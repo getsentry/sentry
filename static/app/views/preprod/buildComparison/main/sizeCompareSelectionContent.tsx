@@ -42,6 +42,7 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -122,7 +123,12 @@ export function SizeCompareSelectionContent({
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
+        getCompareBuildPath({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId: headBuildDetails.id,
+          baseArtifactId: selectedBaseBuild?.id,
+        })
       );
     },
     onError: error => {
@@ -167,7 +173,11 @@ export function SizeCompareSelectionContent({
             // Clear cursor when search query changes to avoid pagination issues
             if (cursor) {
               navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                getCompareBuildPath({
+                  organizationSlug: organization.slug,
+                  projectId,
+                  headArtifactId: headBuildDetails.id,
+                }),
                 {replace: true}
               );
             }
