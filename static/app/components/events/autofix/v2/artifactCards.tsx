@@ -915,7 +915,7 @@ const CodingAgentStatusTag = styled('span')<{
 
 const CodingAgentResultItem = styled('div')`
   padding: ${p => p.theme.space.md};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.sm};
 `;
 
