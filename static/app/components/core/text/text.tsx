@@ -179,6 +179,6 @@ export const Text = styled(
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
    */
-` as unknown as <T extends 'span' | 'p' | 'div'>(
+` as unknown as <T extends 'span' | 'p' | 'label' | 'div'>(
   props: TextProps<T>
 ) => React.ReactElement;

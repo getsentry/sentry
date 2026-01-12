@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
@@ -9,7 +11,7 @@ import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanM
 import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
-import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
+import {LOADING_PLACEHOLDER} from './settings';
 
 interface DetailsWidgetVisualizationProps {
   span: Pick<SpanResponse, DefaultDetailWidgetFields>;
@@ -75,10 +77,10 @@ function HttpSpanVisualization(props: {
   }
 
   return (
-    <HttpSpanVisualizationWrapper>
+    <Flex align="center" padding="xl" gap="md" height="100%">
       <h1>{httpSpan[0][SpanFields.SPAN_DOMAIN]}</h1>
       <DomainStatusLink domain={httpSpan[0][SpanFields.SPAN_DOMAIN]} />
-    </HttpSpanVisualizationWrapper>
+    </Flex>
   );
 }
 
@@ -91,14 +93,6 @@ function Wrapper({children}: any) {
     </GrowingWrapper>
   );
 }
-
-const HttpSpanVisualizationWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  height: 100%;
-  padding: ${p => p.theme.space.xl};
-`;
 
 // Takes up 100% of the parent. If within flex context, grows to fill.
 // Otherwise, takes up 100% horizontally and vertically
@@ -126,7 +120,7 @@ const AutoResizeParent = styled('div')`
 `;
 
 const LoadingPlaceholder = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.lg};
 `;
 

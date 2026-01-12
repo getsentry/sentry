@@ -2,6 +2,8 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
@@ -58,7 +60,7 @@ function DashboardCard({
       >
         <InteractionStateLayer as="div" color={theme.tokens.content.primary} />
 
-        <CardHeader>
+        <Flex padding="lg xl">
           <CardContent>
             <Title>{title}</Title>
             <Detail>{detail}</Detail>
@@ -70,9 +72,9 @@ function DashboardCard({
               <ActivityAvatar type="system" size={34} />
             )}
           </AvatarWrapper>
-        </CardHeader>
+        </Flex>
         <CardBody>{renderWidgets()}</CardBody>
-        <CardFooter>
+        <Flex justify="between" align="center" padding="md xl" height="42px">
           <DateSelected>
             {dateStatus ? (
               <DateStatus>
@@ -82,10 +84,10 @@ function DashboardCard({
               <DateStatus />
             )}
           </DateSelected>
-        </CardFooter>
+        </Flex>
       </CardLink>
 
-      <ContextMenuWrapper>
+      <Flex gap="xs" position="absolute" bottom={space(1)} right={space(2)}>
         <StyledButton
           icon={
             <IconStar
@@ -109,7 +111,7 @@ function DashboardCard({
           }}
         />
         {renderContextMenu?.()}
-      </ContextMenuWrapper>
+      </Flex>
     </CardWithoutMargin>
   );
 }
@@ -158,15 +160,10 @@ const CardLink = styled(Link)`
   }
 `;
 
-const CardHeader = styled('div')`
-  display: flex;
-  padding: ${space(1.5)} ${space(2)};
-`;
-
 const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p => p.theme.overflowEllipsis};
   line-height: 1.5;
 `;
@@ -180,14 +177,6 @@ const CardBody = styled('div')`
   border-bottom: 1px solid ${p => p.theme.colors.gray100};
 `;
 
-const CardFooter = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-  height: 42px;
-`;
-
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   display: grid;
@@ -197,16 +186,8 @@ const DateSelected = styled('div')`
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding-left: ${space(1)};
-`;
-
-const ContextMenuWrapper = styled('div')`
-  position: absolute;
-  right: ${space(2)};
-  bottom: ${space(1)};
-  display: flex;
-  gap: ${space(0.5)};
 `;
 
 const StyledButton = styled(Button)`

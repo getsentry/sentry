@@ -154,6 +154,7 @@ export function findConflictingConditions(
 
 const conflictingTriggers = new Set<DataConditionType>([
   DataConditionType.FIRST_SEEN_EVENT,
+  DataConditionType.ISSUE_RESOLVED_TRIGGER,
   DataConditionType.REGRESSION_EVENT,
   DataConditionType.REAPPEARED_EVENT,
 ]);
