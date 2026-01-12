@@ -7,9 +7,9 @@ import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
-import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
+import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
 
-describe('OrgDropdown', () => {
+describe('OrganizationDropdown', () => {
   const organization = OrganizationFixture({
     access: ['org:read', 'member:read', 'team:read'],
   });
@@ -19,7 +19,7 @@ describe('OrgDropdown', () => {
   });
 
   it('displays org info and links', async () => {
-    render(<OrgDropdown />, {organization});
+    render(<OrganizationDropdown />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
 
@@ -47,7 +47,7 @@ describe('OrgDropdown', () => {
       OrganizationFixture({id: '2', name: 'Org 2', slug: 'org-2'})
     );
 
-    render(<OrgDropdown />, {organization});
+    render(<OrganizationDropdown />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
     await userEvent.hover(screen.getByText('Switch Organization'));
@@ -83,7 +83,7 @@ describe('OrgDropdown', () => {
       })
     );
 
-    render(<OrgDropdown />, {organization});
+    render(<OrganizationDropdown />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
     await userEvent.hover(screen.getByText('Switch Organization'));
@@ -106,7 +106,7 @@ describe('OrgDropdown', () => {
   });
 
   it('clicking project sets referrer in session storage', async () => {
-    render(<OrgDropdown />, {organization});
+    render(<OrganizationDropdown />, {organization});
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
     // We use onAction to navigate, no href is set:
     expect(screen.getByRole('menuitemradio', {name: 'Projects'})).not.toHaveAttribute(
