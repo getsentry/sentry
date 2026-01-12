@@ -365,6 +365,7 @@ def detect_transaction_trends(
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
     namespace=performance_tasks,
+    processing_deadline_duration=30,
 )
 def detect_transaction_change_points(
     transactions: list[tuple[int, str | int]], start: str, *args, **kwargs
@@ -455,6 +456,7 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_change_points",
     namespace=profiling_tasks,
+    processing_deadline_duration=30,
 )
 def detect_function_change_points(
     functions_list: list[tuple[int, int]], start: str, *args, **kwargs
