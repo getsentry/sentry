@@ -1,6 +1,5 @@
 from unittest import mock
 
-from sentry.constants import DataCategory
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.uptime.endpoints.validators import (
@@ -183,7 +182,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is True
 
         # Verify seat was assigned
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
@@ -202,7 +201,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify seat assignment was attempted
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
@@ -226,7 +225,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is True
 
         # Verify seat was assigned
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
@@ -254,7 +253,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify seat availability check was performed
-        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_check_assign_seat.assert_called_with(seat_object=detector)
 
     @mock.patch("sentry.quotas.backend.disable_seat")
     def test_update_disable_removes_seat(self, mock_disable_seat: mock.MagicMock) -> None:
@@ -272,7 +271,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify disable_seat was called
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_disable_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
@@ -289,7 +288,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         validator.delete()
 
         # Verify remove_seat was called immediately
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_remove_seat.assert_called_with(seat_object=detector)
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",

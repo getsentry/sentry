@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import (
     Monitor,
@@ -241,7 +241,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
 
-        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
+        assign_seat.assert_called_with(seat_object=monitor)
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_seat")
@@ -672,7 +672,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.ACTIVE
-        mock_check_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, self.monitor)
+        mock_check_seat.assert_called_once_with(seat_object=self.monitor)
 
     @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_quota_exceeded(self, mock_check_seat):
@@ -1257,7 +1257,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
 
         # Verify seat was assigned exactly once (not double-called)
         monitor = get_cron_monitor(detector)
-        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+        mock_assign_seat.assert_called_once_with(seat_object=monitor)
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.RATE_LIMITED)
     def test_create_enabled_no_seat_available(self, mock_assign_seat):
@@ -1284,7 +1284,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         # Verify seat assignment was attempted exactly once (not double-called)
-        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+        mock_assign_seat.assert_called_once_with(seat_object=monitor)
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
     def test_update_enable_assigns_seat(self, mock_assign_seat):
@@ -1322,7 +1322,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
 
         # Verify seat was assigned exactly once
-        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+        mock_assign_seat.assert_called_once_with(seat_object=monitor)
 
     @patch(
         "sentry.quotas.backend.check_assign_seat",
@@ -1368,7 +1368,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         # Verify seat availability check was performed
-        mock_check_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
+        mock_check_seat.assert_called_with(seat_object=monitor)
 
     @patch("sentry.quotas.backend.disable_seat")
     def test_update_disable_disables_seat(self, mock_disable_seat):
@@ -1404,7 +1404,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         # Verify disable_seat was called exactly once
-        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+        mock_disable_seat.assert_called_once_with(seat_object=monitor)
 
     @patch("sentry.quotas.backend.remove_seat")
     def test_delete_removes_seat(self, mock_remove_seat: MagicMock) -> None:
@@ -1434,4 +1434,4 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         validator.delete()
 
         # Verify remove_seat was called exactly once
-        mock_remove_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+        mock_remove_seat.assert_called_once_with(seat_object=monitor)

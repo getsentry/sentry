@@ -587,7 +587,7 @@ class Quota(Service):
         return SeatAssignmentResult(assignable=True)
 
     def check_assign_seat(
-        self, data_category: DataCategory, seat_object: SeatObject
+        self, data_category: DataCategory | None = None, seat_object: SeatObject | None = None
     ) -> SeatAssignmentResult:
         """
         Determines if an assignable seat object can be assigned a seat.
@@ -604,7 +604,9 @@ class Quota(Service):
         return SeatAssignmentResult(assignable=True)
 
     def check_assign_seats(
-        self, data_category: DataCategory, seat_objects: Sequence[SeatObject]
+        self,
+        data_category: DataCategory | None = None,
+        seat_objects: Sequence[SeatObject] | None = None,
     ) -> SeatAssignmentResult:
         """
         Determines if a list of assignable seat objects can be assigned seat.
@@ -623,7 +625,9 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
-    def assign_seat(self, data_category: DataCategory, seat_object: SeatObject) -> int:
+    def assign_seat(
+        self, data_category: DataCategory | None = None, seat_object: SeatObject | None = None
+    ) -> int:
         """
         Assigns a seat to an object if possible, resulting in Outcome.ACCEPTED.
         If the object cannot be assigned a seat it will be
@@ -638,12 +642,16 @@ class Quota(Service):
         Removes a monitor from it's assigned seat.
         """
 
-    def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+    def disable_seat(
+        self, data_category: DataCategory | None = None, seat_object: SeatObject | None = None
+    ) -> None:
         """
         Disables an assigned seat.
         """
 
-    def remove_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+    def remove_seat(
+        self, data_category: DataCategory | None = None, seat_object: SeatObject | None = None
+    ) -> None:
         """
         Removes an assigned seat.
         """

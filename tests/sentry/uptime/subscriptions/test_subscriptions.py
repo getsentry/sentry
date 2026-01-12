@@ -6,7 +6,7 @@ from django.test import override_settings
 from pytest import raises
 
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
@@ -818,7 +818,7 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
             detector.refresh_from_db()
 
         assert UptimeSubscription.objects.filter(id=other_uptime_subscription.id).exists()
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_remove_seat.assert_called_with(seat_object=detector)
 
     @mock.patch("sentry.quotas.backend.remove_seat")
     def test_single_subscriptions(self, mock_remove_seat: mock.MagicMock) -> None:
@@ -841,7 +841,7 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
             uptime_subscription.refresh_from_db()
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_remove_seat.assert_called_with(seat_object=detector)
 
 
 class IsUrlMonitoredForProjectTest(UptimeTestCase):
@@ -907,7 +907,7 @@ class DisableUptimeDetectorTest(UptimeTestCase):
 
         uptime_subscription.refresh_from_db()
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_disable_seat.assert_called_with(seat_object=detector)
 
         detector.refresh_from_db()
         assert not detector.enabled
@@ -948,7 +948,7 @@ class DisableUptimeDetectorTest(UptimeTestCase):
         assert not detector_state.is_triggered
         assert detector_state.priority_level == DetectorPriorityLevel.OK
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_disable_seat.assert_called_with(seat_object=detector)
 
         detector.refresh_from_db()
         assert not detector.enabled
@@ -1036,7 +1036,7 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         assert uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
 
         # Seat assignment was called
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
         detector.refresh_from_db()
         assert detector.enabled
@@ -1079,8 +1079,8 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         detector.refresh_from_db()
         assert not detector.enabled
 
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
-        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
+        mock_check_assign_seat.assert_called_with(seat_object=detector)
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
@@ -1202,7 +1202,7 @@ class EnableUptimeDetectorTest(UptimeTestCase):
             assert detector2.enabled is True
 
             # Verify quota backend was called for seat assignment
-            mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector2)
+            mock_assign_seat.assert_called_with(seat_object=detector2)
 
             # Verify we still have 1 enabled and 1 disabled
             enabled_count = Detector.objects.filter(

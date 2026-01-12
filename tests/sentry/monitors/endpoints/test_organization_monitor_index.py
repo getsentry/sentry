@@ -10,7 +10,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
@@ -633,7 +633,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
 
-        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
+        assign_seat.assert_called_with(seat_object=monitor)
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_seat")

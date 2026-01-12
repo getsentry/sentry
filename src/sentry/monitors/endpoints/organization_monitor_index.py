@@ -30,7 +30,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.models.environment import Environment
@@ -329,7 +329,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
         status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward
         if status == ObjectStatus.ACTIVE:
-            assign_result = quotas.backend.check_assign_seats(DataCategory.MONITOR_SEAT, monitors)
+            assign_result = quotas.backend.check_assign_seats(seat_objects=monitors)
             if not assign_result.assignable:
                 return self.respond(assign_result.reason, status=400)
 
@@ -342,14 +342,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             with transaction.atomic(router.db_for_write(Monitor)):
                 # Attempt to assign a monitor seat
                 if status == ObjectStatus.ACTIVE:
-                    outcome = quotas.backend.assign_seat(DataCategory.MONITOR_SEAT, monitor)
+                    outcome = quotas.backend.assign_seat(seat_object=monitor)
                     if outcome != Outcome.ACCEPTED:
                         errored.append(monitor)
                         continue
 
                 # Attempt to unassign the monitor seat
                 if status == ObjectStatus.DISABLED:
-                    quotas.backend.disable_seat(DataCategory.MONITOR_SEAT, monitor)
+                    quotas.backend.disable_seat(seat_object=monitor)
 
                 # Propagate is_muted to all monitor environments
                 if is_muted is not None:
