@@ -522,7 +522,7 @@ export function TraceIdRenderer({
       search.addOp('(');
       search.addFilterValue('transaction', traceName);
       search.addOp('OR');
-      search.addFilterValue('span.op', traceName);
+      search.addFilterValue('span.name', traceName);
       search.addOp('OR');
       search.addFilterValue('span.description', traceName);
       search.addOp(')');
