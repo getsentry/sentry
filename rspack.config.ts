@@ -453,10 +453,7 @@ const appConfig: Configuration = {
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
-              configFile: path.resolve(
-                import.meta.dirname,
-                './config/tsconfig.build.json'
-              ),
+              configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
             },
             devServer: false,
           }),
