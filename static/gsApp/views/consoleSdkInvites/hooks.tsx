@@ -48,12 +48,11 @@ export function useRevokeConsoleSdkInvite() {
     onMutate: ({email}: UseRevokeConsoleSdkInviteParams) => {
       addLoadingMessage(`Removing console SDK access for ${email}`);
     },
-    onSuccess: (_data, {email, orgSlug, onSuccess}: UseRevokeConsoleSdkInviteParams) => {
+    onSuccess: (_data, {email, orgSlug}: UseRevokeConsoleSdkInviteParams) => {
       addSuccessMessage(`Successfully removed console SDK access for ${email}`);
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
       });
-      onSuccess?.();
     },
     onError: (_error, {email}: UseRevokeConsoleSdkInviteParams) => {
       addErrorMessage(`Failed to remove console SDK access for ${email}`);
