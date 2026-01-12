@@ -199,3 +199,40 @@ class MsTeamsRequestParserTest(TestCase):
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
+
+    def test_request_data_with_empty_body(self) -> None:
+        """Test that request_data property handles empty request bodies gracefully."""
+        # Create a GET request with an empty body
+        request = self.factory.get(reverse("sentry-integration-msteams-configure"))
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+
+        # Accessing request_data should not raise an error for empty body
+        request_data = parser.request_data
+        assert request_data == {}
+
+    def test_request_data_with_valid_json(self) -> None:
+        """Test that request_data property correctly parses valid JSON."""
+        request = self.factory.post(
+            self.path,
+            data={"key": "value"},
+            content_type="application/json",
+        )
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+
+        request_data = parser.request_data
+        assert request_data == {"key": "value"}
+
+    def test_request_data_with_invalid_json(self) -> None:
+        """Test that request_data property handles invalid JSON gracefully."""
+        # Create a request with invalid JSON
+        request = self.factory.post(
+            self.path,
+            data="invalid json",
+            content_type="application/json",
+        )
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+
+        # Should return empty dict and not raise an error
+        request_data = parser.request_data
+        assert request_data == {}
+
