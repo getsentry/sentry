@@ -212,7 +212,7 @@ urlpatterns += [
                 ),
                 # Device Authorization Flow (RFC 8628)
                 re_path(
-                    r"^device/code$",
+                    r"^device/code/$",
                     OAuthDeviceAuthorizationView.as_view(),
                     name="sentry-oauth-device-code",
                 ),
