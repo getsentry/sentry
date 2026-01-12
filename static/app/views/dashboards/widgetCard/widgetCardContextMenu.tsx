@@ -304,12 +304,14 @@ export function getMenuOptions(
           organization,
           location,
           selection,
-          widget: {
-            ...widget,
-            id: undefined,
-            dashboardId: undefined,
-            layout: undefined,
-          },
+          widgets: [
+            {
+              ...widget,
+              id: undefined,
+              dashboardId: undefined,
+              layout: undefined,
+            },
+          ],
           actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
           source: DashboardWidgetSource.DASHBOARDS,
         });
