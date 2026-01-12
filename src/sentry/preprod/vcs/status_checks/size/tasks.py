@@ -336,7 +336,9 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
 
         rules: list[StatusCheckRule] = []
         for rule_dict in rules_data:
-            filter_query = rule_dict.get("filterQuery", "")
+            filter_query_raw = rule_dict.get("filterQuery", "")
+            filter_query = str(filter_query_raw) if filter_query_raw is not None else ""
+
             if not filter_query and "filters" in rule_dict:
                 logger.info(
                     "preprod.status_checks.rules.legacy_format",
@@ -446,7 +448,7 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str | None]
 
     If a rule has no filters, it matches all artifacts.
     """
-    if not rule.filter_query.strip():
+    if not rule.filter_query or not str(rule.filter_query).strip():
         return True
 
     try:
