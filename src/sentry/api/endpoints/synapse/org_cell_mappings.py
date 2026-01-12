@@ -16,7 +16,7 @@ class SynapseAuthPermission(BasePermission):
     Validates HMAC signature for Synapse requests.
 
     Expects the X-Synapse-Signature header to contain the HMAC-SHA256 hex digest
-    of the request body, signed with SYNAPSE_AUTH_SECRET.
+    of the request body, signed with SYNAPSE_HMAC_SECRET.
     """
 
     def has_permission(self, request: Request, view: object) -> bool:
