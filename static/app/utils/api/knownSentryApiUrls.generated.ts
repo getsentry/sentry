@@ -667,6 +667,8 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/check-for-updates/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/snapshots/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/snapshots/$snapshotId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/processing-errors/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/processing-errors/$uuid/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/profiling/profiles/$profileId/'
