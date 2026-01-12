@@ -335,7 +335,7 @@ const MarkdownIndicator = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const NotePreview = styled(MarkedText, {

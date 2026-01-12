@@ -119,12 +119,12 @@ const Label = styled('label')`
 
 const HelpText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PreviousValue = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ErrorMessage = styled('span')`

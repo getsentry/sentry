@@ -357,7 +357,7 @@ const SummaryText = styled('p')`
   white-space: pre-wrap;
   margin: 0;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
@@ -393,7 +393,7 @@ const EndStateContainer = styled('div')`
 
 const Subtext = styled(Text)`
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   display: flex;
   justify-content: center;

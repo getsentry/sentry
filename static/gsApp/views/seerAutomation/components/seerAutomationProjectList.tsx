@@ -90,7 +90,7 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 }
 
 const ValueWrapper = styled('span')<{isDangerous?: boolean}>`
-  color: ${p => (p.isDangerous ? p.theme.tokens.content.danger : p.theme.subText)};
+  color: ${p => (p.isDangerous ? p.theme.tokens.content.danger : p.theme.tokens.content.secondary)};
 `;
 
 const Subheading = styled('span')`
@@ -105,7 +105,7 @@ const SeerDropdownLabel = styled('div')`
 
 const SeerDropdownDescription = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 function getSeerLabel(key: string, seerScannerAutomation: boolean) {
@@ -429,7 +429,7 @@ const SearchBarWrapper = styled('div')`
 `;
 
 const SeerValue = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   justify-content: flex-end;
   gap: ${space(4)};

@@ -121,12 +121,12 @@ const AdditionalLine = styled('div')<{
   bottom: 0;
   border-radius: 50%;
   border: 2px solid transparent;
-  border-top-color: ${p => p.theme.subText};
-  border-bottom-color: ${p => p.theme.subText};
+  border-top-color: ${p => p.theme.tokens.content.secondary};
+  border-bottom-color: ${p => p.theme.tokens.content.secondary};
   border-left-color: ${p =>
-    p.variant === 'leftColored' ? p.theme.subText : 'transparent'};
+    p.variant === 'leftColored' ? p.theme.tokens.content.secondary : 'transparent'};
   border-right-color: ${p =>
-    p.variant === 'rightColored' ? p.theme.subText : 'transparent'};
+    p.variant === 'rightColored' ? p.theme.tokens.content.secondary : 'transparent'};
   animation: ${flyingLines} 1s linear infinite;
   animation-delay: ${p => p.delay}s;
   transform: ${p => (p.rotation ? `rotate(${p.rotation}deg)` : 'none')};
@@ -151,20 +151,20 @@ const FlyingLinesContainer = styled('div')`
     bottom: 0;
     border-radius: 50%;
     border: 2px solid transparent;
-    border-top-color: ${p => p.theme.subText};
-    border-bottom-color: ${p => p.theme.subText};
+    border-top-color: ${p => p.theme.tokens.content.secondary};
+    border-bottom-color: ${p => p.theme.tokens.content.secondary};
     animation: ${flyingLines} 1s linear infinite;
   }
 
   &:before {
-    border-left-color: ${p => p.theme.subText};
+    border-left-color: ${p => p.theme.tokens.content.secondary};
     border-right-color: transparent;
     animation-delay: -0.4s;
   }
 
   &:after {
     border-left-color: transparent;
-    border-right-color: ${p => p.theme.subText};
+    border-right-color: ${p => p.theme.tokens.content.secondary};
     animation-delay: -0.2s;
   }
 `;

@@ -328,7 +328,7 @@ const ScoreWrapper = styled('div')`
 `;
 
 const SubText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TrendText = styled('div')<{color: string}>`
