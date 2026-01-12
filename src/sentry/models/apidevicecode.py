@@ -197,18 +197,17 @@ class ApiDeviceCode(Model):
         if scope_list is None:
             scope_list = []
 
+        last_error: IntegrityError | None = None
         for attempt in range(MAX_CODE_GENERATION_RETRIES):
             try:
                 return cls.objects.create(
                     application=application,
                     scope_list=scope_list,
                 )
-            except IntegrityError:
-                # Collision on device_code or user_code, try again
-                if attempt == MAX_CODE_GENERATION_RETRIES - 1:
-                    raise UserCodeCollisionError(
-                        f"Unable to generate unique device code after {MAX_CODE_GENERATION_RETRIES} attempts"
-                    )
-                continue
+            except IntegrityError as e:
+                # Collision on device_code or user_code, retry with new generated codes
+                last_error = e
 
-        raise UserCodeCollisionError("Unable to generate unique device code")
+        raise UserCodeCollisionError(
+            f"Unable to generate unique device code after {MAX_CODE_GENERATION_RETRIES} attempts"
+        ) from last_error
