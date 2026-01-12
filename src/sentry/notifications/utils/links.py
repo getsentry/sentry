@@ -9,7 +9,11 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.utils.rules import get_key_from_rule_data, split_rules_by_rule_workflow_id
+from sentry.notifications.utils.rules import (
+    get_key_from_rule_data,
+    get_rule_or_workflow_id,
+    split_rules_by_rule_workflow_id,
+)
 from sentry.types.rules import NotificationRuleDetails
 
 """
@@ -163,8 +167,8 @@ def get_snooze_url(
     sentry_query_params: str,
     type_id: int,
 ) -> str:
-    try:
-        rule_id = int(get_key_from_rule_data(rule, "legacy_rule_id"))
-    except AssertionError:
-        rule_id = rule.id
+    key, rule_id = get_rule_or_workflow_id(rule)
+    # should only be using rule
+    if key == "workflow_id":
+        rule_id = str(rule.id)
     return f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule_id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"

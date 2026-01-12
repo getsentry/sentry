@@ -13,7 +13,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.models import Workflow
@@ -88,19 +88,7 @@ def event_to_record(
     # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
     # TODO(iamrajjoshi): Creating a PR to fix this
     assert event.group is not None
-    rule_ids = []
-    if identifier_key == IdentifierKey.RULE:
-        for rule in rules:
-            try:
-                rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
-            except AssertionError:
-                rule_ids.append(rule.id)
-    elif identifier_key == IdentifierKey.WORKFLOW:
-        for rule in rules:
-            try:
-                rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
-            except AssertionError:
-                rule_ids.append(rule.id)
+    rule_ids = [int(get_rule_or_workflow_id(rule)[1]) for rule in rules]
     return Record(
         event.event_id,
         Notification(event, rule_ids, notification_uuid, identifier_key),
