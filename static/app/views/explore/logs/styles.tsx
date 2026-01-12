@@ -370,9 +370,9 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
     case SeverityLevel.INFO:
       return {
         background: theme.tokens.graphics.accent.vibrant,
-        backgroundLight: theme.tokens.graphics.accent.moderate,
-        border: theme.tokens.border.transparent.accent.muted,
-        borderHover: theme.tokens.border.transparent.accent.moderate,
+        backgroundLight: theme.tokens.background.transparent.accent.muted,
+        border: theme.tokens.border.transparent.accent.moderate,
+        borderHover: theme.tokens.border.transparent.accent.vibrant,
         color: theme.tokens.content.accent,
       };
     case SeverityLevel.UNKNOWN:

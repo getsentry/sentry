@@ -748,14 +748,17 @@ const FolderLink = styled(Link, {
   align-items: center;
   gap: ${p => p.theme.space.xs};
   color: ${p =>
-    p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.muted};
+    p.active
+      ? p.theme.tokens.interactive.link.accent.rest
+      : p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p => p.theme.space.md};
   padding-left: ${p => p.theme.space.sm};
   position: relative;
   transition: none;
 
   &:before {
-    background: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     content: '';
     inset: 0 ${p => p.theme.space.md} 0 -${p => p.theme.space['2xs']};
     position: absolute;
@@ -779,26 +782,30 @@ const FolderLink = styled(Link, {
 
   &:hover {
     color: ${p =>
-      p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
+      p.active
+        ? p.theme.tokens.interactive.link.accent.hover
+        : p.theme.tokens.interactive.link.neutral.hover};
 
     &:before {
       background: ${p =>
         p.active
-          ? p.theme.tokens.background.transparent.accent.muted
-          : p.theme.tokens.background.transparent.neutral.muted};
+          ? p.theme.tokens.interactive.transparent.accent.selected.background.hover
+          : p.theme.tokens.interactive.transparent.neutral.background.hover};
       opacity: 1;
     }
   }
 
   &:active {
     color: ${p =>
-      p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
+      p.active
+        ? p.theme.tokens.interactive.link.accent.active
+        : p.theme.tokens.interactive.link.neutral.active};
 
     &:before {
       background: ${p =>
         p.active
-          ? p.theme.tokens.background.transparent.accent.muted
-          : p.theme.tokens.background.transparent.neutral.muted};
+          ? p.theme.tokens.interactive.transparent.accent.selected.background.active
+          : p.theme.tokens.interactive.transparent.neutral.background.active};
       opacity: 1;
     }
   }
