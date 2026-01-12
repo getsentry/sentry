@@ -91,28 +91,23 @@ class SDKCrashDetector:
         # are SDK frames or from system libraries.
         iter_frames = [f for f in reversed(frames) if f is not None]
 
-        # First: check if we should ignore the crash because a frame matches sdk_crash_ignore_matchers
+        # First pass: check if there are non-conditional SDK frames anywhere
+        has_non_conditional_sdk_frame = False
+        for frame in iter_frames:
+            if self.is_sdk_frame(frame) and not self._matches_ignore_when_only_sdk_frame(frame):
+                has_non_conditional_sdk_frame = True
+                break
+
+        # Main loop: determine if this is an SDK crash
         for frame in iter_frames:
             if self._matches_sdk_crash_ignore(frame):
                 return False
 
-        # Second: check for conditional SDK frames (like SentrySwizzleWrapper) and track if there are other SDK frames
-        has_conditional_sdk_frame = False
-        has_other_sdk_frame = False
-        for frame in iter_frames:
             if self.is_sdk_frame(frame):
                 if self._matches_ignore_when_only_sdk_frame(frame):
-                    has_conditional_sdk_frame = True
-                else:
-                    has_other_sdk_frame = True
-
-        if has_conditional_sdk_frame and not has_other_sdk_frame:
-            return False
-
-        # Third: determine if this is an SDK crash
-        for frame in iter_frames:
-            if self.is_sdk_frame(frame):
+                    return has_non_conditional_sdk_frame
                 return True
+
             if not self.is_system_library_frame(frame):
                 return False
 
