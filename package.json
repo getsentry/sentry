@@ -174,7 +174,7 @@
     "scroll-to-element": "^2.0.0",
     "sprintf-js": "1.0.3",
     "style-loader": "4.0.0",
-    "swc-plugin-component-annotate": "1.11.0",
+    "swc-plugin-component-annotate": "1.13.0",
     "ts-checker-rspack-plugin": "1.1.5",
     "tslib": "^2.8.1",
     "type-fest": "^5.2.0",
