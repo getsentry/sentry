@@ -8,7 +8,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import useMedia from 'sentry/utils/useMedia';
@@ -323,9 +323,11 @@ function UsageOverviewTableRow({
             <td>
               <Flex justify="end">
                 <Tag variant="promotion" icon={<IconClock />}>
-                  {tct('[daysLeft] days left', {
-                    daysLeft: -1 * getDaysSinceDate(activeProductTrial.endDate ?? ''),
-                  })}
+                  {tn(
+                    '%s day left',
+                    '%s days left',
+                    -1 * getDaysSinceDate(activeProductTrial.endDate ?? '')
+                  )}
                 </Tag>
               </Flex>
             </td>
