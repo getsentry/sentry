@@ -41,11 +41,7 @@ export default function ConsoleSDKInvitesSettings() {
       <SettingsPageHeader
         title={t('Console SDK Invites')}
         action={
-          <RequestSdkAccessButton
-            organization={organization}
-            origin="org-settings"
-            projectId="None"
-          />
+          <RequestSdkAccessButton organization={organization} origin="org-settings" />
         }
       />
       <TextBlock>
