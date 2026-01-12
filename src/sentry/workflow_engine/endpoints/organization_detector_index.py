@@ -230,7 +230,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     @extend_schema(
-        operation_id="Fetch a Organization's Monitors",
+        operation_id="Fetch an Organization's Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -247,6 +247,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
