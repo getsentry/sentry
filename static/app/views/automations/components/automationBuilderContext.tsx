@@ -191,6 +191,7 @@ const initialAutomationBuilderState: AutomationBuilderState = {
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
     conditions: [
       createWhenCondition(DataConditionType.FIRST_SEEN_EVENT),
+      createWhenCondition(DataConditionType.ISSUE_RESOLVED_TRIGGER),
       createWhenCondition(DataConditionType.REAPPEARED_EVENT),
       createWhenCondition(DataConditionType.REGRESSION_EVENT),
     ],
