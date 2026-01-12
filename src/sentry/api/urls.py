@@ -661,7 +661,6 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
 from .endpoints.assistant import AssistantEndpoint
-from .endpoints.attribute_mappings import AttributeMappingsEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
@@ -705,6 +704,7 @@ from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoin
 from .endpoints.organization_artifactbundle_assemble import (
     OrganizationArtifactBundleAssembleEndpoint,
 )
+from .endpoints.organization_attribute_mappings import OrganizationAttributeMappingsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
@@ -1435,6 +1435,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-incident-index",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/attribute-mappings/$",
+        OrganizationAttributeMappingsEndpoint.as_view(),
+        name="sentry-api-0-organization-attribute-mappings",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/chunk-upload/$",
         ChunkUploadEndpoint.as_view(),
         name="sentry-api-0-chunk-upload",
@@ -1549,6 +1554,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/starred/order/$",
         ExploreSavedQueryStarredOrderEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-starred-order",
+    ),
+    # Attribute Mappings
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/attribute-mappings/$",
+        OrganizationAttributeMappingsEndpoint.as_view(),
+        name="sentry-api-0-organization-attribute-mappings",
     ),
     # Dashboards
     re_path(
@@ -3667,11 +3678,6 @@ urlpatterns = [
         r"^assistant/$",
         AssistantEndpoint.as_view(),
         name="sentry-api-0-assistant",
-    ),
-    re_path(
-        r"^attribute-mappings/$",
-        AttributeMappingsEndpoint.as_view(),
-        name="sentry-api-0-attribute-mappings",
     ),
     re_path(
         r"^api-applications/$",

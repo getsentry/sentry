@@ -3,7 +3,9 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.attributes import OCCURRENCE_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.ourlogs.attributes import OURLOG_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.profile_functions.attributes import PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS
@@ -23,15 +25,14 @@ TYPE_TO_DEFINITIONS = {
 }
 
 
-@all_silo_endpoint
-class AttributeMappingsEndpoint(Endpoint):
+@region_silo_endpoint
+class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.EXPLORE
-    permission_classes = ()
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         requested_types = request.GET.getlist("type")
 
         if requested_types:

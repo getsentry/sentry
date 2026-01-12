@@ -3,12 +3,13 @@ from django.urls import reverse
 from sentry.testutils.cases import APITestCase
 
 
-class AttributeMappingsEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-attribute-mappings"
+class OrganizationAttributeMappingsEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-organization-attribute-mappings"
 
     def test_get_all_mappings(self):
         """Test that endpoint returns all attribute mappings when no filter is provided."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url)
 
         assert response.status_code == 200
@@ -32,7 +33,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_known_span_mapping(self):
         """Test that a known span mapping is returned correctly."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": "spans"})
 
         assert response.status_code == 200
@@ -49,7 +51,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_known_log_mapping(self):
         """Test that a known log mapping is returned correctly."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": "logs"})
 
         assert response.status_code == 200
@@ -66,7 +69,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_single_type_filter(self):
         """Test filtering by a single type."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": "spans"})
 
         assert response.status_code == 200
@@ -79,7 +83,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_multiple_type_filter(self):
         """Test filtering by multiple types using repeated query params."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": ["spans", "logs"]})
 
         assert response.status_code == 200
@@ -92,7 +97,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_invalid_type_returns_400(self):
         """Test that an invalid type returns a 400 error."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": "invalid_type"})
 
         assert response.status_code == 400
@@ -102,7 +108,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_mixed_valid_invalid_types_returns_400(self):
         """Test that mixing valid and invalid types returns a 400 error."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": ["spans", "invalid_type"]})
 
         assert response.status_code == 400
@@ -112,7 +119,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_includes_secondary_aliases(self):
         """Test that secondary aliases are included in the response."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": "spans"})
 
         assert response.status_code == 200
@@ -132,7 +140,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_camelcase_keys(self):
         """Test that response uses camelCase keys."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": "spans"})
 
         assert response.status_code == 200
@@ -150,7 +159,8 @@ class AttributeMappingsEndpointTest(APITestCase):
 
     def test_excludes_private_attributes(self):
         """Test that private attributes are not included in the response."""
-        url = reverse(self.endpoint)
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
         response = self.client.get(url, {"type": ["spans", "logs"]})
 
         assert response.status_code == 200
