@@ -440,6 +440,97 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["type"] == "encrypted"
 
     @responses.activate
+    def test_update_org_config_vars_exist_with_config_id(self) -> None:
+        """Test the case where env var already exists and Vercel returns configurationId in error"""
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        org = self.organization
+        project_id = self.project.id
+        with assume_test_silo_mode(SiloMode.REGION):
+            project_key = ProjectKey.get_default(project=Project.objects.get(id=project_id))
+
+        # mock get_project API call
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECT_URL % self.project_id}",
+            json={"link": {"type": "github"}, "framework": "nextjs"},
+        )
+
+        # Test specifically for SENTRY_ORG which is the first env var
+        # Mock create attempt returns 403 with configurationId
+        responses.add(
+            responses.POST,
+            f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_URL % self.project_id}",
+            json={
+                "error": {
+                    "code": "ENV_ALREADY_EXISTS",
+                    "message": "Another Environment Variable with the same Name and Environment exists in your project.",
+                    "key": "SENTRY_ORG",
+                    "configurationId": "existing_env_var_id_123",
+                    "target": ["production", "preview", "development"],
+                }
+            },
+            status=403,
+        )
+
+        # Mock the update using the configurationId from error
+        responses.add(
+            responses.PATCH,
+            f"{VercelClient.base_url}{VercelClient.UPDATE_ENV_VAR_URL % (self.project_id, 'existing_env_var_id_123')}",
+            json={
+                "key": "SENTRY_ORG",
+                "value": org.slug,
+                "target": ["production", "preview"],
+                "type": "encrypted",
+            },
+        )
+
+        # Mock remaining env vars to succeed
+        remaining_vars = [
+            "SENTRY_PROJECT",
+            "SENTRY_DSN",
+            "SENTRY_AUTH_TOKEN",
+            "VERCEL_GIT_COMMIT_SHA",
+            "SENTRY_VERCEL_LOG_DRAIN_URL",
+            "SENTRY_OTLP_TRACES_URL",
+            "SENTRY_PUBLIC_KEY",
+        ]
+        for _ in remaining_vars:
+            responses.add(
+                responses.POST,
+                f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_URL % self.project_id}",
+                json={},
+            )
+
+        data = {"project_mappings": [[project_id, self.project_id]]}
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+
+        # This should succeed without raising IntegrationError
+        installation.update_organization_config(data)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
+
+        # Verify the PATCH request was made with correct data
+        patch_call = None
+        for call in responses.calls:
+            if call.request.method == "PATCH" and "existing_env_var_id_123" in call.request.url:
+                patch_call = call
+                break
+
+        assert patch_call is not None
+        req_params = orjson.loads(patch_call.request.body)
+        assert req_params["key"] == "SENTRY_ORG"
+        assert req_params["value"] == org.slug
+        assert req_params["target"] == ["production", "preview"]
+        assert req_params["type"] == "encrypted"
+
+    @responses.activate
     def test_upgrade_org_config_no_dsn(self) -> None:
         """Test that the function doesn't progress if there is no active DSN"""
 

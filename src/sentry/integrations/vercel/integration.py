@@ -368,6 +368,14 @@ class VercelIntegration(IntegrationInstallation):
             self.org_integration = org_integration
 
     def create_env_var(self, client, vercel_project_id, key, value, type, target):
+        """
+        Create an environment variable in Vercel, or update it if it already exists.
+        
+        When an env var already exists with different target environments, Vercel returns
+        a 403 error with ENV_ALREADY_EXISTS code and includes the configurationId of the
+        existing variable. We use this ID to directly update the variable, avoiding the
+        need to query for it (which may not return the variable if targets don't match).
+        """
         data = {
             "key": key,
             "value": value,
@@ -379,7 +387,11 @@ class VercelIntegration(IntegrationInstallation):
         except ApiError as e:
             if e.json and e.json.get("error", {}).get("code") == "ENV_ALREADY_EXISTS":
                 try:
-                    return self.update_env_variable(client, vercel_project_id, data)
+                    # Try to get the existing env var ID from the error response
+                    existing_env_var_id = e.json.get("error", {}).get("configurationId")
+                    return self.update_env_variable(
+                        client, vercel_project_id, data, existing_env_var_id
+                    )
                 except ApiError as e:
                     error_message = (
                         e.json.get("error", {}).get("message")
@@ -389,7 +401,22 @@ class VercelIntegration(IntegrationInstallation):
                     raise ValidationError({"project_mappings": [error_message]})
             raise
 
-    def update_env_variable(self, client, vercel_project_id, data):
+    def update_env_variable(self, client, vercel_project_id, data, env_var_id=None):
+        """
+        Update an environment variable in Vercel.
+        
+        Args:
+            client: VercelClient instance
+            vercel_project_id: The Vercel project ID
+            data: Environment variable data (key, value, type, target)
+            env_var_id: Optional ID of the env var to update. If provided, updates directly.
+                       If not provided, queries all env vars to find the matching one.
+        """
+        # If we have the env var ID from the error response, use it directly
+        if env_var_id:
+            return client.update_env_variable(vercel_project_id, env_var_id, data)
+
+        # Otherwise, fetch all env vars and find the matching one
         envs = client.get_env_vars(vercel_project_id)["envs"]
 
         env_var_ids = [env_var["id"] for env_var in envs if env_var["key"] == data["key"]]
