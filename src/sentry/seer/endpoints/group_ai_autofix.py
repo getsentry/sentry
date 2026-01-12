@@ -107,7 +107,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
     def _should_use_explorer(self, request: Request, organization: Organization) -> bool:
         """Check if explorer mode should be used based on query params and feature flags."""
-        if request.GET.get("mode") != "explorer":
+        if request.GET.get("mode") == "legacy":
             return False
 
         if not features.has("organizations:seer-explorer", organization, actor=request.user):
