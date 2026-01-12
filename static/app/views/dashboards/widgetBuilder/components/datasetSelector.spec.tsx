@@ -35,7 +35,7 @@ describe('DatasetSelector', () => {
     );
   });
 
-  it('shows migration link for deprecated transactions dataset and allows clicking it', async () => {
+  it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -54,14 +54,11 @@ describe('DatasetSelector', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
-    // Should show deprecation message with clickable link
     expect(await screen.findByText(/No longer supported\. Use the/i)).toBeInTheDocument();
 
-    // The spans link should be clickable (not blocked by disabled state)
     const spansLink = screen.getByRole('link', {name: 'spans'});
     await userEvent.click(spansLink);
 
-    // Verify navigation to spans dataset
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({dataset: 'spans'}),
@@ -91,7 +88,6 @@ describe('DatasetSelector', () => {
 
     const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
 
-    // Should show normal description, not deprecation message
     expect(
       await screen.findByText('Transactions from your application')
     ).toBeInTheDocument();

@@ -131,7 +131,8 @@ function WidgetBuilderDatasetSelector() {
         onChange={selection => {
           const newDataset = selection.value;
 
-          // Prevent selection of transactions when deprecated
+          // Prevent selection of transactions when deprecated. The option is not disabled
+          // to allow clicking the migration link.
           if (newDataset === WidgetType.TRANSACTIONS && isTransactionsDeprecated) {
             return;
           }
