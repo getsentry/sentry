@@ -14,10 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {
-  useConsoleSdkInvites,
-  useRevokeConsoleSdkInvite,
-} from 'getsentry/views/consoleSdkInvites/hooks';
+import {useConsoleSdkInvites, useRevokeConsoleSdkInvite} from './hooks';
 
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();

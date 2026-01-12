@@ -6,7 +6,7 @@ const consoleSdkInvitesRoutes = (): SentryRouteObject =>
   ({
     path: 'console-sdk-invites/',
     name: t('Console SDK Invites'),
-    component: make(() => import('getsentry/views/consoleSdkInvites')),
+    component: make(() => import('sentry/views/settings/organizationConsoleSdkInvites')),
   }) as SentryRouteObject;
 
 export default consoleSdkInvitesRoutes;
