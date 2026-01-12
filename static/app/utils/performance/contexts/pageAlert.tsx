@@ -43,23 +43,68 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
   const [pageAlert, setPageAlert] = useState<PageAlertOptions | undefined>();
 
   const setPageInfo: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, variant: 'info', ...options});
+    setPageAlert(prev => {
+      if (
+        prev?.message === message &&
+        prev?.variant === 'info' &&
+        prev?.dismissId === options?.dismissId
+      ) {
+        return prev;
+      }
+      return {message, variant: 'info', ...options};
+    });
   }, []);
 
   const setPageMuted: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, variant: 'muted', ...options});
+    setPageAlert(prev => {
+      if (
+        prev?.message === message &&
+        prev?.variant === 'muted' &&
+        prev?.dismissId === options?.dismissId
+      ) {
+        return prev;
+      }
+      return {message, variant: 'muted', ...options};
+    });
   }, []);
 
   const setPageSuccess: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, variant: 'success', ...options});
+    setPageAlert(prev => {
+      if (
+        prev?.message === message &&
+        prev?.variant === 'success' &&
+        prev?.dismissId === options?.dismissId
+      ) {
+        return prev;
+      }
+      return {message, variant: 'success', ...options};
+    });
   }, []);
 
   const setPageWarning: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, variant: 'warning', ...options});
+    setPageAlert(prev => {
+      if (
+        prev?.message === message &&
+        prev?.variant === 'warning' &&
+        prev?.dismissId === options?.dismissId
+      ) {
+        return prev;
+      }
+      return {message, variant: 'warning', ...options};
+    });
   }, []);
 
   const setPageDanger: PageAlertSetter = useCallback((message, options) => {
-    setPageAlert({message, variant: 'danger', ...options});
+    setPageAlert(prev => {
+      if (
+        prev?.message === message &&
+        prev?.variant === 'danger' &&
+        prev?.dismissId === options?.dismissId
+      ) {
+        return prev;
+      }
+      return {message, variant: 'danger', ...options};
+    });
   }, []);
 
   return (
