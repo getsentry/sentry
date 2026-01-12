@@ -74,3 +74,27 @@ export interface ExplorerSession {
   run_id: number;
   title: string; // ISO date string
 }
+
+/**
+ * Result from a coding agent (e.g., Cursor).
+ */
+interface CodingAgentResult {
+  description: string;
+  repo_full_name: string;
+  repo_provider: string;
+  branch_name?: string;
+  pr_url?: string;
+}
+
+/**
+ * State of a coding agent launched from an Explorer run.
+ */
+export interface ExplorerCodingAgentState {
+  id: string;
+  name: string;
+  provider: string;
+  started_at: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  agent_url?: string;
+  results?: CodingAgentResult[];
+}

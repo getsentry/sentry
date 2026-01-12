@@ -140,7 +140,7 @@ const progressBarWidth = '45px'; // Prevent percentages from overflowing
 const TagValueContent = styled('div')`
   display: grid;
   grid-template-columns: 4fr auto ${progressBarWidth};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-column-gap: ${space(1)};
 
   & > :nth-child(2n) {

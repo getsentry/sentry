@@ -3,6 +3,8 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
@@ -25,7 +27,7 @@ export function PlatformPickerPanel({onSelect}: Props) {
         )}
       </p>
       <SectionTitle>{t('Platforms')}</SectionTitle>
-      <Actions>
+      <Flex wrap="wrap" gap="xl">
         {platformGuides
           .filter(({platform}) => !['cli', 'http'].includes(platform))
           .map(({platform, label}) => (
@@ -40,16 +42,16 @@ export function PlatformPickerPanel({onSelect}: Props) {
               <div>{label}</div>
             </PlatformOption>
           ))}
-      </Actions>
+      </Flex>
       <SectionTitle>{t('Generic')}</SectionTitle>
-      <Actions>
+      <Flex wrap="wrap" gap="xl">
         <Button size="sm" icon={<IconTerminal />} onClick={() => onSelect('cli')}>
           Sentry CLI
         </Button>
         <Button size="sm" icon={<IconGlobe />} onClick={() => onSelect('http')}>
           HTTP (cURL)
         </Button>
-      </Actions>
+      </Flex>
     </OnboardingPanel>
   );
 }
@@ -60,16 +62,10 @@ const OnboardingTitle = styled('h3')`
 
 const SectionTitle = styled('h5')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
   margin-top: ${space(4)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-  flex-wrap: wrap;
 `;
 
 const PlatformButton = styled(Button)`
@@ -83,5 +79,5 @@ const PlatformOption = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

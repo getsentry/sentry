@@ -2,7 +2,18 @@ from datetime import datetime
 from functools import partial
 
 from django.db import router, transaction
-from django.db.models import Count, OuterRef, Q, QuerySet, Subquery
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Q,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -45,7 +56,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
@@ -188,6 +199,28 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_workflows(request, organization)
 
+        # When the `priorityDetector` query param is provided, workflows connected to this detector are sorted first
+        priority_detector_id: int | None = None
+        if raw_priority := request.GET.get("priorityDetector"):
+            try:
+                priority_detector_id = int(raw_priority)
+            except ValueError:
+                raise ValidationError({"priorityDetector": ["Invalid detector ID format"]})
+
+            is_priority = Exists(
+                DetectorWorkflow.objects.filter(
+                    workflow=OuterRef("pk"),
+                    detector_id=priority_detector_id,
+                )
+            )
+            queryset = queryset.annotate(
+                priority_detector_id=Case(
+                    When(condition=is_priority, then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )
+            )
+
         # Add synthetic fields to the queryset if needed.
         match sort_by.db_field_name:
             case "connected_detectors":
@@ -214,12 +247,14 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     last_triggered=Coalesce(latest_fire_subquery, long_ago)
                 )
 
-        queryset = queryset.order_by(*sort_by.db_order_by)
+        order_by = sort_by.db_order_by
+        if priority_detector_id is not None:
+            order_by = ("priority_detector_id", *sort_by.db_order_by)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=sort_by.db_order_by,
+            order_by=order_by,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
             count_hits=True,
