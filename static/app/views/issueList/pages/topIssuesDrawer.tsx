@@ -184,7 +184,7 @@ export function useClusterStats(groupIds: number[]): ClusterStats {
   }, [groups, isPending]);
 }
 
-export function renderWithInlineCode(text: string): React.ReactNode {
+function renderWithInlineCode(text: string): React.ReactNode {
   const parts = text.split(/(`[^`]+`)/g);
   if (parts.length === 1) {
     return text;
