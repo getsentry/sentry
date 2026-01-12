@@ -49,23 +49,25 @@ describe('AddToDashboardButton', () => {
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.BAR,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.SPANS,
-          queries: [
-            {
-              aggregates: ['count(span.duration)'],
-              columns: [],
-              fields: [],
-              conditions: '',
-              orderby: '',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.BAR,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: ['count(span.duration)'],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });
@@ -111,23 +113,25 @@ describe('AddToDashboardButton', () => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           // For Add + Stay on Page
-          widget: {
-            title: 'Custom Widget',
-            displayType: expectedDisplayType,
-            interval: undefined,
-            limit: undefined,
-            widgetType: WidgetType.SPANS,
-            queries: [
-              {
-                aggregates: ['max(span.duration)'],
-                columns: [],
-                fields: [],
-                conditions: '',
-                orderby: '',
-                name: '',
-              },
-            ],
-          },
+          widgets: [
+            {
+              title: 'Custom Widget',
+              displayType: expectedDisplayType,
+              interval: undefined,
+              limit: undefined,
+              widgetType: WidgetType.SPANS,
+              queries: [
+                {
+                  aggregates: ['max(span.duration)'],
+                  columns: [],
+                  fields: [],
+                  conditions: '',
+                  orderby: '',
+                  name: '',
+                },
+              ],
+            },
+          ],
         })
       );
     }
@@ -159,23 +163,25 @@ describe('AddToDashboardButton', () => {
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.LINE,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.SPANS,
-          queries: [
-            {
-              aggregates: ['max(span.duration)'],
-              columns: [],
-              fields: [],
-              conditions: '',
-              orderby: '',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.LINE,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: ['max(span.duration)'],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });
@@ -194,23 +200,25 @@ describe('AddToDashboardButton', () => {
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.BAR,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.SPANS,
-          queries: [
-            {
-              aggregates: ['count(span.duration)'],
-              columns: [],
-              fields: [],
-              conditions: '',
-              orderby: '-count(span.duration)',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.BAR,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: ['count(span.duration)'],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '-count(span.duration)',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });
@@ -242,26 +250,28 @@ describe('AddToDashboardButton', () => {
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.LINE,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.SPANS,
-          queries: [
-            {
-              aggregates: [
-                // because the visualizes get flattend, we only take the first y axis
-                'avg(span.duration)',
-              ],
-              columns: [],
-              fields: [],
-              conditions: '',
-              orderby: '-avg(span.duration)',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.LINE,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: [
+                  // because the visualizes get flattend, we only take the first y axis
+                  'avg(span.duration)',
+                ],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '-avg(span.duration)',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });
