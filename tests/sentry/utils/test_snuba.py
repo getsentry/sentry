@@ -628,3 +628,57 @@ class SnubaQueryRateLimitTest(TestCase):
         assert (
             str(exc_info.value) == "Query on could not be run due to allocation policies, info: ..."
         )
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_bulk_snuba_query_thread_pool_configuration(self, mock_snuba_query) -> None:
+        """
+        Test that bulk snuba queries respect the SENTRY_SNUBA_QUERY_THREAD_POOL_SIZE setting
+        """
+        from concurrent.futures import ThreadPoolExecutor
+        from unittest.mock import patch
+
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 200
+        mock_response.data = json.dumps({"data": []}).encode()
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        # Test with default value (should be 3)
+        with patch("sentry.utils.snuba.ThreadPoolExecutor") as mock_pool:
+            mock_pool.return_value.__enter__ = mock.Mock(return_value=mock.Mock())
+            mock_pool.return_value.__exit__ = mock.Mock(return_value=False)
+            mock_pool.return_value.__enter__.return_value.map = mock.Mock(
+                return_value=[("test_referrer", mock_response, lambda x: x, lambda x: x)]
+            )
+
+            # Create multiple requests to trigger thread pool usage
+            requests = [self.snuba_request, self.snuba_request]
+            try:
+                _bulk_snuba_query(requests)
+            except Exception:
+                pass  # We don't care about the result, just the pool creation
+
+            # Verify ThreadPoolExecutor was called with max_workers=3 (default)
+            mock_pool.assert_called_once()
+            call_kwargs = mock_pool.call_args[1]
+            assert call_kwargs["max_workers"] == 3
+
+        # Test with custom value
+        with self.settings(SENTRY_SNUBA_QUERY_THREAD_POOL_SIZE=5):
+            with patch("sentry.utils.snuba.ThreadPoolExecutor") as mock_pool:
+                mock_pool.return_value.__enter__ = mock.Mock(return_value=mock.Mock())
+                mock_pool.return_value.__exit__ = mock.Mock(return_value=False)
+                mock_pool.return_value.__enter__.return_value.map = mock.Mock(
+                    return_value=[("test_referrer", mock_response, lambda x: x, lambda x: x)]
+                )
+
+                requests = [self.snuba_request, self.snuba_request]
+                try:
+                    _bulk_snuba_query(requests)
+                except Exception:
+                    pass
+
+                # Verify ThreadPoolExecutor was called with max_workers=5 (custom)
+                mock_pool.assert_called_once()
+                call_kwargs = mock_pool.call_args[1]
+                assert call_kwargs["max_workers"] == 5
+

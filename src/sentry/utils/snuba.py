@@ -1237,9 +1237,12 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
+            # Use configurable max_workers to prevent overwhelming Snuba with concurrent queries
+            # Default is 3 (down from 10) to reduce concurrent query pressure
+            max_workers = getattr(settings, "SENTRY_SNUBA_QUERY_THREAD_POOL_SIZE", 3)
             with ThreadPoolExecutor(
                 thread_name_prefix=__name__,
-                max_workers=10,
+                max_workers=max_workers,
             ) as query_thread_pool:
                 query_results = list(
                     query_thread_pool.map(
