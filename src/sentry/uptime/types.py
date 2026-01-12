@@ -105,7 +105,7 @@ class CheckConfig(TypedDict, total=False):
     Defines how we'll schedule checks based on other active regions.
     """
 
-    assertion: Any
+    assertion: Any | None
     """
     The runtime assertion to execute, or null.
     """

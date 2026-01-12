@@ -33,6 +33,7 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
                 region="does_not_exist",
             )
             assert "region" in response.data
+            assert '"does_not_exist" is not a valid choice.' in response.data["region"][0]
 
     def test_bad_config(self) -> None:
         with self.feature(self.features):
@@ -40,7 +41,9 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
                 self.organization.slug, name="test", region="default"
             )
             assert "url" in response.data
+            assert response.data["url"][0].code == "required"
             assert "timeoutMs" in response.data
+            assert response.data["timeoutMs"][0].code == "required"
 
     @responses.activate
     def test_bad_checker_validation(self) -> None:
