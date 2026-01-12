@@ -180,12 +180,22 @@ async function runTypeCoverage(ignoreFilesArgs: string): Promise<TypeCoverageRes
   }
 }
 
-async function getCurrentBranch(): Promise<string> {
+async function getCurrentRef(): Promise<{isDetached: boolean; ref: string}> {
   try {
-    const {stdout} = await execAsync('git branch --show-current');
-    return stdout.trim();
+    // Get symbolic ref (branch name or 'HEAD' if detached)
+    const {stdout: symbolicRef} = await execAsync('git rev-parse --abbrev-ref HEAD');
+    const ref = symbolicRef.trim();
+    const isDetached = ref === 'HEAD';
+
+    if (isDetached) {
+      // In detached HEAD state, get the commit SHA
+      const {stdout: commitSha} = await execAsync('git rev-parse HEAD');
+      return {ref: commitSha.trim(), isDetached: true};
+    }
+
+    return {ref, isDetached: false};
   } catch (error) {
-    throw new Error(`Failed to get current branch: ${error}`);
+    throw new Error(`Failed to get current ref: ${error}`);
   }
 }
 
@@ -385,8 +395,8 @@ async function main() {
   console.log(colors.bold(`${reportTitle}\n`));
 
   try {
-    // Get current branch and commit info
-    const currentBranch = await getCurrentBranch();
+    // Get current ref (branch or commit SHA if detached) and commit info
+    const currentRef = await getCurrentRef();
 
     // Determine the old commit to compare against
     const oldCommit = opts.commit
@@ -398,7 +408,13 @@ async function main() {
     const currentCommit = currentCommitOutput.trim();
 
     if (opts.verbose) {
-      console.log(colors.dim(`Current branch: ${currentBranch}`));
+      if (currentRef.isDetached) {
+        console.log(
+          colors.dim(`Current state: detached HEAD at ${currentRef.ref.substring(0, 8)}`)
+        );
+      } else {
+        console.log(colors.dim(`Current branch: ${currentRef.ref}`));
+      }
       console.log(colors.dim(`Current commit: ${currentCommit}`));
       console.log(colors.dim(`Comparing against commit: ${oldCommit}\n`));
     }
@@ -421,26 +437,41 @@ async function main() {
       : `Checking out commit from ${opts.daysAgo} days ago...`;
     console.log(colors.dim(checkoutMessage));
 
+    // Track if we stashed changes
+    let hasStash = false;
+
     // Stash any local changes first
     try {
       await execAsync('git stash push -m "temporary stash for type-coverage-diff"');
+      hasStash = true;
     } catch (error) {
       // Ignore if no changes to stash
     }
 
-    await execAsync(`git checkout ${oldCommit}`);
-
-    console.log(colors.dim('Analyzing old code...'));
-    const oldResult = await runTypeCoverage(ignoreFilesArgs);
-
-    // Switch back to original branch
-    await execAsync(`git checkout ${currentBranch}`);
-
-    // Pop stash if we stashed anything
+    // Use try-finally to ensure we always restore the original state
+    let oldResult: TypeCoverageResult;
     try {
-      await execAsync('git stash pop');
-    } catch (error) {
-      // Ignore if no stash to pop
+      await execAsync(`git checkout ${oldCommit}`);
+
+      console.log(colors.dim('Analyzing old code...'));
+      oldResult = await runTypeCoverage(ignoreFilesArgs);
+    } finally {
+      // Always restore the original state, even if an error occurred
+      console.log(colors.dim('Restoring original state...'));
+      await execAsync(`git checkout ${currentRef.ref}`);
+
+      // Pop stash if we stashed anything
+      if (hasStash) {
+        try {
+          await execAsync('git stash pop');
+        } catch (error) {
+          console.warn(
+            colors.yellow(
+              'Warning: Failed to restore stashed changes. Run `git stash pop` manually.'
+            )
+          );
+        }
+      }
     }
 
     // Compare results
@@ -536,7 +567,8 @@ async function main() {
       const report = {
         meta: {
           daysAgo: opts.daysAgo,
-          currentBranch,
+          currentRef: currentRef.ref,
+          isDetached: currentRef.isDetached,
           oldCommit,
           timestamp: new Date().toISOString(),
         },
