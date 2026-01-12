@@ -36,6 +36,7 @@ class ReferrerTest(TestCase):
         assert validate_referrer("api.insights.http.domain-summary-transactions-list")
         assert validate_referrer("api.insights.http.domain-summary-transactions-list.primary")
         assert validate_referrer("api.insights.http.domain-summary-transactions-list.secondary")
+        assert validate_referrer("api.insights.http.domain-summary-transactions-list.find-topn")
         assert warn_log.call_count == 0
 
     @patch("sentry.snuba.referrer.logger.warning")
@@ -62,4 +63,16 @@ class ReferrerTest(TestCase):
         assert warn_log.call_count == 0
         for i in Referrer:
             assert validate_referrer(i.value)
+        assert warn_log.call_count == 0
+
+    @patch("sentry.snuba.referrer.logger.warning")
+    def test_referrer_validate_find_topn_suffix(self, warn_log: MagicMock) -> None:
+        """Test that the find-topn suffix is valid for organization events referrers."""
+        assert warn_log.call_count == 0
+        # Test the specific case from the issue
+        assert validate_referrer("api.organization-events.find-topn")
+        assert validate_referrer("api.organization-event-stats.find-topn")
+        # Test that find-topn works with other common referrers
+        assert validate_referrer("api.discover.top5-chart.find-topn")
+        assert validate_referrer("api.dashboards.widget.area-chart.find-topn")
         assert warn_log.call_count == 0

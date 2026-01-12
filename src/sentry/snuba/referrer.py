@@ -961,7 +961,7 @@ class Referrer(StrEnum):
 VALUES = {referrer.value for referrer in Referrer}
 
 # These suffixes are automatically added by Query Builder code in certain conditions. Any valid referrer with these suffixes is still a valid referrer.
-VALID_SUFFIXES = ["primary", "secondary"]
+VALID_SUFFIXES = ["primary", "secondary", "find-topn"]
 
 
 def is_valid_referrer(referrer: str | None) -> bool:
