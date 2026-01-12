@@ -182,6 +182,6 @@ const DismissButton = styled(Button)`
   position: absolute;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 1;
 `;

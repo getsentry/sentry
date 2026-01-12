@@ -7,10 +7,11 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -121,3 +122,44 @@ class ErrorsQueryBuilderTest(TestCase):
                 self.projects,
             ),
         ]
+
+    def test_error_received_filter_uses_datetime(self) -> None:
+        """Test that error.received filter uses datetime comparison, not epoch integer."""
+        snuba_dataclass = SnubaParams(
+            start=before_now(days=1),
+            end=before_now(),
+            projects=[self.project],
+            organization=self.organization,
+        )
+
+        filter_date = before_now(hours=12)
+        query = ErrorsQueryBuilder(
+            dataset=Dataset.Events,
+            query=f"error.received:>{filter_date.isoformat()}",
+            selected_columns=["count()"],
+            params={
+                "project_id": self.projects,
+            },
+            snuba_params=snuba_dataclass,
+            offset=None,
+            limit=None,
+            config=QueryBuilderConfig(),
+        ).get_snql_query()
+        query.validate()
+
+        # Find the error.received condition in the where clause
+        received_conditions = [
+            c
+            for c in query.query.where
+            if isinstance(c, Condition) and isinstance(c.lhs, Column) and c.lhs.name == "received"
+        ]
+
+        assert len(received_conditions) == 1, "Should have exactly one error.received condition"
+        received_condition = received_conditions[0]
+
+        # Verify the condition uses datetime comparison, not epoch integer
+        assert received_condition.op == Op.GT
+        # The RHS should be a datetime or datetime-formatted Function, not an integer
+        assert not isinstance(
+            received_condition.rhs, int
+        ), "error.received should compare against datetime, not epoch integer"

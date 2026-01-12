@@ -223,7 +223,7 @@
     "jest-environment-jsdom": "30.0.4",
     "jest-fail-on-console": "3.3.1",
     "jest-junit": "16.0.0",
-    "knip": "5.75.1",
+    "knip": "5.80.2",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.18.0",
     "stylelint": "16.10.0",
@@ -250,6 +250,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "type-coverage": "NODE_OPTIONS='--experimental-transform-types' node scripts/type-coverage.ts -p tsconfig.json",
+    "type-coverage-diff": "NODE_OPTIONS='--experimental-transform-types' node scripts/type-coverage-diff.ts",
     "test": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --watch",
     "test-ci": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --ci --maxWorkers=75% --colors",
     "test-debug": "NODE_OPTIONS='--experimental-transform-types' node --inspect-brk scripts/test.js --runInBand",
