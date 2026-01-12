@@ -1,0 +1,246 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "3571928a03eadf8e0e5c9b10b81a51de"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "TimeoutError"
+          stacktrace*
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app) and un-ignored by custom stack trace rule (function:post_process_group +group v+group))
+              module*
+                "__main__"
+              function*
+                "<module>"
+              context_line*
+                "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "multiprocessing.spawn"
+              function*
+                "spawn_main"
+              context_line*
+                "exitcode = _main(fd, parent_sentinel)"
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "multiprocessing.spawn"
+              function*
+                "_main"
+              context_line*
+                "return self._bootstrap(parent_sentinel)"
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "multiprocessing.process"
+              function*
+                "_bootstrap"
+              context_line*
+                "self.run()"
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "multiprocessing.process"
+              function*
+                "run"
+              context_line*
+                "self._target(*self._args, **self._kwargs)"
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "sentry.taskworker.workerchild"
+              function*
+                "child_process"
+              context_line*
+                "run_worker("
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "sentry.taskworker.workerchild"
+              function*
+                "run_worker"
+              context_line*
+                "_execute_activation(task_func, inflight.activation)"
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "sentry.taskworker.workerchild"
+              function*
+                "_execute_activation"
+              context_line*
+                "task_func(*args, **kwargs)"
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "sentry.taskworker.task"
+              function*
+                "__call__"
+              context_line*
+                "return self._func(*args, **kwargs)"
+            frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+              module*
+                "sentry.tasks.post_process"
+              function*
+                "post_process_group"
+              context_line*
+                "run_post_process_job("
+  system*
+    hash: "6791947bdfd6cf2ca7024f026df974ae"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "TimeoutError"
+          stacktrace*
+            frame* (un-ignored by custom stack trace rule (function:post_process_group +group v+group))
+              module*
+                "__main__"
+              function*
+                "<module>"
+              context_line*
+                "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
+            frame*
+              module*
+                "multiprocessing.spawn"
+              function*
+                "spawn_main"
+              context_line*
+                "exitcode = _main(fd, parent_sentinel)"
+            frame*
+              module*
+                "multiprocessing.spawn"
+              function*
+                "_main"
+              context_line*
+                "return self._bootstrap(parent_sentinel)"
+            frame*
+              module*
+                "multiprocessing.process"
+              function*
+                "_bootstrap"
+              context_line*
+                "self.run()"
+            frame*
+              module*
+                "multiprocessing.process"
+              function*
+                "run"
+              context_line*
+                "self._target(*self._args, **self._kwargs)"
+            frame*
+              module*
+                "sentry.taskworker.workerchild"
+              function*
+                "child_process"
+              context_line*
+                "run_worker("
+            frame*
+              module*
+                "sentry.taskworker.workerchild"
+              function*
+                "run_worker"
+              context_line*
+                "_execute_activation(task_func, inflight.activation)"
+            frame*
+              module*
+                "sentry.taskworker.workerchild"
+              function*
+                "_execute_activation"
+              context_line*
+                "task_func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.taskworker.task"
+              function*
+                "__call__"
+              context_line*
+                "return self._func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.tasks.post_process"
+              function*
+                "post_process_group"
+              context_line*
+                "run_post_process_job("
+            frame*
+              module*
+                "sentry.tasks.post_process"
+              function*
+                "run_post_process_job"
+              context_line*
+                "logger.exception("
+            frame*
+              module*
+                "logging"
+              function*
+                "exception"
+              context_line*
+                "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+            frame*
+              module*
+                "logging"
+              function*
+                "error"
+              context_line*
+                "self._log(ERROR, msg, args, **kwargs)"
+            frame*
+              module*
+                "logging"
+              function*
+                "_log"
+              context_line*
+                "self.handle(record)"
+            frame*
+              module*
+                "logging"
+              function*
+                "handle"
+              context_line*
+                "self.callHandlers(record)"
+            frame*
+              module*
+                "logging"
+              function*
+                "callHandlers"
+              context_line*
+                "hdlr.handle(record)"
+            frame*
+              module*
+                "logging"
+              function*
+                "handle"
+              context_line*
+                "self.emit(record)"
+            frame*
+              module*
+                "redis.connection"
+              function*
+                "connect"
+              context_line*
+                "sock = self._connect()"
+            frame*
+              module*
+                "redis.connection"
+              function*
+                "_connect"
+              context_line*
+                "raise err"
