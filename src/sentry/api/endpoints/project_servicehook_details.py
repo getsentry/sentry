@@ -25,7 +25,18 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, hook_id) -> Response:
+    def convert_args(self, request: Request, hook_id, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        project = kwargs["project"]
+
+        try:
+            kwargs["hook"] = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
+        except ServiceHook.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return (args, kwargs)
+
+    def get(self, request: Request, project, hook: ServiceHook) -> Response:
         """
         Retrieve a Service Hook
         ```````````````````````
@@ -39,13 +50,9 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         :pparam string hook_id: the guid of the service hook.
         :auth: required
         """
-        try:
-            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
-        except ServiceHook.DoesNotExist:
-            raise ResourceDoesNotExist
         return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
-    def put(self, request: Request, project, hook_id) -> Response:
+    def put(self, request: Request, project, hook: ServiceHook) -> Response:
         """
         Update a Service Hook
         `````````````````````
@@ -61,11 +68,6 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         """
         if not request.user.is_authenticated:
             return self.respond(status=401)
-
-        try:
-            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
-        except ServiceHook.DoesNotExist:
-            raise ResourceDoesNotExist
 
         validator = ServiceHookValidator(data=request.data, partial=True)
         if not validator.is_valid():
@@ -98,7 +100,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
-    def delete(self, request: Request, project, hook_id) -> Response:
+    def delete(self, request: Request, project, hook: ServiceHook) -> Response:
         """
         Remove a Service Hook
         `````````````````````
@@ -112,11 +114,6 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         """
         if not request.user.is_authenticated:
             return self.respond(status=401)
-
-        try:
-            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
-        except ServiceHook.DoesNotExist:
-            raise ResourceDoesNotExist
 
         with transaction.atomic(router.db_for_write(ServiceHook)):
             hook.delete()
