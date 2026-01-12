@@ -12,6 +12,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
 describe('UsageOverviewTable', () => {
@@ -124,6 +125,12 @@ describe('UsageOverviewTable', () => {
 
   it('renders table and panel based on subscription state', async () => {
     subscription.onDemandMaxSpend = 100_00;
+    subscription.onDemandBudgets = {
+      enabled: true,
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 100_000,
+      onDemandSpendUsed: 0,
+    };
 
     subscription.categories.errors = {
       ...subscription.categories.errors!,
@@ -161,6 +168,7 @@ describe('UsageOverviewTable', () => {
         category: DataCategory.PROFILE_DURATION_UI,
         isStarted: false,
         reasonCode: 1001,
+        endDate: moment().utc().add(20, 'years').format(),
       },
     ];
     SubscriptionStore.set(organization.slug, subscription);
@@ -205,9 +213,9 @@ describe('UsageOverviewTable', () => {
     expect(within(profileDurationRow).getByText('20 days left')).toBeInTheDocument();
 
     // Available product trial for Continuous Profile Hours UI
-    const profileDurationUiRow = screen.getByTestId('product-row-profileDurationUi');
+    const profileDurationUIRow = screen.getByTestId('product-row-profileDurationUI');
     expect(
-      within(profileDurationUiRow).getByRole('button', {name: 'Start trial'})
+      within(profileDurationUIRow).getByRole('button', {name: 'Start trial'})
     ).toBeInTheDocument();
   });
 
@@ -346,7 +354,7 @@ describe('UsageOverviewTable', () => {
 
     await screen.findByRole('columnheader', {name: 'Feature'});
 
-    const seerRow = screen.getByTestId('product-row-seerUsers');
+    const seerRow = screen.getByTestId('product-row-seer');
     expect(
       within(seerRow).getByRole('cell', {name: '0 / 110 active contributors (10 gifted)'})
     ).toBeInTheDocument();
@@ -373,7 +381,7 @@ describe('UsageOverviewTable', () => {
     );
     await screen.findByRole('columnheader', {name: 'Feature'});
 
-    const seerRow = screen.getByTestId('product-row-seerUsers');
+    const seerRow = screen.getByTestId('product-row-seer');
     // nullifies everything
     expect(
       within(seerRow).getByRole('cell', {name: '0 active contributors'})
@@ -397,5 +405,57 @@ describe('UsageOverviewTable', () => {
     await screen.findByRole('columnheader', {name: 'Feature'});
 
     expect(screen.queryByRole('cell', {name: 'Errors'})).not.toBeInTheDocument();
+  });
+
+  it('renders disabled product rows', async () => {
+    // both profiling categories are disabled because there is no PAYG
+    subscription.onDemandBudgets = {
+      enabled: true,
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 0,
+      onDemandSpendUsed: 0,
+    };
+    subscription.productTrials = [
+      {
+        category: DataCategory.PROFILE_DURATION,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(10, 'days').format(),
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+      {
+        category: DataCategory.PROFILE_DURATION_UI,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'years').format(),
+      },
+    ];
+
+    render(
+      <UsageOverviewTable
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    // even though PAYG is 0, profile duration is still considered enabled because there is an active product trial
+    const profileDurationRow = screen.getByTestId('product-row-profileDuration');
+    expect(within(profileDurationRow).getByText('20 days left')).toBeInTheDocument();
+    expect(within(profileDurationRow).getByText('Unlimited')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('product-row-disabled-profileDuration')
+    ).not.toBeInTheDocument();
+
+    const profileDurationUIRow = screen.getByTestId(
+      'product-row-disabled-profileDurationUI'
+    );
+    expect(
+      within(profileDurationUIRow).getByRole('button', {name: 'Start trial'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('product-row-profileDurationUI')).not.toBeInTheDocument();
   });
 });

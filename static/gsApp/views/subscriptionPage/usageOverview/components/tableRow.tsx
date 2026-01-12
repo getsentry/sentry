@@ -389,7 +389,7 @@ function DisabledProductRow({
   return (
     <Fragment>
       <ProductRow
-        data-test-id={`product-row-${product}`}
+        data-test-id={`product-row-disabled-${product}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
@@ -410,7 +410,12 @@ function DisabledProductRow({
           />
         )}
         <td>
-          <Flex paddingLeft={potentialProductTrial ? 'lg' : undefined} wrap="nowrap">
+          <Flex
+            paddingLeft={potentialProductTrial ? 'lg' : undefined}
+            wrap="nowrap"
+            align="center"
+            height="100%"
+          >
             <Text as="span" variant="muted" textWrap="balance">
               {displayName}{' '}
               <IconContainer>
@@ -419,6 +424,28 @@ function DisabledProductRow({
             </Text>
           </Flex>
         </td>
+        {potentialProductTrial && (
+          <Fragment>
+            <td />
+            <td>
+              <Flex justify="end">
+                <StartTrialButton
+                  organization={organization}
+                  source="usage-overview-table"
+                  requestData={{
+                    productTrial: {
+                      category: potentialProductTrial.category,
+                      reasonCode: potentialProductTrial.reasonCode,
+                    },
+                  }}
+                  size="xs"
+                  icon={<IconPlay />}
+                  priority="primary"
+                />
+              </Flex>
+            </td>
+          </Fragment>
+        )}
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
       </ProductRow>
       {showPanelInline && isSelected && (
