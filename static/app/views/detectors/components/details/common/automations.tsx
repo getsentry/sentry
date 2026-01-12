@@ -19,12 +19,12 @@ import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/autom
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
@@ -81,6 +81,11 @@ function DetectorAutomationsTable({
   const issueStreamDetectorId = issueStreamDetectors?.[0]?.id;
   const detectorIds = [detectorId, issueStreamDetectorId];
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
+  const onSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setCursor(undefined);
+  }, []);
 
   const {
     data: automations,
@@ -93,6 +98,7 @@ function DetectorAutomationsTable({
       detector: detectorIds.filter(defined),
       limit: AUTOMATIONS_PER_PAGE,
       cursor,
+      query: searchQuery || undefined,
     },
     {enabled: !issueStreamDetectorsPending}
   );
@@ -126,62 +132,67 @@ function DetectorAutomationsTable({
           onRetry={refetchIssueStreamDetectors}
         />
       )}
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="action-filters">
-            {t('Actions')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="triggered-by">
-            {t('Triggered By Issues')}
-          </SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-        {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
-        {isError && <LoadingError />}
-        {isSuccess && automations.length === 0 && (
-          <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
-        )}
-        {isSuccess &&
-          automations.map(automation => (
-            <SimpleTable.Row
-              key={automation.id}
-              variant={automation.enabled ? 'default' : 'faded'}
-            >
-              <SimpleTable.RowCell>
-                <AutomationTitleCell automation={automation} />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="action-filters">
-                <ActionCell actions={getAutomationActions(automation)} />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="triggered-by">
-                {automation.detectorIds.includes(detectorId) ? (
-                  <Tooltip
-                    title={t('This Alert is directly connected to the current monitor.')}
-                    showUnderline
-                  >
-                    {t('From Monitor')}
-                  </Tooltip>
-                ) : (
-                  <Tooltip
-                    title={tct(
-                      'This Alert can be triggered by all issues in [projectName].',
-                      {
-                        projectName: project ? (
-                          <strong>{project.slug}</strong>
-                        ) : (
-                          'project'
-                        ),
-                      }
-                    )}
-                    showUnderline
-                  >
-                    {t('In Project')}
-                  </Tooltip>
-                )}
-              </SimpleTable.RowCell>
-            </SimpleTable.Row>
-          ))}
-      </SimpleTableWithColumns>
+      <Stack gap="md">
+        <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
+        <SimpleTableWithColumns>
+          <SimpleTable.Header>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="action-filters">
+              {t('Actions')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="triggered-by">
+              {t('Triggered By Issues')}
+            </SimpleTable.HeaderCell>
+          </SimpleTable.Header>
+          {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
+          {isError && <LoadingError />}
+          {isSuccess && automations.length === 0 && (
+            <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
+          )}
+          {isSuccess &&
+            automations.map(automation => (
+              <SimpleTable.Row
+                key={automation.id}
+                variant={automation.enabled ? 'default' : 'faded'}
+              >
+                <SimpleTable.RowCell>
+                  <AutomationTitleCell automation={automation} />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="action-filters">
+                  <ActionCell actions={getAutomationActions(automation)} />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="triggered-by">
+                  {automation.detectorIds.includes(detectorId) ? (
+                    <Tooltip
+                      title={t(
+                        'This Alert is directly connected to the current monitor.'
+                      )}
+                      showUnderline
+                    >
+                      {t('From Monitor')}
+                    </Tooltip>
+                  ) : (
+                    <Tooltip
+                      title={tct(
+                        'This Alert can be triggered by all issues in [projectName].',
+                        {
+                          projectName: project ? (
+                            <strong>{project.slug}</strong>
+                          ) : (
+                            'project'
+                          ),
+                        }
+                      )}
+                      showUnderline
+                    >
+                      {t('In Project')}
+                    </Tooltip>
+                  )}
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            ))}
+        </SimpleTableWithColumns>
+      </Stack>
       <Pagination
         onCursor={setCursor}
         pageLinks={pageLinks}
@@ -306,7 +317,6 @@ const Container = styled('div')`
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 180px auto;
-  margin-bottom: ${space(2)};
 
   @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 180px;
