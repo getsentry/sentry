@@ -299,7 +299,12 @@ function createItemKey(item: any): string {
   return `${item.file}:${item.line}:${item.column}:${item.kind}`;
 }
 
-function createSemanticKey(item: any): string {
+function createSemanticKey(item: {
+  column: number;
+  file: string;
+  kind: string;
+  line: number;
+}): string {
   // Create a key based on the semantic content, not just location
   if ('name' in item) {
     // For any-typed symbols, use file + kind + name
@@ -311,7 +316,7 @@ function createSemanticKey(item: any): string {
   }
   if ('targetType' in item) {
     // For type assertions, include target type
-    return `${item.file}:${item.kind}:${item.targetType}:${item.code}`;
+    return `${item.file}:${item.kind}:${item.targetType}`;
   }
   return createItemKey(item);
 }
