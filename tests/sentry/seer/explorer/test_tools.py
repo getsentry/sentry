@@ -1684,6 +1684,49 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result["provider"] == "integrations:github"
         assert result["external_id"] == "12345678"
 
+    def test_get_repository_definition_multipart_name(self):
+        """Test repository with multi-part name (e.g., owner/project/repo)"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/project/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/project/seer",
+        )
+
+        assert result is not None
+        assert result["owner"] == "getsentry"
+        assert result["name"] == "project/seer"
+
+    def test_get_repository_definition_by_external_id(self):
+        """Test lookup by external_id when repo has been renamed."""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/new-name",  # The NEW name after rename
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Seer passes the OLD name but includes external_id
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/old-name",  # OLD name that won't match
+            external_id="12345678",
+        )
+
+        assert result is not None
+        # Should return the CURRENT name from the database
+        assert result["owner"] == "getsentry"
+        assert result["name"] == "new-name"
+
 
 class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
     def setUp(self):
