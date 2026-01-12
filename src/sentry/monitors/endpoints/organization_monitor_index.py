@@ -18,7 +18,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAlertRulePermission
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -32,7 +32,7 @@ from sentry.apidocs.parameters import GlobalParams, MonitorParams, OrganizationP
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.incidents.endpoints.organization_alert_rule_index import AlertRuleIndexMixin
+from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.models import (
@@ -73,7 +73,7 @@ def flip_sort_direction(sort_field: str) -> str:
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class OrganizationMonitorIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,

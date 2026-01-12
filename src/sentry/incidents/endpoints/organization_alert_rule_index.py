@@ -2,13 +2,12 @@ import logging
 from copy import deepcopy
 from datetime import UTC, datetime
 
-import sentry_sdk
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import ParseError, PermissionDenied, ValidationError
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -34,6 +33,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
+from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     AlertRuleSerializerResponse,
@@ -158,41 +158,13 @@ def create_metric_alert(
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
-class AlertRuleIndexMixin(Endpoint):
-    def check_can_create_alert(self, request: Request, organization: Organization) -> None:
-        """
-        Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
-        permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
-        in their request.
-        """
+class AlertRuleFetchMixin(Endpoint):
+    """
+    Mixin providing fetch functionality for metric alert rules.
 
-        # if the requesting user has any of these org-level permissions, then they can create an alert
-        if (
-            request.access.has_scope("alerts:write")
-            or request.access.has_scope("org:admin")
-            or request.access.has_scope("org:write")
-        ):
-            return
-
-        # Verify that get_projects is available (requires OrganizationEndpoint)
-        if not hasattr(self, "get_projects"):
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_extra("organization_id", organization.id)
-                sentry_sdk.capture_message(
-                    "get_projects not available in check_can_create_alert",
-                    level="error",
-                )
-            raise PermissionDenied
-
-        # team admins should be able to create alerts for the projects they have access to
-        projects = self.get_projects(request, organization)
-        # team admins will have alerts:write scoped to their projects, members will not
-        team_admin_has_access = all(
-            [request.access.has_project_scope(project, "alerts:write") for project in projects]
-        )
-        # all() returns True for empty list, so include a check for it
-        if not team_admin_has_access or not projects:
-            raise PermissionDenied
+    This mixin requires access to paginate() method from Endpoint.
+    Can be used with any endpoint base class (OrganizationEndpoint, ProjectEndpoint, etc).
+    """
 
     def fetch_metric_alert(
         self, request: Request, organization: Organization, alert_rules: BaseQuerySet[AlertRule]
@@ -626,7 +598,7 @@ Metric alert rule trigger actions follow the following structure:
 
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
-class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
