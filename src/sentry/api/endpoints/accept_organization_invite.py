@@ -7,6 +7,7 @@ from django.contrib.auth import logout
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -104,6 +105,29 @@ class AcceptOrganizationInvite(Endpoint):
     # Disable authentication and permission requirements.
     permission_classes = ()
 
+    def convert_args(
+        self,
+        request: Request,
+        member_id: int,
+        token: str,
+        organization_id_or_slug: int | str | None = None,
+        *args,
+        **kwargs,
+    ):
+        invite_context = get_invite_state(
+            member_id=int(member_id),
+            organization_id_or_slug=organization_id_or_slug,
+            user_id=request.user.id if request.user.is_authenticated else None,
+            request=request,
+        )
+        if invite_context is None:
+            raise ValidationError({"details": "Invalid invite code"})
+
+        kwargs["invite_context"] = invite_context
+        kwargs["token"] = token
+        kwargs["member_id"] = member_id
+        return (args, kwargs)
+
     @staticmethod
     def respond_invalid() -> Response:
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
@@ -116,25 +140,17 @@ class AcceptOrganizationInvite(Endpoint):
     def get(
         self,
         request: Request,
-        member_id: int,
-        token: str,
-        organization_id_or_slug: int | str | None = None,
+        invite_context: RpcUserInviteContext,
+        **kwargs,
     ) -> Response | HttpResponse:
+        member_id = kwargs["member_id"]
+        token = kwargs["token"]
 
         # Demo user can't accept invites, this invite is probably meant for another user
         # so we log out the demo user and let the invite flow continue since it can handle
         # unauthenticated users.
         if is_demo_user(request.user):
             logout(request)
-
-        invite_context = get_invite_state(
-            member_id=int(member_id),
-            organization_id_or_slug=organization_id_or_slug,
-            user_id=request.user.id,
-            request=request,
-        )
-        if invite_context is None:
-            return self.respond_invalid()
 
         helper = self.get_helper(request, token, invite_context)
 
@@ -222,18 +238,10 @@ class AcceptOrganizationInvite(Endpoint):
     def post(
         self,
         request: Request,
-        member_id: int,
-        token: str,
-        organization_id_or_slug: int | str | None = None,
+        invite_context: RpcUserInviteContext,
+        **kwargs,
     ) -> Response:
-        invite_context = get_invite_state(
-            member_id=int(member_id),
-            organization_id_or_slug=organization_id_or_slug,
-            user_id=request.user.id,
-            request=request,
-        )
-        if invite_context is None:
-            return self.respond_invalid()
+        token = kwargs["token"]
 
         if is_demo_user(request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)
