@@ -37,6 +37,18 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
     }
 
+    def convert_args(self, request: Request, key_id: str, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        project = kwargs["project"]
+        try:
+            kwargs["key"] = ProjectKey.objects.for_request(request).get(
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
+            )
+        except ProjectKey.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return (args, kwargs)
+
     @extend_schema(
         operation_id="Retrieve a Client Key",
         parameters=[
@@ -52,17 +64,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
-    def get(self, request: Request, project, key_id) -> Response:
+    def get(self, request: Request, key: ProjectKey, **kwargs) -> Response:
         """
         Return a client key bound to a project.
         """
-        try:
-            key = ProjectKey.objects.for_request(request).get(
-                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
-            )
-        except ProjectKey.DoesNotExist:
-            raise ResourceDoesNotExist
-
         return Response(serialize(key, request.user, request=request), status=200)
 
     @extend_schema(
@@ -105,17 +110,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
-    def put(self, request: Request, project, key_id) -> Response:
+    def put(self, request: Request, key: ProjectKey, project, **kwargs) -> Response:
         """
         Update various settings for a client key.
         """
-        try:
-            key = ProjectKey.objects.for_request(request).get(
-                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
-            )
-        except ProjectKey.DoesNotExist:
-            raise ResourceDoesNotExist
-
         serializer = ProjectKeyPutSerializer(data=request.data, partial=True)
         default_version = get_default_sdk_version_for_project(project)
 
@@ -192,17 +190,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         },
         examples=None,
     )
-    def delete(self, request: Request, project, key_id) -> Response:
+    def delete(self, request: Request, key: ProjectKey, project, **kwargs) -> Response:
         """
         Delete a client key for a given project.
         """
-        try:
-            key = ProjectKey.objects.for_request(request).get(
-                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
-            )
-        except ProjectKey.DoesNotExist:
-            raise ResourceDoesNotExist
-
         self.create_audit_entry(
             request=request,
             organization=project.organization,
