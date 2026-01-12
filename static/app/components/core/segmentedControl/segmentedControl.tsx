@@ -46,7 +46,7 @@ function getTextColor({
       : undefined;
   }
 
-  return theme.subText;
+  return theme.tokens.content.secondary;
 }
 
 const segmentedWrapPadding = {

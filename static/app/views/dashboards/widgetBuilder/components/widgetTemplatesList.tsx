@@ -3,6 +3,8 @@ import {useParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
@@ -91,7 +93,7 @@ function WidgetTemplatesList({
                 <WidgetTitle>{widget.title}</WidgetTitle>
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
-                  <ButtonsWrapper>
+                  <Flex marginTop="xl" gap="2xl">
                     <Button
                       size="sm"
                       onClick={e => {
@@ -129,7 +131,7 @@ function WidgetTemplatesList({
                     >
                       {t('Add to dashboard')}
                     </Button>
-                  </ButtonsWrapper>
+                  </Flex>
                 )}
               </div>
             </TemplateCard>
@@ -181,7 +183,7 @@ const WidgetTitle = styled('h3')`
 
 const WidgetDescription = styled('p')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;
 
@@ -194,11 +196,4 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   height: 40px;
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.backgroundColor};
-`;
-
-const ButtonsWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(3)};
-  margin-top: ${space(2)};
 `;

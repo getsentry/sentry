@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
@@ -101,27 +103,27 @@ export function OverviewRow({
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
         </DetailsHeadline>
-        <DetailsContainer>
+        <Stack gap="xs">
           <OwnershipDetails>
             <ProjectBadge project={monitor.project} avatarSize={12} disableLink />
             {monitor.owner ? (
               <ActorBadge actor={monitor.owner} avatarSize={12} />
             ) : (
-              <UnassignedLabel>
+              <Flex align="center" gap="xs">
                 <IconUser size="xs" />
                 {t('Unassigned')}
-              </UnassignedLabel>
+              </Flex>
             )}
           </OwnershipDetails>
           <ScheduleDetails>
             <IconTimer size="xs" />
             {scheduleAsText(monitor.config)}
           </ScheduleDetails>
-          <MonitorStatuses>
+          <Flex gap="xs">
             {monitor.isMuted && <Tag variant="muted">{t('Muted')}</Tag>}
             {isDisabled && <Tag variant="muted">{t('Disabled')}</Tag>}
-          </MonitorStatuses>
-        </DetailsContainer>
+          </Flex>
+        </Stack>
       </DetailsLink>
       <DetailsActions>
         {onToggleStatus && (
@@ -262,30 +264,13 @@ const DetailsHeadline = styled('div')`
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const OwnershipDetails = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(0.75)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const UnassignedLabel = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const MonitorStatuses = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
 `;
 
 const Name = styled('h3')`
@@ -298,7 +283,7 @@ const ScheduleDetails = styled('small')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

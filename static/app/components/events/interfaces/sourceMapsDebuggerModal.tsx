@@ -2042,8 +2042,8 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p =>
     ({
-      none: p.theme.subText,
-      question: p.theme.subText,
+      none: p.theme.tokens.content.secondary,
+      question: p.theme.tokens.content.secondary,
       alert: p.theme.colors.yellow500,
       checked: p.theme.colors.green400,
     })[p.status]};
@@ -2096,7 +2096,7 @@ const InstructionList = styled('ul')`
 `;
 
 const ScrapingSymbolificationErrorMessage = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 2px solid ${p => p.theme.colors.gray200};
   padding-left: ${space(1)};
   margin-top: -${space(1)};

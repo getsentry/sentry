@@ -476,7 +476,7 @@ const ResizeHandle = styled(Button)`
   z-index: 2;
   bottom: ${space(0.5)};
   right: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: nwse-resize;
 
   .react-resizable-hide & {

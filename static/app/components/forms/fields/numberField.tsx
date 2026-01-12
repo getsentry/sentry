@@ -104,7 +104,7 @@ const HiddenValue = styled('span')`
   visibility: hidden;
 `;
 const Suffix = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
   position: absolute;
   top: 50%;

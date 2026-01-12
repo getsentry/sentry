@@ -14,6 +14,6 @@ export function ViewButton({children, ...props}: LinkButtonProps) {
 const TextButton = styled(LinkButton)`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.25)} ${space(0.5)};
 `;

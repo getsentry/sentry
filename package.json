@@ -223,7 +223,7 @@
     "jest-environment-jsdom": "30.0.4",
     "jest-fail-on-console": "3.3.1",
     "jest-junit": "16.0.0",
-    "knip": "5.75.1",
+    "knip": "5.80.2",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.18.0",
     "stylelint": "16.10.0",
