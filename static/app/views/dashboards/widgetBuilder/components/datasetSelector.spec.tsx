@@ -35,7 +35,7 @@ describe('DatasetSelector', () => {
     );
   });
 
-  it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async () => {
+  it('shows migration link for deprecated transactions dataset and allows clicking it', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -54,11 +54,10 @@ describe('DatasetSelector', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
-    const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
-    expect(transactionsOption).toHaveAttribute('aria-disabled', 'true');
-
+    // Should show deprecation message with clickable link
     expect(await screen.findByText(/No longer supported\. Use the/i)).toBeInTheDocument();
 
+    // The spans link should be clickable (not blocked by disabled state)
     const spansLink = screen.getByRole('link', {name: 'spans'});
     await userEvent.click(spansLink);
 
@@ -71,7 +70,7 @@ describe('DatasetSelector', () => {
     );
   });
 
-  it('enables transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
+  it('allows selection of transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -91,10 +90,10 @@ describe('DatasetSelector', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
     const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
-    expect(transactionsOption).not.toHaveAttribute('aria-disabled', 'true');
 
+    // Should show normal description, not deprecation message
     expect(
-      await screen.findByText('No longer supported. Use the spans dataset.')
+      await screen.findByText('Transactions from your application')
     ).toBeInTheDocument();
 
     await userEvent.click(transactionsOption);

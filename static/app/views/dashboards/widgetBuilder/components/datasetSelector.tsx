@@ -38,11 +38,15 @@ function WidgetBuilderDatasetSelector() {
     details: t('Errors from your application'),
   });
 
+  const isTransactionsDeprecated = organization.features.includes(
+    'discover-saved-queries-deprecation'
+  );
+
   const transactionsOption = {
     value: WidgetType.TRANSACTIONS,
     label: t('Transactions'),
-    disabled: organization.features.includes('discover-saved-queries-deprecation'),
-    details: organization.features.includes('discover-saved-queries-deprecation')
+    // Don't disable the option so the migration link remains clickable
+    details: isTransactionsDeprecated
       ? tct('No longer supported. Use the [spans] dataset.', {
           spans: (
             <Link
@@ -67,7 +71,7 @@ function WidgetBuilderDatasetSelector() {
             </Link>
           ),
         })
-      : t('No longer supported. Use the spans dataset.'),
+      : t('Transactions from your application'),
   };
 
   if (organization.features.includes('visibility-explore-view')) {
@@ -126,6 +130,11 @@ function WidgetBuilderDatasetSelector() {
         menuWidth={500}
         onChange={selection => {
           const newDataset = selection.value;
+
+          // Prevent selection of transactions when deprecated
+          if (newDataset === WidgetType.TRANSACTIONS && isTransactionsDeprecated) {
+            return;
+          }
 
           // Set the current dataset state in local storage for recovery
           // when the user navigates back to this dataset
