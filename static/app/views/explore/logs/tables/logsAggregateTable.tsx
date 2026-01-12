@@ -2,6 +2,8 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
@@ -81,7 +83,7 @@ export function LogsAggregateTable({
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
-    <TableContainer>
+    <Stack>
       <GridEditable
         aria-label={t('Aggregates')}
         isLoading={isLoading}
@@ -224,14 +226,9 @@ export function LogsAggregateTable({
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={cursor => setAggregateCursor(cursor)} />
-    </TableContainer>
+    </Stack>
   );
 }
-
-const TableContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const TopResultsIndicator = styled('div')<{color: string}>`
   position: absolute;

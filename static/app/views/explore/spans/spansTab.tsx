@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -307,7 +309,7 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
-        <ActionButtonsGroup>
+        <Flex gap="xs">
           <Feature features="organizations:tracing-export-csv">
             <SpansExport
               aggregatesTableResult={aggregatesTableResult}
@@ -315,7 +317,7 @@ function SpanTabContentSection({
             />
           </Feature>
           <SettingsDropdown />
-        </ActionButtonsGroup>
+        </Flex>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
       <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
@@ -366,11 +368,6 @@ function SpanTabContentSection({
 
 const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
-`;
-
-const ActionButtonsGroup = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const ChevronButton = styled(Button)<{expanded: boolean}>`
