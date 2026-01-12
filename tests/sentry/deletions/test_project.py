@@ -1,6 +1,5 @@
 from unittest import mock
 
-from sentry.constants import DataCategory
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
@@ -247,7 +246,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not Project.objects.filter(id=project.id).exists()
         assert not Detector.objects.filter(id=detector.id).exists()
         assert not UptimeSubscription.objects.filter(id=uptime_subscription.id).exists()
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_remove_seat.assert_called_with(seat_object=detector)
 
 
 class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
