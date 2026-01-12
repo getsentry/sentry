@@ -62,7 +62,7 @@ const OnboardingTitle = styled('h3')`
 
 const SectionTitle = styled('h5')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
   margin-top: ${space(4)};
@@ -79,5 +79,5 @@ const PlatformOption = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

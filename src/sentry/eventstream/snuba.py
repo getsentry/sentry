@@ -19,7 +19,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, metrics, snuba
-from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, item_id_to_hex
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
 
@@ -524,7 +524,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                         "status": resp.status,
                         "organization_id": trace_item.organization_id,
                         "project_id": trace_item.project_id,
-                        "item_id": trace_item.item_id.decode("utf-8"),
+                        "event_id": item_id_to_hex(trace_item.item_id),
                         "trace_id": trace_item.trace_id,
                         "backend": "snuba_http",
                     },
@@ -539,7 +539,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                 extra={
                     "organization_id": trace_item.organization_id,
                     "project_id": trace_item.project_id,
-                    "item_id": trace_item.item_id.decode("utf-8"),
+                    "event_id": item_id_to_hex(trace_item.item_id),
                     "trace_id": trace_item.trace_id,
                     "backend": "snuba_http",
                 },

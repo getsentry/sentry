@@ -75,6 +75,7 @@ function ExplorerPanel() {
     deleteFromIndex,
     startNewSession,
     isPolling,
+    isError,
     interruptRun,
     interruptRequested,
     switchToRun,
@@ -589,7 +590,11 @@ function ExplorerPanel() {
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {isEmptyState ? (
-          <EmptyState isLoading={isWaitingForSessionData} />
+          <EmptyState
+            isLoading={isWaitingForSessionData}
+            isError={isError}
+            runId={runId}
+          />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (

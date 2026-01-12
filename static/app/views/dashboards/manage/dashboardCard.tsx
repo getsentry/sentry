@@ -163,7 +163,7 @@ const CardLink = styled(Link)`
 const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p => p.theme.overflowEllipsis};
   line-height: 1.5;
 `;
@@ -186,7 +186,7 @@ const DateSelected = styled('div')`
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding-left: ${space(1)};
 `;
 

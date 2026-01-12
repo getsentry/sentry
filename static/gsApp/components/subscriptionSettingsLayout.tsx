@@ -1,3 +1,4 @@
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -11,15 +12,10 @@ import type {RouteWithName} from 'sentry/views/settings/components/settingsBread
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-type Props = {
-  children: React.ReactNode;
-};
-
-export default function SubscriptionSettingsLayout(props: Props) {
+export default function SubscriptionSettingsLayout() {
   const location = useLocation();
   const params = useParams();
   const routes = useRoutes();
-  const {children} = props;
   let feedbackSource = location.pathname;
   for (let i = routes.length - 1; i >= 0; i--) {
     const route = routes[i] as RouteWithName;
@@ -53,7 +49,7 @@ export default function SubscriptionSettingsLayout(props: Props) {
         </Flex>
       </StyledSettingsHeader>
       <Flex minWidth={0} flex="1" direction="column">
-        {children}
+        <Outlet />
       </Flex>
     </SettingsColumn>
   );
