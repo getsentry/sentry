@@ -94,7 +94,11 @@ class SDKCrashDetector:
         # First pass: check if there are non-conditional SDK frames anywhere
         has_non_conditional_sdk_frame = False
         for frame in iter_frames:
-            if self.is_sdk_frame(frame) and not self._matches_ignore_when_only_sdk_frame(frame):
+            if (
+                self.is_sdk_frame(frame)
+                and not self._matches_ignore_when_only_sdk_frame(frame)
+                and not self._matches_sdk_crash_ignore(frame)
+            ):
                 has_non_conditional_sdk_frame = True
                 break
 
