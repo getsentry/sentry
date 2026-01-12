@@ -15,6 +15,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
+from ..logging import debug_log
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
@@ -98,11 +99,21 @@ def handle_pull_request_event(
 
     This handler processes PR events and sends them directly to Seer
     """
-    extra = {"organization_id": organization.id, "repo": repo.name}
+    pr_number = event.get("pull_request", {}).get("number")
+    base_extra = {
+        "organization_id": organization.id,
+        "organization_slug": organization.slug,
+        "repo": repo.name,
+        "github_org": github_org,
+        "pr_number": pr_number,
+    }
+
+    debug_log("code_review.pull_request.entry", extra=base_extra)
 
     pull_request = event.get("pull_request")
     if not pull_request:
-        logger.warning(Log.MISSING_PULL_REQUEST.value, extra=extra)
+        debug_log("code_review.pull_request.missing_pull_request", extra=base_extra)
+        logger.warning(Log.MISSING_PULL_REQUEST.value, extra=base_extra)
         record_webhook_handler_error(
             github_event, "unknown", CodeReviewErrorType.MISSING_PULL_REQUEST
         )
@@ -110,34 +121,77 @@ def handle_pull_request_event(
 
     action_value = event.get("action")
     if not action_value or not isinstance(action_value, str):
-        logger.warning(Log.MISSING_ACTION.value, extra=extra)
+        debug_log("code_review.pull_request.missing_action", extra=base_extra)
+        logger.warning(Log.MISSING_ACTION.value, extra=base_extra)
         record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
         return
-    extra["action"] = action_value
+
+    base_extra["action"] = action_value
+    debug_log("code_review.pull_request.action_received", extra=base_extra)
 
     record_webhook_received(github_event, action_value)
 
     try:
         action = PullRequestAction(action_value)
     except ValueError:
-        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        debug_log(
+            "code_review.pull_request.unsupported_action",
+            extra={**base_extra, "reason": "action_not_in_enum"},
+        )
+        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=base_extra)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
     if action not in WHITELISTED_ACTIONS:
-        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        debug_log(
+            "code_review.pull_request.action_not_whitelisted",
+            extra={
+                **base_extra,
+                "whitelisted_actions": [a.value for a in WHITELISTED_ACTIONS],
+            },
+        )
+        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=base_extra)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
-    if pull_request.get("draft") is True:
+    is_draft = pull_request.get("draft") is True
+    if is_draft:
+        debug_log(
+            "code_review.pull_request.skipped_draft",
+            extra={**base_extra, "reason": "draft_pr"},
+        )
         return
 
-    if github_org in get_direct_to_seer_gh_orgs():
+    direct_to_seer_orgs = get_direct_to_seer_gh_orgs()
+    is_direct_to_seer = github_org in direct_to_seer_orgs
+
+    debug_log(
+        "code_review.pull_request.routing_check",
+        extra={
+            **base_extra,
+            "direct_to_seer_orgs": direct_to_seer_orgs,
+            "is_direct_to_seer": is_direct_to_seer,
+        },
+    )
+
+    if is_direct_to_seer:
         from .task import schedule_task
+
+        trigger = _get_trigger_for_action(action)
+        target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
+
+        debug_log(
+            "code_review.pull_request.scheduling_task",
+            extra={
+                **base_extra,
+                "trigger": trigger.value,
+                "target_commit_sha": target_commit_sha,
+            },
+        )
 
         schedule_task(
             github_event=github_event,
@@ -145,7 +199,14 @@ def handle_pull_request_event(
             event=event,
             organization=organization,
             repo=repo,
-            target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
-            trigger=_get_trigger_for_action(action),
+            target_commit_sha=target_commit_sha,
+            trigger=trigger,
         )
         record_webhook_enqueued(github_event, action_value)
+
+        debug_log("code_review.pull_request.task_scheduled", extra=base_extra)
+    else:
+        debug_log(
+            "code_review.pull_request.not_direct_to_seer",
+            extra={**base_extra, "reason": "github_org_not_in_direct_to_seer_list"},
+        )

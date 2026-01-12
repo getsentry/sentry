@@ -14,6 +14,8 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
+from .logging import debug_log
+
 
 class RequestType(StrEnum):
     PR_REVIEW = "pr-review"
@@ -92,18 +94,62 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     Returns:
         The response data from the Seer API
     """
+    # Extract useful info from payload for logging
+    data = payload.get("data", {})
+    repo_info = data.get("repo", {})
+    base_extra = {
+        "seer_path": path,
+        "seer_url": settings.SEER_AUTOFIX_URL,
+        "request_type": payload.get("request_type"),
+        "repo_owner": repo_info.get("owner"),
+        "repo_name": repo_info.get("name"),
+        "pr_id": data.get("pr_id"),
+        "external_owner_id": payload.get("external_owner_id"),
+    }
+
+    debug_log("code_review.seer_request.start", extra=base_extra)
+
+    body = orjson.dumps(payload)
+    debug_log(
+        "code_review.seer_request.payload_serialized",
+        extra={**base_extra, "payload_size_bytes": len(body)},
+    )
+
     response = make_signed_seer_api_request(
         connection_pool=connection_from_url(settings.SEER_AUTOFIX_URL),
         path=path,
-        body=orjson.dumps(payload),
+        body=body,
     )
+
+    debug_log(
+        "code_review.seer_request.response_received",
+        extra={
+            **base_extra,
+            "response_status": response.status,
+            "response_size_bytes": len(response.data) if response.data else 0,
+        },
+    )
+
     # Retry on server errors (5xx) and rate limits (429), but not client errors (4xx)
     if response.status >= 500 or response.status == 429:
+        debug_log(
+            "code_review.seer_request.retryable_error",
+            extra={**base_extra, "response_status": response.status},
+        )
         raise HTTPError(f"Seer returned retryable status {response.status}")
     elif response.status >= 400:
         # Client errors are permanent, don't retry
+        debug_log(
+            "code_review.seer_request.client_error",
+            extra={
+                **base_extra,
+                "response_status": response.status,
+                "response_body": response.data.decode("utf-8") if response.data else None,
+            },
+        )
         raise ClientError(f"Seer returned client error {response.status}")
     else:
+        debug_log("code_review.seer_request.success", extra=base_extra)
         return response.data
 
 

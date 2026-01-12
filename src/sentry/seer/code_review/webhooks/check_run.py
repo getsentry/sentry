@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 
+from ..logging import debug_log
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
@@ -83,15 +84,30 @@ def handle_check_run_event(
         organization: The Sentry organization that the webhook event belongs to
         **kwargs: Additional keyword arguments
     """
+    check_run_data = event.get("check_run", {})
+    action = event.get("action")
+    html_url = check_run_data.get("html_url")
+    external_id = check_run_data.get("external_id")
+
+    base_extra = {
+        "github_event": github_event.value if hasattr(github_event, "value") else str(github_event),
+        "action": action,
+        "html_url": html_url,
+        "external_id": external_id,
+    }
+
+    debug_log("code_review.check_run.entry", extra=base_extra)
+
     if github_event != GithubWebhookType.CHECK_RUN:
+        debug_log(
+            "code_review.check_run.wrong_event_type",
+            extra={**base_extra, "expected": "check_run"},
+        )
         return
 
-    action = event.get("action")
-    # We can use html_url to search through the logs for this event.
-    extra = {"html_url": event.get("check_run", {}).get("html_url"), "action": action}
-
     if action is None:
-        logger.error(Log.MISSING_ACTION.value, extra=extra)
+        debug_log("code_review.check_run.missing_action", extra=base_extra)
+        logger.error(Log.MISSING_ACTION.value, extra=base_extra)
         record_webhook_handler_error(
             github_event,
             action or "",
@@ -99,17 +115,28 @@ def handle_check_run_event(
         )
         return
 
+    debug_log("code_review.check_run.action_received", extra=base_extra)
     record_webhook_received(github_event, action)
 
     if action != GitHubCheckRunAction.REREQUESTED:
+        debug_log(
+            "code_review.check_run.action_not_rerequested",
+            extra={**base_extra, "expected_action": "rerequested"},
+        )
         record_webhook_filtered(github_event, action, WebhookFilteredReason.UNSUPPORTED_ACTION)
         return
 
+    debug_log("code_review.check_run.validating_payload", extra=base_extra)
+
     try:
         validated_event = _validate_github_check_run_event(event)
-    except (ValidationError, ValueError):
+    except (ValidationError, ValueError) as e:
+        debug_log(
+            "code_review.check_run.validation_failed",
+            extra={**base_extra, "error": str(e)},
+        )
         # Prevent sending a 500 error to GitHub which would trigger a retry
-        logger.exception(Log.INVALID_PAYLOAD.value, extra=extra)
+        logger.exception(Log.INVALID_PAYLOAD.value, extra=base_extra)
         record_webhook_handler_error(
             github_event,
             action,
@@ -117,8 +144,27 @@ def handle_check_run_event(
         )
         return
 
+    debug_log(
+        "code_review.check_run.validation_success",
+        extra={
+            **base_extra,
+            "validated_external_id": validated_event.check_run.external_id,
+        },
+    )
+
     # Import here to avoid circular dependency with webhook_task
     from .task import process_github_webhook_event
+
+    enqueued_at = datetime.now(timezone.utc).isoformat()
+
+    debug_log(
+        "code_review.check_run.scheduling_task",
+        extra={
+            **base_extra,
+            "original_run_id": validated_event.check_run.external_id,
+            "enqueued_at": enqueued_at,
+        },
+    )
 
     # Scheduling the work as a task allows us to retry the request if it fails.
     process_github_webhook_event.delay(
@@ -127,9 +173,11 @@ def handle_check_run_event(
         event_payload={"original_run_id": validated_event.check_run.external_id},
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,
-        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        enqueued_at_str=enqueued_at,
     )
     record_webhook_enqueued(github_event, action)
+
+    debug_log("code_review.check_run.task_scheduled", extra=base_extra)
 
 
 def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:
