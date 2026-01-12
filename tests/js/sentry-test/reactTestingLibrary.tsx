@@ -341,6 +341,10 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     return LocationFixture().pathname;
   }
 
+  if (!location.query && !location.state) {
+    return location.pathname;
+  }
+
   const config: InitialEntry = {
     pathname: location.pathname,
   };
