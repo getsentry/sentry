@@ -314,6 +314,7 @@ def store_export_chunk_as_blob(
 @instrumented_task(
     name="sentry.data_export.tasks.merge_blobs",
     namespace=export_tasks,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
 )
 def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
@@ -333,6 +334,45 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
+            # Fetch export blobs and their corresponding FileBlobs outside the transaction
+            export_blobs = list(
+                ExportedDataBlob.objects.filter(data_export=data_export).order_by("offset")
+            )
+            
+            if not export_blobs:
+                logger.warning("merge_export_blobs: No export blobs found", extra=extra)
+                return data_export.email_failure(message="No data to export")
+
+            # Prefetch all FileBlobs to avoid N+1 queries
+            blob_ids = [eb.blob_id for eb in export_blobs]
+            blobs_by_id = {blob.id: blob for blob in FileBlob.objects.filter(id__in=blob_ids)}
+
+            # Verify checksums and compute file checksum outside the transaction
+            # to avoid holding the database connection during expensive I/O operations
+            size = 0
+            file_checksum = sha1(b"")
+            blob_info = []  # Store (blob, offset, size) for later insertion
+
+            for export_blob in export_blobs:
+                blob = blobs_by_id.get(export_blob.blob_id)
+                if not blob:
+                    raise AssembleChecksumMismatch(
+                        f"FileBlob {export_blob.blob_id} not found"
+                    )
+
+                blob_checksum = sha1(b"")
+                with blob.getfile() as f:
+                    for chunk in f.chunks():
+                        blob_checksum.update(chunk)
+                        file_checksum.update(chunk)
+
+                if blob.checksum != blob_checksum.hexdigest():
+                    raise AssembleChecksumMismatch("Checksum mismatch")
+
+                blob_info.append((blob, size, blob.size))
+                size += blob.size
+
+            # Now perform the database writes in a transaction
             with atomic_transaction(
                 using=(
                     router.db_for_write(File),
@@ -343,29 +383,17 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
                     name=data_export.file_name,
                     type="export.csv",
                     headers={"Content-Type": "text/csv"},
+                    size=size,
+                    checksum=file_checksum.hexdigest(),
                 )
-                size = 0
-                file_checksum = sha1(b"")
 
-                for export_blob in ExportedDataBlob.objects.filter(
-                    data_export=data_export
-                ).order_by("offset"):
-                    blob = FileBlob.objects.get(pk=export_blob.blob_id)
-                    FileBlobIndex.objects.create(file=file, blob=blob, offset=size)
-                    size += blob.size
-                    blob_checksum = sha1(b"")
-
-                    with blob.getfile() as f:
-                        for chunk in f.chunks():
-                            blob_checksum.update(chunk)
-                            file_checksum.update(chunk)
-
-                    if blob.checksum != blob_checksum.hexdigest():
-                        raise AssembleChecksumMismatch("Checksum mismatch")
-
-                file.size = size
-                file.checksum = file_checksum.hexdigest()
-                file.save()
+                # Bulk create FileBlobIndex records for better performance
+                FileBlobIndex.objects.bulk_create(
+                    [
+                        FileBlobIndex(file=file, blob=blob, offset=offset)
+                        for blob, offset, _ in blob_info
+                    ]
+                )
 
                 # This is in a separate atomic transaction because in prod, files exist
                 # outside of the primary database which means that the transaction to
