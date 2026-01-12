@@ -1435,11 +1435,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-incident-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/attribute-mappings/$",
-        OrganizationAttributeMappingsEndpoint.as_view(),
-        name="sentry-api-0-organization-attribute-mappings",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/chunk-upload/$",
         ChunkUploadEndpoint.as_view(),
         name="sentry-api-0-chunk-upload",
