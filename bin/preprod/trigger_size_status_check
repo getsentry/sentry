@@ -36,7 +36,7 @@ BUILD_1 = {
     "build_version": "1.0.3",
     "build_number": 42,
     "build_configuration": "Debug",  # Head build configuration
-    "base_build_configuration": "Release",  # Base build configuration (test different configs!)
+    "base_build_configuration": "Debug",  # Base build configuration (test different configs!)
     "state": "processed_with_metrics",  # uploading, uploaded, failed, processed_no_metrics, processed_with_metrics, metrics_pending
     "create_base_artifacts": True,  # Create base artifacts for size comparison
     "create_multiple_metrics": False,  # Create watch/dynamic feature metrics in addition to main
@@ -259,6 +259,7 @@ def create_base_artifacts_for_comparison(
             project=project,
             app_id=build_config["app_id"],
             app_name=build_config["app_name"],
+            artifact_type=build_config["artifact_type"],
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             build_version=build_config["build_version"],
@@ -387,6 +388,36 @@ def show_rule_evaluation(artifact_id: int) -> None:
         context = _get_artifact_filter_context(art)
 
         logger.info("\n  📱 %s (%s):", art.app_id, context.get("build.platform", "unknown"))
+
+        if size_metrics:
+            head_install = size_metrics.max_install_size
+            head_download = size_metrics.max_download_size
+            logger.info(
+                "     Current: install=%s MB, download=%s MB",
+                round(head_install / 1024 / 1024, 2) if head_install else None,
+                round(head_download / 1024 / 1024, 2) if head_download else None,
+            )
+
+        if base_metric:
+            base_install = base_metric.max_install_size
+            base_download = base_metric.max_download_size
+            logger.info(
+                "     Base: install=%s MB, download=%s MB",
+                round(base_install / 1024 / 1024, 2) if base_install else None,
+                round(base_download / 1024 / 1024, 2) if base_download else None,
+            )
+            if size_metrics and base_install and head_install:
+                diff_mb = (head_install - base_install) / 1024 / 1024
+                diff_pct = ((head_install - base_install) / base_install) * 100
+                logger.info(
+                    "     Diff: %s%s MB (%s%s%%)",
+                    "+" if diff_mb > 0 else "",
+                    round(diff_mb, 2),
+                    "+" if diff_pct > 0 else "",
+                    round(diff_pct, 1),
+                )
+        else:
+            logger.info("     Base: No base metrics found (diff rules won't trigger)")
 
         for rule in rules:
             matches = _rule_matches_artifact(rule, context)
