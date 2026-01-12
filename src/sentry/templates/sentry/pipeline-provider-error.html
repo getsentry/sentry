@@ -14,7 +14,7 @@
 
   <p>The installation could not complete due to a provider error.</p>
 
-  <pre>{{ error }}</pre>
+  <pre>{{ error|force_escape }}</pre>
 </div>
 {% endblock %}
 

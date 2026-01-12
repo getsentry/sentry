@@ -14,7 +14,7 @@
 
   <p>Whoops! Looks like something went wrong! Give that another try.</p>
 
-  <pre>{{ error }}</pre>
+  <pre>{{ error|force_escape }}</pre>
 </div>
 {% endblock %}
 

@@ -126,3 +126,77 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    def test_error_message_xss_esi_include(self) -> None:
+        """Test that ESI include tags in error messages are properly escaped."""
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        xss_payload = '1<esi:include src="http://bxss.me/rpb.png"/>'
+        resp = pipeline.error(xss_payload)
+
+        assert isinstance(resp, HttpResponse)
+        content = resp.content.decode("utf-8")
+        # Verify the response contains escaped HTML
+        assert "&lt;esi:include" in content
+        # Ensure the raw XSS payload is NOT present
+        assert '<esi:include src="http://bxss.me/rpb.png"/>' not in content
+
+    def test_error_message_xss_script_tag(self) -> None:
+        """Test that script tags in error messages are properly escaped."""
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        xss_payload = '<script>alert("XSS")</script>'
+        resp = pipeline.error(xss_payload)
+
+        assert isinstance(resp, HttpResponse)
+        content = resp.content.decode("utf-8")
+        # Verify the response contains escaped HTML
+        assert "&lt;script&gt;" in content
+        assert "&lt;/script&gt;" in content
+        # Ensure the raw script tag is NOT present
+        assert '<script>alert("XSS")</script>' not in content
+
+    def test_error_message_xss_img_tag(self) -> None:
+        """Test that img tags with onerror in error messages are properly escaped."""
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        xss_payload = '<img src=x onerror=alert("XSS")>'
+        resp = pipeline.error(xss_payload)
+
+        assert isinstance(resp, HttpResponse)
+        content = resp.content.decode("utf-8")
+        # Verify the response contains escaped HTML
+        assert "&lt;img" in content
+        # Ensure the raw img tag is NOT present
+        assert '<img src=x onerror=alert("XSS")>' not in content
+
+    def test_render_warning_xss_protection(self) -> None:
+        """Test that warning messages are also protected against XSS."""
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        xss_payload = '"><svg/onload=alert(1)>'
+        resp = pipeline.render_warning(xss_payload)
+
+        assert isinstance(resp, HttpResponse)
+        content = resp.content.decode("utf-8")
+        # Verify the response contains escaped HTML
+        assert "&lt;svg" in content or '"&gt;&lt;svg' in content
+        # Ensure the raw payload is NOT present
+        assert '"><svg/onload=alert(1)>' not in content
+
+    def test_normal_error_still_displayed(self) -> None:
+        """Test that normal error messages are still displayed correctly."""
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        normal_error = "An error occurred while validating your request."
+        resp = pipeline.error(normal_error)
+
+        assert isinstance(resp, HttpResponse)
+        content = resp.content.decode("utf-8")
+        # Verify the normal error message is displayed
+        assert "An error occurred while validating your request." in content
