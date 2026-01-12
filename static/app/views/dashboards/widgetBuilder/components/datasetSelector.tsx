@@ -127,7 +127,7 @@ function WidgetBuilderDatasetSelector() {
       <CompactSelect
         value={state.dataset ?? WidgetType.ERRORS}
         options={datasetOptions}
-        menuWidth={500}
+        menuWidth={300}
         onChange={selection => {
           const newDataset = selection.value;
 
