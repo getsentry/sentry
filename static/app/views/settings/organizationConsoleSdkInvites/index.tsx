@@ -5,6 +5,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
+import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -28,8 +31,25 @@ export default function ConsoleSDKInvitesSettings() {
       <Alert.Container>
         <Alert variant="warning" showIcon={false}>
           {t(
-            'Your organization does not have any console platforms enabled. Please contact your sales representative to enable console SDK access.'
+            'Your organization does not have any console platforms enabled. Please complete the middleware verification process for your platform:'
           )}
+          <List symbol="bullet">
+            <ListItem>
+              <ExternalLink href="https://game.develop.playstation.net/tm/verify/functionalsw">
+                {t('PlayStation Partners')}
+              </ExternalLink>
+            </ListItem>
+            <ListItem>
+              <ExternalLink href="https://developer.nintendo.com/group/development/getting-started/g1kr9vj6/middleware/sentry">
+                {t('Nintendo Developer Portal')}
+              </ExternalLink>
+            </ListItem>
+            <ListItem>
+              <ExternalLink href="https://developer.microsoft.com/en-us/games/support/request-gdkx-middleware">
+                {t('Microsoft GDK Middleware')}
+              </ExternalLink>
+            </ListItem>
+          </List>
         </Alert>
       </Alert.Container>
     );
