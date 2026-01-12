@@ -10,7 +10,7 @@ from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.exceptions import BadRequest, RequestTimeout
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
@@ -76,7 +76,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
     aggregate = serializers.CharField(required=True, min_length=1)
 
     # This will be set to required=True once the frontend starts sending it.
-    owner = ActorField(required=False, allow_null=True)
+    owner = OwnerActorField(required=False, allow_null=True)
 
     description = serializers.CharField(required=False, allow_blank=True)
     sensitivity = serializers.CharField(required=False, allow_null=True)
