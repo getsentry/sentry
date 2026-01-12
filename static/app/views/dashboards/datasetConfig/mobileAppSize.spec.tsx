@@ -227,6 +227,62 @@ describe('MobileAppSizeConfig', () => {
         })
       );
     });
+
+    it('rejects when widget query is not found', async () => {
+      const api = new MockApiClient();
+      const widget = WidgetFixture({
+        widgetType: WidgetType.MOBILE_APP_SIZE,
+        queries: [],
+      });
+
+      await expect(
+        MobileAppSizeConfig.getSeriesRequest!(api, widget, 0, organization, {
+          datetime: {start: null, end: null, period: '14d', utc: false},
+          environments: [],
+          projects: [1],
+        })
+      ).rejects.toThrow('No widget query found');
+    });
+
+    it('includes topEvents and field params when columns are specified', async () => {
+      const api = new MockApiClient();
+      const widget = WidgetFixture({
+        widgetType: WidgetType.MOBILE_APP_SIZE,
+        limit: 5,
+        queries: [
+          {
+            conditions: '',
+            aggregates: ['max(install_size)'],
+            fields: ['max(install_size)'],
+            columns: ['platform'],
+            fieldAliases: [],
+            name: '',
+            orderby: '',
+          },
+        ],
+      });
+
+      const mockRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        body: {},
+      });
+
+      await MobileAppSizeConfig.getSeriesRequest!(api, widget, 0, organization, {
+        datetime: {start: null, end: null, period: '14d', utc: false},
+        environments: [],
+        projects: [1],
+      });
+
+      expect(mockRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-stats/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            topEvents: 5,
+            field: ['platform', 'max(install_size)'],
+          }),
+        })
+      );
+    });
   });
 
   describe('getSeriesResultType', () => {
