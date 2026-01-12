@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -45,7 +46,11 @@ class ProjectUptimeAlertIndexEndpoint(ProjectEndpoint):
         """
         Create a new monitor.
         """
+        assertions_enabled = features.has(
+            "organizations:uptime-runtime-assertions", project.organization, actor=request.user
+        )
         validator = UptimeMonitorValidator(
+            assertions_enabled,
             data=request.data,
             context={
                 "organization": project.organization,
