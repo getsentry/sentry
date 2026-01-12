@@ -2,6 +2,7 @@ from time import time
 
 from sentry import features, nodestore
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.http import safe_urlopen
 from sentry.models.group import Group
 from sentry.sentry_apps.models.servicehook import ServiceHook
@@ -19,7 +20,11 @@ def get_payload_v0(event):
     group = event.group
     project = group.project
 
-    group_context = serialize(group)
+    # Use GroupSerializer with collapse=["stats"] to avoid expensive Snuba queries
+    # for seen stats that can cause rate limit issues when many service hooks run concurrently.
+    # The "stats" collapse skips fetching count/userCount from Snuba while preserving
+    # all other group fields for backward compatibility.
+    group_context = serialize(group, serializer=GroupSerializer(collapse=["stats"]))
     group_context["url"] = group.get_absolute_url()
 
     event_context = serialize(event)
