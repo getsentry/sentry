@@ -21,11 +21,20 @@ def _fix_label(label: tuple[str, ...] | str) -> str:
 
 @region_silo_endpoint
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
+    """
+    This endpoint uses the legacy MinHash similarity system which has been replaced
+    by embeddings-based grouping for SaaS.
+    """
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group: Group) -> Response:
+        # Any project using embeddings-based grouping will not work with this endpoint
+        if group.project.get_option("sentry:similarity_backfill_completed"):
+            return Response([])
+
         features = similarity.features
 
         limit_s = request.GET.get("limit", None)
