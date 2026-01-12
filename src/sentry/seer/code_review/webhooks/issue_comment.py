@@ -14,7 +14,6 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 
 from ..metrics import (
     CodeReviewErrorType,
@@ -24,7 +23,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha
+from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha
 from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
@@ -153,6 +152,6 @@ def handle_issue_comment_event(
             organization=organization,
             repo=repo,
             target_commit_sha=target_commit_sha,
-            trigger=CodeReviewTrigger.ON_COMMAND_PHRASE,
+            trigger=SeerCodeReviewTrigger.ON_COMMAND_PHRASE,
         )
         record_webhook_enqueued(github_event, github_event_action)

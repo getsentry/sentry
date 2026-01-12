@@ -1182,12 +1182,6 @@ const generateAliases = (tokens: Tokens) => ({
    * Tertiary background color used as a stronger contrast against primary background
    */
   backgroundTertiary: tokens.background.tertiary,
-
-  /**
-   * A color that denotes an error, or something that is wrong
-   */
-  error: tokens.content.danger,
-  errorText: tokens.content.danger,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens);
@@ -1256,23 +1250,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get blue100() {
     return colors.blue100;
-  },
-
-  /** @deprecated */
-  get pink400() {
-    return colors.pink500;
-  },
-  /** @deprecated */
-  get pink300() {
-    return colors.pink400;
-  },
-  /** @deprecated */
-  get pink200() {
-    return colors.pink200;
-  },
-  /** @deprecated */
-  get pink100() {
-    return colors.pink100;
   },
 
   /** @deprecated */
