@@ -18,6 +18,8 @@ import {AutomationFeedbackButton} from 'sentry/views/automations/components/auto
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
+import {getNoPermissionToEditMonitorTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
+import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 type ErrorDetectorFormData = {
   workflowIds: string[];
@@ -114,6 +116,11 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
 
+  // Error monitors only allow editing workflow connections right now, so that's the only permission we need to check
+  const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
+    projectId: detector.projectId,
+  });
+
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
     formDataToEndpointPayload: (data: ErrorDetectorFormData) => ({
@@ -151,7 +158,15 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
       </EditLayout.Body>
 
       <EditLayout.Footer maxWidth={maxWidth}>
-        <Button type="submit" priority="primary" size="sm">
+        <Button
+          type="submit"
+          priority="primary"
+          size="sm"
+          disabled={!canEditWorkflowConnections}
+          title={
+            canEditWorkflowConnections ? undefined : getNoPermissionToEditMonitorTooltip()
+          }
+        >
           {t('Save')}
         </Button>
       </EditLayout.Footer>
