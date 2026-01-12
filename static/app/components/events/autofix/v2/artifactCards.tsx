@@ -906,7 +906,7 @@ const CodingAgentStatusTag = styled('span')<{
       case 'completed':
         return p.theme.tokens.content.success;
       case 'failed':
-        return p.theme.alert.danger.color;
+        return p.theme.tokens.content.danger;
       default:
         return p.theme.blue400;
     }
