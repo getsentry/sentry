@@ -15,12 +15,8 @@ import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
-import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -47,9 +43,7 @@ import {t, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -63,7 +57,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {
   ClusterDetailDrawer,
-  renderWithInlineCode,
   useClusterStats,
   type ClusterSummary,
 } from 'sentry/views/issueList/pages/topIssuesDrawer';
@@ -99,91 +92,6 @@ interface TopIssuesResponse {
   last_updated?: string;
 }
 
-function CompactIssuePreview({group}: {group: Group}) {
-  const {subtitle} = getTitle(group);
-
-  const items = [
-    group.project ? (
-      <ProjectBadge project={group.project} avatarSize={12} hideName disableLink />
-    ) : null,
-    group.isUnhandled ? <UnhandledTag /> : null,
-    group.count ? (
-      <Text size="xs" bold>
-        {tn('%s event', '%s events', group.count)}
-      </Text>
-    ) : null,
-    group.firstSeen || group.lastSeen ? (
-      <TimesTag lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
-    ) : null,
-  ].filter(Boolean);
-
-  return (
-    <Flex direction="column" gap="xs">
-      <IssueTitle>
-        <EventOrGroupTitle data={group} withStackTracePreview />
-      </IssueTitle>
-      <IssueMessage
-        data={group}
-        level={group.level}
-        message={getMessage(group)}
-        type={group.type}
-      />
-      {subtitle && (
-        <Text size="sm" variant="muted" ellipsis>
-          {subtitle}
-        </Text>
-      )}
-      {items.length > 0 && (
-        <Flex wrap="wrap" gap="sm" align="center">
-          {items.map((item, i) => (
-            <Fragment key={i}>
-              {item}
-              {i < items.length - 1 ? <MetaSeparator /> : null}
-            </Fragment>
-          ))}
-        </Flex>
-      )}
-    </Flex>
-  );
-}
-
-function ClusterIssues({groupIds}: {groupIds: number[]}) {
-  const organization = useOrganization();
-  const previewGroupIds = groupIds.slice(0, 3);
-
-  const {data: groups, isPending} = useApiQuery<Group[]>(
-    [
-      `/organizations/${organization.slug}/issues/`,
-      {
-        query: {
-          group: previewGroupIds,
-          query: `issue.id:[${previewGroupIds.join(',')}]`,
-        },
-      },
-    ],
-    {
-      staleTime: 60000,
-    }
-  );
-
-  if (isPending || !groups || groups.length === 0) {
-    return null;
-  }
-
-  return (
-    <Flex direction="column" gap="sm">
-      {groups.map(group => (
-        <IssuePreviewLink
-          key={group.id}
-          to={`/organizations/${organization.slug}/issues/${group.id}/`}
-        >
-          <CompactIssuePreview group={group} />
-        </IssuePreviewLink>
-      ))}
-    </Flex>
-  );
-}
-
 interface ClusterCardProps {
   cluster: ClusterSummary;
   onDismiss: (clusterId: number) => void;
@@ -200,10 +108,8 @@ function ClusterCard({
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const [activeTab, setActiveTab] = useState<'summary' | 'root-cause' | 'issues'>(
-    'summary'
-  );
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
   const {projects: allProjects} = useLegacyStore(ProjectsStore);
@@ -301,6 +207,16 @@ function ClusterCard({
       },
     });
   }, [onDismiss, cluster.cluster_id]);
+
+  const handleOpenDetails = useCallback(() => {
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {...location.query, cluster: String(cluster.cluster_id)},
+      },
+      {preventScrollReset: true}
+    );
+  }, [navigate, location.pathname, location.query, cluster.cluster_id]);
 
   const allTags = useMemo(() => {
     return [
@@ -438,58 +354,31 @@ function ClusterCard({
         </StatsRow>
       </CardHeader>
 
-      <TabSection>
-        <TabBar>
-          <Tab isActive={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
-            {t('Summary')}
-          </Tab>
-          <Tab
-            isActive={activeTab === 'root-cause'}
-            onClick={() => setActiveTab('root-cause')}
-          >
-            {t('Root Cause')}
-          </Tab>
-          <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
-            {t('Preview Issues')}
-          </Tab>
-        </TabBar>
-        <TabContent>
-          {activeTab === 'summary' && (
-            <Flex direction="column" gap="md">
-              <StructuredInfo>
-                {cluster.error_type && (
-                  <InfoRow>
-                    <InfoLabel>{t('Error')}</InfoLabel>
-                    <InfoValue>{cluster.error_type}</InfoValue>
-                  </InfoRow>
-                )}
-                {cluster.location && (
-                  <InfoRow>
-                    <InfoLabel>{t('Location')}</InfoLabel>
-                    <InfoValue>{cluster.location}</InfoValue>
-                  </InfoRow>
-                )}
-              </StructuredInfo>
-              {allTags.length > 0 && (
-                <TagsContainer>
-                  {allTags.map(tag => (
-                    <TagPill key={tag}>{tag}</TagPill>
-                  ))}
-                </TagsContainer>
-              )}
-            </Flex>
+      <CardBody>
+        <Flex direction="column" gap="md">
+          <StructuredInfo>
+            {cluster.error_type && (
+              <InfoRow>
+                <InfoLabel>{t('Error')}</InfoLabel>
+                <InfoValue>{cluster.error_type}</InfoValue>
+              </InfoRow>
+            )}
+            {cluster.location && (
+              <InfoRow>
+                <InfoLabel>{t('Location')}</InfoLabel>
+                <InfoValue>{cluster.location}</InfoValue>
+              </InfoRow>
+            )}
+          </StructuredInfo>
+          {allTags.length > 0 && (
+            <TagsContainer>
+              {allTags.map(tag => (
+                <TagPill key={tag}>{tag}</TagPill>
+              ))}
+            </TagsContainer>
           )}
-          {activeTab === 'root-cause' &&
-            (cluster.summary ? (
-              <DescriptionText>{renderWithInlineCode(cluster.summary)}</DescriptionText>
-            ) : (
-              <Text size="sm" variant="muted">
-                {t('No root cause analysis available')}
-              </Text>
-            ))}
-          {activeTab === 'issues' && <ClusterIssues groupIds={cluster.group_ids} />}
-        </TabContent>
-      </TabSection>
+        </Flex>
+      </CardBody>
 
       <CardFooter>
         {clusterProjects.length > 0 && (
@@ -559,13 +448,9 @@ function ClusterCard({
               position="bottom-end"
             />
           </ButtonBar>
-          <Link
-            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
-          >
-            <Button size="sm">
-              {t('View All Issues') + ` (${cluster.group_ids.length})`}
-            </Button>
-          </Link>
+          <Button size="sm" onClick={handleOpenDetails}>
+            {t('View Details')}
+          </Button>
           <DropdownMenu
             items={[
               {
@@ -1142,7 +1027,7 @@ const CardContainer = styled('div')`
 `;
 
 const CardHeader = styled('div')`
-  padding: ${space(3)} ${space(3)} ${space(2)};
+  padding: ${space(3)} ${space(3)} 0;
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
@@ -1243,50 +1128,7 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   }}
 `;
 
-const TabSection = styled('div')`
-  position: relative;
-  z-index: 1;
-`;
-
-const TabBar = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(3)} 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const Tab = styled('button')<{isActive: boolean}>`
-  background: none;
-  border: none;
-  padding: ${space(1)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: 500;
-  color: ${p =>
-    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
-  cursor: pointer;
-  position: relative;
-  margin-bottom: -1px;
-
-  ${p =>
-    p.isActive &&
-    `
-    &::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 2px;
-      background: ${p.theme.colors.blue400};
-    }
-  `}
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
-  }
-`;
-
-const TabContent = styled('div')`
+const CardBody = styled('div')`
   padding: ${space(2)} ${space(3)};
 `;
 
@@ -1316,57 +1158,6 @@ const SeerDropdownTrigger = styled(Button)`
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-left: 1px solid rgba(255, 255, 255, 0.15);
-`;
-
-const IssuePreviewLink = styled(Link)`
-  display: block;
-  padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-
-  &:hover {
-    border-color: ${p => p.theme.colors.blue400};
-    background: ${p => p.theme.tokens.background.primary};
-  }
-`;
-
-const IssueTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: 600;
-  color: ${p => p.theme.tokens.content.primary};
-  line-height: 1.4;
-  ${p => p.theme.overflowEllipsis};
-
-  em {
-    font-size: ${p => p.theme.fontSize.sm};
-    font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const IssueMessage = styled(EventMessage)`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  opacity: 0.9;
-`;
-
-const MetaSeparator = styled('div')`
-  height: 10px;
-  width: 1px;
-  background-color: ${p => p.theme.tokens.border.secondary};
-`;
-
-const DescriptionText = styled('p')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  line-height: 1.5;
 `;
 
 const StructuredInfo = styled('div')`
