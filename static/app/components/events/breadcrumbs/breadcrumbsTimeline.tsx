@@ -204,12 +204,13 @@ const Subtitle = styled('p')`
 
 const Timestamp = styled('div')`
   margin-right: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   min-width: 50px;
   text-align: right;
   span {
-    text-decoration: underline dashed ${p => p.theme.translucentBorder};
+    text-decoration: underline dashed
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 

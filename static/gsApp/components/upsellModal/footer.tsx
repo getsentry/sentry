@@ -83,7 +83,7 @@ const SidebarFooter = styled('div')`
   margin-left: auto;
   font-size: ${p => p.theme.fontSize.md};
   white-space: nowrap;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   h1 {
     text-transform: uppercase;
     font-weight: bold;

@@ -356,7 +356,7 @@ const ProgressRingText = styled('text')<{isLink?: boolean}>`
 
 const ProgressRingSubText = styled('text')`
   font-size: ${p => p.theme.fontSize.sm};
-  fill: ${p => p.theme.subText};
+  fill: ${p => p.theme.tokens.content.secondary};
   text-anchor: middle;
 `;
 
@@ -366,7 +366,7 @@ const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
       ? p.theme.colors.green400
       : p.value > 0
         ? p.theme.colors.red400
-        : p.theme.subText};
+        : p.theme.tokens.content.secondary};
 `;
 
 // Hover element on mouse
@@ -396,7 +396,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   &:before {
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p => p.theme.translucentBorder};
+    border-top: 8px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
     content: '';
     display: block;
     position: absolute;
@@ -416,7 +416,7 @@ const Dot = styled('span')<{color: string}>`
 `;
 
 const TooltipValue = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default PerformanceScoreRingWithTooltips;
