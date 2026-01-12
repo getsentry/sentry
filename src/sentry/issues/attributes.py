@@ -123,9 +123,24 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
             raise snuba.SnubaError(err)
     else:
         payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-        _attribute_snapshot_producer.produce(
-            ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]), payload
-        )
+        try:
+            _attribute_snapshot_producer.produce(
+                ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]), payload
+            )
+        except RuntimeError as err:
+            # Producer may have been closed by premature atexit handler in web server context.
+            # Log and continue gracefully instead of propagating the error.
+            if "producer has been closed" in str(err):
+                logger.warning(
+                    "Kafka producer was closed, attempting to reinitialize",
+                    extra={"group_id": snapshot.get("group_id")},
+                )
+                # The producer will reinitialize itself on next call
+                _attribute_snapshot_producer.produce(
+                    ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]), payload
+                )
+            else:
+                raise
 
 
 def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:

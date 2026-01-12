@@ -32,6 +32,8 @@ class SingletonProducer:
         self._factory = kafka_producer_factory
         self._futures: Deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
+        self._shutdown_registered = False
+        self._is_closed = False
 
     def produce(
         self, destination: ArroyoTopic | Partition, payload: KafkaPayload
@@ -41,9 +43,15 @@ class SingletonProducer:
         return future
 
     def _get(self) -> KafkaProducer:
-        if self._producer is None:
+        if self._producer is None or self._is_closed:
+            # Reinitialize if producer was closed (e.g., by premature atexit handler)
             self._producer = self._factory()
-            atexit.register(self._shutdown)
+            self._is_closed = False
+            
+            # Only register atexit handler once
+            if not self._shutdown_registered:
+                atexit.register(self._shutdown)
+                self._shutdown_registered = True
 
         return self._producer
 
@@ -58,6 +66,8 @@ class SingletonProducer:
                 future.result()
 
     def _shutdown(self) -> None:
+        self._is_closed = True
+        
         for future in self._futures:
             try:
                 future.result()
@@ -66,6 +76,7 @@ class SingletonProducer:
 
         if self._producer:
             self._producer.close()
+            self._producer = None
 
 
 def get_arroyo_producer(
