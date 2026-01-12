@@ -117,9 +117,9 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return f"detector:by_proj_type:{project_id}:{detector_type}"
 
     @classmethod
-    def _get_detector_data_source_cache_key(cls, source_id: str, source_type: str) -> str:
-        """Generate cache key for detector lookup by data source."""
-        return f"detector:by_data_source:{source_type}:{source_id}"
+    def _get_detector_ids_by_data_source_cache_key(cls, source_id: str, source_type: str) -> str:
+        """Generate cache key for detector IDs lookup by data source."""
+        return f"detector:ids_by_data_source:{source_type}:{source_id}"
 
     @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
@@ -131,19 +131,27 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return detector
 
     @classmethod
-    def get_detector_by_data_source(cls, source_id: str, source_type: str) -> Detector | None:
-        cache_key = cls._get_detector_data_source_cache_key(source_id, source_type)
-        detector = cache.get(cache_key)
-        if detector is None:
-            try:
-                detector = cls.objects.get(
+    def get_detector_ids_by_data_source(cls, source_id: str, source_type: str) -> list[int]:
+        """
+        Get detector IDs associated with a data source.
+
+        Returns just the IDs to avoid expensive joins through mapping tables,
+        allowing callers to fetch full detector objects with their own filters
+        and eager loading as needed.
+        """
+        cache_key = cls._get_detector_ids_by_data_source_cache_key(source_id, source_type)
+        detector_ids = cache.get(cache_key)
+        if detector_ids is None:
+            detector_ids = list(
+                cls.objects.filter(
                     data_sources__source_id=source_id,
                     data_sources__type=source_type,
                 )
-            except cls.DoesNotExist:
-                detector = False
-            cache.set(cache_key, detector, cls.CACHE_TTL)
-        return detector or None
+                .distinct()
+                .values_list("id", flat=True)
+            )
+            cache.set(cache_key, detector_ids, 60)
+        return detector_ids
 
     @classmethod
     def get_error_detector_for_project(cls, project_id: int) -> Detector:

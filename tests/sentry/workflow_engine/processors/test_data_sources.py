@@ -108,11 +108,14 @@ class TestProcessDataSources(BaseWorkflowTest):
             )
 
     def test_sql_cascades(self) -> None:
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             """
-            There should be 2 total SQL queries for `bulk_fetch_enabled_detectors`:
+            On cache miss, there are 3 SQL queries for `bulk_fetch_enabled_detectors`:
+            - Get detector IDs (via join through data source mapping tables)
             - Get the detector and data condition group associated with it
             - Get all the data conditions for the group
+
+            On cache hit, only 2 queries (skips the second one).
             """
             _, detectors = process_data_source(self.two_detector_packet, "test")
             # If the detector is not prefetched this will increase the query count
@@ -128,67 +131,40 @@ class TestProcessDataSources(BaseWorkflowTest):
                         assert condition.id is not None
 
     def test_bulk_fetch_uses_cache(self) -> None:
-        """Test that bulk_fetch_enabled_detectors uses the detector cache"""
+        """Test that bulk_fetch_enabled_detectors uses the detector IDs cache"""
         from sentry.workflow_engine.models import Detector
         from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 
-        with mock.patch.object(Detector, "get_detector_by_data_source") as mock_get:
-            mock_get.return_value = self.detector_one
+        with mock.patch.object(Detector, "get_detector_ids_by_data_source") as mock_get_ids:
+            mock_get_ids.return_value = [self.detector_one.id]
 
             detectors = bulk_fetch_enabled_detectors(self.packet.source_id, "test")
 
-            # Verify the cached method was called
-            mock_get.assert_called_once_with(self.packet.source_id, "test")
+            mock_get_ids.assert_called_once_with(self.packet.source_id, "test")
             assert len(detectors) == 1
             assert detectors[0].id == self.detector_one.id
 
-    def test_bulk_fetch_handles_cache_miss(self) -> None:
-        """Test that bulk_fetch_enabled_detectors handles cache miss (detector doesn't exist)"""
+    def test_bulk_fetch_handles_empty_cache(self) -> None:
+        """Test that bulk_fetch_enabled_detectors handles empty detector list"""
         from sentry.workflow_engine.models import Detector
         from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 
-        with mock.patch.object(Detector, "get_detector_by_data_source") as mock_get:
-            mock_get.return_value = None
+        with mock.patch.object(Detector, "get_detector_ids_by_data_source") as mock_get_ids:
+            mock_get_ids.return_value = []
 
             detectors = bulk_fetch_enabled_detectors("nonexistent", "test")
 
             assert detectors == []
-            mock_get.assert_called_once_with("nonexistent", "test")
+            mock_get_ids.assert_called_once_with("nonexistent", "test")
 
-    def test_bulk_fetch_handles_disabled_detector(self) -> None:
-        """Test that bulk_fetch_enabled_detectors filters out disabled detectors"""
-        from sentry.workflow_engine.models import Detector
+    def test_bulk_fetch_filters_disabled_detectors(self) -> None:
+        """Test that bulk_fetch_enabled_detectors filters out disabled detectors via DB query"""
         from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 
         self.detector_one.enabled = False
         self.detector_one.save()
 
-        with mock.patch.object(Detector, "get_detector_by_data_source") as mock_get:
-            mock_get.return_value = self.detector_one
+        detectors = bulk_fetch_enabled_detectors(self.two_detector_packet.source_id, "test")
 
-            detectors = bulk_fetch_enabled_detectors(self.packet.source_id, "test")
-
-            # Should return empty list because detector is disabled
-            assert detectors == []
-            mock_get.assert_called_once_with(self.packet.source_id, "test")
-
-    def test_bulk_fetch_verifies_enabled_in_db(self) -> None:
-        """Test that bulk_fetch_enabled_detectors verifies enabled status against DB"""
-        from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
-
-        # Create a detector that's initially enabled
-        detector = self.detector_one
-        detector.enabled = True
-        detector.save()
-
-        # First call should work
-        detectors = bulk_fetch_enabled_detectors(self.packet.source_id, "test")
         assert len(detectors) == 1
-
-        # Disable the detector
-        detector.enabled = False
-        detector.save()
-
-        # Second call should return empty because we check enabled=True in the DB query
-        detectors = bulk_fetch_enabled_detectors(self.packet.source_id, "test")
-        assert detectors == []
+        assert detectors[0].id == self.detector_two.id

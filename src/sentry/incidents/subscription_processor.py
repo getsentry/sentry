@@ -64,14 +64,15 @@ class SubscriptionProcessor:
         self.detector: Detector | None = None
         self.last_update = to_datetime(0)
 
-        # We're doing workflow engine processing, we need the Detector.
-        self.detector = Detector.get_detector_by_data_source(
+        detector_ids = Detector.get_detector_ids_by_data_source(
             source_id=str(self.subscription.id),
             source_type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
-        if self.detector is None:
+        if not detector_ids:
             logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
+            self.detector = None
         else:
+            self.detector = Detector.objects.get(id=detector_ids[0])
             self.last_update = get_detector_last_update(self.detector, self.subscription.project_id)
 
     def get_crash_rate_alert_metrics_aggregation_value(
