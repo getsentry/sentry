@@ -40,6 +40,7 @@ from sentry.models.groupowner import (
     ASSIGNEE_EXISTS_KEY,
     ISSUE_OWNERS_DEBOUNCE_DURATION,
     ISSUE_OWNERS_DEBOUNCE_KEY,
+    PROJECT_OWNERSHIP_VERSION_KEY,
     GroupOwner,
     GroupOwnerType,
 )
@@ -1436,6 +1437,91 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), True, ISSUE_OWNERS_DEBOUNCE_DURATION)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
+
+    @patch("sentry.utils.metrics.incr")
+    def test_debounces_with_timestamp_format(self, mock_incr: MagicMock) -> None:
+        self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        debounce_timestamp = timezone.now().timestamp()
+        cache.set(
+            ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id),
+            debounce_timestamp,
+            ISSUE_OWNERS_DEBOUNCE_DURATION,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
+
+    @patch("sentry.utils.metrics.incr")
+    def test_timestamp_invalidation_when_ownership_changes(self, mock_incr: MagicMock) -> None:
+        self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        old_debounce_timestamp = timezone.now().timestamp() - 100
+        cache.set(
+            ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id),
+            old_debounce_timestamp,
+            ISSUE_OWNERS_DEBOUNCE_DURATION,
+        )
+
+        GroupOwner.set_project_ownership_version(self.project.id)
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assert (
+            mock.call("sentry.tasks.post_process.handle_owner_assignment.debounce")
+            not in mock_incr.call_args_list
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_timestamp_debounce_when_ownership_older(self, mock_incr: MagicMock) -> None:
+        self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        new_debounce_timestamp = timezone.now().timestamp()
+        cache.set(
+            ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id),
+            new_debounce_timestamp,
+            ISSUE_OWNERS_DEBOUNCE_DURATION,
+        )
+
+        old_version_timestamp = timezone.now().timestamp() - 100
+        cache.set(PROJECT_OWNERSHIP_VERSION_KEY(self.project.id), old_version_timestamp, 3600)
+
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
