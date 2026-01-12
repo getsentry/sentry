@@ -25,6 +25,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
 
@@ -110,7 +111,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
-    def put(self, request: Request, key: ProjectKey, project, **kwargs) -> Response:
+    def put(self, request: Request, key: ProjectKey, project: Project, **kwargs) -> Response:
         """
         Update various settings for a client key.
         """
@@ -190,7 +191,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         },
         examples=None,
     )
-    def delete(self, request: Request, key: ProjectKey, project, **kwargs) -> Response:
+    def delete(self, request: Request, key: ProjectKey, project: Project, **kwargs) -> Response:
         """
         Delete a client key for a given project.
         """
