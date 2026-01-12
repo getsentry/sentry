@@ -790,6 +790,6 @@ const PriorityLabel = styled('span')`
 `;
 
 const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
   margin-left: ${space(0.25)};
 `;

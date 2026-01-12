@@ -85,11 +85,11 @@ const SliderThumbWrap = styled('div')<{
   ${p =>
     p.error &&
     css`
-      background: ${p.theme.error};
-      color: ${p.theme.errorText};
+      background: ${p.theme.tokens.content.danger};
+      color: ${p.theme.tokens.content.danger};
 
       &:hover {
-        background: ${p.theme.error};
+        background: ${p.theme.tokens.content.danger};
       }
     `}
 

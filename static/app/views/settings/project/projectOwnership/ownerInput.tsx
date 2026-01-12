@@ -247,7 +247,7 @@ const SyntaxOverlay = styled('div')<{line: number}>`
   top: ${({line}) => TEXTAREA_PADDING + line * TEXTAREA_LINE_HEIGHT + 1}px;
   width: 100%;
   height: ${TEXTAREA_LINE_HEIGHT}px;
-  background-color: ${p => p.theme.error};
+  background-color: ${p => p.theme.tokens.content.danger};
   opacity: 0.1;
   pointer-events: none;
 `;
@@ -270,7 +270,7 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const InvalidOwners = styled('div')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: 12px;
 `;
