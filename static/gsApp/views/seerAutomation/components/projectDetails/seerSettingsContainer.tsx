@@ -1,4 +1,7 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout/stack';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
@@ -49,15 +52,15 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
     organization.features.includes('integrations-cursor');
 
   return (
-    <Fragment>
-      <Panel>
+    <Stack gap="xl">
+      <PanelNoMargin>
         <PanelHeader>{t('Issue Scan & Fix')}</PanelHeader>
         <PanelBody>
           <AutoTriggeredFixesToggle canWrite={canWrite} project={project} />
         </PanelBody>
-      </Panel>
+      </PanelNoMargin>
 
-      <Panel>
+      <PanelNoMargin>
         <PanelHeader>{t('Seer Agent')}</PanelHeader>
         <PanelBody>
           <SeerAgentSection
@@ -66,11 +69,11 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
             preference={preference}
           />
         </PanelBody>
-      </Panel>
+      </PanelNoMargin>
 
       {showBackgroundAgentSection && (
         <Fragment>
-          <Panel>
+          <PanelNoMargin>
             <PanelHeader>{t('Agent Delegation')}</PanelHeader>
             <PanelBody>
               <BackgroundAgentPicker
@@ -89,9 +92,13 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
                 isLoadingIntegrations={isLoadingIntegrations}
               />
             </PanelBody>
-          </Panel>
+          </PanelNoMargin>
         </Fragment>
       )}
-    </Fragment>
+    </Stack>
   );
 }
+
+const PanelNoMargin = styled(Panel)`
+  margin-bottom: 0;
+`;
