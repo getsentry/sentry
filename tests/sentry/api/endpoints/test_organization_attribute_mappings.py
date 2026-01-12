@@ -21,7 +21,14 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
 
         # Check all 6 types are present
         types_present = {item["type"] for item in data}
-        expected_types = {"spans", "logs", "occurrences", "metrics", "uptime_results", "profiles"}
+        expected_types = {
+            "spans",
+            "logs",
+            "occurrences",
+            "tracemetrics",
+            "uptime_results",
+            "profiles",
+        }
         assert types_present == expected_types
 
         # Check each item has required keys

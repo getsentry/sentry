@@ -13,13 +13,15 @@ from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.trace_metrics.attributes import TRACE_METRICS_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.uptime_results.attributes import UPTIME_ATTRIBUTE_DEFINITIONS
 
-VALID_TYPES = frozenset(["spans", "logs", "occurrences", "metrics", "uptime_results", "profiles"])
+VALID_TYPES = frozenset(
+    ["spans", "logs", "occurrences", "tracemetrics", "uptime_results", "profiles"]
+)
 
 TYPE_TO_DEFINITIONS = {
     "spans": SPAN_ATTRIBUTE_DEFINITIONS,
     "logs": OURLOG_ATTRIBUTE_DEFINITIONS,
     "occurrences": OCCURRENCE_ATTRIBUTE_DEFINITIONS,
-    "metrics": TRACE_METRICS_ATTRIBUTE_DEFINITIONS,
+    "tracemetrics": TRACE_METRICS_ATTRIBUTE_DEFINITIONS,
     "uptime_results": UPTIME_ATTRIBUTE_DEFINITIONS,
     "profiles": PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS,
 }
