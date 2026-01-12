@@ -55,7 +55,7 @@ Check in this order - **use the highest-level framework found** (e.g., if using 
 | Library (check in order) | JS Integration | Python Integration | Python Extra |
 |--------------------------|---------------|-------------------|--------------|
 | Vercel AI SDK | \`Sentry.vercelAIIntegration()\` | - | - |
-| LangGraph | \`Sentry.langChainIntegration()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
+| LangGraph | \`Sentry.langGraphIntegration()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
 | LangChain | \`Sentry.langChainIntegration()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
 | OpenAI Agents | - | \`OpenAIAgentsIntegration()\` | - |
 | Pydantic AI | - | \`PydanticAIIntegration()\` | \`sentry-sdk[pydantic_ai]\` |
