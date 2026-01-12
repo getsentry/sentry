@@ -675,7 +675,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
             **self.trace_metrics_data,
             "dataSources": [
                 {
-                    **self.trace_metrics_data["dataSources"][0],
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
                     "aggregate": "count(trace.duration)",
                 }
             ],
@@ -698,7 +698,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
             "name": "Trace Metrics Per Second Detector",
             "dataSources": [
                 {
-                    **self.trace_metrics_data["dataSources"][0],
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
                     "aggregate": "per_second(value,metric_name_one,counter,-)",
                 }
             ],
@@ -724,7 +724,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
             "name": "Trace Metrics Count Detector",
             "dataSources": [
                 {
-                    **self.trace_metrics_data["dataSources"][0],
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
                     "aggregate": "count(metric.name,metric_name_two,distribution,-)",
                 }
             ],

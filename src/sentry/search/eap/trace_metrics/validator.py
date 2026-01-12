@@ -40,7 +40,7 @@ def extract_trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
 
     resolved_function, _ = resolver.resolve_function(aggregate)
 
-    return resolved_function.trace_metric
+    return getattr(resolved_function, "trace_metric", None)
 
 
 def validate_trace_metrics_aggregate(aggregate: str) -> None:
@@ -60,6 +60,5 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
             raise InvalidSearchQuery(
                 f"Trace metrics aggregate {aggregate} must specify metric name, type, and unit"
             )
-
     except InvalidSearchQuery as e:
         raise serializers.ValidationError({"aggregate": f"Invalid trace metrics aggregate: {e}"})
