@@ -265,7 +265,7 @@ const StyledLink = styled(Link)`
   color: ${p => p.theme.colors.gray500};
   &:hover {
     color: ${p => p.theme.colors.gray500};
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
@@ -286,7 +286,7 @@ const WrappedCount = styled(({value, ...p}: any) => (
   font-weight: ${p => p.theme.fontWeight.bold};
   font-variant-numeric: tabular-nums;
   padding-left: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Divider = styled('div')`

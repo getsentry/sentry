@@ -214,7 +214,10 @@ export const SourceCard = styled(Button)<{isHighlighted?: boolean}>`
   align-items: center;
   gap: ${space(0.5)};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => (p.isHighlighted ? p.theme.button.primary.colorActive : p.theme.subText)};
+  color: ${p =>
+    p.isHighlighted
+      ? p.theme.button.primary.colorActive
+      : p.theme.tokens.content.secondary};
   white-space: nowrap;
   flex-shrink: 0;
 `;
@@ -225,7 +228,7 @@ const ThoughtsOverlay = styled('div')`
   left: 50%;
   right: ${space(2)};
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -240,7 +243,7 @@ const ThoughtsOverlay = styled('div')`
 
 const OverlayHeader = styled('div')`
   padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayContent = styled('div')`
@@ -250,7 +253,7 @@ const OverlayContent = styled('div')`
 
 const OverlayFooter = styled('div')`
   padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayButtonGroup = styled('div')`
@@ -268,7 +271,7 @@ const OverlayTitle = styled('div')`
 
 const InsightTitle = styled('div')`
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.family};
 `;
 

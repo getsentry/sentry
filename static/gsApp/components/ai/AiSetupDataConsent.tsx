@@ -317,7 +317,7 @@ const SingleCard = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(2)} ${space(2)};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-top: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
@@ -325,7 +325,7 @@ const SingleCard = styled('div')`
 const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BulletList = styled('ul')`
@@ -344,7 +344,7 @@ const TouchCustomerMessage = styled('p')`
 
 const LegalText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 

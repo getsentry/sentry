@@ -319,7 +319,7 @@ const PrimaryTitle = styled('span')`
 
 const StatTitle = styled('div')`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
@@ -327,7 +327,7 @@ const StatTitle = styled('div')`
 `;
 
 const StatLink = styled(Link)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: ${p => (p['aria-disabled'] ? 'none' : 'underline')};
   text-decoration-style: dotted;
 `;
@@ -340,7 +340,7 @@ const StatCount = styled(Count)`
 `;
 
 const Subtext = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -364,7 +364,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     background: linear-gradient(
       to right,
       ${p => p.theme.tokens.background.primary},
-      ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
+      ${p => Color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
     );
   }
   &:after {
@@ -393,7 +393,7 @@ const Workflow = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Title = styled('div')`

@@ -53,7 +53,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {Color} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -158,7 +157,7 @@ const SubTitleWrapper = styled(FlexBox)`
 
 const StyledSubTitleText = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 function TitleOp({text}: {text: string}) {
@@ -552,7 +551,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
                 })
               }
             >
-              <IconCircleFill size="xs" color={color as Color} />
+              <StyledIconCircleFill size="xs" fill={color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
             </HighlightsOpRow>
@@ -609,7 +608,7 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
                 })
               }
             >
-              <IconCircleFill size="xs" color={color as Color} />
+              <StyledIconCircleFill size="xs" fill={color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
             </HighlightsOpRow>
@@ -620,6 +619,10 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   );
 }
 
+const StyledIconCircleFill = styled(IconCircleFill)<{fill: string}>`
+  fill: ${p => p.fill};
+`;
+
 const TopOpsList = styled('div')`
   display: flex;
   flex-direction: row;
@@ -628,7 +631,7 @@ const TopOpsList = styled('div')`
 `;
 
 const HighlightsOpPct = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: 14px;
 `;
 
@@ -691,7 +694,7 @@ const HighlightedAttributesWrapper = styled('div')`
 `;
 
 const HighlightedAttributeName = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const OpenInAIFocusButton = styled(LinkButton)`
@@ -707,14 +710,14 @@ const StyledPanelHeader = styled(PanelHeader)`
 `;
 
 const SectionDivider = styled('hr')`
-  border-color: ${p => p.theme.translucentBorder};
+  border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
   margin: ${space(1)} 0;
 `;
 
 const VerticalLine = styled('div')`
   width: 1px;
   height: 100%;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   margin-top: ${space(0.5)};
 `;
 
@@ -1281,7 +1284,7 @@ const MarkdownContainer = styled('div')`
   blockquote {
     margin: 0;
     padding: ${p => p.theme.space.sm};
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
   }
   pre {
     margin: 0;
@@ -1293,7 +1296,7 @@ const MarkdownContainer = styled('div')`
   }
   hr {
     margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
   table {
     border-collapse: collapse;
@@ -1302,7 +1305,7 @@ const MarkdownContainer = styled('div')`
   }
   table th,
   table td {
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
     padding: ${p => p.theme.space.xs};
   }
 `;

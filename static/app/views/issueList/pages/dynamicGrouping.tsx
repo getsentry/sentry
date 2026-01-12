@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -9,7 +10,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -18,6 +18,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import useDrawer from 'sentry/components/globalDrawer';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -50,45 +51,25 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {
+  ClusterDetailDrawer,
+  renderWithInlineCode,
+  useClusterStats,
+  type ClusterSummary,
+} from 'sentry/views/issueList/pages/topIssuesDrawer';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
 const CLUSTERS_PER_PAGE = 20;
-
-interface AssignedEntity {
-  email: string | null;
-  id: string;
-  name: string;
-  type: string;
-}
-
-interface ClusterSummary {
-  assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null;
-  cluster_id: number;
-  cluster_min_similarity: number | null;
-  cluster_size: number | null;
-  description: string;
-  fixability_score: number | null;
-  group_ids: number[];
-  issue_titles: string[];
-  project_ids: number[];
-  summary: string | null;
-  tags: string[];
-  title: string;
-  code_area_tags?: string[];
-  error_type?: string;
-  error_type_tags?: string[];
-  impact?: string;
-  location?: string;
-  service_tags?: string[];
-}
 
 function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   const lines: string[] = [];
@@ -111,19 +92,6 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
-}
-
-function renderWithInlineCode(text: string): React.ReactNode {
-  const parts = text.split(/(`[^`]+`)/g);
-  if (parts.length === 1) {
-    return text;
-  }
-  return parts.map((part, index) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
-    }
-    return part;
-  });
 }
 
 interface TopIssuesResponse {
@@ -179,127 +147,6 @@ function CompactIssuePreview({group}: {group: Group}) {
   );
 }
 
-interface ClusterStats {
-  firstSeen: string | null;
-  hasRegressedIssues: boolean;
-  isEscalating: boolean;
-  isPending: boolean;
-  lastSeen: string | null;
-  newIssuesCount: number;
-  totalEvents: number;
-  totalUsers: number;
-}
-
-function useClusterStats(groupIds: number[]): ClusterStats {
-  const organization = useOrganization();
-
-  const {data: groups, isPending} = useApiQuery<Group[]>(
-    [
-      `/organizations/${organization.slug}/issues/`,
-      {
-        query: {
-          group: groupIds,
-          query: `issue.id:[${groupIds.join(',')}]`,
-        },
-      },
-    ],
-    {
-      staleTime: 60000,
-      enabled: groupIds.length > 0,
-    }
-  );
-
-  return useMemo(() => {
-    if (isPending || !groups || groups.length === 0) {
-      return {
-        totalEvents: 0,
-        totalUsers: 0,
-        firstSeen: null,
-        lastSeen: null,
-        newIssuesCount: 0,
-        hasRegressedIssues: false,
-        isEscalating: false,
-        isPending,
-      };
-    }
-
-    let totalEvents = 0;
-    let totalUsers = 0;
-    let earliestFirstSeen: Date | null = null;
-    let latestLastSeen: Date | null = null;
-
-    // Calculate new issues (first seen within last week)
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    let newIssuesCount = 0;
-
-    // Check for regressed issues
-    let hasRegressedIssues = false;
-
-    // Calculate escalation by summing event stats across all issues
-    // We'll compare the first half of the 24h stats to the second half
-    let firstHalfEvents = 0;
-    let secondHalfEvents = 0;
-
-    for (const group of groups) {
-      totalEvents += parseInt(group.count, 10) || 0;
-      totalUsers += group.userCount || 0;
-
-      if (group.firstSeen) {
-        const firstSeenDate = new Date(group.firstSeen);
-        if (!earliestFirstSeen || firstSeenDate < earliestFirstSeen) {
-          earliestFirstSeen = firstSeenDate;
-        }
-        // Check if this issue is new (first seen within last week)
-        if (firstSeenDate >= oneWeekAgo) {
-          newIssuesCount++;
-        }
-      }
-
-      if (group.lastSeen) {
-        const lastSeenDate = new Date(group.lastSeen);
-        if (!latestLastSeen || lastSeenDate > latestLastSeen) {
-          latestLastSeen = lastSeenDate;
-        }
-      }
-
-      // Check for regressed substatus
-      if (group.substatus === GroupSubstatus.REGRESSED) {
-        hasRegressedIssues = true;
-      }
-
-      // Aggregate 24h stats for escalation detection
-      const stats24h = group.stats?.['24h'];
-      if (stats24h && stats24h.length > 0) {
-        const midpoint = Math.floor(stats24h.length / 2);
-        for (let i = 0; i < stats24h.length; i++) {
-          const eventCount = stats24h[i]?.[1] ?? 0;
-          if (i < midpoint) {
-            firstHalfEvents += eventCount;
-          } else {
-            secondHalfEvents += eventCount;
-          }
-        }
-      }
-    }
-
-    // Determine if escalating: second half has >1.5x events compared to first half
-    // Only consider escalating if there were events in the first half (avoid division by zero)
-    const isEscalating = firstHalfEvents > 0 && secondHalfEvents > firstHalfEvents * 1.5;
-
-    return {
-      totalEvents,
-      totalUsers,
-      firstSeen: earliestFirstSeen?.toISOString() ?? null,
-      lastSeen: latestLastSeen?.toISOString() ?? null,
-      newIssuesCount,
-      hasRegressedIssues,
-      isEscalating,
-      isPending,
-    };
-  }, [groups, isPending]);
-}
-
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
@@ -352,6 +199,7 @@ function ClusterCard({
 }: ClusterCardProps) {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
   const {selection} = usePageFilters();
   const [activeTab, setActiveTab] = useState<'summary' | 'root-cause' | 'issues'>(
     'summary'
@@ -479,7 +327,12 @@ function ClusterCard({
     <CardContainer>
       <CardHeader>
         {cluster.impact && (
-          <ClusterTitle>
+          <ClusterTitleLink
+            to={{
+              pathname: location.pathname,
+              query: {...location.query, cluster: String(cluster.cluster_id)},
+            }}
+          >
             {cluster.impact}
             <Text
               as="span"
@@ -489,7 +342,7 @@ function ClusterCard({
             >
               [CLUSTER-{cluster.cluster_id}]
             </Text>
-          </ClusterTitle>
+          </ClusterTitleLink>
         )}
         {!clusterStats.isPending &&
           (clusterStats.newIssuesCount > 0 ||
@@ -749,6 +602,9 @@ function ClusterCard({
 
 function DynamicGrouping() {
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {openDrawer, isDrawerOpen} = useDrawer();
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const {selection} = usePageFilters();
@@ -807,12 +663,39 @@ function DynamicGrouping() {
   };
 
   const isUsingCustomData = customClusterData !== null;
+  const clusterData = useMemo(
+    () => customClusterData ?? topIssuesResponse?.data ?? [],
+    [customClusterData, topIssuesResponse?.data]
+  );
+
+  const selectedClusterId = decodeInteger(location.query.cluster);
+  useEffect(() => {
+    const selectedCluster = clusterData.find(
+      cluster => cluster.cluster_id === selectedClusterId
+    );
+    if (selectedClusterId === undefined || !selectedCluster) {
+      return;
+    }
+
+    openDrawer(() => <ClusterDetailDrawer cluster={selectedCluster} />, {
+      ariaLabel: t('Top issue details'),
+      drawerKey: 'top-issues-cluster-drawer',
+      onClose: () => {
+        navigate(
+          {
+            query: {...qs.parse(window.location.search), cluster: undefined},
+          },
+          {replace: true, preventScrollReset: true}
+        );
+      },
+      shouldCloseOnLocationChange: nextLocation => !nextLocation.query.cluster,
+    });
+  }, [clusterData, openDrawer, navigate, isDrawerOpen, selectedClusterId]);
 
   // Extract all unique teams from the cluster data (for dev tools filter UI)
   const teamsInData = useMemo(() => {
-    const data = topIssuesResponse?.data ?? [];
     const teamMap = new Map<string, {id: string; name: string}>();
-    for (const cluster of data) {
+    for (const cluster of clusterData) {
       for (const entity of cluster.assignedTo ?? []) {
         if (entity.type === 'team' && !teamMap.has(entity.id)) {
           teamMap.set(entity.id, {id: entity.id, name: entity.name});
@@ -820,7 +703,7 @@ function DynamicGrouping() {
       }
     }
     return Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [topIssuesResponse?.data]);
+  }, [clusterData]);
 
   const isTeamFilterActive = selectedTeamIds.size > 0;
 
@@ -842,8 +725,6 @@ function DynamicGrouping() {
   };
 
   const filteredAndSortedClusters = useMemo(() => {
-    const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
-
     if (isUsingCustomData && disableFilters) {
       return clusterData;
     }
@@ -898,8 +779,7 @@ function DynamicGrouping() {
 
     return result.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
   }, [
-    customClusterData,
-    topIssuesResponse?.data,
+    clusterData,
     isUsingCustomData,
     disableFilters,
     selection.projects,
@@ -958,9 +838,6 @@ function DynamicGrouping() {
                 </CustomDataBadge>
               )}
             </Flex>
-            <Link to={`/organizations/${organization.slug}/issues/top-issues/`}>
-              <Button size="sm">{t('View Single Card Layout')}</Button>
-            </Link>
           </Flex>
 
           <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
@@ -977,7 +854,7 @@ function DynamicGrouping() {
             <FeedbackButton
               size="sm"
               feedbackOptions={{
-                messagePlaceholder: t('What do you think about the new Top Issues page?'),
+                messagePlaceholder: t('What do you think about the Top Issues drawer?'),
                 tags: {
                   ['feedback.source']: 'top-issues',
                   ['feedback.owner']: 'issues',
@@ -1235,18 +1112,21 @@ const CardsColumn = styled('div')`
 `;
 
 const CardContainer = styled('div')`
+  position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
   transition:
+    background-color 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.colors.blue200};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
@@ -1259,13 +1139,20 @@ const CardHeader = styled('div')`
   gap: ${space(1)};
 `;
 
-const ClusterTitle = styled('h3')`
+const ClusterTitleLink = styled(Link)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
   word-break: break-word;
+  text-decoration: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
 `;
 
 const StatsRow = styled('div')`
@@ -1281,7 +1168,7 @@ const ClusterStats = styled('div')`
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TimeStats = styled('div')`
@@ -1289,7 +1176,7 @@ const TimeStats = styled('div')`
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StatItem = styled('div')`
@@ -1306,7 +1193,7 @@ const ProjectAvatars = styled('div')`
 
 const MoreProjectsCount = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.25)};
 `;
 
@@ -1347,7 +1234,10 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   }}
 `;
 
-const TabSection = styled('div')``;
+const TabSection = styled('div')`
+  position: relative;
+  z-index: 1;
+`;
 
 const TabBar = styled('div')`
   display: flex;
@@ -1362,7 +1252,8 @@ const Tab = styled('button')<{isActive: boolean}>`
   padding: ${space(1)} ${space(1.5)};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
-  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   cursor: pointer;
   position: relative;
   margin-bottom: -1px;
@@ -1391,6 +1282,8 @@ const TabContent = styled('div')`
 `;
 
 const CardFooter = styled('div')`
+  position: relative;
+  z-index: 1;
   padding: ${space(2)} ${space(3)};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   display: flex;
@@ -1420,7 +1313,7 @@ const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   transition:
     border-color 0.15s ease,
@@ -1443,14 +1336,14 @@ const IssueTitle = styled('div')`
     font-size: ${p => p.theme.fontSize.sm};
     font-style: normal;
     font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.9;
 `;
 
@@ -1463,7 +1356,7 @@ const MetaSeparator = styled('div')`
 const DescriptionText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
 `;
 
@@ -1483,9 +1376,9 @@ const TagPill = styled('span')`
   display: inline-block;
   padding: ${space(0.25)} ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -1497,7 +1390,7 @@ const InfoRow = styled('div')`
 `;
 
 const InfoLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: 500;
   min-width: 60px;
   flex-shrink: 0;
@@ -1510,7 +1403,8 @@ const InfoValue = styled('span')`
 
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
 `;
 
 const ShowMoreButton = styled('button')`
@@ -1519,9 +1413,9 @@ const ShowMoreButton = styled('button')`
   margin-top: ${space(3)};
   padding: ${space(2)} ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
   transition:
@@ -1540,7 +1434,7 @@ const JsonInputContainer = styled('div')`
   margin-bottom: ${space(2)};
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -1557,7 +1451,7 @@ const CustomDataBadge = styled('div')`
 
 const LastUpdatedText = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 

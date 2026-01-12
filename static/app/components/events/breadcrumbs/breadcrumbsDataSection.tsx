@@ -226,7 +226,7 @@ const ViewAllContainer = styled('div')`
 
 const VerticalEllipsis = styled(IconEllipsis)`
   height: 22px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: ${space(0.5)};
   transform: rotate(90deg);
 `;

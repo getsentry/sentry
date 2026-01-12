@@ -198,7 +198,7 @@ const ErrorTable = styled('div')`
   overflow: hidden;
   height: 100%;
 
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {

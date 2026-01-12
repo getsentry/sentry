@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
@@ -8,7 +9,6 @@ import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -74,7 +74,7 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
   // TODO(epurkhiser): We probably want to filter on envrionemnt
   return (
     <Fragment>
-      <ControlsWrapper>
+      <Flex justify="between" align="end" wrap="wrap" marginBottom="md">
         <SegmentedControl
           aria-label={t('Issue category')}
           value={issuesType}
@@ -90,7 +90,7 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
         <LinkButton size="xs" to={issueSearchLocation}>
           {t('Open In Issues')}
         </LinkButton>
-      </ControlsWrapper>
+      </Flex>
       <GroupList
         queryParams={{
           query: issueQuery,
@@ -109,11 +109,3 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
     </Fragment>
   );
 }
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-  flex-wrap: wrap;
-`;

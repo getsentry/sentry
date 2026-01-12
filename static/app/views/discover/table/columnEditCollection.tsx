@@ -677,7 +677,7 @@ function OnDemandEquationsWarning() {
           `This is using indexed data because we don't routinely collect metrics for equations.`
         )}
       >
-        <IconWarning color="yellow300" />
+        <IconWarning variant="warning" />
       </Tooltip>
     </OnDemandContainer>
   );
@@ -744,7 +744,7 @@ const OnDemandContainer = styled('div')`
 
 const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
-  border: 2px dashed ${p => p.theme.border};
+  border: 2px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   height: ${p => p.theme.form.md.height};
 `;

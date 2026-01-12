@@ -14,6 +14,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import features
 from sentry.conf.types.kafka_definition import Topic
+from sentry.locks import locks
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -38,8 +39,16 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
 )
 from sentry.uptime.types import UptimeMonitorMode
-from sentry.uptime.utils import build_last_seen_interval_key, build_last_update_key, get_cluster
-from sentry.utils import metrics
+from sentry.uptime.utils import (
+    build_backlog_key,
+    build_backlog_schedule_lock_key,
+    build_backlog_task_scheduled_key,
+    build_last_seen_interval_key,
+    build_last_update_key,
+    get_cluster,
+)
+from sentry.utils import json, metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -194,7 +203,7 @@ def create_backfill_misses(
 
     # If the scheduled check is two or more intervals since the last seen check, we can declare the
     # intervening checks missed...
-    if last_update_ms > 0 and num_intervals > 1:
+    if num_intervals > 1:
         # ... but it might be the case that the user changed the frequency of the detector.  So, first
         # verify that the interval in postgres is the same as the last-seen interval (in redis).
         # We only store in redis when we encounter a difference like this, which means we won't be able
@@ -346,6 +355,85 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
 
+    def queue_result_for_retry(
+        self,
+        subscription: UptimeSubscription,
+        result: CheckResult,
+        metric_tags: dict[str, str],
+        cluster,
+    ) -> None:
+        """
+        Queue an out-of-order result for retry processing.
+
+        In multiprocessing mode, Arroyo uses a shared worker pool across partitions with no
+        partition-to-process affinity. This means consecutive results for the same subscription
+        can be processed by different workers concurrently, causing out-of-order processing.
+        When we detect a gap (eg: 4:01 arrives before 4:00), we buffer the result in Redis
+        and schedule a task to retry processing after a short delay, giving time for the
+        missing result to arrive and be processed first.
+
+        Results are stored in a sorted set keyed by scheduled_check_time_ms, allowing the
+        retry task to process them in the correct chronological order.
+        """
+        from sentry.uptime.consumers.tasks import process_uptime_backlog
+
+        subscription_id = str(subscription.id)
+        backlog_key = build_backlog_key(subscription_id)
+        task_scheduled_key = build_backlog_task_scheduled_key(subscription_id)
+        schedule_lock_key = build_backlog_schedule_lock_key(subscription_id)
+        schedule_lock = locks.get(schedule_lock_key, duration=10, name="uptime.backlog.schedule")
+        lock_ctx = None
+
+        try:
+            lock_ctx = schedule_lock.blocking_acquire(0.1, 3)
+            lock_ctx.__enter__()
+        except UnableToAcquireLock:
+            # The lock shouldn't fail, but if it does we'd prefer to try and put this in the queue
+            # regardless, so that we don't have to drop it
+            metrics.incr(
+                "uptime.backlog.lock_failed",
+                amount=1,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+
+        try:
+            result_json = json.dumps(result)
+            pipeline = cluster.pipeline()
+            pipeline.zadd(backlog_key, {result_json: int(result["scheduled_check_time_ms"])})
+            pipeline.expire(backlog_key, 600)
+            pipeline.exists(task_scheduled_key)
+            task_scheduled = pipeline.execute()[2]
+            metrics.incr(
+                "uptime.backlog.added",
+                amount=1,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+            if not task_scheduled:
+                cluster.set(task_scheduled_key, "1", ex=300)
+                process_uptime_backlog.apply_async(
+                    args=[subscription_id],
+                    countdown=10,
+                    kwargs={"attempt": 1},
+                )
+                logger.info(
+                    "uptime.backlog.task_scheduled",
+                    extra={
+                        "subscription_id": subscription_id,
+                        "buffer_size": cluster.zcard(backlog_key),
+                    },
+                )
+                metrics.incr(
+                    "uptime.backlog.task_scheduled",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags=metric_tags,
+                )
+        finally:
+            if lock_ctx is not None:
+                lock_ctx.__exit__(None, None, None)
+
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
         if random.random() < 0.01:
             logger.info("process_result", extra=result)
@@ -454,7 +542,20 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
             return
 
-        create_backfill_misses(detector, subscription, result, last_update_ms, metric_tags, cluster)
+        if last_update_ms > 0:
+            subscription_interval_ms = subscription.interval_seconds * 1000
+            expected_next_ms = last_update_ms + subscription_interval_ms
+            is_out_of_order = result["scheduled_check_time_ms"] != expected_next_ms
+
+            if is_out_of_order:
+                if features.has("organizations:uptime-backlog-retry", organization):
+                    self.queue_result_for_retry(subscription, result, metric_tags, cluster)
+                    return
+
+                create_backfill_misses(
+                    detector, subscription, result, last_update_ms, metric_tags, cluster
+                )
+
         process_result_internal(detector, subscription, result, metric_tags, cluster)
 
 

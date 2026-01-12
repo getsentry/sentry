@@ -228,7 +228,7 @@ const StyledInstructions = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
 
   margin-top: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(2)};
   &:first-child {
     margin-top: 0;
