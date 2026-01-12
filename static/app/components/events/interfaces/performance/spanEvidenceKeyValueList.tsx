@@ -474,7 +474,7 @@ export function SpanEvidenceKeyValueList({
 }
 
 const HighlightedEvidence = styled('span')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const isRequestEntry = (entry: Entry): entry is EntryRequest => {
