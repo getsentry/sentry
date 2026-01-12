@@ -166,7 +166,10 @@ def attempt_compressed_condition(
 
     (block OR block) OR block => (block OR block OR block)
     """
-    if isinstance(result[-1], condition_type):
+    # Handle the case where result is empty (e.g., leading boolean operators)
+    if not result:
+        result.append(condition)
+    elif isinstance(result[-1], condition_type):
         result[-1].conditions.append(condition)
     else:
         result.append(condition_type([result.pop(), condition]))
