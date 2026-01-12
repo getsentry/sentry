@@ -145,8 +145,8 @@ def initiate_login(
     request: HttpRequest, next_url: str | None = None, referrer: str | None = None
 ) -> None:
     """
-    initiate_login simply clears session cache
-    if provided a `next_url` will append to the session after clearing previous keys
+    Clears existing login state and initializes a new login flow.
+    Optionally sets the post-login redirect destination and referrer.
     """
     for key in ("_next", "_after_2fa", "_pending_2fa", "_referrer"):
         try:
