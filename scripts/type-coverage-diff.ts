@@ -504,10 +504,10 @@ async function main() {
     );
 
     // Compare any-typed symbols (only in actually modified code)
-    if (currentResult.anySymbols && oldResult.anySymbols) {
+    if (currentResult.anySymbols || oldResult.anySymbols) {
       const anyComparison = compareItems(
-        currentResult.anySymbols,
-        oldResult.anySymbols,
+        currentResult.anySymbols ?? [],
+        oldResult.anySymbols ?? [],
         gitChanges
       );
 
@@ -527,10 +527,10 @@ async function main() {
     }
 
     // Compare non-null assertions (only in actually modified code)
-    if (currentResult.nonNullAssertions && oldResult.nonNullAssertions) {
+    if (currentResult.nonNullAssertions || oldResult.nonNullAssertions) {
       const nonNullComparison = compareItems(
-        currentResult.nonNullAssertions,
-        oldResult.nonNullAssertions,
+        currentResult.nonNullAssertions ?? [],
+        oldResult.nonNullAssertions ?? [],
         gitChanges
       );
 
@@ -550,10 +550,10 @@ async function main() {
     }
 
     // Compare type assertions (only in actually modified code)
-    if (currentResult.typeAssertions && oldResult.typeAssertions) {
+    if (currentResult.typeAssertions || oldResult.typeAssertions) {
       const typeAssertionComparison = compareItems(
-        currentResult.typeAssertions,
-        oldResult.typeAssertions,
+        currentResult.typeAssertions ?? [],
+        oldResult.typeAssertions ?? [],
         gitChanges
       );
 
@@ -595,22 +595,26 @@ async function main() {
         },
         changes: {
           anySymbols:
-            currentResult.anySymbols && oldResult.anySymbols
-              ? compareItems(currentResult.anySymbols, oldResult.anySymbols, gitChanges)
+            currentResult.anySymbols || oldResult.anySymbols
+              ? compareItems(
+                  currentResult.anySymbols ?? [],
+                  oldResult.anySymbols ?? [],
+                  gitChanges
+                )
               : undefined,
           nonNullAssertions:
-            currentResult.nonNullAssertions && oldResult.nonNullAssertions
+            currentResult.nonNullAssertions || oldResult.nonNullAssertions
               ? compareItems(
-                  currentResult.nonNullAssertions,
-                  oldResult.nonNullAssertions,
+                  currentResult.nonNullAssertions ?? [],
+                  oldResult.nonNullAssertions ?? [],
                   gitChanges
                 )
               : undefined,
           typeAssertions:
-            currentResult.typeAssertions && oldResult.typeAssertions
+            currentResult.typeAssertions || oldResult.typeAssertions
               ? compareItems(
-                  currentResult.typeAssertions,
-                  oldResult.typeAssertions,
+                  currentResult.typeAssertions ?? [],
+                  oldResult.typeAssertions ?? [],
                   gitChanges
                 )
               : undefined,
