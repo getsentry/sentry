@@ -82,7 +82,7 @@ export const useSeries = (): Record<string, SeriesItem> => {
     totalDiscarded: {
       seriesName: SeriesName.DISCARDED,
       data: [],
-      color: theme.yellow300,
+      color: theme.colors.yellow300,
     },
     totalDropped: {
       seriesName: SeriesName.DROPPED,

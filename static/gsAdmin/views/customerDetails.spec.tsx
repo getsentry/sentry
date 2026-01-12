@@ -874,7 +874,7 @@ describe('Customer Details', () => {
       {
         seriesName: 'Discarded (Client)',
         data: [],
-        color: theme.yellow300,
+        color: theme.colors.yellow300,
       },
       {
         seriesName: 'Dropped (Server)',
