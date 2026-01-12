@@ -7,11 +7,13 @@ import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
-import {IconLock, IconWarning} from 'sentry/icons';
+import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import useMedia from 'sentry/utils/useMedia';
 
+import StartTrialButton from 'getsentry/components/startTrialButton';
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, type ProductTrial} from 'getsentry/types';
@@ -235,6 +237,7 @@ function UsageOverviewTableRow({
   return (
     <Fragment>
       <ProductRow
+        data-test-id={`product-row-${product}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
@@ -264,6 +267,8 @@ function UsageOverviewTableRow({
                   : undefined
             }
             wrap="nowrap"
+            height="100%"
+            align="center"
           >
             <Text as="span" variant="primary" textWrap="balance">
               {formattedDisplayName}{' '}
@@ -272,7 +277,7 @@ function UsageOverviewTableRow({
         </td>
         <Fragment>
           <td>
-            <Flex align="center" gap="xs" wrap="wrap">
+            <Flex align="center" gap="xs" wrap="wrap" height="100%">
               {usageExceeded ? (
                 <Container width="18px" height="18px">
                   <IconWarning size="md" variant="danger" />
@@ -292,7 +297,7 @@ function UsageOverviewTableRow({
               ) : null}
               <Text textWrap="balance">
                 {isUnlimited ? (
-                  <Tag variant="info">{t('Unlimited')}</Tag>
+                  <Tag variant="promotion">{t('Unlimited')}</Tag>
                 ) : isPaygOnly || isChildProduct || !formattedPrepaid ? (
                   shouldFormatWithDisplayName ? (
                     formatCategoryQuantityWithDisplayName({
@@ -314,11 +319,39 @@ function UsageOverviewTableRow({
               )}
             </Flex>
           </td>
-          {showAdditionalSpendColumn && (
+          {activeProductTrial ? (
+            <td>
+              <Flex justify="end">
+                <Tag variant="promotion" icon={<IconClock />}>
+                  {tct('[daysLeft] days left', {
+                    daysLeft: -1 * getDaysSinceDate(activeProductTrial.endDate ?? ''),
+                  })}
+                </Tag>
+              </Flex>
+            </td>
+          ) : potentialProductTrial ? (
+            <td>
+              <Flex justify="end">
+                <StartTrialButton
+                  organization={organization}
+                  source="usage-overview-table"
+                  requestData={{
+                    productTrial: {
+                      category: potentialProductTrial.category,
+                      reasonCode: potentialProductTrial.reasonCode,
+                    },
+                  }}
+                  size="xs"
+                  icon={<IconPlay />}
+                  priority="primary"
+                />
+              </Flex>
+            </td>
+          ) : showAdditionalSpendColumn ? (
             <td>
               <Text align="right">{displayPriceWithCents({cents: additionalSpend})}</Text>
             </td>
-          )}
+          ) : null}
         </Fragment>
 
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
@@ -356,6 +389,7 @@ function DisabledProductRow({
   return (
     <Fragment>
       <ProductRow
+        data-test-id={`product-row-${product}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
