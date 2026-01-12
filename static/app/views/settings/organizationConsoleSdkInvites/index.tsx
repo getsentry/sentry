@@ -54,9 +54,10 @@ export default function ConsoleSDKInvitesSettings() {
           <Alert.Container>
             <Alert variant="info" showIcon={false}>
               {tct(
-                'This organization ([orgSlug]) has used all GitHub invites available. Contact your sales representative to increase the quota.',
+                'This organization ([orgSlug]) has used all GitHub invites available. [mailto:Contact support] to increase the quota.',
                 {
                   orgSlug: organization.slug,
+                  mailto: <a href="mailto:support@sentry.io" />,
                 }
               )}
             </Alert>
