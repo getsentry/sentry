@@ -18,6 +18,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     poll_until_done,
 )
+from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
 from sentry.seer.explorer.custom_tool_utils import ExplorerTool, extract_tool_schema
 from sentry.seer.explorer.on_completion_hook import (
     ExplorerOnCompletionHook,
@@ -140,6 +141,23 @@ class SeerExplorerClient:
                 pr_state = state.get_pr_state(repo_name)
                 if pr_state and pr_state.pr_url:
                     print(f"PR created: {pr_state.pr_url}")
+
+        # WITH EXTERNAL CODING AGENTS (e.g., Cursor)
+        client = SeerExplorerClient(organization, user)
+        run_id = client.start_run("Analyze the authentication bug")
+        state = client.get_run(run_id, blocking=True)
+
+        result = client.launch_coding_agents(
+            run_id=run_id,
+            integration_id=cursor_integration_id,
+            prompt="Fix the null pointer exception in auth.py. Focus on error handling.",
+            repos=["getsentry/sentry"],
+            branch_name_base="fix-auth-bug",
+        )
+
+        for success in result["successes"]:
+            agent_url = success["coding_agent_state"].get("agent_url")
+            print(f"Coding agent launched: {agent_url}")
     ```
 
         Args:
@@ -500,3 +518,39 @@ class SeerExplorerClient:
                 raise TimeoutError(f"PR creation timed out after {poll_timeout}s")
 
             time.sleep(poll_interval)
+
+    def launch_coding_agents(
+        self,
+        run_id: int,
+        integration_id: int,
+        prompt: str,
+        repos: list[str],
+        branch_name_base: str = "seer",
+        auto_create_pr: bool = False,
+    ) -> dict[str, list]:
+        """
+        Launch coding agents for an Explorer run.
+
+        This triggers coding agents (e.g., Cursor) to work on code changes.
+        The caller provides the prompt and target repos.
+
+        Args:
+            run_id: The Explorer run ID (used to store coding agent state)
+            integration_id: The coding agent integration ID
+            prompt: The instruction/prompt for the coding agent
+            repos: List of repo names to target (format: "owner/name")
+            branch_name_base: Base name for the branch (random suffix will be added)
+            auto_create_pr: Whether to automatically create a PR when agent finishes
+
+        Returns:
+            Dictionary with 'successes' and 'failures' lists
+        """
+        return launch_coding_agents(
+            organization=self.organization,
+            integration_id=integration_id,
+            run_id=run_id,
+            prompt=prompt,
+            repos=repos,
+            branch_name_base=branch_name_base,
+            auto_create_pr=auto_create_pr,
+        )
