@@ -26,7 +26,7 @@ pnpm run dev-ui
 
 ### Typechecking
 
-Typechecking only works on the entire project—individual files cannot be checked.
+Typechecking only works on the entire project. Individual files cannot be checked.
 
 ```bash
 pnpm run typecheck
