@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from django.db.models import Count
 from drf_spectacular.utils import extend_schema_serializer
@@ -22,13 +22,6 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
-
-
-class OwnerSerializerResponse(TypedDict):
-    type: str
-    id: str
-    name: str
-    email: NotRequired[str]
 
 
 class DetectorSerializerResponseOptional(TypedDict, total=False):
