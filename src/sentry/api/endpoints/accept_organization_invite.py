@@ -114,10 +114,18 @@ class AcceptOrganizationInvite(Endpoint):
         *args,
         **kwargs,
     ):
+        # Demo users will be logged out in get() before processing the invite,
+        # so we should fetch the invite context as if they were anonymous.
+        # This matches the original behavior where logout happened before get_invite_state().
+        if request.user.is_authenticated and not is_demo_user(request.user):
+            user_id: int | None = request.user.id
+        else:
+            user_id = None
+
         invite_context = get_invite_state(
             member_id=int(member_id),
             organization_id_or_slug=organization_id_or_slug,
-            user_id=request.user.id if request.user.is_authenticated else None,
+            user_id=user_id,
             request=request,
         )
         if invite_context is None:
