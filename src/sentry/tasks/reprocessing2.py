@@ -276,6 +276,8 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
 
     eventstream.backend.exclude_groups(project_id, [group_id])
 
-    from sentry import similarity
+    # Don't do MinHash work if we use embeddings-based similarity.
+    if not group.project.get_option("sentry:similarity_backfill_completed"):
+        from sentry import similarity
 
-    similarity.delete(None, group)
+        similarity.delete(None, group)
