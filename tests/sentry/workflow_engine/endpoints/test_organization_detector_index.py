@@ -1220,7 +1220,6 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         data = {**self.valid_data, "owner": f"team:{other_team.id}"}
         response = self.get_error_response(
             self.organization.slug,
-            projectId=self.project.id,
             **data,
             status_code=400,
         )
@@ -1242,7 +1241,6 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         data = {**self.valid_data, "owner": f"team:{self.team.id}"}
         response = self.get_success_response(
             self.organization.slug,
-            projectId=self.project.id,
             **data,
             status_code=201,
         )
@@ -1267,7 +1265,6 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         data = {**self.valid_data, "owner": f"team:{other_team.id}"}
         response = self.get_success_response(
             self.organization.slug,
-            projectId=self.project.id,
             **data,
             status_code=201,
         )

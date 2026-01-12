@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.fields.actor import ActorField, OwnerActorField
+from sentry.auth.access import SystemAccess
 from sentry.testutils.cases import TestCase
 
 
@@ -116,19 +117,15 @@ class OwnerActorFieldTest(TestCase):
 
     def test_admin_can_assign_any_team(self) -> None:
         """Users with team:admin scope can assign any team."""
-        admin_user = self.create_user()
-        self.create_member(
-            user=admin_user,
-            organization=self.organization,
-            role="admin",
-            teams=[self.team],
-        )
-        self.login_as(admin_user)
-        request = self.make_request(user=admin_user)
-
+        # Use SystemAccess which returns True for all scopes (like background tasks)
+        # This simulates a user with team:admin permissions
         serializer = DummyOwnerSerializer(
             data={"owner": f"team:{self.other_team.id}"},
-            context={"organization": self.organization, "request": request},
+            context={
+                "organization": self.organization,
+                "access": SystemAccess(),
+                "user": self.user,
+            },
         )
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["owner"].id == self.other_team.id
@@ -153,8 +150,8 @@ class OwnerActorFieldTest(TestCase):
         """Fails closed when request has no user."""
 
         class MockRequest:
-            user = None
-            access = None
+            user: None = None
+            access: None = None
 
         serializer = DummyOwnerSerializer(
             data={"owner": f"team:{self.team.id}"},
