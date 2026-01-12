@@ -6,7 +6,10 @@ from packaging.version import InvalidVersion, Version
 from sentry.db.models import NodeData
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
+    FunctionAndModulePattern,
+    SDKCrashDetectionConfig,
+)
 
 
 class SDKCrashDetector:
@@ -88,72 +91,56 @@ class SDKCrashDetector:
         # are SDK frames or from system libraries.
         iter_frames = [f for f in reversed(frames) if f is not None]
 
-        has_non_conditional_sdk_frame = False
+        # First: check if we should ignore the crash because a frame matches sdk_crash_ignore_matchers
         for frame in iter_frames:
-            if (
-                self.is_sdk_frame(frame)
-                and not self._matches_ignore_when_only_sdk_frame(frame)
-                and not self._matches_sdk_crash_ignore(frame)
-            ):
-                has_non_conditional_sdk_frame = True
-                break
+            if self._matches_sdk_crash_ignore(frame):
+                return False
 
+        # Second: check for conditional SDK frames (like SentrySwizzleWrapper) and track if there are other SDK frames
+        has_conditional_sdk_frame = False
+        has_other_sdk_frame = False
         for frame in iter_frames:
-            function = frame.get("function")
-            module = frame.get("module")
-
-            if function:
-                for matcher in self.config.sdk_crash_ignore_matchers:
-                    function_matches = glob_match(
-                        function, matcher.function_pattern, ignorecase=True
-                    )
-                    module_matches = glob_match(module, matcher.module_pattern, ignorecase=True)
-
-                    if function_matches and module_matches:
-                        return False
-
             if self.is_sdk_frame(frame):
                 if self._matches_ignore_when_only_sdk_frame(frame):
-                    return has_non_conditional_sdk_frame
-                return True
+                    has_conditional_sdk_frame = True
+                else:
+                    has_other_sdk_frame = True
 
+        if has_conditional_sdk_frame and not has_other_sdk_frame:
+            return False
+
+        # Third: determine if this is an SDK crash
+        for frame in iter_frames:
+            if self.is_sdk_frame(frame):
+                return True
             if not self.is_system_library_frame(frame):
                 return False
 
         return False
 
-    def _matches_ignore_when_only_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
-        """
-        Returns true if the frame matches the sdk_crash_ignore_when_only_sdk_frame_matchers pattern.
-        """
+    def _matches_frame_pattern(
+        self, frame: Mapping[str, Any], matchers: set[FunctionAndModulePattern]
+    ) -> bool:
         function = frame.get("function")
         if not function:
             return False
 
         module = frame.get("module")
-        for matcher in self.config.sdk_crash_ignore_when_only_sdk_frame_matchers:
+        for matcher in matchers:
             function_matches = glob_match(function, matcher.function_pattern, ignorecase=True)
             module_matches = glob_match(module, matcher.module_pattern, ignorecase=True)
-
             if function_matches and module_matches:
                 return True
 
         return False
+
+    def _matches_ignore_when_only_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
+        return self._matches_frame_pattern(
+            frame, self.config.sdk_crash_ignore_when_only_sdk_frame_matchers
+        )
 
     def _matches_sdk_crash_ignore(self, frame: Mapping[str, Any]) -> bool:
-        function = frame.get("function")
-        if not function:
-            return False
-
-        module = frame.get("module")
-        for matcher in self.config.sdk_crash_ignore_matchers:
-            function_matches = glob_match(function, matcher.function_pattern, ignorecase=True)
-            module_matches = glob_match(module, matcher.module_pattern, ignorecase=True)
-
-            if function_matches and module_matches:
-                return True
-
-        return False
+        return self._matches_frame_pattern(frame, self.config.sdk_crash_ignore_matchers)
 
     def is_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
         """
