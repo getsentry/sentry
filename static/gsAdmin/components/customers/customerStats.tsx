@@ -77,7 +77,7 @@ export const useSeries = (): Record<string, SeriesItem> => {
     totalFiltered: {
       seriesName: SeriesName.FILTERED,
       data: [],
-      color: theme.tokens.graphics.accent.vibrant,
+      color: theme.tokens.graphics.accent.moderate,
     },
     totalDiscarded: {
       seriesName: SeriesName.DISCARDED,
