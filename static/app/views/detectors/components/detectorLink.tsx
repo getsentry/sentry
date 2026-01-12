@@ -251,7 +251,7 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
 }
 
 const StyledProjectBadge = styled(ProjectBadge)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Separator = styled('span')`

@@ -195,7 +195,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
     overflow-x: auto;
 
     &:focus-visible {
-      outline: ${theme.focusBorder} auto 1px;
+      outline: ${theme.tokens.focus.default} auto 1px;
     }
   }
 
@@ -229,7 +229,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   .ReactVirtualized__Grid:focus-visible,
   .ReactVirtualized__List:focus-visible {
-    outline: ${theme.focusBorder} auto 1px;
+    outline: ${theme.tokens.focus.default} auto 1px;
   }
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
@@ -344,7 +344,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
         }
         .group-detail h3 em {
-          color: ${theme.subText};
+          color: ${theme.tokens.content.secondary};
         }
         .event-details-container {
           background-color: ${theme.tokens.background.primary};
@@ -354,7 +354,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
         .nav-header a.help-link,
         .nav-header span.help-link a {
-          color: ${theme.subText};
+          color: ${theme.tokens.content.secondary};
         }
 
         /* Global Selection header date picker */

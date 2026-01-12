@@ -100,7 +100,7 @@ class AuthIdentityHandler:
         email = self.identity.get("email")
         if email:
             try:
-                user = resolve_email_to_user(email)
+                user = resolve_email_to_user(email, organization=self.organization)
             except AmbiguousUserFromEmail as e:
                 user = e.users[0]
                 self.warn_about_ambiguous_email(email, e.users, user)

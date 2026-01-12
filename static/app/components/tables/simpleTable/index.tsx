@@ -155,7 +155,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   position: relative;
   display: flex;
@@ -211,7 +211,7 @@ const StyledEmptyMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 
