@@ -40,7 +40,6 @@ from sentry.models.groupowner import (
     ASSIGNEE_EXISTS_KEY,
     ISSUE_OWNERS_DEBOUNCE_DURATION,
     ISSUE_OWNERS_DEBOUNCE_KEY,
-    PROJECT_OWNERSHIP_VERSION_KEY,
     GroupOwner,
     GroupOwnerType,
 )
@@ -1456,12 +1455,21 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        debounce_timestamp = timezone.now().timestamp()
-        cache.set(
-            ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id),
-            debounce_timestamp,
-            ISSUE_OWNERS_DEBOUNCE_DURATION,
+        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
+        assert debounce_time is None
+
+        # First event: evaluates ownership and sets debounce timestamp
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
         )
+        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
+        assert debounce_time is not None
+        assert isinstance(debounce_time, float)
+
+        # Second event: should debounce because no ownership change occurred
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
@@ -1481,15 +1489,24 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        old_debounce_timestamp = timezone.now().timestamp() - 100
-        cache.set(
-            ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id),
-            old_debounce_timestamp,
-            ISSUE_OWNERS_DEBOUNCE_DURATION,
-        )
+        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
+        assert debounce_time is None
 
+        # First event: should evaluate ownership and set debounce timestamp
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
+        assert debounce_time is not None
+        assert isinstance(debounce_time, float)
+
+        # Simulate ownership rules changing
         GroupOwner.set_project_ownership_version(self.project.id)
 
+        # Second event: should NOT debounce because ownership changed after debounce was set
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
@@ -1512,16 +1529,23 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        new_debounce_timestamp = timezone.now().timestamp()
-        cache.set(
-            ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id),
-            new_debounce_timestamp,
-            ISSUE_OWNERS_DEBOUNCE_DURATION,
+        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
+        assert debounce_time is None
+
+        # Ownership changed in the past (before any events)
+        GroupOwner.set_project_ownership_version(self.project.id)
+
+        # First event: evaluates ownership (ownership change is in the past, so no debounce yet)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
         )
+        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
+        assert debounce_time is not None
 
-        old_version_timestamp = timezone.now().timestamp() - 100
-        cache.set(PROJECT_OWNERSHIP_VERSION_KEY(self.project.id), old_version_timestamp, 3600)
-
+        # Second event: should debounce because ownership change is older than the debounce timestamp
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
