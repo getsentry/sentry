@@ -1560,3 +1560,114 @@ class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest):
         self.run_test("1", ["124"], self.environment)
         self.run_test("4", ["456", "457a"])
         self.run_test("4", ["456"], env_2)
+
+
+class TestGroupsUserCountsCaching(TestCase, SnubaTestCase):
+    """Test caching functionality for get_groups_user_counts to prevent rate limit issues."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.ts = SnubaTagStorage()
+        self.proj1 = self.create_project()
+        self.now = timezone.now().replace(microsecond=0)
+
+    def test_get_groups_user_counts_uses_cache(self) -> None:
+        """Test that get_groups_user_counts uses cache to reduce concurrent queries."""
+        from django.core.cache import cache
+
+        # Create events with users
+        self.store_event(
+            data={
+                "event_id": "1" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "fingerprint": ["group-1"],
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
+                "tags": {"sentry:user": "id:user1"},
+                "user": {"id": "user1"},
+            },
+            project_id=self.proj1.id,
+        )
+
+        group1 = self.store_event(
+            data={
+                "event_id": "2" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "fingerprint": ["group-1"],
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
+                "tags": {"sentry:user": "id:user2"},
+                "user": {"id": "user2"},
+            },
+            project_id=self.proj1.id,
+        ).group
+
+        # Clear cache before test
+        cache.clear()
+
+        # First call - should query Snuba and cache the result
+        with mock.patch.object(self.ts, "_SnubaTagStorage__get_groups_user_counts") as mock_query:
+            mock_query.return_value = {group1.id: 2}
+
+            result1 = self.ts.get_groups_user_counts(
+                project_ids=[self.proj1.id],
+                group_ids=[group1.id],
+                environment_ids=None,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
+
+            assert result1 == {group1.id: 2}
+            assert mock_query.call_count == 1
+
+            # Second call - should use cache (no additional query)
+            result2 = self.ts.get_groups_user_counts(
+                project_ids=[self.proj1.id],
+                group_ids=[group1.id],
+                environment_ids=None,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
+
+            assert result2 == {group1.id: 2}
+            # Still only 1 call because second call used cache
+            assert mock_query.call_count == 1
+
+    def test_get_generic_groups_user_counts_uses_cache(self) -> None:
+        """Test that get_generic_groups_user_counts uses cache to reduce concurrent queries."""
+        from django.core.cache import cache
+
+        # Clear cache before test
+        cache.clear()
+
+        # Mock the raw_snql_query to avoid needing real generic issues setup
+        with mock.patch("sentry.tagstore.snuba.backend.raw_snql_query") as mock_query:
+            with mock.patch(
+                "sentry.tagstore.snuba.backend.get_organization_id_from_project_ids", return_value=1
+            ):
+                with mock.patch(
+                    "sentry.tagstore.snuba.backend._prepare_start_end",
+                    return_value=(self.now - timedelta(days=1), self.now),
+                ):
+                    mock_query.return_value = {"data": [{"group_id": 123, "count": 5}]}
+
+                    # First call - should query Snuba and cache the result
+                    result1 = self.ts.get_generic_groups_user_counts(
+                        project_ids=[self.proj1.id],
+                        group_ids=[123],
+                        environment_ids=None,
+                        tenant_ids={"referrer": "r", "organization_id": 1234},
+                    )
+
+                    assert result1[123] == 5
+                    assert mock_query.call_count == 1
+
+                    # Second call - should use cache (no additional query)
+                    result2 = self.ts.get_generic_groups_user_counts(
+                        project_ids=[self.proj1.id],
+                        group_ids=[123],
+                        environment_ids=None,
+                        tenant_ids={"referrer": "r", "organization_id": 1234},
+                    )
+
+                    assert result2[123] == 5
+                    # Still only 1 call because second call used cache
+                    assert mock_query.call_count == 1

@@ -1132,17 +1132,50 @@ class SnubaTagStorage(TagStorage):
         tenant_ids: dict[str, str | int] | None = None,
         referrer: str = "tagstore.get_groups_user_counts",
     ) -> dict[int, int]:
-        return self.__get_groups_user_counts(
-            project_ids,
-            group_ids,
-            environment_ids,
-            start,
-            end,
-            Dataset.Events,
-            [],
-            referrer,
-            tenant_ids=tenant_ids,
-        )
+        # Check cache for all requested groups to reduce concurrent query load
+        # This is especially important for Slack notifications which can trigger
+        # many concurrent user count queries for the same groups
+        cache_keys = {}
+        uncached_group_ids = []
+        result = {}
+        
+        for group_id in group_ids:
+            # Create a cache key that includes relevant query parameters
+            # to ensure cache correctness across different query contexts
+            env_str = ",".join(str(e) for e in sorted(environment_ids)) if environment_ids else "none"
+            cache_key = f"groups_user_counts:{group_id}:{env_str}"
+            cache_keys[group_id] = cache_key
+            
+            cached_value = cache.get(cache_key)
+            if cached_value is not None:
+                result[group_id] = cached_value
+            else:
+                uncached_group_ids.append(group_id)
+        
+        # Only query Snuba for groups not in cache
+        if uncached_group_ids:
+            uncached_results = self.__get_groups_user_counts(
+                project_ids,
+                uncached_group_ids,
+                environment_ids,
+                start,
+                end,
+                Dataset.Events,
+                [],
+                referrer,
+                tenant_ids=tenant_ids,
+            )
+            
+            # Cache the results with a short TTL (60 seconds) to handle burst traffic
+            # while still allowing relatively fresh data
+            # Note: We filter out 0 values to match the behavior of __get_groups_user_counts
+            for group_id, count in uncached_results.items():
+                if count:  # Only cache non-zero values
+                    cache.set(cache_keys[group_id], count, 60)
+                    result[group_id] = count
+        
+        # Return defaultdict to match original behavior (missing keys return 0)
+        return defaultdict(int, result)
 
     def get_generic_groups_user_counts(
         self,
@@ -1154,18 +1187,39 @@ class SnubaTagStorage(TagStorage):
         tenant_ids: dict[str, str | int] | None = None,
         referrer: str = "tagstore.get_generic_groups_user_counts",
     ) -> dict[int, int]:
-        translated_params = _translate_filter_keys(project_ids, group_ids, environment_ids)
+        # Check cache for all requested groups to reduce concurrent query load
+        cache_keys = {}
+        uncached_group_ids = []
+        result = {}
+        
+        for group_id in group_ids:
+            # Create a cache key that includes relevant query parameters
+            env_str = ",".join(str(e) for e in sorted(environment_ids)) if environment_ids else "none"
+            cache_key = f"generic_groups_user_counts:{group_id}:{env_str}"
+            cache_keys[group_id] = cache_key
+            
+            cached_value = cache.get(cache_key)
+            if cached_value is not None:
+                result[group_id] = cached_value
+            else:
+                uncached_group_ids.append(group_id)
+        
+        # Only query Snuba for groups not in cache
+        if not uncached_group_ids:
+            return result
+        
+        translated_params = _translate_filter_keys(project_ids, uncached_group_ids, environment_ids)
         organization_id = get_organization_id_from_project_ids(project_ids)
         start, end = _prepare_start_end(
             start,
             end,
             organization_id,
-            group_ids,
+            uncached_group_ids,
         )
 
         where_conditions = [
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("group_id"), Op.IN, group_ids),
+            Condition(Column("group_id"), Op.IN, uncached_group_ids),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
         ]
@@ -1191,9 +1245,15 @@ class SnubaTagStorage(TagStorage):
 
         result_snql = raw_snql_query(snuba_request, referrer=referrer, use_cache=True)
 
-        result = nest_groups(result_snql["data"], ["group_id"], ["count"])
+        uncached_results = nest_groups(result_snql["data"], ["group_id"], ["count"])
+        
+        # Cache the results with a short TTL (60 seconds) to handle burst traffic
+        for group_id, count in uncached_results.items():
+            if count:
+                cache.set(cache_keys[group_id], count, 60)
+                result[group_id] = count
 
-        return defaultdict(int, {k: v for k, v in result.items() if v})
+        return defaultdict(int, result)
 
     def get_tag_value_paginator(
         self,
