@@ -56,12 +56,10 @@ function buildRoutes() {
           {
             index: true,
             component: Beacons,
-            deprecatedRouteProps: true,
           },
           {
             path: ':beaconId/',
             component: BeaconDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },
@@ -71,12 +69,10 @@ function buildRoutes() {
           {
             index: true,
             component: Broadcasts,
-            deprecatedRouteProps: true,
           },
           {
             path: ':broadcastId/',
             component: BroadcastDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },

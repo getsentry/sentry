@@ -298,7 +298,7 @@ const Separator = styled('hr')`
   outline: 0;
   border: 0;
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
 
@@ -367,7 +367,7 @@ const NavLink = styled(Link, {
   &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
       background-color: ${p => p.theme.colors.blue100};
     }
   }

@@ -127,7 +127,7 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
       ) : status === 'major_outage' ? (
         <IconFatal size="sm" variant="danger" />
       ) : status === 'degraded_performance' ? (
-        <IconWarning size="sm" color="yellow300" />
+        <IconWarning size="sm" variant="warning" />
       ) : status === 'partial_outage' ? (
         <IconFire size="sm" variant="warning" />
       ) : (
@@ -218,7 +218,7 @@ const StatusTitle = styled('div')`
 `;
 
 const StatusDate = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

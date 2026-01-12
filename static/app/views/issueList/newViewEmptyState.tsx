@@ -136,11 +136,11 @@ const Bold = styled('div')`
 `;
 
 const TooltipSubLink = styled(Link)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -190,7 +190,7 @@ const QueryRow = styled('li')`
       bottom: 0;
       left: 0;
       right: 0;
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
   }
 `;

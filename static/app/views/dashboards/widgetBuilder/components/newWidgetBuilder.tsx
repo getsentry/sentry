@@ -6,6 +6,8 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -228,7 +230,7 @@ function WidgetBuilderV2({
                         onDragMove={handleDragMove}
                         collisionDetection={closestCorners}
                       >
-                        <SurroundingWidgetContainer>
+                        <Flex justify="center" align="center" width="100%" height="100%">
                           <WidgetPreviewContainer
                             dashboardFilters={dashboardFilters}
                             dashboard={dashboard}
@@ -238,7 +240,7 @@ function WidgetBuilderV2({
                             onDataFetched={handleWidgetDataFetched}
                             openWidgetTemplates={openWidgetTemplates}
                           />
-                        </SurroundingWidgetContainer>
+                        </Flex>
                       </DndContext>
                     )}
                   </WidgetBuilderContainer>
@@ -372,7 +374,7 @@ export function WidgetPreviewContainer({
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: getPreviewHeight(),
                     outline: isDragEnabled
-                      ? `${space(1)} solid ${theme.border}`
+                      ? `${space(1)} solid ${theme.tokens.border.primary}`
                       : undefined,
                   }}
                 >
@@ -523,7 +525,7 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   justify-content: center;
   width: 100%;
   height: 95%;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-style: italic;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.normal};
@@ -537,14 +539,6 @@ const WidgetPreviewPlaceholder = styled('div')`
 
 const SlideoutContainer = styled('div')`
   height: 100%;
-`;
-
-const SurroundingWidgetContainer = styled('div')`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 `;
 
 const FilterBarContainer = styled(motion.div)`

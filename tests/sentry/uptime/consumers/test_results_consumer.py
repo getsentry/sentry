@@ -26,7 +26,7 @@ from sentry.conf.types import kafka_definition
 from sentry.conf.types.kafka_definition import Topic as KafkaTopic
 from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
@@ -50,6 +50,7 @@ from sentry.uptime.subscriptions.subscriptions import (
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.uptime.utils import (
+    build_backlog_key,
     build_detector_fingerprint_component,
     build_last_seen_interval_key,
     build_last_update_key,
@@ -671,8 +672,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             remove_call_vals = []
 
-            def capture_remove_seat(data_category, seat_object):
-                remove_call_vals.append((data_category, seat_object.id))
+            def capture_remove_seat(data_category=None, seat_object=None):
+                remove_call_vals.append(seat_object.id)
 
             mock_remove_seat.side_effect = capture_remove_seat
 
@@ -711,7 +712,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert remove_call_vals == [(DataCategory.UPTIME, self.detector.id)]
+        assert remove_call_vals == [self.detector.id]
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()
@@ -1390,6 +1391,95 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             ],
             current_minute=5,
         )
+
+    def test_out_of_order_result_queued(self):
+        """Out-of-order results should be queued when feature flag is enabled."""
+        cluster = get_cluster()
+        base_time = datetime.now()
+
+        # Process first result at 4:00
+        result1 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time,
+        )
+        with self.feature("organizations:uptime-backlog-retry"):
+            self.send_result(result1)
+
+        # Send result at 4:10. Should be queued because we expected a result at 4:05
+        result2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time + timedelta(minutes=10),
+        )
+
+        with (
+            self.feature("organizations:uptime-backlog-retry"),
+            mock.patch("sentry.uptime.consumers.tasks.process_uptime_backlog") as mock_task,
+        ):
+            self.send_result(result2)
+
+            backlog_key = build_backlog_key(str(self.subscription.id))
+            assert cluster.zcard(backlog_key) == 1
+            mock_task.apply_async.assert_called_once()
+            call_kwargs = mock_task.apply_async.call_args[1]
+            assert call_kwargs["args"] == [str(self.subscription.id)]
+            assert call_kwargs["countdown"] == 10
+            assert call_kwargs["kwargs"]["attempt"] == 1
+
+    def test_feature_flag_disabled_processes_normally(self):
+        """When feature flag is disabled, results should process normally without queueing."""
+        cluster = get_cluster()
+        base_time = datetime.now()
+
+        result1 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time,
+        )
+        self.send_result(result1)
+
+        result2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time + timedelta(minutes=10),
+        )
+
+        self.send_result(result2)
+
+        backlog_key = build_backlog_key(str(self.subscription.id))
+        assert cluster.zcard(backlog_key) == 0
+
+    def test_task_scheduling_deduplication(self):
+        """Multiple out-of-order results shouldn't schedule duplicate tasks."""
+        cluster = get_cluster()
+        base_time = datetime.now()
+
+        result1 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time,
+        )
+        with self.feature("organizations:uptime-backlog-retry"):
+            self.send_result(result1)
+
+        result2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time + timedelta(minutes=10),
+        )
+        result3 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time + timedelta(minutes=15),
+        )
+
+        with (
+            self.feature("organizations:uptime-backlog-retry"),
+            mock.patch("sentry.uptime.consumers.tasks.process_uptime_backlog") as mock_task,
+        ):
+            self.send_result(result2)
+            self.send_result(result3)
+
+            # Verify task was only scheduled once
+            assert mock_task.apply_async.call_count == 1
+
+            # Verify both results were queued
+            backlog_key = build_backlog_key(str(self.subscription.id))
+            assert cluster.zcard(backlog_key) == 2
 
 
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)

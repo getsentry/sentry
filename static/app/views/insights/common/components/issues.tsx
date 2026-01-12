@@ -149,7 +149,7 @@ const Heading = styled('h6')`
   align-self: center;
   margin: 0 ${space(2)};
   width: 60px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

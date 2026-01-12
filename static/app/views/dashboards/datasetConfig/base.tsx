@@ -1,10 +1,11 @@
 import trimStart from 'lodash/trimStart';
 
 import type {Client, ResponseMeta} from 'sentry/api';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -17,7 +18,6 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {FieldKind} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {
@@ -57,11 +57,6 @@ export type SearchBarDataProviderProps = {
   pageFilters: PageFilters;
   widgetQuery?: WidgetQuery;
 };
-
-export type GetTagValues = (
-  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
-  searchQuery: string
-) => Promise<string[]>;
 
 export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];

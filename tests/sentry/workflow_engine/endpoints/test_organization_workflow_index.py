@@ -171,6 +171,57 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.workflow_two.name,
         ]
 
+    def test_priority_detector(self) -> None:
+        """Test priorityDetector param - workflows connected to the specified detector appear first."""
+        fresh_org = self.create_organization(name="Fresh Org", owner=self.user)
+        fresh_project = self.create_project(organization=fresh_org)
+
+        workflow_a = self.create_workflow(organization_id=fresh_org.id, name="Workflow A")
+        workflow_b = self.create_workflow(organization_id=fresh_org.id, name="Workflow B")
+        workflow_c = self.create_workflow(organization_id=fresh_org.id, name="Workflow C")
+
+        detector_x = self.create_detector(
+            project=fresh_project, name="Detector X", type=MetricIssue.slug
+        )
+        detector_y = self.create_detector(
+            project=fresh_project, name="Detector Y", type=ErrorGroupType.slug
+        )
+
+        # workflow_a is connected to detector_x
+        self.create_detector_workflow(workflow=workflow_a, detector=detector_x)
+        # workflow_b is connected to detector_y
+        self.create_detector_workflow(workflow=workflow_b, detector=detector_y)
+        # workflow_c has no detector connection
+
+        # Priority detector_x - workflow_a should come first
+        response = self.get_success_response(
+            fresh_org.slug, qs_params={"priorityDetector": str(detector_x.id)}
+        )
+        assert response.data[0]["name"] == workflow_a.name
+
+        # Priority detector_y - workflow_b should come first
+        response2 = self.get_success_response(
+            fresh_org.slug, qs_params={"priorityDetector": str(detector_y.id)}
+        )
+        assert response2.data[0]["name"] == workflow_b.name
+
+        # Can combine with sortBy - priority detector still comes first, then sorted by name
+        response3 = self.get_success_response(
+            fresh_org.slug,
+            qs_params={"priorityDetector": str(detector_x.id), "sortBy": "-name"},
+        )
+        # workflow_a (priority) first, then others sorted by -name (C before B)
+        assert response3.data[0]["name"] == workflow_a.name
+        assert response3.data[1]["name"] == workflow_c.name
+        assert response3.data[2]["name"] == workflow_b.name
+
+    def test_priority_detector_invalid_format(self) -> None:
+        """Test error handling for invalid priorityDetector format."""
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"priorityDetector": "not-a-number"}
+        )
+        assert "priorityDetector" in response.data
+
     def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
             self.organization.slug, qs_params={"sortBy": "not_a_valid_sort_by_field"}

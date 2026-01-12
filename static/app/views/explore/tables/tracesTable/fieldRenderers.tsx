@@ -3,6 +3,8 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -86,7 +88,7 @@ export function ProjectsRenderer({
         <Tooltip
           skipWrapper
           title={
-            <CollapsedProjects>
+            <Stack gap="xs" width="200px">
               {tn(
                 'This trace contains %s more project.',
                 'This trace contains %s more projects.',
@@ -95,7 +97,7 @@ export function ProjectsRenderer({
               {collapsedProjectAvatars.map(project => (
                 <ProjectBadge key={project.slug} project={project} avatarSize={16} />
               ))}
-            </CollapsedProjects>
+            </Stack>
           }
         >
           <CollapsedBadge size={20} fontSize={10} data-test-id="collapsed-projects-badge">
@@ -126,13 +128,6 @@ const ProjectList = styled('div')`
   padding-right: 8px;
 `;
 
-const CollapsedProjects = styled('div')`
-  width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const AvatarStyle = (p: any) => css`
   border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
@@ -157,7 +152,7 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   text-align: center;
   font-weight: ${p => p.theme.fontWeight.bold};
   background-color: ${p => p.theme.colors.gray200};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.fontSize}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
@@ -370,7 +365,7 @@ export function SpanBreakdownSliceRenderer({
 
 const Subtext = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 const FlexContainer = styled('div')`
   display: flex;

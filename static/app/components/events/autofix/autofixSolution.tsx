@@ -211,7 +211,7 @@ function SolutionDescription({
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -701,7 +701,7 @@ const NoSolutionPadding = styled('div')`
 `;
 
 const SolutionContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -755,7 +755,7 @@ const InstructionsInput = styled(Input)`
   padding-right: ${space(4)};
 
   &::placeholder {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -770,7 +770,7 @@ const SubmitButton = styled(Button)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.lg};
 `;
 

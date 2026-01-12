@@ -140,7 +140,7 @@ const UpsellContent = styled('div')`
 `;
 
 const Note = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
 `;
 

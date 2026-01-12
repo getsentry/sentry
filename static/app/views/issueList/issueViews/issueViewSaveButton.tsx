@@ -136,7 +136,7 @@ function SegmentedIssueViewSaveButton({
                 icon={
                   <IconChevron
                     direction="down"
-                    color={buttonPriority === 'primary' ? undefined : 'subText'}
+                    variant={buttonPriority === 'primary' ? undefined : 'muted'}
                   />
                 }
                 aria-label={t('More save options')}

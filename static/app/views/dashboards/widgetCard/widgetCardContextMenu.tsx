@@ -265,7 +265,7 @@ export function getMenuOptions(
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
     menuOptions.push({
       key: 'open-in-metrics',
-      label: t('Open in Metrics'),
+      label: t('Open in Explore'),
       to: getWidgetMetricsUrl(widget, dashboardFilters, selection, organization),
       onAction: () => {
         trackAnalytics('dashboards_views.open_in_metrics.opened', {
@@ -304,12 +304,14 @@ export function getMenuOptions(
           organization,
           location,
           selection,
-          widget: {
-            ...widget,
-            id: undefined,
-            dashboardId: undefined,
-            layout: undefined,
-          },
+          widgets: [
+            {
+              ...widget,
+              id: undefined,
+              dashboardId: undefined,
+              layout: undefined,
+            },
+          ],
           actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
           source: DashboardWidgetSource.DASHBOARDS,
         });
