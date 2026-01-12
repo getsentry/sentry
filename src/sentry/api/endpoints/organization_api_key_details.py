@@ -13,6 +13,7 @@ from sentry.api.bases.organization import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.apikey import ApiKey
+from sentry.organizations.services.organization.model import RpcOrganization
 
 
 class ApiKeySerializer(serializers.ModelSerializer):
@@ -53,7 +54,9 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         """
         return Response(serialize(api_key, request.user))
 
-    def put(self, request: Request, api_key: ApiKey, organization, **kwargs) -> Response:
+    def put(
+        self, request: Request, api_key: ApiKey, organization: RpcOrganization, **kwargs
+    ) -> Response:
         """
         Update an API Key
         `````````````````
@@ -83,7 +86,9 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, api_key: ApiKey, organization, **kwargs) -> Response:
+    def delete(
+        self, request: Request, api_key: ApiKey, organization: RpcOrganization, **kwargs
+    ) -> Response:
         """
         Deletes an API Key
         ``````````````````
