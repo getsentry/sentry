@@ -1,12 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Link} from 'sentry/components/core/link';
-import type {
-  RadioGroupProps,
-  RadioOption,
-} from 'sentry/components/forms/controls/radioGroup';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,53 +28,88 @@ function WidgetBuilderDatasetSelector() {
   const isEditing = useIsEditingWidget();
   const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
   const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
-  const disabledChoices: RadioGroupProps<WidgetType>['disabledChoices'] = [];
+
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
-  const datasetChoices: Array<RadioOption<WidgetType>> = [];
-  datasetChoices.push([WidgetType.ERRORS, t('Errors')]);
-  if (organization.features.includes('discover-saved-queries-deprecation')) {
-    disabledChoices.push([
-      WidgetType.TRANSACTIONS,
-      tct('This dataset is no longer supported. Please use the [spans] dataset.', {
-        spans: (
-          <Link
-            // We need to do this otherwise the dashboard filters will change
-            to={{
-              pathname: location.pathname,
-              query: {
-                project: location.query.project,
-                start: location.query.start,
-                end: location.query.end,
-                statsPeriod: location.query.statsPeriod,
-                environment: location.query.environment,
-                utc: location.query.utc,
-              },
-            }}
-            onClick={() => {
-              cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
-              setSegmentSpanBuilderState();
-            }}
-          >
-            {t('spans')}
-          </Link>
-        ),
-      }),
-    ]);
-  }
+  const datasetOptions = [];
+  datasetOptions.push({
+    value: WidgetType.ERRORS,
+    label: t('Errors'),
+    details: t('Errors from your application'),
+  });
+
+  const isTransactionsDeprecated = organization.features.includes(
+    'discover-saved-queries-deprecation'
+  );
+
+  const transactionsOption = {
+    value: WidgetType.TRANSACTIONS,
+    label: t('Transactions'),
+    // Don't disable the option so the migration link remains clickable
+    details: isTransactionsDeprecated
+      ? tct('No longer supported. Use the [spans] dataset.', {
+          spans: (
+            <Link
+              // We need to do this otherwise the dashboard filters will change
+              to={{
+                pathname: location.pathname,
+                query: {
+                  project: location.query.project,
+                  start: location.query.start,
+                  end: location.query.end,
+                  statsPeriod: location.query.statsPeriod,
+                  environment: location.query.environment,
+                  utc: location.query.utc,
+                },
+              }}
+              onClick={() => {
+                cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
+                setSegmentSpanBuilderState();
+              }}
+            >
+              {t('spans')}
+            </Link>
+          ),
+        })
+      : t('Transactions from your application'),
+  };
 
   if (organization.features.includes('visibility-explore-view')) {
-    datasetChoices.push([WidgetType.SPANS, t('Spans')]);
+    datasetOptions.push({
+      value: WidgetType.SPANS,
+      label: t('Spans'),
+      details: t('Spans from distributed traces'),
+    });
   }
+
   if (isLogsEnabled(organization)) {
-    datasetChoices.push([WidgetType.LOGS, t('Logs')]);
+    datasetOptions.push({
+      value: WidgetType.LOGS,
+      label: t('Logs'),
+      details: t('Structured application logs'),
+    });
   }
+
   if (hasTraceMetricsDashboards) {
-    datasetChoices.push([WidgetType.TRACEMETRICS, t('Metrics')]);
+    datasetOptions.push({
+      value: WidgetType.TRACEMETRICS,
+      label: t('Metrics'),
+      details: t('Counters, gauges, and distributions'),
+    });
   }
-  datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
-  datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
-  datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
+  datasetOptions.push({
+    value: WidgetType.ISSUE,
+    label: t('Issues'),
+    details: t('Grouped events from the Issues Feed'),
+  });
+
+  datasetOptions.push({
+    value: WidgetType.RELEASE,
+    label: t('Releases'),
+    details: t('Session data from releases'),
+  });
+
+  datasetOptions.push(transactionsOption);
 
   return (
     <Fragment>
@@ -93,13 +124,19 @@ function WidgetBuilderDatasetSelector() {
           }
         )}
       />
-      <DatasetChoices
-        label={t('Dataset')}
+      <CompactSelect
         value={state.dataset ?? WidgetType.ERRORS}
-        choices={datasetChoices}
-        disabledChoices={disabledChoices}
-        tooltipIsHoverable
-        onChange={(newDataset: WidgetType) => {
+        options={datasetOptions}
+        menuWidth={300}
+        onChange={selection => {
+          const newDataset = selection.value;
+
+          // Prevent selection of transactions when deprecated. The option is not disabled
+          // to allow clicking the migration link.
+          if (newDataset === WidgetType.TRANSACTIONS && isTransactionsDeprecated) {
+            return;
+          }
+
           // Set the current dataset state in local storage for recovery
           // when the user navigates back to this dataset
           cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
@@ -124,12 +161,6 @@ function WidgetBuilderDatasetSelector() {
 }
 
 export default WidgetBuilderDatasetSelector;
-
-const DatasetChoices = styled(RadioGroup<WidgetType>)`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-`;
 
 const StyledSectionHeader = styled(SectionHeader)`
   margin-bottom: ${space(1)};
