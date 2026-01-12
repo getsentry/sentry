@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Stack, type StackProps} from '@sentry/scraps/layout';
-
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 
@@ -12,13 +10,22 @@ const HeaderLayout = styled('div')`
   min-height: 150px;
 `;
 
-function HeaderRow(props: StackProps<'div'>) {
-  return <Stack justify="between" align="center" gap="xl" {...props} />;
-}
+const HeaderRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(2)};
+  align-items: center;
 
-function HeaderContent(props: StackProps<'div'>) {
-  return <Stack {...props} />;
-}
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    gap: ${space(1)};
+    flex-direction: column;
+  }
+`;
+
+const HeaderContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
 
 const StyledBreak = styled('hr')`
   margin: ${space(1)} 0;
