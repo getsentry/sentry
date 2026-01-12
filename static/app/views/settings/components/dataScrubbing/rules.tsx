@@ -92,7 +92,8 @@ const ListItem = styled('li')`
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   &:hover {
-    background-color: ${p => p.theme.tokens.background.secondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
   &:last-child {
     border-bottom: 0;

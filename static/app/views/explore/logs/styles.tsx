@@ -35,8 +35,17 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
-      background-color: ${p => p.theme.tokens.background.secondary};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
+
+    ${p =>
+      p.isClickable &&
+      `
+      &:active {
+        background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      }
+    `}
 
     &:not(:last-child) {
       border-bottom: 0;

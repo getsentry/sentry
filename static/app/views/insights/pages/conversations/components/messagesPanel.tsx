@@ -379,7 +379,10 @@ const MessageBubble = styled('div')<{
     cursor: pointer;
     &:hover {
       border-color: ${p.theme.tokens.border.accent.moderate};
-      background-color: ${p.theme.tokens.background.secondary};
+      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+    }
+    &:active {
+      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
     }
   `}
   ${p =>
