@@ -869,7 +869,7 @@ describe('Customer Details', () => {
           {name: '2021-07-19T00:00:00Z', value: 2000},
           {name: '2021-07-20T00:00:00Z', value: 0},
         ],
-        color: theme.pink200,
+        color: theme.colors.pink200,
       },
       {
         seriesName: 'Discarded (Client)',
