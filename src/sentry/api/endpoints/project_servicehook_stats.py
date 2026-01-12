@@ -18,12 +18,18 @@ class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, project, hook_id) -> Response:
+    def convert_args(self, request: Request, hook_id: str, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        project = kwargs["project"]
         try:
-            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
+            kwargs["hook"] = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
 
+        return (args, kwargs)
+
+    def get(self, request: Request, hook: ServiceHook, **kwargs) -> Response:
+        project = kwargs["project"]
         stat_args = self._parse_args(request)
 
         stats: dict[int, dict[str, int]] = {}
