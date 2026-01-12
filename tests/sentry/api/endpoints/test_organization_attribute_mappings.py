@@ -1,5 +1,7 @@
 from django.urls import reverse
 
+from sentry.search.eap.ourlogs.attributes import OURLOG_ATTRIBUTE_DEFINITIONS
+from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS
 from sentry.testutils.cases import APITestCase
 
 
@@ -49,12 +51,17 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
 
         # Find the 'id' mapping for spans
         id_mapping = next(
-            (item for item in data if item["publicAlias"] == "id" and item["type"] == "spans"),
+            (
+                item
+                for item in data
+                if item["publicAlias"] == SPAN_ATTRIBUTE_DEFINITIONS["id"].public_alias
+                and item["type"] == "spans"
+            ),
             None,
         )
         assert id_mapping is not None
-        assert id_mapping["internalName"] == "sentry.item_id"
-        assert id_mapping["searchType"] == "string"
+        assert id_mapping["internalName"] == SPAN_ATTRIBUTE_DEFINITIONS["id"].internal_name
+        assert id_mapping["searchType"] == SPAN_ATTRIBUTE_DEFINITIONS["id"].search_type
 
     def test_known_log_mapping(self):
         """Test that a known log mapping is returned correctly."""
@@ -67,12 +74,19 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
 
         # Find the 'message' mapping for logs
         message_mapping = next(
-            (item for item in data if item["publicAlias"] == "message" and item["type"] == "logs"),
+            (
+                item
+                for item in data
+                if item["publicAlias"] == OURLOG_ATTRIBUTE_DEFINITIONS["message"].public_alias
+                and item["type"] == "logs"
+            ),
             None,
         )
         assert message_mapping is not None
-        assert message_mapping["internalName"] == "sentry.body"
-        assert message_mapping["searchType"] == "string"
+        assert (
+            message_mapping["internalName"] == OURLOG_ATTRIBUTE_DEFINITIONS["message"].internal_name
+        )
+        assert message_mapping["searchType"] == OURLOG_ATTRIBUTE_DEFINITIONS["message"].search_type
 
     def test_single_type_filter(self):
         """Test filtering by a single type."""
@@ -138,12 +152,16 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
             (
                 item
                 for item in data
-                if item["publicAlias"] == "description" and item["type"] == "spans"
+                if item["publicAlias"] == SPAN_ATTRIBUTE_DEFINITIONS["description"].public_alias
+                and item["type"] == "spans"
             ),
             None,
         )
         assert description_mapping is not None
-        assert description_mapping["internalName"] == "sentry.raw_description"
+        assert (
+            description_mapping["internalName"]
+            == SPAN_ATTRIBUTE_DEFINITIONS["description"].internal_name
+        )
 
     def test_camelcase_keys(self):
         """Test that response uses camelCase keys."""
