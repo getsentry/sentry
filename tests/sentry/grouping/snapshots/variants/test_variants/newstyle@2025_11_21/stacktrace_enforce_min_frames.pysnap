@@ -12,7 +12,7 @@ app:
           "log_demo"
         value*
           "Holy shit everything is on fire!"
-        stacktrace (discarded because stack trace only contains 1 frame which is under the configured threshold by stack trace rule (family:native min-frames=2))
+        stacktrace (discarded because stack trace only contains 1 frame which is under the configured threshold by custom stack trace rule (family:native min-frames=2))
           frame (non app frame)
             function*
               "_main"
