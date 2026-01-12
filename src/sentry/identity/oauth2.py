@@ -359,11 +359,16 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                # Sanitize error parameter to prevent injection attacks
+                # Only allow alphanumeric, spaces, hyphens, underscores, and basic punctuation
+                sanitized_error = "".join(
+                    c for c in error if c.isalnum() or c in " -_.,;:!?()"
+                )[:200]  # Limit length to 200 characters
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {sanitized_error}")
 
             if state != pipeline.fetch_state("state"):
                 extra = {
@@ -387,11 +392,19 @@ class OAuth2CallbackView:
         # these errors are based off of the results of exchange_token, lifecycle errors are captured inside
         if "error_description" in data:
             error = data.get("error")
-            return pipeline.error(data["error_description"])
+            # Sanitize error_description to prevent injection attacks
+            sanitized_error_description = "".join(
+                c for c in data["error_description"] if c.isalnum() or c in " -_.,;:!?()"
+            )[:500]  # Limit length to 500 characters
+            return pipeline.error(sanitized_error_description)
 
         if "error" in data:
-            logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
+            # Sanitize error message to prevent injection attacks
+            sanitized_error = "".join(
+                c for c in data["error"] if c.isalnum() or c in " -_.,;:!?()"
+            )[:200]  # Limit length to 200 characters
+            logger.info("identity.token-exchange-error", extra={"error": sanitized_error})
+            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {sanitized_error}")
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a

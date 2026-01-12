@@ -159,6 +159,145 @@ class OAuth2CallbackViewTest(TestCase):
 
 
 @control_silo_test
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+class OAuth2CallbackViewSecurityTest(TestCase):
+    """Tests for security vulnerabilities in OAuth2CallbackView"""
+
+    def setUp(self) -> None:
+        sentry.identity.register(DummyProvider)
+        super().setUp()
+        self.request = RequestFactory().get("/")
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        sentry.identity.unregister(DummyProvider)
+
+    @cached_property
+    def view(self):
+        return OAuth2CallbackView(
+            access_token_url="https://example.org/oauth/token",
+            client_id=123456,
+            client_secret="secret-value",
+        )
+
+    def test_sanitizes_sql_injection_in_error_parameter(self, mock_record: MagicMock) -> None:
+        """Test that SQL injection payloads in error parameter are sanitized"""
+        sql_injection = '-1" OR 5*5=26 -- '
+        self.request = RequestFactory().get("/", {"error": sql_injection})
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # The error should be sanitized - double quotes should be removed
+        assert response.status_code == 200
+        # Check that SQL injection characters are removed
+        assert '"' not in response.content.decode()
+        assert 'OR' in response.content.decode()  # Should still have OR (allowed chars)
+        assert '--' not in response.content.decode()  # SQL comment should be removed
+
+    def test_sanitizes_xss_in_error_parameter(self, mock_record: MagicMock) -> None:
+        """Test that XSS payloads in error parameter are sanitized"""
+        xss_payload = '<script>alert("XSS")</script>'
+        self.request = RequestFactory().get("/", {"error": xss_payload})
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # The error should be sanitized - HTML tags should be removed
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '<script>' not in content
+        assert 'alert' in content  # Text content should remain
+        assert '"' not in content  # Quotes should be removed
+
+    def test_sanitizes_command_injection_in_error_parameter(self, mock_record: MagicMock) -> None:
+        """Test that command injection payloads in error parameter are sanitized"""
+        command_injection = "; rm -rf /; echo 'pwned'"
+        self.request = RequestFactory().get("/", {"error": command_injection})
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # The error should be sanitized - dangerous characters should be removed
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '/' not in content  # Slashes should be removed
+        assert "'" not in content  # Single quotes should be removed
+
+    def test_limits_error_parameter_length(self, mock_record: MagicMock) -> None:
+        """Test that excessively long error parameters are truncated"""
+        long_error = "A" * 1000
+        self.request = RequestFactory().get("/", {"error": long_error})
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # The error should be truncated to 200 characters max
+        assert response.status_code == 200
+        content = response.content.decode()
+        # Count actual A's in the response - should be limited
+        a_count = content.count('A')
+        assert a_count <= 200, f"Expected at most 200 A's, found {a_count}"
+
+    def test_allows_safe_error_messages(self, mock_record: MagicMock) -> None:
+        """Test that legitimate error messages with safe characters are preserved"""
+        safe_error = "access_denied: User cancelled authorization."
+        self.request = RequestFactory().get("/", {"error": safe_error})
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # Safe characters should be preserved
+        assert "access" in content
+        assert "denied" in content
+        assert "User" in content
+        assert "cancelled" in content
+        assert "authorization" in content
+
+    @responses.activate
+    def test_sanitizes_error_from_token_exchange(self, mock_record: MagicMock) -> None:
+        """Test that errors from token exchange responses are sanitized"""
+        # Mock a token exchange that returns an error with malicious content
+        responses.add(
+            responses.POST,
+            "https://example.org/oauth/token",
+            json={"error": '<script>alert("XSS")</script>', "error_description": '"; DROP TABLE users; --'},
+            status=200,
+        )
+
+        self.request = RequestFactory().get("/", {"code": "test-code", "state": "test-state"})
+        self.request.subdomain = None
+        self.request.session = Client().session
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.bind_state("state", "test-state")
+        response = self.view.dispatch(self.request, pipeline)
+
+        # The errors should be sanitized
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '<script>' not in content
+        assert 'DROP' in content  # Text should remain
+        assert 'TABLE' in content
+        assert '"' not in content  # Quotes removed
+        assert '--' not in content  # SQL comment removed
+
+
+@control_silo_test
 class OAuth2LoginViewTest(TestCase):
     def setUp(self) -> None:
         sentry.identity.register(DummyProvider)

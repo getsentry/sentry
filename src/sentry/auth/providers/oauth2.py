@@ -129,7 +129,10 @@ class OAuth2Callback(AuthView):
         code = request.GET.get("code")
 
         if error:
-            return pipeline.error(error)
+            # Sanitize error parameter to prevent injection attacks
+            # Only allow alphanumeric, spaces, hyphens, underscores, and basic punctuation
+            sanitized_error = "".join(c for c in error if c.isalnum() or c in " -_.,;:!?()")[:200]
+            return pipeline.error(sanitized_error)
 
         if state != pipeline.fetch_state("state"):
             return pipeline.error(ERR_INVALID_STATE)
@@ -140,7 +143,11 @@ class OAuth2Callback(AuthView):
         data = self.exchange_token(request, pipeline, code)
 
         if "error_description" in data:
-            return pipeline.error(data["error_description"])
+            # Sanitize error_description to prevent injection attacks
+            sanitized_error_description = "".join(
+                c for c in data["error_description"] if c.isalnum() or c in " -_.,;:!?()"
+            )[:500]
+            return pipeline.error(sanitized_error_description)
 
         if "error" in data:
             logging.info("Error exchanging token: %s", data["error"])
