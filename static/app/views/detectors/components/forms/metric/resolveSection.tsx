@@ -98,7 +98,8 @@ export function ResolveSection() {
   }
 
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
-  const thresholdPlaceholder = getStaticDetectorThresholdPlaceholder(aggregate);
+  const thresholdPlaceholder =
+    detectionType === 'percent' ? '0' : getStaticDetectorThresholdPlaceholder(aggregate);
 
   // Compute the automatic resolution threshold: medium if present, otherwise high
   const resolutionThreshold =
