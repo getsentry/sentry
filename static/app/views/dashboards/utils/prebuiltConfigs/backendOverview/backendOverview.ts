@@ -92,9 +92,9 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: ['title', 'lastSeen'],
+          fields: ['title', 'lastSeenAgo'],
           aggregates: [],
-          columns: ['title', 'lastSeen'],
+          columns: ['title', 'lastSeenAgo'],
           fieldAliases: ['', ''],
           conditions: 'is:unresolved event.type:error',
           orderby: 'freq',

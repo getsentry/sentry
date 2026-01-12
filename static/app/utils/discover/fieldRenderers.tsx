@@ -23,6 +23,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import TimeSince from 'sentry/components/timeSince';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -583,6 +584,12 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       }
 
       return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  lastSeenAgo: {
+    sortField: 'lastSeen',
+    renderFunc: data => {
+      return <TimeSince date={data.lastSeen} />;
     },
   },
   'issue.id': {
