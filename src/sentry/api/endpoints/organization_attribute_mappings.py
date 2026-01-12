@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -23,6 +25,13 @@ TYPE_TO_DEFINITIONS = {
 }
 
 
+class AttributeMappingResponse(TypedDict):
+    type: str
+    publicAlias: str
+    internalName: str
+    searchType: str
+
+
 @region_silo_endpoint
 class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -44,7 +53,7 @@ class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
         else:
             types_to_include = TYPE_TO_DEFINITIONS.keys()
 
-        result = []
+        result: list[AttributeMappingResponse] = []
         for type_name in types_to_include:
             definitions = TYPE_TO_DEFINITIONS[type_name]
             for definition in definitions.values():
