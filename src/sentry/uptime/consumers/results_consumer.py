@@ -43,7 +43,7 @@ from sentry.uptime.utils import (
     build_backlog_key,
     build_backlog_schedule_lock_key,
     build_backlog_task_scheduled_key,
-    build_last_seen_interval_key,
+    build_last_interval_change_timestamp_key,
     build_last_update_key,
     get_cluster,
 )
@@ -204,18 +204,27 @@ def create_backfill_misses(
     # If the scheduled check is two or more intervals since the last seen check, we can declare the
     # intervening checks missed...
     if num_intervals > 1:
-        # ... but it might be the case that the user changed the frequency of the detector.  So, first
-        # verify that the interval in postgres is the same as the last-seen interval (in redis).
-        # We only store in redis when we encounter a difference like this, which means we won't be able
-        # to tell if a missed check is real with the very first missed check.  This is probably okay,
-        # and preferable to just writing the interval to redis on every check consumed.
-        last_interval_key = build_last_seen_interval_key(detector)
+        # Check if the interval was changed recently. If the last update happened before the
+        # interval change, this gap is just the transition between intervals and should be skipped.
+        last_interval_change_key = build_last_interval_change_timestamp_key(detector)
+        last_interval_change_ms_raw: str | None = cluster.get(last_interval_change_key)
 
-        # If we've never set an interval before, just set this to zero, which will never compare
-        # true with any valid interval.
-        last_interval_seen: str = cluster.get(last_interval_key) or "0"
+        should_skip_backfill = False
+        if last_interval_change_ms_raw is not None:
+            last_interval_change_ms = int(last_interval_change_ms_raw)
+            if last_update_ms < last_interval_change_ms:
+                # Last check was before interval change - this gap is just the transition
+                should_skip_backfill = True
+                logger.info(
+                    "uptime.result_processor.skipping_backfill_interval_changed",
+                    extra={
+                        "last_update_ms": last_update_ms,
+                        "interval_change_ms": last_interval_change_ms,
+                        **result,
+                    },
+                )
 
-        if int(last_interval_seen) == subscription_interval_ms:
+        if not should_skip_backfill:
             # Bound the number of missed checks we generate--just in case.
             num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
 
@@ -265,12 +274,6 @@ def create_backfill_misses(
                     missed_result,
                     synthetic_metric_tags.copy(),
                 )
-        else:
-            logger.info(
-                "uptime.result_processor.false_num_missing_check",
-                extra={**result},
-            )
-            cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
 
 
 def process_result_internal(
