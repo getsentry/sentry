@@ -157,6 +157,82 @@ class OAuth2CallbackViewTest(TestCase):
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
+    def test_dispatch_with_path_traversal_state(self, mock_record: MagicMock) -> None:
+        """Test that path traversal attempts in state parameter are rejected."""
+        self.request = RequestFactory().get("/?state=1472384/../../xxx\\..\\..\\787610&code=auth-code")
+        self.request.session = Client().session
+        self.request.subdomain = None
+        
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.initialize()
+        pipeline.bind_state("state", "valid_hex_token_123abc")
+        
+        response = self.view.dispatch(self.request, pipeline)
+        
+        assert response.status_code == 200
+        assert "An error occurred while validating your request" in response.content.decode()
+        assert_failure_metric(mock_record, "token_exchange_mismatched_state")
+
+    def test_dispatch_with_invalid_state_format(self, mock_record: MagicMock) -> None:
+        """Test that non-hexadecimal state parameters are rejected."""
+        invalid_states = [
+            "not-hex-string!",
+            "../../etc/passwd",
+            "state with spaces",
+            "../../../",
+            "http://evil.com",
+        ]
+        
+        for invalid_state in invalid_states:
+            self.request = RequestFactory().get(f"/?state={invalid_state}&code=auth-code")
+            self.request.session = Client().session
+            self.request.subdomain = None
+            
+            pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+            pipeline.initialize()
+            pipeline.bind_state("state", "valid_hex_token_123abc")
+            
+            response = self.view.dispatch(self.request, pipeline)
+            
+            assert response.status_code == 200
+            assert "An error occurred while validating your request" in response.content.decode()
+
+    def test_is_valid_state_format(self, mock_record: MagicMock) -> None:
+        """Test the state format validation method."""
+        # Valid hexadecimal states
+        assert self.view._is_valid_state_format("abc123")
+        assert self.view._is_valid_state_format("ABCDEF")
+        assert self.view._is_valid_state_format("0123456789abcdef")
+        assert self.view._is_valid_state_format("deadbeef")
+        
+        # Invalid states
+        assert not self.view._is_valid_state_format("")
+        assert not self.view._is_valid_state_format("not-hex!")
+        assert not self.view._is_valid_state_format("../../etc/passwd")
+        assert not self.view._is_valid_state_format("state with spaces")
+        assert not self.view._is_valid_state_format("1472384/../../xxx\\..\\..\\787610")
+
+    def test_sanitize_error_message(self, mock_record: MagicMock) -> None:
+        """Test the error message sanitization method."""
+        # Test path traversal attack from the issue
+        assert self.view._sanitize_error_message("1472384/../../xxx\\..\\..\\787610") == "1472384xxx787610"
+        
+        # Test normal error messages
+        assert self.view._sanitize_error_message("access_denied") == "access_denied"
+        assert self.view._sanitize_error_message("server_error") == "server_error"
+        
+        # Test removal of path separators
+        assert self.view._sanitize_error_message("../../etc/passwd") == "etcpasswd"
+        assert self.view._sanitize_error_message("C:\\Windows\\System32") == "CWindowsSystem32"
+        
+        # Test whitespace normalization
+        assert self.view._sanitize_error_message("error\nwith\nnewlines") == "error with newlines"
+        assert self.view._sanitize_error_message("error\twith\ttabs") == "error with tabs"
+        
+        # Test empty string
+        assert self.view._sanitize_error_message("") == "unknown error"
+        assert self.view._sanitize_error_message(None) == "unknown error"
+
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
