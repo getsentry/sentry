@@ -8,6 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
+from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
 from sentry.seer.anomaly_detection.store_data_workflow_engine import (
     send_new_detector_data,
@@ -199,16 +200,12 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         Validate EAP rule data.
         """
         data_sources = attrs.get("data_sources", [])
-        if not data_sources:
-            return
-
         for data_source in data_sources:
             event_types = data_source.get("event_types", [])
-            if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
-                from sentry.search.eap.trace_metrics.validator import (
-                    validate_trace_metrics_aggregate,
-                )
-
+            if (
+                data_source.get("dataset") == Dataset.EventsAnalyticsPlatform
+                and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types
+            ):
                 aggregate = data_source.get("aggregate")
                 validate_trace_metrics_aggregate(aggregate)
 
@@ -221,10 +218,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError("Too many conditions")
 
         if "data_sources" in attrs:
-            for data_source in attrs["data_sources"]:
-                if data_source.get("dataset") == Dataset.EventsAnalyticsPlatform:
-                    self.validate_eap_rule(attrs)
-                    break
+            self.validate_eap_rule(attrs)
 
         return attrs
 

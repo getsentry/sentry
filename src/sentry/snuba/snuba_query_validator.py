@@ -23,6 +23,7 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -235,8 +236,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         )
 
         if is_trace_metrics:
-            from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
-
             validate_trace_metrics_aggregate(aggregate)
         else:
             try:
@@ -250,8 +249,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     )
             except InvalidSearchQuery as e:
                 raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
-
-        if not is_trace_metrics:
             data["aggregate"] = translate_aggregate_field(
                 aggregate, allow_mri=allow_mri, allow_eap=allow_eap
             )

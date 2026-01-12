@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from rest_framework import serializers
@@ -8,6 +9,8 @@ from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverCon
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.trace_metrics.types import TraceMetric
 from sentry.search.events.types import SnubaParams
+
+logger = logging.getLogger(__name__)
 
 
 def extract_trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
@@ -34,7 +37,9 @@ def extract_trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
 
     resolver = SearchResolver(
         params=snuba_params,
-        config=TraceMetricsSearchResolverConfig(metric=None),
+        config=TraceMetricsSearchResolverConfig(
+            metric=None
+        ),  # It's fine to not pass a metric here since that way of using metrics is deprecated.
         definitions=TRACE_METRICS_DEFINITIONS,
     )
 
@@ -52,7 +57,6 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
 
     Raises:
         serializers.ValidationError: If the aggregate is invalid
-        InvalidSearchQuery: If the aggregate is invalid
     """
     try:
         trace_metric = extract_trace_metric_from_aggregate(aggregate)
@@ -61,4 +65,7 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
                 f"Trace metrics aggregate {aggregate} must specify metric name, type, and unit"
             )
     except InvalidSearchQuery as e:
-        raise serializers.ValidationError({"aggregate": f"Invalid trace metrics aggregate: {e}"})
+        logger.exception("Invalid trace metrics aggregate: %s %s", aggregate, e)
+        raise serializers.ValidationError(
+            {"aggregate": f"Invalid trace metrics aggregate: {aggregate}"}
+        )

@@ -604,10 +604,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
 
 
 class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
-    """
-    Tests for trace metrics validation in metric issue detectors.
-    """
-
     def setUp(self) -> None:
         super().setUp()
         self.trace_metrics_data = {

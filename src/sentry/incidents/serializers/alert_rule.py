@@ -30,6 +30,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
 )
 from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
+from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -147,8 +148,6 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         event_types = data.get("event_types", [])
 
         if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
-            from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
-
             aggregate = data.get("aggregate")
             validate_trace_metrics_aggregate(aggregate)
 
