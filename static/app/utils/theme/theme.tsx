@@ -218,16 +218,12 @@ const generateThemePrismVariables = (
     ...prismColors,
   });
 
-const generateButtonTheme = (
-  colors: Colors,
-  alias: Aliases,
-  tokens: Tokens
-): ButtonColors => ({
+const generateButtonTheme = (colors: Colors, tokens: Tokens): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
     color: tokens.content.primary,
     colorActive: tokens.content.primary,
-    background: alias.background,
+    background: tokens.background.primary,
     backgroundActive: tokens.background.transparent.neutral.muted,
     border: tokens.border.primary,
     borderActive: tokens.border.primary,
@@ -271,8 +267,8 @@ const generateButtonTheme = (
   disabled: {
     color: tokens.content.disabled,
     colorActive: tokens.content.disabled,
-    background: alias.background,
-    backgroundActive: alias.background,
+    background: tokens.background.primary,
+    backgroundActive: tokens.background.primary,
     border: tokens.content.disabled,
     borderActive: tokens.content.disabled,
     borderTranslucent: tokens.border.transparent.neutral.muted,
@@ -1169,11 +1165,6 @@ const darkShadows = {
 
 const generateAliases = (tokens: Tokens) => ({
   /**
-   * Primary background color
-   */
-  background: tokens.background.primary,
-
-  /**
    * Secondary background color used as a slight contrast against primary background
    */
   backgroundSecondary: tokens.background.secondary,
@@ -1322,7 +1313,7 @@ const lightThemeDefinition = {
   ...lightShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseLightTheme.tokens),
-  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
+  focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
@@ -1330,7 +1321,7 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseLightTheme.tokens),
   alert: generateAlertTheme(lightColors, lightAliases, baseLightTheme.tokens),
-  button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
+  button: generateButtonTheme(lightColors, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
@@ -1371,7 +1362,7 @@ export const darkTheme: SentryTheme = {
   ...darkShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseDarkTheme.tokens),
-  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
+  focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
@@ -1379,7 +1370,7 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseDarkTheme.tokens),
   alert: generateAlertTheme(darkColors, darkAliases, baseDarkTheme.tokens),
-  button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
+  button: generateButtonTheme(darkColors, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
