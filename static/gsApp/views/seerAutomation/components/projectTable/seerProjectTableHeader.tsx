@@ -8,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout/flex';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -30,7 +31,20 @@ const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
   {title: t('Auto Fix'), key: 'fixes'},
   {title: t('PR Creation'), key: 'pr_creation'},
-  {title: t('Background Agent'), key: 'is_delegated'},
+  {
+    title: (
+      <Flex gap="sm">
+        {t('Background Agent')}
+        <QuestionTooltip
+          title={t(
+            'Background agent delegation can only be enabled on the individual project settings page. Background agents can have their own settings that are not shown here.'
+          )}
+          size="xs"
+        />
+      </Flex>
+    ),
+    key: 'is_delegated',
+  },
   {title: t('Repos'), key: 'repos'},
 ];
 
