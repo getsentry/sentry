@@ -1,8 +1,14 @@
 import types
+from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.runner.initializer import ConfigurationError, apply_legacy_settings, bootstrap_options
+from sentry.runner.initializer import (
+    ConfigurationError,
+    apply_legacy_settings,
+    bind_cache_to_option_store,
+    bootstrap_options,
+)
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
@@ -250,3 +256,36 @@ def test_require_secret_key(settings) -> None:
     assert "system.secret-key" not in settings.SENTRY_OPTIONS
     with pytest.raises(ConfigurationError):
         apply_legacy_settings(settings)
+
+
+def test_bind_cache_to_option_store_with_options_cache() -> None:
+    """Test that bind_cache_to_option_store prefers 'options' cache when available"""
+    mock_options_cache = Mock()
+    mock_default_cache = Mock()
+    mock_caches = {"options": mock_options_cache, "default": mock_default_cache}
+    mock_store = Mock()
+
+    with (
+        patch("django.core.cache.caches", mock_caches),
+        patch("sentry.options.default_store", mock_store),
+    ):
+        bind_cache_to_option_store()
+
+        # Should use 'options' cache, not 'default'
+        mock_store.set_cache_impl.assert_called_once_with(mock_options_cache)
+
+
+def test_bind_cache_to_option_store_without_options_cache() -> None:
+    """Test that bind_cache_to_option_store falls back to 'default' cache"""
+    mock_default_cache = Mock()
+    mock_caches = {"default": mock_default_cache}
+    mock_store = Mock()
+
+    with (
+        patch("django.core.cache.caches", mock_caches),
+        patch("sentry.options.default_store", mock_store),
+    ):
+        bind_cache_to_option_store()
+
+        # Should use 'default' cache when 'options' doesn't exist
+        mock_store.set_cache_impl.assert_called_once_with(mock_default_cache)
