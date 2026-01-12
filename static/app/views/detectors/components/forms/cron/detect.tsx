@@ -228,7 +228,7 @@ const SubSectionSeparator = styled('hr')`
   border: none;
   margin: 0;
   margin-bottom: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
 `;
 
 const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
@@ -254,7 +254,7 @@ const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
 
 const LabelText = styled(Text)`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MultiColumnInput = styled('div')<{columns?: string}>`

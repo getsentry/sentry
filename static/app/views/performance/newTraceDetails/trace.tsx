@@ -699,7 +699,7 @@ function VerticalTimestampIndicators({
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
-  box-shadow: 0 0 0 1px ${p => p.theme.border};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
   position: absolute;
   left: 0;
   top: 0;
@@ -740,7 +740,7 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     height: 38px;
     background-color: ${p => p.theme.tokens.background.primary};
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     z-index: 10;
   }
 
@@ -804,7 +804,7 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
-      background-color: ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
 
@@ -829,7 +829,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
-    background-color: ${p => p.theme.border};
+    background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
   }
@@ -843,7 +843,7 @@ const TraceStylingWrapper = styled('div')`
     background-color: ${p => p.theme.tokens.background.primary};
     color: ${p => p.theme.tokens.content.primary};
     border-radius: 100px;
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
     display: inline-block;
     line-height: 1;
     margin-top: 2px;
@@ -872,8 +872,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.None {
-      color: ${p => p.theme.subText};
-      border: 1px solid ${p => p.theme.border};
+      color: ${p => p.theme.tokens.content.secondary};
+      border: 1px solid ${p => p.theme.tokens.border.primary};
 
       &.light {
         background-color: rgb(245 245 245);
@@ -949,7 +949,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.subText} 4px 8px
+            ${p => p.theme.tokens.content.secondary} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1018,7 +1018,7 @@ const TraceStylingWrapper = styled('div')`
         width: auto;
         border: none;
         background-color: transparent;
-        color: ${p => p.theme.subText};
+        color: ${p => p.theme.tokens.content.secondary};
       }
 
       .TraceIndicatorLine {
@@ -1124,7 +1124,7 @@ const TraceStylingWrapper = styled('div')`
     --row-background-hover: ${p => p.theme.backgroundTertiary};
     --row-background-focused: ${p => p.theme.backgroundTertiary};
     --row-outline: ${p => p.theme.colors.blue400};
-    --row-children-button-border-color: ${p => p.theme.border};
+    --row-children-button-border-color: ${p => p.theme.tokens.border.primary};
 
     /* allow empty blocks so we can keep an exhaustive list of classnames for future reference */
     /* stylelint-disable */
@@ -1340,13 +1340,13 @@ const TraceStylingWrapper = styled('div')`
 
     &.Collapsed {
       background-color: ${p => p.theme.backgroundSecondary};
-      border-bottom: 1px solid ${p => p.theme.border};
-      border-top: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+      border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
       .TraceLeftColumn {
         padding-left: 14px;
         width: 100%;
-        color: ${p => p.theme.subText};
+        color: ${p => p.theme.tokens.content.secondary};
 
         .TraceLeftColumnInner {
           padding-left: 0 !important;
@@ -1436,13 +1436,13 @@ const TraceStylingWrapper = styled('div')`
     border: none;
     transition: 60ms ease-out;
     font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     padding: 0 2px;
     display: flex;
     align-items: center;
 
     svg {
-      fill: ${p => p.theme.subText};
+      fill: ${p => p.theme.tokens.content.secondary};
     }
 
     &.Left {
@@ -1458,7 +1458,7 @@ const TraceStylingWrapper = styled('div')`
     display: inline-block;
     transform-origin: left center;
     font-size: ${p => p.theme.fontSize.xs};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;
@@ -1551,11 +1551,11 @@ const TraceStylingWrapper = styled('div')`
       .TraceVerticalConnector,
       .TraceVerticalLastChildConnector,
       .TraceExpandedVerticalConnector {
-        border-left: 2px dashed ${p => p.theme.border};
+        border-left: 2px dashed ${p => p.theme.tokens.border.primary};
       }
 
       &::before {
-        border-bottom: 2px dashed ${p => p.theme.border};
+        border-bottom: 2px dashed ${p => p.theme.tokens.border.primary};
       }
     }
 
@@ -1571,7 +1571,7 @@ const TraceStylingWrapper = styled('div')`
       display: block;
       width: 50%;
       height: 2px;
-      border-bottom: 2px solid ${p => p.theme.border};
+      border-bottom: 2px solid ${p => p.theme.tokens.border.primary};
       position: absolute;
       left: 0;
       top: 50%;
@@ -1580,7 +1580,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      background-color: ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.border.primary};
       border-radius: 50%;
       height: 6px;
       width: 6px;
@@ -1598,10 +1598,10 @@ const TraceStylingWrapper = styled('div')`
     bottom: 0;
     height: 100%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
 
     &.Orphaned {
-      border-left: 2px dashed ${p => p.theme.border};
+      border-left: 2px dashed ${p => p.theme.tokens.border.primary};
     }
   }
 
@@ -1612,7 +1612,7 @@ const TraceStylingWrapper = styled('div')`
     bottom: 0;
     height: 50%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
     border-bottom-left-radius: 4px;
   }
 
@@ -1622,7 +1622,7 @@ const TraceStylingWrapper = styled('div')`
     height: 50%;
     left: 50%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
   }
 
   .TraceOperation {

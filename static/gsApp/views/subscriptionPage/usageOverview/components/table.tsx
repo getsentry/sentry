@@ -147,7 +147,7 @@ const Table = styled('table')`
   display: grid;
   grid-template-columns: repeat(3, auto);
   background: ${p => p.theme.tokens.background.primary};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   gap: 0 ${p => p.theme.space['3xl']};
   width: 100%;
@@ -164,7 +164,7 @@ const Table = styled('table')`
 
 const TableHeaderRow = styled('tr')`
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   text-transform: uppercase;
   padding: ${p => p.theme.space.xl};
 `;

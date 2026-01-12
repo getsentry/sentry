@@ -765,7 +765,7 @@ const ArgumentGridCell = styled('div')`
   max-width: fit-content;
 
   > div input {
-    max-width: fit-content !important;
+    max-width: 130px !important;
     min-width: 0 !important;
     white-space: nowrap !important;
   }
@@ -786,7 +786,7 @@ const FunctionGridCell = styled(BaseGridCell)`
 const DeleteButton = styled('button')`
   background: none;
   border: none;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   outline: none;
   user-select: none;
   padding-right: ${p => p.theme.space.xs};

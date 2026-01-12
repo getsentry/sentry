@@ -721,7 +721,7 @@ const RadioMarker = styled(Container)<{isSelected: boolean}>`
 `;
 
 const InnerContainer = styled(Flex)`
-  border-bottom: 3px solid ${p => p.theme.border};
+  border-bottom: 3px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
 `;
 
@@ -739,7 +739,7 @@ const Currency = styled('div')`
     position: absolute;
     padding: 9px ${p => p.theme.space.lg};
     content: '$';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.md};
   }
 `;

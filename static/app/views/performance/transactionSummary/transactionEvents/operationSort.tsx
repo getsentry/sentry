@@ -205,7 +205,7 @@ const DropdownWrapper = styled('div')`
     margin-top: 9px;
 
     &:before {
-      border-bottom: 9px solid ${p => p.theme.border};
+      border-bottom: 9px solid ${p => p.theme.tokens.border.primary};
       top: -9px;
     }
 
@@ -219,7 +219,7 @@ const DropdownWrapper = styled('div')`
     margin-bottom: 9px;
 
     &:before {
-      border-top: 9px solid ${p => p.theme.border};
+      border-top: 9px solid ${p => p.theme.tokens.border.primary};
       bottom: -9px;
     }
 

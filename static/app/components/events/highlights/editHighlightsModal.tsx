@@ -488,7 +488,7 @@ const Title = styled('h3')`
 `;
 
 const Subtitle = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(1.5)};
   padding-bottom: ${space(0.5)};
   display: flex;
@@ -505,12 +505,12 @@ const FooterInfo = styled('div')`
   flex: 1;
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   gap: ${space(1)};
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: 4px;
   padding: ${space(2)};
   display: grid;
@@ -522,7 +522,7 @@ const EditHighlightPreview = styled('div')<{columnCount: number}>`
 
 const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
   margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
@@ -600,7 +600,8 @@ const EditButton = styled(Button)`
 
 const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.subText)};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.familyMono};
   margin-bottom: 0;
   word-wrap: break-word;

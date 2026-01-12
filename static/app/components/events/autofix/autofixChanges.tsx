@@ -153,7 +153,7 @@ function BranchButton({change}: {change: AutofixCodebaseChange}) {
 const CopyContainer = styled('div')`
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.backgroundSecondary};
   max-width: 25rem;
@@ -165,7 +165,7 @@ const CopyContainer = styled('div')`
 const CopyButton = styled(Button)`
   border: none;
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   height: auto;
   flex-shrink: 0;
 `;
@@ -425,7 +425,7 @@ const AnimationWrapper = styled(motion.div)`
 const PrefixText = styled('span')``;
 
 const ChangesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.xl};
@@ -447,7 +447,7 @@ const Title = styled('div')`
 `;
 
 const PullRequestTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoChangesHeader = styled('div')`

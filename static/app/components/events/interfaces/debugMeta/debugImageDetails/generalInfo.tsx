@@ -65,7 +65,7 @@ const Label = styled('div')<{coloredBg?: boolean}>`
 const Value = styled(Label)`
   white-space: pre-wrap;
   word-break: break-all;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}

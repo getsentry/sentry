@@ -89,7 +89,7 @@ const Meta = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledCommitLink = styled(CommitLink)`

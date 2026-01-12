@@ -183,7 +183,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
 const Card = styled('div')`
   position: relative;
   padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   margin-top: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space['2xl']};

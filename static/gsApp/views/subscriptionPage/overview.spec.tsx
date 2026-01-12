@@ -227,7 +227,7 @@ describe('Subscription > Overview', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/settings/billing/overview/',
+          pathname: `/settings/${organization.slug}/billing/overview/`,
           query: {open_codecov_modal: '1'},
         },
       },

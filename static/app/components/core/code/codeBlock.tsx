@@ -260,7 +260,7 @@ const Header = styled('div')<{isFloating: boolean}>`
       : css`
           gap: ${space(0.75)};
           padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
-          border-bottom: solid 1px ${p.theme.border};
+          border-bottom: solid 1px ${p.theme.tokens.border.primary};
         `}
 `;
 

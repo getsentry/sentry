@@ -1,6 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   deleteMonitorEnvironment,
   setEnvironmentIsMuted,
@@ -128,7 +130,7 @@ export function OverviewTimeline({monitorList}: Props) {
     <MonitorListPanel role="region">
       <TimelineWidthTracker ref={elementRef} />
       <Header>
-        <HeaderControlsLeft>
+        <Flex justify="between" padding="lg xl" gap="xs" column="1/3">
           <SortSelector size="xs" />
           <DateNavigator
             dateNavigation={dateNavigation}
@@ -136,7 +138,7 @@ export function OverviewTimeline({monitorList}: Props) {
             size="xs"
             borderless
           />
-        </HeaderControlsLeft>
+        </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
         <HeaderControlsRight>
           <DateNavigator
@@ -185,12 +187,12 @@ const Header = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
-  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+  box-shadow: 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &[data-stuck] {
     border-radius: 0;
-    border-left: 1px solid ${p => p.theme.border};
-    border-right: 1px solid ${p => p.theme.border};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     margin: 0 -1px;
   }
 `;
@@ -224,14 +226,6 @@ const MonitorRows = styled('ul')`
   list-style: none;
   padding: 0;
   margin: 0;
-`;
-
-const HeaderControlsLeft = styled('div')`
-  grid-column: 1/3;
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
 `;
 
 const HeaderControlsRight = styled('div')`
