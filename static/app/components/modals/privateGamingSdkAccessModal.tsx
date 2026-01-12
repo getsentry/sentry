@@ -89,7 +89,6 @@ export function PrivateGamingSdkAccessModal({
     refetch,
   } = useApiQuery<UserIdentityConfig[]>(['/users/me/user-identities/'], {
     staleTime: Infinity,
-    enabled: hasNewGitHubFlow,
   });
 
   const mutation = useMutation<
@@ -288,11 +287,7 @@ export function PrivateGamingSdkAccessModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h3>
-          {hasNewGitHubFlow
-            ? t('Request Game Console SDK Access')
-            : tct('Request [sdkName] SDK Access', {sdkName})}
-        </h3>
+        <h3>{tct('Request [sdkName] SDK Access', {sdkName})}</h3>
       </Header>
       <Body>
         {hasNewGitHubFlow ? (

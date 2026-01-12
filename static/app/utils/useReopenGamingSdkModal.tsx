@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import {useQueryState} from 'nuqs';
 
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
@@ -13,12 +14,16 @@ export function useReopenGamingSdkModal(
     parseAsBooleanLiteral.withOptions({history: 'replace'})
   );
   const modalPropsRef = useRef(modalProps);
+  const queryClient = useQueryClient();
   modalPropsRef.current = modalProps;
 
   useEffect(() => {
     if (reopenModal) {
+      queryClient.invalidateQueries({
+        queryKey: ['/users/me/user-identities/'],
+      });
       setReopenModal(null);
       openPrivateGamingSdkAccessModal(modalPropsRef.current);
     }
-  }, [reopenModal, setReopenModal]);
+  }, [reopenModal, setReopenModal, queryClient]);
 }
