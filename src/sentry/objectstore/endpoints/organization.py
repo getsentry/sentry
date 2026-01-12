@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable, Generator
 from typing import Any
 from urllib.parse import urlparse
@@ -22,6 +23,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -82,13 +85,28 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
-
         headers.pop("Host", None)
-        headers.pop("Content-Length", None)
         transfer_encoding = headers.pop("Transfer-Encoding", "")
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
         wsgi_input = request.META.get("wsgi.input")
+
+        logger.info(
+            "objectstore proxy request",
+            extra={
+                "method": request.method,
+                "path": path,
+                "request_id": request.META.get("HTTP_X_REQUEST_ID"),
+                "content_type": request.META.get("CONTENT_TYPE"),
+                "content_length": request.META.get("CONTENT_LENGTH"),
+                "transfer_encoding": request.META.get("HTTP_TRANSFER_ENCODING"),
+                "server_software": request.META.get("SERVER_SOFTWARE"),
+                "has_wsgi_input": wsgi_input is not None,
+                "x_forwarded_for": request.META.get("HTTP_X_FORWARDED_FOR"),
+                "x_forwarded_proto": request.META.get("HTTP_X_FORWARDED_PROTO"),
+                "x_forwarded_host": request.META.get("HTTP_X_FORWARDED_HOST"),
+            },
+        )
 
         if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
             stream = wsgi_input
@@ -113,6 +131,10 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
                 # This code path assumes wsgiref, used in dev/test mode.
                 # Note that we don't handle non-chunked transfer encoding here as our client (which we use for tests) always uses chunked encoding.
                 stream = ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+
+        # This is also for wsgiref only
+        if "WSGIServer" in request.META.get("SERVER_SOFTWARE", ""):
+            headers.pop("Content-Length", None)
 
         response = requests.request(
             request.method,

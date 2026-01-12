@@ -1,23 +1,39 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface EmptyStateProps {
+  isError?: boolean;
   isLoading?: boolean;
+  runId?: number | null;
 }
 
-function EmptyState({isLoading}: EmptyStateProps) {
+function EmptyState({isLoading = false, isError = false, runId}: EmptyStateProps) {
+  const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
-      {isLoading ? (
-        <LoadingIndicator size={32} />
+      {isError ? (
+        <Fragment>
+          <IconSeer size="xl" />
+          <Text>
+            {tct('Error loading this session (ID=[runIdDisplay]).', {runIdDisplay})}
+          </Text>
+        </Fragment>
+      ) : isLoading ? (
+        <Fragment>
+          <LoadingIndicator size={32} />
+          <Text>{t('Ask Seer anything about your application.')}</Text>
+        </Fragment>
       ) : (
-        <IconSeer size="xl" animation="waiting" />
+        <Fragment>
+          <IconSeer size="xl" animation="waiting" />
+          <Text>{t('Ask Seer anything about your application.')}</Text>
+        </Fragment>
       )}
-      <Text>{!isLoading && t('Ask Seer anything about your application.')}</Text>
     </Container>
   );
 }

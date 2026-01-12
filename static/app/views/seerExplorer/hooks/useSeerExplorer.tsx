@@ -152,7 +152,11 @@ export const useSeerExplorer = () => {
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
-  const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
+  const {
+    data: apiData,
+    isPending,
+    isError,
+  } = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(orgSlug || '', runId || undefined),
     {
       staleTime: 0,
@@ -549,6 +553,7 @@ export const useSeerExplorer = () => {
     sessionData: filteredSessionData,
     isPolling: isPolling(filteredSessionData, waitingForResponse),
     isPending,
+    isError,
     sendMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */

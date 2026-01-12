@@ -181,7 +181,7 @@ class TestCodeReviewPreflightService(TestCase):
             repository=self.repo,
             enabled_code_review=True,
             code_review_triggers=[
-                CodeReviewTrigger.ON_COMMAND_PHRASE.value,
+                CodeReviewTrigger.ON_NEW_COMMIT.value,
                 CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
             ],
         )
@@ -198,7 +198,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is True
         assert result.settings is not None
         assert result.settings.enabled is True
-        assert CodeReviewTrigger.ON_COMMAND_PHRASE in result.settings.triggers
+        assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
 
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
