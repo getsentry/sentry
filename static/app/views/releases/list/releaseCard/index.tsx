@@ -139,7 +139,7 @@ function ReleaseCard({
           )}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
-          <Flex justify="between" flex="initial" flexGrow={1} height="100%">
+          <Flex justify="between" flex="1 1 auto" height="100%">
             <PackageContainer>
               <PackageName>
                 {versionInfo?.package && (
