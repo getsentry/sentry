@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Protocol, Self
 
@@ -24,6 +25,32 @@ from .views.base import PipelineView
 from .views.nested import NestedPipelineView
 
 ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
+
+# Maximum length for error messages to prevent log injection
+MAX_ERROR_LENGTH = 500
+
+
+def sanitize_log_message(message: str) -> str:
+    """
+    Sanitize error messages before logging to prevent log injection attacks.
+    
+    This function:
+    - Truncates overly long messages
+    - Removes control characters that could be used for log injection
+    - Preserves readability while ensuring security
+    """
+    if not message:
+        return ""
+    
+    # Remove control characters except for newlines and tabs (which are safe in logs)
+    # Remove characters that could be used for ANSI escape sequences
+    sanitized = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f-\x9f]', '', message)
+    
+    # Truncate to maximum length
+    if len(sanitized) > MAX_ERROR_LENGTH:
+        sanitized = sanitized[:MAX_ERROR_LENGTH] + "..."
+    
+    return sanitized
 
 
 class _HasKey(Protocol):
@@ -189,18 +216,21 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         return step.dispatch(self.request, pipeline=self)
 
     def error(self, message: str) -> HttpResponseBase:
+        # Sanitize the message before logging to prevent log injection
+        sanitized_message = sanitize_log_message(message)
+        
         self.get_logger().error(
-            f"PipelineError: {message}",
+            f"PipelineError: {sanitized_message}",
             extra={
                 "organization_id": self.organization.id if self.organization else None,
                 "provider": self.provider.key,
-                "error": message,
+                "error": sanitized_message,
             },
         )
 
         return render_to_response(
             template="sentry/pipeline-error.html",
-            context={"error": message},
+            context={"error": sanitized_message},
             request=self.request,
         )
 

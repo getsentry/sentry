@@ -7,7 +7,7 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest, HttpResponse
 
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.pipeline.base import ERR_MISMATCHED_USER, Pipeline
+from sentry.pipeline.base import ERR_MISMATCHED_USER, Pipeline, sanitize_log_message
 from sentry.pipeline.provider import PipelineProvider
 from sentry.pipeline.store import PipelineSessionStore
 from sentry.silo.base import SiloMode
@@ -50,6 +50,62 @@ class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
 
     def finish_pipeline(self):
         self.finished = True
+
+
+class SanitizeLogMessageTest(TestCase):
+    def test_sanitize_normal_message(self) -> None:
+        """Test that normal messages pass through unchanged."""
+        message = "An error occurred during authentication"
+        assert sanitize_log_message(message) == message
+
+    def test_sanitize_empty_message(self) -> None:
+        """Test that empty messages are handled gracefully."""
+        assert sanitize_log_message("") == ""
+
+    def test_sanitize_removes_control_characters(self) -> None:
+        """Test that control characters are removed except tabs and newlines."""
+        message = "error\x00with\x01control\x1fchars"
+        sanitized = sanitize_log_message(message)
+        assert "\x00" not in sanitized
+        assert "\x01" not in sanitized
+        assert "\x1f" not in sanitized
+        assert "errorwithcontrolchars" == sanitized
+
+    def test_sanitize_preserves_newlines(self) -> None:
+        """Test that newlines are preserved in log messages (safe in logs)."""
+        message = "error\nwith\nnewlines"
+        sanitized = sanitize_log_message(message)
+        assert "\n" in sanitized
+        assert "error\nwith\nnewlines" == sanitized
+
+    def test_sanitize_removes_ansi_escapes(self) -> None:
+        """Test that ANSI escape sequences are removed."""
+        message = "\x1b[31mRed Error\x1b[0m"
+        sanitized = sanitize_log_message(message)
+        assert "\x1b" not in sanitized
+        assert "Red Error" in sanitized
+
+    def test_sanitize_truncates_long_messages(self) -> None:
+        """Test that overly long messages are truncated."""
+        message = "a" * 600
+        sanitized = sanitize_log_message(message)
+        assert len(sanitized) <= 503  # 500 + "..."
+        assert sanitized.endswith("...")
+
+    def test_sanitize_preserves_unicode(self) -> None:
+        """Test that unicode characters are preserved."""
+        message = "Error: 用户被拒绝访问"
+        sanitized = sanitize_log_message(message)
+        assert "用户被拒绝访问" in sanitized
+
+    def test_sanitize_command_injection(self) -> None:
+        """Test that command injection attempts are sanitized."""
+        message = "Error: &nslookup\x00 -q=cname test.bxss.me&"
+        sanitized = sanitize_log_message(message)
+        # Null bytes should be removed
+        assert "\x00" not in sanitized
+        # But the rest should be preserved (just cleaned)
+        assert "nslookup" in sanitized
 
 
 @control_silo_test
@@ -126,3 +182,34 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    @patch("sentry.pipeline.base.sanitize_log_message")
+    def test_error_sanitizes_message(self, mock_sanitize: MagicMock) -> None:
+        """Test that Pipeline.error() sanitizes error messages before logging."""
+        mock_sanitize.return_value = "sanitized_error"
+        
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+        
+        malicious_error = "Error with\x00control\nchars"
+        response = pipeline.error(malicious_error)
+        
+        # Verify sanitize was called
+        mock_sanitize.assert_called_once_with(malicious_error)
+        
+        # Verify the response uses the sanitized error
+        assert b"sanitized_error" in response.content
+
+    def test_error_integration(self) -> None:
+        """Integration test that error messages are properly sanitized."""
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+        
+        malicious_error = "Error with\x00null\x1fbytes"
+        response = pipeline.error(malicious_error)
+        
+        # Verify control characters are removed
+        assert b"\x00" not in response.content
+        assert b"\x1f" not in response.content
+        assert b"Error with" in response.content
+

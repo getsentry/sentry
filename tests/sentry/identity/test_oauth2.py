@@ -9,7 +9,7 @@ from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, sanitize_error_message
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -18,6 +18,62 @@ from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
+
+
+class SanitizeErrorMessageTest(TestCase):
+    def test_sanitize_normal_error(self) -> None:
+        """Test that normal error messages pass through unchanged."""
+        error = "access_denied"
+        assert sanitize_error_message(error) == "access_denied"
+
+    def test_sanitize_empty_error(self) -> None:
+        """Test that empty errors are handled gracefully."""
+        assert sanitize_error_message("") == ""
+        assert sanitize_error_message(None) == ""
+
+    def test_sanitize_removes_control_characters(self) -> None:
+        """Test that control characters are removed."""
+        error = "error\x00with\x01control\x1fchars"
+        sanitized = sanitize_error_message(error)
+        assert "\x00" not in sanitized
+        assert "\x01" not in sanitized
+        assert "\x1f" not in sanitized
+        assert "errorwithcontrolchars" == sanitized
+
+    def test_sanitize_removes_newlines(self) -> None:
+        """Test that newlines are removed to prevent log injection."""
+        error = "error\nwith\nnewlines"
+        sanitized = sanitize_error_message(error)
+        assert "\n" not in sanitized
+        assert "errorwithnewlines" == sanitized
+
+    def test_sanitize_removes_command_injection(self) -> None:
+        """Test that command injection attempts are sanitized."""
+        error = "&nslookup -q=cname test.bxss.me&'\"` 0&nslookup -q=cname test.bxss.me&`'"
+        sanitized = sanitize_error_message(error)
+        # The string should be preserved but without control characters
+        assert "nslookup" in sanitized
+        assert "\x00" not in sanitized
+
+    def test_sanitize_truncates_long_errors(self) -> None:
+        """Test that overly long error messages are truncated."""
+        error = "a" * 300
+        sanitized = sanitize_error_message(error)
+        assert len(sanitized) <= 203  # 200 + "..."
+        assert sanitized.endswith("...")
+
+    def test_sanitize_preserves_unicode(self) -> None:
+        """Test that unicode characters are preserved."""
+        error = "Error: 用户被拒绝访问"
+        sanitized = sanitize_error_message(error)
+        assert "用户被拒绝访问" in sanitized
+
+    def test_sanitize_removes_ansi_escapes(self) -> None:
+        """Test that ANSI escape sequences are removed."""
+        error = "\x1b[31mRed Error\x1b[0m"
+        sanitized = sanitize_error_message(error)
+        assert "\x1b" not in sanitized
+        assert "Red Error" in sanitized
 
 
 @control_silo_test
@@ -157,6 +213,49 @@ class OAuth2CallbackViewTest(TestCase):
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
+    @patch("sentry.identity.oauth2.sanitize_error_message")
+    def test_oauth_callback_error_sanitized(
+        self, mock_sanitize: MagicMock, mock_record: MagicMock
+    ) -> None:
+        """Test that OAuth callback errors are sanitized before processing."""
+        malicious_error = "&nslookup -q=cname test.bxss.me&'\"` 0&nslookup -q=cname test.bxss.me&`'"
+        mock_sanitize.return_value = "sanitized_error"
+
+        request = RequestFactory().get("/?error=" + malicious_error)
+        request.subdomain = None
+        request.session = Client().session
+
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        pipeline.initialize()
+
+        response = self.view.dispatch(request, pipeline)
+
+        # Verify sanitize was called with the malicious error
+        mock_sanitize.assert_called_once_with(malicious_error)
+
+        # Verify the response uses the sanitized error
+        assert response.status_code == 200
+        assert b"sanitized_error" in response.content
+
+    def test_oauth_callback_malicious_error_integration(
+        self, mock_record: MagicMock
+    ) -> None:
+        """Integration test that malicious errors are properly sanitized."""
+        malicious_error = "&nslookup\x00 -q=cname\ntest.bxss.me&"
+
+        request = RequestFactory().get("/?error=" + malicious_error)
+        request.subdomain = None
+        request.session = Client().session
+
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        pipeline.initialize()
+
+        response = self.view.dispatch(request, pipeline)
+
+        # Verify control characters are removed
+        assert b"\x00" not in response.content
+        assert b"\n" not in response.content.split(b"<pre>")[1].split(b"</pre>")[0]
+
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
@@ -209,3 +308,4 @@ class OAuth2LoginViewTest(TestCase):
         assert query["response_type"][0] == "code"
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
+

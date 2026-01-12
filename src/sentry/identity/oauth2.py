@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from time import time
 from typing import Any
@@ -42,6 +43,32 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+
+# Maximum length for error messages to prevent log injection
+MAX_ERROR_LENGTH = 200
+
+
+def sanitize_error_message(error: str) -> str:
+    """
+    Sanitize error messages from OAuth providers to prevent injection attacks.
+    
+    This function:
+    - Truncates overly long error messages
+    - Removes control characters and newlines that could be used for log injection
+    - Preserves only printable ASCII and safe unicode characters
+    """
+    if not error:
+        return ""
+    
+    # Remove control characters, newlines, and other potentially dangerous characters
+    # Keep only printable characters (space through ~) plus safe unicode
+    sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', error)
+    
+    # Truncate to maximum length
+    if len(sanitized) > MAX_ERROR_LENGTH:
+        sanitized = sanitized[:MAX_ERROR_LENGTH] + "..."
+    
+    return sanitized
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -359,11 +386,13 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                # Sanitize the error parameter to prevent injection attacks
+                sanitized_error = sanitize_error_message(error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {sanitized_error}")
 
             if state != pipeline.fetch_state("state"):
                 extra = {
@@ -390,8 +419,9 @@ class OAuth2CallbackView:
             return pipeline.error(data["error_description"])
 
         if "error" in data:
-            logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
+            sanitized_error = sanitize_error_message(data["error"])
+            logger.info("identity.token-exchange-error", extra={"error": sanitized_error})
+            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {sanitized_error}")
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
