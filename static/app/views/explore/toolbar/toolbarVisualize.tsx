@@ -114,8 +114,7 @@ export function ToolbarVisualize({
           return (
             <VisualizeEquationInput
               key={group}
-              canDelete={canDelete}
-              onDelete={() => onDelete(group)}
+              onDelete={canDelete ? () => onDelete(group) : undefined}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
               label={label}

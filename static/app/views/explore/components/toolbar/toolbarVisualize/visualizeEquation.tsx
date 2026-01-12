@@ -19,15 +19,13 @@ import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExplor
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeEquationProps {
-  canDelete: boolean;
-  onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
   label?: ReactNode;
+  onDelete?: () => void;
 }
 
 export function VisualizeEquation({
-  canDelete,
   onDelete,
   onReplace,
   visualize,
@@ -93,7 +91,7 @@ export function VisualizeEquation({
           getSuggestedKey={getSuggestedAttribute}
         />
       </Flex>
-      {canDelete ? (
+      {onDelete ? (
         <Button
           borderless
           icon={<IconDelete />}
