@@ -76,7 +76,7 @@ const Actions = styled(ButtonBar)`
 `;
 
 const TokenPreview = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default ApiTokenRow;
