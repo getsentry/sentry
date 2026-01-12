@@ -105,7 +105,7 @@ class SDKCrashDetector:
         # Main loop: determine if this is an SDK crash
         for frame in iter_frames:
             if self._matches_sdk_crash_ignore(frame):
-                return False
+                continue
 
             if self.is_sdk_frame(frame):
                 if self._matches_ignore_when_only_sdk_frame(frame):
