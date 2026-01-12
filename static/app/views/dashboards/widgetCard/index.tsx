@@ -555,5 +555,5 @@ export const WidgetDescription = styled('small')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

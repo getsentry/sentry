@@ -224,9 +224,9 @@ const generateButtonTheme = (
     backgroundActive: tokens.background.transparent.neutral.muted,
     border: tokens.border.primary,
     borderActive: tokens.border.primary,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   primary: {
     color: colors.white,
@@ -236,8 +236,8 @@ const generateButtonTheme = (
     border: colors.blue400,
     borderActive: colors.blue400,
     borderTranslucent: colors.blue400,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   danger: {
     color: colors.white,
@@ -258,8 +258,8 @@ const generateButtonTheme = (
     border: 'transparent',
     borderActive: 'transparent',
     borderTranslucent: 'transparent',
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   disabled: {
     color: tokens.content.disabled,
@@ -1162,11 +1162,6 @@ const darkShadows = {
 
 const generateAliases = (tokens: Tokens) => ({
   /**
-   * Text that should not have as much emphasis
-   */
-  subText: tokens.content.secondary,
-
-  /**
    * Primary background color
    */
   background: tokens.background.primary,
@@ -1181,8 +1176,6 @@ const generateAliases = (tokens: Tokens) => ({
    */
   backgroundTertiary: tokens.background.tertiary,
 
-  translucentBorder: tokens.border.transparent.neutral.muted,
-
   /**
    * A color that denotes an error, or something that is wrong
    */
@@ -1196,13 +1189,6 @@ const generateAliases = (tokens: Tokens) => ({
   active: tokens.interactive.link.accent.active,
   activeHover: tokens.interactive.link.accent.hover,
   activeText: tokens.interactive.link.accent.rest,
-
-  /**
-   * Indicates that something has "focus", which is different than "active" state as it is more temporal
-   * and should be a bit subtler than active
-   */
-  focus: tokens.border.accent.vibrant,
-  focusBorder: tokens.border.accent.vibrant,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens);
@@ -1354,7 +1340,7 @@ const lightThemeDefinition = {
   tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
@@ -1403,7 +1389,7 @@ export const darkTheme: SentryTheme = {
   tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported

@@ -484,7 +484,7 @@ const SelectPlaceholder = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: normal;
   text-align: left;
 `;

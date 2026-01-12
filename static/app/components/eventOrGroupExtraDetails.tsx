@@ -167,14 +167,14 @@ const GroupExtra = styled('div')`
   gap: ${space(0.75)};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
   line-height: 1.2;
   min-height: ${space(2)};
 
   & > a {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
@@ -228,7 +228,7 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
 
 const Location = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   min-width: 10px;
   line-height: 1.1;
   display: block;

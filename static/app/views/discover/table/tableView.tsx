@@ -703,7 +703,7 @@ export default function TableView(props: TableViewProps) {
 }
 
 const PrependHeader = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTooltip = styled(Tooltip)`

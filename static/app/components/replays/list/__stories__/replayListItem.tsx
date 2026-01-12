@@ -114,7 +114,7 @@ const ArchivedWrapper = styled(Flex)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   width: 100%;
   white-space: nowrap;
   overflow: hidden;

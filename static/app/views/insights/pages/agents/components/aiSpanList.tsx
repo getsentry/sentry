@@ -92,7 +92,7 @@ export function AISpanList({
   }, [nodes]);
 
   return (
-    <TraceListContainer>
+    <Stack padding="2xs" gap="xs" overflow="hidden">
       {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
         <Fragment key={transaction.id}>
           <TransactionWrapper
@@ -104,7 +104,7 @@ export function AISpanList({
           />
         </Fragment>
       ))}
-    </TraceListContainer>
+    </Stack>
   );
 }
 
@@ -402,14 +402,6 @@ function hasError(node: AITraceSpanNode) {
   return false;
 }
 
-const TraceListContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space['2xs']};
-  overflow: hidden;
-`;
-
 const ListItemContainer = styled('div')<{
   hasErrors: boolean;
   indent: number;
@@ -471,7 +463,7 @@ const TransactionButton = styled('button')`
   border: none;
   outline: none;
   justify-content: flex-start;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 
   &:hover:not(:disabled) {

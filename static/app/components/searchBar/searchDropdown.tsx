@@ -504,7 +504,7 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -518,7 +518,7 @@ const SearchDropdownGroupTitle = styled('header')`
   align-items: center;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
 
@@ -630,7 +630,7 @@ const Documentation = styled('span')`
   text-overflow: ellipsis;
   font-size: ${p => p.theme.fontSize.md};
   font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: pre;
 `;
 
@@ -649,7 +649,7 @@ const DropdownFooter = styled(`div`)`
 `;
 
 const HotkeyGlyphWrapper = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-right: ${space(0.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {

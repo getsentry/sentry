@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ExternalIssueForm from 'sentry/components/externalIssues/externalIssueForm';
+import {ExternalIssueForm} from 'sentry/components/externalIssues/externalIssueForm';
 import {
   makeClosableHeader,
   makeCloseButton,

@@ -152,7 +152,8 @@ const InnerRow = styled('div')`
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   text-align: ${p => (p.right ? 'right' : 'left')};
-  color: ${p => (p.bold ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.bold ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   padding-bottom: ${space(0.25)};
   display: block;
   width: 100%;

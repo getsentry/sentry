@@ -755,7 +755,7 @@ const InstructionsInput = styled(Input)`
   padding-right: ${space(4)};
 
   &::placeholder {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 

@@ -114,7 +114,7 @@ function ReleaseComparisonChartRow({
 
 const Cell = styled('div')`
   text-align: right;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: block;
   width: 100%;
   white-space: nowrap;

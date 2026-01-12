@@ -132,7 +132,7 @@ const Table = styled('table')`
 `;
 
 const HeaderCell = styled('th')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
   text-transform: uppercase;

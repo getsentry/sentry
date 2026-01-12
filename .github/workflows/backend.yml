@@ -269,7 +269,7 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Sync API Urls to TypeScirpt
+      - name: Sync API Urls to TypeScript
         run: |
           python3 -m tools.api_urls_to_typescript
 
@@ -278,7 +278,7 @@ jobs:
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
-          message: ':hammer_and_wrench: Sync API Urls to TypeScirpt'
+          message: ':hammer_and_wrench: Sync API Urls to TypeScript'
 
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'

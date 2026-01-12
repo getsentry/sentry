@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
@@ -26,7 +26,7 @@ export function DatabasePageFilters(props: Props) {
   );
 
   return (
-    <PageFilterWrapper>
+    <Flex wrap="wrap" gap="2xl">
       <ModulePageFilterBar moduleName={ModuleName.DB} />
       <PageFilterBar condensed>
         <DatabaseSystemSelector />
@@ -44,12 +44,6 @@ export function DatabasePageFilters(props: Props) {
           additionalQuery={additionalQuery}
         />
       </PageFilterBar>
-    </PageFilterWrapper>
+    </Flex>
   );
 }
-
-const PageFilterWrapper = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-  flex-wrap: wrap;
-`;

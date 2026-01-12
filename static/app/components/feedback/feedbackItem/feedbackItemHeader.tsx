@@ -67,11 +67,13 @@ export default function FeedbackItemHeader({
       {eventData && feedbackItem.project ? (
         <ErrorBoundary mini>
           <Flex wrap="wrap" justify="between" align="center" gap="md">
-            <StreamlinedExternalIssueList
-              group={feedbackItem as unknown as Group}
-              project={feedbackItem.project}
-              event={eventData}
-            />
+            <Flex direction="row" gap="md">
+              <StreamlinedExternalIssueList
+                group={feedbackItem as unknown as Group}
+                project={feedbackItem.project}
+                event={eventData}
+              />
+            </Flex>
             {feedbackItem.seenBy.length ? (
               <Flex justify="end">
                 <Flex gap="md" align="center">
@@ -96,6 +98,6 @@ const VerticalSpacing = styled('div')`
 `;
 
 const SeenBy = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;

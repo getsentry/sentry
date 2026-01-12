@@ -42,7 +42,7 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
   }> = [
     {
       label: t('View all usage'),
-      to: '/settings/billing/usage/',
+      to: `/settings/${organization.slug}/billing/usage/`,
       icon: <IconTable />,
     },
     {

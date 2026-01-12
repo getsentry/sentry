@@ -252,7 +252,7 @@ const ActiveThreadName = styled('span')`
 const StyledGrid = styled(ThreadSelectorGrid)`
   padding-left: 36px;
   padding-right: 20px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(0.5)};

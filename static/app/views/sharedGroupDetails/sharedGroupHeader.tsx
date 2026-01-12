@@ -101,6 +101,6 @@ const TimeStamp = styled('div')`
 `;
 
 const EventTimeLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.25)};
 `;

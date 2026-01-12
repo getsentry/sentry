@@ -226,5 +226,5 @@ const FilterValue = styled('div')`
 const Paren = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

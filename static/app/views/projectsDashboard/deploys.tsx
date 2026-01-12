@@ -93,7 +93,7 @@ const DeployRows = styled('div')`
 `;
 
 const DeployTime = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: block;
   width: 100%;
   white-space: nowrap;

@@ -165,14 +165,6 @@ export default function SeerProjectTableRow({
                 );
               }}
             />
-            {hasDelegationEnabled ? null : (
-              <QuestionTooltip
-                title={t(
-                  'Enable delegation to a background agent on the project settings page.'
-                )}
-                size="xs"
-              />
-            )}
           </Flex>
         )}
       </SimpleTable.RowCell>

@@ -124,7 +124,7 @@ const AuthorName = styled('div')`
 `;
 
 const Commits = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: right;
 `;
 

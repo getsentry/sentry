@@ -10,12 +10,6 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-export type ExternalIssueType =
-  | 'sentry-app-issue'
-  | 'integration-issue'
-  | 'plugin-issue'
-  | 'plugin-action';
-
 interface BaseIssueComponent {
   key: string;
   disabled?: boolean;
