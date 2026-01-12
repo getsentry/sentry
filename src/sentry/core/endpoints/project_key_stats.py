@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba.outcomes import (
@@ -38,13 +39,19 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         }
     )
 
-    def get(self, request: Request, project, key_id) -> Response:
+    def convert_args(self, request: Request, key_id: str, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        project = kwargs["project"]
         try:
-            key = ProjectKey.objects.for_request(request).get(
+            kwargs["key"] = ProjectKey.objects.for_request(request).get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
+
+        return (args, kwargs)
+
+    def get(self, request: Request, project: Project, key: ProjectKey) -> Response:
 
         try:
             stats_params = self._parse_args(request)
