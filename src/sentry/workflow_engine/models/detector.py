@@ -117,6 +117,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return f"detector:by_proj_type:{project_id}:{detector_type}"
 
     @classmethod
+    def _get_detector_data_source_cache_key(cls, source_id: str, source_type: str) -> str:
+        """Generate cache key for detector lookup by data source."""
+        return f"detector:by_data_source:{source_type}:{source_id}"
+
+    @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
         cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
         detector = cache.get(cache_key)
@@ -124,6 +129,21 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             detector = cls.objects.get(project_id=project_id, type=detector_type)
             cache.set(cache_key, detector, cls.CACHE_TTL)
         return detector
+
+    @classmethod
+    def get_detector_by_data_source(cls, source_id: str, source_type: str) -> Detector | None:
+        cache_key = cls._get_detector_data_source_cache_key(source_id, source_type)
+        detector = cache.get(cache_key)
+        if detector is None:
+            try:
+                detector = cls.objects.get(
+                    data_sources__source_id=source_id,
+                    data_sources__type=source_type,
+                )
+            except cls.DoesNotExist:
+                detector = False
+            cache.set(cache_key, detector, cls.CACHE_TTL)
+        return detector or None
 
     @classmethod
     def get_error_detector_for_project(cls, project_id: int) -> Detector:
