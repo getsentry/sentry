@@ -43,6 +43,8 @@ MOCK_OPENROUTER_API_RESPONSE = {
                 "image": "0",
                 "web_search": "0",
                 "internal_reasoning": "0",
+                "input_cache_read": "0.0000015",
+                "input_cache_write": "0.00001875",
             },
             "top_provider": {
                 "context_length": 1000000,
@@ -81,6 +83,7 @@ MOCK_OPENROUTER_API_RESPONSE = {
                 "web_search": "0.0003",
                 "internal_reasoning": "0.00000055",
                 "input_cache_read": "0.00000055",
+                "input_cache_write": "0.000006875",
             },
             "top_provider": {
                 "context_length": 128000,
@@ -200,15 +203,15 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt4_model.get("inputPerToken") == 0.0000003  # OpenRouter price, not models.dev
         assert gpt4_model.get("outputPerToken") == 0.00000165
         assert gpt4_model.get("outputReasoningPerToken") == 0.0
-        assert gpt4_model.get("inputCachedPerToken") == 0.0
-        assert gpt4_model.get("inputCacheWritePerToken") == 0.0
+        assert gpt4_model.get("inputCachedPerToken") == 0.0000015
+        assert gpt4_model.get("inputCacheWritePerToken") == 0.00001875
 
         gpt5_model = models["gpt-5"]
         assert gpt5_model.get("inputPerToken") == 0.00000055
         assert gpt5_model.get("outputPerToken") == 0.0000022
         assert gpt5_model.get("outputReasoningPerToken") == 0.00000055
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
-        assert gpt5_model.get("inputCacheWritePerToken") == 0.0
+        assert gpt5_model.get("inputCacheWritePerToken") == 0.000006875
 
         # Check models.dev models
         gpt41_mini_model = models["gpt-4.1-mini"]
@@ -254,13 +257,13 @@ class FetchAIModelCostsTest(TestCase):
         models = cached_data.get("models")
         assert models is not None
 
-        # Check first model with only input and output pricing
+        # Check first model with cache pricing
         gpt4_model = models["gpt-4"]
         assert gpt4_model.get("inputPerToken") == 0.0000003
         assert gpt4_model.get("outputPerToken") == 0.00000165
         assert gpt4_model.get("outputReasoningPerToken") == 0.0
-        assert gpt4_model.get("inputCachedPerToken") == 0.0
-        assert gpt4_model.get("inputCacheWritePerToken") == 0.0
+        assert gpt4_model.get("inputCachedPerToken") == 0.0000015
+        assert gpt4_model.get("inputCacheWritePerToken") == 0.00001875
 
         # Check second model with all pricing fields
         gpt5_model = models["gpt-5"]
@@ -268,7 +271,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt5_model.get("outputPerToken") == 0.0000022
         assert gpt5_model.get("outputReasoningPerToken") == 0.00000055
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
-        assert gpt5_model.get("inputCacheWritePerToken") == 0.0
+        assert gpt5_model.get("inputCacheWritePerToken") == 0.000006875
 
     @responses.activate
     def test_fetch_ai_model_costs_missing_pricing(self) -> None:
