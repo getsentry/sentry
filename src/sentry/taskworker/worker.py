@@ -61,8 +61,10 @@ class WorkerServicer(taskworker_pb2_grpc.WorkerServiceServicer):
 
         # Push the task to the worker queue
         self.worker._push_task(inflight)
+        # queue_size = self.worker._child_tasks.qsize()
+        queue_size = 8
 
-        return taskworker_pb2.PushTaskResponse()
+        return taskworker_pb2.PushTaskResponse(queue_size=queue_size)
 
 
 def get_host() -> str:
@@ -170,6 +172,9 @@ class TaskWorker:
             server.start()
             logger.info("taskworker.grpc_server.started", extra={"port": self._grpc_port})
 
+            # Register this worker with all connected taskbrokers
+            self._register_with_brokers()
+
             # Wait for shutdown signal
             server.wait_for_termination()
 
@@ -183,12 +188,47 @@ class TaskWorker:
         """Access point for tests to run a single worker loop"""
         self._add_task()
 
+    def _register_with_brokers(self) -> None:
+        """
+        Register this worker with all connected taskbrokers.
+        Sends an AddWorker message to each broker to notify them that
+        this worker is available to receive tasks.
+        """
+        address = f"http://{get_host()}:{self._grpc_port}"
+
+        logger.info(
+            "taskworker.worker.registering_with_brokers",
+            extra={"broker_count": len(self.client._hosts), "address": address},
+        )
+
+        for host in self.client._hosts:
+            self.client.add_worker(host, address)
+
+    def _unregister_from_brokers(self) -> None:
+        """
+        Unregister this worker from all connected taskbrokers.
+        Sends a RemoveWorker message to each broker to notify them that
+        this worker is shutting down and should no longer receive tasks.
+        """
+        address = f"http://{get_host()}:{self._grpc_port}"
+
+        logger.info(
+            "taskworker.worker.unregistering_from_brokers",
+            extra={"broker_count": len(self.client._hosts), "address": address},
+        )
+
+        for host in self.client._hosts:
+            self.client.remove_worker(host, address)
+
     def shutdown(self) -> None:
         """
         Shutdown cleanly
         Activate the shutdown event and drain results before terminating children.
         """
         logger.info("taskworker.worker.shutdown.start")
+
+        # Unregister this worker from all connected taskbrokers
+        self._unregister_from_brokers()
 
         self._shutdown_event.set()
 
@@ -219,7 +259,7 @@ class TaskWorker:
 
     def _push_task(self, inflight: InflightTaskActivation):
         """
-        Push a task to child tasks queue. Returns False if the task could not be added.
+        Push a task to child tasks queue.
         """
         start_time = time.monotonic()
         self._child_tasks.put(inflight)

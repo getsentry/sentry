@@ -2196,7 +2196,7 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.16" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-protos", git = "https://github.com/getsentry/sentry-protos.git?subdirectory=py&rev=george%2Fpush-taskbroker%2Fexternal-load-balancer" },
+    { name = "sentry-protos", git = "https://github.com/getsentry/sentry-protos.git?subdirectory=py&rev=george%2Fpush-taskbroker%2Finternal-load-balancer" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.22" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.47.0" },
@@ -2402,7 +2402,7 @@ wheels = [
 [[package]]
 name = "sentry-protos"
 version = "0.4.10"
-source = { git = "https://github.com/getsentry/sentry-protos.git?subdirectory=py&rev=george%2Fpush-taskbroker%2Fexternal-load-balancer#977d4fff57dce642bf032e2f37d77dfa630ae862" }
+source = { git = "https://github.com/getsentry/sentry-protos.git?subdirectory=py&rev=george%2Fpush-taskbroker%2Finternal-load-balancer#3c44359796c098805ce8a62512068e6b6db5fa0f" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
