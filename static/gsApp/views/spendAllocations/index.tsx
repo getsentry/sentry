@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -411,7 +413,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       {canViewSpendAllocation && (
         <PageGrid data-test-id="subhead-actions">
           <StyledButtonBar>
-            <Dates>
+            <Stack align="center" column="2 / 5">
               <strong>
                 {!viewNextPeriod && 'Current Period'}
                 {viewNextPeriod && 'Next Period'}
@@ -429,7 +431,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                   year: 'numeric',
                 })}
               </div>
-            </Dates>
+            </Stack>
           </StyledButtonBar>
           <DropdownDataCategory
             triggerProps={{prefix: t('Category')}}
@@ -549,12 +551,6 @@ const StyledPermissionAlert = styled(OrganizationPermissionAlert)`
 const StyledButtonBar = styled(ButtonBar)`
   grid-column: auto / span 1;
   grid-area: bb;
-`;
-const Dates = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  grid-column: 2 / 5;
 `;
 
 const StyledLearnMoreButton = styled(LearnMoreButton)`
