@@ -132,7 +132,7 @@ function UsageAlert({subscription, usage}: Props) {
       >
         <SubscriptionBody withPadding>
           <UsageInfo>
-            <IconStats size="md" color="blue300" />
+            <IconStats size="md" variant="accent" />
             <div>
               <h3>{t('Projected Overage')}</h3>
               <Description>
@@ -160,7 +160,7 @@ function UsageAlert({subscription, usage}: Props) {
       >
         <SubscriptionBody withPadding>
           <UsageInfo>
-            <IconWarning size="md" color="yellow300" />
+            <IconWarning size="md" variant="warning" />
             <div>
               <h3>{t('Grace Period')}</h3>
               <Description>
@@ -219,7 +219,7 @@ function UsageAlert({subscription, usage}: Props) {
       >
         <SubscriptionBody withPadding>
           <UsageInfo>
-            <IconFire size="md" color="red300" />
+            <IconFire size="md" variant="danger" />
             <div>
               <h3>{t('Usage Exceeded')}</h3>
               <Description>

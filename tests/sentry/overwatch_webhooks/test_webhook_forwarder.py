@@ -154,6 +154,35 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             )
             mock_enqueue.assert_not_called()
 
+    @override_options(
+        {
+            "overwatch.enabled-regions": ["us"],
+            "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
+        }
+    )
+    def test_forward_if_applicable_skips_seer_only_orgs(self):
+        organization = self.create_organization(name="Test Org", slug="test-org", region="us")
+        self.create_organization_integration(
+            integration=self.integration,
+            organization_id=organization.id,
+        )
+
+        event = {
+            "action": "pull_request",
+            "repository": {"owner": {"login": "sentry-ecosystem"}},
+            "commits": [],
+        }
+
+        with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
+            self.forwarder.forward_if_applicable(
+                event,
+                headers={
+                    GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request",
+                    GITHUB_INSTALLATION_TARGET_ID_HEADER: "987654",
+                },
+            )
+            mock_enqueue.assert_not_called()
+
     @override_options({"overwatch.enabled-regions": ["us"]})
     def test_forward_if_applicable_successful_forwarding(self):
         organization = self.create_organization(name="Test Org", slug="test-org", region="us")
@@ -428,28 +457,17 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         """Test that default events should always be forwarded."""
         events = get_github_events_to_forward_overwatch()
         assert GithubWebhookType.PULL_REQUEST in events
-        assert GithubWebhookType.PULL_REQUEST_REVIEW in events
-        assert GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT in events
         assert GithubWebhookType.ISSUE_COMMENT in events
         # These are always forwarded
         assert GithubWebhookType.INSTALLATION in events
         assert GithubWebhookType.INSTALLATION_REPOSITORIES in events
 
-    @override_options(
-        {
-            "github.webhook.issue-comment": False,
-            "github.webhook.pr": False,
-            "github.webhook.pr-review": False,
-            "github.webhook.pr-review-comment": False,
-        }
-    )
+    @override_options({"github.webhook.issue-comment": False, "github.webhook.pr": False})
     def test_disabling_options_excludes_events(self):
         """Test that disabling options excludes events from forwarding."""
         events = get_github_events_to_forward_overwatch()
         assert GithubWebhookType.ISSUE_COMMENT not in events
         assert GithubWebhookType.PULL_REQUEST not in events
-        assert GithubWebhookType.PULL_REQUEST_REVIEW not in events
-        assert GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT not in events
         # These are always forwarded
         assert GithubWebhookType.INSTALLATION in events
         assert GithubWebhookType.INSTALLATION_REPOSITORIES in events

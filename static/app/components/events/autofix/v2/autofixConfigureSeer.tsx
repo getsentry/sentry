@@ -45,11 +45,16 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
     <Fragment>
       <SeerFeaturesPanel width="100%">
         <Stack direction="row" gap="2xl" padding="2xl">
-          <ImageContainer aspectRatio="16 / 9" maxWidth="150px" width="40%">
+          <ImageContainer
+            aspectRatio="16 / 9"
+            minWidth="140px"
+            maxWidth="300px"
+            width="40%"
+          >
             <Image src={seerConfigSeerImg} alt="" />
           </ImageContainer>
           <Stack gap="sm" padding="sm">
-            <Heading as="h2" size="2xl">
+            <Heading as="h3" size="2xl">
               {t('Debug Faster with Seer')}
             </Heading>
             <Text>
@@ -65,18 +70,18 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
           </Stack>
         </Stack>
       </SeerFeaturesPanel>
-      <Stack>
+      <Stack position="relative">
         <AngledImageContainer>
           <Image src={seerConfigShipImg} alt="" />
         </AngledImageContainer>
         <SeerPreviewPanel alignSelf="flex-start">
-          <Stack gap="md" padding="md">
+          <Stack gap="md" padding="xl">
             <Heading as="h3">{t('What happened')}</Heading>
             {isPending ? (
               <Placeholder height="1rem" />
             ) : isError ? (
               <Stack gap="sm" direction="row">
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
                 <Text>{t('Error loading what happened')}</Text>
               </Stack>
             ) : (
@@ -89,13 +94,13 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
           </Stack>
         </SeerPreviewPanel>
         <SeerPreviewPanel alignSelf="center">
-          <Stack gap="md" padding="md">
+          <Stack gap="md" padding="xl">
             <Heading as="h3">{t('Initial Guess')}</Heading>
             {isPending ? (
               <Placeholder height="1rem" />
             ) : isError ? (
               <Stack gap="sm" direction="row">
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
                 <Text>{t('Error loading initial guess')}</Text>
               </Stack>
             ) : (
@@ -108,7 +113,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
           </Stack>
         </SeerPreviewPanel>
         <SeerPreviewPanel alignSelf="flex-end">
-          <Stack gap="md" padding="md">
+          <Stack gap="md" padding="xl">
             <Heading as="h3">{t('Next Steps')}</Heading>
             <Text>
               {t(
@@ -145,6 +150,7 @@ export const SeerFeaturesPanel = styled(Panel)<{width: CSSProperties['width']}>`
   width: ${p => p.width};
   min-width: ${p => p.width};
   max-width: ${p => p.width};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const SeerPreviewPanel = styled(Panel)<{alignSelf: CSSProperties['alignSelf']}>`
@@ -152,14 +158,22 @@ const SeerPreviewPanel = styled(Panel)<{alignSelf: CSSProperties['alignSelf']}>`
   width: 70%;
   min-width: 70%;
   max-width: 70%;
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const AngledImageContainer = styled('div')`
   position: absolute;
-  right: -50px;
-  width: 250px;
-  height: 120px;
-  transform: rotate(45deg); /* Rotates the image 45 degrees clockwise */
+  right: 0px;
+  width: 40%;
+  max-width: 400px;
+  aspect-ratio: 25/12;
+  /*
+   * Use the top middle point as the origin to
+   * 1. Translate the image so the center aligns with the right edge of the containing panel.
+   * 2. Totate 45 deg clockwise so the image is rotated anchored at the tip of the pyramid.
+   */
+  transform-origin: 50% 0%;
+  transform: translateX(50%) rotate(45deg);
 `;
 
 const SeerPreviewText = styled('div')`

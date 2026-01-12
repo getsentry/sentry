@@ -86,9 +86,7 @@ function WidgetTemplatesList({
                 });
               }}
             >
-              <IconWrapper backgroundColor={iconColor}>
-                <Icon color="white" />
-              </IconWrapper>
+              <IconWrapper backgroundColor={iconColor}>{Icon}</IconWrapper>
               <div>
                 <WidgetTitle>{widget.title}</WidgetTitle>
                 <WidgetDescription>{widget.description}</WidgetDescription>
@@ -145,7 +143,8 @@ function WidgetTemplatesList({
 export default WidgetTemplatesList;
 
 const TemplateContainer = styled('div')<{lastWidget: boolean}>`
-  border-bottom: ${p => (p.lastWidget ? 'none' : `1px solid ${p.theme.border}`)};
+  border-bottom: ${p =>
+    p.lastWidget ? 'none' : `1px solid ${p.theme.tokens.border.primary}`};
 `;
 
 const TemplateCard = styled('div')<{selected: boolean}>`

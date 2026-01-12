@@ -250,7 +250,7 @@ const StyledLoadingIndicatorWrapper = styled('div')`
 
   /* Add a border between two rows of loading issue states */
   & + & {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

@@ -148,7 +148,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             <Flex align="center" gap="xs">
               <LinkButton
                 to={issueLink}
-                icon={<IconLink color="linkColor" />}
+                icon={<IconLink variant="accent" />}
                 title={t('View latest event')}
                 aria-label={t('View latest event')}
                 borderless
@@ -176,11 +176,11 @@ const Controls = styled('div')<{expanded: boolean}>`
   display: flex;
   justify-content: space-between;
   background-color: ${p => p.theme.backgroundSecondary};
-  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
+  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.tokens.border.secondary}`};
   padding: ${space(0.5)} ${space(1)};
 
   ${MergedGroup}:not(:first-child) & {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   ${MergedGroup}:last-child & {

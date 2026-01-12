@@ -36,7 +36,7 @@ describe('MetricAlertDetails', () => {
       body: EventsStatsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2017-10-10T02%3A41%3A20',
+      url: '/organizations/org-slug/issues/',
       body: [GroupFixture()],
     });
   });
@@ -123,7 +123,7 @@ describe('MetricAlertDetails', () => {
     });
     // Related issues to the selected incident
     const issuesRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?end=2016-04-26T19%3A44%3A05&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2016-03-29T19%3A44%3A05',
+      url: '/organizations/org-slug/issues/',
       body: [GroupFixture()],
     });
 
@@ -226,7 +226,7 @@ describe('MetricAlertDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror%20is%3Aunresolved&sort=freq&start=2017-10-10T02%3A41%3A20',
+      url: '/organizations/org-slug/issues/',
       body: [],
     });
 

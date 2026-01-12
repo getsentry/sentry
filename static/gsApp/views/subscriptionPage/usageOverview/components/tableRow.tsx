@@ -275,7 +275,7 @@ function UsageOverviewTableRow({
             <Flex align="center" gap="xs" wrap="wrap">
               {usageExceeded ? (
                 <Container width="18px" height="18px">
-                  <IconWarning size="md" color="danger" />
+                  <IconWarning size="md" variant="danger" />
                 </Container>
               ) : showProgressRing ? (
                 <Container width="18px" height="18px">
@@ -380,7 +380,7 @@ function DisabledProductRow({
             <Text as="span" variant="muted" textWrap="balance">
               {displayName}{' '}
               <IconContainer>
-                <IconLock size="sm" locked color="disabled" />
+                <IconLock size="sm" locked variant="muted" />
               </IconContainer>
             </Text>
           </Flex>
@@ -408,7 +408,7 @@ export default UsageOverviewTableRow;
 
 const Row = styled('tr')`
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   &:last-child {

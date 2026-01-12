@@ -259,7 +259,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <Button
                         size="sm"
                         borderless
-                        icon={<IconDelete size="sm" color="subText" />}
+                        icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
                         title={t('Remove override')}
@@ -342,11 +342,11 @@ const ExpandedContent = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SettingsGroup = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-bottom: ${p => p.theme.space.lg};
   padding-top: ${p => p.theme.space.lg};
 
