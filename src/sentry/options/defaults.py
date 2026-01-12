@@ -2244,13 +2244,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Skip Snuba query when there are no orgs to query for. This is a rollout flag for a fix
-# that prevents unnecessary Snuba queries.
-register(
-    "dynamic-sampling.skip_snuba_query_for_empty_orgs",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # === Hybrid cloud subsystem options ===
 # UI rollout
