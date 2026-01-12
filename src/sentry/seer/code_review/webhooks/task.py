@@ -11,7 +11,6 @@ from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.utils import (
     get_webhook_option_key,
     transform_webhook_to_codegen_request,
@@ -23,7 +22,8 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
-from ..utils import get_seer_endpoint_for_event, make_seer_request
+from ..metrics import WebhookFilteredReason, record_webhook_filtered
+from ..utils import SeerCodeReviewTrigger, get_seer_endpoint_for_event, make_seer_request
 from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
@@ -38,11 +38,12 @@ METRICS_PREFIX = "seer.code_review.task"
 
 def schedule_task(
     github_event: GithubWebhookType,
+    github_event_action: str,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    trigger: CodeReviewTrigger,
+    trigger: SeerCodeReviewTrigger,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -57,10 +58,8 @@ def schedule_task(
     )
 
     if transformed_event is None:
-        metrics.incr(
-            f"{METRICS_PREFIX}.{github_event.value}.skipped",
-            tags={"reason": "failed_to_transform", "github_event": github_event.value},
-            sample_rate=1.0,
+        record_webhook_filtered(
+            github_event, github_event_action, WebhookFilteredReason.TRANSFORM_FAILED
         )
         return
 
@@ -68,11 +67,6 @@ def schedule_task(
         github_event=github_event,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
-    )
-    metrics.incr(
-        f"{METRICS_PREFIX}.{github_event.value}.enqueued",
-        tags={"status": "success", "github_event": github_event.value},
-        sample_rate=1.0,
     )
 
 
