@@ -170,7 +170,7 @@ function BaseExploreFieldRenderer({
       if (data?.['span.description']) {
         queryString.addFilterValue('span.description', data['span.description']);
       }
-      return (
+      rendered = (
         <ScrapsContainer maxWidth="fit-content">
           <Tooltip
             isHoverable
@@ -204,18 +204,18 @@ function BaseExploreFieldRenderer({
           </Tooltip>
         </ScrapsContainer>
       );
+    } else {
+      const target = getTraceDetailsUrl({
+        traceSlug: data.trace,
+        timestamp: data.timestamp,
+        organization,
+        dateSelection,
+        location,
+        source: TraceViewSources.TRACES,
+      });
+
+      rendered = <Link to={target}>{rendered}</Link>;
     }
-
-    const target = getTraceDetailsUrl({
-      traceSlug: data.trace,
-      timestamp: data.timestamp,
-      organization,
-      dateSelection,
-      location,
-      source: TraceViewSources.TRACES,
-    });
-
-    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
@@ -236,7 +236,7 @@ function BaseExploreFieldRenderer({
         queryString.addFilterValue('span.description', data['span.description']);
       }
 
-      return (
+      rendered = (
         <ScrapsContainer maxWidth="fit-content">
           <Tooltip
             isHoverable
@@ -266,20 +266,20 @@ function BaseExploreFieldRenderer({
           </Tooltip>
         </ScrapsContainer>
       );
+    } else {
+      const target = generateLinkToEventInTraceView({
+        traceSlug: data.trace,
+        timestamp: data.timestamp,
+        targetId: data['transaction.span_id'],
+        eventId: undefined,
+        organization,
+        location,
+        spanId,
+        source: TraceViewSources.TRACES,
+      });
+
+      rendered = <Link to={target}>{rendered}</Link>;
     }
-
-    const target = generateLinkToEventInTraceView({
-      traceSlug: data.trace,
-      timestamp: data.timestamp,
-      targetId: data['transaction.span_id'],
-      eventId: undefined,
-      organization,
-      location,
-      spanId,
-      source: TraceViewSources.TRACES,
-    });
-
-    rendered = <Link to={target}>{rendered}</Link>;
 
     if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
       return rendered;
