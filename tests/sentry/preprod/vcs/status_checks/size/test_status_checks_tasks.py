@@ -30,6 +30,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         self.project = self.create_project(
             teams=[self.team], organization=self.organization, name="test_project"
         )
+        self.project.update_option("sentry:preprod_size_status_checks_enabled", True)
 
     def _create_preprod_artifact(
         self,
