@@ -653,8 +653,8 @@ importers:
         specifier: 16.0.0
         version: 16.0.0
       knip:
-        specifier: 5.75.1
-        version: 5.75.1(@types/node@22.15.21)(typescript@5.9.2)
+        specifier: 5.80.2
+        version: 5.80.2(@types/node@22.15.21)(typescript@5.9.2)
       postcss-styled-syntax:
         specifier: 0.7.0
         version: 0.7.0(postcss@8.5.3)
@@ -6409,8 +6409,8 @@ packages:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
 
-  knip@5.75.1:
-    resolution: {integrity: sha512-raguBFxTUO5JKrv8rtC8wrOtzrDwWp/fOu1F1GhrHD1F3TD2fqI1Z74JB+PyFZubL+RxqOkhGStdPAvaaXSOWQ==}
+  knip@5.80.2:
+    resolution: {integrity: sha512-Yt7iF8Uzl7pp3mGA6yvum6PZBcbGhjasZYuqIwcIAX1jsIhGRUAK0icP0qrB6FSPBI3BpIeMHl7n9meCLO6ovg==}
     engines: {node: '>=18.18.0'}
     hasBin: true
     peerDependencies:
@@ -16124,7 +16124,7 @@ snapshots:
 
   kleur@4.1.5: {}
 
-  knip@5.75.1(@types/node@22.15.21)(typescript@5.9.2):
+  knip@5.80.2(@types/node@22.15.21)(typescript@5.9.2):
     dependencies:
       '@nodelib/fs.walk': 1.2.8
       '@types/node': 22.15.21
