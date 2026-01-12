@@ -392,8 +392,7 @@ const NavLink = styled(Link, {
     }
 
     &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover} $
-        ${NavLinkIconContainer} {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover} ${NavLinkIconContainer} {
         background-color: ${p =>
           p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }
