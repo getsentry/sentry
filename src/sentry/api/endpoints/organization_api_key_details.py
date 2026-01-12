@@ -98,6 +98,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         :pparam string api_key_id: the ID of the api key to delete
         :auth: required
         """
+        api_key_id = api_key.id
         audit_data = api_key.get_audit_log_data()
 
         api_key.delete()
@@ -105,7 +106,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         self.create_audit_entry(
             request,
             organization=organization,
-            target_object=api_key.id,
+            target_object=api_key_id,
             event=audit_log.get_event_id("APIKEY_REMOVE"),
             data=audit_data,
         )
