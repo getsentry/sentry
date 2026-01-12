@@ -400,7 +400,7 @@ const Ellipsis = styled('span')`
 `;
 
 const ErrorMessage = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: ${p => p.theme.fontSize.xs};
   line-height: 1.5;
   text-align: right;

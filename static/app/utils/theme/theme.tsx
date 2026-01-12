@@ -1184,12 +1184,6 @@ const generateAliases = (tokens: Tokens) => ({
   backgroundTertiary: tokens.background.tertiary,
 
   /**
-   * A color that denotes an error, or something that is wrong
-   */
-  error: tokens.content.danger,
-  errorText: tokens.content.danger,
-
-  /**
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */

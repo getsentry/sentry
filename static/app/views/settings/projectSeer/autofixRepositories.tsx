@@ -372,7 +372,7 @@ const ReposContainer = styled('div')`
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
 `;

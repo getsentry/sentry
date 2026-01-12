@@ -163,7 +163,9 @@ function TeamMisery({
                     ) : (
                       <TrendText
                         color={
-                          trend >= 0 ? theme.tokens.content.success : theme.errorText
+                          trend >= 0
+                            ? theme.tokens.content.success
+                            : theme.tokens.content.danger
                         }
                       >
                         {`${trendValue}\u0025 `}

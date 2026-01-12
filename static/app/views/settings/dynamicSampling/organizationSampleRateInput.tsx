@@ -129,7 +129,7 @@ const PreviousValue = styled('span')`
 
 const ErrorMessage = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const AllDataStoredMessage = styled('span')`
