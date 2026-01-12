@@ -105,7 +105,7 @@ test-cli: create-db
 
 test-js-build:
 	@echo "--> Running type check"
-	@pnpm run tsc -p config/tsconfig.build.json
+	@pnpm run tsc -p tsconfig.json
 	@echo "--> Building static assets"
 	@NODE_ENV=production pnpm run build-profile > .artifacts/webpack-stats.json
 
