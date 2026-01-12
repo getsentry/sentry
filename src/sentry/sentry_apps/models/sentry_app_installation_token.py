@@ -21,6 +21,7 @@ class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"
         sentry_app_installation_tokens = self.select_related("api_token").filter(
             sentry_app_installation__sentryappinstallationforprovider__organization_id=organization_id,
             sentry_app_installation__sentryappinstallationforprovider__provider=provider,
+            api_token__isnull=False,
         )
         if not sentry_app_installation_tokens:
             return None

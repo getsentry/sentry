@@ -521,3 +521,72 @@ class VercelIntegrationMetadataTest(TestCase):
                 },
             },
         }
+
+    @responses.activate
+    def test_update_organization_config_with_deleted_token(self) -> None:
+        """Test that Vercel integration handles deleted API tokens gracefully"""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        org = self.organization
+        project_id = self.project.id
+        with assume_test_silo_mode(SiloMode.REGION):
+            project_key = ProjectKey.get_default(project=Project.objects.get(id=project_id))
+            enabled_dsn = project_key.get_dsn(public=True)
+            integration_endpoint = project_key.integration_endpoint
+            public_key = project_key.public_key
+
+        # Delete the API token to simulate the issue
+        sentry_app_installation = SentryAppInstallationForProvider.objects.get(
+            organization_id=org.id, provider="vercel"
+        ).sentry_app_installation
+        sentry_app_installation_token = SentryAppInstallationToken.objects.get(
+            sentry_app_installation=sentry_app_installation
+        )
+        api_token = sentry_app_installation_token.api_token
+        api_token.delete()
+
+        # Verify that get_token returns None after deletion
+        sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
+        assert sentry_auth_token is None
+
+        # mock get_project API call
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECT_URL % self.project_id}",
+            json={"link": {"type": "github"}, "framework": "nextjs"},
+        )
+
+        # mock create the env vars - note that SENTRY_AUTH_TOKEN should be skipped
+        expected_env_vars = [
+            "SENTRY_ORG",
+            "SENTRY_PROJECT",
+            "NEXT_PUBLIC_SENTRY_DSN",
+            "VERCEL_GIT_COMMIT_SHA",
+            "SENTRY_VERCEL_LOG_DRAIN_URL",
+            "SENTRY_OTLP_TRACES_URL",
+            "SENTRY_PUBLIC_KEY",
+        ]
+        for env_var in expected_env_vars:
+            responses.add(
+                responses.POST,
+                f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_URL % self.project_id}",
+                json={"key": env_var, "value": "dummy"},
+            )
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+        data = {"project_mappings": [[project_id, self.project_id]]}
+
+        # This should not raise an error even though the token is deleted
+        installation.update_organization_config(data)
+
+        # Verify that SENTRY_AUTH_TOKEN was not sent to Vercel API
+        sent_env_vars = []
+        for call in responses.calls[1:]:  # Skip the first call (get_project)
+            if call.request.method == "POST" and "env" in call.request.url:
+                body = orjson.loads(call.request.body)
+                sent_env_vars.append(body["key"])
+
+        assert "SENTRY_AUTH_TOKEN" not in sent_env_vars
+        assert set(expected_env_vars) == set(sent_env_vars)

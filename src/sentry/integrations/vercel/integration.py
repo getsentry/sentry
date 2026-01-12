@@ -345,11 +345,17 @@ class VercelIntegration(IntegrationInstallation):
             )
 
             for env_var, details in env_var_map.items():
-                # We are logging a message because we potentially have a weird bug where auth tokens disappear from vercel
+                # Skip SENTRY_AUTH_TOKEN if the value is None (e.g., when the ApiToken has been deleted)
                 if env_var == "SENTRY_AUTH_TOKEN" and details["value"] is None:
-                    sentry_sdk.capture_message(
-                        "Setting SENTRY_AUTH_TOKEN env var with None value in Vercel integration"
+                    logger.warning(
+                        "vercel.update_organization_config.missing_auth_token",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "project_id": sentry_project_id,
+                            "vercel_project_id": vercel_project_id,
+                        },
                     )
+                    continue
 
                 self.create_env_var(
                     vercel_client,
