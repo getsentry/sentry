@@ -13,8 +13,13 @@ from arroyo.processing.strategies import (
 from arroyo.types import Commit, Message, Partition
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
+from sentry import options
 from sentry.constants import DataCategory
-from sentry.sentry_metrics.indexer.strings import SPAN_METRICS_NAMES, TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.indexer.strings import (
+    SHARED_TAG_STRINGS,
+    SPAN_METRICS_NAMES,
+    TRANSACTION_METRICS_NAMES,
+)
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -41,10 +46,13 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     """
 
     #: The IDs of the metrics used to count transactions or spans
-    metric_ids = {
+    metric_ids_for_types = {
         TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: DataCategory.TRANSACTION,
         SPAN_METRICS_NAMES["c:spans/usage@none"]: DataCategory.SPAN,
     }
+
+    span_metric_id = SPAN_METRICS_NAMES["c:spans/usage@none"]
+    span_is_segment_tag = str(SHARED_TAG_STRINGS["is_segment"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
@@ -75,8 +83,25 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
         metric_id = generic_metric["metric_id"]
+        if metric_id not in self.metric_ids_for_types and not metric_id == self.span_metric_id:
+            return {}
+
+        if generic_metric["org_id"] in options.get(
+            "ingest.billing_metrics_consumer.use_only_span_metric_orgs"
+        ):
+            return self._count_processed_items_with_span_usage(generic_metric)
+        else:
+            return self._count_processed_items_independent_metrics(generic_metric)
+
+    def _count_processed_items_independent_metrics(
+        self, generic_metric: GenericMetric
+    ) -> Mapping[DataCategory, int]:
+        """
+        Calculates outcome counts from separate usage metrics for spans and transactions.
+        """
+        metric_id = generic_metric["metric_id"]
         try:
-            data_category = self.metric_ids[metric_id]
+            data_category = self.metric_ids_for_types[metric_id]
         except KeyError:
             return {}
 
@@ -88,6 +113,30 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             return {}
 
         items = {data_category: quantity}
+
+        return items
+
+    def _count_processed_items_with_span_usage(
+        self, generic_metric: GenericMetric
+    ) -> Mapping[DataCategory, int]:
+        """
+        Solely calculates the outcome counts based on the span usage metric.
+
+        Identifies the transaction count based on the `is_segment` tag on the usage metric.
+        """
+        if generic_metric["metric_id"] != self.span_metric_id:
+            return {}
+
+        value = generic_metric["value"]
+        try:
+            quantity = max(int(value), 0)  # type: ignore[arg-type]
+        except TypeError:
+            # Unexpected value type for this metric ID, skip.
+            return {}
+
+        items = {DataCategory.SPAN: quantity}
+        if self.has_is_segment_tag(generic_metric):
+            items[DataCategory.TRANSACTION] = quantity
 
         return items
 
@@ -124,7 +173,16 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             quantity=quantity,
         )
 
-    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> str | None:
+    def has_is_segment_tag(self, generic_metric: GenericMetric) -> bool:
+        if (tag_value := generic_metric["tags"].get(self.span_is_segment_tag)) is None:
+            return False
+
+        return "true" == self._resolve(generic_metric["mapping_meta"], tag_value)
+
+    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int | str) -> str | None:
+        if isinstance(indexed_value, str):
+            return indexed_value
+
         for _, inner_meta in mapping_meta.items():
             if (string_value := inner_meta.get(str(indexed_value))) is not None:
                 return string_value
