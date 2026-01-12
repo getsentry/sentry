@@ -36,7 +36,7 @@ export const makeAutofixQueryKey = (
   isUserWatching = false
 ): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
-  {query: {isUserWatching: isUserWatching ? true : false}},
+  {query: {isUserWatching: isUserWatching ? true : false, mode: 'legacy'}},
 ];
 
 const makeInitialAutofixData = (): AutofixResponse => ({
@@ -251,7 +251,7 @@ export const useAiAutofix = (
 
       try {
         const response = await api.requestPromise(
-          `/organizations/${orgSlug}/issues/${group.id}/autofix/`,
+          `/organizations/${orgSlug}/issues/${group.id}/autofix/?mode=legacy`,
           {
             method: 'POST',
             data: {
