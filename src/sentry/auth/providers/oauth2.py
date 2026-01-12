@@ -129,7 +129,16 @@ class OAuth2Callback(AuthView):
         code = request.GET.get("code")
 
         if error:
-            return pipeline.error(error)
+            # Sanitize error parameter to prevent injection of malicious content
+            # Only log the original error for debugging, but show a safe generic message to users
+            logging.warning(
+                "OAuth callback received error parameter",
+                extra={
+                    "provider": pipeline.provider_key,
+                    "error": error,
+                },
+            )
+            return pipeline.error(ERR_INVALID_STATE)
 
         if state != pipeline.fetch_state("state"):
             return pipeline.error(ERR_INVALID_STATE)
@@ -140,10 +149,25 @@ class OAuth2Callback(AuthView):
         data = self.exchange_token(request, pipeline, code)
 
         if "error_description" in data:
-            return pipeline.error(data["error_description"])
+            # error_description could come from the OAuth provider's response
+            # Log it for debugging but show a safe generic message to users
+            logging.warning(
+                "Token exchange returned error_description",
+                extra={
+                    "provider": pipeline.provider_key,
+                    "error": data.get("error"),
+                    "error_description": data["error_description"],
+                },
+            )
+            # Check if this is an internally generated error (safe to display)
+            # Internal errors from exchange_token in oauth2.py have no error_description
+            # So any error_description here comes from OAuth provider and should use generic message
+            return pipeline.error(ERR_INVALID_STATE)
 
         if "error" in data:
+            # Log the error for debugging
             logging.info("Error exchanging token: %s", data["error"])
+            # Use generic message for all errors
             return pipeline.error("Unable to retrieve your token")
 
         # we can either expect the API to be implicit and say "im looking for

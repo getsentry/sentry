@@ -28,6 +28,7 @@ class OAuth2CallbackViewTest(TestCase):
         super().setUp()
         self.request = RequestFactory().get("/")
         self.request.subdomain = None
+        self.request.session = Client().session
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -156,6 +157,51 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_dispatch_with_error_parameter(self, mock_record: MagicMock) -> None:
+        """Test that error parameter from OAuth provider is sanitized and not displayed to user"""
+        # Simulate an OAuth provider returning an error with suspicious content
+        malicious_error = "ACUSTART'\"(z)ACUEND"
+        self.request = RequestFactory().get("/", {"error": malicious_error})
+        self.request.session = Client().session
+        self.request.subdomain = None
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.initialize()
+
+        response = self.view.dispatch(self.request, pipeline)
+
+        # The response should contain a generic error message, not the malicious string
+        assert response.status_code == 200
+        assert "An error occurred while validating your request" in response.content.decode()
+        # The malicious string should NOT be in the response
+        assert malicious_error not in response.content.decode()
+
+        assert_failure_metric(
+            mock_record, "token_exchange_mismatched_state", extra={"error": malicious_error}
+        )
+
+    def test_dispatch_with_legitimate_error(self, mock_record: MagicMock) -> None:
+        """Test that legitimate OAuth errors are also handled safely"""
+        legitimate_error = "access_denied"
+        self.request = RequestFactory().get("/", {"error": legitimate_error})
+        self.request.session = Client().session
+        self.request.subdomain = None
+
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.initialize()
+
+        response = self.view.dispatch(self.request, pipeline)
+
+        # The response should contain a generic error message
+        assert response.status_code == 200
+        assert "An error occurred while validating your request" in response.content.decode()
+        # The specific error should NOT be in the response
+        assert legitimate_error not in response.content.decode()
+
+        assert_failure_metric(
+            mock_record, "token_exchange_mismatched_state", extra={"error": legitimate_error}
+        )
 
 
 @control_silo_test

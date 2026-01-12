@@ -359,11 +359,21 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                # Sanitize error parameter to prevent injection of malicious content
+                # Only log the original error for debugging, but show a safe generic message to users
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
                     extra={"error": error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                # Log the raw error for debugging but don't display it to users
+                logger.warning(
+                    "OAuth callback received error parameter",
+                    extra={
+                        "provider": pipeline.provider.key,
+                        "error": error,
+                    },
+                )
+                return pipeline.error(ERR_INVALID_STATE)
 
             if state != pipeline.fetch_state("state"):
                 extra = {
@@ -386,12 +396,57 @@ class OAuth2CallbackView:
 
         # these errors are based off of the results of exchange_token, lifecycle errors are captured inside
         if "error_description" in data:
+            # error_description could come from:
+            # 1. Our internal code (safe, specific patterns)
+            # 2. OAuth provider's token endpoint response (untrusted)
             error = data.get("error")
-            return pipeline.error(data["error_description"])
+            
+            # Check if this is an internally generated error_description (safe to display)
+            # Our internal errors have these specific patterns
+            internal_error_patterns = (
+                "Ensure that ",
+                "We were not able to",
+                "Could not ",
+            )
+            is_internal_error = any(
+                data["error_description"].startswith(pattern) 
+                for pattern in internal_error_patterns
+            )
+            
+            if is_internal_error:
+                # Safe to display - this is an error we generated
+                return pipeline.error(data["error_description"])
+            else:
+                # This came from the OAuth provider - log but don't display
+                logger.warning(
+                    "Token exchange returned external error_description",
+                    extra={
+                        "provider": pipeline.provider.key,
+                        "error": error,
+                        "error_description": data["error_description"],
+                    },
+                )
+                return pipeline.error(ERR_TOKEN_RETRIEVAL)
 
         if "error" in data:
-            logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
+            # error could come from:
+            # 1. Our internal code (safe, specific patterns)
+            # 2. OAuth provider's token endpoint response (untrusted)
+            
+            # Check if this is an internally generated error (safe to display)
+            # Our internal errors start with "Could not "
+            if data["error"].startswith("Could not "):
+                return pipeline.error(data["error"])
+            else:
+                # This came from the OAuth provider - log but don't display
+                logger.info(
+                    "identity.token-exchange-error",
+                    extra={
+                        "provider": pipeline.provider.key,
+                        "error": data["error"],
+                    },
+                )
+                return pipeline.error(ERR_TOKEN_RETRIEVAL)
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
