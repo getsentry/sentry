@@ -9,7 +9,10 @@ import RadioField from 'sentry/components/forms/fields/radioField';
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
-import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {
+  getStaticDetectorThresholdPlaceholder,
+  getStaticDetectorThresholdSuffix,
+} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 import type {MetricDetectorFormData} from './metricFormData';
 import {METRIC_DETECTOR_FORM_FIELDS, useMetricDetectorFormField} from './metricFormData';
@@ -95,6 +98,7 @@ export function ResolveSection() {
   }
 
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+  const thresholdPlaceholder = getStaticDetectorThresholdPlaceholder(aggregate);
 
   // Compute the automatic resolution threshold: medium if present, otherwise high
   const resolutionThreshold =
@@ -169,7 +173,7 @@ export function ResolveSection() {
             name={METRIC_DETECTOR_FORM_FIELDS.resolutionValue}
             inline={false}
             flexibleControlStateSize
-            placeholder="0"
+            placeholder={thresholdPlaceholder}
             suffix={detectionType === 'percent' ? '%' : thresholdSuffix}
             validate={validateResolutionThreshold}
             required
