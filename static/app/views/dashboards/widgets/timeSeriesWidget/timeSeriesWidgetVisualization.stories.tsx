@@ -819,18 +819,18 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         <Storybook.SideBySide>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Line(timeSeries, {color: theme.error})]}
+              plottables={[new Line(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Area(timeSeries, {color: theme.error})]}
+              plottables={[new Area(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
 
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Bars(timeSeries, {color: theme.error})]}
+              plottables={[new Bars(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
         </Storybook.SideBySide>

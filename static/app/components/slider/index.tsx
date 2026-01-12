@@ -366,7 +366,7 @@ const SliderLowerTrack = styled('div')<{disabled: boolean; error: boolean}>`
   background: ${p => p.theme.active};
   pointer-events: none;
 
-  ${p => p.error && `background: ${p.theme.error};`}
+  ${p => p.error && `background: ${p.theme.tokens.content.danger};`}
   ${p => p.disabled && `background: ${p.theme.tokens.content.disabled};`}
 `;
 
@@ -392,7 +392,7 @@ const SliderTick = styled('div')<{
       p.disabled
         ? p.theme.tokens.content.disabled
         : p.error
-          ? p.theme.error
+          ? p.theme.tokens.content.danger
           : p.theme.active
     };`}
 `;
