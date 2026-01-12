@@ -1069,12 +1069,23 @@ class Group(Model):
         self,
         referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
         environment_ids: list[int] | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
     ):
+        # Use provided start time, otherwise default to group's first_seen
+        # but cap at 30 days ago to prevent unbounded queries that can timeout.
+        # For snooze validation, we only need recent user activity to determine
+        # if the snooze condition is still met.
+        if start is None:
+            max_lookback = timezone.now() - timedelta(days=30)
+            start = max(self.first_seen, max_lookback)
+        
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
             environment_ids=environment_ids,
-            start=self.first_seen,
+            start=start,
+            end=end,
             tenant_ids={"organization_id": self.project.organization_id},
             referrer=referrer,
         )[self.id]

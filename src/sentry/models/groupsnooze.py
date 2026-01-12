@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 
@@ -22,9 +23,12 @@ from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_u
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.snuba import SnubaError
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_model
@@ -118,23 +122,36 @@ class GroupSnooze(Model):
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
 
-        rate = tsdb.backend.get_timeseries_sums(
-            model=get_issue_tsdb_group_model(self.group.issue_category),
-            keys=[self.group_id],
-            start=start,
-            end=end,
-            tenant_ids={"organization_id": self.group.project.organization_id},
-            referrer_suffix="frequency_snoozes",
-        )[self.group_id]
+        try:
+            rate = tsdb.backend.get_timeseries_sums(
+                model=get_issue_tsdb_group_model(self.group.issue_category),
+                keys=[self.group_id],
+                start=start,
+                end=end,
+                tenant_ids={"organization_id": self.group.project.organization_id},
+                referrer_suffix="frequency_snoozes",
+            )[self.group_id]
 
-        # TTL is further into the future than it needs to be, but we'd rather over-estimate
-        # and call Snuba more often than under-estimate and not trigger
-        cache.set(cache_key, rate, cache_ttl)
+            # TTL is further into the future than it needs to be, but we'd rather over-estimate
+            # and call Snuba more often than under-estimate and not trigger
+            cache.set(cache_key, rate, cache_ttl)
 
-        if rate >= self.count:
-            return False
+            if rate >= self.count:
+                return False
 
-        return True
+            return True
+        except Exception as e:
+            # If the query times out or fails, log the error and assume the snooze is still valid
+            # to avoid unintentionally unsnoozing issues due to infrastructure problems.
+            # The cache will be retried on the next event.
+            logger.warning(
+                "Failed to query frequency rate for snooze validation",
+                extra={"group_id": self.group_id, "snooze_id": self.id, "error": str(e)},
+                exc_info=True,
+            )
+            metrics.incr("groupsnooze.test_frequency_rates.error")
+            # Return True (snooze is still valid) to be conservative
+            return True
 
     def test_user_rates_or_counts(self, group: Group) -> bool:
         """
@@ -179,23 +196,36 @@ class GroupSnooze(Model):
         end = timezone.now()
         start = end - timedelta(minutes=self.user_window)
 
-        rate = tsdb.backend.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(self.group.issue_category),
-            keys=[self.group_id],
-            start=start,
-            end=end,
-            tenant_ids={"organization_id": self.group.project.organization_id},
-            referrer_suffix="user_count_snoozes",
-        )[self.group_id]
+        try:
+            rate = tsdb.backend.get_distinct_counts_totals(
+                model=get_issue_tsdb_user_group_model(self.group.issue_category),
+                keys=[self.group_id],
+                start=start,
+                end=end,
+                tenant_ids={"organization_id": self.group.project.organization_id},
+                referrer_suffix="user_count_snoozes",
+            )[self.group_id]
 
-        # TTL is further into the future than it needs to be, but we'd rather over-estimate
-        # and call Snuba more often than under-estimate and not trigger
-        cache.set(cache_key, rate, cache_ttl)
+            # TTL is further into the future than it needs to be, but we'd rather over-estimate
+            # and call Snuba more often than under-estimate and not trigger
+            cache.set(cache_key, rate, cache_ttl)
 
-        if rate >= self.user_count:
-            return False
+            if rate >= self.user_count:
+                return False
 
-        return True
+            return True
+        except Exception as e:
+            # If the query times out or fails, log the error and assume the snooze is still valid
+            # to avoid unintentionally unsnoozing issues due to infrastructure problems.
+            # The cache will be retried on the next event.
+            logger.warning(
+                "Failed to query user rate for snooze validation",
+                extra={"group_id": self.group_id, "snooze_id": self.id, "error": str(e)},
+                exc_info=True,
+            )
+            metrics.incr("groupsnooze.test_user_rates.error")
+            # Return True (snooze is still valid) to be conservative
+            return True
 
     def test_user_counts(self, group: Group) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
@@ -222,11 +252,25 @@ class GroupSnooze(Model):
 
         metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "false"})
         metrics.incr("groupsnooze.test_user_counts.snuba_call")
-        real_count = group.count_users_seen(
-            referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
-        )
-        cache.set(cache_key, real_count, CACHE_TTL)
-        return real_count < threshold
+        
+        try:
+            real_count = group.count_users_seen(
+                referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
+            )
+            cache.set(cache_key, real_count, CACHE_TTL)
+            return real_count < threshold
+        except (SnubaError, Exception) as e:
+            # If the query times out or fails, log the error and assume the snooze is still valid
+            # to avoid unintentionally unsnoozing issues due to infrastructure problems.
+            # The cache will be retried on the next event.
+            logger.warning(
+                "Failed to query user count for snooze validation",
+                extra={"group_id": group.id, "snooze_id": self.id, "error": str(e)},
+                exc_info=True,
+            )
+            metrics.incr("groupsnooze.test_user_counts.error")
+            # Return True (snooze is still valid) to be conservative
+            return True
 
 
 post_save.connect(
