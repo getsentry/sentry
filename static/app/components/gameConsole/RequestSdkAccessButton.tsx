@@ -16,7 +16,7 @@ export function RequestSdkAccessButton({
     gamingPlatform,
     organization,
     origin,
-    projectId,
+    ...(projectId && {projectId}),
   };
 
   useReopenGamingSdkModal(buttonProps);

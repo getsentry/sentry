@@ -49,9 +49,9 @@ interface ConsoleSdkInviteRequest {
 export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
   origin: 'onboarding' | 'project-creation' | 'project-settings' | 'org-settings';
-  projectId: string;
   gamingPlatform?: GamingPlatform;
   onSubmit?: () => void;
+  projectId?: string;
 }
 
 export function PrivateGamingSdkAccessModal({
