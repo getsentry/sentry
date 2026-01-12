@@ -70,6 +70,8 @@ OPTION_KEYS = frozenset(
         "sentry:debug_files_role",
         "sentry:preprod_size_status_checks_enabled",
         "sentry:preprod_size_status_checks_rules",
+        "sentry:preprod_size_enabled_query",
+        "sentry:preprod_distribution_enabled_query",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
