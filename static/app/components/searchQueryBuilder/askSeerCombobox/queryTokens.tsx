@@ -108,7 +108,7 @@ const Token = styled('span')`
 
 const ExploreParamTitle = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -119,7 +119,7 @@ const ExploreVisualizes = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: 24px;
   overflow: hidden;

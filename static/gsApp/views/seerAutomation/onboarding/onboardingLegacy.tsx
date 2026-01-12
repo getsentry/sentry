@@ -42,7 +42,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {AddAutofixRepoModalContent} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
+import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
 type ProjectState = {
@@ -99,7 +99,6 @@ function ProjectRow({onClick, project}: {onClick: () => void; project: Project})
 }
 
 function ProjectRowWithUpdate({
-  isFetchingRepositories,
   onSuccess,
   onUpdateProjectState,
   project,
@@ -129,9 +128,8 @@ function ProjectRowWithUpdate({
       currentPreference?.repositories?.map((r: any) => r.external_id) || [];
 
     openModal(deps => (
-      <AddAutofixRepoModalContent
+      <AddAutofixRepoModal
         {...deps}
-        repositories={repositories}
         selectedRepoIds={currentRepoIds}
         onSave={(repoIds: string[]) => {
           const reposData = transformRepositoriesToApiFormat(
@@ -153,14 +151,12 @@ function ProjectRowWithUpdate({
             });
           }
         }}
-        isFetchingRepositories={isFetchingRepositories}
       />
     ));
   }, [
     organization.id,
     repositories,
     projectStates,
-    isFetchingRepositories,
     updateProjectSeerPreferences,
     project.id,
     project.slug,
@@ -836,7 +832,7 @@ const ProjectName = styled('span')`
 
 const StepDescription = styled('div')`
   margin-bottom: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const HeaderText = styled('div')`
@@ -846,7 +842,7 @@ const HeaderText = styled('div')`
 const EmptyState = styled('div')`
   padding: ${space(2)};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const LoadingState = styled('div')`
@@ -855,7 +851,7 @@ const LoadingState = styled('div')`
   align-items: center;
   gap: ${space(1)};
   padding: ${space(3)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledGuidedSteps = styled(GuidedSteps)`
@@ -882,7 +878,7 @@ const ScanActionWrapper = styled('div')`
 `;
 
 const EmptyProjectsMessage = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -911,7 +907,7 @@ const CustomizationList = styled('ul')`
 
   li {
     margin-bottom: ${space(1)};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 

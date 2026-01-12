@@ -665,7 +665,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -675,7 +675,7 @@ const NoCausesPadding = styled('div')`
 `;
 
 const CausesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -717,7 +717,7 @@ const AnimationWrapper = styled(motion.div)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const BottomButtonContainer = styled('div')`
@@ -744,5 +744,5 @@ const DropdownTrigger = styled(Button)`
 
 const SmallIntegrationIdText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

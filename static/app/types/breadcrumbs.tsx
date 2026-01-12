@@ -1,4 +1,4 @@
-import type {Color} from 'sentry/utils/theme';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 export enum BreadcrumbLevelType {
   FATAL = 'fatal',
@@ -102,9 +102,10 @@ export type RawCrumb =
   | BreadcrumbTypeDefault;
 
 interface BaseCrumb {
-  color: Color;
+  // This should not exist on the type and should instead live where the icon is used.
   description: string;
   id: number;
+  variant: NonNullable<SVGIconProps['variant']>;
 }
 
 interface NavigationCrumb extends BaseCrumb, BreadcrumbTypeNavigation {}

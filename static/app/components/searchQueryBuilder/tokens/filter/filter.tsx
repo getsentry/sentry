@@ -301,8 +301,8 @@ const ValueButton = styled(UnstyledButton)`
 
   :focus {
     background-color: ${p => p.theme.colors.blue100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -315,20 +315,20 @@ const ValueEditing = styled('div')`
 
   :focus-within {
     background-color: ${p => p.theme.colors.blue100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const DeleteButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 1px solid transparent;
 
   :focus {
     background-color: ${p => p.theme.colors.gray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -341,7 +341,7 @@ const FilterValueList = styled('div')`
 `;
 
 const FilterValueOr = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FilterMultiValueTruncated = styled('div')`

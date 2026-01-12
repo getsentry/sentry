@@ -86,7 +86,7 @@ export default function TestsPage() {
 
   return (
     <Grid gap="xl">
-      <ControlsContainer>
+      <Flex gap="xl">
         <PageFilterBar condensed>
           <IntegratedOrgSelector />
           <RepoSelector />
@@ -94,7 +94,7 @@ export default function TestsPage() {
           <DateSelector />
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
-      </ControlsContainer>
+      </Flex>
       {mainContent}
     </Grid>
   );
@@ -200,7 +200,7 @@ const MessageContainer = styled('div')`
   justify-items: center;
   align-items: center;
   text-align: center;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;
@@ -216,9 +216,4 @@ const Title = styled('div')`
 
 const StyledIconSearch = styled(IconSearch)`
   margin-right: ${p => p.theme.space.md};
-`;
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
 `;

@@ -241,14 +241,14 @@ export function PolicyRow({
 const PolicyFrame = styled('iframe')`
   height: 300px;
   width: 100%;
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 3px;
   margin-bottom: ${space(1)};
 `;
 
 const PolicySubtext = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PolicyTitle = styled('h6')`

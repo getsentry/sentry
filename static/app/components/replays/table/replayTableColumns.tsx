@@ -198,7 +198,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_dead_clicks ? (
             <Flex gap="xs">
-              <IconCursorArrow size="sm" color="yellow300" />
+              <IconCursorArrow size="sm" variant="warning" />
               {replay.count_dead_clicks}
             </Flex>
           ) : (
@@ -597,8 +597,6 @@ const PlayPauseButtonContainer = styled(Flex)`
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   flex-direction: column;
   justify-content: center;
-
-  margin: 0 -${p => p.theme.space.xl} 0 -${p => p.theme.space.md};
 `;
 
 const CheckboxHeaderContainer = styled(Flex)`

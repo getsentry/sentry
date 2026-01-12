@@ -13,8 +13,7 @@ describe('Related Issues View', () => {
   const orgSlug = organization.slug;
   const group1 = '15';
   const group2 = '20';
-  // query=issue.id:[15,20] -> query=issue.id%3A%5B15%2C20%5D
-  const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/?query=issue.id%3A%5B${group1}%2C${group2}%5D`;
+  const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/`;
 
   const errorType = 'RuntimeError';
   const onlySameRootData = {

@@ -432,7 +432,7 @@ const Title = styled('p')`
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   align-self: center;
-  color: ${p => p.theme.success};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const InstallButton = styled(Button)`
@@ -440,7 +440,7 @@ const InstallButton = styled(Button)`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.primary};
 
   border: ${p => `1px solid ${p.theme.colors.gray400}`};

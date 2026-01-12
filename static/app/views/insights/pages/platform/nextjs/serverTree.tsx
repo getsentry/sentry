@@ -70,7 +70,7 @@ const HOVERCARD_BODY_CLASS_NAME = 'ssrTreeHovercard';
 
 const getP95Threshold = (avg: number) => {
   return {
-    error: avg * 3,
+    danger: avg * 3,
     warning: avg * 2,
   };
 };
@@ -360,9 +360,9 @@ const HeaderCell = styled('div')`
   padding: ${space(2)} ${space(0.75)};
   text-transform: uppercase;
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   white-space: nowrap;
   line-height: 1;
   position: sticky;
@@ -381,7 +381,7 @@ const PathWrapper = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   user-select: none;
   width: 10px;

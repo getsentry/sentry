@@ -14,7 +14,6 @@ import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
 import type {Subscription} from 'getsentry/types';
 import {
-  hasNewBillingUI,
   hasPartnerMigrationFeature,
   hasPerformance,
   isBizPlanFamily,
@@ -120,7 +119,6 @@ export function SubscriptionUpsellBanner({
   organization,
   subscription,
 }: SubscriptionUpsellBannerProps) {
-  const isNewBillingUI = hasNewBillingUI(organization);
   const isHidden = useIsSubscriptionUpsellHidden(subscription, organization);
   const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
     feature: BANNER_PROMPT_KEY,
@@ -135,7 +133,7 @@ export function SubscriptionUpsellBanner({
   const [title, description] = getSubscriptionBannerText(organization, subscription);
 
   return (
-    <BusinessTrialBannerWrapper isNewBillingUI={isNewBillingUI}>
+    <BusinessTrialBannerWrapper>
       <div>
         <IntegationBannerTitle>
           {title}
@@ -183,9 +181,9 @@ export function SubscriptionUpsellBanner({
   );
 }
 
-const BusinessTrialBannerWrapper = styled('div')<{isNewBillingUI?: boolean}>`
+const BusinessTrialBannerWrapper = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)};
   background: linear-gradient(
@@ -194,7 +192,7 @@ const BusinessTrialBannerWrapper = styled('div')<{isNewBillingUI?: boolean}>`
     ${p => p.theme.backgroundSecondary}FF 70%,
     ${p => p.theme.backgroundSecondary}FF 100%
   );
-  margin-bottom: ${p => (p.isNewBillingUI ? '0' : '24px')};
+  margin-bottom: 0;
 `;
 
 const IntegationBannerTitle = styled('div')`

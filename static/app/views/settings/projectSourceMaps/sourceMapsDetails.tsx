@@ -401,7 +401,7 @@ const TypeColumn = styled('div')`
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SizeColumn = styled('div')`
@@ -409,7 +409,7 @@ const SizeColumn = styled('div')`
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TimeAndDistWrapper = styled('div')`
@@ -425,7 +425,7 @@ const TimeWrapper = styled('div')`
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.fontSize.md};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTag = styled(Tag)`
@@ -433,7 +433,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const VersionAndDetails = styled('div')`

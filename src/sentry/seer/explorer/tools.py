@@ -404,7 +404,12 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         projects=projects,
         organization=organization,
     )
-    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_EXPLORER_TOOLS)
+    events = query_trace_data(
+        snuba_params,
+        full_trace_id,
+        additional_attributes=["span.status_code"],
+        referrer=Referrer.SEER_EXPLORER_TOOLS,
+    )
 
     return EAPTrace(
         trace_id=full_trace_id,
@@ -766,11 +771,12 @@ def _get_recommended_event(
     w_size = timedelta(days=3)
     w_start = max(end - w_size, start)
     w_end = end
-    event_query_limit = 50
+    event_query_limit = 100
     fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
 
     while w_start >= start:
-        # Get candidate events with the standard recommended ordering. This is an expensive orderby, hence the sliding window.
+        # Get candidate events with the standard recommended ordering.
+        # This is an expensive orderby, hence the inner limit and sliding window.
         events: list[Event] = eventstore.backend.get_events_snql(
             organization_id=organization.id,
             group_id=group.id,

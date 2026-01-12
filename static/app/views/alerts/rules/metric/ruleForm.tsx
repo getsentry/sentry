@@ -1594,7 +1594,7 @@ function getTimeWindowFromDataset(
 function WarningIcon({tooltipProps, id}: {id: string; tooltipProps?: TooltipProps}) {
   return (
     <Tooltip {...tooltipProps} title={tooltipProps?.title} skipWrapper>
-      <StyledIconWarning id={id} size="md" color="yellow300" />
+      <StyledIconWarning id={id} size="md" variant="warning" />
     </Tooltip>
   );
 }
@@ -1626,7 +1626,7 @@ const AlertInfo = styled('div')`
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.subText};
+  background: ${p => p.theme.tokens.graphics.neutral.vibrant};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;

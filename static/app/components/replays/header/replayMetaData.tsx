@@ -53,7 +53,7 @@ export default function ReplayMetaData({
             {replayRecord?.count_dead_clicks ? (
               <Link to={breadcrumbTab}>
                 <ClickCount>
-                  <IconCursorArrow size="sm" color="yellow300" />
+                  <IconCursorArrow size="sm" variant="warning" />
                   {replayRecord.count_dead_clicks}
                 </ClickCount>
               </Link>
@@ -114,9 +114,10 @@ const KeyMetrics = styled('dl')`
   grid-template-rows: max-content 1fr;
   grid-template-columns: repeat(4, max-content);
   grid-auto-flow: column;
+  height: 42px;
   gap: 0 ${space(3)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -125,12 +126,12 @@ const KeyMetrics = styled('dl')`
 `;
 
 const KeyMetricLabel = styled('dt')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const KeyMetricData = styled('dd')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -142,7 +143,7 @@ const Count = styled('span')`
 `;
 
 const ClickCount = styled(Count)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   gap: ${space(0.75)};
   align-items: center;

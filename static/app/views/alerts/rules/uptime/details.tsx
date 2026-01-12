@@ -30,7 +30,6 @@ import {
   makeDetectorDetailsQueryKey,
   useDetectorQuery,
 } from 'sentry/views/detectors/hooks';
-import {monitorName} from 'sentry/views/insights/uptime/utils/monitorName';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
 import {UptimeDetailsSidebar} from './detailsSidebar';
@@ -123,7 +122,7 @@ export default function UptimeAlertDetails() {
 
   return (
     <Layout.Page>
-      <SentryDocumentTitle title={`${monitorName(detector)} — Alerts`} />
+      <SentryDocumentTitle title={`${detector.name} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -147,7 +146,7 @@ export default function UptimeAlertDetails() {
               hideName
               avatarProps={{hasTooltip: true, tooltip: project.slug}}
             />
-            {monitorName(detector)}
+            {detector.name}
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>

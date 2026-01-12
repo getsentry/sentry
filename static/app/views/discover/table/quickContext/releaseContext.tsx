@@ -205,7 +205,7 @@ const ReleaseContextContainer = styled(ContextContainer)`
 
 const ReleaseBody = styled(ContextBody)`
   font-size: 13px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default ReleaseContext;
