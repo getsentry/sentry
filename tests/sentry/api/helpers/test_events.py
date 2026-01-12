@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any
 from unittest import mock
 
 from django.utils import timezone
 
-from sentry.api.helpers.events import (
-    _reasonable_group_events_match,
-    get_events_for_group_eap,
-    run_group_events_query,
-)
+from sentry.api.helpers.events import get_events_for_group_eap, run_group_events_query
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -125,68 +120,7 @@ class GetEventsForGroupEAPTest(TestCase, SnubaTestCase):
         )
 
         call_kwargs = mock_run_table_query.call_args.kwargs
-        # sample orderby should fall back to -timestamp since EAP doesn't support column_hash
-        assert call_kwargs["orderby"] == ["-timestamp"]
-
-
-class ReasonableGroupEventsMatchTest(TestCase):
-    def test_returns_true_for_matching_ids(self) -> None:
-        snuba_data = [
-            {"id": "abc123", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-            {"id": "def456", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T09:00:00Z"},
-        ]
-        eap_data = [
-            {"id": "def456", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T09:00:00Z"},
-            {"id": "abc123", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-        ]
-
-        assert _reasonable_group_events_match(snuba_data, eap_data) is True
-
-    def test_returns_true_for_eap_subset(self) -> None:
-        """EAP may have less data during migration, subset is acceptable."""
-        snuba_data = [
-            {"id": "abc123", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-            {"id": "def456", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T09:00:00Z"},
-        ]
-        eap_data = [
-            {"id": "abc123", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-        ]
-
-        assert _reasonable_group_events_match(snuba_data, eap_data) is True
-
-    def test_returns_false_for_eap_has_extra_ids(self) -> None:
-        """EAP should not have IDs that Snuba doesn't have."""
-        snuba_data = [
-            {"id": "abc123", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-        ]
-        eap_data = [
-            {"id": "abc123", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-            {"id": "xyz789", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T09:00:00Z"},
-        ]
-
-        assert _reasonable_group_events_match(snuba_data, eap_data) is False
-
-    def test_returns_false_for_different_ids(self) -> None:
-        snuba_data = [
-            {"id": "abc123", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-        ]
-        eap_data = [
-            {"id": "xyz789", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-        ]
-
-        assert _reasonable_group_events_match(snuba_data, eap_data) is False
-
-    def test_returns_true_for_empty_lists(self) -> None:
-        assert _reasonable_group_events_match([], []) is True
-
-    def test_returns_true_for_eap_empty_snuba_has_data(self) -> None:
-        """Empty EAP is a subset of any Snuba result."""
-        snuba_data = [
-            {"id": "abc123", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"},
-        ]
-        eap_data: list[dict[str, Any]] = []
-
-        assert _reasonable_group_events_match(snuba_data, eap_data) is True
+        assert call_kwargs["orderby"] == ["-timestamp", "id"]
 
 
 class RunGroupEventsQueryTest(TestCase, SnubaTestCase):
@@ -203,7 +137,6 @@ class RunGroupEventsQueryTest(TestCase, SnubaTestCase):
         mock_get_query_builder: mock.MagicMock,
         mock_get_eap: mock.MagicMock,
     ) -> None:
-        # Setup snuba mock
         mock_query = mock.MagicMock()
         mock_query.run_query.return_value = {
             "data": [
@@ -217,7 +150,6 @@ class RunGroupEventsQueryTest(TestCase, SnubaTestCase):
         }
         mock_get_query_builder.return_value = mock_query
 
-        # Setup EAP mock
         mock_get_eap.return_value = [
             {"id": "eap456", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"}
         ]
@@ -242,7 +174,6 @@ class RunGroupEventsQueryTest(TestCase, SnubaTestCase):
                 referrer="test.referrer",
             )
 
-        # Should return snuba result (source of truth)
         assert len(result) == 1
         assert result[0]["id"] == "snuba123"
         mock_get_query_builder.assert_called_once()
@@ -255,7 +186,6 @@ class RunGroupEventsQueryTest(TestCase, SnubaTestCase):
         mock_get_query_builder: mock.MagicMock,
         mock_get_eap: mock.MagicMock,
     ) -> None:
-        # Setup snuba mock
         mock_query = mock.MagicMock()
         mock_query.run_query.return_value = {
             "data": [
@@ -269,7 +199,6 @@ class RunGroupEventsQueryTest(TestCase, SnubaTestCase):
         }
         mock_get_query_builder.return_value = mock_query
 
-        # Setup EAP mock
         mock_get_eap.return_value = [
             {"id": "eap456", "project.id": 1, "issue.id": 1, "timestamp": "2025-01-08T10:00:00Z"}
         ]
@@ -301,55 +230,7 @@ class RunGroupEventsQueryTest(TestCase, SnubaTestCase):
                 referrer="test.referrer",
             )
 
-        # Should return EAP result when in allowlist
         assert len(result) == 1
         assert result[0]["id"] == "eap456"
         mock_get_query_builder.assert_called_once()
         mock_get_eap.assert_called_once()
-
-    @mock.patch("sentry.api.helpers.events.get_events_for_group_eap")
-    @mock.patch("sentry.api.helpers.events.get_query_builder_for_group")
-    def test_skips_eap_when_experiment_disabled(
-        self,
-        mock_get_query_builder: mock.MagicMock,
-        mock_get_eap: mock.MagicMock,
-    ) -> None:
-        # Setup snuba mock
-        mock_query = mock.MagicMock()
-        mock_query.run_query.return_value = {
-            "data": [
-                {
-                    "id": "snuba123",
-                    "project.id": 1,
-                    "issue.id": 1,
-                    "timestamp": "2025-01-08T10:00:00Z",
-                }
-            ]
-        }
-        mock_get_query_builder.return_value = mock_query
-
-        group = self.create_group(project=self.project)
-        snuba_params = SnubaParams(
-            start=timezone.now() - timedelta(days=1),
-            end=timezone.now(),
-            environments=[],
-            projects=[self.project],
-            organization=self.organization,
-        )
-
-        # EAP experiment disabled by default
-        result = run_group_events_query(
-            query="",
-            snuba_params=snuba_params,
-            group=group,
-            limit=10,
-            offset=0,
-            orderby=None,
-            referrer="test.referrer",
-        )
-
-        # Should return snuba result and NOT call EAP
-        assert len(result) == 1
-        assert result[0]["id"] == "snuba123"
-        mock_get_query_builder.assert_called_once()
-        mock_get_eap.assert_not_called()

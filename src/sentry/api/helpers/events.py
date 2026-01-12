@@ -76,10 +76,13 @@ def get_query_builder_for_group(
     selected_columns = ["id", "project.id", "issue.id", "timestamp"]
 
     if orderby is None:
-        orderby = "-timestamp"
+        orderby_list = ["-timestamp", "id"]
     elif orderby == "sample":
         # IDs are UUIDs, so should be random, but we'll hash them just in case
         selected_columns.append("column_hash(id) as sample")
+        orderby_list = [orderby, "id"]
+    else:
+        orderby_list = [orderby, "id"]
 
     return DiscoverQueryBuilder(
         dataset=dataset,
@@ -87,7 +90,7 @@ def get_query_builder_for_group(
         params={},
         snuba_params=snuba_params,
         selected_columns=selected_columns,
-        orderby=[orderby],
+        orderby=orderby_list,
         limit=limit,
         offset=offset,
         config=QueryBuilderConfig(
@@ -110,9 +113,9 @@ def get_events_for_group_eap(
         query_string = f"{query_string} {query}"
 
     if orderby is None or orderby == "sample":
-        orderby_list = ["-timestamp"]
+        orderby_list = ["-timestamp", "id"]
     else:
-        orderby_list = [orderby]
+        orderby_list = [orderby, "id"]
 
     try:
         result = Occurrences.run_table_query(
@@ -179,25 +182,6 @@ def run_group_events_query(
             orderby=orderby,
             referrer=referrer,
         )
-
-        # TEMPORARY: Log comparison results for local testing - remove before merging
-        snuba_ids = {r.get("id") for r in snuba_data}
-        eap_ids = {r.get("id") for r in eap_data}
-        logger.info(
-            "EAP double-read comparison",
-            extra={
-                "group_id": group.id,
-                "snuba_count": len(snuba_data),
-                "eap_count": len(eap_data),
-                "snuba_ids": list(snuba_ids),
-                "eap_ids": list(eap_ids),
-                "is_subset": eap_ids.issubset(snuba_ids),
-                "exact_match": snuba_ids == eap_ids,
-                "missing_from_eap": list(snuba_ids - eap_ids),
-                "extra_in_eap": list(eap_ids - snuba_ids),
-            },
-        )
-
         results = EAPOccurrencesComparator.check_and_choose(
             snuba_data,
             eap_data,
