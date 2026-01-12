@@ -229,3 +229,37 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert len(messages) == 1
         assert str(messages[0]).startswith("Authentication error")
         assert auth_resp.context["user"] != self.user
+
+    def test_state_contains_provider_key(self) -> None:
+        """Test that OAuth state parameter contains the provider key for mismatch detection."""
+        state = self.initiate_oauth_flow()
+
+        # State format should be "{nonce}:{provider_key}"
+        assert ":" in state
+        nonce, provider_key = state.split(":", 1)
+        assert len(nonce) > 0
+        assert provider_key == self.provider_name
+
+    @mock.patch("sentry.auth.providers.oauth2.safe_urlopen")
+    def test_provider_mismatch_detected(self, urlopen: mock.MagicMock) -> None:
+        """Test that authenticating with wrong provider in state triggers mismatch detection."""
+        # Start a normal OAuth flow to get the session set up
+        state = self.initiate_oauth_flow()
+
+        # Modify the state to have a different provider key (simulating multi-tab scenario
+        # where user started auth with a different provider)
+        nonce = state.split(":")[0]
+        wrong_state = f"{nonce}:wrong_provider"
+
+        # The state validation should fail because the full state doesn't match
+        headers = {"Content-Type": "application/json"}
+        auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
+        urlopen.return_value = MockResponse(headers, json.dumps(auth_data))
+
+        query = urlencode({"code": "1234", "state": wrong_state})
+        auth_resp = self.client.get(f"{self.sso_path}?{query}", follow=True)
+
+        # Should fail with state mismatch error
+        messages = list(auth_resp.context["messages"])
+        assert len(messages) == 1
+        assert str(messages[0]).startswith("Authentication error")

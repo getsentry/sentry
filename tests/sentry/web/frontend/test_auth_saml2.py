@@ -308,3 +308,26 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         # expect no linking before verification
         assert AuthIdentity.objects.filter(user_id=self.user.id).count() == 0
+
+    def test_relay_state_contains_provider_key(self) -> None:
+        """Test that SAML RelayState contains the provider key for mismatch detection."""
+        resp = self.client.post(self.login_path, {"init": True})
+
+        assert resp.status_code == 302
+        redirect = urlparse(resp.get("Location", ""))
+        query = parse_qs(redirect.query)
+
+        # RelayState should contain the provider key
+        assert "RelayState" in query
+        relay_state = query["RelayState"][0]
+        assert relay_state == f"provider_key:{self.provider_name}"
+
+    def test_idp_initiated_without_relay_state_continues(self) -> None:
+        """Test that IdP-initiated SAML without RelayState continues normally (backward compat)."""
+        # IdP-initiated auth doesn't have RelayState from our side
+        # This should still work - the provider_key will be None and the check will be skipped
+        auth = self.accept_auth()
+
+        # Should continue to identity confirmation
+        assert auth.status_code == 200
+        assert auth.context["existing_user"] == self.user
