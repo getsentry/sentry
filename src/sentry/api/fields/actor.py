@@ -47,20 +47,24 @@ class OwnerActorField(ActorField):
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
         request = self.context.get("request")
-        access = getattr(request, "access", None)
+        # Check for access in context directly for background tasks or on request for API requests
+        access = self.context.get("access") or getattr(request, "access", None)
 
         # Users with team:admin scope can assign any team
+        # SystemAccess (used in background tasks) returns True for all scopes
         if access and access.has_scope("team:admin"):
             return
 
-        # Fail closed if we can't verify the user
-        if not request or not getattr(request, "user", None):
+        # Try to get user from context directly or from request
+        user = self.context.get("user") or getattr(request, "user", None)
+
+        # Fail closed
+        if not user:
             raise serializers.ValidationError("You do not have permission to assign this owner")
 
-        # Check if user is a member of the team
         user_is_team_member = OrganizationMemberTeam.objects.filter(
             team_id=actor.id,
-            organizationmember__user_id=request.user.id,
+            organizationmember__user_id=user.id,
             is_active=True,
         ).exists()
 
