@@ -7,6 +7,7 @@ from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.registry import (
     group_type_notification_registry,
+    issue_alert_handler_registry,
     metric_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import LegacyRegistryHandler
@@ -26,12 +27,23 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
             handler = metric_alert_handler_registry.get(invocation.action.type)
             handler.invoke_legacy_registry(invocation)
         except NoRegistrationExistsError:
-            logger.exception(
-                "No metric alert handler found for action type: %s",
+            # Fall back to issue alert handler for action types that don't have
+            # a metric alert handler (e.g., plugins, webhooks)
+            logger.info(
+                "No metric alert handler found for action type: %s, falling back to issue alert handler",
                 invocation.action.type,
                 extra={"action_id": invocation.action.id},
             )
-            raise
+            try:
+                handler = issue_alert_handler_registry.get(invocation.action.type)
+                handler.invoke_legacy_registry(invocation)
+            except NoRegistrationExistsError:
+                logger.exception(
+                    "No handler found for action type: %s in either metric alert or issue alert registries",
+                    invocation.action.type,
+                    extra={"action_id": invocation.action.id},
+                )
+                raise
         except Exception:
             logger.exception(
                 "Error invoking metric alert handler",
