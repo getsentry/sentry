@@ -9,7 +9,11 @@ import {
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -30,6 +34,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
+import {
+  assignDefaultLayout,
+  assignTempId,
+  calculateColumnDepths,
+  getDashboardLayout,
+  getInitialColumnDepths,
+} from 'sentry/views/dashboards/layoutUtils';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -58,7 +69,7 @@ import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSele
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
-type AddToDashboardModalActions =
+export type AddToDashboardModalActions =
   | 'add-and-open-dashboard'
   | 'add-and-stay-on-current-page'
   | 'open-in-widget-builder';
@@ -120,6 +131,9 @@ function AddToDashboardModal({
 
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
 
+  // Check if we have multiple widgets to adjust UI accordingly
+  const hasMultipleWidgets = widgets.length > 1;
+
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
     setOrderBy(newOrderBy);
@@ -179,7 +193,7 @@ function AddToDashboardModal({
     };
   }, [api, organization.slug, selectedDashboardId]);
 
-  function goToDashboard(page: 'builder' | 'preview') {
+  function goToDashboard(page: 'builder' | 'preview', state?: any) {
     const dashboardsPath =
       selectedDashboardId === NEW_DASHBOARD_ID
         ? `/organizations/${organization.slug}/dashboards/new/`
@@ -203,7 +217,8 @@ function AddToDashboardModal({
             ? getSavedPageFilters(selectedDashboard)
             : pageFiltersToQueryParams(selection)),
         },
-      })
+      }),
+      {state}
     );
     closeModal();
   }
@@ -244,9 +259,67 @@ function AddToDashboardModal({
   }
 
   async function handleAddAndOpenDashboard() {
-    await handleAddWidget();
+    if (!canSubmit) {
+      return;
+    }
 
-    goToDashboard('preview');
+    if (!hasMultipleWidgets) {
+      await handleAddWidget();
+      goToDashboard('preview');
+      return;
+    }
+
+    // For new dashboards, use location state since there's no dashboard to update yet
+    if (selectedDashboardId === NEW_DASHBOARD_ID) {
+      // Assign tempIds and default layouts to widgets before passing via location state
+      const widgetsWithTempIds = widgets.map(w => assignTempId(w));
+      const widgetsWithLayouts = assignDefaultLayout(
+        widgetsWithTempIds,
+        getInitialColumnDepths()
+      );
+
+      goToDashboard('preview', {
+        widgets: widgetsWithLayouts,
+        source: 'trace-metrics',
+      });
+      closeModal();
+      return;
+    }
+
+    // For existing dashboards, add widgets via API first, then navigate
+    try {
+      addLoadingMessage(t('Adding widgets to dashboard...'));
+      await handleAddMultipleWidgetsToExistingDashboard();
+      addSuccessMessage(t('Successfully added widgets to dashboard'));
+
+      // Navigate to dashboard (widgets already saved, no location state needed)
+      goToDashboard('preview');
+      closeModal();
+    } catch (error) {
+      addErrorMessage(t('Failed to add widgets to dashboard'));
+    }
+  }
+
+  async function handleAddMultipleWidgetsToExistingDashboard() {
+    if (selectedDashboard === null) {
+      return;
+    }
+
+    // Calculate column depths from existing widgets
+    const existingLayout = getDashboardLayout(selectedDashboard.widgets);
+    const columnDepths = calculateColumnDepths(existingLayout);
+
+    // Assign tempIds and default layouts to new widgets
+    const widgetsWithTempIds = widgets.map(w => assignTempId(w));
+    const widgetsWithLayouts = assignDefaultLayout(widgetsWithTempIds, columnDepths);
+
+    // Add all widgets to the dashboard
+    const newDashboard = {
+      ...selectedDashboard,
+      widgets: [...selectedDashboard.widgets, ...widgetsWithLayouts],
+    };
+
+    await updateDashboard(api, organization.slug, newDashboard);
   }
 
   const canSubmit = selectedDashboardId !== null;
@@ -339,73 +412,87 @@ function AddToDashboardModal({
             )}
           </DashboardCreateLimitWrapper>
         </Wrapper>
+        {!hasMultipleWidgets && (
+          <Wrapper>
+            <SectionHeader title={t('Widget Name')} optional />
+            <Input
+              type="text"
+              aria-label={t('Optional Widget Name')}
+              placeholder={t('Name')}
+              onChange={e => updateWidgetTitle(e.target.value)}
+            />
+          </Wrapper>
+        )}
         <Wrapper>
-          <SectionHeader title={t('Widget Name')} optional />
-          <Input
-            type="text"
-            aria-label={t('Optional Widget Name')}
-            placeholder={t('Name')}
-            onChange={e => updateWidgetTitle(e.target.value)}
-          />
+          {hasMultipleWidgets
+            ? tct(
+                'Adding [count] widgets to the selected dashboard. Any conflicting filters from these queries will be overridden by Dashboard filters.',
+                {count: widgets.length}
+              )
+            : t(
+                'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
+              )}
         </Wrapper>
-        <Wrapper>
-          {t(
-            'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
-          )}
-        </Wrapper>
-        <MetricsCardinalityProvider organization={organization} location={location}>
-          <MetricsDataSwitcher
-            organization={organization}
-            eventView={eventViewFromWidget(newWidgetTitle, widget.queries[0]!, selection)}
-            location={location}
-            hideLoadingIndicator
-          >
-            {metricsDataSide => (
-              <DashboardsMEPProvider>
-                <MEPSettingProvider
-                  location={location}
-                  forceTransactions={metricsDataSide.forceTransactionsOnly}
-                >
-                  <WidgetCardWrapper>
-                    <WidgetCard
-                      organization={organization}
-                      isEditingDashboard={false}
-                      showContextMenu={false}
-                      widgetLimitReached={false}
-                      selection={
-                        selectedDashboard
-                          ? getSavedFiltersAsPageFilters(selectedDashboard)
-                          : selection
-                      }
-                      dashboardFilters={
-                        getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
-                      }
-                      widget={{
-                        ...widget,
-                        title: newWidgetTitle,
-                        tableWidths,
-                        queries: getUpdatedWidgetQueries(),
-                      }}
-                      shouldResize
-                      widgetLegendState={widgetLegendState}
-                      onLegendSelectChanged={() => {}}
-                      legendOptions={
-                        widgetLegendState.widgetRequiresLegendUnselection(widget)
-                          ? {selected: unselectedReleasesForCharts}
-                          : undefined
-                      }
-                      disableFullscreen
-                      onWidgetTableResizeColumn={handleWidgetTableColumnResize}
-                      onWidgetTableSort={handleWidgetTableSort}
-                      disableTableActions
-                    />
-                  </WidgetCardWrapper>
-                  <IndexedEventsSelectionAlert widget={widget} />
-                </MEPSettingProvider>
-              </DashboardsMEPProvider>
-            )}
-          </MetricsDataSwitcher>
-        </MetricsCardinalityProvider>
+        {!hasMultipleWidgets && (
+          <MetricsCardinalityProvider organization={organization} location={location}>
+            <MetricsDataSwitcher
+              organization={organization}
+              eventView={eventViewFromWidget(
+                newWidgetTitle,
+                widget.queries[0]!,
+                selection
+              )}
+              location={location}
+              hideLoadingIndicator
+            >
+              {metricsDataSide => (
+                <DashboardsMEPProvider>
+                  <MEPSettingProvider
+                    location={location}
+                    forceTransactions={metricsDataSide.forceTransactionsOnly}
+                  >
+                    <WidgetCardWrapper>
+                      <WidgetCard
+                        organization={organization}
+                        isEditingDashboard={false}
+                        showContextMenu={false}
+                        widgetLimitReached={false}
+                        selection={
+                          selectedDashboard
+                            ? getSavedFiltersAsPageFilters(selectedDashboard)
+                            : selection
+                        }
+                        dashboardFilters={
+                          getDashboardFiltersFromURL(location) ??
+                          selectedDashboard?.filters
+                        }
+                        widget={{
+                          ...widget,
+                          title: newWidgetTitle,
+                          tableWidths,
+                          queries: getUpdatedWidgetQueries(),
+                        }}
+                        shouldResize
+                        widgetLegendState={widgetLegendState}
+                        onLegendSelectChanged={() => {}}
+                        legendOptions={
+                          widgetLegendState.widgetRequiresLegendUnselection(widget)
+                            ? {selected: unselectedReleasesForCharts}
+                            : undefined
+                        }
+                        disableFullscreen
+                        onWidgetTableResizeColumn={handleWidgetTableColumnResize}
+                        onWidgetTableSort={handleWidgetTableSort}
+                        disableTableActions
+                      />
+                    </WidgetCardWrapper>
+                    <IndexedEventsSelectionAlert widget={widget} />
+                  </MEPSettingProvider>
+                </DashboardsMEPProvider>
+              )}
+            </MetricsDataSwitcher>
+          </MetricsCardinalityProvider>
+        )}
       </Body>
 
       <Footer>
@@ -421,6 +508,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('add-and-open-dashboard') && (
             <Button
+              priority={hasMultipleWidgets ? 'primary' : 'default'}
               onClick={handleAddAndOpenDashboard}
               disabled={!canSubmit}
               title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
@@ -428,7 +516,7 @@ function AddToDashboardModal({
               {t('Add + Open Dashboard')}
             </Button>
           )}
-          {actions.includes('open-in-widget-builder') && (
+          {actions.includes('open-in-widget-builder') && !hasMultipleWidgets && (
             <Button
               priority="primary"
               onClick={() => goToDashboard('builder')}

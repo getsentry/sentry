@@ -104,19 +104,33 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
         label: <span>{t('A Dashboard widget')}</span>,
         textValue: t('A Dashboard widget'),
         isSubmenu: true,
-        children: metricQueries.map((metricQuery, index) => {
-          return {
-            key: `add-to-dashboard-${index}`,
-            label: `${getVisualizeLabel(index)}: ${
-              formatTraceMetricsFunction(
-                metricQuery.queryParams.aggregateFields.find(isVisualize)?.yAxis ?? ''
-              ) as string
-            }`,
-            onAction: () => {
-              addToDashboard(metricQuery);
-            },
-          };
-        }),
+        children: [
+          ...(metricQueries.length > 1
+            ? [
+                {
+                  key: 'add-to-dashboard-all',
+                  label: <span>{t('All Metrics')}</span>,
+                  textValue: t('All Metrics'),
+                  onAction: () => {
+                    addToDashboard(metricQueries);
+                  },
+                },
+              ]
+            : []),
+          ...metricQueries.map((metricQuery, index) => {
+            return {
+              key: `add-to-dashboard-${index}`,
+              label: `${getVisualizeLabel(index)}: ${
+                formatTraceMetricsFunction(
+                  metricQuery.queryParams.aggregateFields.find(isVisualize)?.yAxis ?? ''
+                ) as string
+              }`,
+              onAction: () => {
+                addToDashboard(metricQuery);
+              },
+            };
+          }),
+        ],
       });
     }
 

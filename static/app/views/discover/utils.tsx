@@ -14,6 +14,7 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -713,6 +714,94 @@ export function handleAddQueryToDashboard({
     location,
   });
   return;
+}
+
+export function handleAddMultipleQueriesToDashboard({
+  eventViews,
+  location,
+  organization,
+  widgetType,
+  source,
+}: {
+  eventViews: EventView[];
+  location: Location;
+  organization: Organization;
+  source: DashboardWidgetSource;
+  widgetType: WidgetType | undefined;
+}) {
+  if (eventViews.length === 0) {
+    return;
+  }
+
+  // Use first eventView for page filters since all should share same filters
+  const firstEventView = eventViews[0]!;
+
+  const widgets = eventViews.map(eventView => {
+    const displayType =
+      widgetType === WidgetType.SPANS || widgetType === WidgetType.TRACEMETRICS
+        ? (eventView.display as DisplayType)
+        : displayModeToDisplayType(eventView.display as DisplayModes);
+
+    const defaultWidgetQuery = eventViewToWidgetQuery({
+      eventView,
+      displayType,
+      yAxis: eventView.yAxis,
+    });
+
+    const yAxis = eventView.yAxis;
+
+    const limit =
+      displayType === DisplayType.TOP_N || eventView.display === DisplayModes.DAILYTOP5
+        ? Number(eventView.topEvents) || TOP_N
+        : undefined;
+
+    // Get fields from eventView
+    const fields = eventView.getFields();
+
+    // For trace metrics and spans, columns should only include non-aggregate fields
+    const columns =
+      widgetType === WidgetType.SPANS ||
+      widgetType === WidgetType.TRACEMETRICS ||
+      displayType === DisplayType.TOP_N ||
+      eventView.display === DisplayModes.DAILYTOP5
+        ? fields.filter(column => defined(column) && !isAggregateFieldOrEquation(column))
+        : [];
+
+    return {
+      title: eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name!,
+      displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+      queries: [
+        {
+          ...defaultWidgetQuery,
+          aggregates: toArray(yAxis ?? 'count()'),
+          fields,
+          columns,
+        },
+      ],
+      interval: eventView.interval!,
+      limit,
+      widgetType,
+    } as Widget;
+  });
+
+  openAddToDashboardModal({
+    organization,
+    selection: {
+      projects: firstEventView.project.slice(),
+      environments: firstEventView.environment.slice(),
+      datetime: {
+        start: firstEventView.start!,
+        end: firstEventView.end!,
+        period: firstEventView.statsPeriod!,
+        // @ts-expect-error TS(2322): Type 'string | boolean | undefined' is not assigna... Remove this comment to see the full error message
+        utc: firstEventView.utc,
+      },
+    },
+    widgets: widgets as [Widget, ...Widget[]],
+    location,
+    source,
+    actions: ['add-and-stay-on-current-page', 'add-and-open-dashboard'],
+  });
 }
 
 export function getTargetForTransactionSummaryLink(

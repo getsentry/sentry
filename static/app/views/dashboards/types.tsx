@@ -232,6 +232,12 @@ export enum DashboardState {
   EMBEDDED = 'embedded',
 }
 
+// Location state for passing widgets between pages (e.g., from trace metrics to dashboard)
+export type DashboardLocationState = {
+  source?: string;
+  widgets?: Widget[];
+};
+
 // where we launch the dashboard widget from
 export enum DashboardWidgetSource {
   DISCOVERV2 = 'discoverv2',
