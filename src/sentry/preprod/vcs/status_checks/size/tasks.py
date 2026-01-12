@@ -426,7 +426,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str | N
     if artifact.app_id:
         context["build.package_name"] = artifact.app_id
 
-    if artifact.build_configuration_id:
+    if artifact.build_configuration:
         try:
             context["build.build_configuration"] = artifact.build_configuration.name
         except Exception:
