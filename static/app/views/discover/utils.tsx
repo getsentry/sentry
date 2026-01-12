@@ -683,28 +683,32 @@ export function handleAddQueryToDashboard({
         utc: eventView.utc,
       },
     },
-    widget: {
-      // We need the event view name for when we're adding from a saved query page
-      title: (query?.name ??
-        (eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name))!,
-      displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
-      queries: [
-        {
-          ...defaultWidgetQuery,
-          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
-          ...{
-            // The widget query params filters out aggregate fields
-            // so we can use the fields as columns. This is so yAxes
-            // can be grouped by the fields.
-            fields: widgetAsQueryParams?.field ?? [],
-            columns: widgetAsQueryParams?.field ?? [],
+    widgets: [
+      {
+        // We need the event view name for when we're adding from a saved query page
+        title: (query?.name ??
+          (eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name))!,
+        displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+        queries: [
+          {
+            ...defaultWidgetQuery,
+            aggregates: [
+              ...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()'])),
+            ],
+            ...{
+              // The widget query params filters out aggregate fields
+              // so we can use the fields as columns. This is so yAxes
+              // can be grouped by the fields.
+              fields: widgetAsQueryParams?.field ?? [],
+              columns: widgetAsQueryParams?.field ?? [],
+            },
           },
-        },
-      ],
-      interval: eventView.interval!,
-      limit: widgetAsQueryParams?.limit,
-      widgetType,
-    },
+        ],
+        interval: eventView.interval!,
+        limit: widgetAsQueryParams?.limit,
+        widgetType,
+      },
+    ],
     source,
     location,
   });

@@ -569,23 +569,25 @@ describe('Discover > QueryList', () => {
       await waitFor(() => {
         expect(openAddToDashboardModal).toHaveBeenCalledWith(
           expect.objectContaining({
-            widget: {
-              displayType: 'area',
-              interval: undefined,
-              limit: 5,
-              queries: [
-                {
-                  aggregates: ['count()'],
-                  columns: ['test'],
-                  conditions: '',
-                  fields: ['test'],
-                  name: '',
-                  orderby: 'test',
-                },
-              ],
-              title: 'Saved query #1',
-              widgetType: 'transaction-like',
-            },
+            widgets: [
+              {
+                displayType: 'area',
+                interval: undefined,
+                limit: 5,
+                queries: [
+                  {
+                    aggregates: ['count()'],
+                    columns: ['test'],
+                    conditions: '',
+                    fields: ['test'],
+                    name: '',
+                    orderby: 'test',
+                  },
+                ],
+                title: 'Saved query #1',
+                widgetType: 'transaction-like',
+              },
+            ],
           })
         );
       });
@@ -633,23 +635,25 @@ describe('Discover > QueryList', () => {
       await waitFor(() => {
         expect(openAddToDashboardModal).toHaveBeenCalledWith(
           expect.objectContaining({
-            widget: {
-              displayType: 'area',
-              interval: undefined,
-              limit: undefined,
-              queries: [
-                {
-                  aggregates: ['count()'],
-                  columns: [],
-                  conditions: '',
-                  fields: [],
-                  name: '',
-                  orderby: '',
-                },
-              ],
-              title: 'Saved query #1',
-              widgetType: 'transaction-like',
-            },
+            widgets: [
+              {
+                displayType: 'area',
+                interval: undefined,
+                limit: undefined,
+                queries: [
+                  {
+                    aggregates: ['count()'],
+                    columns: [],
+                    conditions: '',
+                    fields: [],
+                    name: '',
+                    orderby: '',
+                  },
+                ],
+                title: 'Saved query #1',
+                widgetType: 'transaction-like',
+              },
+            ],
           })
         );
       });
@@ -770,23 +774,25 @@ describe('Discover > QueryList', () => {
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
-          widget: {
-            displayType: 'area',
-            interval: undefined,
-            limit: undefined,
-            queries: [
-              {
-                aggregates: ['count()'],
-                columns: [],
-                conditions: '',
-                fields: [],
-                name: '',
-                orderby: '',
-              },
-            ],
-            title: 'Saved query #1',
-            widgetType: 'transaction-like',
-          },
+          widgets: [
+            {
+              displayType: 'area',
+              interval: undefined,
+              limit: undefined,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: [],
+                  conditions: '',
+                  fields: [],
+                  name: '',
+                  orderby: '',
+                },
+              ],
+              title: 'Saved query #1',
+              widgetType: 'transaction-like',
+            },
+          ],
         })
       );
     });
