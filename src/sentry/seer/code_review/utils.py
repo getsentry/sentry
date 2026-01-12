@@ -62,7 +62,7 @@ def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint
     return SeerEndpoint.OVERWATCH_REQUEST
 
 
-def get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
+def get_webhook_option_key(webhook_type: GithubWebhookType) -> str:
     """
     Get the option key for a given GitHub webhook type.
 
@@ -74,7 +74,7 @@ def get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
     """
     from .webhooks.config import WEBHOOK_TYPE_TO_OPTION_KEY
 
-    return WEBHOOK_TYPE_TO_OPTION_KEY.get(webhook_type)
+    return WEBHOOK_TYPE_TO_OPTION_KEY.get(webhook_type) or ""
 
 
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:

@@ -24,7 +24,6 @@ from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_filtered
 from ..utils import SeerCodeReviewTrigger, get_seer_endpoint_for_event, make_seer_request
-from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
 
@@ -98,19 +97,9 @@ def process_github_webhook_event(
 
     # Skip this check for CHECK_RUN events (always go to Seer)
     if github_event != GithubWebhookType.CHECK_RUN:
-        # Check if repo owner is in the whitelist (always send to Seer for these orgs)
-        # Otherwise, check option key to see if Overwatch should handle this
-        repo_owner = event_payload.get("data", {}).get("repo", {}).get("owner")
-        logger.info("payload: %s", event_payload)
-        if repo_owner:
-            logger.info("repo_owner: %s", repo_owner)
-        else:
-            logger.info("repo_owner not found")
-        logger.info("get_direct_to_seer_gh_orgs: %s", get_direct_to_seer_gh_orgs())
-        if repo_owner not in get_direct_to_seer_gh_orgs():
-            # If option is True, Overwatch handles this - skip Seer processing
-            if option_key and options.get(option_key):
-                return
+        # If option is True, Overwatch handles this - skip Seer processing
+        if option_key and options.get(option_key):
+            return
 
     try:
         path = get_seer_endpoint_for_event(github_event).value
