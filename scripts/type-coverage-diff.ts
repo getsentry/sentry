@@ -213,7 +213,8 @@ async function parseGitDiff(
     const changes = new Map<string, GitDiffChange>();
     const lines = stdout.split('\n');
     let currentFile: string | null = null;
-    let currentLineNumber = 0;
+    let oldLineNumber = 0;
+    let newLineNumber = 0;
 
     for (const line of lines) {
       // Parse file headers: --- a/file.ts, +++ b/file.ts
@@ -233,9 +234,11 @@ async function parseGitDiff(
         // Parse hunk header: @@ -oldStart,oldCount +newStart,newCount @@
         const match = line.match(/@@ -(\d+),?(\d+)? \+(\d+),?(\d+)? @@/);
         if (match) {
+          const oldStart = parseInt(match[1] || '1', 10);
           const newStart = parseInt(match[3] || '1', 10);
           const newCount = parseInt(match[4] || '1', 10);
-          currentLineNumber = newStart;
+          oldLineNumber = oldStart;
+          newLineNumber = newStart;
 
           const change = changes.get(currentFile)!;
           change.modifiedRanges.push({
@@ -244,17 +247,19 @@ async function parseGitDiff(
           });
         }
       } else if (line.startsWith('+') && !line.startsWith('+++') && currentFile) {
-        // Added line
+        // Added line - exists only in new file
         const change = changes.get(currentFile)!;
-        change.addedLines.add(currentLineNumber);
-        currentLineNumber++;
+        change.addedLines.add(newLineNumber);
+        newLineNumber++;
       } else if (line.startsWith('-') && !line.startsWith('---') && currentFile) {
-        // Removed line - don't increment currentLineNumber
+        // Removed line - exists only in old file
         const change = changes.get(currentFile)!;
-        change.removedLines.add(currentLineNumber);
+        change.removedLines.add(oldLineNumber);
+        oldLineNumber++;
       } else if (line.startsWith(' ') && currentFile) {
-        // Context line (unchanged)
-        currentLineNumber++;
+        // Context line (unchanged) - exists in both files
+        oldLineNumber++;
+        newLineNumber++;
       }
     }
 
