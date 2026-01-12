@@ -19,7 +19,7 @@ import {
   useRevokeConsoleSdkInvite,
 } from 'getsentry/views/consoleSdkInvites/hooks';
 
-function ConsoleSDKInvitesSettings() {
+export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
 
   const {data: invites, isPending} = useConsoleSdkInvites(organization.slug);
@@ -111,5 +111,3 @@ const InvitesTable = styled(SimpleTable)`
   margin-top: 1em;
   grid-template-columns: 2fr 2fr max-content;
 `;
-
-export default ConsoleSDKInvitesSettings;
