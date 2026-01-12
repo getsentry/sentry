@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from time import time
 from typing import Any
@@ -42,6 +43,46 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+
+
+def sanitize_oauth_error(error: str) -> str:
+    """
+    Sanitize untrusted OAuth error parameters to prevent log poisoning and command injection.
+    
+    This function removes potentially dangerous characters and control sequences that could be
+    used for log injection, command injection, or other security vulnerabilities.
+    
+    Args:
+        error: The untrusted error string from OAuth callback
+        
+    Returns:
+        A sanitized version of the error string safe for logging and display
+    """
+    if not error:
+        return ""
+    
+    # Remove control characters (including newlines, tabs, ANSI escape sequences)
+    # Keep only printable ASCII characters and spaces
+    sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", error)
+    
+    # Remove shell metacharacters and command injection patterns
+    # This includes $, backticks, pipes, redirects, semicolons, etc.
+    dangerous_chars = r"[$`|;&><(){}[\]\\'\"]"
+    sanitized = re.sub(f"[{re.escape(dangerous_chars)}]", "", sanitized)
+    
+    # Limit length to prevent excessively long error messages
+    max_length = 200
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length] + "..."
+    
+    # Strip whitespace
+    sanitized = sanitized.strip()
+    
+    # If sanitization removed everything, return a generic message
+    if not sanitized:
+        return "[Invalid error parameter]"
+    
+    return sanitized
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -359,11 +400,13 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                # Sanitize the untrusted error parameter to prevent log poisoning and injection attacks
+                sanitized_error = sanitize_oauth_error(error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {sanitized_error}")
 
             if state != pipeline.fetch_state("state"):
                 extra = {

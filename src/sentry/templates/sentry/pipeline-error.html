@@ -14,7 +14,8 @@
 
   <p>Whoops! Looks like something went wrong! Give that another try.</p>
 
-  <pre>{{ error }}</pre>
+  {# The error variable is sanitized server-side and auto-escaped by Django for defense in depth #}
+  <pre>{{ error|escape }}</pre>
 </div>
 {% endblock %}
 
