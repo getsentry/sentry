@@ -14,7 +14,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 # Base span fields always returned
-BASE_SPAN_COLUMNS = [
+AI_CONVERSATION_ATTRIBUTES = [
     "span_id",
     "trace",
     "parent_span",
@@ -24,13 +24,20 @@ BASE_SPAN_COLUMNS = [
     "span.status",
     "span.description",
     "gen_ai.conversation.id",
+    "gen_ai.request.messages",
+    "gen_ai.response.text",
+    "gen_ai.response.object",
+    "user.id",
+    "user.email",
+    "user.username",
+    "user.ip",
 ]
 
 
 @region_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
-    owner = ApiOwner.DATA_BROWSING
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization: Organization, conversation_id: str) -> Response:
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
@@ -41,8 +48,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        additional_attributes = request.GET.getlist("additional_attributes", [])
-        selected_columns = BASE_SPAN_COLUMNS + additional_attributes
+        selected_columns = AI_CONVERSATION_ATTRIBUTES
 
         def data_fn(offset: int, limit: int):
             return self._fetch_conversation_spans(
