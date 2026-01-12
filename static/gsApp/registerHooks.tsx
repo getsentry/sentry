@@ -43,7 +43,6 @@ import SuperuserWarning, {
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 import hookAnalyticsInitUser from 'getsentry/hooks/analyticsInitUser';
-import consoleSdkInvitesRoutes from 'getsentry/hooks/consoleSdkInvitesRoutes';
 import {DashboardsLimitProvider} from 'getsentry/hooks/dashboardsLimit';
 import DisabledCustomSymbolSources from 'getsentry/hooks/disabledCustomSymbolSources';
 import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
@@ -114,11 +113,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    *
    */
   'routes:subscription-settings': subscriptionSettingsRoutes,
-
-  /**
-   * Self-serve Console SDK Invites organization settings page
-   */
-  'routes:console-sdk-invites': consoleSdkInvitesRoutes,
 
   /**
    * Analytics functionality
