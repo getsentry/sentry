@@ -1732,7 +1732,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-ai-conversations",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>(?:\d+|[A-Za-z0-9-_]+))/$",
         OrganizationAIConversationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-ai-conversation-details",
     ),
