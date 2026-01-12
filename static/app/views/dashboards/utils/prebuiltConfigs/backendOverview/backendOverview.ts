@@ -85,7 +85,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'recommended-issues-widget',
-      title: 'Recommended Issues',
+      title: t('Frequent Issues'),
       displayType: DisplayType.TABLE,
       interval: '1h',
       tableWidths: [-1, -1],
