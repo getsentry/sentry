@@ -43,7 +43,7 @@ BUILD_1 = {
     "build_version": "1.0.3",
     "build_number": 42,
     "build_configuration": "Debug",  # Head build configuration
-    "base_build_configuration": "Debug",  # Base build configuration (test different configs!)
+    "base_build_configuration": "Release",  # Base build configuration (test different configs!)
     "state": "processed_with_metrics",  # uploading, uploaded, failed, processed_no_metrics, processed_with_metrics, metrics_pending
     "create_base_artifacts": True,  # Create base artifacts for size comparison
     "create_multiple_metrics": False,  # Create watch/dynamic feature metrics in addition to main
