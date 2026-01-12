@@ -289,8 +289,6 @@ class OAuthDeviceView(AuthLoginView):
             if selected_org_id_int not in org_ids:
                 return self._error_response(request, ERR_NO_ORG_PERMISSION)
 
-            device_code.organization_id = selected_org_id_int
-
         scopes = device_code.get_scopes()
 
         # Atomically mark as approved only if still pending (prevents race condition)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
+from enum import StrEnum
 from typing import Any
 
 from django.contrib.postgres.fields.array import ArrayField
@@ -59,10 +60,8 @@ MAX_CODE_GENERATION_RETRIES = 10
 class UserCodeCollisionError(Exception):
     """Raised when unable to generate a unique user code after maximum retries."""
 
-    pass
 
-
-class DeviceCodeStatus:
+class DeviceCodeStatus(StrEnum):
     """Status values for device authorization codes."""
 
     PENDING = "pending"

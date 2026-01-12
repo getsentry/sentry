@@ -119,10 +119,7 @@ class OAuthDeviceAuthorizationView(View):
 
         # Parse and validate scopes
         scope_param = request.POST.get("scope", "")
-        if scope_param:
-            scopes = scope_param.split()
-        else:
-            scopes = []
+        scopes = scope_param.split() if scope_param else []
 
         # Validate scopes against global allowed scopes
         for scope in scopes:
