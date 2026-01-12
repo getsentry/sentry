@@ -25,7 +25,7 @@ from sentry.workflow_engine.models.detector import Detector
 logger = logging.getLogger(__name__)
 
 # 7 attempts over 180 seconds
-BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30]
+BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30, 30, 30, 30, 30]
 
 
 @instrumented_task(

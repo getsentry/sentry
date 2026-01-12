@@ -22,6 +22,6 @@ system:
   root_component:
     system
       stacktrace (ignored because it contains no contributing frames)
-        frame (ignored single non-URL JavaScript frame)
+        frame
           filename (ignored because frame points to a URL)
             "great.js"

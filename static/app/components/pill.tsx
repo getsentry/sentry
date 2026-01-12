@@ -129,7 +129,7 @@ const PillValue = styled(PillName)`
   .external-icon {
     display: inline;
     margin: 0 0 0 ${space(1)};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     &:hover {
       color: ${p => p.theme.tokens.content.primary};
     }

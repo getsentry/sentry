@@ -258,7 +258,7 @@ const PathHeading = styled('h5')`
 const SubHeading = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
 `;
 

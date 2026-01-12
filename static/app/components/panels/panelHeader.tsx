@@ -32,7 +32,8 @@ const PanelHeader = styled('div')<Props>`
   /* Do not apply text styles to overlay elements such as dropdowns */
   > *:not(:has([data-overlay], button, a[role='button']), button, a[role='button']),
   &:not(:has(> *)) {
-    color: ${p => (p.lightText ? p.theme.subText : p.theme.tokens.content.primary)};
+    color: ${p =>
+      p.lightText ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
     font-size: ${p => p.theme.fontSize.sm};
     font-weight: ${p => p.theme.fontWeight.bold};
     text-transform: uppercase;

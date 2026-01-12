@@ -4,7 +4,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
@@ -138,15 +138,22 @@ describe('AddBillingInformation', () => {
     );
 
     expect(await screen.findByText('Add billing information')).toBeInTheDocument();
-    expect(screen.getByText('Business address')).toBeInTheDocument();
-    expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled(); // cannot checkout without billing info
+    expect(screen.getByTestId('credit-card-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('billing-details-panel')).toBeInTheDocument();
+    const inCardPanel = within(screen.getByTestId('credit-card-panel'));
+    const inBillingDetailsPanel = within(screen.getByTestId('billing-details-panel'));
+
     expect(
-      screen.queryByRole('button', {name: 'Edit business address'})
+      inBillingDetailsPanel.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Edit payment method'})
+      inBillingDetailsPanel.getByRole('button', {name: 'Save Changes'})
+    ).toBeInTheDocument();
+
+    await inCardPanel.findByRole('button', {name: 'Save Changes'});
+    expect(
+      inCardPanel.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', {name: 'Save Changes'})).toHaveLength(2);
   });
 });
