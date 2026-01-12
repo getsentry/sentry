@@ -13,10 +13,6 @@ from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.trace_metrics.attributes import TRACE_METRICS_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.uptime_results.attributes import UPTIME_ATTRIBUTE_DEFINITIONS
 
-VALID_TYPES = frozenset(
-    ["spans", "logs", "occurrences", "tracemetrics", "uptime_results", "profiles"]
-)
-
 TYPE_TO_DEFINITIONS = {
     "spans": SPAN_ATTRIBUTE_DEFINITIONS,
     "logs": OURLOG_ATTRIBUTE_DEFINITIONS,
@@ -38,7 +34,7 @@ class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
         requested_types = list(set(request.GET.getlist("type")))
 
         if requested_types:
-            invalid_types = set(requested_types) - VALID_TYPES
+            invalid_types = set(requested_types) - TYPE_TO_DEFINITIONS.keys()
             if invalid_types:
                 return Response(
                     {"detail": f"Invalid type(s): {', '.join(sorted(invalid_types))}"},
@@ -46,7 +42,7 @@ class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
                 )
             types_to_include = requested_types
         else:
-            types_to_include = VALID_TYPES
+            types_to_include = TYPE_TO_DEFINITIONS.keys()
 
         result = []
         for type_name in types_to_include:
