@@ -493,7 +493,7 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 @instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=300,
     silo_mode=SiloMode.REGION,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
