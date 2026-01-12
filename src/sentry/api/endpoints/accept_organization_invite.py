@@ -128,10 +128,6 @@ class AcceptOrganizationInvite(Endpoint):
         kwargs["member_id"] = member_id
         return (args, kwargs)
 
-    @staticmethod
-    def respond_invalid() -> Response:
-        return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
-
     def get_helper(
         self, request: Request, token: str, invite_context: RpcUserInviteContext
     ) -> ApiInviteHelper:
@@ -163,7 +159,9 @@ class AcceptOrganizationInvite(Endpoint):
             or not organization_member
             or not organization_member.invite_approved
         ):
-            return self.respond_invalid()
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"}
+            )
 
         # Keep track of the invite details in the request session
         request.session["invite_email"] = organization_member.email
