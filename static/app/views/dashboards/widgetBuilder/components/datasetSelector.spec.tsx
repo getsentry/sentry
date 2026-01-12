@@ -57,9 +57,7 @@ describe('DatasetSelector', () => {
     const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
     expect(transactionsOption).toHaveAttribute('aria-disabled', 'true');
 
-    expect(
-      await screen.findByText(/This dataset is no longer supported./i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/No longer supported\. Use the/i)).toBeInTheDocument();
 
     const spansLink = screen.getByRole('link', {name: 'spans'});
     await userEvent.click(spansLink);
@@ -96,9 +94,7 @@ describe('DatasetSelector', () => {
     expect(transactionsOption).not.toHaveAttribute('aria-disabled', 'true');
 
     expect(
-      await screen.findByText(
-        'Transaction events that track the performance of operations in your application. Use for endpoint performance, throughput, and trends.'
-      )
+      await screen.findByText('No longer supported. Use the spans dataset.')
     ).toBeInTheDocument();
 
     await userEvent.click(transactionsOption);

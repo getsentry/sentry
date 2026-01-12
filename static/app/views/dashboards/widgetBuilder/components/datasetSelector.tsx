@@ -35,9 +35,7 @@ function WidgetBuilderDatasetSelector() {
   datasetOptions.push({
     value: WidgetType.ERRORS,
     label: t('Errors'),
-    details: t(
-      'Error events from your application that Sentry uses to group into issues. Use for error frequency, distribution, and impact.'
-    ),
+    details: t('Errors from your application'),
   });
 
   const transactionsOption = {
@@ -45,7 +43,7 @@ function WidgetBuilderDatasetSelector() {
     label: t('Transactions'),
     disabled: organization.features.includes('discover-saved-queries-deprecation'),
     details: organization.features.includes('discover-saved-queries-deprecation')
-      ? tct('This dataset is no longer supported. Please use the [spans] dataset.', {
+      ? tct('No longer supported. Use the [spans] dataset.', {
           spans: (
             <Link
               // We need to do this otherwise the dashboard filters will change
@@ -69,18 +67,14 @@ function WidgetBuilderDatasetSelector() {
             </Link>
           ),
         })
-      : t(
-          'Transaction events that track the performance of operations in your application. Use for endpoint performance, throughput, and trends.'
-        ),
+      : t('No longer supported. Use the spans dataset.'),
   };
 
   if (organization.features.includes('visibility-explore-view')) {
     datasetOptions.push({
       value: WidgetType.SPANS,
       label: t('Spans'),
-      details: t(
-        'Distributed tracing spans from your application that track the performance of individual operations. Use for detailed performance analysis.'
-      ),
+      details: t('Spans from distributed traces'),
     });
   }
 
@@ -88,9 +82,7 @@ function WidgetBuilderDatasetSelector() {
     datasetOptions.push({
       value: WidgetType.LOGS,
       label: t('Logs'),
-      details: t(
-        'Log messages from your application for debugging and monitoring. Use for tracking application events and troubleshooting issues.'
-      ),
+      details: t('Structured application logs'),
     });
   }
 
@@ -98,25 +90,19 @@ function WidgetBuilderDatasetSelector() {
     datasetOptions.push({
       value: WidgetType.TRACEMETRICS,
       label: t('Metrics'),
-      details: t(
-        'Performance metrics derived from traces to monitor and analyze system behavior. Use for high-level performance monitoring.'
-      ),
+      details: t('Counters, guages, and distributions'),
     });
   }
   datasetOptions.push({
     value: WidgetType.ISSUE,
     label: t('Issues'),
-    details: t(
-      'Issues grouped by root cause with properties like state and assignment. Use for creating custom issue lists and tracking resolution.'
-    ),
+    details: t('Grouped events from the Issues Feed'),
   });
 
   datasetOptions.push({
     value: WidgetType.RELEASE,
     label: t('Releases'),
-    details: t(
-      'Release-specific data including sessions and crash rates. Use for monitoring release health and stability across versions.'
-    ),
+    details: t('Session data from releases'),
   });
 
   datasetOptions.push(transactionsOption);
