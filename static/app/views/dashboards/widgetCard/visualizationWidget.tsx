@@ -4,6 +4,7 @@ import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -80,6 +81,14 @@ export function VisualizationWidget({
         }
         if (errorDisplay) {
           return errorDisplay;
+        }
+
+        // Handle empty plottables - this can happen when the widget's display type
+        // doesn't support time series visualization (e.g., TABLE, BIG_NUMBER)
+        if (plottables.length === 0 || plottables.every(plottable => plottable.isEmpty)) {
+          return renderErrorMessage
+            ? renderErrorMessage(NO_PLOTTABLE_VALUES)
+            : <div>{NO_PLOTTABLE_VALUES}</div>;
         }
 
         return (

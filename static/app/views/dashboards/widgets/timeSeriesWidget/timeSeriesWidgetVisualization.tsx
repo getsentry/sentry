@@ -129,6 +129,12 @@ export interface TimeSeriesWidgetVisualizationProps
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
+  // Check for empty plottables array
+  if (props.plottables.length === 0) {
+    throw new Error(NO_PLOTTABLE_VALUES);
+  }
+
+  // Check if all plottables are empty
   if (props.plottables.every(plottable => plottable.isEmpty)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
