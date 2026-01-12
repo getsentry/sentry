@@ -46,11 +46,7 @@ import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 import {type SentryRouteObject} from './types';
 
 const routeHook = (name: HookName): SentryRouteObject => {
-  const route = HookStore.get(name)?.[0]?.() ?? {};
-  return {
-    ...route,
-    deprecatedRouteProps: true,
-  };
+  return HookStore.get(name)?.[0]?.() ?? {};
 };
 
 function buildRoutes(): RouteObject[] {
