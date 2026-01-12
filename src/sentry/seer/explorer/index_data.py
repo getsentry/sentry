@@ -32,6 +32,7 @@ from sentry.services.eventstore import backend as eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
@@ -479,7 +480,16 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     # Step 2: For each issue, get the recommended event and serialize it
     issue_data_list = []
     for group in issues:
-        recommended_event = group.get_recommended_event(start=start_time, end=end_time)
+        try:
+            recommended_event = group.get_recommended_event(start=start_time, end=end_time)
+        except SnubaError:
+            # If the recommended event query times out or fails, log it and fall back to latest event
+            logger.warning(
+                "Failed to get recommended event for group in explorer index, falling back to latest event",
+                extra={"group_id": group.id},
+                exc_info=True,
+            )
+            recommended_event = None
         if not recommended_event:
             recommended_event = group.get_latest_event(start=start_time, end=end_time)
 

@@ -1,3 +1,4 @@
+import logging
 import time
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
@@ -7,12 +8,24 @@ from django.utils.timesince import timesince
 from django.utils.translation import gettext as _
 
 from sentry.models.group import Group
+from sentry.utils.snuba import SnubaError
+
+logger = logging.getLogger(__name__)
 
 DAY_IN_SEC = 24 * 60 * 60
 
 
 def get_approx_start_time(group: Group):
-    event = group.get_recommended_event_for_environments()
+    try:
+        event = group.get_recommended_event_for_environments()
+    except SnubaError:
+        # If the recommended event query times out or fails, log it
+        logger.warning(
+            "Failed to get recommended event for group in get_approx_start_time",
+            extra={"group_id": group.id},
+            exc_info=True,
+        )
+        event = None
     if event is None:
         return None
 

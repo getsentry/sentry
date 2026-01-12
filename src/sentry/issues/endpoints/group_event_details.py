@@ -48,6 +48,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import metrics
+from sentry.utils.snuba import SnubaError
 
 
 def issue_search_query_to_conditions(
@@ -213,6 +214,14 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                     event = group.get_recommended_event(conditions=conditions, start=start, end=end)
                 except ValueError:
                     return Response(error_response, status=400)
+                except SnubaError:
+                    # If the recommended event query times out or fails, log it and return 404
+                    logger.warning(
+                        "Failed to get recommended event for group in group_event_details",
+                        extra={"group_id": group.id},
+                        exc_info=True,
+                    )
+                    event = None
 
         else:
             with metrics.timer(metric, tags={"type": "event"}):

@@ -43,6 +43,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +206,16 @@ def _get_event(
                 provided_event = provided_event.for_group(group)
             event = provided_event
     else:
-        event = group.get_recommended_event_for_environments()
+        try:
+            event = group.get_recommended_event_for_environments()
+        except SnubaError:
+            # If the recommended event query times out or fails, log it and fall back to latest event
+            logger.warning(
+                "Failed to get recommended event for group, falling back to latest event",
+                extra={"group_id": group.id},
+                exc_info=True,
+            )
+            event = None
     if not event:
         event = group.get_latest_event()
 

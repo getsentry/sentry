@@ -489,6 +489,41 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.seer.autofix.issue_summary.eventstore.backend.get_event_by_id")
     @patch("sentry.seer.autofix.issue_summary.serialize")
+    def test_get_event_snuba_error_fallback_to_latest(
+        self, mock_serialize: MagicMock, mock_get_event_by_id: MagicMock
+    ) -> None:
+        """Test that when get_recommended_event raises SnubaError, we fall back to get_latest_event"""
+        from sentry.utils.snuba import SnubaError
+
+        mock_group = Mock()
+        mock_event = Mock()
+        mock_user = Mock()
+        mock_event.event_id = "test_event_id"
+        mock_group.get_recommended_event_for_environments.side_effect = SnubaError(
+            "Read timeout"
+        )
+        mock_group.get_latest_event.return_value = mock_event
+        mock_group.project.id = "test_project_id"
+        mock_group.id = "test_group_id"
+
+        mock_ready_event = Mock()
+        mock_get_event_by_id.return_value = mock_ready_event
+
+        mock_serialized_event = {"serialized": "event"}
+        mock_serialize.return_value = mock_serialized_event
+
+        result = _get_event(mock_group, mock_user)
+
+        assert result == (mock_serialized_event, mock_event)
+        mock_group.get_recommended_event_for_environments.assert_called_once()
+        mock_group.get_latest_event.assert_called_once()
+        mock_get_event_by_id.assert_called_once_with(
+            "test_project_id", "test_event_id", group_id="test_group_id"
+        )
+        mock_serialize.assert_called_once()
+
+    @patch("sentry.seer.autofix.issue_summary.eventstore.backend.get_event_by_id")
+    @patch("sentry.seer.autofix.issue_summary.serialize")
     def test_get_event_provided(
         self, mock_serialize: MagicMock, mock_get_event_by_id: MagicMock
     ) -> None:

@@ -45,6 +45,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
@@ -613,7 +614,16 @@ def trigger_autofix(
         return _respond_with_error("No budget for Seer Autofix.", 402)
 
     if event_id is None:
-        event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
+        try:
+            event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
+        except SnubaError:
+            # If the recommended event query times out or fails, log it and fall back to latest event
+            logger.warning(
+                "Failed to get recommended event for group in autofix, falling back to latest event",
+                extra={"group_id": group.id},
+                exc_info=True,
+            )
+            event = None
         if not event:
             event = group.get_latest_event()
 

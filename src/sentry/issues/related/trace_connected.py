@@ -16,7 +16,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.snuba import SnubaError, bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,16 @@ def trace_connected_analysis(
         assert event.group.id == group.id
     else:
         # If we drop trace connected issues from similar issues we can remove this
-        event = group.get_recommended_event_for_environments()
+        try:
+            event = group.get_recommended_event_for_environments()
+        except SnubaError:
+            # If the recommended event query times out or fails, log it
+            logger.warning(
+                "Failed to get recommended event for group in trace_connected_analysis",
+                extra={"group_id": group.id},
+                exc_info=True,
+            )
+            event = None
 
     if event:
         issues, meta = trace_connected_issues(event)
