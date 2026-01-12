@@ -3,6 +3,8 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -86,7 +88,7 @@ export function ProjectsRenderer({
         <Tooltip
           skipWrapper
           title={
-            <CollapsedProjects>
+            <Stack gap="xs" width="200px">
               {tn(
                 'This trace contains %s more project.',
                 'This trace contains %s more projects.',
@@ -95,7 +97,7 @@ export function ProjectsRenderer({
               {collapsedProjectAvatars.map(project => (
                 <ProjectBadge key={project.slug} project={project} avatarSize={16} />
               ))}
-            </CollapsedProjects>
+            </Stack>
           }
         >
           <CollapsedBadge size={20} fontSize={10} data-test-id="collapsed-projects-badge">
@@ -124,13 +126,6 @@ const ProjectList = styled('div')`
   flex-direction: row-reverse;
   justify-content: flex-end;
   padding-right: 8px;
-`;
-
-const CollapsedProjects = styled('div')`
-  width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
 `;
 
 const AvatarStyle = (p: any) => css`
