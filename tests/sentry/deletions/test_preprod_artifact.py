@@ -62,7 +62,7 @@ class PreprodArtifactDeletionTaskTest(TestCase):
         assert not PreprodArtifact.objects.filter(id=artifact.id).exists()
         assert not File.objects.filter(id=main_file.id).exists()
         assert not File.objects.filter(id=installable_file.id).exists()
-        assert not File.objects.filter(id=mobile_app_info.app_icon_id).exists()
+        assert not File.objects.filter(id=str(mobile_app_info.app_icon_id)).exists()
         assert not File.objects.filter(id=analysis_file.id).exists()
         assert not PreprodArtifactSizeMetrics.objects.filter(id=size_metric.id).exists()
         assert not InstallablePreprodArtifact.objects.filter(id=installable.id).exists()
