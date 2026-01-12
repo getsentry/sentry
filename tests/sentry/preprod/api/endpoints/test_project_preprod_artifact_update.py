@@ -52,8 +52,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert set(resp_data["updatedFields"]) == {
             "date_built",
             "artifact_type",
-            "build_version",
-            "build_number",
             "state",
         }
 
@@ -61,8 +59,12 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.date_built is not None
         assert self.preprod_artifact.date_built.isoformat() == "2024-01-01T00:00:00+00:00"
         assert self.preprod_artifact.artifact_type == 1
-        assert self.preprod_artifact.build_version == "1.2.3"
-        assert self.preprod_artifact.build_number == 123
+
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info.build_version == "1.2.3"
+        assert mobile_app_info.build_number == 123
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_partial_update(self) -> None:
@@ -354,9 +356,12 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         self.preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
         self.preprod_artifact.app_id = "com.example.app"
-        self.preprod_artifact.build_version = "1.0.0"
-        self.preprod_artifact.build_number = 123
         self.preprod_artifact.save()
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            build_version="1.0.0",
+            build_number=123,
+        )
 
         response = self._make_request({})
         assert response.status_code == 200
@@ -467,16 +472,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "build_version" in resp_data["updatedFields"]
-        assert "build_number" in resp_data["updatedFields"]
-        assert "app_name" in resp_data["updatedFields"]
-        assert "app_icon_id" in resp_data["updatedFields"]
-
-        self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.build_version == "1.2.3"
-        assert self.preprod_artifact.build_number == 456
-        assert self.preprod_artifact.app_name == "Test App"
-        assert self.preprod_artifact.app_icon_id == "icon-123"
+        assert set(resp_data["updatedFields"]) == {"state"}
 
         mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
             preprod_artifact=self.preprod_artifact
@@ -486,6 +482,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert mobile_app_info.app_name == "Test App"
         assert mobile_app_info.app_icon_id == "icon-123"
 
+        self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.mobile_app_info.id == mobile_app_info.id
         assert mobile_app_info.preprod_artifact.id == self.preprod_artifact.id
 
