@@ -34,11 +34,14 @@ class PreprodArtifactDeletionTaskTest(TestCase):
             project=self.project,
             file_id=main_file.id,
             installable_app_file_id=installable_file.id,
-            app_icon_id=str(app_icon_file.id),
-            app_name="test_app",
             app_id="com.test.app",
+        )
+        mobile_app_info = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
+            app_name="test_app",
+            app_icon_id=str(app_icon_file.id),
         )
 
         analysis_file = self.create_file(name="analysis.json", type="application/json")
@@ -59,7 +62,7 @@ class PreprodArtifactDeletionTaskTest(TestCase):
         assert not PreprodArtifact.objects.filter(id=artifact.id).exists()
         assert not File.objects.filter(id=main_file.id).exists()
         assert not File.objects.filter(id=installable_file.id).exists()
-        assert not File.objects.filter(id=app_icon_file.id).exists()
+        assert not File.objects.filter(id=mobile_app_info.app_icon_id).exists()
         assert not File.objects.filter(id=analysis_file.id).exists()
         assert not PreprodArtifactSizeMetrics.objects.filter(id=size_metric.id).exists()
         assert not InstallablePreprodArtifact.objects.filter(id=installable.id).exists()
