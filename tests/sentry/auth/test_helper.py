@@ -97,6 +97,48 @@ class AuthIdentityHandlerTest(TestCase):
 
 
 @control_silo_test
+class UserResolutionTest(AuthIdentityHandlerTest):
+    """Tests for AuthIdentityHandler.user property resolution."""
+
+    def test_resolves_to_org_member_over_primary_email_user(self) -> None:
+        """
+        Regression test for SSO account merge infinite loop.
+
+        When the identity email matches multiple users:
+        - user1: org member, email is verified secondary
+        - user2: NOT org member, email is their primary
+
+        The handler.user property should resolve to user1 (the org member)
+        because org membership takes precedence over primary email.
+
+        Previously, organization context wasn't passed to resolve_email_to_user(),
+        causing user2 to be selected (primary email wins), which led to an infinite
+        loop when user1 was logged in trying to link their SSO identity.
+        """
+        shared_email = "shared@example.com"
+
+        # user1: org member, shared email is verified but NOT primary
+        user1 = self.create_user()
+        self.create_useremail(user=user1, email=shared_email, is_verified=True)
+        self.create_member(organization=self.organization, user=user1)
+
+        # user2: NOT an org member, shared email IS their primary
+        self.create_user(email=shared_email)
+
+        # Create handler with identity using the shared email
+        identity: _Identity = {
+            "id": "sso_id_123",
+            "email": shared_email,
+            "name": "Test User",
+            "data": {},
+        }
+        handler = self._handler_with(identity)
+
+        # Should resolve to user1 (org member) not user2 (primary email)
+        assert handler.user == user1
+
+
+@control_silo_test
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record: mock.MagicMock) -> None:
