@@ -187,3 +187,29 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
             None,
         )
         assert item_type_mapping is None
+
+    def test_duplicate_type_parameters_deduplicated(self):
+        """Test that duplicate type parameters are deduplicated."""
+        self.login_as(user=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
+
+        # Request with duplicate type parameter
+        response = self.client.get(url + "?type=spans&type=spans")
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+
+        # Count occurrences of each publicAlias for spans
+        span_items = [item for item in data if item["type"] == "spans"]
+        public_aliases = [item["publicAlias"] for item in span_items]
+
+        # Each publicAlias should appear exactly once
+        assert len(public_aliases) == len(set(public_aliases))
+
+        # Compare with single type request to ensure same count
+        response_single = self.client.get(url, {"type": "spans"})
+        assert response_single.status_code == 200
+        data_single = response_single.json()["data"]
+        span_items_single = [item for item in data_single if item["type"] == "spans"]
+
+        assert len(span_items) == len(span_items_single)

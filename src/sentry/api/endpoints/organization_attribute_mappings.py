@@ -42,7 +42,7 @@ class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
                     {"detail": f"Invalid type(s): {', '.join(sorted(invalid_types))}"},
                     status=400,
                 )
-            types_to_include = requested_types
+            types_to_include = list(set(requested_types))
         else:
             types_to_include = list(VALID_TYPES)
 
