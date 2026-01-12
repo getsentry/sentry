@@ -86,6 +86,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
         headers = dict(request.headers)
         headers.pop("Host", None)
+        transfer_encoding = headers.pop("Transfer-Encoding", "")
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
         wsgi_input = request.META.get("wsgi.input")
@@ -113,7 +114,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         # For now, support bodies only on PUT and POST requests.
         elif request.method in ("PUT", "POST"):
             if uwsgi:
-                if headers.pop("Transfer-Encoding", "").lower() == "chunked":
+                if transfer_encoding.lower() == "chunked":
 
                     def stream_generator():
                         while True:
