@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable, Generator
 from typing import Any
 from urllib.parse import urlparse
@@ -22,6 +23,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -89,6 +92,23 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
         wsgi_input = request.META.get("wsgi.input")
+
+        logger.info(
+            "objectstore proxy request",
+            extra={
+                "method": request.method,
+                "path": path,
+                "request_id": request.META.get("HTTP_X_REQUEST_ID"),
+                "content_type": request.META.get("CONTENT_TYPE"),
+                "content_length": request.META.get("CONTENT_LENGTH"),
+                "transfer_encoding": transfer_encoding,
+                "server_software": request.META.get("SERVER_SOFTWARE"),
+                "has_wsgi_input": wsgi_input is not None,
+                "x_forwarded_for": request.META.get("HTTP_X_FORWARDED_FOR"),
+                "x_forwarded_proto": request.META.get("HTTP_X_FORWARDED_PROTO"),
+                "x_forwarded_host": request.META.get("HTTP_X_FORWARDED_HOST"),
+            },
+        )
 
         if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
             stream = wsgi_input
