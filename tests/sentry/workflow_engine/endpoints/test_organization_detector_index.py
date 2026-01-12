@@ -1217,8 +1217,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         self.login_as(user_with_team)
 
-        data = self.valid_detector
-        data["owner"] = f"team:{other_team.id}"
+        data = {**self.valid_data, "owner": f"team:{other_team.id}"}
         response = self.get_error_response(
             self.organization.slug,
             projectId=self.project.id,
@@ -1240,8 +1239,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         self.login_as(user_with_team)
 
-        data = self.valid_detector
-        data["owner"] = f"team:{self.team.id}"
+        data = {**self.valid_data, "owner": f"team:{self.team.id}"}
         response = self.get_success_response(
             self.organization.slug,
             projectId=self.project.id,
@@ -1266,8 +1264,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         self.login_as(admin_user)
 
-        data = self.valid_detector
-        data["owner"] = f"team:{other_team.id}"
+        data = {**self.valid_data, "owner": f"team:{other_team.id}"}
         response = self.get_success_response(
             self.organization.slug,
             projectId=self.project.id,
