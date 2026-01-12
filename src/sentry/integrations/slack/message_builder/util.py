@@ -19,10 +19,11 @@ def build_slack_footer(
 
     if rules:
         key, value = get_rule_or_workflow_id(rules[0])
-        if key == "legacy_rule_id":
-            rule_url = build_rule_url(rules[0], group, project)
-        else:
-            rule_url = absolute_uri(create_link_to_workflow(group.organization.id, value))
+        match key:
+            case "workflow_id":
+                rule_url = absolute_uri(create_link_to_workflow(group.organization.id, value))
+            case "legacy_rule_id":
+                rule_url = build_rule_url(rules[0], group, project)
         # If this notification is triggered via the "Send Test Notification"
         # button then the label is not defined, but the url works.
         text = rules[0].label if rules[0].label else "Test Alert"
