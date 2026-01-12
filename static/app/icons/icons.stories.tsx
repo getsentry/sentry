@@ -1,5 +1,4 @@
 import React, {Fragment, isValidElement} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import lowerFirst from 'lodash/lowerFirst';
 import {parseAsString, useQueryState} from 'nuqs';
@@ -1496,7 +1495,6 @@ const SECTIONS: TSection[] = [
 ];
 
 export default function IconsStories() {
-  const theme = useTheme();
   const [searchTerm, setSearchTerm] = useQueryState(
     'search',
     parseAsString.withDefault('')
@@ -1562,7 +1560,7 @@ export default function IconsStories() {
         {variants.map((v, idx) => (
           <Fragment key={v}>
             <InlineCode>{v}</InlineCode>
-            {idx < Object.keys(theme.tokens.content).length - 1 ? ', ' : ''}
+            {idx < variants.length - 1 ? ', ' : ''}
           </Fragment>
         ))}
         .
@@ -1570,7 +1568,7 @@ export default function IconsStories() {
       <Flex direction="row" gap="md" justify="between" width="100%">
         {variants.map(v => (
           <Stack key={v} align="center" gap="md">
-            <Icons.IconSentry size="md" variant={v as any} />
+            <Icons.IconSentry size="md" variant={v} />
             <InlineCode>
               <Text size="xs" monospace>
                 {v}
