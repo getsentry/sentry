@@ -60,7 +60,7 @@ class OwnerActorField(ActorField):
 
         # Fail closed
         if not user:
-            raise serializers.ValidationError("You do not have permission to assign this owner")
+            raise serializers.ValidationError("User not found.")
 
         user_is_team_member = OrganizationMemberTeam.objects.filter(
             team_id=actor.id,
