@@ -209,3 +209,133 @@ class OAuth2LoginViewTest(TestCase):
         assert query["response_type"][0] == "code"
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
+
+    def test_error_without_state_does_not_advance_pipeline(self) -> None:
+        """
+        Test that requests with error parameter but no state parameter
+        do not advance the pipeline. This prevents security scanners from
+        triggering pipeline errors.
+        """
+        # Simulate a request with only an error parameter (e.g., from a security scanner)
+        request = RequestFactory().get("/?error=bxss.me")
+        request.session = Client().session
+        request.subdomain = None
+
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        response = self.view.dispatch(request, pipeline)
+
+        # Should redirect to OAuth provider, not advance to next step
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+
+    def test_code_without_state_does_not_advance_pipeline(self) -> None:
+        """
+        Test that requests with code parameter but no state parameter
+        do not advance the pipeline.
+        """
+        # Simulate a request with only a code parameter
+        request = RequestFactory().get("/?code=malicious-code")
+        request.session = Client().session
+        request.subdomain = None
+
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        response = self.view.dispatch(request, pipeline)
+
+        # Should redirect to OAuth provider, not advance to next step
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+
+    def test_state_parameter_advances_pipeline(self) -> None:
+        """
+        Test that requests with state parameter do advance the pipeline
+        (to be validated in OAuth2CallbackView).
+        """
+        # Simulate a request with state parameter (legitimate OAuth callback)
+        request = RequestFactory().get("/?state=some-state&code=auth-code")
+        request.session = Client().session
+        request.subdomain = None
+
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        
+        # Mock the next_step to verify it's called
+        from unittest.mock import Mock
+        original_next_step = pipeline.next_step
+        pipeline.next_step = Mock(return_value=original_next_step())
+        
+        self.view.dispatch(request, pipeline)
+
+        # Should advance to next step
+        pipeline.next_step.assert_called_once()
+
+    def test_multiple_requests_with_error_param_regenerate_state(self) -> None:
+        """
+        Test that multiple requests with error parameter each generate
+        a new state token and redirect to OAuth provider. This ensures
+        security scanners repeatedly hitting the endpoint don't cause issues.
+        """
+        # First request with error param
+        request1 = RequestFactory().get("/?error=bxss.me")
+        request1.session = Client().session
+        request1.subdomain = None
+
+        pipeline1 = IdentityPipeline(request=request1, provider_key="dummy")
+        response1 = self.view.dispatch(request1, pipeline1)
+
+        assert response1.status_code == 302
+        redirect_url1 = urlparse(response1["Location"])
+        query1 = parse_qs(redirect_url1.query)
+        state1 = query1["state"][0]
+
+        # Second request with error param
+        request2 = RequestFactory().get("/?error=another_scan")
+        request2.session = Client().session
+        request2.subdomain = None
+
+        pipeline2 = IdentityPipeline(request=request2, provider_key="dummy")
+        response2 = self.view.dispatch(request2, pipeline2)
+
+        assert response2.status_code == 302
+        redirect_url2 = urlparse(response2["Location"])
+        query2 = parse_qs(redirect_url2.query)
+        state2 = query2["state"][0]
+
+        # Each request should generate a unique state
+        assert state1 != state2
+
+    def test_issue_reproduction_bxss_error_param(self) -> None:
+        """
+        Regression test for the reported issue where security scanners
+        sending ?error=bxss.me would cause PipelineError.
+        
+        This test reproduces the exact scenario from the issue report:
+        GET /identity/login/github/?error=bxss.me
+        
+        Before the fix: Would advance pipeline and trigger PipelineError
+        After the fix: Treats it as initial request and redirects to OAuth provider
+        """
+        # Simulate the exact request from the issue report
+        request = RequestFactory().get("/?error=bxss.me")
+        request.session = Client().session
+        request.subdomain = None
+
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        
+        # Initialize the pipeline (this happens in the view before dispatch)
+        pipeline.initialize()
+        
+        # Dispatch the request
+        response = self.view.dispatch(request, pipeline)
+
+        # Should redirect to OAuth provider, NOT throw PipelineError
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+        
+        # Verify that a state was generated and stored
+        stored_state = pipeline.fetch_state("state")
+        assert stored_state is not None
+        
+        # Verify the redirect includes the state parameter
+        redirect_url = urlparse(response["Location"])
+        query = parse_qs(redirect_url.query)
+        assert "state" in query
+        assert query["state"][0] == stored_state

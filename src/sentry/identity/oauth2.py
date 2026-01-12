@@ -246,9 +246,11 @@ class OAuth2LoginView:
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
-            for param in ("code", "error", "state"):
-                if param in request.GET:
-                    return pipeline.next_step()
+            # Only advance to the callback step if we have a state parameter that matches
+            # what we stored in the pipeline. This prevents security scanners or malicious
+            # actors from advancing the pipeline by sending arbitrary error/code parameters.
+            if "state" in request.GET:
+                return pipeline.next_step()
 
             state = secrets.token_hex()
 
