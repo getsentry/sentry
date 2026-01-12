@@ -8,9 +8,7 @@ from uuid import UUID
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_DISALLOWED_BY_ROBOTS,
-    CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
-    CHECKSTATUSREASONTYPE_ASSERTION_COMPILATION_ERROR,
     CheckResult,
 )
 
@@ -470,26 +468,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 disable_uptime_detector(detector)
             except Exception as e:
                 logger.exception("disallowed_by_robots.error", extra={"error": e, "result": result})
-            return
-
-        if (
-            result["status"] == CHECKSTATUS_FAILURE
-            and result["status_reason"] is not None
-            and result["status_reason"]["type"] == CHECKSTATUSREASONTYPE_ASSERTION_COMPILATION_ERROR
-        ):
-            try:
-                detector = get_detector(subscription)
-                logger.info("assertion_compilation_error", extra=result)
-                metrics.incr(
-                    "uptime.result_processor.assertion_compilation_error",
-                    sample_rate=1.0,
-                    tags={"uptime_region": result.get("region", "default")},
-                )
-                disable_uptime_detector(detector)
-            except Exception as e:
-                logger.exception(
-                    "assertion_compilation_error.error", extra={"error": e, "result": result}
-                )
             return
 
         # Discard shadow mode region results
