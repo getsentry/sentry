@@ -1050,7 +1050,7 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.backgroundTertiary};
+        --pattern-odd: ${p => p.theme.tokens.background.tertiary};
         --pattern-even: ${p => p.theme.tokens.background.primary};
       }
 
@@ -1121,8 +1121,8 @@ const TraceStylingWrapper = styled('div')`
     transform: translateZ(0);
 
     --row-background-odd: ${p => p.theme.backgroundSecondary};
-    --row-background-hover: ${p => p.theme.backgroundTertiary};
-    --row-background-focused: ${p => p.theme.backgroundTertiary};
+    --row-background-hover: ${p => p.theme.tokens.background.tertiary};
+    --row-background-focused: ${p => p.theme.tokens.background.tertiary};
     --row-outline: ${p => p.theme.colors.blue400};
     --row-children-button-border-color: ${p => p.theme.tokens.border.primary};
 
