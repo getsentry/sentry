@@ -60,6 +60,7 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 type RouteHooks = {
+  'routes:console-sdk-invites': RouteObjectHook;
   'routes:legacy-organization-redirects': RouteObjectHook;
   'routes:root': RouteObjectHook;
   'routes:subscription-settings': RouteObjectHook;
