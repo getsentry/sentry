@@ -5,6 +5,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {DateTime} from 'sentry/components/dateTime';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -74,7 +76,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const maxItems = size === 'small' ? 1 : 3;
 
       return (
-        <FilterValueList>
+        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
@@ -86,7 +88,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
             </Fragment>
           ))}
           {items.length > maxItems && <span>+{items.length - maxItems}</span>}
-        </FilterValueList>
+        </Flex>
       );
     }
     case Token.VALUE_ISO_8601_DATE: {
@@ -330,14 +332,6 @@ const DeleteButton = styled(UnstyledButton)`
     background-color: ${p => p.theme.colors.gray100};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const FilterValueList = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: ${p => p.theme.space.xs};
-  max-width: 400px;
 `;
 
 const FilterValueOr = styled('span')`

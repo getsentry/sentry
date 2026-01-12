@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {MyNewComponent} from 'sentry/views/authV2/components';
 import {loginContext} from 'sentry/views/authV2/contexts/loginContext';
 import {organizationContext} from 'sentry/views/authV2/contexts/organizationContext';
@@ -22,7 +24,7 @@ function LoginPage() {
 
   if (!hasFlag) {
     return (
-      <PageStyle>
+      <Flex justify="center" align="center" height="100vh">
         <DivStyle>
           <p>
             Go to browser console and paste:
@@ -30,25 +32,18 @@ function LoginPage() {
           </p>
           <p>Also, you need a backend feature flag to use the APIs.</p>
         </DivStyle>
-      </PageStyle>
+      </Flex>
     );
   }
 
   return (
-    <PageStyle>
+    <Flex justify="center" align="center" height="100vh">
       <DivStyle>login page</DivStyle>
-    </PageStyle>
+    </Flex>
   );
 }
 
 export default LoginPage;
-
-const PageStyle = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-`;
 
 const DivStyle = styled('div')`
   padding: 20px;

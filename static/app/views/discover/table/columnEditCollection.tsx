@@ -3,6 +3,8 @@ import {createPortal} from 'react-dom';
 import {css, withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Button} from 'sentry/components/core/button';
@@ -670,7 +672,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
 function OnDemandEquationsWarning() {
   return (
-    <OnDemandContainer>
+    <Flex justify="center" align="center" height="100%">
       <Tooltip
         containerDisplayMode="inline-flex"
         title={t(
@@ -679,7 +681,7 @@ function OnDemandEquationsWarning() {
       >
         <IconWarning variant="warning" />
       </Tooltip>
-    </OnDemandContainer>
+    </Flex>
   );
 }
 
@@ -733,13 +735,6 @@ const Ghost = styled('div')`
   & svg {
     cursor: grabbing;
   }
-`;
-
-const OnDemandContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 `;
 
 const DragPlaceholder = styled('div')`

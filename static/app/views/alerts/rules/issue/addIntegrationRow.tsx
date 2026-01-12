@@ -1,6 +1,8 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -35,10 +37,10 @@ function AddIntegrationRow({onClick}: Props) {
 
   return (
     <RowWrapper>
-      <IconTextWrapper>
+      <Flex align="center" gap="2xl">
         <PluginIcon pluginId={provider.slug} size={40} />
         <NameHeader>Connect {provider.name}</NameHeader>
-      </IconTextWrapper>
+      </Flex>
       <Access access={['org:integrations']} organization={organization}>
         {({hasAccess}) => {
           return isSelfHosted ? (
@@ -71,12 +73,6 @@ const RowWrapper = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(3)} ${space(4)};
-`;
-
-const IconTextWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(3)};
 `;
 
 const NameHeader = styled('h6')`

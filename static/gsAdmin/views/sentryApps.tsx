@@ -1,9 +1,8 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
@@ -13,12 +12,12 @@ type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: any) => [
   <td key="name">
-    <IntegrationName>
+    <Flex align="center" gap="md">
       <SentryAppAvatar size={16} sentryApp={row} />
       <strong>
         <Link to={`/_admin/sentry-apps/${row.slug}/`}>{row.name}</Link>
       </strong>
-    </IntegrationName>
+    </Flex>
   </td>,
 
   <td key="owner" style={{textAlign: 'center'}}>
@@ -66,11 +65,5 @@ function SentryApps(props: Props) {
     </div>
   );
 }
-
-const IntegrationName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 export default SentryApps;

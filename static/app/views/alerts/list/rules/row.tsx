@@ -333,7 +333,7 @@ function RuleListRow({
           </Flex>
         )}
       </Flex>
-      <ActionsColumn>
+      <Flex justify="center" align="center" padding="md">
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
             <DropdownMenu
@@ -349,7 +349,7 @@ function RuleListRow({
             />
           )}
         </Access>
-      </ActionsColumn>
+      </Flex>
     </ErrorBoundary>
   );
 }
@@ -382,13 +382,6 @@ const ProjectBadgeContainer = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-`;
-
-const ActionsColumn = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(1)};
 `;
 
 const IconContainer = styled('div')`

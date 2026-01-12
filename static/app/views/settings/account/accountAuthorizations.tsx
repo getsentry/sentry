@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -86,7 +88,7 @@ function AccountAuthorizations() {
             <div>
               {data.map(authorization => (
                 <PanelItemCenter key={authorization.id}>
-                  <ApplicationDetails>
+                  <Stack flex="1">
                     <ApplicationName>{authorization.application.name}</ApplicationName>
                     {authorization.homepageUrl && (
                       <Url>
@@ -102,7 +104,7 @@ function AccountAuthorizations() {
                         {authorization.organization.slug}
                       </DetailRow>
                     )}
-                  </ApplicationDetails>
+                  </Stack>
                   <Button
                     size="sm"
                     onClick={() => handleRevoke(authorization)}
@@ -129,12 +131,6 @@ const Description = styled('p')`
 
 const PanelItemCenter = styled(PanelItem)`
   align-items: center;
-`;
-
-const ApplicationDetails = styled('div')`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
 `;
 
 const ApplicationName = styled('div')`

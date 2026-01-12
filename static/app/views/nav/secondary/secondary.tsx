@@ -4,6 +4,8 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link, type LinkProps} from 'sentry/components/core/link';
@@ -117,7 +119,7 @@ function SectionTitle({
         isCollapsed={isCollapsed}
       >
         <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
-        <TrailingItems>
+        <Flex align="center" flexShrink={0}>
           {trailingItems ? (
             <div
               onClick={e => {
@@ -135,7 +137,7 @@ function SectionTitle({
               />
             )
           )}
-        </TrailingItems>
+        </Flex>
       </SectionTitleCollapsible>
     );
   }
@@ -344,12 +346,6 @@ const SectionTitleCollapsible = styled(Button, {
 const SectionTitleLabelWrap = styled('div')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
-`;
-
-const TrailingItems = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
 `;
 
 const SeparatorWrapper = styled('div')`

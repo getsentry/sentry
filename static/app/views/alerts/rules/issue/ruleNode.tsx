@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -597,7 +599,7 @@ function RuleNode({
 
   return (
     <RuleRowContainer incompatible={incompatibleRule}>
-      <RuleRow>
+      <Flex align="center" padding="md">
         <Rule>
           <input type="hidden" name="id" value={data.id} />
           {renderRow()}
@@ -610,7 +612,7 @@ function RuleNode({
           size="sm"
           icon={<IconDelete />}
         />
-      </RuleRow>
+      </Flex>
       {renderIncompatibleRuleBanner()}
       {conditionallyRenderHelpfulBanner()}
     </RuleRowContainer>
@@ -641,12 +643,6 @@ const Separator = styled('span')`
   padding-bottom: ${space(0.5)};
 `;
 
-const RuleRow = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)};
-`;
-
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.radius.md};
@@ -654,12 +650,9 @@ const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   border-color: ${p => (p.incompatible ? p.theme.colors.red200 : 'none')};
 `;
 
-const Rule = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  flex-wrap: wrap;
-`;
+function Rule(props: FlexProps<'div'>) {
+  return <Flex align="center" wrap="wrap" flex="1" {...props} />;
+}
 
 const DeleteButton = styled(Button)`
   flex-shrink: 0;

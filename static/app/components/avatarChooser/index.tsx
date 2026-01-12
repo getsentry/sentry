@@ -248,11 +248,11 @@ function AvatarChooser({
   );
 
   const emptyUploader = (
-    <BlankUploader>
+    <Flex justify="center" align="center" height="100%">
       <Button size="xs" icon={<IconUpload />} onClick={openUpload}>
         {t('Upload')}
       </Button>
-    </BlankUploader>
+    </Flex>
   );
 
   const backupAvatars: Partial<Record<AvatarType, React.ReactNode>> = {
@@ -416,13 +416,6 @@ const BlankAvatar = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   height: 90px;
   width: 90px;
-`;
-
-const BlankUploader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 `;
 
 const AvatarActions = styled('div')`

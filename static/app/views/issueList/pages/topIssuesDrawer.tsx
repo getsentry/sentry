@@ -600,7 +600,7 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
             skipWrapper
             maxWidth={360}
           >
-            <TagBarHoverArea>
+            <Flex align="center" padding="xs 0" width="100%" height="100%">
               <TagMiniBar aria-hidden="true">
                 {barValues.map((value, index) => {
                   const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
@@ -615,7 +615,7 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
                   );
                 })}
               </TagMiniBar>
-            </TagBarHoverArea>
+            </Flex>
           </Tooltip>
         ) : (
           <Text size="xs" variant="muted">
@@ -924,14 +924,6 @@ const TagMiniBar = styled('div')`
   overflow: hidden;
   background: ${p => p.theme.backgroundSecondary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
-`;
-
-const TagBarHoverArea = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  padding: ${p => p.theme.space.xs} 0;
 `;
 
 const DenseTagChip = styled('div')`

@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -83,9 +85,14 @@ function SearchDropdown({
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
       {loading ? (
-        <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
+        <Flex
+          justify="center"
+          padding="md"
+          key="loading"
+          data-test-id="search-autocomplete-loading"
+        >
           <LoadingIndicator mini />
-        </LoadingWrapper>
+        </Flex>
       ) : (
         <SearchItemsList maxMenuHeight={maxMenuHeight}>
           {items.map(item => {
@@ -386,11 +393,11 @@ function DropdownItem({
           documentation={item.documentation}
           searchSubstring={searchSubstring}
         />
-        <TagWrapper>
+        <Flex as="span" justify="end" align="center" flexShrink={0}>
           {item.kind && !isChild && (
             <KindTag kind={item.kind} deprecated={item.deprecated} />
           )}
-        </TagWrapper>
+        </Flex>
       </Fragment>
     );
   }
@@ -450,16 +457,20 @@ function DropdownDocumentation({
       const endIndex = startIndex + searchSubstring.length;
 
       return (
-        <Documentation>
+        <Flex as="span" flex="2" padding="0 md" minWidth="0">
           {documentation.slice(0, startIndex)}
           <strong>{documentation.slice(startIndex, endIndex)}</strong>
           {documentation.slice(endIndex)}
-        </Documentation>
+        </Flex>
       );
     }
   }
 
-  return <Documentation>{documentation}</Documentation>;
+  return (
+    <Flex as="span" flex="2" padding="0 md" minWidth="0">
+      {documentation}
+    </Flex>
+  );
 }
 
 type QueryItemProps = {
@@ -492,12 +503,6 @@ const SearchDropdownOverlay = styled(Overlay)`
   right: -1px;
   overflow: hidden;
   margin-top: ${space(1)};
-`;
-
-const LoadingWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(1)};
 `;
 
 const Info = styled('div')`
@@ -606,27 +611,6 @@ const RestOfWordsContainer = styled('span')<{
 
 const FirstWordWrapper = styled('span')`
   font-weight: medium;
-`;
-
-const TagWrapper = styled('span')`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-end;
-`;
-
-const Documentation = styled('span')`
-  display: flex;
-  flex: 2;
-  padding: 0 ${space(1)};
-  min-width: 0;
-
-  ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSize.md};
-  font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.tokens.content.secondary};
-  white-space: pre;
 `;
 
 const DropdownFooter = styled(`div`)`

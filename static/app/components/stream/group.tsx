@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -556,12 +558,12 @@ function StreamGroup({
           </CountTooltipContent>
         }
       >
-        <CountsWrapper>
+        <Stack position="relative">
           <PrimaryCount value={primaryCount} />
           {secondaryCount !== undefined && useFilteredStats && (
             <SecondaryCount value={secondaryCount} />
           )}
-        </CountsWrapper>
+        </Stack>
       </Tooltip>
     </GuideAnchor>
   );
@@ -596,12 +598,12 @@ function StreamGroup({
         </CountTooltipContent>
       }
     >
-      <CountsWrapper>
+      <Stack position="relative">
         <PrimaryCount value={primaryUserCount} />
         {secondaryUserCount !== undefined && useFilteredStats && (
           <SecondaryCount value={secondaryUserCount} />
         )}
-      </CountsWrapper>
+      </Stack>
     </Tooltip>
   );
 
@@ -870,12 +872,6 @@ const GroupCheckBoxWrapper = styled('div')`
 
 const CheckboxWithBackground = styled(Checkbox)`
   background-color: ${p => p.theme.tokens.background.primary};
-`;
-
-const CountsWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: column;
 `;
 
 const PrimaryCount = styled(Count)`

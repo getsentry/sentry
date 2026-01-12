@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -325,7 +325,7 @@ function ClusterCard({
 
   return (
     <CardContainer>
-      <CardHeader>
+      <Stack padding="2xl 2xl xl" gap="md">
         {cluster.impact && (
           <ClusterTitleLink
             to={{
@@ -348,7 +348,7 @@ function ClusterCard({
           (clusterStats.newIssuesCount > 0 ||
             clusterStats.hasRegressedIssues ||
             clusterStats.isEscalating) && (
-            <ClusterStatusTags>
+            <Flex wrap="wrap" gap="md">
               {clusterStats.newIssuesCount > 0 && (
                 <StatusTag color="purple">
                   <IconStar size="xs" />
@@ -373,11 +373,11 @@ function ClusterCard({
                   <Text size="xs">{t('Escalating')}</Text>
                 </StatusTag>
               )}
-            </ClusterStatusTags>
+            </Flex>
           )}
-        <StatsRow>
+        <Flex justify="between" align="center" gap="xl">
           <ClusterStats>
-            <StatItem>
+            <Flex align="center" gap="xs">
               <IconFire size="xs" variant="muted" />
               {clusterStats.isPending ? (
                 <Text size="xs" variant="muted">
@@ -391,8 +391,8 @@ function ClusterCard({
                   {tn('event', 'events', clusterStats.totalEvents)}
                 </Text>
               )}
-            </StatItem>
-            <StatItem>
+            </Flex>
+            <Flex align="center" gap="xs">
               <IconUser size="xs" variant="muted" />
               {clusterStats.isPending ? (
                 <Text size="xs" variant="muted">
@@ -406,13 +406,13 @@ function ClusterCard({
                   {tn('user', 'users', clusterStats.totalUsers)}
                 </Text>
               )}
-            </StatItem>
+            </Flex>
           </ClusterStats>
           {!clusterStats.isPending &&
             (clusterStats.firstSeen || clusterStats.lastSeen) && (
               <TimeStats>
                 {clusterStats.lastSeen && (
-                  <StatItem>
+                  <Flex align="center" gap="xs">
                     <IconClock size="xs" variant="muted" />
                     <TimeSince
                       tooltipPrefix={t('Last Seen')}
@@ -420,10 +420,10 @@ function ClusterCard({
                       suffix={t('ago')}
                       unitStyle="short"
                     />
-                  </StatItem>
+                  </Flex>
                 )}
                 {clusterStats.firstSeen && (
-                  <StatItem>
+                  <Flex align="center" gap="xs">
                     <IconCalendar size="xs" variant="muted" />
                     <TimeSince
                       tooltipPrefix={t('First Seen')}
@@ -431,12 +431,12 @@ function ClusterCard({
                       suffix={t('old')}
                       unitStyle="short"
                     />
-                  </StatItem>
+                  </Flex>
                 )}
               </TimeStats>
             )}
-        </StatsRow>
-      </CardHeader>
+        </Flex>
+      </Stack>
 
       <TabSection>
         <TabBar>
@@ -456,7 +456,7 @@ function ClusterCard({
         <TabContent>
           {activeTab === 'summary' && (
             <Flex direction="column" gap="md">
-              <StructuredInfo>
+              <Stack gap="xs">
                 {cluster.error_type && (
                   <InfoRow>
                     <InfoLabel>{t('Error')}</InfoLabel>
@@ -469,13 +469,13 @@ function ClusterCard({
                     <InfoValue>{cluster.location}</InfoValue>
                   </InfoRow>
                 )}
-              </StructuredInfo>
+              </Stack>
               {allTags.length > 0 && (
-                <TagsContainer>
+                <Flex wrap="wrap" gap="xs">
                   {allTags.map(tag => (
                     <TagPill key={tag}>{tag}</TagPill>
                   ))}
-                </TagsContainer>
+                </Flex>
               )}
             </Flex>
           )}
@@ -512,7 +512,7 @@ function ClusterCard({
               </Flex>
             }
           >
-            <ProjectAvatars>
+            <Flex align="center" gap="2xs">
               {clusterProjects.slice(0, 3).map(project => (
                 <ProjectBadge
                   key={project.id}
@@ -525,10 +525,10 @@ function ClusterCard({
               {clusterProjects.length > 3 && (
                 <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
               )}
-            </ProjectAvatars>
+            </Flex>
           </Tooltip>
         )}
-        <FooterActions>
+        <Flex align="center" gap="md">
           <ButtonBar merged gap="0">
             <SeerButton
               size="sm"
@@ -594,7 +594,7 @@ function ClusterCard({
             )}
             position="bottom-end"
           />
-        </FooterActions>
+        </Flex>
       </CardFooter>
     </CardContainer>
   );
@@ -820,7 +820,7 @@ function DynamicGrouping() {
 
   return (
     <PageFiltersContainer>
-      <PageWrapper>
+      <Stack minHeight="100%">
         <HeaderSection>
           <Flex
             align="center"
@@ -1042,7 +1042,7 @@ function DynamicGrouping() {
             </Container>
           ) : (
             <CardsGrid>
-              <CardsColumn>
+              <Stack flex="1" gap="2xl" minWidth="0">
                 {displayedClusters
                   .filter((_, index) => index % 2 === 0)
                   .map(cluster => (
@@ -1054,8 +1054,8 @@ function DynamicGrouping() {
                       onDismiss={handleDismissCluster}
                     />
                   ))}
-              </CardsColumn>
-              <CardsColumn>
+              </Stack>
+              <Stack flex="1" gap="2xl" minWidth="0">
                 {displayedClusters
                   .filter((_, index) => index % 2 === 1)
                   .map(cluster => (
@@ -1067,7 +1067,7 @@ function DynamicGrouping() {
                       onDismiss={handleDismissCluster}
                     />
                   ))}
-              </CardsColumn>
+              </Stack>
             </CardsGrid>
           )}
           {hasMoreClusters && (
@@ -1076,16 +1076,10 @@ function DynamicGrouping() {
             </ShowMoreButton>
           )}
         </CardsSection>
-      </PageWrapper>
+      </Stack>
     </PageFiltersContainer>
   );
 }
-
-const PageWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-`;
 
 const HeaderSection = styled('div')`
   padding: ${space(4)} ${space(4)} ${space(3)};
@@ -1112,14 +1106,6 @@ const CardsGrid = styled('div')`
   }
 `;
 
-const CardsColumn = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-  min-width: 0;
-`;
-
 const CardContainer = styled('div')`
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
@@ -1141,13 +1127,6 @@ const CardContainer = styled('div')`
   }
 `;
 
-const CardHeader = styled('div')`
-  padding: ${space(3)} ${space(3)} ${space(2)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
 const ClusterTitleLink = styled(Link)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
@@ -1162,13 +1141,6 @@ const ClusterTitleLink = styled(Link)`
     position: absolute;
     inset: 0;
   }
-`;
-
-const StatsRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(2)};
 `;
 
 const ClusterStats = styled('div')`
@@ -1188,28 +1160,10 @@ const TimeStats = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const StatItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const ProjectAvatars = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-`;
-
 const MoreProjectsCount = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.25)};
-`;
-
-const ClusterStatusTags = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
@@ -1301,12 +1255,6 @@ const CardFooter = styled('div')`
   gap: ${space(1)};
 `;
 
-const FooterActions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 const SeerButton = styled(Button)`
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -1367,18 +1315,6 @@ const DescriptionText = styled('p')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
-`;
-
-const StructuredInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const TagsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
 `;
 
 const TagPill = styled('span')`

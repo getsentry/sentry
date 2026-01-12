@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -81,8 +83,8 @@ export function ScreenshotCard({
 
   return (
     <StyledCard>
-      <CardHeader>
-        <ScreenshotInfo>
+      <Flex justify="between" flexShrink={0} paddingBottom="md">
+        <Stack minWidth="0">
           <Tooltip title={eventAttachment.name} showOnlyOnOverflow skipWrapper>
             <AttachmentName>{eventAttachment.name}</AttachmentName>
           </Tooltip>
@@ -96,7 +98,7 @@ export function ScreenshotCard({
               </Tooltip>
             </Link>
           </div>
-        </ScreenshotInfo>
+        </Stack>
         <DropdownMenu
           items={[
             {
@@ -131,7 +133,7 @@ export function ScreenshotCard({
             />
           )}
         />
-      </CardHeader>
+      </Flex>
       <CardBody>
         <StyledPanelBody
           onClick={() => openVisualizationModal()}
@@ -158,12 +160,6 @@ export function ScreenshotCard({
   );
 }
 
-const ScreenshotInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-`;
-
 const StyledCard = styled(Card)`
   margin: 0;
   padding: ${space(1)} ${space(1.5)};
@@ -173,13 +169,6 @@ const AttachmentName = styled('span')`
   display: flex;
   font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis};
-`;
-
-const CardHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding-bottom: ${space(1)};
-  flex-shrink: 0;
 `;
 
 const CardBody = styled('div')`

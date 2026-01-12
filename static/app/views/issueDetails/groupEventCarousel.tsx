@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -369,7 +371,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const {copy} = useCopyToClipboard();
 
   return (
-    <CarouselAndButtonsWrapper>
+    <Flex justify="between" align="start" marginBottom="xs" gap="md">
       <div>
         <EventHeading>
           <EventIdAndTimeContainer>
@@ -428,7 +430,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           </EventIdAndTimeContainer>
         </EventHeading>
       </div>
-      <ActionsWrapper>
+      <Flex align="center" gap="xs">
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
         <EventNavigationDropdown
           isDisabled={!hasPreviousEvent && !hasNextEvent}
@@ -453,18 +455,10 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             referrer="next-event"
           />
         </NavButtons>
-      </ActionsWrapper>
-    </CarouselAndButtonsWrapper>
+      </Flex>
+    </Flex>
   );
 }
-
-const CarouselAndButtonsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: ${space(1)};
-  margin-bottom: ${space(0.5)};
-`;
 
 const EventHeading = styled('div')`
   display: flex;
@@ -476,12 +470,6 @@ const EventHeading = styled('div')`
   @media (max-width: 600px) {
     font-size: ${p => p.theme.fontSize.md};
   }
-`;
-
-const ActionsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const StyledNavButton = styled(LinkButton)`

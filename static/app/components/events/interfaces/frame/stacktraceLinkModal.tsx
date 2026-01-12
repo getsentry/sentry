@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -200,7 +202,7 @@ function StacktraceLinkModal({
         <h4>{t('Set up Code Mapping')}</h4>
       </Header>
       <Body>
-        <ModalContainer>
+        <Stack gap="xl">
           {error && (
             <Alert variant="danger">
               {error === 'Could not find repo'
@@ -236,7 +238,7 @@ function StacktraceLinkModal({
           </div>
           <StyledList symbol="colored-numeric">
             <li>
-              <ItemContainer>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
                 <div>
                   {hasOneSourceCodeIntegration
                     ? tct('Go to [link]', {
@@ -248,16 +250,16 @@ function StacktraceLinkModal({
                       })
                     : t('Go to your source code provider')}
                 </div>
-              </ItemContainer>
+              </Stack>
             </li>
             <li>
-              <ItemContainer>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
                 <div>{t('Find the correct repo and path for the file')}</div>
                 <TextCopyInput>{filename}</TextCopyInput>
-              </ItemContainer>
+              </Stack>
             </li>
             <li>
-              <ItemContainer>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
                 <div>
                   {suggestions.length
                     ? t('Select from one of these suggestions or paste your URL below')
@@ -290,10 +292,10 @@ function StacktraceLinkModal({
                   onChange={onHandleChange}
                   placeholder={getPlaceholderUrl()}
                 />
-              </ItemContainer>
+              </Stack>
             </li>
           </StyledList>
-        </ModalContainer>
+        </Stack>
       </Body>
       <Footer>
         <ButtonBar>
@@ -331,21 +333,6 @@ const Suggestions = styled('div')`
 const SuggestionOverflow = styled('div')`
   ${p => p.theme.overflowEllipsis};
   direction: rtl;
-`;
-
-const ItemContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-  margin-top: ${space(0.25)};
-  flex: 1;
-  max-width: calc(100% - 25px - 8px);
-`;
-
-const ModalContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
 
 const StyledCode = styled('code')`
