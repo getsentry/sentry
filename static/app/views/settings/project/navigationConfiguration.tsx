@@ -141,7 +141,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/preprod/`,
           title: t('Preprod'),
-          show: () => !!organization?.features?.includes('preprod-issues'),
+          // show: () => !!organization?.features?.includes('preprod-issues'),
           badge: () => 'beta',
           description: t('Size analysis and build distribution configuration.'),
         },

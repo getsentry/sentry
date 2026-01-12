@@ -37,7 +37,9 @@ export function StatusCheckRules() {
     setNewRuleId(newRule.id);
   };
 
-  const hasRepositories = !isLoadingRepos && repositories && repositories.length > 0;
+  const isTesting = true;
+  const hasRepositories =
+    isTesting || (!isLoadingRepos && repositories && repositories.length > 0);
 
   return (
     <Panel>
