@@ -110,7 +110,7 @@ export default withSubscription(CodecovPromotionModal);
 const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.md};
   gap: ${space(0.5)};
   display: flex;
@@ -120,7 +120,7 @@ const Subheader = styled('div')`
 
 const DisclaimerText = styled('div')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 

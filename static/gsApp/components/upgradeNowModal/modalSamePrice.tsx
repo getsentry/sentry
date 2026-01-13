@@ -128,7 +128,7 @@ const UpsellContent = styled('div')`
 `;
 
 const Subheader = styled('h2')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: bold;
   margin-bottom: ${space(1.5)};

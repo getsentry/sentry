@@ -14,6 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {
   Artifact,
   Block,
+  ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
@@ -89,6 +90,7 @@ interface ExplorerAutofixState {
   run_id: number;
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
+  coding_agents?: Record<string, ExplorerCodingAgentState>;
   pending_user_input?: {
     data: Record<string, unknown>;
     id: string;
@@ -399,6 +401,48 @@ export function useExplorerAutofix(
     );
   }, [queryClient, orgSlug, groupId]);
 
+  /**
+   * Trigger coding agent handoff for an existing run.
+   */
+  const triggerCodingAgentHandoff = useCallback(
+    async (runId: number, integrationId: number) => {
+      setWaitingForResponse(true);
+
+      try {
+        const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
+          await api.requestPromise(
+            `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+            {
+              method: 'POST',
+              data: {
+                step: 'coding_agent_handoff',
+                run_id: runId,
+                integration_id: integrationId,
+              },
+            }
+          );
+
+        // Check for failures in the response
+        if (response.failures && response.failures.length > 0) {
+          const errorMessage =
+            response.failures[0]?.error_message ?? 'Failed to launch coding agent';
+          addErrorMessage(errorMessage);
+        }
+
+        // Invalidate to fetch fresh data
+        queryClient.invalidateQueries({
+          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+        });
+      } catch (e: any) {
+        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
+        throw e;
+      } finally {
+        setWaitingForResponse(false);
+      }
+    },
+    [api, orgSlug, groupId, queryClient]
+  );
+
   // Clear waiting state when we get a response
   if (waitingForResponse && runState) {
     const hasLoadingBlock = runState.blocks.some(block => block.loading);
@@ -432,5 +476,9 @@ export function useExplorerAutofix(
      * Reset the autofix state.
      */
     reset,
+    /**
+     * Trigger coding agent handoff for an existing run.
+     */
+    triggerCodingAgentHandoff,
   };
 }

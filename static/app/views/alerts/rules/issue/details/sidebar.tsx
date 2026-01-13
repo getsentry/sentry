@@ -215,7 +215,7 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   display: inline-block;
-  background-color: ${p => p.theme.colors.blue400};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.white};
@@ -228,7 +228,7 @@ const Badge = styled('span')`
 
 const ConditionsBadge = styled('span')`
   display: block;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
