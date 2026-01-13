@@ -5,6 +5,7 @@ from typing import Any
 from django.conf import settings
 from requests_oauthlib import OAuth1
 
+from sentry.net.http import SafeSession
 from sentry.utils.patch_set import patch_to_file_changes
 from sentry_plugins.client import AuthApiClient
 
@@ -12,6 +13,16 @@ from sentry_plugins.client import AuthApiClient
 class BitbucketClient(AuthApiClient):
     base_url = "https://api.bitbucket.org"
     plugin_name = "bitbucket"
+
+    def build_session(self) -> SafeSession:
+        """
+        Build a session with retries disabled to prevent OAuth1 nonce reuse.
+
+        OAuth1 signatures include a nonce that must be unique for each request.
+        If the HTTP client retries a request, it would reuse the same nonce,
+        causing Bitbucket to reject it as a replay attack (oauth_problem=nonce_used).
+        """
+        return SafeSession(max_retries=0)
 
     def has_auth(self):
         return (
