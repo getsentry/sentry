@@ -18,7 +18,6 @@ from sentry.models.repository import Repository
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
-    record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
     record_webhook_received,
@@ -154,4 +153,3 @@ def handle_issue_comment_event(
             target_commit_sha=target_commit_sha,
             trigger=SeerCodeReviewTrigger.ON_COMMAND_PHRASE,
         )
-        record_webhook_enqueued(github_event, github_event_action)

@@ -18,7 +18,6 @@ from sentry.models.repository import Repository
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
-    record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
     record_webhook_received,
@@ -148,4 +147,3 @@ def handle_pull_request_event(
             target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
             trigger=_get_trigger_for_action(action),
         )
-        record_webhook_enqueued(github_event, action_value)

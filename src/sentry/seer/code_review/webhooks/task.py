@@ -22,7 +22,7 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
-from ..metrics import WebhookFilteredReason, record_webhook_filtered
+from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import SeerCodeReviewTrigger, get_seer_endpoint_for_event, make_seer_request
 from .config import get_direct_to_seer_gh_orgs
 
@@ -68,6 +68,7 @@ def schedule_task(
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
+    record_webhook_enqueued(github_event, github_event_action)
 
 
 @instrumented_task(
