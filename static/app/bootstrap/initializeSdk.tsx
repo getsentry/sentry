@@ -178,11 +178,16 @@ export function initializeSdk(config: Config) {
     beforeBreadcrumb(crumb) {
       const isFetch = crumb.category === 'fetch' || crumb.category === 'xhr';
 
-      // Ignore
+      // Ignore fetch/xhr requests to certain hosts
       if (
         isFetch &&
         IGNORED_BREADCRUMB_FETCH_HOSTS.some(host => crumb.data?.url?.includes(host))
       ) {
+        return null;
+      }
+
+      // Ignore the console banner from `static/app/bootstrap/printConsoleBanner.ts`
+      if (crumb.category === 'console' && crumb.message?.includes('██████')) {
         return null;
       }
 
