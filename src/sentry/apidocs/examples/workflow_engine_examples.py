@@ -185,3 +185,67 @@ class WorkflowEngineExamples:
             response_only=True,
         )
     ]
+    LIST_WORKFLOWS = [
+        OpenApiExample(
+            "List all workflows in an organization",
+            value=[
+                {
+                    "id": "123",
+                    "name": "Send a notification for high priority issues",
+                    "organizationId": "1",
+                    "createdBy": None,
+                    "dateCreated": "2025-03-18T20:48:55.495059Z",
+                    "dateUpdated": "2025-03-18T20:48:55.579094Z",
+                    "triggers": {
+                        "id": "12345",
+                        "organizationId": "1",
+                        "logicType": "any-short",
+                        "conditions": [
+                            {
+                                "id": "2345",
+                                "type": "new_high_priority_issue",
+                                "comparison": True,
+                                "conditionResult": True,
+                            },
+                            {
+                                "id": "3456",
+                                "type": "existing_high_priority_issue",
+                                "comparison": True,
+                                "conditionResult": True,
+                            },
+                        ],
+                        "actions": [],
+                    },
+                    "actionFilters": [
+                        {
+                            "id": "5678",
+                            "organizationId": "1",
+                            "logicType": "all",
+                            "conditions": [],
+                            "actions": [
+                                {
+                                    "id": "234",
+                                    "type": "email",
+                                    "integrationId": None,
+                                    "data": {"fallthroughType": "ActiveMembers"},
+                                    "config": {
+                                        "targetType": "issue_owners",
+                                        "targetDisplay": None,
+                                        "targetIdentifier": None,
+                                    },
+                                    "status": "active",
+                                }
+                            ],
+                        }
+                    ],
+                    "environment": None,
+                    "config": {"frequency": 30},
+                    "detectorIds": [],
+                    "enabled": True,
+                    "lastTriggered": None,
+                },
+            ],
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
