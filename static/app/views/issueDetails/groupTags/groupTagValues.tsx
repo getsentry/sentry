@@ -293,7 +293,7 @@ export function GroupTagValues() {
   return (
     <Layout.Body>
       <Layout.Main width="full">
-        <TitleWrapper>
+        <Flex justify="between" align="center" wrap="wrap" marginBottom="xl">
           <Title>{t('Tag Details')}</Title>
           <ButtonBar>
             <LinkButton
@@ -314,7 +314,7 @@ export function GroupTagValues() {
               }}
             />
           </ButtonBar>
-        </TitleWrapper>
+        </Flex>
         <StyledPanelTable
           isLoading={isLoading}
           isEmpty={!isError && tagValueList?.length === 0}
@@ -350,15 +350,6 @@ function GroupTagValuesRoute() {
 
   return <GroupTagValues />;
 }
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
 
 const Title = styled('h3')`
   margin: 0;

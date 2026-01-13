@@ -2,6 +2,8 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
@@ -70,7 +72,7 @@ export default function TagPanel() {
   const filteredTags = Object.entries(items);
 
   return (
-    <Wrapper>
+    <Stack wrap="nowrap" minHeight="0">
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
         <OverflowBody>
@@ -90,19 +92,12 @@ export default function TagPanel() {
           )}
         </OverflowBody>
       </TabItemContainer>
-    </Wrapper>
+    </Stack>
   );
 }
 
 const PaddedPlaceholder = styled(Placeholder)`
   padding-top: ${space(1)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  min-height: 0;
 `;
 
 const OverflowBody = styled('section')`
