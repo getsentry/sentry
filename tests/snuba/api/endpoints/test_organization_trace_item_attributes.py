@@ -388,10 +388,10 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert "is_active" in keys
-        assert "is_deleted" in keys
-        assert "feature_enabled" in keys
-        assert "another_flag" in keys
+        assert "tags[is_active,boolean]" in keys
+        assert "tags[is_deleted,boolean]" in keys
+        assert "tags[feature_enabled,boolean]" in keys
+        assert "tags[another_flag,boolean]" in keys
 
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
@@ -837,9 +837,9 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
-        assert "is_feature_enabled" in keys
-        assert "is_debug" in keys
-        assert "is_production" in keys
+        assert "tags[is_feature_enabled,boolean]" in keys
+        assert "tags[is_debug,boolean]" in keys
+        assert "tags[is_production,boolean]" in keys
 
 
 class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
@@ -1006,11 +1006,11 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
         assert response.status_code == 200, response.content
         data = response.data
 
-        # Verify boolean attributes are returned
+        # Verify boolean attributes are returned with tags[name,boolean] format
         attribute_keys = {item["key"] for item in data}
-        assert "is_enabled" in attribute_keys
-        assert "is_debug" in attribute_keys
-        assert "is_production" in attribute_keys
+        assert "tags[is_enabled,boolean]" in attribute_keys
+        assert "tags[is_debug,boolean]" in attribute_keys
+        assert "tags[is_production,boolean]" in attribute_keys
 
 
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):
