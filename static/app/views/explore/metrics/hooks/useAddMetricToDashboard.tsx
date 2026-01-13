@@ -77,6 +77,7 @@ export function useAddMetricToDashboard() {
           eventViews,
           widgetType: WidgetType.TRACEMETRICS,
           source: DashboardWidgetSource.TRACEMETRICS,
+          selection,
         });
       } else {
         handleAddQueryToDashboard({
@@ -89,7 +90,7 @@ export function useAddMetricToDashboard() {
         });
       }
     },
-    [organization, location, getEventView]
+    [organization, location, getEventView, selection]
   );
 
   return {

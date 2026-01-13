@@ -5,7 +5,7 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {
   NewQuery,
@@ -722,19 +722,18 @@ export function handleAddMultipleQueriesToDashboard({
   organization,
   widgetType,
   source,
+  selection,
 }: {
   eventViews: EventView[];
   location: Location;
   organization: Organization;
+  selection: PageFilters;
   source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
 }) {
   if (eventViews.length === 0) {
     return;
   }
-
-  // Use first eventView for page filters since all should share same filters
-  const firstEventView = eventViews[0]!;
 
   const widgets = eventViews.map(eventView => {
     const displayType =
@@ -750,22 +749,15 @@ export function handleAddMultipleQueriesToDashboard({
 
     const yAxis = eventView.yAxis;
 
-    const limit =
-      displayType === DisplayType.TOP_N || eventView.display === DisplayModes.DAILYTOP5
-        ? Number(eventView.topEvents) || TOP_N
-        : undefined;
-
-    // Get fields from eventView
-    const fields = eventView.getFields();
-
-    // For trace metrics and spans, columns should only include non-aggregate fields
-    const columns =
-      widgetType === WidgetType.SPANS ||
-      widgetType === WidgetType.TRACEMETRICS ||
-      displayType === DisplayType.TOP_N ||
-      eventView.display === DisplayModes.DAILYTOP5
-        ? fields.filter(column => defined(column) && !isAggregateFieldOrEquation(column))
-        : [];
+    const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
+      eventView,
+      query: eventView.toNewQuery(),
+      organization,
+      yAxis,
+      location,
+      widgetType,
+      source,
+    });
 
     return {
       title: eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name!,
@@ -774,29 +766,19 @@ export function handleAddMultipleQueriesToDashboard({
         {
           ...defaultWidgetQuery,
           aggregates: toArray(yAxis ?? 'count()'),
-          fields,
-          columns,
+          fields: widgetAsQueryParams?.field ?? [],
+          columns: widgetAsQueryParams?.field ?? [],
         },
       ],
       interval: eventView.interval!,
-      limit,
+      limit: widgetAsQueryParams?.limit,
       widgetType,
     } as Widget;
   });
 
   openAddToDashboardModal({
     organization,
-    selection: {
-      projects: firstEventView.project.slice(),
-      environments: firstEventView.environment.slice(),
-      datetime: {
-        start: firstEventView.start!,
-        end: firstEventView.end!,
-        period: firstEventView.statsPeriod!,
-        // @ts-expect-error TS(2322): Type 'string | boolean | undefined' is not assigna... Remove this comment to see the full error message
-        utc: firstEventView.utc,
-      },
-    },
+    selection,
     widgets: widgets as [Widget, ...Widget[]],
     location,
     source,
