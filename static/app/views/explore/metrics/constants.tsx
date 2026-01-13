@@ -1,4 +1,5 @@
 import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -47,10 +48,14 @@ export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
   TraceMetricKnownFieldKey.METRIC_UNIT,
+  TraceMetricKnownFieldKey.MESSAGE,
+  OurLogKnownFieldKey.SEVERITY,
+  OurLogKnownFieldKey.SEVERITY_NUMBER,
 ];
 
 export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
   ...HiddenTraceMetricSearchFields,
+  TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
 export const TraceSamplesTableStatColumns: VirtualTableSampleColumnKey[] = [
