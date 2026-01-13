@@ -2636,6 +2636,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/warnings')),
     },
     {
+      path: 'with-seer/',
+      component: make(() => import('sentry/views/issuesWithSeer/overview')),
+    },
+    {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')

@@ -178,14 +178,14 @@ export type AutofixRootCauseSelection =
   | {custom_root_cause: string}
   | null;
 
-interface AutofixRootCauseStep extends BaseStep {
+export interface AutofixRootCauseStep extends BaseStep {
   causes: AutofixRootCauseData[];
   selection: AutofixRootCauseSelection;
   type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
   termination_reason?: string;
 }
 
-interface AutofixSolutionStep extends BaseStep {
+export interface AutofixSolutionStep extends BaseStep {
   solution: AutofixSolutionTimelineEvent[];
   solution_selected: boolean;
   type: AutofixStepType.SOLUTION;
