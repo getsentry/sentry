@@ -1,4 +1,4 @@
-import {Button} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
@@ -6,20 +6,24 @@ import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useReopenGamingSdkModal} from 'sentry/utils/useReopenGamingSdkModal';
 
+type Props = Omit<PrivateGamingSdkAccessModalProps, 'onSubmit'> &
+  Omit<ButtonProps, 'onClick' | 'children'>;
+
 export function RequestSdkAccessButton({
   gamingPlatform,
   organization,
   origin,
   projectId,
-}: Omit<PrivateGamingSdkAccessModalProps, 'onSubmit'>) {
-  const buttonProps: PrivateGamingSdkAccessModalProps = {
+  ...buttonProps
+}: Props) {
+  const modalProps: PrivateGamingSdkAccessModalProps = {
     gamingPlatform,
     organization,
     origin,
     ...(projectId && {projectId}),
   };
 
-  useReopenGamingSdkModal(buttonProps);
+  useReopenGamingSdkModal(modalProps);
 
   return (
     <Button
@@ -28,8 +32,9 @@ export function RequestSdkAccessButton({
       data-test-id="request-sdk-access"
       icon={<IconLock locked />}
       onClick={() => {
-        openPrivateGamingSdkAccessModal(buttonProps);
+        openPrivateGamingSdkAccessModal(modalProps);
       }}
+      {...buttonProps}
     >
       {t('Request SDK Access')}
     </Button>
