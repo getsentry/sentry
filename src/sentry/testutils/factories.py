@@ -2558,14 +2558,14 @@ class Factories:
         """Write a preprod size metric to EAP/Snuba for testing."""
         from sentry.preprod.eap.constants import PREPROD_NAMESPACE
         from sentry.search.eap.rpc_utils import anyvalue
-        from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
+        from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
 
         proto_timestamp = Timestamp()
         proto_timestamp.FromDatetime(timestamp)
 
         trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(preprod_artifact_id)).hex
         item_id_str = f"size_metric_{size_metric_id}"
-        item_id = int(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex, 16).to_bytes(16, "little")
+        item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
         attributes = {
             "preprod_artifact_id": anyvalue(preprod_artifact_id),
