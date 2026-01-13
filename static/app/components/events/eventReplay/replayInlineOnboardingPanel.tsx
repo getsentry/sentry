@@ -110,7 +110,7 @@ export default function ReplayInlineOnboardingPanel({
 }
 
 const PurpleText = styled('span')`
-  color: ${p => p.theme.colors.blue400};
+  color: ${p => p.theme.tokens.content.accent};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 

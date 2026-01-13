@@ -179,11 +179,11 @@ export default function UsageLog() {
                       icon:
                         index === 0
                           ? theme.tokens.interactive.link.accent.active
-                          : theme.gray300,
+                          : theme.colors.gray400,
                       iconBorder:
                         index === 0
                           ? theme.tokens.interactive.link.accent.active
-                          : theme.gray300,
+                          : theme.colors.gray400,
                       title: theme.tokens.content.primary,
                     }}
                     icon={<IconCircleFill />}

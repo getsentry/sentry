@@ -207,27 +207,12 @@ const generateThemeUtils = (tokens: Tokens) => ({
   `,
 });
 
-const generateThemePrismVariables = (
-  prismColors: typeof prismLight,
-  blockBackground: string
-) =>
-  // eslint-disable-next-line @emotion/syntax-preference
-  css({
-    // block background differs based on light/dark mode
-    '--prism-block-background': blockBackground,
-    ...prismColors,
-  });
-
-const generateButtonTheme = (
-  colors: Colors,
-  alias: Aliases,
-  tokens: Tokens
-): ButtonColors => ({
+const generateButtonTheme = (colors: Colors, tokens: Tokens): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
     color: tokens.content.primary,
     colorActive: tokens.content.primary,
-    background: alias.background,
+    background: tokens.background.primary,
     backgroundActive: tokens.background.transparent.neutral.muted,
     border: tokens.border.primary,
     borderActive: tokens.border.primary,
@@ -271,8 +256,8 @@ const generateButtonTheme = (
   disabled: {
     color: tokens.content.disabled,
     colorActive: tokens.content.disabled,
-    background: alias.background,
-    backgroundActive: alias.background,
+    background: tokens.background.primary,
+    backgroundActive: tokens.background.primary,
     border: tokens.content.disabled,
     borderActive: tokens.content.disabled,
     borderTranslucent: tokens.border.transparent.neutral.muted,
@@ -1106,51 +1091,6 @@ const darkColors: Colors = {
   },
 };
 
-// Prism colors
-// @TODO(jonasbadalic): are these final?
-const prismLight = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#332B3B',
-  '--prism-inline-code': '#332B3B',
-  '--prism-inline-code-background': '#F5F3F7',
-  '--prism-highlight-background': '#5C78A31C',
-  '--prism-highlight-accent': '#5C78A344',
-  '--prism-comment': '#80708F',
-  '--prism-punctuation': '#332B3B',
-  '--prism-property': '#18408B',
-  '--prism-selector': '#177861',
-  '--prism-operator': '#235CC8',
-  '--prism-variable': '#332B3B',
-  '--prism-function': '#235CC8',
-  '--prism-keyword': '#BB3A3D',
-};
-
-// @TODO(jonasbadalic): are these final?
-const prismDark = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#D6D0DC',
-  '--prism-inline-code': '#D6D0DC',
-  '--prism-inline-code-background': '#18121C',
-  '--prism-highlight-background': '#A8A2C31C',
-  '--prism-highlight-accent': '#A8A2C344',
-  '--prism-comment': '#998DA5',
-  '--prism-punctuation': '#D6D0DC',
-  '--prism-property': '#70A2FF',
-  '--prism-selector': '#1DCDA4',
-  '--prism-operator': '#70A2FF',
-  '--prism-variable': '#D6D0DC',
-  '--prism-function': '#70A2FF',
-  '--prism-keyword': '#F8777C',
-};
-
 // @TODO(jonasbadalic): are these final?
 const lightShadows = {
   dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
@@ -1169,19 +1109,9 @@ const darkShadows = {
 
 const generateAliases = (tokens: Tokens) => ({
   /**
-   * Primary background color
-   */
-  background: tokens.background.primary,
-
-  /**
    * Secondary background color used as a slight contrast against primary background
    */
   backgroundSecondary: tokens.background.secondary,
-
-  /**
-   * Tertiary background color used as a stronger contrast against primary background
-   */
-  backgroundTertiary: tokens.background.tertiary,
 });
 
 const lightAliases = generateAliases(baseLightTheme.tokens);
@@ -1195,27 +1125,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get white() {
     return colors.white;
-  },
-
-  /** @deprecated */
-  get gray500() {
-    return colors.gray800;
-  },
-  /** @deprecated */
-  get gray400() {
-    return colors.gray500;
-  },
-  /** @deprecated */
-  get gray300() {
-    return colors.gray400;
-  },
-  /** @deprecated */
-  get gray200() {
-    return colors.gray200;
-  },
-  /** @deprecated */
-  get gray100() {
-    return colors.gray100;
   },
 
   /** @deprecated */
@@ -1314,7 +1223,7 @@ const lightThemeDefinition = {
   ...lightShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseLightTheme.tokens),
-  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
+  focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
@@ -1322,7 +1231,7 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseLightTheme.tokens),
   alert: generateAlertTheme(lightColors, lightAliases, baseLightTheme.tokens),
-  button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
+  button: generateButtonTheme(lightColors, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
@@ -1331,15 +1240,6 @@ const lightThemeDefinition = {
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
-
-  prismVariables: generateThemePrismVariables(
-    prismLight,
-    lightAliases.backgroundSecondary
-  ),
-  prismDarkVariables: generateThemePrismVariables(
-    prismDark,
-    baseDarkTheme.tokens.background.primary
-  ),
 
   colors: lightColors,
 };
@@ -1363,7 +1263,7 @@ export const darkTheme: SentryTheme = {
   ...darkShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseDarkTheme.tokens),
-  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
+  focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
@@ -1371,7 +1271,7 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseDarkTheme.tokens),
   alert: generateAlertTheme(darkColors, darkAliases, baseDarkTheme.tokens),
-  button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
+  button: generateButtonTheme(darkColors, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
@@ -1380,12 +1280,6 @@ export const darkTheme: SentryTheme = {
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
-
-  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
-  prismDarkVariables: generateThemePrismVariables(
-    prismDark,
-    baseDarkTheme.tokens.background.primary
-  ),
 
   colors: darkColors,
 };

@@ -4,7 +4,7 @@ import {space} from 'sentry/styles/space';
 
 export const ConditionBadge = styled('span')`
   display: inline-block;
-  background-color: ${p => p.theme.colors.blue400};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.white};
