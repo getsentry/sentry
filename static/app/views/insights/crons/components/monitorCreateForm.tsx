@@ -236,6 +236,10 @@ export default function MonitorCreateForm() {
   );
 }
 
+function Preview() {
+  return <div>Preview</div>;
+}
+
 const FieldContainer = styled('div')`
   max-width: 800px;
 

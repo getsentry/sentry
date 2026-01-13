@@ -60,6 +60,7 @@ export function CheckInTimeline<Status extends string>({
     bucketedData
   );
 
+  console.log(jobTicks);
   return (
     <TimelineContainer role="figure" className={className} style={style}>
       {jobTicks.map(jobTick => {

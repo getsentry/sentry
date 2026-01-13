@@ -24,6 +24,7 @@ import {
   DEFAULT_CRONTAB,
   useCronDetectorFormField,
 } from 'sentry/views/detectors/components/forms/cron/fields';
+import {useMonitorsScheduleSampleWindow} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleWindow';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
 import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
@@ -191,6 +192,17 @@ function Thresholds() {
           label={t('Failure Tolerance')}
         />
       </InputGroup>
+    </Fragment>
+  );
+}
+
+function Preview() {
+  const {data, isLoading} = useMonitorsScheduleSampleWindow();
+
+  return (
+    <Fragment>
+      <SubSectionSeparator aria-hidden="true" />
+      <SectionSubHeading>{t('Preview')}</SectionSubHeading>
     </Fragment>
   );
 }

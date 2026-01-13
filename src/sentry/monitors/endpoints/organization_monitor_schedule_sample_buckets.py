@@ -29,11 +29,14 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
 
     - start: unix timestamp (seconds) for the first *scheduled tick* in the
       window
+    - end_ts: optional unix timestamp (seconds) for the end of the bucket
+      window.
     - interval: bucket size in seconds (matches rollupConfig.interval in the
       frontend)
     """
 
     start = serializers.IntegerField(min_value=1)
+    end_ts = serializers.IntegerField(min_value=1, required=False)
     interval = serializers.IntegerField(min_value=1)
 
 
@@ -70,40 +73,78 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
         tz = zoneinfo.ZoneInfo(config.get("timezone") or "UTC")
 
         window_start_ts = int(config["start"])
+        end_ts = config.get("end_ts")
         bucket_interval = int(config["interval"])
 
         window_start = datetime.fromtimestamp(window_start_ts, tz=tz)
         ticks: list[datetime] = []
 
-        if schedule_type == ScheduleType.CRONTAB:
-            # Seed the simulator just before the provided first scheduled tick,
-            # so the first returned tick is expected to match start.
-            schedule_iter = CronSim(
-                schedule,
-                window_start - timedelta(seconds=1),
-            )
-            ticks = [next(schedule_iter) for _ in range(num_ticks)]
+        if end_ts is None:
+            # Default behavior: generate a fixed preview window based on the
+            # threshold pattern length.
+            if schedule_type == ScheduleType.CRONTAB:
+                # Seed the simulator just before the provided first scheduled
+                # tick, so the first returned tick is expected to match start.
+                schedule_iter = CronSim(
+                    schedule,
+                    window_start - timedelta(seconds=1),
+                )
+                ticks = [next(schedule_iter) for _ in range(num_ticks)]
 
-        elif schedule_type == ScheduleType.INTERVAL:
-            rule = rrule.rrule(
-                freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, schedule[1])],
-                interval=schedule[0],
-                dtstart=window_start,
-                count=num_ticks,
-            )
-            new_date = window_start
-            ticks.append(new_date)
-            while len(ticks) < num_ticks:
-                new_date = rule.after(new_date)
+            elif schedule_type == ScheduleType.INTERVAL:
+                rule = rrule.rrule(
+                    freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, schedule[1])],
+                    interval=schedule[0],
+                    dtstart=window_start,
+                    count=num_ticks,
+                )
+                new_date = window_start
                 ticks.append(new_date)
+                while len(ticks) < num_ticks:
+                    new_date = rule.after(new_date)
+                    ticks.append(new_date)
+        else:
+            # Range behavior: generate scheduled ticks from start to end_ts.
+            window_end = datetime.fromtimestamp(int(end_ts), tz=tz)
+            if schedule_type == ScheduleType.CRONTAB:
+                schedule_iter = CronSim(
+                    schedule,
+                    window_start - timedelta(seconds=1),
+                )
+                while True:
+                    dt = next(schedule_iter)
+                    if dt > window_end:
+                        break
+                    ticks.append(dt)
 
-        window_end_ts = int(ticks[-1].timestamp())
+            elif schedule_type == ScheduleType.INTERVAL:
+                rule = rrule.rrule(
+                    freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, schedule[1])],
+                    interval=schedule[0],
+                    dtstart=window_start,
+                    until=window_end,
+                )
+                ticks = list(rule)
+
+        if not ticks:
+            return Response([])
+
+        window_end_ts = int(int(end_ts) if end_ts is not None else ticks[-1].timestamp())
 
         # Build bucketed stats in the shape FE expects:
         #   CheckInBucket = [bucketStartTs, {ok: count, error: count, ...}]
         bucket_stats: dict[int, dict[str, int]] = {}
 
-        for tick_dt, status in zip(ticks, tick_statuses):
+        pattern_len = len(tick_statuses)
+        tick_count = len(ticks)
+
+        for i, tick_dt in enumerate(ticks):
+            # In the range case there may be more (or fewer) scheduled ticks
+            # than the preview-pattern length. We resample the pattern across
+            # the full tick range to preserve the OK/error ratio without
+            # repeating the pattern.
+            pattern_idx = min(pattern_len - 1, int(i * pattern_len / tick_count))
+            status = tick_statuses[pattern_idx]
             tick_ts = int(tick_dt.timestamp())
             if tick_ts < window_start_ts or tick_ts > window_end_ts:
                 continue

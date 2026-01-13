@@ -133,6 +133,33 @@ class SampleScheduleBucketsTest(APITestCase):
             assert bucket[0] == start + i * bucket_interval
             assert bucket[1] == expected_bucket_stats[i]
 
+    @freeze_time("2023-10-26T12:32:25Z")
+    def test_fill_buckets_returns_exact_bucket_count(self) -> None:
+        start = int(datetime(2023, 10, 26, 12, 0, tzinfo=UTC).timestamp())
+        interval = 3600
+        num_buckets = 20
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "schedule_type": "interval",
+                "schedule": [1, "hour"],
+                "failure_issue_threshold": 2,
+                "recovery_threshold": 3,
+                "start": start,
+                "interval": interval,
+                "num_buckets": num_buckets,
+                "fill_buckets": True,
+            },
+        )
+
+        buckets = response.data
+        assert len(buckets) == num_buckets
+        for i in range(num_buckets):
+            assert buckets[i][0] == start + i * interval
+            # Every bucket should have exactly one synthetic status
+            assert sum(buckets[i][1].values()) == 1
+
     def test_missing_params(self) -> None:
         start = 0
         interval = 3600
