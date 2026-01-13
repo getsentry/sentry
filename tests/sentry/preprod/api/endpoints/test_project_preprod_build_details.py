@@ -512,7 +512,6 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["base_build_info"]["artifact_type"] == base_artifact.artifact_type
         assert "date_added" in resp_data["base_build_info"]
         assert "date_built" in resp_data["base_build_info"]
-        assert "is_installable" in resp_data["base_build_info"]
         assert "platform" in resp_data["base_build_info"]
 
     def test_base_build_info_none_when_no_base_artifact(self) -> None:

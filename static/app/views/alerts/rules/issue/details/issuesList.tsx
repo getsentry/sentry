@@ -154,14 +154,21 @@ const StyledDateTime = styled(DateTime)`
 `;
 
 const TitleWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   gap: ${space(0.5)};
   min-width: 200px;
 `;
 
 const MessageWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.primary};
 `;
 

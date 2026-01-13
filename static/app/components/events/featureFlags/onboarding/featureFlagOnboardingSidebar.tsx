@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -116,7 +118,7 @@ function SidebarContent() {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Debug Issues with Feature Flag Context')}</Heading>
-        <HeaderActions>
+        <Flex justify="between" gap="2xl">
           <div
             onClick={e => {
               // we need to stop bubbling the CompactSelect click event
@@ -153,7 +155,7 @@ function SidebarContent() {
               position="bottom-end"
             />
           </div>
-        </HeaderActions>
+        </Flex>
         {currentProject ? (
           <OnboardingContent currentProject={currentProject} />
         ) : (
@@ -220,7 +222,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         choices={[
           [
             'sdkSelect',
-            <SdkSelect key="sdkSelect">
+            <Flex align="center" wrap="wrap" gap="md" key="sdkSelect">
               {tct('I use a Feature Flag SDK from [sdkSelect]', {
                 sdkSelect: (
                   <CompactSelect
@@ -242,7 +244,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   />
                 ),
               })}
-            </SdkSelect>,
+            </Flex>,
           ],
           [
             'generic',
@@ -293,7 +295,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           }
         )}
       </div>
-      <StyledDefaultContent>
+      <Stack align="start" margin="md 0" gap="xl">
         {t(
           'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
         )}
@@ -303,7 +305,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         >
           {t('Go to Feature Flag Settings')}
         </LinkButton>
-      </StyledDefaultContent>
+      </Stack>
     </Fragment>
   );
 
@@ -345,14 +347,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 }
 
-const StyledDefaultContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${space(2)};
-  margin: ${space(1)} 0;
-`;
-
 const TopRightBackgroundImage = styled('img')`
   position: absolute;
   top: 0;
@@ -371,7 +365,7 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -385,20 +379,6 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const HeaderActions = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(3)};
-`;
-
 const ContentHeader = styled('div')`
   padding: ${space(2)} 0;
-`;
-
-const SdkSelect = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
 `;

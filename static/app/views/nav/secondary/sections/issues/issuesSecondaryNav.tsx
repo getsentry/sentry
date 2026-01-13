@@ -113,6 +113,6 @@ const StickyBottomSection = styled(SecondaryNav.Section, {
       position: sticky;
       bottom: 0;
       z-index: 1;
-      background: ${p.theme.backgroundSecondary};
+      background: ${p.theme.tokens.background.secondary};
     `}
 `;

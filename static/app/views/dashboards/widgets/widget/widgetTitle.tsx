@@ -16,6 +16,10 @@ export function WidgetTitle(props: WidgetTitleProps) {
 }
 
 const TitleText = styled(HeaderTitle)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: ${p => p.theme.fontWeight.bold};
 `;

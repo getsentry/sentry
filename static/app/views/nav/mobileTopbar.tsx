@@ -159,5 +159,5 @@ const NavigationOverlay = styled('nav')`
   background: ${p => p.theme.colors.surface300};
   z-index: ${p => p.theme.zIndex.modal};
   --color: ${p => p.theme.tokens.content.primary};
-  --color-hover: ${p => p.theme.activeText};
+  --color-hover: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;

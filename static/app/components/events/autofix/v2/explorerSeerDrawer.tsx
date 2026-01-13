@@ -422,7 +422,7 @@ const DrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto 1fr;
   position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`
@@ -436,7 +436,7 @@ const SeerDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space['2xl']};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
