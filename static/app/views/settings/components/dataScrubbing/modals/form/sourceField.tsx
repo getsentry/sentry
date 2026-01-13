@@ -491,10 +491,12 @@ const Suggestion = styled('li')<{active: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
   background: ${p =>
-    p.active ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
+    p.active ? p.theme.tokens.background.secondary : p.theme.tokens.background.primary};
   :hover {
-    background: ${p =>
-      p.active ? p.theme.backgroundSecondary : p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+  :active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 

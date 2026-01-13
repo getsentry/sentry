@@ -621,7 +621,7 @@ const Change = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.sm};
   font-family: ${p => p.theme.text.familyMono};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
 
   &::before {

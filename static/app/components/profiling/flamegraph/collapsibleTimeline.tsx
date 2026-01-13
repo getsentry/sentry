@@ -85,7 +85,7 @@ const CollapsibleTimelineHeader = styled('div')<{
   min-height: ${p => p.labelHeight}px;
   border-top: 1px solid ${p => p.border};
   border-bottom: 1px solid ${p => (p.open ? p.border : 'transparent')};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 export const CollapsibleTimelineLabel = styled('span')`

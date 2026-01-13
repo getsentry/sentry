@@ -517,7 +517,7 @@ const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
@@ -638,7 +638,7 @@ const Documentation = styled('span')`
 const DropdownFooter = styled(`div`)`
   width: 100%;
   min-height: 45px;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   flex-direction: row;
   display: flex;

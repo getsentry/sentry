@@ -720,7 +720,7 @@ const Container = styled(motion.div, {
 const InputWrapper = styled('form')`
   display: flex;
   padding: ${space(0.5)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   position: relative;
 `;
 
@@ -754,7 +754,7 @@ const Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   word-break: break-word;
   overflow-wrap: break-word;
 `;
@@ -778,7 +778,7 @@ const Arrow = styled('div')`
   position: absolute;
   width: 12px;
   height: 12px;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-right: none;
   border-bottom: none;

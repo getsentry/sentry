@@ -269,7 +269,7 @@ const DetailsContainer = styled('div')<{
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding-left: ${p => p.theme.space['2xl']};
   padding-right: ${p => p.theme.space['2xl']};
   padding-top: ${p => p.theme.space.lg};

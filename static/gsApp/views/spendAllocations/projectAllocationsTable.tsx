@@ -137,7 +137,7 @@ const HeaderCell = styled('th')`
   font-weight: 600;
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} ${space(2)};
 `;
 

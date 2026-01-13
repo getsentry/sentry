@@ -34,7 +34,7 @@ export const StripedTable = styled('table')`
   margin: 0;
 
   tr:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

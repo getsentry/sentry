@@ -47,9 +47,9 @@ const GradientBox = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};

@@ -193,7 +193,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
 const OptionInfo = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 

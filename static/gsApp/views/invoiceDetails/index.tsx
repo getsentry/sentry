@@ -304,7 +304,7 @@ const Attributes = styled('dl')`
     margin: 0 0 ${space(0.25)} ${space(1)};
   }
   dd {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     padding: ${space(1)};
     margin-bottom: ${space(2)};
   }

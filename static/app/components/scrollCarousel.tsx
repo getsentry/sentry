@@ -216,7 +216,8 @@ const StyledArrowButton = styled(Button)<{orientation: 'horizontal' | 'vertical'
 
   &:hover {
     opacity: 1;
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

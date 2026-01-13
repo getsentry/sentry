@@ -408,7 +408,7 @@ const ActiveLogWrapper = styled('div')`
   align-items: flex-start;
   justify-content: space-between;
   padding: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   gap: ${space(1)};
   overflow: visible;
 `;

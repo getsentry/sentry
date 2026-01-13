@@ -167,7 +167,7 @@ export function ProjectChart({
         inside: true,
         lineHeight: 12,
         formatter: (value: number) => axisLabelFormatter(value, 'number', true),
-        textBorderColor: theme.backgroundSecondary,
+        textBorderColor: theme.tokens.border.secondary,
         textBorderWidth: 1,
       },
       splitLine: {

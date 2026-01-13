@@ -148,7 +148,7 @@ const TagValueContent = styled('div')`
   grid-column-gap: ${space(1)};
 
   & > :nth-child(2n) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

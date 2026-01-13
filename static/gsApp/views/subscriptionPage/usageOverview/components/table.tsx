@@ -163,7 +163,7 @@ const Table = styled('table')`
 `;
 
 const TableHeaderRow = styled('tr')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   text-transform: uppercase;
   padding: ${p => p.theme.space.xl};

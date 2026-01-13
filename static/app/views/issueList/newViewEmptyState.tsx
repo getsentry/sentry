@@ -154,7 +154,7 @@ const Wrapper = styled('div')`
 
 const Card = styled(Panel)`
   width: 80%;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${space(2)};
 `;
 

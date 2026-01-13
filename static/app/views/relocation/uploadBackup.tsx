@@ -222,7 +222,7 @@ const FinishedWell = styled('div')`
   padding: ${space(2)} ${space(3)};
   border-radius: 3px;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const UploadWell = styled('div')<{draggedOver: boolean}>`

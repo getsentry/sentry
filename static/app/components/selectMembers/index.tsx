@@ -201,12 +201,11 @@ class SelectMembers extends Component<Props, State> {
         value={this.state.options?.find(({value}) => value === this.props.value)}
         styles={{
           ...styles,
-          // @ts-expect-error TS(7006): Parameter 'provided' implicitly has an 'any' type.
-          option: (provided, state: any) => ({
+          option: (provided: any, state: any) => ({
             ...provided,
 
             svg: {
-              color: state.isSelected && state.theme.white,
+              color: state.isSelected && '#fff',
             },
           }),
         }}

@@ -473,7 +473,7 @@ const SubContent = styled('div')`
     overflow: hidden;
 
     &:nth-child(odd) {
-      background: ${p => p.theme.backgroundSecondary};
+      background: ${p => p.theme.tokens.background.secondary};
     }
   }
 
@@ -537,7 +537,7 @@ const TableHeader = styled(TableRowWrapper)`
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   white-space: nowrap;
   line-height: 1;
   height: 45px;

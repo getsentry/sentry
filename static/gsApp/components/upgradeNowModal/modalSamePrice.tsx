@@ -142,7 +142,7 @@ const Header = styled('h1')`
 `;
 
 const CTAPanel = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   justify-content: space-between;

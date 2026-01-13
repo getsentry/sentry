@@ -12,7 +12,15 @@ const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
     p.highlighted &&
     css`
       color: ${p.theme.activeText};
-      background: ${p.theme.backgroundSecondary};
+      background: ${p.theme.tokens.background.secondary};
+
+      &:hover {
+        background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+      }
+
+      &:active {
+        background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      }
     `};
 
   &:not(:first-child) {

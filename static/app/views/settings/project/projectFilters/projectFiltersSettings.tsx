@@ -653,7 +653,7 @@ const FilterGridItem = styled('div')`
   grid-template-columns: max-content 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1.5)};
 `;
