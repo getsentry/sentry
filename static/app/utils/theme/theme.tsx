@@ -1094,19 +1094,6 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (tokens: Tokens) => ({
-  /**
-   * Indicates that something is "active" or "selected"
-   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
-   */
-  active: tokens.interactive.link.accent.active,
-  activeHover: tokens.interactive.link.accent.hover,
-  activeText: tokens.interactive.link.accent.rest,
-});
-
-const lightAliases = generateAliases(baseLightTheme.tokens);
-const darkAliases = generateAliases(baseDarkTheme.tokens);
-
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get black() {
@@ -1209,7 +1196,6 @@ const lightThemeDefinition = {
   ...commonTheme,
   ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
-  ...lightAliases,
   ...lightShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseLightTheme.tokens),
@@ -1249,7 +1235,6 @@ export const darkTheme: SentryTheme = {
 
   ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
-  ...darkAliases,
   ...darkShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseDarkTheme.tokens),
