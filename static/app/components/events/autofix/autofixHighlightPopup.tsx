@@ -709,7 +709,11 @@ const Container = styled(motion.div, {
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => p.theme.tokens.interactive.link.accent.active}20,
+      color-mix(
+        in srgb,
+        ${p => p.theme.tokens.interactive.link.accent.active} 12.5%,
+        transparent
+      ),
       transparent
     );
     background-size: 2000px 100%;

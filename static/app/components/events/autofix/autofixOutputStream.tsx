@@ -381,11 +381,15 @@ const Container = styled(motion.div)<{required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p =>
-        p.required
-          ? p.theme.colors.pink500
-          : p.theme.tokens.interactive.link.accent.active}20,
-      transparent
+      color-mix(
+        in srgb,
+        ${p =>
+            p.required
+              ? p.theme.colors.pink500
+              : p.theme.tokens.interactive.link.accent.active}
+          12.5%,
+        transparent
+      )
     );
     background-size: 2000px 100%;
     border-radius: ${p => p.theme.radius.md};
