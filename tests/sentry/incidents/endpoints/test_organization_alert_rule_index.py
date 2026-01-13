@@ -1284,6 +1284,37 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
             assert resp.json() == {"projects": ["Invalid project"]}
 
+    def test_transaction_duration_with_events_dataset(self) -> None:
+        """Test that transaction.duration cannot be used with events dataset"""
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                projects=[self.project.slug],
+                name="Invalid Transaction Duration Alert",
+                owner=self.user.id,
+                thresholdType=1,
+                query="event.type:transaction",
+                aggregate="p95(transaction.duration)",
+                timeWindow=10,
+                dataset=Dataset.Events.value,
+                resolveThreshold=100,
+                triggers=[
+                    {
+                        "label": "critical",
+                        "alertThreshold": 200,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
+            )
+            assert "Invalid Metric: transaction.duration can only be used with performance datasets" in resp.data["nonFieldErrors"][0]
+
     def test_no_feature(self) -> None:
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
