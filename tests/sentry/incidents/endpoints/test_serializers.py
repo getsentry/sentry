@@ -580,6 +580,22 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             {"aggregate": ["Invalid Metric: We do not currently support this field."]},
         )
 
+    def test_transaction_duration_with_events_dataset(self) -> None:
+        """Test that transaction.duration cannot be used with events dataset"""
+        self.run_fail_validation_test(
+            {
+                "name": "TransactionDurationOnEvents",
+                "aggregate": "p95(transaction.duration)",
+                "dataset": Dataset.Events.value,
+                "query": "event.type:transaction",
+            },
+            {
+                "nonFieldErrors": [
+                    "transaction.duration can only be used with performance datasets (transactions, generic_metrics, or events_analytics_platform)"
+                ]
+            },
+        )
+
     def test_threshold_type(self) -> None:
         invalid_values = [
             "Invalid threshold type, valid values are %s"
