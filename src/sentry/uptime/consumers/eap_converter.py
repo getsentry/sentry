@@ -23,6 +23,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 from sentry import quotas
 from sentry.models.project import Project
 from sentry.uptime.types import IncidentStatus
+from sentry.utils.eap import hex_to_item_id
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +170,7 @@ def convert_uptime_result_to_trace_items(
         else:
             name = f"{result['span_id']}_req_{sequence}"
 
-        item_id = int(uuid.uuid5(UPTIME_NAMESPACE, name).hex, 16).to_bytes(16, "little")
+        item_id = hex_to_item_id(uuid.uuid5(UPTIME_NAMESPACE, name).hex)
 
         request_item = convert_uptime_request_to_trace_item(
             project, result, request_info, sequence, item_id, incident_status
