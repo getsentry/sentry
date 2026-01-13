@@ -101,7 +101,7 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
     if (hasTraceMetricsDashboards) {
       items.push({
         key: 'add-to-dashboard',
-        label: <span>{t('A Dashboard widget')}</span>,
+        label: t('A Dashboard widget'),
         textValue: t('A Dashboard widget'),
         isSubmenu: true,
         children: [
@@ -109,7 +109,7 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
             ? [
                 {
                   key: 'add-to-dashboard-all',
-                  label: <span>{t('All Metrics')}</span>,
+                  label: t('All Metrics'),
                   textValue: t('All Metrics'),
                   onAction: () => {
                     addToDashboard(metricQueries);
