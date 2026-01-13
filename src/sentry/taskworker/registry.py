@@ -273,4 +273,5 @@ class TaskRegistry:
         return namespace
 
 
+# TODO(mark) replace usage of this with `sentry.taskworker.runtime.app`
 taskregistry = TaskRegistry(application="sentry")

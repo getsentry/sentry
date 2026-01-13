@@ -131,6 +131,7 @@ class TaskworkerClient:
     def __init__(
         self,
         hosts: list[str],
+        application: str,
         max_tasks_before_rebalance: int = DEFAULT_REBALANCE_AFTER,
         max_consecutive_unavailable_errors: int = DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
         temporary_unavailable_host_timeout: int = DEFAULT_TEMPORARY_UNAVAILABLE_HOST_TIMEOUT,
@@ -139,6 +140,7 @@ class TaskworkerClient:
         grpc_config: str | None = None,
     ) -> None:
         assert len(hosts) > 0, "You must provide at least one RPC host to connect to"
+        self._application = application
         self._hosts = hosts
         self._rpc_secret = rpc_secret
 
@@ -257,7 +259,7 @@ class TaskworkerClient:
         """
         self._emit_health_check()
 
-        request = GetTaskRequest(namespace=namespace)
+        request = GetTaskRequest(application=self._application, namespace=namespace)
         try:
             host, stub = self._get_cur_stub()
             with metrics.timer("taskworker.get_task.rpc", tags={"host": host}):
@@ -297,6 +299,8 @@ class TaskworkerClient:
         The return value is the next task that should be executed.
         """
         self._emit_health_check()
+        if fetch_next_task:
+            fetch_next_task.application = self._application
 
         metrics.incr("taskworker.client.fetch_next", tags={"next": fetch_next_task is not None})
         self._clear_temporary_unavailable_hosts()
