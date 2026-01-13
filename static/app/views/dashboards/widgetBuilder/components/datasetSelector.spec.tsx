@@ -36,9 +36,6 @@ describe('DatasetSelector', () => {
   });
 
   it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     const organizationWithDeprecation = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
     });
@@ -54,17 +51,12 @@ describe('DatasetSelector', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
-    expect(await screen.findByText(/No longer supported\. Use the/i)).toBeInTheDocument();
+    const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
+    expect(transactionsOption).toHaveAttribute('aria-disabled', 'true');
 
-    const spansLink = screen.getByRole('link', {name: 'spans'});
-    await userEvent.click(spansLink);
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'spans'}),
-      }),
-      expect.anything()
-    );
+    expect(
+      await screen.findByText('No longer supported. Use the spans dataset.')
+    ).toBeInTheDocument();
   });
 
   it('allows selection of transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {

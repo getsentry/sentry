@@ -2,13 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -17,17 +15,14 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
-  const location = useLocation();
   const {state} = useWidgetBuilderContext();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
-  const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
 
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
@@ -45,28 +40,9 @@ function WidgetBuilderDatasetSelector() {
   const transactionsOption = {
     value: WidgetType.TRANSACTIONS,
     label: t('Transactions'),
-    // Don't disable the option so the migration link remains clickable
+    disabled: isTransactionsDeprecated,
     details: isTransactionsDeprecated
-      ? tct('No longer supported. Use the [spans] dataset.', {
-          spans: (
-            <Link
-              // We need to do this otherwise the dashboard filters will change
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  dataset: 'spans',
-                },
-              }}
-              onClick={() => {
-                cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
-                setSegmentSpanBuilderState();
-              }}
-            >
-              {t('spans')}
-            </Link>
-          ),
-        })
+      ? t('No longer supported. Use the spans dataset.')
       : t('Transactions from your application'),
   };
 
@@ -126,12 +102,6 @@ function WidgetBuilderDatasetSelector() {
         menuWidth={300}
         onChange={selection => {
           const newDataset = selection.value;
-
-          // Prevent selection of transactions when deprecated. The option is not disabled
-          // to allow clicking the migration link.
-          if (newDataset === WidgetType.TRANSACTIONS && isTransactionsDeprecated) {
-            return;
-          }
 
           // Set the current dataset state in local storage for recovery
           // when the user navigates back to this dataset
