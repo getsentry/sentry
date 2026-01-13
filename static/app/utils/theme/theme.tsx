@@ -188,13 +188,6 @@ const generateThemeUtils = (tokens: Tokens) => ({
               : undefined,
     textDecorationStyle: 'dotted' as const,
   }),
-  overflowEllipsis: css`
-    display: block;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  `,
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
     clip: rect(0 0 0 0);
@@ -277,11 +270,7 @@ const generateButtonTheme = (colors: Colors, tokens: Tokens): ButtonColors => ({
   },
 });
 
-const generateAlertTheme = (
-  colors: Colors,
-  alias: Aliases,
-  tokens: Tokens
-): AlertColors => ({
+const generateAlertTheme = (colors: Colors, tokens: Tokens): AlertColors => ({
   info: {
     border: colors.blue200,
     background: colors.blue400,
@@ -298,7 +287,7 @@ const generateAlertTheme = (
   },
   muted: {
     background: colors.gray200,
-    backgroundLight: alias.backgroundSecondary,
+    backgroundLight: tokens.background.secondary,
     border: tokens.border.primary,
     borderHover: tokens.border.primary,
     color: 'inherit',
@@ -555,8 +544,6 @@ const commonTheme = {
   ...typography,
   ...formTheme,
 };
-
-type Aliases = typeof lightAliases;
 
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
@@ -1107,16 +1094,6 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (tokens: Tokens) => ({
-  /**
-   * Secondary background color used as a slight contrast against primary background
-   */
-  backgroundSecondary: tokens.background.secondary,
-});
-
-const lightAliases = generateAliases(baseLightTheme.tokens);
-const darkAliases = generateAliases(baseDarkTheme.tokens);
-
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get black() {
@@ -1219,7 +1196,6 @@ const lightThemeDefinition = {
   ...commonTheme,
   ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
-  ...lightAliases,
   ...lightShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseLightTheme.tokens),
@@ -1230,7 +1206,7 @@ const lightThemeDefinition = {
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseLightTheme.tokens),
-  alert: generateAlertTheme(lightColors, lightAliases, baseLightTheme.tokens),
+  alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
   button: generateButtonTheme(lightColors, baseLightTheme.tokens),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
@@ -1259,7 +1235,6 @@ export const darkTheme: SentryTheme = {
 
   ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
-  ...darkAliases,
   ...darkShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseDarkTheme.tokens),
@@ -1270,7 +1245,7 @@ export const darkTheme: SentryTheme = {
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseDarkTheme.tokens),
-  alert: generateAlertTheme(darkColors, darkAliases, baseDarkTheme.tokens),
+  alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
   button: generateButtonTheme(darkColors, baseDarkTheme.tokens),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),

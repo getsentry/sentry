@@ -111,7 +111,7 @@ const StyledLayoutBody = styled('div')<{
 `;
 
 const GroupContent = styled('section')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   display: flex;
   flex-direction: column;
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
