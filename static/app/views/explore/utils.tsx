@@ -653,7 +653,7 @@ export function getSavedQueryTraceItemUrl({
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
 }
 
-export function getReplayUrlFromSavedQueryUrl({
+function getReplayUrlFromSavedQueryUrl({
   savedQuery,
   organization,
 }: {
