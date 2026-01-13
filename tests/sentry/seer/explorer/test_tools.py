@@ -52,6 +52,125 @@ def _get_utc_iso_without_timezone(dt: datetime) -> str:
     return dt.astimezone(UTC).isoformat().replace("+00:00", "")
 
 
+class TestExecuteTableQueryMode:
+    """
+    Pure unit tests for execute_table_query mode parameter.
+    These tests don't require any services - they fully mock the client and Organization.
+    """
+
+    @patch("sentry.seer.explorer.tools.Organization")
+    @patch("sentry.seer.explorer.tools.client")
+    def test_traces_mode_calls_traces_endpoint(
+        self, mock_client: Mock, mock_org_model: Mock
+    ) -> None:
+        """Test that mode='traces' calls the /traces/ endpoint."""
+        mock_org = Mock()
+        mock_org.id = 1
+        mock_org.slug = "test-org"
+        mock_org_model.objects.get.return_value = mock_org
+        mock_client.get.return_value = Mock(data={"data": [{"trace": "abc123"}]})
+
+        result = execute_table_query(
+            org_id=1,
+            dataset="spans",
+            fields=["id", "span.op"],
+            query="span.op:pageload",
+            stats_period="1h",
+            per_page=5,
+            mode="traces",
+        )
+
+        assert result is not None
+        assert "data" in result
+
+        # Verify traces endpoint was called
+        call_kwargs = mock_client.get.call_args.kwargs
+        assert call_kwargs["path"] == "/organizations/test-org/traces/"
+
+        # Verify params don't include 'field' (traces endpoint doesn't use it)
+        assert "field" not in call_kwargs["params"]
+        assert call_kwargs["params"]["dataset"] == "spans"
+
+    @patch("sentry.seer.explorer.tools.Organization")
+    @patch("sentry.seer.explorer.tools.client")
+    def test_no_mode_calls_events_endpoint(self, mock_client: Mock, mock_org_model: Mock) -> None:
+        """Test that without mode parameter, /events/ endpoint is called."""
+        mock_org = Mock()
+        mock_org.id = 1
+        mock_org.slug = "test-org"
+        mock_org_model.objects.get.return_value = mock_org
+        mock_client.get.return_value = Mock(data={"data": [{"id": "span123"}]})
+
+        result = execute_table_query(
+            org_id=1,
+            dataset="spans",
+            fields=["id", "span.op"],
+            query="",
+            stats_period="1h",
+            per_page=5,
+        )
+
+        assert result is not None
+        assert "data" in result
+
+        # Verify events endpoint was called
+        call_kwargs = mock_client.get.call_args.kwargs
+        assert call_kwargs["path"] == "/organizations/test-org/events/"
+
+        # Verify params include 'field' (events endpoint uses it)
+        assert "field" in call_kwargs["params"]
+
+    @patch("sentry.seer.explorer.tools.Organization")
+    @patch("sentry.seer.explorer.tools.client")
+    def test_traces_mode_uses_24h_default_stats_period(
+        self, mock_client: Mock, mock_org_model: Mock
+    ) -> None:
+        """Test that traces mode defaults to 24h stats_period when none provided."""
+        mock_org = Mock()
+        mock_org.id = 1
+        mock_org.slug = "test-org"
+        mock_org_model.objects.get.return_value = mock_org
+        mock_client.get.return_value = Mock(data={"data": []})
+
+        execute_table_query(
+            org_id=1,
+            dataset="spans",
+            fields=[],
+            query="",
+            per_page=5,
+            mode="traces",
+            # No stats_period provided
+        )
+
+        # Verify 24h default was used
+        call_kwargs = mock_client.get.call_args.kwargs
+        assert call_kwargs["params"]["statsPeriod"] == "24h"
+
+    @patch("sentry.seer.explorer.tools.Organization")
+    @patch("sentry.seer.explorer.tools.client")
+    def test_non_traces_mode_without_time_range_returns_none(
+        self, mock_client: Mock, mock_org_model: Mock
+    ) -> None:
+        """Test that non-traces mode without stats_period or start/end returns None."""
+        mock_org = Mock()
+        mock_org.id = 1
+        mock_org.slug = "test-org"
+        mock_org_model.objects.get.return_value = mock_org
+
+        result = execute_table_query(
+            org_id=1,
+            dataset="spans",
+            fields=["id"],
+            query="",
+            per_page=5,
+            # No stats_period, no start/end, no mode="traces"
+        )
+
+        # Should return None because no time range was provided
+        assert result is None
+        mock_client.get.assert_not_called()
+
+
 class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     default_span_fields = [
         "id",

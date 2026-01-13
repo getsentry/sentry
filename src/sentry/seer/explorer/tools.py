@@ -114,9 +114,10 @@ def execute_table_query(
     end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     case_insensitive: bool | None = None,
+    mode: str | None = None,
 ) -> dict[str, Any] | None:
     """
-    Execute a query to get table data by calling the events endpoint.
+    Execute a query to get table data by calling the events or traces endpoint.
 
     Arg notes:
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
@@ -125,8 +126,16 @@ def execute_table_query(
 
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Start/end params take precedence over stats_period.
+
+        mode: When set to "traces", queries the traces endpoint instead of events.
+              The traces endpoint returns trace-level aggregated data (trace ID, root span name,
+              total spans, duration, etc.) and ignores the 'fields' parameter.
     """
-    stats_period, start, end = validate_date_params(stats_period, start, end)
+    # Traces mode uses a different default time range
+    default_stats_period = "24h" if mode == "traces" else None
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period=default_stats_period
+    )
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -138,29 +147,47 @@ def execute_table_query(
         project_ids = [ALL_ACCESS_PROJECT_ID]
     # Note if both project_ids and project_slugs are provided, the API request will 400.
 
-    if sort:
-        # Auto-select sort field to avoid snuba errors.
-        sort_field = sort.lstrip("-")
-        if sort_field not in fields:
-            fields.append(sort_field)
-    elif "timestamp" in fields:
-        # Default to -timestamp only if timestamp was selected.
-        sort = "-timestamp"
+    # Traces mode uses a different endpoint and doesn't need field selection
+    if mode == "traces":
+        params: dict[str, Any] = {
+            "dataset": "spans",  # traces endpoint only supports spans dataset
+            "query": query or None,
+            "sort": sort,
+            "per_page": per_page,
+            "statsPeriod": stats_period,
+            "start": start,
+            "end": end,
+            "project": project_ids,
+            "projectSlug": project_slugs,
+            "sampling": sampling_mode,
+            "referrer": Referrer.SEER_EXPLORER_TOOLS,
+        }
+        endpoint_path = f"/organizations/{organization.slug}/traces/"
+    else:
+        if sort:
+            # Auto-select sort field to avoid snuba errors.
+            sort_field = sort.lstrip("-")
+            if sort_field not in fields:
+                fields.append(sort_field)
+        elif "timestamp" in fields:
+            # Default to -timestamp only if timestamp was selected.
+            sort = "-timestamp"
 
-    params: dict[str, Any] = {
-        "dataset": dataset,
-        "field": fields,
-        "query": query or None,
-        "sort": sort,
-        "per_page": per_page,
-        "statsPeriod": stats_period,
-        "start": start,
-        "end": end,
-        "project": project_ids,
-        "projectSlug": project_slugs,
-        "sampling": sampling_mode,
-        "referrer": Referrer.SEER_EXPLORER_TOOLS,
-    }
+        params = {
+            "dataset": dataset,
+            "field": fields,
+            "query": query or None,
+            "sort": sort,
+            "per_page": per_page,
+            "statsPeriod": stats_period,
+            "start": start,
+            "end": end,
+            "project": project_ids,
+            "projectSlug": project_slugs,
+            "sampling": sampling_mode,
+            "referrer": Referrer.SEER_EXPLORER_TOOLS,
+        }
+        endpoint_path = f"/organizations/{organization.slug}/events/"
 
     # Add boolean params only if provided.
     if case_insensitive is not None:
@@ -173,7 +200,7 @@ def execute_table_query(
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
             user=None,
-            path=f"/organizations/{organization.slug}/events/",
+            path=endpoint_path,
             params=params,
         )
         return {"data": resp.data["data"]}
