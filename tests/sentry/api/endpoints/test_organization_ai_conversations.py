@@ -3,79 +3,18 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils import json
 
-LLM_TOKENS = 100
-LLM_COST = 0.001
+from .test_organization_ai_conversations_base import (
+    LLM_COST,
+    LLM_TOKENS,
+    BaseAIConversationsTestCase,
+)
 
 
-class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, APITestCase):
+class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(user=self.user)
-
-    def store_ai_span(
-        self,
-        conversation_id,
-        timestamp,
-        op="gen_ai.chat",
-        description=None,
-        status="ok",
-        operation_type=None,
-        tokens=None,
-        cost=None,
-        trace_id=None,
-        agent_name=None,
-        messages=None,
-        response_text=None,
-        user_id=None,
-        user_email=None,
-        user_username=None,
-        user_ip=None,
-    ):
-        span_data = {"gen_ai.conversation.id": conversation_id}
-        if operation_type:
-            span_data["gen_ai.operation.type"] = operation_type
-        if tokens is not None:
-            span_data["gen_ai.usage.total_tokens"] = tokens
-        if cost is not None:
-            span_data["gen_ai.cost.total_tokens"] = cost
-        if agent_name is not None:
-            span_data["gen_ai.agent.name"] = agent_name
-        if messages is not None:
-            # Serialize as JSON string since test infrastructure doesn't support list attributes
-            span_data["gen_ai.request.messages"] = json.dumps(messages)
-        if response_text is not None:
-            span_data["gen_ai.response.text"] = response_text
-        # Store user data with sentry. prefix for EAP indexing
-        if user_id is not None:
-            span_data["sentry.user.id"] = user_id
-        if user_email is not None:
-            span_data["sentry.user.email"] = user_email
-        if user_username is not None:
-            span_data["sentry.user.username"] = user_username
-        if user_ip is not None:
-            span_data["sentry.user.ip"] = user_ip
-
-        extra_data = {
-            "description": description or "default",
-            "sentry_tags": {"status": status, "op": op},
-            "data": span_data,
-        }
-        if trace_id:
-            extra_data["trace_id"] = trace_id
-
-        span = self.create_span(
-            extra_data,
-            start_ts=timestamp,
-        )
-        self.store_spans([span], is_eap=True)
-        return span
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:

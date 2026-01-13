@@ -3,6 +3,9 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.organization_ai_conversation_details import (
+    OrganizationAIConversationDetailsEndpoint,
+)
 from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
@@ -1736,6 +1739,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/$",
         OrganizationAIConversationsEndpoint.as_view(),
         name="sentry-api-0-organization-ai-conversations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>(?:\d+|[A-Za-z0-9-_]+))/$",
+        OrganizationAIConversationDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-ai-conversation-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",
