@@ -19,7 +19,7 @@ def generate_service_request_signature(
 
     Args:
         url_path: The request URL path
-        body: The request body to sign
+        body: The request body to sign. For GET requests (which have no body), use an empty bytes string (b"").
         shared_secret_setting: List of shared secrets from settings
         service_name: Name of the service for error messages
         signature_prefix: Prefix for the signature format (e.g., "rpc0:", "service0:")
