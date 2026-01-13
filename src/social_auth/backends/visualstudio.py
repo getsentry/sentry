@@ -82,7 +82,7 @@ class VisualStudioAuth(BaseOAuth2):
             "redirect_uri": absolute_uri(
                 reverse("socialauth_associate_complete_auth_sso", args=[provider])
             ),
-            "assertion": token,
+            "refresh_token": token,
         }
 
 
