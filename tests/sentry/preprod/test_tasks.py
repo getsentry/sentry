@@ -2,7 +2,6 @@ from datetime import timedelta
 from hashlib import sha1
 from unittest.mock import patch
 
-import sentry_sdk
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
