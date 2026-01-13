@@ -51,13 +51,13 @@ export const inputStyles = ({
   readOnly,
   size = 'md',
 }: InputStylesProps & {theme: Theme}): StrictCSSObject => {
-  const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.interactive.chonky.debossed.neutral.chonk} inset`;
 
   return {
     display: 'block',
     width: '100%',
     color: theme.tokens.content.primary,
-    backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.chonk,
+    backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.background,
     boxShadow,
     border: `1px solid ${theme.tokens.border.primary}`,
     fontFamily: theme.font.family[monospace ? 'mono' : 'sans'],

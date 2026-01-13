@@ -52,8 +52,9 @@ function StripeWrapper({
           rules: {
             '.Input': {
               fontSize: theme.fontSize.md,
-              boxShadow: `0px 2px 0px 0px ${theme.tokens.border.primary} inset`,
-              backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.chonk,
+              boxShadow: `0px 2px 0px 0px ${theme.tokens.interactive.chonky.debossed.neutral.chonk} inset`,
+              backgroundColor:
+                theme.tokens.interactive.chonky.debossed.neutral.background,
               padding: `${theme.space.lg} ${theme.space.xl}`,
             },
             '.Label': {
