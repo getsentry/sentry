@@ -14,6 +14,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {space} from 'sentry/styles/space';
@@ -39,9 +40,12 @@ function ToggleConsolePlatformsModal({
 }: ToggleConsolePlatformsModalProps) {
   const {enabledConsolePlatforms = [], consoleSdkInviteQuota = 0} = organization;
 
-  const {data: userIdentities, isPending: isInvitesFetchPending} = useConsoleSdkInvites(
-    organization.slug
-  );
+  const {
+    data: userIdentities,
+    isPending: isInvitesFetchPending,
+    isError: isInvitesFetchError,
+    refetch: refetchInvites,
+  } = useConsoleSdkInvites(organization.slug);
   const {
     mutate: revokeConsoleInvite,
     isPending: isRevokePending,
@@ -164,7 +168,14 @@ function ToggleConsolePlatformsModal({
             </SimpleTable.Empty>
           )}
 
+          {isInvitesFetchError && (
+            <SimpleTable.Empty>
+              <LoadingError onRetry={refetchInvites} />
+            </SimpleTable.Empty>
+          )}
+
           {!isInvitesFetchPending &&
+            !isInvitesFetchError &&
             (userIdentities === undefined || userIdentities.length === 0) && (
               <SimpleTable.Empty>No invites found</SimpleTable.Empty>
             )}
