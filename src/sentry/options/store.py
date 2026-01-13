@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import signal
+from contextlib import contextmanager
 from random import random
 from time import time
 from typing import Any
@@ -24,6 +26,42 @@ logger = logging.getLogger(OPTIONS_LOGGER_NAME)
 # Our SDK logging integration will create a circular dependency due to its
 # reliance on options, so we need to ignore it.
 ignore_logger(OPTIONS_LOGGER_NAME)
+
+
+class CacheTimeoutError(Exception):
+    """Raised when a cache operation times out"""
+
+    pass
+
+
+# Maximum time to wait for cache operations (in seconds)
+# This should be less than typical task processing deadlines
+CACHE_OPERATION_TIMEOUT = 5
+
+
+@contextmanager
+def cache_timeout(seconds: int = CACHE_OPERATION_TIMEOUT):
+    """
+    Context manager that raises CacheTimeoutError if the wrapped operation
+    takes longer than the specified timeout.
+
+    This is used to prevent cache operations from blocking indefinitely
+    when the cache backend (e.g., memcache) is unresponsive.
+    """
+
+    def timeout_handler(signum, frame):
+        raise CacheTimeoutError(f"Cache operation exceeded {seconds} second timeout")
+
+    # Set the signal handler and alarm
+    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(seconds)
+
+    try:
+        yield
+    finally:
+        # Cancel the alarm and restore the old handler
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
 
 
 @dataclasses.dataclass
@@ -139,7 +177,16 @@ class OptionsStore:
 
         cache_key = key.cache_key
         try:
-            value = self.cache.get(cache_key)
+            with cache_timeout():
+                value = self.cache.get(cache_key)
+        except CacheTimeoutError:
+            if not silent:
+                logger.warning(
+                    f"{CACHE_FETCH_ERR} (timeout)",
+                    key.name,
+                    extra={"key": key.name, "reason": "timeout"},
+                )
+            value = None
         except Exception:
             if not silent:
                 logger.warning(CACHE_FETCH_ERR, key.name, extra={"key": key.name}, exc_info=True)
@@ -279,8 +326,16 @@ class OptionsStore:
             self._local_cache[cache_key] = _make_cache_value(key, value)
 
         try:
-            self.cache.set(cache_key, value, self.ttl)
+            with cache_timeout():
+                self.cache.set(cache_key, value, self.ttl)
             return True
+        except CacheTimeoutError:
+            logger.warning(
+                f"{CACHE_UPDATE_ERR} (timeout)",
+                key.name,
+                extra={"key": key.name, "reason": "timeout"},
+            )
+            return False
         except Exception:
             logger.warning(CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True)
             return False
@@ -308,8 +363,16 @@ class OptionsStore:
             pass
 
         try:
-            self.cache.delete(cache_key)
+            with cache_timeout():
+                self.cache.delete(cache_key)
             return True
+        except CacheTimeoutError:
+            logger.warning(
+                f"{CACHE_UPDATE_ERR} (timeout)",
+                key.name,
+                extra={"key": key.name, "reason": "timeout"},
+            )
+            return False
         except Exception:
             logger.warning(CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True)
             return False

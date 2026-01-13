@@ -1,3 +1,4 @@
+import time
 from functools import cached_property
 from unittest.mock import MagicMock, patch
 from uuid import uuid1
@@ -9,7 +10,7 @@ from django.test import override_settings
 
 from sentry.models.options.option import Option
 from sentry.options.manager import OptionsManager, UpdateChannel
-from sentry.options.store import OptionsStore
+from sentry.options.store import CacheTimeoutError, OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -176,3 +177,41 @@ class OptionsStoreTest(TestCase):
         mocked_time.return_value = 26
         store.clean_local_cache()
         assert not store._local_cache
+
+    def test_cache_get_timeout(self) -> None:
+        """Test that cache.get() operations timeout after configured duration"""
+        store, key = self.store, self.key
+
+        def slow_get(*args, **kwargs):
+            time.sleep(10)  # Sleep longer than CACHE_OPERATION_TIMEOUT
+            return "should_not_reach"
+
+        with patch.object(store.cache, "get", side_effect=slow_get):
+            # Should timeout and return None
+            result = store.get_cache(key)
+            assert result is None
+
+    def test_cache_set_timeout(self) -> None:
+        """Test that cache.set() operations timeout after configured duration"""
+        store, key = self.store, self.key
+
+        def slow_set(*args, **kwargs):
+            time.sleep(10)  # Sleep longer than CACHE_OPERATION_TIMEOUT
+            return True
+
+        with patch.object(store.cache, "set", side_effect=slow_set):
+            # Should timeout and return False
+            result = store.set_cache(key, "value")
+            assert result is False
+
+    def test_cache_delete_timeout(self) -> None:
+        """Test that cache.delete() operations timeout after configured duration"""
+        store, key = self.store, self.key
+
+        def slow_delete(*args, **kwargs):
+            time.sleep(10)  # Sleep longer than CACHE_OPERATION_TIMEOUT
+
+        with patch.object(store.cache, "delete", side_effect=slow_delete):
+            # Should timeout and return False
+            result = store.delete_cache(key)
+            assert result is False
