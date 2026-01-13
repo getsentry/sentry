@@ -5,7 +5,11 @@ from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException
 
 
 def generate_service_request_signature(
-    url_path: str, body: bytes, shared_secret_setting: list[str] | None, service_name: str
+    url_path: str,
+    body: bytes,
+    shared_secret_setting: list[str] | None,
+    service_name: str,
+    signature_prefix: str = "rpc0:",
 ) -> str:
     """
     Generate a signature for the request body with the first shared secret.
@@ -30,4 +34,4 @@ def generate_service_request_signature(
     signature_input = body
     secret = shared_secret_setting[0]
     signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
-    return f"rpc0:{signature}"
+    return f"{signature_prefix}{signature}"
