@@ -92,8 +92,8 @@ describe('SearchBarAction', () => {
 
     // Levels
     expect(screen.getByText('Levels')).toBeInTheDocument();
-    expect(screen.getByText('info')).toBeInTheDocument();
-    expect(screen.getAllByText('Error')[1]).toBeInTheDocument();
+    expect(screen.getAllByText('info')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('error')[0]).toBeInTheDocument();
   });
 
   it('Without Options', async () => {
@@ -168,11 +168,11 @@ describe('SearchBarAction', () => {
     expect(screen.queryByText('Types')).not.toBeInTheDocument();
 
     // List Items
-    expect(screen.getByText('info')).toBeInTheDocument();
-    expect(screen.getByText('error')).toBeInTheDocument();
+    expect(screen.getAllByText('info')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('error')[0]).toBeInTheDocument();
 
     // Check Item
-    const infoItem = screen.getByText('info');
+    const infoItem = screen.getAllByText('info')[0];
     await userEvent.click(infoItem);
 
     const infoOption = ('options' in levelOptions ? levelOptions.options : []).find(

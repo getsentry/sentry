@@ -199,4 +199,4 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
     `}
 `;
 
-export {PanelTable, type PanelTableProps};
+export {PanelTable};
