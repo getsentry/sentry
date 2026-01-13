@@ -32,7 +32,11 @@ export const WidgetFooterTable = styled('div')<{columns?: number}>`
   }
 
   & > *:nth-child(${p => getColumns(p)}n + 2) {
-    ${p => p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     padding-left: ${space(1.5)};
     min-width: 0px;
     text-align: left;

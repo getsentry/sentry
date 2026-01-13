@@ -90,7 +90,11 @@ const HeaderTitle = styled('div')`
 export const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 

@@ -5,7 +5,11 @@ const BadgeDisplayName = styled('span')<{hideOverflow?: string | boolean}>`
   ${p =>
     p.hideOverflow &&
     css`
-      ${p.theme.overflowEllipsis};
+      display: block;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       max-width: ${typeof p.hideOverflow === 'string'
         ? p.hideOverflow
         : // @TODO(jonasbadalic) 240px used to be defined as theme.settings.maxCrumbWidth and only used here

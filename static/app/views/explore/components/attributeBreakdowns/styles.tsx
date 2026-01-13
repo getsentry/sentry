@@ -165,7 +165,11 @@ const ChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const PopulationIndicator = styled(Flex)<{color?: string}>`

@@ -1045,7 +1045,11 @@ const IssueTitle = styled('div')`
   font-weight: 600;
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.4;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   em {
     font-size: ${p => p.theme.fontSize.sm};

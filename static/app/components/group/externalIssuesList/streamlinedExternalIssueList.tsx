@@ -253,7 +253,11 @@ const IssueActionDropdownMenu = styled(DropdownButton)`
 `;
 
 const IssueActionName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
@@ -265,7 +269,11 @@ const LinkedIssueTooltipWrapper = styled('div')`
 `;
 
 const LinkedIssueName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-right: ${space(0.25)};
 `;
 

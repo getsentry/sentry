@@ -211,8 +211,12 @@ const Description = styled('div')`
 `;
 
 const DetailsItem = styled('div')`
-  ${p => p.theme.overflowEllipsis}
-  margin-top: ${space(1)}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: ${space(1)};
 `;
 
 export default DebugFileRow;

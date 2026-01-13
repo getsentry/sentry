@@ -281,7 +281,10 @@ const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
   color: ${p => p.theme.tokens.content.secondary};
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
@@ -293,7 +296,11 @@ const DisplayName = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: normal;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const LinkWithUnderline = styled(Link)`

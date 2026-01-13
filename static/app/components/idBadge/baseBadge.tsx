@@ -138,5 +138,9 @@ const Description = styled('div')`
   margin-top: ${space(0.25)};
   color: ${p => p.theme.tokens.content.secondary};
   line-height: 14px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

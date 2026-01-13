@@ -143,7 +143,9 @@ const StyledKeyValueTable = styled(KeyValueTable)`
     padding-left: ${space(4)};
   }
   & > dd {
-    ${p => p.theme.overflowEllipsis};
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: ${p => p.theme.fontSize.sm};
     display: flex;
     justify-content: flex-end;

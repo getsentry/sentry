@@ -55,7 +55,16 @@ export const StyledPanelItem = styled(PanelItem)<{
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
   ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
-  ${p => (p.overflow ? p.theme.overflowEllipsis : null)};
+  ${p =>
+    p.overflow
+      ? css`
+          display: block;
+          width: 100%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        `
+      : null};
   ${p =>
     p.align === 'center'
       ? `
@@ -73,7 +82,10 @@ export const MoreMatchingSpans = styled(StyledPanelItem)`
 
 export const WrappingText = styled('div')`
   width: 100%;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const StyledSpanPanelItem = styled(StyledPanelItem)`

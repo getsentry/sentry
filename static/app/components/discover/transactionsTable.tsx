@@ -274,7 +274,11 @@ const HeadCellContainer = styled('div')`
 
 const BodyCellContainer = styled('div')`
   padding: ${space(1)} ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledIconQuestion = styled(QuestionTooltip)`

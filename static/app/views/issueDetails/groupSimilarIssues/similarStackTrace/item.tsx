@@ -161,7 +161,10 @@ export function SimilarStackTraceItem(props: Props) {
 }
 
 const Details = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   display: grid;
   align-items: start;
@@ -208,5 +211,9 @@ const Diff = styled('div')`
 
 const EventDetails = styled('div')`
   flex: 1;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

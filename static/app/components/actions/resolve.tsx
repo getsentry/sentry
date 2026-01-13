@@ -428,6 +428,10 @@ const CurrentReleaseWrapper = styled('div')`
 `;
 
 const MaxReleaseWidthWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 250px;
 `;

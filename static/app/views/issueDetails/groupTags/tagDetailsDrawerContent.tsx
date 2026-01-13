@@ -416,7 +416,11 @@ const ValueLink = styled(Link)`
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ExternalLinkbutton = styled(Button)`
