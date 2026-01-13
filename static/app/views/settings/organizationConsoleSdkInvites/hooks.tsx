@@ -3,6 +3,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {tct} from 'sentry/locale';
 import {
   fetchMutation,
   useApiQuery,
@@ -46,17 +47,18 @@ export function useRevokeConsoleSdkInvite() {
       });
     },
     onMutate: ({email}: UseRevokeConsoleSdkInviteParams) => {
-      addLoadingMessage(`Removing console SDK access for ${email}`);
+      addLoadingMessage(tct('Removing console SDK access for [email]', {email}));
     },
-    onSuccess: (_data, {email, orgSlug, onSuccess}: UseRevokeConsoleSdkInviteParams) => {
-      addSuccessMessage(`Successfully removed console SDK access for ${email}`);
+    onSuccess: (_data, {email, orgSlug}: UseRevokeConsoleSdkInviteParams) => {
+      addSuccessMessage(
+        tct('Successfully removed console SDK access for [email]', {email})
+      );
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
       });
-      onSuccess?.();
     },
     onError: (_error, {email}: UseRevokeConsoleSdkInviteParams) => {
-      addErrorMessage(`Failed to remove console SDK access for ${email}`);
+      addErrorMessage(tct('Failed to remove console SDK access for [email]', {email}));
     },
   });
 }
