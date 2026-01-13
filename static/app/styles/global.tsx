@@ -209,7 +209,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   }
 
   pre {
-    background-color: ${theme.backgroundSecondary};
+    background-color: ${theme.tokens.background.secondary};
     white-space: pre-wrap;
     overflow-x: auto;
 
@@ -286,8 +286,8 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           }
         }
         .loading .loading-indicator {
-          border-color: ${theme.backgroundSecondary};
-          border-left-color: ${theme.colors.blue400};
+          border-color: ${theme.tokens.background.transparent.neutral.muted};
+          border-left-color: ${theme.tokens.background.accent.vibrant};
         }
 
         .pattern-bg {
@@ -300,7 +300,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
             &.active {
               a {
                 color: ${theme.tokens.content.primary} !important;
-                border-bottom-color: ${theme.active} !important;
+                border-bottom-color: ${theme.tokens.border.accent.vibrant} !important;
               }
             }
 
@@ -345,10 +345,10 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
               background: transparent;
             }
             .title {
-              background-color: ${theme.backgroundSecondary};
+              background-color: ${theme.tokens.background.secondary};
             }
             &.is-expandable .title {
-              background-color: ${theme.backgroundSecondary};
+              background-color: ${theme.tokens.background.secondary};
             }
             .context {
               background: ${theme.tokens.background.primary};

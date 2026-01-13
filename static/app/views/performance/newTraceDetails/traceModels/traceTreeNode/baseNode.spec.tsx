@@ -36,7 +36,7 @@ class TestNode extends BaseNode {
   }
 
   makeBarColor(theme: Theme): string {
-    return theme.colors.blue400;
+    return theme.tokens.graphics.accent.vibrant;
   }
 
   printNode(): string {
@@ -726,7 +726,9 @@ describe('BaseNode', () => {
         title: 'Trace Header Title',
         subtitle: 'GET /api/users',
       });
-      expect(node.makeBarColor(ThemeFixture())).toEqual(ThemeFixture().blue300);
+      expect(node.makeBarColor(ThemeFixture())).toEqual(
+        ThemeFixture().tokens.graphics.accent.vibrant
+      );
       expect(node.printNode()).toBe('Print Node(test-id)');
       expect(node.analyticsName()).toBe('test');
 

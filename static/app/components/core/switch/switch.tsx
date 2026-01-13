@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {chonkFor} from 'sentry/components/core/chonk';
-
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onClick'> {
   ref?: React.Ref<HTMLInputElement>;
@@ -42,17 +40,20 @@ const NativeHiddenCheckbox = styled('input')<{
     border-radius: ${p => p.theme.radius.sm};
     pointer-events: none;
 
-    background: ${p => p.theme.colors.surface200};
-    border-top: 3px solid ${p => p.theme.colors.surface100};
-    border-right: 1px solid ${p => p.theme.colors.surface100};
-    border-bottom: 1px solid ${p => p.theme.colors.surface100};
-    border-left: 1px solid ${p => p.theme.colors.surface100};
+    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
+    border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    border-right: 1px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    border-bottom: 1px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    border-left: 1px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
     transition: all 100ms ease-in-out;
 
     > div {
       border-radius: ${p => p.theme.radius.sm};
-      background: ${p => p.theme.colors.surface500};
-      border: 1px solid ${p => p.theme.colors.surface100};
+      background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+      border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
 
       width: ${p => toggleButtonSize[p.nativeSize].width}px;
       height: ${p => toggleButtonSize[p.nativeSize].height}px;
@@ -81,7 +82,7 @@ const NativeHiddenCheckbox = styled('input')<{
         /* stylelint-disable */
         background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p =>
           urlEscapeHex(
-            p.theme.tokens.content.muted
+            p.theme.tokens.interactive.chonky.embossed.neutral.content.secondary
           )}" d="M5.03 3.97a.75.75 0 0 0-1.06 1.06L6.94 8l-2.97 2.97a.75.75 0 1 0 1.06 1.06L8 9.06l2.97 2.97a.75.75 0 1 0 1.06-1.06L9.06 8l2.97-2.97a.75.75 0 0 0-1.06-1.06L8 6.94 5.03 3.97Z" clip-rule="evenodd"/></svg>');
         /* stylelint-enable */
       }
@@ -89,15 +90,17 @@ const NativeHiddenCheckbox = styled('input')<{
   }
 
   &:checked + div {
-    background: ${p => p.theme.colors.chonk.blue400};
-    border-top: 3px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-    border-right: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-    border-bottom: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-    border-left: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    background: ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    border-right: 1px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    border-bottom: 1px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    border-left: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
 
     > div {
-      background: ${p => p.theme.colors.surface500};
-      border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+      background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+      border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
       transform: translateY(-1px)
         translateX(
           ${p =>
@@ -109,7 +112,7 @@ const NativeHiddenCheckbox = styled('input')<{
         /* stylelint-disable */
         background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p =>
           urlEscapeHex(
-            p.theme.tokens.content.accent
+            p.theme.tokens.interactive.chonky.embossed.neutral.content.accent
           )}" fill-rule="evenodd" d="M13.53 4.22c.3.3.3.77 0 1.06l-6.5 6.5a.75.75 0 0 1-1.08-.02l-3.5-3.75A.75.75 0 0 1 3.55 7l2.97 3.18 5.95-5.95c.3-.3.77-.3 1.06 0Z" clip-rule="evenodd"/></svg>');
         /* stylelint-enable */
       }

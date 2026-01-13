@@ -206,7 +206,7 @@ const DragHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.colors.blue500};
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
     }
   }
 
@@ -219,7 +219,7 @@ const DragHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.colors.blue500};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 

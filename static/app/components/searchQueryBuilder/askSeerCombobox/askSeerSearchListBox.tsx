@@ -67,18 +67,19 @@ const StyledOption = styled('li')<{isFocused: boolean}>`
   list-style: none;
   transition: background-color 0.2s ease;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-  background-color: ${p => (p.isFocused ? p.theme.colors.blue100 : 'transparent')};
+  background-color: ${p =>
+    p.isFocused ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
 
   &:hover {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 
   &:focus {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 
   &[data-is-none-of-these],

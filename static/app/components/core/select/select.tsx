@@ -167,7 +167,7 @@ const getStylesConfig = ({
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.colors.blue200} ${theme.tokens.background.primary}`,
+        scrollbarColor: `${theme.tokens.graphics.accent.moderate} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({
@@ -323,8 +323,8 @@ export const CheckWrap = styled('div')<{
           margin-top: 2px;
           ${p.isSelected &&
           css`
-            background: ${p.theme.colors.blue400};
-            border-color: ${p.theme.colors.blue400};
+            background: ${p.theme.tokens.background.accent.vibrant};
+            border-color: ${p.theme.tokens.background.accent.vibrant};
           `}
         `
       : css`

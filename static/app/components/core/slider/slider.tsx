@@ -1,7 +1,6 @@
 import {useState, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {chonkFor} from 'sentry/components/core/chonk';
 import {space} from 'sentry/styles/space';
 
 interface BaseProps
@@ -98,7 +97,7 @@ const StepsContainer = styled('div')`
     height: 12px;
     width: 2px;
     border-radius: ${p => p.theme.radius.lg};
-    background: ${p => p.theme.colors.surface100};
+    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
   }
 `;
 
@@ -115,7 +114,9 @@ const StepMark = styled('span')<{filled?: boolean}>`
     width: 2px;
     border-radius: ${p => p.theme.radius.lg};
     background: ${p =>
-      p.filled ? p.theme.colors.chonk.blue400 : p.theme.colors.surface100};
+      p.filled
+        ? p.theme.tokens.interactive.chonky.debossed.accent.background
+        : p.theme.tokens.interactive.chonky.debossed.neutral.background};
   }
 `;
 
@@ -178,8 +179,8 @@ const StyledSlider = styled('input')`
     min-width: calc(${p => p.theme.radius['2xs']} * 6);
     width: var(--p, 50%);
     height: 4px;
-    background: ${p => p.theme.colors.chonk.blue400};
-    border: 1px solid ${p => p.theme.colors.chonk.blue400};
+    background: ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -187,8 +188,9 @@ const StyledSlider = styled('input')`
   &::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
-    background: ${p => p.theme.colors.surface100};
-    border: 1px solid ${p => p.theme.colors.surface100};
+    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
+    border: 1px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -196,9 +198,10 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.colors.white};
-    border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-    border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    background: ${p => p.theme.tokens.content.onVibrant.light};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    border-bottom: 2px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
     border-radius: ${p => p.theme.radius.sm};
     transform: translateY(-7px);
     z-index: 10;
@@ -208,8 +211,9 @@ const StyledSlider = styled('input')`
   &::-moz-range-track {
     width: 100%;
     height: 4px;
-    background: ${p => p.theme.colors.surface100};
-    border: 1px solid ${p => p.theme.colors.surface100};
+    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
+    border: 1px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -217,9 +221,10 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.colors.white};
-    border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-    border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    background: ${p => p.theme.tokens.content.onVibrant.light};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    border-bottom: 2px solid
+      ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
     border-radius: ${p => p.theme.radius.sm};
     transform: translateY(-7px);
     z-index: 1;
@@ -262,9 +267,9 @@ const SliderLabel = styled('span')`
   padding-inline: ${space(0.5)};
   width: min-content;
   text-align: center;
-  background: ${p => p.theme.colors.chonk.blue400};
-  border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-  color: ${p => p.theme.white};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
+  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
+  color: ${p => p.theme.tokens.content.onVibrant.light};
   border-radius: ${p => p.theme.radius['2xs']};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;

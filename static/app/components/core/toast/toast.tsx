@@ -7,7 +7,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {chonkFor} from 'sentry/components/core/chonk';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
@@ -97,24 +96,24 @@ function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProp
   switch (type) {
     case 'success':
       return {
-        background: theme.colors.green100,
-        borderBottom: `2px solid ${theme.tokens.border.success}`,
-        border: `1px solid ${chonkFor(theme, theme.colors.chonk.green400)}`,
-        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.green400)}`,
+        background: theme.tokens.background.transparent.success.muted,
+        borderBottom: `2px solid ${theme.tokens.border.success.moderate}`,
+        border: `1px solid ${theme.tokens.border.success.moderate}`,
+        boxShadow: `0 3px 0 0px ${theme.tokens.shadow.elevationLow}`,
       };
     case 'error':
       return {
-        background: theme.colors.red100,
-        borderBottom: `2px solid ${theme.tokens.border.danger}`,
-        border: `1px solid ${chonkFor(theme, theme.colors.chonk.red400)}`,
-        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.red400)}`,
+        background: theme.tokens.background.transparent.danger.muted,
+        borderBottom: `2px solid ${theme.tokens.border.danger.moderate}`,
+        border: `1px solid ${theme.tokens.border.danger.moderate}`,
+        boxShadow: `0 3px 0 0px ${theme.tokens.shadow.elevationLow}`,
       };
     default:
       return {
-        background: theme.tokens.background.primary,
-        borderBottom: `2px solid ${theme.tokens.border.accent}`,
-        border: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
-        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.blue400)}`,
+        background: theme.tokens.background.overlay,
+        borderBottom: `2px solid ${theme.tokens.border.primary}`,
+        border: `1px solid ${theme.tokens.border.primary}`,
+        boxShadow: `0 3px 0 0px ${theme.tokens.shadow.elevationLow}`,
       };
   }
 }
@@ -158,18 +157,18 @@ function getToastIconContainerTheme(
   switch (type) {
     case 'success':
       return {
-        background: theme.colors.chonk.green400,
-        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.green400)}`,
+        background: theme.tokens.background.success.vibrant,
+        borderRight: `1px solid ${theme.tokens.border.success.moderate}`,
       };
     case 'error':
       return {
-        background: theme.colors.chonk.red400,
-        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.red400)}`,
+        background: theme.tokens.background.danger.vibrant,
+        borderRight: `1px solid ${theme.tokens.border.danger.moderate}`,
       };
     default:
       return {
-        background: theme.tokens.background.primary,
-        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
+        background: theme.tokens.background.overlay,
+        borderRight: `1px solid ${theme.tokens.border.primary}`,
       };
   }
 }
@@ -186,9 +185,9 @@ const ToastIconContainer = styled('div')<{type: Indicator['type']}>`
     height: 16px;
     color: ${p =>
       p.type === 'success'
-        ? p.theme.colors.black
+        ? p.theme.tokens.content.onVibrant.dark
         : p.type === 'error'
-          ? p.theme.colors.white
+          ? p.theme.tokens.content.onVibrant.light
           : undefined} !important;
   }
 `;

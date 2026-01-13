@@ -651,10 +651,10 @@ export function SourceMapsDebuggerModal({
                 <StyledProgressRing
                   progressColor={
                     activeTab === 'debug-ids'
-                      ? theme.colors.blue400
-                      : theme.colors.gray400
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.debugIdProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -674,9 +674,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'release' ? theme.colors.blue400 : theme.colors.gray400
+                    activeTab === 'release'
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.releaseProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -692,9 +694,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'fetching' ? theme.colors.blue400 : theme.colors.gray400
+                    activeTab === 'fetching'
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.scrapingProgressPercent * 100}
                   size={16}
                   barWidth={4}

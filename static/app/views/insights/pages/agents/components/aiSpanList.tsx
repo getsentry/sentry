@@ -415,16 +415,18 @@ const ListItemContainer = styled('div')<{
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   background-color: ${p =>
-    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
+    p.isSelected
+      ? p.theme.tokens.background.secondary
+      : p.theme.tokens.background.primary};
   outline: ${p =>
     p.isSelected
       ? p.hasErrors
-        ? `2px solid ${p.theme.colors.red200}`
-        : `2px solid ${p.theme.colors.blue200}`
+        ? `2px solid ${p.theme.tokens.focus.invalid}`
+        : `2px solid ${p.theme.tokens.focus.default}`
       : 'none'};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -434,7 +436,7 @@ const DurationBar = styled('div')<{
 }>`
   width: 100%;
   height: 4px;
-  background-color: ${p => p.theme.colors.gray200};
+  background-color: ${p => p.theme.tokens.dataviz.semantic.other};
   border-radius: 2px;
   position: relative;
 
@@ -467,7 +469,7 @@ const TransactionButton = styled('button')`
   font-weight: ${p => p.theme.fontWeight.normal};
 
   &:hover:not(:disabled) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 
   &:first-child {

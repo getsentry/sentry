@@ -162,6 +162,6 @@ const Container = styled('div')`
   left: 0;
   right: 0;
   bottom: 0;
-  color: ${p => p.theme.colors.blue200};
+  color: ${p => p.theme.tokens.background.transparent.accent.muted};
   opacity: 0.4;
 `;

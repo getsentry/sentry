@@ -70,10 +70,10 @@ const SeerConsentText = styled('p')`
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
 
   :hover {
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
     text-decoration: underline;
   }
 `;

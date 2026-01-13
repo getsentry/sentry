@@ -32,7 +32,9 @@ function updateGhostRow({
   element.style.height = `${rowHeight}px`;
   element.style.position = 'absolute';
   element.style.backgroundColor =
-    interaction === 'clicked' ? theme.colors.blue400 : theme.colors.surface300;
+    interaction === 'clicked'
+      ? theme.tokens.background.accent.vibrant
+      : theme.tokens.background.secondary;
   element.style.pointerEvents = 'none';
   element.style.willChange = 'transform, opacity';
   element.style.transform = `translateY(${rowHeight * selectedNodeIndex - scrollTop}px)`;

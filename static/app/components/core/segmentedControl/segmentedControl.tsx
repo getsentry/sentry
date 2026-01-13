@@ -41,7 +41,9 @@ function getTextColor({
   isDisabled?: boolean;
 }) {
   if (isSelected) {
-    return priority === 'default' ? theme.colors.blue500 : undefined;
+    return priority === 'default'
+      ? theme.tokens.interactive.chonky.embossed.neutral.content.accent
+      : undefined;
   }
 
   return theme.tokens.content.secondary;
