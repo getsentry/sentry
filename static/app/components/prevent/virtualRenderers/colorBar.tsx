@@ -19,7 +19,8 @@ const StyledColorBar = styled('div')<{isHighlighted: boolean}>`
   height: 100%;
   width: calc(100% + 72px);
 
-  background-color: ${p => (p.isHighlighted ? p.theme.colors.blue200 : 'inherit')};
+  background-color: ${p =>
+    p.isHighlighted ? p.theme.tokens.background.transparent.accent.muted : 'inherit'};
 `;
 
 const ColorBarWrapper = styled('div')`
