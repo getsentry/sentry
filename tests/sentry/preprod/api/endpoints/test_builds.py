@@ -82,7 +82,6 @@ class BuildsEndpointTest(APITestCase):
                     "date_built": None,
                     "artifact_type": 2,
                     "platform": "android",
-                    "is_installable": False,
                     "build_configuration": None,
                     "app_icon_id": None,
                     "apple_app_info": None,
