@@ -1,44 +1,10 @@
-import hashlib
-import hmac
-
-from django.conf import settings
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-
-
-class SynapseAuthPermission(BasePermission):
-    """
-    Validates HMAC signature for Synapse requests.
-
-    Expects the X-Synapse-Signature header to contain the HMAC-SHA256 hex digest
-    of the request body, signed with SYNAPSE_HMAC_SECRET.
-    """
-
-    def has_permission(self, request: Request, view: object) -> bool:
-        if settings.IS_DEV:
-            return True
-
-        if not settings.SYNAPSE_HMAC_SECRET:
-            return False
-
-        signature = request.META.get("HTTP_X_SYNAPSE_SIGNATURE")
-        if not signature:
-            return False
-
-        body_bytes = request.body if request.body not in (None, b"") else b""
-
-        computed_hmac = hmac.new(
-            settings.SYNAPSE_HMAC_SECRET.encode("utf-8"),
-            body_bytes,
-            hashlib.sha256,
-        ).hexdigest()
-
-        return hmac.compare_digest(signature, computed_hmac)
+from sentry.api.endpoints.synapse.authentication import SynapseAuthPermission
 
 
 @control_silo_endpoint
