@@ -112,8 +112,12 @@ class RedisRateLimiter(RateLimiter):
             pipe.incr(redis_key)
             pipe.expire(redis_key, expiration)
             pipeline_result = pipe.execute()
+            # Check if pipeline returned expected results (can be empty during cluster topology changes)
+            if not pipeline_result or len(pipeline_result) < 1:
+                logger.exception("Failed to retrieve current rate limit value from redis: empty pipeline result")
+                return False, 0, reset_time
             result = pipeline_result[0]
-        except (RedisError, IndexError):
+        except RedisError:
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.
             logger.exception("Failed to retrieve current rate limit value from redis")
