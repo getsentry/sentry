@@ -118,7 +118,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_field_list(
         self, organization: Organization, request: Request, param_name: str = "field"
     ) -> list[str]:
-        return [field for field in request.GET.getlist(param_name)[:] if not is_equation(field)]
+        from sentry.search.events.fields import is_function
+        
+        return [
+            field
+            for field in request.GET.getlist(param_name)[:]
+            if not is_equation(field) and not is_function(field)
+        ]
 
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
