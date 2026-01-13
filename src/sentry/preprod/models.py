@@ -7,7 +7,7 @@ from typing import ClassVar, Self
 
 import sentry_sdk
 from django.db import models
-from django.db.models import IntegerField, OuterRef, Subquery, Sum
+from django.db.models import BooleanField, Case, IntegerField, OuterRef, Subquery, Sum, Value, When
 from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
@@ -26,6 +26,15 @@ logger = logging.getLogger(__name__)
 
 
 class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
+    def annotate_installable(self) -> Self:
+        return self.annotate(
+            installable=Case(
+                When(installable_app_file_id__isnull=False, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
     def annotate_download_count(self) -> Self:
         return self.annotate(
             download_count=Coalesce(
