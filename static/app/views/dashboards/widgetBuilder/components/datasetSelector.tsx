@@ -54,12 +54,8 @@ function WidgetBuilderDatasetSelector() {
               to={{
                 pathname: location.pathname,
                 query: {
-                  project: location.query.project,
-                  start: location.query.start,
-                  end: location.query.end,
-                  statsPeriod: location.query.statsPeriod,
-                  environment: location.query.environment,
-                  utc: location.query.utc,
+                  ...location.query,
+                  dataset: 'spans',
                 },
               }}
               onClick={() => {
