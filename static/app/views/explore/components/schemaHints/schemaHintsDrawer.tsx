@@ -259,11 +259,13 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &:active {
-    background-color: ${p => p.theme.colors.gray100};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   & > label {

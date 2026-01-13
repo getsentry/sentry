@@ -1184,6 +1184,6 @@ const TagRow = styled('div')`
   }
 
   &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;

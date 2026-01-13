@@ -105,7 +105,8 @@ const DetectorSimpleTableRow = styled(SimpleTable.Row)`
   min-height: 76px;
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   @media (hover: hover) {
