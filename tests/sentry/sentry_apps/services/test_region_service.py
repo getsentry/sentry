@@ -235,3 +235,27 @@ class TestSentryAppRegionService(TestCase):
 
         assert result.error is None
         assert len(result.projects) == 0
+
+    def test_record_interaction(self) -> None:
+        result = sentry_app_region_service.record_interaction(
+            organization_id=self.org.id,
+            sentry_app_id=self.sentry_app.id,
+            sentry_app_slug=self.sentry_app.slug,
+            tsdb_field="sentry_app_viewed",
+        )
+
+        assert result.error is None
+        assert result.success is True
+
+    def test_record_interaction_error(self) -> None:
+        result = sentry_app_region_service.record_interaction(
+            organization_id=self.org.id,
+            sentry_app_id=self.sentry_app.id,
+            sentry_app_slug=self.sentry_app.slug,
+            tsdb_field="invalid_field",
+        )
+
+        assert result.error is not None
+        assert result.success is False
+        assert "tsdbField must be one of" in result.error.message
+        assert result.error.status_code == 400

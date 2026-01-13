@@ -106,5 +106,19 @@ class SentryAppRegionService(RpcService):
         """Gets service hook projects for an installation."""
         pass
 
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def record_interaction(
+        self,
+        *,
+        organization_id: int,
+        sentry_app_id: int,
+        sentry_app_slug: str,
+        tsdb_field: str,
+        component_type: str | None = None,
+    ) -> RpcDeleteResult:
+        """Records a sentry app interaction in TSDB."""
+        pass
+
 
 sentry_app_region_service = SentryAppRegionService.create_delegation()
