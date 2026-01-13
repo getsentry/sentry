@@ -1,4 +1,4 @@
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {expectTypeOf} from 'expect-type';
 
 import {render, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
