@@ -24,14 +24,17 @@ export function getLineHeight(
   density: 'compressed' | 'comfortable' | undefined,
   theme: Theme
 ): string | undefined {
+  if (density === undefined) {
+    return undefined;
+  }
+
   switch (density) {
     case 'compressed':
       return theme.font.lineHeight.compressed.toString();
     case 'comfortable':
       return theme.font.lineHeight.comfortable.toString();
-    case undefined:
     default:
-      return theme.font.lineHeight.default.toString();
+      return undefined;
   }
 }
 

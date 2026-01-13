@@ -123,7 +123,7 @@ export const Text = styled(
   }
 )`
   ${p => rc('font-size', p.size, p.theme, v => getFontSize(v, p.theme))};
-  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v))};
+  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
   ${p => rc('text-align', p.align, p.theme)};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
