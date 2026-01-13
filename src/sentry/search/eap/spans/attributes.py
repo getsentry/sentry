@@ -607,10 +607,17 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
         "sentry.span_id": "id",
         "sentry.segment_name": "transaction",
     },
+    "boolean": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "boolean"
+    },
     "number": {
         definition.internal_name: definition.public_alias
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
         if not definition.secondary_alias and definition.search_type != "string"
+        # TODO: Add boolean support once we have boolean attributes in the frontend
+        # and definition.search_type != "boolean"
     }
     | {
         "sentry.start_timestamp": PRECISE_START_TS,
