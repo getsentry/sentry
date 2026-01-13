@@ -1,9 +1,14 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {
@@ -14,6 +19,7 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
@@ -24,14 +30,20 @@ import {
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import {BuildDetailsHeaderContent} from './header/buildDetailsHeaderContent';
+import {useBuildDetailsActions} from './header/useBuildDetailsActions';
 import {BuildDetailsMainContent} from './main/buildDetailsMainContent';
 import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
 
 export default function BuildDetails() {
   const organization = useOrganization();
+  const isSentryEmployee = useIsSentryEmployee();
   const params = useParams<{artifactId: string; projectId: string}>();
   const artifactId = params.artifactId;
   const projectId = params.projectId;
+  const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({
+    projectId,
+    artifactId,
+  });
 
   const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
@@ -125,7 +137,23 @@ export default function BuildDetails() {
                 ? buildDetailsQuery.error?.responseJSON.error
                 : t('Unable to load build details for this artifact')
             }
-          />
+          >
+            {isSentryEmployee && (
+              <Stack align="center" gap="lg">
+                <Text variant="muted" size="sm">
+                  {t('Sentry employees only')}
+                </Text>
+                <Flex gap="sm">
+                  <Button icon={<IconRefresh />} onClick={handleRerunAction}>
+                    {t('Rerun Analysis')}
+                  </Button>
+                  <Button icon={<IconDownload />} onClick={handleDownloadAction}>
+                    {t('Download Build')}
+                  </Button>
+                </Flex>
+              </Stack>
+            )}
+          </BuildError>
         </Layout.Page>
       </SentryDocumentTitle>
     );
