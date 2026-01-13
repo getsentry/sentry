@@ -409,23 +409,35 @@ export function useExplorerAutofix(
       setWaitingForResponse(true);
 
       try {
-        await api.requestPromise(`/organizations/${orgSlug}/issues/${groupId}/autofix/`, {
-          method: 'POST',
-          data: {
-            step: 'coding_agent_handoff',
-            run_id: runId,
-            integration_id: integrationId,
-          },
-        });
+        const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
+          await api.requestPromise(
+            `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+            {
+              method: 'POST',
+              data: {
+                step: 'coding_agent_handoff',
+                run_id: runId,
+                integration_id: integrationId,
+              },
+            }
+          );
+
+        // Check for failures in the response
+        if (response.failures && response.failures.length > 0) {
+          const errorMessage =
+            response.failures[0]?.error_message ?? 'Failed to launch coding agent';
+          addErrorMessage(errorMessage);
+        }
 
         // Invalidate to fetch fresh data
         queryClient.invalidateQueries({
           queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
         });
       } catch (e: any) {
-        setWaitingForResponse(false);
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
         throw e;
+      } finally {
+        setWaitingForResponse(false);
       }
     },
     [api, orgSlug, groupId, queryClient]
