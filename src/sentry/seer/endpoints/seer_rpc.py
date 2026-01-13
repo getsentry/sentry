@@ -77,7 +77,6 @@ from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.entrypoints.operator import process_autofix_updates
-from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -1051,7 +1050,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "execute_issues_query": execute_issues_query,
     "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
-    "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
