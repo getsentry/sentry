@@ -204,10 +204,10 @@ const TimelineRow = styled('li')<TimelineRowProps>`
         background: ${p.theme.backgroundSecondary};
       }
       &:hover {
-        background: ${p.theme.backgroundTertiary};
+        background: ${p.theme.tokens.background.tertiary};
       }
       &:has(*:focus-visible) {
-        background: ${p.theme.backgroundTertiary};
+        background: ${p.theme.tokens.background.tertiary};
       }
     `}
 

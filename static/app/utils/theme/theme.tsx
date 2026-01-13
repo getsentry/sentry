@@ -1114,11 +1114,6 @@ const generateAliases = (tokens: Tokens) => ({
   backgroundSecondary: tokens.background.secondary,
 
   /**
-   * Tertiary background color used as a stronger contrast against primary background
-   */
-  backgroundTertiary: tokens.background.tertiary,
-
-  /**
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
