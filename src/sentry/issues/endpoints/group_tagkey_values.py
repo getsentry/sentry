@@ -82,11 +82,14 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
         tenant_ids = {"organization_id": group.project.organization_id}
         try:
+            # Skip EAP experiment check to avoid dual queries that contribute
+            # to concurrent query limit exhaustion on this high-traffic endpoint
             tagstore.backend.get_group_tag_key(
                 group,
                 None,
                 lookup_key,
                 tenant_ids=tenant_ids,
+                skip_eap_experiment=True,
             )
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist

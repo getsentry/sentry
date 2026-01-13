@@ -1237,9 +1237,11 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
+            # Reduce max_workers to avoid exceeding Snuba's concurrent query limit.
+            # With 10 workers + EAP dual queries, we can hit 40+ concurrent queries.
             with ThreadPoolExecutor(
                 thread_name_prefix=__name__,
-                max_workers=10,
+                max_workers=5,
             ) as query_thread_pool:
                 query_results = list(
                     query_thread_pool.map(

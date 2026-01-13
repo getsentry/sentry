@@ -297,6 +297,7 @@ class SnubaTagStorage(TagStorage):
         limit: int | None = 3,
         raise_on_empty=True,
         tenant_ids=None,
+        skip_eap_experiment=False,
         **kwargs,
     ) -> GroupTagKey | TagKey:
         tag = self.format_string.format(key)
@@ -358,8 +359,12 @@ class SnubaTagStorage(TagStorage):
             )
             output = snuba_output
 
+            # Skip EAP experiment when explicitly requested to avoid dual queries
+            # that contribute to concurrent query limit exhaustion
             eap_callsite = "SnubaTagStorage::__get_tag_key_and_top_values"
-            if EAPOccurrencesComparator.should_check_experiment(eap_callsite):
+            if not skip_eap_experiment and EAPOccurrencesComparator.should_check_experiment(
+                eap_callsite
+            ):
 
                 def reasonable_group_tag_key_match(snuba: GroupTagKey, eap: GroupTagKey) -> bool:
                     if snuba.group_id != eap.group_id or snuba.key != eap.key:
@@ -680,6 +685,7 @@ class SnubaTagStorage(TagStorage):
         environment_id,
         key,
         tenant_ids=None,
+        skip_eap_experiment=False,
         **kwargs,
     ):
         return self.__get_tag_key_and_top_values(
@@ -689,6 +695,7 @@ class SnubaTagStorage(TagStorage):
             key,
             limit=TOP_VALUES_DEFAULT_LIMIT,
             tenant_ids=tenant_ids,
+            skip_eap_experiment=skip_eap_experiment,
             **kwargs,
         )
 
