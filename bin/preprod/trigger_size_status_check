@@ -455,7 +455,7 @@ def main() -> None:
         logger.info("Found project: %s (ID: %s)", project.name, project.id)
 
         status_checks_enabled = project.get_option(
-            "sentry:preprod_size_status_checks_enabled", default=False
+            "sentry:preprod_size_status_checks_enabled", default=True
         )
 
         if not status_checks_enabled:
