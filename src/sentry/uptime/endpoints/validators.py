@@ -683,6 +683,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     def update_data_source(self, instance: Detector, data_source: dict[str, Any]):
         subscription = get_uptime_subscription(instance)
         update_uptime_subscription(
+            detector=instance,
             subscription=subscription,
             url=data_source.get("url", NOT_SET),
             interval_seconds=data_source.get("interval_seconds", NOT_SET),
