@@ -18,7 +18,11 @@ def auto_reconnect_cursor(func):
             if not can_reconnect(e):
                 raise
 
+            # Close the connection and reset Django's internal error state
             self.db.close(reconnect=True)
+            # Reset errors_occurred flag so Django doesn't think the connection is broken
+            self.db.errors_occurred = False
+            # Get a fresh cursor, which will trigger a new connection
             self.cursor = self.db._cursor()
 
             return func(self, *args, **kwargs)
@@ -41,6 +45,8 @@ def auto_reconnect_connection(func):
                 raise
 
             self.close(reconnect=True)
+            # Reset errors_occurred flag so Django doesn't think the connection is broken
+            self.errors_occurred = False
 
             return func(self, *args, **kwargs)
 
