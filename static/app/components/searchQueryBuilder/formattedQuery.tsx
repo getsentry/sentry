@@ -215,7 +215,7 @@ export const FilterWrapper = styled('div')`
 
 const FilterValue = styled('div')`
   max-width: 300px;
-  color: ${p => p.theme.tokens.content.accent
+  color: ${p => p.theme.tokens.content.accent};
   display: block;
   width: 100%;
   white-space: nowrap;
