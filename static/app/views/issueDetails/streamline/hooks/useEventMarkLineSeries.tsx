@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import Color from 'color';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
@@ -7,6 +8,10 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+
+function getTooltipMarker(color: string): string {
+  return `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+}
 
 interface UseEventMarklineSeriesProps {
   event: Event | undefined;
@@ -16,12 +21,22 @@ interface UseEventMarklineSeriesProps {
    */
   eventSeries: Array<{name: number; value: number}>;
   group: Group;
+  /**
+   * Whether the chart is showing filtered results (search query or environment filter)
+   */
+  isFiltered?: boolean;
+  /**
+   * The unfiltered event series, used to show total events in the tooltip
+   */
+  unfilteredEventSeries?: Array<{name: number; value: number}>;
 }
 
 export function useCurrentEventMarklineSeries({
   event,
   group,
   eventSeries,
+  isFiltered,
+  unfilteredEventSeries,
 }: UseEventMarklineSeriesProps) {
   const theme = useTheme();
   const eventView = useIssueDetailsEventView({group});
@@ -48,10 +63,14 @@ export function useCurrentEventMarklineSeries({
       return undefined;
     }
 
+    // Colors matching eventGraph.tsx bar chart series
+    const translucentGray = Color(theme.colors.gray400).alpha(0.5).string();
+    const lightGray = Color(theme.colors.gray400).alpha(0.2).string();
+
     const markLine = MarkLine({
       animation: false,
       lineStyle: {
-        color: theme.tokens.graphics.promotion,
+        color: theme.tokens.graphics.promotion.vibrant,
         type: 'solid',
       },
       label: {
@@ -74,9 +93,33 @@ export function useCurrentEventMarklineSeries({
               local: !eventView.utc,
             }
           );
+
+          const matchingCount = closestEventSeries.value.toLocaleString();
+          const totalCount = unfilteredEventSeries
+            ?.find(s => s.name === closestEventSeries.name)
+            ?.value?.toLocaleString();
+
+          // Use inline style for bold since CSS overrides <strong> to normal weight
+          const seriesRows = [
+            `<div><span class="tooltip-label" style="font-weight:bold;">${t('Current Event')}</span></div>`,
+          ];
+
+          if (isFiltered && totalCount) {
+            seriesRows.push(
+              `<div><span class="tooltip-label">${getTooltipMarker(lightGray)}<strong>${t('Total events')}</strong></span> ${totalCount}</div>`
+            );
+            seriesRows.push(
+              `<div><span class="tooltip-label">${getTooltipMarker(theme.colors.blue400)}<strong>${t('Matching events')}</strong></span> ${matchingCount}</div>`
+            );
+          } else {
+            seriesRows.push(
+              `<div><span class="tooltip-label">${getTooltipMarker(translucentGray)}<strong>${t('Events')}</strong></span> ${matchingCount}</div>`
+            );
+          }
+
           return [
             '<div class="tooltip-series">',
-            `<div><span class="tooltip-label"><strong>${t('Current Event')}</strong></span></div>`,
+            ...seriesRows,
             '</div>',
             `<div class="tooltip-footer">${time}</div>`,
             '<div class="tooltip-arrow"></div>',
@@ -91,5 +134,5 @@ export function useCurrentEventMarklineSeries({
       markLine,
       type: 'line',
     };
-  }, [event, theme, eventView.utc, eventSeries]);
+  }, [event, theme, eventView.utc, eventSeries, isFiltered, unfilteredEventSeries]);
 }
