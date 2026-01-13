@@ -37,7 +37,8 @@ class OAuthTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.post(
-            self.path, {"grant_type": "foo", "client_id": "abcd", "client_secret": "abcd"}
+            self.path,
+            {"grant_type": "foo", "client_id": "abcd", "client_secret": "abcd"},
         )
 
         assert resp.status_code == 400
@@ -57,7 +58,9 @@ class OAuthTokenCodeTest(TestCase):
         )
         self.client_secret = self.application.client_secret
         self.grant = ApiGrant.objects.create(
-            user=self.user, application=self.application, redirect_uri="https://example.com"
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
         )
 
     def _basic_auth_value(self) -> str:
@@ -537,7 +540,9 @@ class OAuthTokenRefreshTokenTest(TestCase):
         self.client_secret = self.application.client_secret
 
         self.grant = ApiGrant.objects.create(
-            user=self.user, application=self.application, redirect_uri="https://example.com"
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
         )
         self.token = ApiToken.objects.create(
             application=self.application, user=self.user, expires_at=timezone.now()
@@ -1359,3 +1364,113 @@ class OAuthTokenDeviceCodeTest(TestCase):
 
         # No token should be created
         assert not ApiToken.objects.filter(application=self.application, user=self.user).exists()
+
+    def test_public_client_success(self) -> None:
+        """Public clients (without client_secret) should be able to exchange device codes.
+
+        Per RFC 8628 §5.6, device clients are generally public clients that cannot
+        securely store credentials. They should be able to authenticate with just
+        client_id.
+        """
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        # Request without client_secret (public client)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                # No client_secret - this is a public client
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert data["token_type"] == "Bearer"
+        assert data["scope"] == "project:read"
+        assert data["user"]["id"] == str(self.user.id)
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+        # Token should be created
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.user == self.user
+        assert token.application == self.application
+
+    def test_public_client_invalid_client_id(self) -> None:
+        """Public clients with invalid client_id should return invalid_client."""
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": "nonexistent_client_id",
+                # No client_secret - public client
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_public_client_missing_client_id(self) -> None:
+        """Device flow without client_id should return invalid_client."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                # No client_id or client_secret
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_public_client_authorization_pending(self) -> None:
+        """Public client polling pending device code should return authorization_pending."""
+        assert self.device_code.status == self.DeviceCodeStatus.PENDING
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                # No client_secret - public client
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "authorization_pending"}
+
+        # Device code should still exist
+        assert ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+    def test_confidential_client_wrong_secret_rejected(self) -> None:
+        """Device flow with wrong client_secret should be rejected.
+
+        When a client provides client_secret, we should validate it even
+        though device flow supports public clients. This allows confidential
+        clients to use device flow with full credential validation.
+        """
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": "wrong_secret",
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
