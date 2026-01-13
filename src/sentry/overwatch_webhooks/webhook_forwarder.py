@@ -51,9 +51,10 @@ class OverwatchGithubWebhookForwarder:
         self.integration = integration
 
     def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
-        event_type = GithubWebhookType(headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY))
+        event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
         if event_type is None:
             return False
+        event_type = GithubWebhookType(event_type)
         # Installation events are always forwarded
         is_installation = event_type in _INSTALLATION_EVENTS
         # Other events are controlled by options
