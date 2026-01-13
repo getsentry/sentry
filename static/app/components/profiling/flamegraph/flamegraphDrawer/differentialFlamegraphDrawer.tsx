@@ -285,7 +285,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
 const ResizableVerticalDrawer = styled('div')`
   width: 1px;
   grid-area: drawer;
-  background-color: ${p => p.theme.backgroundTertiary};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   position: relative;
 `;
 

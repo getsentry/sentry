@@ -1050,7 +1050,7 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.backgroundTertiary};
+        --pattern-odd: ${p => p.theme.tokens.background.tertiary};
         --pattern-even: ${p => p.theme.tokens.background.primary};
       }
 
