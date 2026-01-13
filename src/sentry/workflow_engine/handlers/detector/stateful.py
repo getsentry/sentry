@@ -602,7 +602,21 @@ class StatefulDetectorHandler(
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         conditions = self.detector.get_conditions()
-        return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
+        levels = []
+        for condition in conditions:
+            try:
+                levels.append(DetectorPriorityLevel(condition.condition_result))
+            except ValueError:
+                logger.warning(
+                    "Invalid condition_result value for DetectorPriorityLevel",
+                    extra={
+                        "condition_id": condition.id,
+                        "condition_result": condition.condition_result,
+                        "detector_id": self.detector.id,
+                        "valid_levels": [level.value for level in DetectorPriorityLevel],
+                    },
+                )
+        return levels
 
     def _create_decorated_issue_occurrence(
         self,
