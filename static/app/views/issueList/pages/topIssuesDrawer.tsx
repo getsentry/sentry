@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,21 +10,33 @@ import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import {
   CrumbContainer,
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
+import EventMessage from 'sentry/components/events/eventMessage';
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
+import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import GroupList from 'sentry/components/issues/groupList';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconClock, IconFire, IconLink, IconUser} from 'sentry/icons';
+import {
+  IconCalendar,
+  IconClock,
+  IconFire,
+  IconLink,
+  IconSync,
+  IconUser,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -33,11 +45,13 @@ import {GroupSubstatus} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getMessage, getTitle} from 'sentry/utils/events';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {type GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
@@ -234,9 +248,74 @@ interface ClusterStackTraceProps {
   groupId: number;
 }
 
+interface IssuePreviewProps {
+  event: Event;
+  group?: Group;
+  issueUrl?: string;
+}
+
+function IssuePreview({event, group, issueUrl}: IssuePreviewProps) {
+  const previewData = group ?? event;
+  const {subtitle} = getTitle(previewData);
+  const previewMessage = getMessage(previewData);
+  const metaItems = [
+    group?.project ? (
+      <ProjectBadge project={group.project} avatarSize={12} hideName disableLink />
+    ) : null,
+    group?.isUnhandled ? <UnhandledTag /> : null,
+    group?.count ? (
+      <Text size="xs" bold>
+        {tn('%s event', '%s events', group.count)}
+      </Text>
+    ) : null,
+    group && (group.firstSeen || group.lastSeen) ? (
+      <TimesTag lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
+    ) : null,
+  ].filter(Boolean);
+
+  const content = (
+    <Flex direction="column" gap="xs">
+      <IssueTitle>
+        <EventOrGroupTitle data={previewData} />
+      </IssueTitle>
+      <IssueMessage
+        data={previewData}
+        level={'level' in previewData ? previewData.level : undefined}
+        message={previewMessage}
+        type={previewData.type}
+      />
+      {subtitle && (
+        <Text size="sm" variant="muted" ellipsis>
+          {subtitle}
+        </Text>
+      )}
+      {metaItems.length > 0 && (
+        <Flex wrap="wrap" gap="sm" align="center">
+          {metaItems.map((item, index) => (
+            <Fragment key={index}>
+              {item}
+              {index < metaItems.length - 1 ? <MetaSeparator /> : null}
+            </Fragment>
+          ))}
+        </Flex>
+      )}
+    </Flex>
+  );
+
+  if (!issueUrl) {
+    return <IssuePreviewCard>{content}</IssuePreviewCard>;
+  }
+
+  return <IssuePreviewLink to={issueUrl}>{content}</IssuePreviewLink>;
+}
+
 function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
   const organization = useOrganization();
   const defaultIssueEvent = useDefaultIssueEvent();
+  const {data: group} = useGroup({
+    groupId: String(groupId),
+    options: {enabled: groupId > 0},
+  });
 
   const {data: event, isPending} = useApiQuery<Event>(
     [
@@ -262,11 +341,26 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
     return <Placeholder height="200px" />;
   }
 
-  if (!stacktrace || !event) {
+  if (!event) {
     return (
       <Text size="sm" variant="muted">
         {t('No stack trace available for this issue.')}
       </Text>
+    );
+  }
+
+  if (!stacktrace) {
+    return (
+      <Flex direction="column" gap="sm">
+        <IssuePreview
+          event={event}
+          group={group}
+          issueUrl={`/organizations/${organization.slug}/issues/${groupId}/`}
+        />
+        <Text size="sm" variant="muted">
+          {t('No stack trace available for this issue.')}
+        </Text>
+      </Flex>
     );
   }
 
@@ -285,10 +379,28 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
   };
 
   if (isNativePlatform(platform)) {
-    return <NativeContent {...commonProps} hideIcon maxDepth={5} />;
+    return (
+      <Flex direction="column" gap="sm">
+        <IssuePreview
+          event={event}
+          group={group}
+          issueUrl={`/organizations/${organization.slug}/issues/${groupId}/`}
+        />
+        <NativeContent {...commonProps} hideIcon maxDepth={5} />
+      </Flex>
+    );
   }
 
-  return <StackTraceContent {...commonProps} expandFirstFrame hideIcon />;
+  return (
+    <Flex direction="column" gap="sm">
+      <IssuePreview
+        event={event}
+        group={group}
+        issueUrl={`/organizations/${organization.slug}/issues/${groupId}/`}
+      />
+      <StackTraceContent {...commonProps} expandFirstFrame hideIcon />
+    </Flex>
+  );
 }
 
 interface SeerExplorerRunResponse {
@@ -655,6 +767,18 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
   const theme = useTheme();
   const organization = useOrganization();
   const clusterStats = useClusterStats(cluster.group_ids);
+  const [stackTraceGroupId, setStackTraceGroupId] = useState<number>(
+    cluster.group_ids[0] ?? 0
+  );
+
+  useEffect(() => {
+    if (cluster.group_ids.length === 0) {
+      return;
+    }
+
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setStackTraceGroupId(cluster.group_ids[0]!);
+  }, [cluster.group_ids]);
 
   const allTags = useMemo(() => {
     return [
@@ -677,6 +801,26 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
     [cluster.group_ids]
   );
   const placeholderRows = Math.min(cluster.group_ids.length, 10);
+  const hasMultipleGroupIds = cluster.group_ids.length > 1;
+
+  const handleRandomizeStackTrace = () => {
+    if (cluster.group_ids.length === 0) {
+      return;
+    }
+
+    if (cluster.group_ids.length === 1) {
+      setStackTraceGroupId(cluster.group_ids[0]!);
+      return;
+    }
+
+    setStackTraceGroupId(prev => {
+      let next = prev;
+      while (next === prev) {
+        next = cluster.group_ids[Math.floor(Math.random() * cluster.group_ids.length)]!;
+      }
+      return next;
+    });
+  };
 
   return (
     <Fragment>
@@ -824,11 +968,24 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
               </Disclosure.Content>
             </Disclosure>
 
-            {cluster.group_ids[0] && (
+            {stackTraceGroupId > 0 && (
               <Disclosure size="sm">
-                <Disclosure.Title>{t('Example Stack Trace')}</Disclosure.Title>
+                <Disclosure.Title
+                  trailingItems={
+                    <Button
+                      size="xs"
+                      icon={<IconSync size="xs" />}
+                      onClick={handleRandomizeStackTrace}
+                      disabled={!hasMultipleGroupIds}
+                    >
+                      {t('Random issue')}
+                    </Button>
+                  }
+                >
+                  {t('Example Stack Trace')}
+                </Disclosure.Title>
                 <Disclosure.Content>
-                  <ClusterStackTrace groupId={cluster.group_ids[0]} />
+                  <ClusterStackTrace groupId={stackTraceGroupId} />
                 </Disclosure.Content>
               </Disclosure>
             )}
@@ -881,6 +1038,67 @@ const TagPill = styled('span')`
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 20px;
+`;
+
+const IssueTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: 600;
+  color: ${p => p.theme.tokens.content.primary};
+  line-height: 1.4;
+  ${p => p.theme.overflowEllipsis};
+
+  em {
+    font-size: ${p => p.theme.fontSize.sm};
+    font-style: normal;
+    font-weight: ${p => p.theme.fontWeight.normal};
+    color: ${p => p.theme.tokens.content.secondary};
+  }
+`;
+
+const IssueMessage = styled(EventMessage)`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  opacity: 0.9;
+`;
+
+const MetaSeparator = styled('div')`
+  height: 10px;
+  width: 1px;
+  background-color: ${p => p.theme.tokens.border.secondary};
+`;
+
+const IssuePreviewCard = styled('div')`
+  display: block;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.primary};
+  }
+`;
+
+const IssuePreviewLink = styled(Link)`
+  display: block;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.primary};
+  }
 `;
 
 const DrawerContentBody = styled(DrawerBody)`
