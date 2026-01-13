@@ -429,11 +429,11 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
       setTableResults(undefined);
       setTimeseriesResults(undefined);
       setErrorMessage(undefined);
-      queue.addItem({widgetQuery: {fetchData}});
+      queue.addItem({fetchData, widgetId: widget.id});
       return;
     }
     fetchData();
-  }, [queue, fetchData]);
+  }, [queue, fetchData, widget.id]);
 
   useEffect(() => {
     isMountedRef.current = true;

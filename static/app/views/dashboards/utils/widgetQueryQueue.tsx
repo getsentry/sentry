@@ -9,12 +9,11 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface WidgetQueryInstance {
-  fetchData: () => Promise<void>;
-}
+type FetchDataFn = () => Promise<void>;
 
 type QueueItem = {
-  widgetQuery: WidgetQueryInstance;
+  fetchData: FetchDataFn;
+  widgetId: string | undefined;
 };
 
 export type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
@@ -85,7 +84,11 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
     const addItem = (item: QueueItem) => {
       // Never add the same widget to the queue twice
       // even if the date selection has change `fetchData()` in `fetchWidgetItem` will still be called with the latest state.
-      if (queue.peekPendingItems().some(i => i.widgetQuery === item.widgetQuery)) {
+      if (
+        queue
+          .peekPendingItems()
+          .some(i => i.widgetId === item.widgetId || i.fetchData === item.fetchData)
+      ) {
         return true;
       }
       const queueIsEmpty = queue.peekAllItems().length === 0;
@@ -105,6 +108,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
 }
 
 const fetchWidgetItem = async (item: QueueItem) => {
-  const result = await item.widgetQuery.fetchData();
+  const {fetchData} = item;
+  const result = await fetchData();
   return result;
 };
