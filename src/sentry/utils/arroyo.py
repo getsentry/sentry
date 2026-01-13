@@ -116,9 +116,17 @@ def _get_arroyo_subprocess_initializer(
 
 
 def _initialize_arroyo_subprocess(initializer: Callable[[], None] | None, tags: Tags) -> None:
+    from django.db import close_old_connections
+
     from sentry.runner import configure
 
     configure()
+
+    # Close any database connections inherited from the parent process.
+    # When forking, child processes inherit file descriptors including database
+    # connections. These connections can become stale and cause OperationalError.
+    # Django's close_old_connections() properly closes these inherited connections.
+    close_old_connections()
 
     if initializer:
         initializer()
