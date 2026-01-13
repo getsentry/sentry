@@ -18,7 +18,6 @@ function PreprodAppInfoFixture(
     build_configuration: null,
     date_added: undefined,
     date_built: null,
-    is_installable: undefined,
     platform: null,
     ...params,
   };

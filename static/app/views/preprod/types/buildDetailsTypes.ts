@@ -33,7 +33,6 @@ export interface BuildDetailsAppInfo {
   build_number?: string | null;
   date_added?: string;
   date_built?: string | null;
-  is_installable?: boolean;
   name?: string | null;
   platform?: Platform | null;
   version?: string | null;
