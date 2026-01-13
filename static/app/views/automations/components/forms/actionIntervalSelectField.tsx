@@ -6,6 +6,7 @@ import SelectField, {
 import {t} from 'sentry/locale';
 
 const FREQUENCY_OPTIONS = [
+  {value: 0, label: t('0 minutes')},
   {value: 5, label: t('5 minutes')},
   {value: 10, label: t('10 minutes')},
   {value: 30, label: t('30 minutes')},

@@ -992,15 +992,15 @@ const TraceStylingWrapper = styled('div')`
 
     &.Errored {
       .TraceIndicatorLabelContainer {
-        border: 1px solid ${p => p.theme.error};
-        color: ${p => p.theme.error};
+        border: 1px solid ${p => p.theme.tokens.content.danger};
+        color: ${p => p.theme.tokens.content.danger};
       }
 
       .TraceIndicatorLine {
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.error} 4px 8px
+            ${p => p.theme.tokens.content.danger} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1138,10 +1138,10 @@ const TraceStylingWrapper = styled('div')`
     &.error,
     &.fatal,
     &.occurence {
-      color: ${p => p.theme.errorText};
-      --autogrouped: ${p => p.theme.error};
-      --row-children-button-border-color: ${p => p.theme.error};
-      --row-outline: ${p => p.theme.error};
+      color: ${p => p.theme.tokens.content.danger};
+      --autogrouped: ${p => p.theme.tokens.content.danger};
+      --row-children-button-border-color: ${p => p.theme.tokens.content.danger};
+      --row-outline: ${p => p.theme.tokens.content.danger};
     }
     &.default {
     }
