@@ -156,7 +156,7 @@ const Title = styled('h3')`
 
 const Subheader = styled('p')`
   text-transform: uppercase;
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.tokens.content.promotion};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   margin-bottom: ${space(1)};
@@ -228,7 +228,7 @@ const LearnMore = styled(ExternalLink)`
 
   &:hover {
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.blue200};
+    text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 `;
 

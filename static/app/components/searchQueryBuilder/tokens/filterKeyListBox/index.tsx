@@ -551,9 +551,9 @@ const SectionButton = styled(Button)`
   border: 0;
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.colors.blue100};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue100};
-    color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.accent};
     font-weight: ${p => p.theme.fontWeight.bold};
   }
 `;
