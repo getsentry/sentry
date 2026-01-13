@@ -4,10 +4,9 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,6 +17,10 @@ import {
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {
+  getManagedBySentryMonitorEditTooltip,
+  getNoPermissionToEditMonitorTooltip,
+} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function DisableDetectorAction({detector}: {detector: Detector}) {
@@ -54,30 +57,23 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
   );
 }
 
-export function EditDetectorAction({detector}: {detector: Detector}) {
+export function EditDetectorAction({
+  detector,
+  canEdit: canEditOverride,
+}: {
+  detector: Detector;
+  canEdit?: boolean;
+}) {
   const organization = useOrganization();
-  const canEdit = useCanEditDetector({
+  const canEditDetectorType = useCanEditDetector({
     detectorType: detector.type,
     projectId: detector.projectId,
   });
+  const canEdit = canEditOverride ?? canEditDetectorType;
 
   const permissionTooltipText = detectorTypeIsUserCreateable(detector.type)
-    ? tct(
-        'You do not have permission to edit this monitor. Ask your organization owner or manager to [settingsLink:enable monitor access] for you.',
-        {
-          settingsLink: (
-            <Link
-              to={{
-                pathname: `/settings/${organization.slug}/`,
-                hash: 'alertsMemberWrite',
-              }}
-            />
-          ),
-        }
-      )
-    : t(
-        'This monitor is managed by Sentry. Only organization owners and managers can edit it.'
-      );
+    ? getNoPermissionToEditMonitorTooltip()
+    : getManagedBySentryMonitorEditTooltip();
 
   return (
     <Tooltip
