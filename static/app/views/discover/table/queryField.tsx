@@ -856,7 +856,7 @@ const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
   height: ${p => p.theme.form.md.height};
   min-width: 50px;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;

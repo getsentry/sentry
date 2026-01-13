@@ -264,7 +264,12 @@ const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
   user-select: none;
   border-radius: ${p => p.theme.radius.md};
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 

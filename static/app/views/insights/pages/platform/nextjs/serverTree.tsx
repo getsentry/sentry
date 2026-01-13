@@ -427,7 +427,7 @@ const TreeGrid = styled('div')`
   & > *:nth-child(8n + 2),
   & > *:nth-child(8n + 3),
   & > *:nth-child(8n + 4) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

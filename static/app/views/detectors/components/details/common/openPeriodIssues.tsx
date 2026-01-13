@@ -314,7 +314,7 @@ const StyledTable = styled(SimpleTable)`
 `;
 
 const SubTable = styled(SimpleTable)`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   grid-template-columns: min-content 1fr 1fr 0.5fr min-content;
   border: 0;
 `;

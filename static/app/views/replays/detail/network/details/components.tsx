@@ -108,7 +108,11 @@ const ToggleButton = styled('button')`
   padding: ${space(0.5)} ${space(1)};
 
   :hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  :active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 

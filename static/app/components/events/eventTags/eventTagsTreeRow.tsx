@@ -427,7 +427,9 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.danger.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors
+        ? p.theme.alert.danger.backgroundLight
+        : p.theme.tokens.background.secondary};
   }
   .invisible {
     visibility: hidden;

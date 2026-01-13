@@ -384,7 +384,7 @@ const Header = styled(Body)`
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
   }
   align-items: center;
   border-radius: 4px;

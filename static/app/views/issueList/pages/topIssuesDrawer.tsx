@@ -1035,7 +1035,7 @@ const TagPill = styled('span')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.tokens.content.primary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 20px;
 `;
@@ -1115,7 +1115,7 @@ const TagsTableHeader = styled('div')`
   grid-template-columns: subgrid;
   gap: ${p => p.theme.space.xl};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
@@ -1129,7 +1129,7 @@ const DenseTagBar = styled('div')`
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   margin-bottom: ${p => p.theme.space.sm};
 `;
 
@@ -1144,7 +1144,7 @@ const TagMiniBar = styled('div')`
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
 `;
 
@@ -1188,6 +1188,6 @@ const TagRow = styled('div')`
   }
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;

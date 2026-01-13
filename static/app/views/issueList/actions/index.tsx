@@ -493,7 +493,7 @@ const ActionsBarContainer = styled('div')`
   padding-bottom: ${space(0.5)};
   padding-left: ${space(2)};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: 6px 6px 0 0;
 `;
 

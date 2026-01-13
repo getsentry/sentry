@@ -129,7 +129,10 @@ const SummaryCardContainer = styled(Flex)<{isClickable?: boolean; isFiltered?: b
     p.isClickable &&
     `
     &:hover {
-      background: ${p.theme.tokens.background.secondary};
+      background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+    }
+    &:active {
+      background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
     }
   `}
 `;

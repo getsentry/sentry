@@ -839,7 +839,7 @@ const Wrapper = styled(PanelItem)<{
           background-color: ${p.theme.tokens.background.secondary};
         }
         100% {
-          background-color: ${p.theme.backgroundSecondary};
+          background-color: ${p.theme.tokens.background.secondary};
         }
       }
     `};

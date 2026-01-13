@@ -48,7 +48,7 @@ export const DesyncedFilterIndicator = styled('div')`
 
 const DesyncedFilterMessageWrap = styled('div')`
   border: solid 1px ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   margin: ${space(0.25)} ${space(0.5)} ${space(0.5)};
   padding: ${space(0.75)};
