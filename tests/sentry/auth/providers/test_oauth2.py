@@ -48,3 +48,69 @@ class OAuth2ProviderTest(TestCase):
         provider = DummyOAuth2Provider()
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)
+
+    def test_refresh_identity_without_client_id(self) -> None:
+        """Test that refresh_identity raises IdentityNotValid when client_id is not configured"""
+        auth_identity = AuthIdentity.objects.create(
+            auth_provider=self.auth_provider,
+            user=self.user,
+            data={"access_token": "access_token", "refresh_token": "refresh_token"},
+        )
+
+        class NoClientIdProvider(DummyOAuth2Provider):
+            def get_client_id(self) -> str:
+                return ""
+
+            def get_client_secret(self) -> str:
+                return "client_secret"
+
+            def get_refresh_token_url(self) -> str:
+                return "https://example.com/oauth/token"
+
+        provider = NoClientIdProvider()
+        with pytest.raises(IdentityNotValid, match="OAuth2 client_id is not configured"):
+            provider.refresh_identity(auth_identity)
+
+    def test_refresh_identity_without_client_secret(self) -> None:
+        """Test that refresh_identity raises IdentityNotValid when client_secret is not configured"""
+        auth_identity = AuthIdentity.objects.create(
+            auth_provider=self.auth_provider,
+            user=self.user,
+            data={"access_token": "access_token", "refresh_token": "refresh_token"},
+        )
+
+        class NoClientSecretProvider(DummyOAuth2Provider):
+            def get_client_id(self) -> str:
+                return "client_id"
+
+            def get_client_secret(self) -> str:
+                return ""
+
+            def get_refresh_token_url(self) -> str:
+                return "https://example.com/oauth/token"
+
+        provider = NoClientSecretProvider()
+        with pytest.raises(IdentityNotValid, match="OAuth2 client_secret is not configured"):
+            provider.refresh_identity(auth_identity)
+
+    def test_refresh_identity_with_none_client_secret(self) -> None:
+        """Test that refresh_identity raises IdentityNotValid when client_secret returns None"""
+        auth_identity = AuthIdentity.objects.create(
+            auth_provider=self.auth_provider,
+            user=self.user,
+            data={"access_token": "access_token", "refresh_token": "refresh_token"},
+        )
+
+        class NoneClientSecretProvider(DummyOAuth2Provider):
+            def get_client_id(self) -> str:
+                return "client_id"
+
+            def get_client_secret(self) -> str:
+                return None  # type: ignore[return-value]
+
+            def get_refresh_token_url(self) -> str:
+                return "https://example.com/oauth/token"
+
+        provider = NoneClientSecretProvider()
+        with pytest.raises(IdentityNotValid, match="OAuth2 client_secret is not configured"):
+            provider.refresh_identity(auth_identity)
