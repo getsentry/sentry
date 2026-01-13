@@ -19,11 +19,11 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-
 import {
   useConsoleSdkInvites,
   useRevokeConsoleSdkInvite,
-} from 'getsentry/views/consoleSdkInvites/hooks';
+  type ConsoleSdkInviteUser,
+} from 'sentry/views/settings/organizationConsoleSdkInvites/hooks';
 
 interface ToggleConsolePlatformsModalProps extends ModalRenderProps {
   onSuccess: () => void;
@@ -170,32 +170,34 @@ function ToggleConsolePlatformsModal({
               <SimpleTable.Empty>No invites found</SimpleTable.Empty>
             )}
 
-          {(userIdentities ?? []).map(({email, platforms, user_id}) => (
-            <SimpleTable.Row key={user_id}>
-              <SimpleTable.RowCell>
-                <Link to={`/_admin/users/${user_id}`}>{email}</Link>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>{platforms.join(', ')}</SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <RevokeButton
-                  priority="danger"
-                  busy={isRevokePending && revokeVariables?.userId === user_id}
-                  onClick={() =>
-                    revokeConsoleInvite({
-                      userId: user_id,
-                      email,
-                      orgSlug: organization.slug,
-                      onSuccess: () => {
-                        onSuccess();
-                      },
-                    })
-                  }
-                >
-                  Revoke invites
-                </RevokeButton>
-              </SimpleTable.RowCell>
-            </SimpleTable.Row>
-          ))}
+          {(userIdentities ?? []).map(
+            ({email, platforms, user_id}: ConsoleSdkInviteUser) => (
+              <SimpleTable.Row key={user_id}>
+                <SimpleTable.RowCell>
+                  <Link to={`/_admin/users/${user_id}`}>{email}</Link>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>{platforms.join(', ')}</SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <RevokeButton
+                    priority="danger"
+                    busy={isRevokePending && revokeVariables?.userId === user_id}
+                    onClick={() =>
+                      revokeConsoleInvite({
+                        userId: user_id,
+                        email,
+                        orgSlug: organization.slug,
+                        onSuccess: () => {
+                          onSuccess();
+                        },
+                      })
+                    }
+                  >
+                    Revoke invites
+                  </RevokeButton>
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            )
+          )}
         </SimpleTableWithColumns>
       </Body>
     </Form>
