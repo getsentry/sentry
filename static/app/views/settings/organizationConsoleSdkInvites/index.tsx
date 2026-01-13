@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -14,11 +15,11 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TextOverflow from 'sentry/components/textOverflow';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -26,6 +27,7 @@ import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
+  const user = useUser();
 
   const {
     data: invites,
@@ -71,7 +73,7 @@ export default function ConsoleSDKInvitesSettings() {
       )}
       <InvitesTable>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Email')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Platforms')}</SimpleTable.HeaderCell>
         </SimpleTable.Header>
 
@@ -94,29 +96,54 @@ export default function ConsoleSDKInvitesSettings() {
         {invites?.map(invite => (
           <SimpleTable.Row key={invite.user_id}>
             <SimpleTable.RowCell>
-              <TextOverflow>{invite.email}</TextOverflow>
+              <Link to={`/settings/${organization.slug}/members/${invite.user_id}/`}>
+                <Text wordBreak="break-all">{invite.email}</Text>
+              </Link>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <Flex gap="xs" wrap="wrap">
-                {invite.platforms.map(platform => (
-                  <Tag
-                    variant="info"
-                    key={platform}
-                    onDismiss={() => {
-                      if (isRevoking) {
-                        return;
-                      }
-                      revokePlatformInvite({
-                        userId: invite.user_id,
-                        email: invite.email,
-                        platform,
-                        orgSlug: organization.slug,
-                      });
-                    }}
-                  >
-                    {CONSOLE_PLATFORM_METADATA[platform]?.displayName ?? platform}
-                  </Tag>
-                ))}
+                {invite.platforms.map(platform => {
+                  const canManageAllInvites = ['admin', 'manager', 'owner'].includes(
+                    organization.orgRole ?? ''
+                  );
+                  const canManageInvite =
+                    canManageAllInvites || invite.email === user.email;
+                  const displayName =
+                    CONSOLE_PLATFORM_METADATA[platform]?.displayName ?? platform;
+
+                  if (canManageInvite) {
+                    return (
+                      <Tag
+                        variant="info"
+                        key={platform}
+                        onDismiss={() => {
+                          if (isRevoking) {
+                            return;
+                          }
+                          revokePlatformInvite({
+                            userId: invite.user_id,
+                            email: invite.email,
+                            platform,
+                            orgSlug: organization.slug,
+                          });
+                        }}
+                      >
+                        {displayName}
+                      </Tag>
+                    );
+                  }
+
+                  return (
+                    <Tooltip
+                      key={platform}
+                      title={t('Organization members can only manage their own invites')}
+                    >
+                      <Tag variant="muted" style={{cursor: 'not-allowed'}}>
+                        {displayName}
+                      </Tag>
+                    </Tooltip>
+                  );
+                })}
               </Flex>
             </SimpleTable.RowCell>
           </SimpleTable.Row>
