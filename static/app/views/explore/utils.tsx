@@ -6,6 +6,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -661,16 +662,12 @@ function getReplayUrlFromSavedQueryUrl({
   savedQuery: SavedQuery;
 }) {
   const firstQuery = savedQuery.query[0];
-  const start =
-    savedQuery.start instanceof Date ? savedQuery.start.toISOString() : savedQuery.start;
-  const end =
-    savedQuery.end instanceof Date ? savedQuery.end.toISOString() : savedQuery.end;
   const queryParams = {
     query: firstQuery?.query,
     project: savedQuery.projects,
     environment: savedQuery.environment,
-    start,
-    end,
+    start: normalizeDateTimeString(savedQuery.start),
+    end: normalizeDateTimeString(savedQuery.end),
     statsPeriod: savedQuery.range,
   };
 
