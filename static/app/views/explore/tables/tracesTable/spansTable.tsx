@@ -123,7 +123,6 @@ function SpanRow({
 }: {
   organization: Organization;
   span: SpanResult<Field>;
-
   trace: TraceResult;
 }) {
   const theme = useTheme();
@@ -134,6 +133,9 @@ function SpanRow({
           transactionId={span['transaction.id']}
           spanId={span.id}
           traceId={trace.trace}
+          spanDescription={span['span.description']}
+          spanOp={span['span.op']}
+          spanProject={span.project}
           timestamp={span.timestamp}
           onClick={() =>
             trackAnalytics('trace_explorer.open_trace_span', {
