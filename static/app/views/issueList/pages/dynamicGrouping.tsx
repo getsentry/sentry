@@ -735,7 +735,7 @@ function DynamicGrouping() {
           </Flex>
 
           <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
-            <ProjectPageFilter />
+            <ProjectPageFilter resetParamsOnChange={['cluster']} />
             {showDevTools && (
               <Button
                 size="sm"
