@@ -939,7 +939,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
     background-color: ${p => p.theme.backgroundSecondary};
   }
   color: ${p => p.theme.tokens.content.secondary};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   ${p =>
     p.$isClickable &&
     `
