@@ -326,6 +326,18 @@ class VstsIdentityProviderTest(TestCase):
         self.provider.refresh_identity(self.identity, redirect_url="redirect_url")
 
         assert len(responses.calls) == 1
+        
+        # Verify the correct parameters are sent in the refresh request
+        mock_request = responses.calls[0].request
+        req_params = parse_qs(mock_request.body)
+        
+        assert req_params["grant_type"] == ["refresh_token"]
+        assert req_params["refresh_token"] == ["n354678"]  # original refresh token from identity
+        assert req_params["client_assertion"] == [self.client_secret]
+        assert req_params["client_assertion_type"] == [
+            "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+        ]
+        assert "redirect_uri" in req_params
 
         new_identity = Identity.objects.get(id=self.identity.id)
         assert new_identity.data["access_token"] == refresh_data["access_token"]
