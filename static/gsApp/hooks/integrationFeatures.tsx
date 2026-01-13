@@ -288,7 +288,7 @@ const FeatureGroupHeading = styled('div')`
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid ${p => p.theme.gray200};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   font-size: 0.9em;
   padding: 8px 8px 8px 12px;
 `;

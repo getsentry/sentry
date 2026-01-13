@@ -357,7 +357,7 @@ const ScrollableContent = styled(Flex)`
 `;
 
 const MessageHeader = styled(Flex)`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 

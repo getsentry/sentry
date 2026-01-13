@@ -181,7 +181,7 @@ const ConsentHeader = styled('p')`
 `;
 
 const ConsentInfo = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding-top: ${space(1.5)};
   padding-bottom: ${space(1.5)};

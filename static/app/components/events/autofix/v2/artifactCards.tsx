@@ -915,7 +915,7 @@ const CodingAgentStatusTag = styled('span')<{
 
 const CodingAgentResultItem = styled('div')`
   padding: ${p => p.theme.space.md};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.sm};
 `;
 
@@ -936,7 +936,7 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
   column-gap: ${p => p.theme.space.lg};
   grid-template-columns: subgrid;
   :nth-child(odd) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
   color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.tokens.background.primary};

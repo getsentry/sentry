@@ -512,7 +512,7 @@ const HiddenProjectsMessage = styled('div')`
   height: 24px;
   line-height: 24px;
   color: ${p => p.theme.tokens.content.secondary};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     border-bottom-left-radius: ${p => p.theme.radius.md};
