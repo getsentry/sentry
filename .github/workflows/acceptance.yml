@@ -22,6 +22,10 @@ env:
   CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
   SNUBA_NO_WORKERS: 1
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   files-changed:
     name: detect what files changed
