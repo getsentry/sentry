@@ -1,7 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import {
@@ -11,6 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
@@ -157,7 +157,6 @@ function ToggleConsolePlatformsModal({
           <SimpleTable.Header>
             <SimpleTable.HeaderCell>Email</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell />
           </SimpleTable.Header>
           {isInvitesFetchPending && (
             <SimpleTable.Empty>
@@ -176,24 +175,36 @@ function ToggleConsolePlatformsModal({
                 <SimpleTable.RowCell>
                   <Link to={`/_admin/users/${user_id}`}>{email}</Link>
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell>{platforms.join(', ')}</SimpleTable.RowCell>
                 <SimpleTable.RowCell>
-                  <RevokeButton
-                    priority="danger"
-                    busy={isRevokePending && revokeVariables?.userId === user_id}
-                    onClick={() =>
-                      revokeConsoleInvite({
-                        userId: user_id,
-                        email,
-                        orgSlug: organization.slug,
-                        onSuccess: () => {
-                          onSuccess();
-                        },
-                      })
-                    }
-                  >
-                    Revoke invites
-                  </RevokeButton>
+                  <Flex gap="sm">
+                    {platforms.map(platform => {
+                      const isPlatformRevoking =
+                        isRevokePending &&
+                        revokeVariables?.userId === user_id &&
+                        revokeVariables?.platforms?.includes(platform);
+
+                      return (
+                        <Tag
+                          key={platform}
+                          variant="muted"
+                          onDismiss={
+                            isPlatformRevoking
+                              ? undefined
+                              : () => {
+                                  revokeConsoleInvite({
+                                    userId: user_id,
+                                    email,
+                                    platforms: [platform],
+                                    orgSlug: organization.slug,
+                                  });
+                                }
+                          }
+                        >
+                          {platform}
+                        </Tag>
+                      );
+                    })}
+                  </Flex>
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
             )
@@ -219,11 +230,7 @@ const NumberFieldFromConfig = styled(FieldFromConfig)`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 1fr max-content;
-`;
-
-const RevokeButton = styled(Button)`
-  margin-right: 1em;
+  grid-template-columns: 1fr 2fr max-content;
 `;
 
 export function openToggleConsolePlatformsModal({

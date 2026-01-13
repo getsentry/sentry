@@ -24,6 +24,7 @@ interface UseRevokeConsoleSdkInviteParams {
   orgSlug: string;
   userId: string;
   onSuccess?: () => void;
+  platforms?: ConsolePlatform[];
 }
 
 export function useConsoleSdkInvites(orgSlug: string) {
@@ -39,26 +40,49 @@ export function useRevokeConsoleSdkInvite() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({orgSlug, userId}: UseRevokeConsoleSdkInviteParams) => {
+    mutationFn: ({orgSlug, userId, platforms}: UseRevokeConsoleSdkInviteParams) => {
       return fetchMutation({
         method: 'DELETE',
         url: `/organizations/${orgSlug}/console-sdk-invites/`,
-        data: {user_id: userId},
+        data: {
+          user_id: userId,
+          ...(platforms && platforms.length > 0 ? {platforms} : {}),
+        },
       });
     },
-    onMutate: ({email}: UseRevokeConsoleSdkInviteParams) => {
-      addLoadingMessage(tct('Removing console SDK access for [email]', {email}));
+    onMutate: ({email, platforms}: UseRevokeConsoleSdkInviteParams) => {
+      const message = platforms
+        ? tct('Removing [platforms] access for [email]', {
+            platforms: platforms.join(', '),
+            email,
+          })
+        : tct('Removing console SDK access for [email]', {email});
+      addLoadingMessage(message);
     },
-    onSuccess: (_data, {email, orgSlug}: UseRevokeConsoleSdkInviteParams) => {
-      addSuccessMessage(
-        tct('Successfully removed console SDK access for [email]', {email})
-      );
+    onSuccess: (
+      _data,
+      {email, orgSlug, platforms, onSuccess}: UseRevokeConsoleSdkInviteParams
+    ) => {
+      const message = platforms
+        ? tct('Successfully removed [platforms] access for [email]', {
+            platforms: platforms.join(', '),
+            email,
+          })
+        : tct('Successfully removed console SDK access for [email]', {email});
+      addSuccessMessage(message);
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
       });
+      onSuccess?.();
     },
-    onError: (_error, {email}: UseRevokeConsoleSdkInviteParams) => {
-      addErrorMessage(tct('Failed to remove console SDK access for [email]', {email}));
+    onError: (_error, {email, platforms}: UseRevokeConsoleSdkInviteParams) => {
+      const message = platforms
+        ? tct('Failed to remove [platforms] access for [email]', {
+            platforms: platforms.join(', '),
+            email,
+          })
+        : tct('Failed to remove console SDK access for [email]', {email});
+      addErrorMessage(message);
     },
   });
 }
