@@ -42,7 +42,7 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
       ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
       : 'inherit'};
   &:nth-of-type(2n-1) {
-    background-color: ${theme.backgroundSecondary};
+    background-color: ${theme.tokens.background.secondary};
   }
 `;
 

@@ -563,13 +563,13 @@ const EditPreviewContextItem = styled(ContextCardContent)`
   font-size: ${p => p.theme.fontSize.sm};
   grid-column: span 2;
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 const EditPreviewTagItem = styled(EventTagsTreeRow)`
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

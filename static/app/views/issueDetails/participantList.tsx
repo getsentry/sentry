@@ -133,7 +133,7 @@ const ListTitle = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeight.bold};
