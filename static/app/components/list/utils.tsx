@@ -40,8 +40,8 @@ const numericStyle = (
             height: 24px;
             font-weight: ${theme.fontWeight.normal};
             font-size: ${theme.fontSize.sm};
-            background-color: ${theme.colors.chonk.yellow400};
-            color: ${theme.black};
+            background-color: ${theme.tokens.background.warning.vibrant};
+            color: ${theme.tokens.content.onVibrant.dark};
           `
         : css`
             top: 3px;

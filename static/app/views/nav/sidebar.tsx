@@ -129,5 +129,5 @@ const SuperuserBadge = styled('div')`
   z-index: ${p => p.theme.zIndex.initial};
   left: 0;
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  background: ${p => p.theme.colors.chonk.red400};
+  background: ${p => p.theme.tokens.background.danger.vibrant};
 `;

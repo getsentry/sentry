@@ -37,33 +37,33 @@ function makeBadgeTheme(p: BadgeProps, theme: Theme): React.CSSProperties {
     // @TODO(jonasbadalic) these should use feature badge variants
     case 'alpha':
       return {
-        color: theme.colors.black,
-        background: theme.colors.chonk.pink400,
+        color: theme.tokens.content.onVibrant.dark,
+        background: theme.tokens.background.promotion.vibrant,
       };
     case 'beta':
       return {
-        color: theme.colors.black,
-        background: theme.colors.chonk.yellow400,
+        color: theme.tokens.content.onVibrant.dark,
+        background: theme.tokens.background.warning.vibrant,
       };
     case 'new':
       return {
-        color: theme.colors.black,
-        background: theme.colors.chonk.green400,
+        color: theme.tokens.content.onVibrant.dark,
+        background: theme.tokens.background.success.vibrant,
       };
     case 'experimental':
       return {
-        color: theme.colors.gray500,
-        background: theme.colors.gray100,
+        color: theme.tokens.content.secondary,
+        background: theme.tokens.background.transparent.neutral.muted,
       };
     case 'muted':
       return {
-        color: theme.colors.gray500,
-        background: theme.colors.gray100,
+        color: theme.tokens.content.secondary,
+        background: theme.tokens.background.transparent.neutral.muted,
       };
     case 'internal':
       return {
-        color: theme.colors.gray500,
-        background: theme.colors.gray100,
+        color: theme.tokens.content.secondary,
+        background: theme.tokens.background.transparent.neutral.muted,
       };
     // End feature badge variants
     // Highlight maps to info badge for now, but the highlight variant should be removed
@@ -76,22 +76,22 @@ function makeBadgeTheme(p: BadgeProps, theme: Theme): React.CSSProperties {
     case 'promotion':
       return {
         color: theme.tokens.content.promotion,
-        background: theme.colors.pink100,
+        background: theme.tokens.background.transparent.promotion.muted,
       };
     case 'danger':
       return {
         color: theme.tokens.content.danger,
-        background: theme.colors.red100,
+        background: theme.tokens.background.transparent.danger.muted,
       };
     case 'warning':
       return {
         color: theme.tokens.content.warning,
-        background: theme.colors.yellow100,
+        background: theme.tokens.background.transparent.warning.muted,
       };
     case 'success':
       return {
         color: theme.tokens.content.success,
-        background: theme.colors.green100,
+        background: theme.tokens.background.transparent.success.muted,
       };
     default:
       unreachable(p.variant);
