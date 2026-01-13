@@ -327,16 +327,15 @@ def get_github_org_is_whitelisted(event_payload: Mapping[str, Any]) -> bool:
     Determine if the GitHub org is in the direct-to-seer whitelist.
     """
     github_org = event_payload.get("repository", {}).get("owner", {}).get("login")
-    if not github_org or github_org in _whitelisted_gh_orgs():
-        return True
-    return False
+    return github_org is not None and github_org in _whitelisted_gh_orgs()
 
 
 def get_option_for_event(github_event: GithubWebhookType) -> bool:
     """
     Get the option for a given GitHub webhook event.
     """
-    return not options.get(_get_webhook_option_key(github_event))
+    option_key = _get_webhook_option_key(github_event) or ""
+    return True if options.get(option_key) or option_key == "" else False
 
 
 def _whitelisted_gh_orgs() -> list[str]:

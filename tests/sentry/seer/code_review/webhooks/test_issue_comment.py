@@ -183,7 +183,8 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_skips_non_whitelisted_github_org(self) -> None:
         """Test that non-whitelisted GitHub organizations are skipped."""
-        with self.code_review_setup(), self.tasks():
+        # The option says to forward to Overwatch AND the org is not whitelisted, so we should skip Seer.
+        with self.code_review_setup({"github.webhook.issue-comment": True}), self.tasks():
             event = self._build_issue_comment_event(
                 f"Please {SENTRY_REVIEW_COMMAND} this PR", github_org="random-org"
             )

@@ -235,7 +235,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_pull_request_skips_non_whitelisted_github_org(self) -> None:
         """Test that non-whitelisted GitHub organizations are skipped."""
-        with self.code_review_setup(), self.tasks():
+        # The option says to forward to Overwatch AND the org is not whitelisted, so we should skip Seer.
+        with self.code_review_setup({"github.webhook.pr": True}), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             # "baxterthehacker" is the default in the fixture and is not whitelisted
             assert event["repository"]["owner"]["login"] == "baxterthehacker"
