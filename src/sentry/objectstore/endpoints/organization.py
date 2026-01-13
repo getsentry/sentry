@@ -84,9 +84,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
-        headers.pop("Host")
-        headers.pop("Content-Length")
-        headers.pop("Transfer-Encoding")
+        headers.pop("Host", None)
+        headers.pop("Content-Length", None)
+        headers.pop("Transfer-Encoding", None)
 
         response = requests.request(
             request.method,
