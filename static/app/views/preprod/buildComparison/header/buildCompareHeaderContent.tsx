@@ -12,7 +12,7 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
@@ -34,19 +34,19 @@ interface BuildCompareHeaderContentProps {
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, projectId} = props;
+  const organization = useOrganization();
   const theme = useTheme();
-  const project = ProjectsStore.getBySlug(projectId);
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
       label: t('Releases'),
     },
   ];
 
   if (buildDetails.app_info.version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(project?.id, {
+      to: makeReleasesUrl(organization.slug, projectId, {
         query: buildDetails.app_info.version,
         tab: 'mobile-builds',
       }),
