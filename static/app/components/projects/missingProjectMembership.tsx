@@ -2,6 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -133,9 +134,11 @@ export default function MissingProjectMembership({
               <StyledCompactSelect
                 searchable
                 value={selectedTeam || undefined}
-                triggerProps={{
-                  children: selectedTeam ? `#${selectedTeam}` : t('Select a Team'),
-                }}
+                trigger={triggerProps => (
+                  <SelectTrigger.Button {...triggerProps}>
+                    {selectedTeam ? `#${selectedTeam}` : t('Select a Team')}
+                  </SelectTrigger.Button>
+                )}
                 emptyMessage={t('No teams found')}
                 options={teamOptions}
                 onChange={option => {
