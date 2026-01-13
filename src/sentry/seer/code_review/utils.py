@@ -321,10 +321,10 @@ def should_forward_to_seer(
     if not should_forward_to_overwatch(github_event):
         return True
 
-    return is_githug_org_direct_to_seer(event_payload)
+    return is_github_org_direct_to_seer(event_payload)
 
 
-def is_githug_org_direct_to_seer(event_payload: Mapping[str, Any]) -> bool:
+def is_github_org_direct_to_seer(event_payload: Mapping[str, Any]) -> bool:
     """
     Determine if the GitHub org is in the direct-to-seer whitelist.
     """
