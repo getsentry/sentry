@@ -233,6 +233,16 @@ class OAuth2Provider(Provider, abc.ABC):
         if not refresh_token:
             raise IdentityNotValid("Missing refresh token")
 
+        # Validate that required OAuth2 credentials are configured before making the request
+        client_id = self.get_client_id()
+        client_secret = self.get_client_secret()
+        
+        if not client_id:
+            raise IdentityNotValid("OAuth2 client_id is not configured")
+        
+        if not client_secret:
+            raise IdentityNotValid("OAuth2 client_secret is not configured")
+
         data = self.get_refresh_token_params(refresh_token=refresh_token)
         req = safe_urlopen(self.get_refresh_token_url(), data=data)
 
