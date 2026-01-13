@@ -6,6 +6,7 @@ import logging
 import mmap
 import os
 import tempfile
+import time
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
@@ -16,6 +17,7 @@ from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, WrappingU32IntegerField
@@ -27,6 +29,57 @@ from sentry.taskworker.task import Task
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _read_blob_with_retry(blob, new_checksum, tf, max_retries=3, initial_backoff=1.0):
+    """
+    Read a blob file with retry logic for ReadTimeoutError.
+    
+    Args:
+        blob: FileBlob object to read from
+        new_checksum: Checksum object to update with chunk data
+        tf: Temporary file to write chunks to
+        max_retries: Maximum number of retries (default: 3)
+        initial_backoff: Initial backoff time in seconds (default: 1.0)
+        
+    Raises:
+        ReadTimeoutError: If all retries are exhausted
+    """
+    retry_count = 0
+    backoff = initial_backoff
+    
+    while retry_count <= max_retries:
+        try:
+            with blob.getfile() as blobfile:
+                for chunk in blobfile.chunks():
+                    new_checksum.update(chunk)
+                    tf.write(chunk)
+            # Successfully read all chunks, exit
+            return
+        except ReadTimeoutError as e:
+            retry_count += 1
+            if retry_count > max_retries:
+                logger.error(
+                    "Failed to read blob after %d retries",
+                    max_retries,
+                    exc_info=True,
+                    extra={"retry_count": retry_count, "blob_id": blob.id, "blob_checksum": blob.checksum},
+                )
+                raise
+            
+            logger.warning(
+                "ReadTimeoutError while reading blob, retrying (%d/%d)",
+                retry_count,
+                max_retries,
+                exc_info=True,
+                extra={"backoff_seconds": backoff, "blob_id": blob.id, "blob_checksum": blob.checksum},
+            )
+            metrics.incr(
+                "filestore.read_timeout_retry",
+                tags={"retry_attempt": str(retry_count)},
+            )
+            time.sleep(backoff)
+            backoff *= 2  # Exponential backoff
 
 
 class ChunkedFileBlobIndexWrapper:
@@ -362,10 +415,8 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                     logger.exception("`FileBlob` disappeared trying to link `FileBlobIndex`")
                     raise
 
-                with blob.getfile() as blobfile:
-                    for chunk in blobfile.chunks():
-                        new_checksum.update(chunk)
-                        tf.write(chunk)
+                # Use retry logic to handle transient read timeouts from filestore
+                _read_blob_with_retry(blob, new_checksum, tf)
                 offset += blob.size
 
             self.size = offset

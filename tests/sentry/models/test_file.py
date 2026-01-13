@@ -8,6 +8,7 @@ import pytest
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
 from django.utils import timezone
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
@@ -207,3 +208,59 @@ def test_large_files() -> None:
     assert large_blob.size == 3_000_000_000
     blob = FileBlob.objects.get(id=large_blob.id)
     assert blob.size == 3_000_000_000
+
+
+class FileAssembleRetryTest(TestCase):
+    def test_assemble_from_file_blob_ids_retries_on_read_timeout(self) -> None:
+        """Test that assemble_from_file_blob_ids retries on ReadTimeoutError"""
+        # Create test blobs
+        blob1 = FileBlob.from_file(ContentFile(b"foo"))
+        blob2 = FileBlob.from_file(ContentFile(b"bar"))
+        
+        file = File.objects.create(name="test.txt", type="default")
+        
+        # Mock getfile to raise ReadTimeoutError on first call, succeed on second
+        call_count = {"count": 0}
+        original_getfile = blob1.getfile
+        
+        def mock_getfile_with_retry():
+            call_count["count"] += 1
+            if call_count["count"] == 1:
+                # First call raises timeout
+                raise ReadTimeoutError(None, None, "Read timed out")
+            # Second call succeeds
+            return original_getfile()
+        
+        with patch.object(blob1, "getfile", side_effect=mock_getfile_with_retry):
+            # This should succeed after retry
+            result = file.assemble_from_file_blob_ids(
+                file_blob_ids=[blob1.id, blob2.id],
+                checksum="8843d7f92416211de9ebb963ff4ce28125932878",  # sha1 of "foobar"
+            )
+        
+        # Verify retry happened
+        assert call_count["count"] == 2
+        
+        # Verify file was assembled correctly
+        assert result is not None
+        with result as fp:
+            assert fp.read() == b"foobar"
+    
+    def test_assemble_from_file_blob_ids_fails_after_max_retries(self) -> None:
+        """Test that assemble_from_file_blob_ids fails after exhausting retries"""
+        # Create test blob
+        blob = FileBlob.from_file(ContentFile(b"foo"))
+        
+        file = File.objects.create(name="test.txt", type="default")
+        
+        # Mock getfile to always raise ReadTimeoutError
+        def mock_getfile_always_timeout():
+            raise ReadTimeoutError(None, None, "Read timed out")
+        
+        with patch.object(blob, "getfile", side_effect=mock_getfile_always_timeout):
+            # This should fail after max retries
+            with pytest.raises(ReadTimeoutError):
+                file.assemble_from_file_blob_ids(
+                    file_blob_ids=[blob.id],
+                    checksum="0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",  # sha1 of "foo"
+                )
