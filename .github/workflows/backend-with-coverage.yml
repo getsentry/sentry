@@ -7,14 +7,8 @@ jobs:
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
-    # Map a step output to a job output
     outputs:
-      api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend_all }}
-      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
-      backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
-      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
-      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -34,7 +28,6 @@ jobs:
     outputs:
       shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
       shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -47,8 +40,7 @@ jobs:
 
       - name: Calculate test shards
         id: calculate-shards
-        run: |
-          python3 .github/workflows/scripts/calculate-backend-test-shards.py
+        run: python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
   backend-test-with-cov-context:
     if: needs.files-changed.outputs.backend == 'true'
@@ -57,18 +49,12 @@ jobs:
     needs: [files-changed, calculate-shards]
     timeout-minutes: 60
     strategy:
-      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
-      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # Dynamic matrix from calculate-shards
         instance: ${{ fromJSON(needs.calculate-shards.outputs.shard-indices) }}
-
     env:
-      # Dynamic total from calculate-shards
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -79,35 +65,20 @@ jobs:
           mode: backend-ci
 
       - name: Run backend test with coverage (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        id: run_backend_tests
-        run: |
-          make test-python-ci-with-coverage
+        run: make test-python-ci-with-coverage
 
-      # Even if tests fail, gather the raw coverage sqlite DB(s)
-      - name: Collect raw coverage database files
-        if: ${{ always() }}
-        shell: bash
+      - name: Validate coverage database
+        if: always()
         run: |
           set -euxo pipefail
-
-          # List all coverage files before processing
-          echo "Coverage files before combining:"
-          ls -lah .coverage* 2>/dev/null || echo "No coverage files found"
-
-          # Ensure we have a .coverage file
           if [[ ! -f .coverage ]]; then
             echo "Error: No .coverage file found after tests"
             exit 1
           fi
-
-          # Verify the database is not corrupted
-          python -c "import sqlite3; con=sqlite3.connect('.coverage'); con.execute('SELECT COUNT(*) FROM file'); print('Coverage DB is valid')" || {
-            echo "Error: Coverage database is corrupted"
-            exit 1
-          }
+          python -c "import sqlite3; sqlite3.connect('.coverage').execute('SELECT COUNT(*) FROM file')"
 
       - name: Upload raw coverage sqlite as artifact
-        if: ${{ always() }}
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pycoverage-sqlite-${{ github.run_id }}-${{ steps.setup.outputs.matrix-instance-number }}
@@ -124,6 +95,19 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Determine commit SHA
+        id: commit-info
+        run: |
+          # For PRs, use the head SHA (the actual commit being tested)
+          # For other events (workflow_dispatch, workflow_call), use github.sha
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            COMMIT_SHA="${{ github.sha }}"
+          fi
+          echo "sha=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${COMMIT_SHA:0:12}" >> "$GITHUB_OUTPUT"
+
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
           version: '0.8.2'
@@ -134,9 +118,8 @@ jobs:
         with:
           python-version: '3.13.1'
 
-      - name: Install coverage and plugins
-        run: |
-          uv pip install --system coverage[toml] covdefaults sentry-covdefaults-disable-branch-coverage
+      - name: Install coverage
+        run: uv pip install --system coverage[toml] covdefaults sentry-covdefaults-disable-branch-coverage
 
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
@@ -150,20 +133,14 @@ jobs:
           ls -la .artifacts/all-coverage || true
           find .artifacts/all-coverage -type f || true
 
-      - name: Rename coverage files for combining
+      - name: Prepare coverage files for combining
         run: |
           set -euxo pipefail
           mkdir -p .artifacts/to-combine
 
-          # The download-artifact action creates a subdirectory for each artifact
-          # Find all .coverage files and rename them with unique identifiers
           find .artifacts/all-coverage -name ".coverage" -type f | while IFS= read -r file; do
-            # Get the parent directory name (artifact name)
             parent_dir=$(basename "$(dirname "$file")")
-            echo "Found coverage file: $file from $parent_dir"
-            # Extract the matrix instance number from the artifact name
             instance=$(echo "$parent_dir" | grep -oP '(?<=-)\d+$' || echo "unknown")
-            # Copy with a unique name for coverage combine
             cp -v "$file" ".artifacts/to-combine/.coverage.${instance}"
           done
 
@@ -173,36 +150,49 @@ jobs:
       - name: Combine all coverage databases
         run: |
           set -euxo pipefail
-          mkdir -p .artifacts/combined-coverage
-
-          # Combine all coverage files into a single database
-          # Don't use --keep so the sharded files are removed after combining
           coverage combine .artifacts/to-combine/.coverage.*
 
-          # Move the combined file to output directory
-          if [[ -f .coverage ]]; then
-            mv .coverage .artifacts/combined-coverage/.coverage.combined
-          else
+          if [[ ! -f .coverage ]]; then
             echo "Error: Combined coverage file was not created"
             exit 1
           fi
 
-      - name: Generate coverage report (debug)
-        run: |
-          if [[ -f .artifacts/combined-coverage/.coverage.combined ]]; then
-            python -c "import os,sqlite3; p='.artifacts/combined-coverage/.coverage.combined'; \
-              print('Combined coverage db:', p, os.path.getsize(p), 'bytes'); \
-              con=sqlite3.connect(p); cur=con.cursor(); \
-              print('tables:', [r[0] for r in cur.execute(\"select name from sqlite_master where type='table' order by 1\").fetchall()]); \
-              print('file rows:', cur.execute('select count(*) from file').fetchone()[0] if cur.execute(\"select count(*) from sqlite_master where type='table' and name='file'\").fetchone() else 'n/a'); \
-              print('context rows:', cur.execute('select count(*) from context').fetchone()[0] if cur.execute(\"select count(*) from sqlite_master where type='table' and name='context'\").fetchone() else 'n/a')"
-          fi
+          # Rename with commit SHA for identification
+          mv .coverage ".coverage.${{ steps.commit-info.outputs.short_sha }}"
 
-      - name: Upload combined coverage database
+      - name: Generate coverage summary (debug)
+        run: |
+          COVERAGE_FILE=".coverage.${{ steps.commit-info.outputs.short_sha }}"
+          python -c "
+          import os, sqlite3
+          p = '$COVERAGE_FILE'
+          print(f'Combined coverage db: {p} ({os.path.getsize(p)} bytes)')
+          con = sqlite3.connect(p)
+          cur = con.cursor()
+          tables = [r[0] for r in cur.execute(\"SELECT name FROM sqlite_master WHERE type='table' ORDER BY 1\").fetchall()]
+          print(f'Tables: {tables}')
+          print(f'File rows: {cur.execute(\"SELECT COUNT(*) FROM file\").fetchone()[0]}')
+          print(f'Context rows: {cur.execute(\"SELECT COUNT(*) FROM context\").fetchone()[0]}')
+          "
+
+      - name: Upload combined coverage database (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: pycoverage-sqlite-combined-${{ github.run_id }}
-          path: .artifacts/combined-coverage/.coverage.combined
+          path: .coverage.${{ steps.commit-info.outputs.short_sha }}
           if-no-files-found: error
           retention-days: 30
           include-hidden-files: true
+
+      - name: Authenticate to Google Cloud
+        id: gcloud-auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.SUDO_GCP_SERVICE_ACCOUNT }}
+
+      - name: Upload coverage to GCS
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: .coverage.${{ steps.commit-info.outputs.short_sha }}
+          destination: sentry-coverage-data/coverage/${{ steps.commit-info.outputs.sha }}
