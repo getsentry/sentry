@@ -236,6 +236,9 @@ class OpsgenieIntegration(IntegrationInstallation):
 
         return super().update_organization_config(data)
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name"]
+
     def schedule_migrate_opsgenie_plugin(self):
         migrate_opsgenie_plugin.apply_async(
             kwargs={
