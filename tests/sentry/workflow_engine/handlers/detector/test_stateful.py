@@ -528,3 +528,185 @@ class TestDetectorStateManagerRedisOptimization(TestCase):
         state_manager = self.handler.state_manager
         result = state_manager.bulk_get_redis_values([])
         assert result == {}
+
+
+class TestDetectorStateCaching(TestCase):
+    def setUp(self) -> None:
+        self.detector = self.create_detector(
+            name="Cache Test Detector",
+            project=self.project,
+        )
+        # Clear cache before each test
+        from sentry.workflow_engine.handlers.detector.stateful import clear_detector_state_cache
+        
+        clear_detector_state_cache()
+
+    def tearDown(self) -> None:
+        # Clear cache after each test
+        from sentry.workflow_engine.handlers.detector.stateful import clear_detector_state_cache
+        
+        clear_detector_state_cache()
+
+    def test_detector_state_cache_avoids_redundant_queries(self) -> None:
+        """
+        Test that multiple DetectorStateManager instances for the same detector
+        reuse cached detector state queries within the same thread.
+        """
+        from sentry.workflow_engine.handlers.detector.stateful import DetectorStateManager
+
+        # Create detector state in database
+        from sentry.workflow_engine.models import DetectorState
+
+        DetectorState.objects.create(
+            detector=self.detector,
+            detector_group_key=None,
+            is_triggered=True,
+            state=DetectorPriorityLevel.HIGH,
+        )
+
+        group_keys = [None]
+
+        # First manager - should query database
+        manager1 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(1):
+            result1 = manager1.bulk_get_detector_state(group_keys)
+
+        assert len(result1) == 1
+        assert result1[None].is_triggered is True
+
+        # Second manager for same detector - should use cache, no queries
+        manager2 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(0):
+            result2 = manager2.bulk_get_detector_state(group_keys)
+
+        assert len(result2) == 1
+        assert result2[None].is_triggered is True
+        assert result1[None].id == result2[None].id
+
+    def test_detector_state_cache_handles_multiple_group_keys(self) -> None:
+        """
+        Test that cache works correctly with multiple group keys.
+        """
+        from sentry.workflow_engine.handlers.detector.stateful import DetectorStateManager
+        from sentry.workflow_engine.models import DetectorState
+
+        # Create multiple detector states
+        DetectorState.objects.create(
+            detector=self.detector,
+            detector_group_key=None,
+            is_triggered=True,
+            state=DetectorPriorityLevel.HIGH,
+        )
+        DetectorState.objects.create(
+            detector=self.detector,
+            detector_group_key="group1",
+            is_triggered=False,
+            state=DetectorPriorityLevel.OK,
+        )
+
+        group_keys = [None, "group1", "group2"]  # group2 doesn't exist
+
+        # First query - should fetch from database
+        manager1 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(1):
+            result1 = manager1.bulk_get_detector_state(group_keys)
+
+        assert len(result1) == 2  # Only None and group1 exist
+        assert None in result1
+        assert "group1" in result1
+        assert "group2" not in result1
+
+        # Second query with same keys - should use cache
+        manager2 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(0):
+            result2 = manager2.bulk_get_detector_state(group_keys)
+
+        assert len(result2) == 2
+        assert None in result2
+        assert "group1" in result2
+
+    def test_detector_state_cache_clears_correctly(self) -> None:
+        """
+        Test that clearing the cache works correctly.
+        """
+        from sentry.workflow_engine.handlers.detector.stateful import (
+            DetectorStateManager,
+            clear_detector_state_cache,
+        )
+        from sentry.workflow_engine.models import DetectorState
+
+        DetectorState.objects.create(
+            detector=self.detector,
+            detector_group_key=None,
+            is_triggered=True,
+            state=DetectorPriorityLevel.HIGH,
+        )
+
+        group_keys = [None]
+
+        # First query - populates cache
+        manager1 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(1):
+            manager1.bulk_get_detector_state(group_keys)
+
+        # Second query - uses cache
+        manager2 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(0):
+            manager2.bulk_get_detector_state(group_keys)
+
+        # Clear cache
+        clear_detector_state_cache()
+
+        # Third query - cache cleared, should query again
+        manager3 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(1):
+            manager3.bulk_get_detector_state(group_keys)
+
+    def test_detector_state_cache_isolates_different_detectors(self) -> None:
+        """
+        Test that cache correctly isolates states for different detectors.
+        """
+        from sentry.workflow_engine.handlers.detector.stateful import DetectorStateManager
+        from sentry.workflow_engine.models import DetectorState
+
+        detector2 = self.create_detector(
+            name="Second Detector",
+            project=self.project,
+        )
+
+        # Create states for both detectors
+        DetectorState.objects.create(
+            detector=self.detector,
+            detector_group_key=None,
+            is_triggered=True,
+            state=DetectorPriorityLevel.HIGH,
+        )
+        DetectorState.objects.create(
+            detector=detector2,
+            detector_group_key=None,
+            is_triggered=False,
+            state=DetectorPriorityLevel.OK,
+        )
+
+        group_keys = [None]
+
+        # Query first detector
+        manager1 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(1):
+            result1 = manager1.bulk_get_detector_state(group_keys)
+
+        assert result1[None].is_triggered is True
+
+        # Query second detector - should make a new query since it's a different detector
+        manager2 = DetectorStateManager(detector2)
+        with self.assertNumQueries(1):
+            result2 = manager2.bulk_get_detector_state(group_keys)
+
+        assert result2[None].is_triggered is False
+
+        # Query first detector again - should use cache
+        manager3 = DetectorStateManager(self.detector)
+        with self.assertNumQueries(0):
+            result3 = manager3.bulk_get_detector_state(group_keys)
+
+        assert result3[None].is_triggered is True

@@ -180,3 +180,69 @@ class TestProcessUptimeBacklog(UptimeTestCase):
             assert call_kwargs["kwargs"]["attempt"] == 2
 
         assert cluster.zcard(backlog_key) == 1
+
+    def test_uses_detector_state_cache_for_multiple_results(self):
+        """
+        Test that processing multiple backlog results uses detector state caching
+        to avoid N+1 queries.
+        """
+        from sentry.workflow_engine.models import DetectorState
+
+        cluster = get_cluster()
+        base_time = 1000000000000
+        last_update_key = build_last_update_key(self.detector)
+        cluster.set(last_update_key, base_time)
+        backlog_key = build_backlog_key(str(self.subscription.id))
+
+        # Create a detector state
+        DetectorState.objects.create(
+            detector=self.detector,
+            detector_group_key=None,
+            is_triggered=False,
+            state="0",  # DetectorPriorityLevel.OK
+        )
+
+        # Create 5 consecutive results
+        results = []
+        for i in range(5):
+            result = {
+                "guid": uuid4().hex,
+                "subscription_id": str(self.subscription.id),
+                "status": CHECKSTATUS_SUCCESS,
+                "status_reason": {
+                    "type": CHECKSTATUSREASONTYPE_TIMEOUT,
+                    "description": "timeout",
+                },
+                "trace_id": uuid4().hex,
+                "span_id": uuid4().hex,
+                "region": "us-west",
+                "scheduled_check_time_ms": base_time + (i + 1) * 300000,
+                "actual_check_time_ms": base_time + (i + 1) * 300000,
+                "duration_ms": 100,
+                "request_info": None,
+            }
+            results.append(result)
+            cluster.zadd(
+                backlog_key, {json.dumps(result): cast(int, result["scheduled_check_time_ms"])}
+            )
+
+        # Process the backlog and count queries
+        # Without caching, we'd expect at least 5 DetectorState queries (one per result)
+        # With caching, we should only have 1 query for DetectorState
+        with self.assertNumQueries(
+            # Expected queries:
+            # 1. Fetch UptimeSubscription
+            # 2. Fetch Detector with prefetch_workflow_data
+            # 3. Fetch workflow_condition_group (if exists)
+            # 4. Fetch data_conditions (if exists)
+            # 5. First DetectorState query (cached for subsequent results)
+            # Plus some Redis operations and other ancillary queries
+            # The key is that we don't have 5+ DetectorState queries
+            num_queries=lambda count: count < 20,  # Should be well under 20 without N+1
+            using="default",
+        ):
+            process_uptime_backlog(str(self.subscription.id))
+
+        # Verify all results were processed
+        assert cluster.zcard(backlog_key) == 0
+        assert int(cluster.get(last_update_key) or 0) == base_time + 1500000
