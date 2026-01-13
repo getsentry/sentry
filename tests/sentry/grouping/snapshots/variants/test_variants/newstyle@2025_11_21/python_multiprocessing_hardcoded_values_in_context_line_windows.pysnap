@@ -21,7 +21,7 @@ app:
             function*
               "<module>"
             context_line*
-              "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+              "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
           frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
             module*
               "multiprocessing.spawn"
@@ -223,7 +223,7 @@ system:
             function*
               "<module>"
             context_line*
-              "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+              "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
           frame*
             module*
               "multiprocessing.spawn"

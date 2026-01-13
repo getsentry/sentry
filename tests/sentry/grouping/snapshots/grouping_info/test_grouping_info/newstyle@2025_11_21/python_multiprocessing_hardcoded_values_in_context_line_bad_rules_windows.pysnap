@@ -80,7 +80,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+                          "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
                         ]
                       }
                     ]
@@ -929,7 +929,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "exception stacktrace — in-app frames",
-      "hash": "5c93008bb8f6628bbcd13c401f2d16fa",
+      "hash": "126f65e182d6fbc222480cf9f391a3e1",
       "hint": null,
       "key": "app_exception_stacktrace",
       "type": "component"
@@ -1035,7 +1035,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+                          "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
                         ]
                       }
                     ]
@@ -1884,7 +1884,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "exception stacktrace — all frames",
-      "hash": "405c5ace25bef65fa6193d0c0a18b059",
+      "hash": "bce0926d11f0ebe7d72ab74b56717aa6",
       "hint": null,
       "key": "system_exception_stacktrace",
       "type": "component"

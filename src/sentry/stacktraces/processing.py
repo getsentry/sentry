@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -14,13 +15,24 @@ from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import get_path, safe_execute, set_path
+from sentry.utils.safe import get_path, safe_execute, set_path, setdefault_path
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
 
 if TYPE_CHECKING:
     from sentry.grouping.strategies.base import StrategyConfiguration
+
+# Used to recognize context lines where Python's multiprocessing logic hard-codes variable values,
+# leading to under-grouping. See:
+#    https://github.com/python/cpython/blob/95259116ecb4346b570b9f87fd825d1d5901c4f1/Lib/multiprocessing/spawn.py#L91-L92
+#    https://github.com/python/cpython/blob/95259116ecb4346b570b9f87fd825d1d5901c4f1/Lib/multiprocessing/popen_spawn_posix.py#L55-L56
+#    https://github.com/python/cpython/blob/95259116ecb4346b570b9f87fd825d1d5901c4f1/Lib/multiprocessing/popen_spawn_win32.py#L57-L58
+PYTHON_MULTIPROCESSING_CALL_REGEX = re.compile(
+    r"from multiprocessing\.spawn import spawn_main; spawn_main\("
+    r"(tracker_fd|parent_pid)=\d+, pipe_handle=\d+"  # Posix and Windows use different initial kwargs
+    r"\)"
+)
 
 
 class StacktraceInfo(NamedTuple):
@@ -356,6 +368,53 @@ def normalize_stacktraces_for_grouping(
                     # ignore unparsable filenames
                     except Exception:
                         pass
+
+                # Cpython's multiprocessing module generates code with hard-coded variable values
+                # when spawning processes, which then makes our grouping logic see every random pair
+                # of values as a different stacktrace. To fix this, we manually parameterize such
+                # context lines. (See the regex definition above for code references.)
+                #
+                # Note: While it's true that all of the if conditions here make this a bit brittle,
+                # a) Python internals don't change super frequently, and b) we want to make this
+                # case as narrow as possible to avoid the cost of running the regex when we don't
+                # need to, since this code runs on every frame of every event during ingest.
+                context_line = frame.get("context_line")
+                if (
+                    context_line
+                    and platform == "python"
+                    and frame.get("module") == "__main__"
+                    and frame.get("filename") == "<string>"
+                    and frame.get("function") == "<module>"
+                    and PYTHON_MULTIPROCESSING_CALL_REGEX.match(context_line)
+                ):
+                    setdefault_path(frame, "data", "orig_context_line", value=context_line)
+                    # Turn `spawn_main(tracker_fd=11, pipe_handle=21)` into `spawn_main(tracker_fd=<int>, pipe_handle=<int>)`
+                    # and `spawn_main(parent_pid=12, pipe_handle=31)` into `spawn_main(parent_pid=<int>, pipe_handle=<int>)`
+                    frame["context_line"] = re.sub(r"=\d+", "=<int>", context_line)
+                    metrics.incr(
+                        "sentry.grouping.python_multiprocessing_line_parameterized",
+                        tags={"platform": "posix" if "tracker_fd" in context_line else "windows"},
+                    )
+
+                    # TODO: Temporary log to see if other orgs have this problem or if it's just
+                    # us, and to try to find a Windows example of this happening
+                    logger.info(
+                        "grouping.python_multiprocessing_line_parameterized",
+                        extra={
+                            "event_id": data.get("event_id"),
+                            "project_id": data.get("project"),
+                            "orig_line": context_line,
+                            "platform": "posix" if "tracker_fd" in context_line else "windows",
+                        },
+                    )
+
+                    # TODO: This can go away once we're fully transitioned off of the
+                    # `newstyle:2023-01-11` grouping config
+                    if grouping_config and grouping_config.initial_context.get(
+                        "prevent_python_multiprocessing_context_line_parameterization"
+                    ):
+                        frame["context_line"] = context_line
+
         if stripped_querystring:
             # Fires once per event, regardless of how many frames' filenames were stripped
             metrics.incr("sentry.grouping.stripped_filename_querystrings")
