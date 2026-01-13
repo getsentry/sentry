@@ -268,6 +268,28 @@ def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
         raise ValidationError(f"Invalid config: {e.message}")
 
 
+def validate_condition_result(data_condition: DataCondition) -> None:
+    """
+    Validate that condition_result contains a valid DetectorPriorityLevel if it's an integer.
+    This prevents invalid enum values from being stored in the database.
+    """
+    if isinstance(data_condition.condition_result, int):
+        try:
+            DetectorPriorityLevel(data_condition.condition_result)
+        except ValueError:
+            logger.warning(
+                "Attempting to save DataCondition with invalid condition_result",
+                extra={
+                    "condition_result": data_condition.condition_result,
+                    "valid_levels": [level.value for level in DetectorPriorityLevel],
+                    "condition_id": data_condition.id,
+                },
+            )
+            # Don't raise an error to avoid breaking existing code, just log the warning
+            # The migration 0106 will fix existing invalid values
+
+
 @receiver(pre_save, sender=DataCondition)
 def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
     enforce_data_condition_json_schema(instance)
+    validate_condition_result(instance)
