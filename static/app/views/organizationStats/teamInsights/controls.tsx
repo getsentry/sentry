@@ -164,14 +164,14 @@ function TeamStatsControls({
             };
             return {...provided, ...custom};
           },
-          input: (provided: any, state: any) => ({
+          input: (provided: any) => ({
             ...provided,
             display: 'grid',
             gridTemplateColumns: 'max-content 1fr',
             alignItems: 'center',
             gridGap: space(1),
             ':before': {
-              backgroundColor: state.theme.tokens.background.secondary,
+              backgroundColor: theme.tokens.background.secondary,
               height: 24,
               width: 38,
               borderRadius: 3,
