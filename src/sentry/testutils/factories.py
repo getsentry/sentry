@@ -2673,7 +2673,7 @@ class Factories:
         app_icon_id = kwargs.get("app_icon_id", None)
         if create_mobile_app_info and (build_version or build_number or app_name or app_icon_id):
             Factories.create_preprod_artifact_mobile_app_info(
-                artifact=artifact,
+                preprod_artifact=artifact,
                 build_version=build_version,
                 build_number=build_number,
                 app_name=app_name,

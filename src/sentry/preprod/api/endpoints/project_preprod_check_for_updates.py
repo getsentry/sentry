@@ -147,7 +147,12 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
 
         mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
 
-        if preprod_artifact and mobile_app_info:
+        if (
+            preprod_artifact
+            and mobile_app_info
+            and mobile_app_info.build_version
+            and mobile_app_info.build_number
+        ):
             current = InstallableBuildDetails(
                 id=str(preprod_artifact.id),
                 build_version=mobile_app_info.build_version,
