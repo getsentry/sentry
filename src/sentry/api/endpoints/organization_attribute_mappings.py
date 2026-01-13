@@ -40,18 +40,18 @@ class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
 
     def get(self, request: Request, organization: Organization) -> Response:
-        requested_types = list(set(request.GET.getlist("type")))
+        requested_types = set(request.GET.getlist("type"))
 
         if requested_types:
-            invalid_types = set(requested_types) - TYPE_TO_DEFINITIONS.keys()
+            invalid_types = requested_types - TYPE_TO_DEFINITIONS.keys()
             if invalid_types:
                 return Response(
                     {"detail": f"Invalid type(s): {', '.join(sorted(invalid_types))}"},
                     status=400,
                 )
-            types_to_include = requested_types
+            types_to_include = list(requested_types)
         else:
-            types_to_include = TYPE_TO_DEFINITIONS.keys()
+            types_to_include = list(TYPE_TO_DEFINITIONS.keys())
 
         result: list[AttributeMappingResponse] = []
         for type_name in types_to_include:
