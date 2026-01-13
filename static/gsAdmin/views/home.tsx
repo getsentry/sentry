@@ -188,7 +188,7 @@ const OverviewWrap = styled('div')`
   margin: ${space(2)} 0;
 `;
 const SecondaryText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Centered = styled('div')`

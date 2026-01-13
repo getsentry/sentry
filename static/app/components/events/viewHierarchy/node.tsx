@@ -14,7 +14,7 @@ type NodeProps = {
   isSelected?: boolean;
 };
 
-function Node({
+export function Node({
   label,
   id,
   isExpanded,
@@ -33,9 +33,9 @@ function Node({
         collapsible={collapsible}
       >
         {isExpanded ? (
-          <IconSubtract legacySize="9px" color="white" />
+          <StyledIconSubtract legacySize="9px" />
         ) : (
-          <IconAdd legacySize="9px" color="white" />
+          <StyledIconAdd legacySize="9px" />
         )}
       </IconWrapper>
       <NodeTitle id={`${id}-title`} focused={isFocused}>
@@ -45,7 +45,12 @@ function Node({
   );
 }
 
-export {Node};
+const StyledIconSubtract = styled(IconSubtract)`
+  color: ${p => p.theme.colors.white};
+`;
+const StyledIconAdd = styled(IconAdd)`
+  color: ${p => p.theme.colors.white};
+`;
 
 const NodeContents = styled('div')`
   padding-left: 0;
@@ -81,10 +86,10 @@ const IconWrapper = styled('button')<{collapsible: boolean; isExpanded: boolean}
           }
         `
       : css`
-          background: ${p.theme.colors.blue400};
-          border: 1px solid ${p.theme.colors.blue400};
+          background: ${p.theme.tokens.background.accent.vibrant};
+          border: 1px solid ${p.theme.tokens.border.accent.vibrant};
           &:hover {
-            background: ${p.theme.colors.blue200};
+            background: ${p.theme.tokens.background.transparent.accent.muted};
           }
         `}
 `;

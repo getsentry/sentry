@@ -802,6 +802,34 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
 
+    def test_get_trace_waterfall_includes_status_code(self) -> None:
+        """Test that span.status_code is included in additional_attributes."""
+        transaction_name = "api/test/status"
+        trace_id = uuid.uuid4().hex
+
+        # Create a span with status_code
+        span = self.create_span(
+            {
+                "description": "http-request",
+                "sentry_tags": {
+                    "transaction": transaction_name,
+                    "status_code": "500",
+                },
+                "trace_id": trace_id,
+                "is_segment": True,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span], is_eap=True)
+
+        result = get_trace_waterfall(trace_id, self.organization.id)
+        assert isinstance(result, EAPTrace)
+
+        # Find the span and verify additional_attributes contains status_code
+        root_span = result.trace[0]
+        assert "additional_attributes" in root_span
+        assert root_span["additional_attributes"].get("span.status_code") == "500"
+
 
 class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     def setUp(self) -> None:
@@ -1655,6 +1683,49 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result is not None
         assert result["provider"] == "integrations:github"
         assert result["external_id"] == "12345678"
+
+    def test_get_repository_definition_multipart_name(self):
+        """Test repository with multi-part name (e.g., owner/project/repo)"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/project/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/project/seer",
+        )
+
+        assert result is not None
+        assert result["owner"] == "getsentry"
+        assert result["name"] == "project/seer"
+
+    def test_get_repository_definition_by_external_id(self):
+        """Test lookup by external_id when repo has been renamed."""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/new-name",  # The NEW name after rename
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Seer passes the OLD name but includes external_id
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/old-name",  # OLD name that won't match
+            external_id="12345678",
+        )
+
+        assert result is not None
+        # Should return the CURRENT name from the database
+        assert result["owner"] == "getsentry"
+        assert result["name"] == "new-name"
 
 
 class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):

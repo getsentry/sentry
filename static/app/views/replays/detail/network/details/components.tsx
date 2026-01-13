@@ -18,12 +18,12 @@ export const InspectorMargin = styled('div')`
 `;
 
 const NotFoundText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const WarningText = styled('span')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 export function Warning({warnings}: {warnings: string[]}) {

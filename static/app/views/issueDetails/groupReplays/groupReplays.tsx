@@ -334,7 +334,7 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
   ${p =>
     p.hasStreamlinedUI &&
     css`
-      border: 1px solid ${p.theme.border};
+      border: 1px solid ${p.theme.tokens.border.primary};
       border-radius: ${p.theme.radius.md};
       padding: ${space(1.5)};
     `}
@@ -354,11 +354,11 @@ const ReplayHeader = styled('div')`
 const StyledBreak = styled('hr')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1.5)};
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.tokens.border.primary};
 `;
 
 const ReplayFilterText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const OverlayText = styled('div')`

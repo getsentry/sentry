@@ -92,7 +92,7 @@ export function AISpanList({
   }, [nodes]);
 
   return (
-    <TraceListContainer>
+    <Stack padding="2xs" gap="xs" overflow="hidden">
       {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
         <Fragment key={transaction.id}>
           <TransactionWrapper
@@ -104,7 +104,7 @@ export function AISpanList({
           />
         </Fragment>
       ))}
-    </TraceListContainer>
+    </Stack>
   );
 }
 
@@ -402,14 +402,6 @@ function hasError(node: AITraceSpanNode) {
   return false;
 }
 
-const TraceListContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space['2xs']};
-  overflow: hidden;
-`;
-
 const ListItemContainer = styled('div')<{
   hasErrors: boolean;
   indent: number;
@@ -423,16 +415,18 @@ const ListItemContainer = styled('div')<{
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   background-color: ${p =>
-    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
+    p.isSelected
+      ? p.theme.tokens.background.secondary
+      : p.theme.tokens.background.primary};
   outline: ${p =>
     p.isSelected
       ? p.hasErrors
-        ? `2px solid ${p.theme.colors.red200}`
-        : `2px solid ${p.theme.colors.blue200}`
+        ? `2px solid ${p.theme.tokens.focus.invalid}`
+        : `2px solid ${p.theme.tokens.focus.default}`
       : 'none'};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -442,7 +436,7 @@ const DurationBar = styled('div')<{
 }>`
   width: 100%;
   height: 4px;
-  background-color: ${p => p.theme.colors.gray200};
+  background-color: ${p => p.theme.tokens.dataviz.semantic.other};
   border-radius: 2px;
   position: relative;
 
@@ -471,11 +465,11 @@ const TransactionButton = styled('button')`
   border: none;
   outline: none;
   justify-content: flex-start;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 
   &:hover:not(:disabled) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 
   &:first-child {

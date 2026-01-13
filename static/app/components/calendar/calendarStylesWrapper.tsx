@@ -45,7 +45,7 @@ const CalendarStylesWrapper = styled('div')`
 
   .rdrDayDisabled .rdrDayNumber span,
   .rdrDayPassive .rdrDayNumber span {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     opacity: 0.5;
   }
 
@@ -78,7 +78,7 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrDayInPreview {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
 
   .rdrMonth {

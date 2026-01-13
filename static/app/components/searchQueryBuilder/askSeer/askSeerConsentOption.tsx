@@ -62,7 +62,7 @@ const AskSeerConsentLabelWrapper = styled('div')`
 `;
 
 const SeerConsentText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
   font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
@@ -70,10 +70,10 @@ const SeerConsentText = styled('p')`
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
 
   :hover {
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
     text-decoration: underline;
   }
 `;

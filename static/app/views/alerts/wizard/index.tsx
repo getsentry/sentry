@@ -312,7 +312,7 @@ const ExampleItem = styled(ListItem)`
 `;
 
 const WizardFooter = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
 `;
 
@@ -331,10 +331,10 @@ const WizardGroupedOptions = styled(RadioPanelGroup)`
 `;
 
 const DisabledAlertMessageContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 `;
 

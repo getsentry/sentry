@@ -53,7 +53,7 @@ export default function ReplayMetaData({
             {replayRecord?.count_dead_clicks ? (
               <Link to={breadcrumbTab}>
                 <ClickCount>
-                  <IconCursorArrow size="sm" color="yellow300" />
+                  <IconCursorArrow size="sm" variant="warning" />
                   {replayRecord.count_dead_clicks}
                 </ClickCount>
               </Link>
@@ -117,7 +117,7 @@ const KeyMetrics = styled('dl')`
   height: 42px;
   gap: 0 ${space(3)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -143,7 +143,7 @@ const Count = styled('span')`
 `;
 
 const ClickCount = styled(Count)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   gap: ${space(0.75)};
   align-items: center;

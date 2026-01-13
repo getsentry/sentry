@@ -651,10 +651,10 @@ export function SourceMapsDebuggerModal({
                 <StyledProgressRing
                   progressColor={
                     activeTab === 'debug-ids'
-                      ? theme.colors.blue400
-                      : theme.colors.gray400
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.debugIdProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -674,9 +674,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'release' ? theme.colors.blue400 : theme.colors.gray400
+                    activeTab === 'release'
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.releaseProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -692,9 +694,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'fetching' ? theme.colors.blue400 : theme.colors.gray400
+                    activeTab === 'fetching'
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.scrapingProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -893,7 +897,7 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
           {
             none: <IconCircle size="md" variant="muted" />,
             checked: <IconCheckmark size="md" variant="success" />,
-            alert: <IconWarning size="md" color="yellow300" />,
+            alert: <IconWarning size="md" variant="warning" />,
             question: <IconQuestion size="md" variant="muted" />,
           }[status]
         }
@@ -2038,8 +2042,8 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p =>
     ({
-      none: p.theme.subText,
-      question: p.theme.subText,
+      none: p.theme.tokens.content.secondary,
+      question: p.theme.tokens.content.secondary,
       alert: p.theme.colors.yellow500,
       checked: p.theme.colors.green400,
     })[p.status]};
@@ -2064,7 +2068,7 @@ const MonoBlock = styled('code')`
   padding: ${space(0.25)} ${space(0.5)};
   color: ${p => p.theme.colors.gray500};
   background: ${p => p.theme.colors.gray100};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.xs};
   font-weight: ${p => p.theme.fontWeight.normal};
@@ -2092,7 +2096,7 @@ const InstructionList = styled('ul')`
 `;
 
 const ScrapingSymbolificationErrorMessage = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 2px solid ${p => p.theme.colors.gray200};
   padding-left: ${space(1)};
   margin-top: -${space(1)};

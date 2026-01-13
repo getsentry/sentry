@@ -133,7 +133,7 @@ const Sidebar = styled('section')`
   padding: ${space(3)} 0;
   gap: ${space(3)};
   background: ${p => p.theme.tokens.background.primary};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
 
   > * {
     padding: 0 ${space(4)};
@@ -154,7 +154,7 @@ const ThemeToggle = styled(Button)`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: bold;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Navigation = styled('ul')`

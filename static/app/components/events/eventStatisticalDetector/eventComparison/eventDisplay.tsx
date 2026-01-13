@@ -339,17 +339,17 @@ const MinimapContainer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   position: relative;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ComparisonContentWrapper = styled('div')`
-  border: ${p => `1px solid ${p.theme.border}`};
+  border: ${p => `1px solid ${p.theme.tokens.border.primary}`};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
 
 const EmptyStateWrapper = styled('div')`
-  border: ${p => `1px solid ${p.theme.border}`};
+  border: ${p => `1px solid ${p.theme.tokens.border.primary}`};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   justify-content: center;

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import StrEnum
 
 from sentry import features
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
@@ -9,14 +10,23 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewSettings, RepositorySettings
 
-DenialReason = str | None
+
+class PreflightDenialReason(StrEnum):
+    """Reasons why a preflight check denied code review."""
+
+    ORG_LEGAL_AI_CONSENT_NOT_GRANTED = "org_legal_ai_consent_not_granted"
+    ORG_PR_REVIEW_LEGACY_TOGGLE_DISABLED = "org_pr_review_legacy_toggle_disabled"
+    ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW = "org_not_eligible_for_code_review"
+    REPO_CODE_REVIEW_DISABLED = "repo_code_review_disabled"
+    BILLING_MISSING_CONTRIBUTOR_INFO = "billing_missing_contributor_info"
+    BILLING_QUOTA_EXCEEDED = "billing_quota_exceeded"
 
 
 @dataclass
 class CodeReviewPreflightResult:
     allowed: bool
     settings: CodeReviewSettings | None = None
-    denial_reason: DenialReason = None
+    denial_reason: PreflightDenialReason | None = None
 
 
 class CodeReviewPreflightService:
@@ -36,7 +46,7 @@ class CodeReviewPreflightService:
         self._repo_settings = repo_settings.get_code_review_settings() if repo_settings else None
 
     def check(self) -> CodeReviewPreflightResult:
-        checks: list[Callable[[], DenialReason]] = [
+        checks: list[Callable[[], PreflightDenialReason | None]] = [
             self._check_legal_ai_consent,
             self._check_org_feature_enablement,
             self._check_repo_feature_enablement,
@@ -51,20 +61,20 @@ class CodeReviewPreflightService:
         return CodeReviewPreflightResult(allowed=True, settings=self._repo_settings)
 
     # -------------------------------------------------------------------------
-    # Checks - each returns denial reason (str) or None if valid
+    # Checks - each returns denial reason or None if valid
     # -------------------------------------------------------------------------
 
-    def _check_legal_ai_consent(self) -> DenialReason:
+    def _check_legal_ai_consent(self) -> PreflightDenialReason | None:
         has_gen_ai_flag = features.has("organizations:gen-ai-features", self.organization)
         has_hidden_ai = self.organization.get_option(
             "sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT
         )
 
         if not has_gen_ai_flag or has_hidden_ai:
-            return "org_legal_ai_consent_not_granted"
+            return PreflightDenialReason.ORG_LEGAL_AI_CONSENT_NOT_GRANTED
         return None
 
-    def _check_org_feature_enablement(self) -> DenialReason:
+    def _check_org_feature_enablement(self) -> PreflightDenialReason | None:
         # Seat-based orgs are always eligible
         if self._is_seat_based_seer_plan_org():
             return None
@@ -73,26 +83,26 @@ class CodeReviewPreflightService:
         if self._is_code_review_beta_org():
             if self._has_legacy_toggle_enabled():
                 return None
-            return "org_pr_review_legacy_toggle_disabled"
+            return PreflightDenialReason.ORG_PR_REVIEW_LEGACY_TOGGLE_DISABLED
 
-        return "org_not_eligible_for_code_review"
+        return PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
-    def _check_repo_feature_enablement(self) -> DenialReason:
+    def _check_repo_feature_enablement(self) -> PreflightDenialReason | None:
         if self._is_seat_based_seer_plan_org():
             if self._repo_settings is None or not self._repo_settings.enabled:
-                return "repo_code_review_disabled"
+                return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
             return None
         elif self._is_code_review_beta_org():
             # For beta orgs, all repos are considered enabled
             return None
         else:
-            return "repo_code_review_disabled"
+            return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
-    def _check_billing(self) -> DenialReason:
+    def _check_billing(self) -> PreflightDenialReason | None:
         # TODO: Once we're ready to actually gate billing (when it's time for GA), uncomment this
         """
         if self.integration_id is None or self.pr_author_external_id is None:
-            return "billing_missing_contributor_info"
+            return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
         billing_ok = passes_code_review_billing_check(
             organization_id=self.organization.id,
@@ -100,7 +110,7 @@ class CodeReviewPreflightService:
             external_identifier=self.pr_author_external_id,
         )
         if not billing_ok:
-            return "billing_quota_exceeded"
+            return PreflightDenialReason.BILLING_QUOTA_EXCEEDED
         """
 
         return None

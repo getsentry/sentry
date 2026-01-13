@@ -1,15 +1,14 @@
 import {useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
@@ -307,7 +306,7 @@ export function MessageSpanSamplesPanel() {
         <SampleDrawerBody>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <MetricsRibbonContainer>
+              <Flex wrap="wrap" gap="3xl">
                 {messageActorType === MessageActorType.PRODUCER ? (
                   <ProducerMetricsRibbon
                     metrics={transactionMetrics}
@@ -319,11 +318,11 @@ export function MessageSpanSamplesPanel() {
                     isLoading={aretransactionMetricsFetching}
                   />
                 )}
-              </MetricsRibbonContainer>
+              </Flex>
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <PanelControls>
+              <Flex gap="xl">
                 <CompactSelect
                   searchable
                   value={query.traceStatus}
@@ -343,7 +342,7 @@ export function MessageSpanSamplesPanel() {
                     )}
                   />
                 )}
-              </PanelControls>
+              </Flex>
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
@@ -499,14 +498,3 @@ const RETRY_COUNT_SELECT_OPTIONS = [
     };
   }),
 ];
-
-const MetricsRibbonContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
-`;
-
-const PanelControls = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-`;

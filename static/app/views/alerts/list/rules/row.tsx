@@ -379,7 +379,7 @@ const AlertName = styled('div')`
 `;
 
 const AlertIncidentDate = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ProjectBadgeContainer = styled('div')`

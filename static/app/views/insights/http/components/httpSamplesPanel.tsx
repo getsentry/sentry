@@ -1,8 +1,8 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -10,7 +10,6 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
@@ -422,7 +421,7 @@ export function HTTPSamplesPanel() {
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <PanelControls>
+              <Flex justify="between" gap="xl">
                 <SegmentedControl
                   value={query.panel}
                   onChange={handlePanelChange}
@@ -444,7 +443,7 @@ export function HTTPSamplesPanel() {
                     <SelectTrigger.Button {...triggerProps} prefix={t('Response Code')} />
                   )}
                 />
-              </PanelControls>
+              </Flex>
             </ModuleLayout.Full>
 
             {query.panel === 'duration' && (
@@ -595,9 +594,3 @@ const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
     label: t('5XXs'),
   },
 ];
-
-const PanelControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(2)};
-`;

@@ -365,7 +365,7 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   gap: ${space(1)};
   padding: ${space(1)} ${space(1)};
   height: ${toolbarHeight};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ViewSelectContainer = styled('div')`
@@ -381,11 +381,11 @@ const RequestStateMessageContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const AggregateFlamegraphSidePanelContainer = styled('div')<{visible: boolean}>`
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: scroll;
   ${p => !p.visible && 'display: none;'}
 `;

@@ -2,16 +2,35 @@ import type {Theme} from '@emotion/react';
 import {css, Global} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
-const prismStyles = (theme: Theme) => css`
+const generateThemePrismVariables = (theme: Theme, blockBackground: string) => ({
+  '--prism-base': theme.tokens.syntax.base,
+  '--prism-inline-code': theme.tokens.syntax.inlineCode,
+  '--prism-inline-code-background': theme.tokens.syntax.codeBackground,
+  '--prism-highlight-background': theme.tokens.syntax.hightlightBackground,
+  '--prism-highlight-accent': theme.tokens.syntax.hightlightAccent,
+  '--prism-comment': theme.tokens.syntax.comment,
+  '--prism-punctuation': theme.tokens.syntax.punctuation,
+  '--prism-property': theme.tokens.syntax.property,
+  '--prism-selector': theme.tokens.syntax.selector,
+  '--prism-operator': theme.tokens.syntax.operator,
+  '--prism-variable': theme.tokens.syntax.variable,
+  '--prism-function': theme.tokens.syntax.function,
+  '--prism-keyword': theme.tokens.syntax.keyWord,
+  // block background differs based on light/dark mode
+  '--prism-block-background': blockBackground,
+});
+
+const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   :root {
-    ${theme.prismVariables};
+    ${generateThemePrismVariables(theme, theme.backgroundSecondary)};
   }
 
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
   .gatsby-highlight,
   .prism-dark {
-    ${theme.prismDarkVariables};
+    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.primary)};
   }
 
   pre[class*='language-'] {
@@ -128,7 +147,7 @@ const prismStyles = (theme: Theme) => css`
   }
 `;
 
-const styles = (theme: Theme, isDark: boolean) => css`
+const styles = (theme: Theme, darkTheme: Theme) => css`
   body {
     .sentry-error-embed-wrapper {
       z-index: ${theme.zIndex.sentryErrorEmbed};
@@ -169,19 +188,19 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   a {
-    color: ${theme.linkColor};
+    color: ${theme.tokens.interactive.link.accent.rest};
     &:focus-visible,
     &:hover {
-      color: ${theme.linkHoverColor};
+      color: ${theme.tokens.interactive.link.accent.hover};
     }
   }
 
   .group-detail:before {
-    background: ${theme.border};
+    background: ${theme.tokens.border.primary};
   }
 
   .form-actions {
-    border-top-color: ${theme.border};
+    border-top-color: ${theme.tokens.border.primary};
   }
 
   pre,
@@ -190,12 +209,12 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   pre {
-    background-color: ${theme.backgroundSecondary};
+    background-color: ${theme.tokens.background.secondary};
     white-space: pre-wrap;
     overflow-x: auto;
 
     &:focus-visible {
-      outline: ${theme.focusBorder} auto 1px;
+      outline: ${theme.tokens.focus.default} auto 1px;
     }
   }
 
@@ -208,7 +227,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
     color: inherit;
   }
 
-  ${prismStyles(theme)}
+  ${prismStyles(theme, darkTheme)}
 
   /**
    * See https://web.dev/prefers-reduced-motion/
@@ -229,16 +248,16 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   .ReactVirtualized__Grid:focus-visible,
   .ReactVirtualized__List:focus-visible {
-    outline: ${theme.focusBorder} auto 1px;
+    outline: ${theme.tokens.focus.default} auto 1px;
   }
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
-  ${isDark
+  ${theme.type === 'dark'
     ? css`
         .box,
         .box.box-modal {
           background: ${theme.tokens.background.primary};
-          border-color: ${theme.border};
+          border-color: ${theme.tokens.border.primary};
 
           .box-content,
           .box-header {
@@ -255,20 +274,20 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
 
           .box-header {
-            border-bottom-color: ${theme.border};
+            border-bottom-color: ${theme.tokens.border.primary};
 
             a {
               color: ${theme.tokens.content.primary};
 
               &:hover {
-                color: ${theme.linkHoverColor};
+                color: ${theme.tokens.interactive.link.accent.hover};
               }
             }
           }
         }
         .loading .loading-indicator {
-          border-color: ${theme.backgroundSecondary};
-          border-left-color: ${theme.colors.blue400};
+          border-color: ${theme.tokens.background.transparent.neutral.muted};
+          border-left-color: ${theme.tokens.background.accent.vibrant};
         }
 
         .pattern-bg {
@@ -281,7 +300,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             &.active {
               a {
                 color: ${theme.tokens.content.primary} !important;
-                border-bottom-color: ${theme.active} !important;
+                border-bottom-color: ${theme.tokens.border.accent.vibrant} !important;
               }
             }
 
@@ -290,23 +309,23 @@ const styles = (theme: Theme, isDark: boolean) => css`
             }
           }
           &.border-bottom {
-            border-color: ${theme.border};
+            border-color: ${theme.tokens.border.primary};
           }
         }
 
         .exception {
-          border-color: ${theme.innerBorder};
+          border-color: ${theme.tokens.border.secondary};
         }
 
         .traceback {
-          border-color: ${theme.border};
+          border-color: ${theme.tokens.border.primary};
 
           &.in-app-traceback {
             .frame {
               &.leads-to-app {
                 &.collapsed {
                   .title {
-                    border-color: ${theme.border};
+                    border-color: ${theme.tokens.border.primary};
                     background: ${theme.tokens.background.primary};
                   }
                 }
@@ -316,7 +335,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
           .frame,
           .frame.system-frame {
-            border-top-color: ${theme.border};
+            border-top-color: ${theme.tokens.border.primary};
 
             &.is-expandable .title:hover {
               background-color: ${theme.tokens.background.primary};
@@ -326,35 +345,35 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background: transparent;
             }
             .title {
-              background-color: ${theme.backgroundSecondary};
+              background-color: ${theme.tokens.background.secondary};
             }
             &.is-expandable .title {
-              background-color: ${theme.backgroundSecondary};
+              background-color: ${theme.tokens.background.secondary};
             }
             .context {
               background: ${theme.tokens.background.primary};
 
               table.key-value {
-                border-color: ${theme.border};
+                border-color: ${theme.tokens.border.primary};
                 td {
-                  border-color: ${theme.border} !important;
+                  border-color: ${theme.tokens.border.primary} !important;
                 }
               }
             }
           }
         }
         .group-detail h3 em {
-          color: ${theme.subText};
+          color: ${theme.tokens.content.secondary};
         }
         .event-details-container {
           background-color: ${theme.tokens.background.primary};
           .secondary {
-            border-left-color: ${theme.border};
+            border-left-color: ${theme.tokens.border.primary};
           }
         }
         .nav-header a.help-link,
         .nav-header span.help-link a {
-          color: ${theme.subText};
+          color: ${theme.tokens.content.secondary};
         }
 
         /* Global Selection header date picker */
@@ -364,7 +383,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
         .rdrDayDisabled {
           background-color: ${theme.backgroundSecondary};
-          color: ${theme.disabled};
+          color: ${theme.tokens.content.disabled};
         }
         .rdrMonthAndYearPickers select {
           color: ${theme.tokens.content.primary};
@@ -372,15 +391,15 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .dropdown-menu {
           background-color: ${theme.tokens.background.primary} !important;
           color: ${theme.tokens.content.primary};
-          border: 1px solid ${theme.border};
+          border: 1px solid ${theme.tokens.border.primary};
           &:before {
-            border-bottom-color: ${theme.border};
+            border-bottom-color: ${theme.tokens.border.primary};
           }
           &:after {
             border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
-            border-top-color: ${theme.border};
+            border-top-color: ${theme.tokens.border.primary};
           }
           &.inverted:after {
             border-top-color: ${theme.tokens.background.primary};
@@ -393,8 +412,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
 /**
  * Renders an emotion global styles injection component
  */
-function GlobalStyles({theme, isDark}: {isDark: boolean; theme: Theme}) {
-  return <Global styles={styles(theme, isDark)} />;
+function GlobalStyles({theme}: {theme: Theme}) {
+  const invertedTheme = useInvertedTheme();
+  const darkTheme = theme.type === 'dark' ? theme : invertedTheme;
+  return <Global styles={styles(theme, darkTheme)} />;
 }
 
 export default GlobalStyles;

@@ -411,7 +411,7 @@ function RegressedFunctionBeforeAfterFlamechart(
 }
 
 const ChangeArrow = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RegressedFunctionsTypeSelect = styled(CompactSelect)`
@@ -445,14 +445,14 @@ const RegressedFunctionMetricsRow = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 
 const RegressedFunctionsContainer = styled('div')`
   flex-basis: 80px;
   padding: 0 ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const RegressedFunctionsPagination = styled(Pagination)`
@@ -482,7 +482,7 @@ const RegressedFunctionsTitleContainer = styled('div')`
 const RegressedFunctionsQueryState = styled('div')`
   text-align: center;
   padding: ${space(2)} ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TREND_FUNCTION_OPTIONS: Array<SelectOption<TrendType>> = [

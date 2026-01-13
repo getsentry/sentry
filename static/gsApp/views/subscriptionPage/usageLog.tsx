@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
@@ -23,6 +22,7 @@ import type {User} from 'sentry/types/user';
 import {getTimeFormat} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -74,10 +74,6 @@ interface UsageLogs {
   rows: AuditLog[];
 }
 
-type Props = {
-  location: Location;
-};
-
 function SkeletonEntry() {
   return (
     <Timeline.Item
@@ -89,8 +85,9 @@ function SkeletonEntry() {
   );
 }
 
-function UsageLog({location}: Props) {
+export default function UsageLog() {
   const organization = useOrganization();
+  const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
   const {
@@ -232,5 +229,3 @@ function UsageLog({location}: Props) {
     </SubscriptionPageContainer>
   );
 }
-
-export default UsageLog;

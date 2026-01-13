@@ -138,19 +138,21 @@ class GitHubWebhookTestCase(APITestCase):
 
 class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
     CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+    OPTIONS_TO_SET: dict[str, Any] = {}
 
     @contextmanager
     def code_review_setup(
         self,
         features: Collection[str] | Mapping[str, Any] | None = None,
-        forward_to_overwatch: bool = False,
+        options: dict[str, Any] | None = None,
     ) -> Generator[None]:
         """Helper to set up code review test context."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
         features_to_enable = self.CODE_REVIEW_FEATURES if features is None else features
+        options_to_set = dict(self.OPTIONS_TO_SET) | (options or {})
         with (
             self.feature(features_to_enable),
-            self.options({"github.webhook.issue-comment": forward_to_overwatch}),
+            self.options(options_to_set),
         ):
             yield
 

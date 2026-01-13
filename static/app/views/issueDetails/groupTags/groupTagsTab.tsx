@@ -182,7 +182,7 @@ const StyledPanel = styled(Panel)`
 const TagHeading = styled('h5')`
   font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const UnstyledUnorderedList = styled('ul')`
@@ -220,7 +220,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => p.theme.colors.blue400};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
     }
   }
 `;

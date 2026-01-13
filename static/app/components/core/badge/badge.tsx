@@ -71,7 +71,7 @@ function makeBadgeTheme(p: BadgeProps, theme: Theme): React.CSSProperties {
     case 'info':
       return {
         color: theme.tokens.content.accent,
-        background: theme.colors.blue100,
+        background: theme.tokens.background.transparent.accent.muted,
       };
     case 'promotion':
       return {

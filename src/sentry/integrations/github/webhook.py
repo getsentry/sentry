@@ -801,7 +801,10 @@ class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = (_handle_pr_webhook_for_autofix_processor,)
+    WEBHOOK_EVENT_PROCESSORS = (
+        _handle_pr_webhook_for_autofix_processor,
+        code_review_handle_webhook_event,
+    )
 
     def _handle(
         self,
@@ -896,8 +899,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "github.webhook.pull_request.created",
                     sample_rate=1.0,
                     tags={
-                        "organization_id": organization.id,
-                        "repository_id": repo.id,
                         "is_private": pr_repo_private,
                     },
                 )
@@ -929,10 +930,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                         metrics.incr(
                             "github.webhook.organization_contributor.should_create",
                             sample_rate=1.0,
-                            tags={
-                                "organization_id": organization.id,
-                                "repository_id": repo.id,
-                            },
                         )
 
                         locked_contributor = None
@@ -979,28 +976,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         )
 
 
-class PullRequestReviewEventWebhook(GitHubWebhook):
-    """
-    Handles GitHub pull_request_review webhook events.
-    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review
-    """
-
-    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW
-    # XXX: Once we port the Overwatch feature, we can add the processor here.
-    WEBHOOK_EVENT_PROCESSORS = ()
-
-
-class PullRequestReviewCommentEventWebhook(GitHubWebhook):
-    """
-    Handles GitHub pull_request_review_comment webhook events.
-    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment
-    """
-
-    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_COMMENT
-    # XXX: Once we port the Overwatch feature, we can add the processor here.
-    WEBHOOK_EVENT_PROCESSORS = ()
-
-
 class CheckRunEventWebhook(GitHubWebhook):
     """
     Handles GitHub check_run webhook events.
@@ -1042,8 +1017,6 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.ISSUE: IssuesEventWebhook,
         GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
-        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
-        GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
     }
 

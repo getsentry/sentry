@@ -504,7 +504,7 @@ const StyledCompactSelect = styled(CompactSelect)`
 
 const SelectPlaceholder = styled('span')`
   ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: normal;
   text-align: left;
 `;

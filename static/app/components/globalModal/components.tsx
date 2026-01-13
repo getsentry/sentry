@@ -12,7 +12,7 @@ const ModalHeader = styled('header')`
   align-items: center;
   gap: ${space(1)};
   position: relative;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(3)} ${space(3)};
   margin: -${space(4)} -${space(2)} ${space(3)} -${space(3)};
 
@@ -59,7 +59,7 @@ const ModalBody = styled('section')`
 `;
 
 const ModalFooter = styled('footer')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   justify-content: flex-end;
   padding: ${space(3)} ${space(2)};

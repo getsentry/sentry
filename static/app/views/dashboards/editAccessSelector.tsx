@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Flex} from '@sentry/scraps/layout';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';
@@ -150,7 +151,9 @@ function EditAccessSelector({
       return (
         <CollapsedAvatarTooltip>
           {allSelectedTeams.map((team, index) => (
-            <CollapsedAvatarTooltipListItem
+            <Flex
+              align="center"
+              gap="md"
               key={team.id}
               style={{
                 marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
@@ -158,7 +161,7 @@ function EditAccessSelector({
             >
               <TeamAvatar team={team} size={18} />
               <div>#{team.name}</div>
-            </CollapsedAvatarTooltipListItem>
+            </Flex>
           ))}
         </CollapsedAvatarTooltip>
       );
@@ -448,12 +451,6 @@ const FilterButtons = styled(ButtonBar)`
 const CollapsedAvatarTooltip = styled('div')`
   max-height: 200px;
   overflow-y: auto;
-`;
-
-const CollapsedAvatarTooltipListItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const Plus = styled('span')`

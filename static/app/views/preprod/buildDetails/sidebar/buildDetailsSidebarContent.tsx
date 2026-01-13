@@ -24,16 +24,18 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
     return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
   }
 
+  /* App info + status check info + VCS info - only show when artifact is processed */
+  if (buildDetailsData.state !== BuildDetailsState.PROCESSED) {
+    return null;
+  }
+
   return (
     <Flex direction="column" gap="2xl">
-      {/* App info - only show when artifact is processed */}
-      {buildDetailsData.state === BuildDetailsState.PROCESSED && (
-        <BuildDetailsSidebarAppInfo
-          appInfo={buildDetailsData.app_info}
-          projectId={projectId}
-          artifactId={artifactId}
-        />
-      )}
+      <BuildDetailsSidebarAppInfo
+        appInfo={buildDetailsData.app_info}
+        projectId={projectId}
+        artifactId={artifactId}
+      />
 
       {/* Status check info */}
       {buildDetailsData.posted_status_checks?.size && (
@@ -43,7 +45,6 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
         />
       )}
 
-      {/* VCS info */}
       <BuildVcsInfo buildDetailsData={buildDetailsData} projectId={projectId} />
     </Flex>
   );
@@ -112,7 +113,7 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
 
 const SkeletonCard = styled('div')`
   padding: ${space(3)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
   background: ${p => p.theme.backgroundSecondary};
 `;

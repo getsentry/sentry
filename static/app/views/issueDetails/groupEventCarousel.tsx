@@ -426,7 +426,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 })}
                 {isOverLatencyThreshold && (
                   <Tooltip title="High latency">
-                    <StyledIconWarning size="xs" color="yellow300" />
+                    <StyledIconWarning size="xs" variant="warning" />
                   </Tooltip>
                 )}
               </EventTimeLabel>
@@ -533,7 +533,7 @@ const EventIdContainer = styled('div')`
 `;
 
 const EventTimeLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

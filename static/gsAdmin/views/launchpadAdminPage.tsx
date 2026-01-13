@@ -428,7 +428,7 @@ const StyledInput = styled(Input)`
 
 const InfoDisplay = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   max-height: 400px;

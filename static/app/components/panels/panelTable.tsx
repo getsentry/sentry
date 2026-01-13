@@ -164,7 +164,7 @@ const Wrapper = styled(Panel, {
       p.disableHeaderBorderBottom
         ? ''
         : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
-      border-bottom: 1px solid ${p.theme.border};
+      border-bottom: 1px solid ${p.theme.tokens.border.primary};
     }`}
   }
 
@@ -178,7 +178,7 @@ const Wrapper = styled(Panel, {
 `;
 
 const PanelTableHeader = styled('div')<{sticky: boolean}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
