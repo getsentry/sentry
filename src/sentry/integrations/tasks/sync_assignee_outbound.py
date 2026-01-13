@@ -14,6 +14,7 @@ from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationError,
@@ -96,6 +97,13 @@ def sync_assignee_outbound(
                         organization_id=external_issue.organization_id,
                     )
                 )
+        except ApiError as e:
+            # Handle 404 errors gracefully - the external issue may have been deleted
+            if e.code == 404:
+                lifecycle.record_halt(halt_reason=e)
+                return
+            # Re-raise other ApiErrors to preserve existing behavior
+            raise
         except (
             OrganizationIntegrationNotFound,
             ApiUnauthorized,

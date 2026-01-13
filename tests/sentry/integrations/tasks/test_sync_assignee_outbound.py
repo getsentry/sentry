@@ -9,7 +9,7 @@ from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_halt_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
@@ -19,6 +19,14 @@ from sentry.users.services.user import RpcUser
 
 def raise_sync_assignee_exception(*args, **kwargs):
     raise Exception("Something went wrong")
+
+
+def raise_api_not_found_error(*args, **kwargs):
+    raise ApiError(
+        text='{"errorMessages":["Issue does not exist or you do not have permission to see it."],"errors":{}}',
+        code=404,
+    )
+
 
 
 class TestSyncAssigneeOutbound(TestCase):
@@ -176,4 +184,24 @@ class TestSyncAssigneeOutbound(TestCase):
         assert_halt_metric(
             mock_record_event,
             IntegrationConfigurationError("Insufficient permissions to assign user"),
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
+    def test_api_not_found_error_halts(
+        self, mock_sync_assignee: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
+        """Test that 404 errors are handled gracefully and halt the sync."""
+        mock_sync_assignee.side_effect = raise_api_not_found_error
+
+        sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
+        mock_sync_assignee.assert_called_once()
+
+        assert mock_record_event.call_count == 2
+        assert_halt_metric(
+            mock_record_event,
+            ApiError(
+                '{"errorMessages":["Issue does not exist or you do not have permission to see it."],"errors":{}}',
+                code=404,
+            ),
         )
