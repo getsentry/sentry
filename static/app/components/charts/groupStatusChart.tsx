@@ -2,6 +2,8 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
@@ -112,7 +114,7 @@ function GroupStatusChart({
 
   return (
     <LazyRender containerHeight={showMarkLine ? 26 : height}>
-      <ChartWrapper>
+      <Stack>
         {loading ? (
           <Placeholder height="36px" />
         ) : (
@@ -135,7 +137,7 @@ function GroupStatusChart({
           </ChartAnimationWrapper>
         )}
         <GraphText>{groupStatus}</GraphText>
-      </ChartWrapper>
+      </Stack>
     </LazyRender>
   );
 }
@@ -153,11 +155,6 @@ const ChartAnimationWrapper = styled('div')`
       opacity: 100;
     }
   }
-`;
-
-const ChartWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;
 
 const GraphText = styled('div')`

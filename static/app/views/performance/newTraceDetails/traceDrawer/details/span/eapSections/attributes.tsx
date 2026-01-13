@@ -3,6 +3,8 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
@@ -198,7 +200,7 @@ export function Attributes({
       }
       disableCollapsePersistence
     >
-      <ContentWrapper>
+      <Stack gap="lg" maxWidth="100%">
         <BaseSearchBar
           placeholder={t('Search')}
           onChange={query => setSearchQuery(query)}
@@ -228,7 +230,7 @@ export function Attributes({
             <p>{t('No matching attributes found')}</p>
           </NoAttributesMessage>
         )}
-      </ContentWrapper>
+      </Stack>
     </FoldSection>
   );
 }
@@ -237,13 +239,6 @@ const StyledLink = styled(Link)`
   & div {
     display: inline;
   }
-`;
-
-const ContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  max-width: 100%;
-  gap: ${space(1.5)};
 `;
 
 const NoAttributesMessage = styled('div')`

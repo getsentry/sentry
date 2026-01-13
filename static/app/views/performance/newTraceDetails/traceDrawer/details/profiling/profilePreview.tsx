@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -235,7 +237,7 @@ function ProfilePreviewLegend() {
   const systemFrameColor = colorComponentsToRGBA(theme.COLORS.FRAME_SYSTEM_COLOR);
 
   return (
-    <LegendContainer>
+    <Flex gap="lg">
       <LegendItem>
         <LegendMarker color={applicationFrameColor} />
         {t('Application Function')}
@@ -244,7 +246,7 @@ function ProfilePreviewLegend() {
         <LegendMarker color={systemFrameColor} />
         {t('System Function')}
       </LegendItem>
-    </LegendContainer>
+    </Flex>
   );
 }
 
@@ -300,12 +302,6 @@ const FlamegraphContainer = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   position: relative;
-`;
-
-const LegendContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1.5)};
 `;
 
 const LegendItem = styled('span')`
