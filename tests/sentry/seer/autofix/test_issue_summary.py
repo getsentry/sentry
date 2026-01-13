@@ -388,6 +388,61 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         with pytest.raises(Exception):
             _call_seer(self.group, {"event_id": "e1"}, None)
 
+    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
+    @patch("sentry.seer.autofix.issue_summary.requests.post")
+    def test_call_seer_serializes_datetime_objects(self, post: MagicMock, _sign: MagicMock) -> None:
+        """Test that datetime objects in serialized_event are properly handled by orjson."""
+        resp = Mock()
+        resp.json.return_value = {
+            "group_id": str(self.group.id),
+            "whats_wrong": "w",
+            "trace": "t",
+            "possible_cause": "c",
+            "headline": "h",
+            "scores": {},
+        }
+        resp.raise_for_status = Mock()
+        post.return_value = resp
+
+        # Create a serialized event with datetime objects (as returned by EventSerializer)
+        serialized_event = {
+            "event_id": "test_event",
+            "dateReceived": datetime.datetime(2026, 1, 13, 11, 14, 2, tzinfo=datetime.timezone.utc),
+            "dateCreated": datetime.datetime(2026, 1, 13, 11, 14, 0, tzinfo=datetime.timezone.utc),
+            "entries": [
+                {
+                    "type": "breadcrumbs",
+                    "data": {
+                        "values": [
+                            {
+                                "timestamp": datetime.datetime(
+                                    2026, 1, 13, 11, 14, 1, tzinfo=datetime.timezone.utc
+                                ),
+                                "message": "test",
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+
+        # This should not raise an exception
+        result = _call_seer(self.group, serialized_event, None)
+
+        assert result.group_id == str(self.group.id)
+        assert post.call_count == 1
+
+        # Verify the payload was successfully serialized
+        payload = orjson.loads(post.call_args_list[0].kwargs["data"])
+        assert payload["issue"]["events"][0]["event_id"] == "test_event"
+        # Verify datetime was serialized to ISO format string with UTC timezone
+        assert payload["issue"]["events"][0]["dateReceived"] == "2026-01-13T11:14:02Z"
+        assert payload["issue"]["events"][0]["dateCreated"] == "2026-01-13T11:14:00Z"
+        assert (
+            payload["issue"]["events"][0]["entries"][0]["data"]["values"][0]["timestamp"]
+            == "2026-01-13T11:14:01Z"
+        )
+
     @patch("sentry.seer.autofix.issue_summary.cache.get")
     @patch("sentry.seer.autofix.issue_summary._generate_summary")
     @patch("sentry.utils.locking.lock.Lock.blocking_acquire")
