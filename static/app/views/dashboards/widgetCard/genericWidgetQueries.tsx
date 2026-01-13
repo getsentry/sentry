@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -104,45 +104,348 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   skipDashboardFilterParens?: boolean;
 };
 
-type State<SeriesResponse> = {
-  loading: boolean;
-  errorMessage?: GenericWidgetQueriesChildrenProps['errorMessage'];
-  pageLinks?: GenericWidgetQueriesChildrenProps['pageLinks'];
-  queryFetchID?: symbol;
-  rawResults?: SeriesResponse[];
-  tableResults?: GenericWidgetQueriesChildrenProps['tableResults'];
-  timeseriesResults?: GenericWidgetQueriesChildrenProps['timeseriesResults'];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
-};
+function GenericWidgetQueries<SeriesResponse, TableResponse>(
+  props: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
+) {
+  const {
+    api,
+    children,
+    config,
+    organization,
+    selection,
+    widget,
+    afterFetchSeriesData,
+    afterFetchTableData,
+    cursor,
+    customDidUpdateComparator,
+    dashboardFilters,
+    disabled,
+    forceOnDemand,
+    limit,
+    loading: propsLoading,
+    mepSetting,
+    onDataFetchStart,
+    onDataFetched,
+    onDemandControlContext,
+    queue,
+    samplingMode,
+    skipDashboardFilterParens,
+  } = props;
 
-class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
-  GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
-  State<SeriesResponse>
-> {
-  state: State<SeriesResponse> = {
-    loading: true,
-    queryFetchID: undefined,
-    errorMessage: undefined,
-    timeseriesResults: undefined,
-    rawResults: undefined,
-    tableResults: undefined,
-    pageLinks: undefined,
-    timeseriesResultsTypes: undefined,
-  };
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [timeseriesResults, setTimeseriesResults] = useState<Series[] | undefined>(
+    undefined
+  );
+  const [rawResults, setRawResults] = useState<SeriesResponse[] | undefined>(undefined);
+  const [tableResults, setTableResults] = useState<TableDataWithTitle[] | undefined>(
+    undefined
+  );
+  const [pageLinks, setPageLinks] = useState<string | undefined>(undefined);
+  const [timeseriesResultsTypes, setTimeseriesResultsTypes] = useState<
+    Record<string, AggregationOutputType> | undefined
+  >(undefined);
+  const [timeseriesResultsUnits, setTimeseriesResultsUnits] = useState<
+    Record<string, DataUnit> | undefined
+  >(undefined);
 
-  componentDidMount() {
-    this._isMounted = true;
-    if (!this.props.loading) {
-      this.fetchDataWithQueueIfAvailable();
+  const isMountedRef = useRef(false);
+  const queryFetchIDRef = useRef<symbol | undefined>(undefined);
+  const prevPropsRef = useRef<
+    GenericWidgetQueriesProps<SeriesResponse, TableResponse> | undefined
+  >(undefined);
+
+  const applyDashboardFilters = useCallback(
+    (widgetToFilter: Widget): Widget => {
+      const dashboardFilterConditions = dashboardFiltersToString(
+        dashboardFilters,
+        widgetToFilter.widgetType
+      );
+      widgetToFilter.queries.forEach(query => {
+        if (dashboardFilterConditions) {
+          // If there is no base query, there's no need to add parens
+          if (query.conditions && !skipDashboardFilterParens) {
+            query.conditions = `(${query.conditions})`;
+          }
+          query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
+        }
+      });
+      return widgetToFilter;
+    },
+    [dashboardFilters, skipDashboardFilterParens]
+  );
+
+  const widgetForRequest = useCallback(
+    (widgetToProcess: Widget): Widget => {
+      const processedWidget = applyDashboardFilters(widgetToProcess);
+      return cleanWidgetForRequest(processedWidget);
+    },
+    [applyDashboardFilters]
+  );
+
+  const fetchTableData = useCallback(
+    async (fetchID: symbol) => {
+      if (disabled) {
+        return;
+      }
+      const originalWidget = widget;
+      const widgetToFetch = widgetForRequest(cloneDeep(originalWidget));
+      const responses = await Promise.all(
+        widgetToFetch.queries.map(query => {
+          const requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
+          const requestCreator = config.getTableRequest;
+
+          if (!requestCreator) {
+            throw new Error(
+              t('This display type is not supported by the selected dataset.')
+            );
+          }
+
+          return requestCreator(
+            api,
+            widgetToFetch,
+            query,
+            organization,
+            selection,
+            onDemandControlContext,
+            requestLimit,
+            cursor,
+            getReferrer(widgetToFetch.displayType),
+            mepSetting,
+            samplingMode
+          );
+        })
+      );
+
+      let transformedTableResults: TableDataWithTitle[] = [];
+      let responsePageLinks: string | undefined;
+      let afterTableFetchData: OnDataFetchedProps | undefined;
+      responses.forEach(([data, _textstatus, resp], i) => {
+        afterTableFetchData = afterFetchTableData?.(data, resp) ?? {};
+        // Cast so we can add the title.
+        const transformedData = config.transformTable(
+          data,
+          widgetToFetch.queries[0]!,
+          organization,
+          selection
+        ) as TableDataWithTitle;
+        transformedData.title = widgetToFetch.queries[i]?.name ?? '';
+
+        const meta = transformedData.meta;
+        const fieldMeta = widgetToFetch?.queries?.[i]?.fieldMeta;
+        if (fieldMeta && meta) {
+          fieldMeta.forEach((m, index) => {
+            const field = widgetToFetch.queries?.[i]?.fields?.[index];
+            if (m && field) {
+              meta.units![field] = m.valueUnit ?? '';
+              meta.fields![field] = m.valueType;
+            }
+          });
+        }
+
+        // Overwrite the local var to work around state being stale in tests.
+        transformedTableResults = [...transformedTableResults, transformedData];
+
+        // There is some inconsistency with the capitalization of "link" in response headers
+        responsePageLinks =
+          (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ??
+          undefined;
+      });
+
+      if (isMountedRef.current && queryFetchIDRef.current === fetchID) {
+        onDataFetched?.({
+          tableResults: transformedTableResults,
+          pageLinks: responsePageLinks,
+          ...afterTableFetchData,
+        });
+        setTableResults(transformedTableResults);
+        setPageLinks(responsePageLinks);
+      }
+    },
+    [
+      disabled,
+      widget,
+      widgetForRequest,
+      limit,
+      config,
+      api,
+      organization,
+      selection,
+      onDemandControlContext,
+      cursor,
+      mepSetting,
+      samplingMode,
+      afterFetchTableData,
+      onDataFetched,
+    ]
+  );
+
+  const fetchSeriesData = useCallback(
+    async (fetchID: symbol) => {
+      if (disabled) {
+        return;
+      }
+
+      const originalWidget = widget;
+      const widgetToFetch = widgetForRequest(cloneDeep(originalWidget));
+
+      const responses = await Promise.all(
+        widgetToFetch.queries.map((_query, index) => {
+          return config.getSeriesRequest!(
+            api,
+            widgetToFetch,
+            index,
+            organization,
+            selection,
+            onDemandControlContext,
+            getReferrer(widgetToFetch.displayType),
+            mepSetting,
+            samplingMode
+          );
+        })
+      );
+      const rawResultsClone = cloneDeep(rawResults) ?? [];
+      const transformedTimeseriesResults: Series[] = []; // Watch out, this is a sparse array. `map` and `forEach` will skip the empty slots. Spreading the array with `...` will create an `undefined` for each slot.
+      responses.forEach(([data], requestIndex) => {
+        afterFetchSeriesData?.(data);
+        rawResultsClone[requestIndex] = data;
+        const transformedResult = config.transformSeries!(
+          data,
+          widgetToFetch.queries[requestIndex]!,
+          organization
+        );
+        // When charting timeseriesData on echarts, color association to a timeseries result
+        // is order sensitive, ie series at index i on the timeseries array will use color at
+        // index i on the color array. This means that on multi series results, we need to make
+        // sure that the order of series in our results do not change between fetches to avoid
+        // coloring inconsistencies between renders.
+        transformedResult.forEach((result, resultIndex) => {
+          transformedTimeseriesResults[
+            requestIndex * transformedResult.length + resultIndex
+          ] = result;
+        });
+      });
+
+      // Retrieve the config's series result types and units
+      // Since each query only differs in its query filter, we can use the first widget queries
+      // to derive the types and units since they share the same aggregations and fields
+      const newTimeseriesResultsTypes = responses.reduce(
+        (acc, response) => {
+          let allResultTypes: Record<string, AggregationOutputType> = {};
+          widgetToFetch.queries.forEach(query => {
+            allResultTypes = {
+              ...allResultTypes,
+              ...config.getSeriesResultType?.(response[0], query),
+            };
+          });
+          acc = {...acc, ...allResultTypes};
+          return acc;
+        },
+        {} as Record<string, AggregationOutputType>
+      );
+      const newTimeseriesResultsUnits = responses.reduce(
+        (acc, response) => {
+          let allResultUnits: Record<string, DataUnit> = {};
+          widgetToFetch.queries.forEach(query => {
+            allResultUnits = {
+              ...allResultUnits,
+              ...config.getSeriesResultUnit?.(response[0], query),
+            };
+          });
+          acc = {...acc, ...allResultUnits};
+          return acc;
+        },
+        {} as Record<string, DataUnit>
+      );
+
+      if (isMountedRef.current && queryFetchIDRef.current === fetchID) {
+        onDataFetched?.({
+          timeseriesResults: transformedTimeseriesResults,
+          timeseriesResultsTypes: newTimeseriesResultsTypes,
+          timeseriesResultsUnits: newTimeseriesResultsUnits,
+        });
+        setTimeseriesResults(transformedTimeseriesResults);
+        setRawResults(rawResultsClone);
+        setTimeseriesResultsTypes(newTimeseriesResultsTypes);
+        setTimeseriesResultsUnits(newTimeseriesResultsUnits);
+      }
+    },
+    [
+      disabled,
+      widget,
+      widgetForRequest,
+      config,
+      api,
+      organization,
+      selection,
+      onDemandControlContext,
+      mepSetting,
+      samplingMode,
+      rawResults,
+      afterFetchSeriesData,
+      onDataFetched,
+    ]
+  );
+
+  const fetchData = useCallback(async () => {
+    const fetchID = Symbol('queryFetchID');
+    queryFetchIDRef.current = fetchID;
+    setLoading(true);
+    setTableResults(undefined);
+    setTimeseriesResults(undefined);
+    setErrorMessage(undefined);
+
+    onDataFetchStart?.();
+
+    try {
+      if (isChartDisplayType(widget.displayType)) {
+        await fetchSeriesData(fetchID);
+      } else {
+        await fetchTableData(fetchID);
+      }
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        setErrorMessage(
+          err?.responseJSON?.detail || err?.message || t('An unknown error occurred.')
+        );
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }
+  }, [widget, onDataFetchStart, fetchSeriesData, fetchTableData]);
 
-  componentDidUpdate(
-    prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
-  ) {
-    const {selection, widget, cursor, organization, config, customDidUpdateComparator} =
-      this.props;
+  const fetchDataWithQueueIfAvailable = useCallback(() => {
+    if (queue) {
+      queryFetchIDRef.current = undefined;
+      setLoading(true);
+      setTableResults(undefined);
+      setTimeseriesResults(undefined);
+      setErrorMessage(undefined);
+      queue.addItem({widgetQuery: {fetchData}});
+      return;
+    }
+    fetchData();
+  }, [queue, fetchData]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    if (!propsLoading) {
+      fetchDataWithQueueIfAvailable();
+    }
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [fetchDataWithQueueIfAvailable, propsLoading]);
+
+  useEffect(() => {
+    const prevProps = prevPropsRef.current;
+    if (!prevProps) {
+      prevPropsRef.current = props;
+      return;
+    }
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
@@ -182,340 +485,67 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     if (
       customDidUpdateComparator
-        ? customDidUpdateComparator(prevProps, this.props)
+        ? customDidUpdateComparator(prevProps, props)
         : widget.limit !== prevProps.widget.limit ||
           !isEqual(widget.widgetType, prevProps.widget.widgetType) ||
           !isEqual(widget.displayType, prevProps.widget.displayType) ||
           !isEqual(widget.interval, prevProps.widget.interval) ||
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
-          !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
-          !isEqual(this.props.forceOnDemand, prevProps.forceOnDemand) ||
-          !isEqual(this.props.disabled, prevProps.disabled) ||
+          !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
+          !isEqual(forceOnDemand, prevProps.forceOnDemand) ||
+          !isEqual(disabled, prevProps.disabled) ||
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
-      this.fetchDataWithQueueIfAvailable();
+      fetchDataWithQueueIfAvailable();
+      prevPropsRef.current = props;
       return;
     }
 
     if (
-      !this.state.loading &&
+      !loading &&
       !isEqual(prevWidgetQueryNames, widgetQueryNames) &&
-      this.state.rawResults?.length === widget.queries.length
+      rawResults?.length === widget.queries.length
     ) {
       // If the query names has changed, then update timeseries labels
-
-      this.setState(prevState => {
-        const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
+      const newTimeseriesResults = widget.queries.reduce(
+        (acc: Series[], query, index) => {
           return acc.concat(
-            config.transformSeries!(prevState.rawResults![index]!, query, organization)
+            config.transformSeries!(rawResults[index]!, query, organization)
           );
-        }, []);
-
-        return {...prevState, timeseriesResults};
-      });
-    }
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-  }
-
-  private _isMounted = false;
-
-  applyDashboardFilters(widget: Widget): Widget {
-    const {dashboardFilters, skipDashboardFilterParens} = this.props;
-
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      widget.widgetType
-    );
-    widget.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
-        if (query.conditions && !skipDashboardFilterParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-    return widget;
-  }
-
-  widgetForRequest(widget: Widget): Widget {
-    widget = this.applyDashboardFilters(widget);
-    return cleanWidgetForRequest(widget);
-  }
-
-  async fetchTableData(queryFetchID: symbol) {
-    const {
-      widget: originalWidget,
-      limit,
-      config,
-      api,
-      organization,
-      selection,
-      cursor,
-      afterFetchTableData,
-      onDataFetched,
-      onDemandControlContext,
-      mepSetting,
-      samplingMode,
-      disabled,
-    } = this.props;
-    if (disabled) {
-      return;
-    }
-    const widget = this.widgetForRequest(cloneDeep(originalWidget));
-    const responses = await Promise.all(
-      widget.queries.map(query => {
-        const requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
-        const requestCreator = config.getTableRequest;
-
-        if (!requestCreator) {
-          throw new Error(
-            t('This display type is not supported by the selected dataset.')
-          );
-        }
-
-        return requestCreator(
-          api,
-          widget,
-          query,
-          organization,
-          selection,
-          onDemandControlContext,
-          requestLimit,
-          cursor,
-          getReferrer(widget.displayType),
-          mepSetting,
-          samplingMode
-        );
-      })
-    );
-
-    let transformedTableResults: TableDataWithTitle[] = [];
-    let responsePageLinks: string | undefined;
-    let afterTableFetchData: OnDataFetchedProps | undefined;
-    responses.forEach(([data, _textstatus, resp], i) => {
-      afterTableFetchData = afterFetchTableData?.(data, resp) ?? {};
-      // Cast so we can add the title.
-      const transformedData = config.transformTable(
-        data,
-        widget.queries[0]!,
-        organization,
-        selection
-      ) as TableDataWithTitle;
-      transformedData.title = widget.queries[i]?.name ?? '';
-
-      const meta = transformedData.meta;
-      const fieldMeta = widget?.queries?.[i]?.fieldMeta;
-      if (fieldMeta && meta) {
-        fieldMeta.forEach((m, index) => {
-          const field = widget.queries?.[i]?.fields?.[index];
-          if (m && field) {
-            meta.units![field] = m.valueUnit ?? '';
-            meta.fields![field] = m.valueType;
-          }
-        });
-      }
-
-      // Overwrite the local var to work around state being stale in tests.
-      transformedTableResults = [...transformedTableResults, transformedData];
-
-      // There is some inconsistency with the capitalization of "link" in response headers
-      responsePageLinks =
-        (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ?? undefined;
-    });
-
-    if (this._isMounted && this.state.queryFetchID === queryFetchID) {
-      onDataFetched?.({
-        tableResults: transformedTableResults,
-        pageLinks: responsePageLinks,
-        ...afterTableFetchData,
-      });
-      this.setState({
-        tableResults: transformedTableResults,
-        pageLinks: responsePageLinks,
-      });
-    }
-  }
-  async fetchSeriesData(queryFetchID: symbol) {
-    const {
-      widget: originalWidget,
-      config,
-      api,
-      organization,
-      selection,
-      afterFetchSeriesData,
-      onDataFetched,
-      mepSetting,
-      onDemandControlContext,
-      samplingMode,
-      disabled,
-    } = this.props;
-    if (disabled) {
-      return;
-    }
-
-    const widget = this.widgetForRequest(cloneDeep(originalWidget));
-
-    const responses = await Promise.all(
-      widget.queries.map((_query, index) => {
-        return config.getSeriesRequest!(
-          api,
-          widget,
-          index,
-          organization,
-          selection,
-          onDemandControlContext,
-          getReferrer(widget.displayType),
-          mepSetting,
-          samplingMode
-        );
-      })
-    );
-    const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
-    const transformedTimeseriesResults: Series[] = []; // Watch out, this is a sparse array. `map` and `forEach` will skip the empty slots. Spreading the array with `...` will create an `undefined` for each slot.
-    responses.forEach(([data], requestIndex) => {
-      afterFetchSeriesData?.(data);
-      rawResultsClone[requestIndex] = data;
-      const transformedResult = config.transformSeries!(
-        data,
-        widget.queries[requestIndex]!,
-        organization
+        },
+        []
       );
-      // When charting timeseriesData on echarts, color association to a timeseries result
-      // is order sensitive, ie series at index i on the timeseries array will use color at
-      // index i on the color array. This means that on multi series results, we need to make
-      // sure that the order of series in our results do not change between fetches to avoid
-      // coloring inconsistencies between renders.
-      transformedResult.forEach((result, resultIndex) => {
-        transformedTimeseriesResults[
-          requestIndex * transformedResult.length + resultIndex
-        ] = result;
-      });
-    });
 
-    // Retrieve the config's series result types and units
-    // Since each query only differs in its query filter, we can use the first widget queries
-    // to derive the types and units since they share the same aggregations and fields
-    const timeseriesResultsTypes = responses.reduce(
-      (acc, response) => {
-        let allResultTypes: Record<string, AggregationOutputType> = {};
-        widget.queries.forEach(query => {
-          allResultTypes = {
-            ...allResultTypes,
-            ...config.getSeriesResultType?.(response[0], query),
-          };
-        });
-        acc = {...acc, ...allResultTypes};
-        return acc;
-      },
-      {} as Record<string, AggregationOutputType>
-    );
-    const timeseriesResultsUnits = responses.reduce(
-      (acc, response) => {
-        let allResultUnits: Record<string, DataUnit> = {};
-        widget.queries.forEach(query => {
-          allResultUnits = {
-            ...allResultUnits,
-            ...config.getSeriesResultUnit?.(response[0], query),
-          };
-        });
-        acc = {...acc, ...allResultUnits};
-        return acc;
-      },
-      {} as Record<string, DataUnit>
-    );
-
-    if (this._isMounted && this.state.queryFetchID === queryFetchID) {
-      onDataFetched?.({
-        timeseriesResults: transformedTimeseriesResults,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
-      });
-      this.setState({
-        timeseriesResults: transformedTimeseriesResults,
-        rawResults: rawResultsClone,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
-      });
+      setTimeseriesResults(newTimeseriesResults);
     }
-  }
 
-  fetchDataWithQueueIfAvailable() {
-    const {queue} = this.props;
-    if (queue) {
-      this.setState({
-        loading: true,
-        tableResults: undefined,
-        timeseriesResults: undefined,
-        errorMessage: undefined,
-        queryFetchID: undefined,
-      });
-      queue.addItem({widgetQuery: this});
-      return;
-    }
-    this.fetchData();
-  }
+    prevPropsRef.current = props;
+  }, [
+    props,
+    widget,
+    selection,
+    cursor,
+    organization,
+    config,
+    customDidUpdateComparator,
+    dashboardFilters,
+    forceOnDemand,
+    disabled,
+    loading,
+    rawResults,
+    fetchDataWithQueueIfAvailable,
+  ]);
 
-  async fetchData() {
-    const {widget, onDataFetchStart} = this.props;
-
-    const queryFetchID = Symbol('queryFetchID');
-    this.setState({
-      loading: true,
-      tableResults: undefined,
-      timeseriesResults: undefined,
-      errorMessage: undefined,
-      queryFetchID,
-    });
-
-    onDataFetchStart?.();
-
-    try {
-      if (isChartDisplayType(widget.displayType)) {
-        await this.fetchSeriesData(queryFetchID);
-      } else {
-        await this.fetchTableData(queryFetchID);
-      }
-    } catch (err: any) {
-      if (this._isMounted) {
-        this.setState({
-          errorMessage:
-            err?.responseJSON?.detail || err?.message || t('An unknown error occurred.'),
-        });
-      }
-    } finally {
-      if (this._isMounted) {
-        this.setState({loading: false});
-      }
-    }
-  }
-
-  render() {
-    const {children} = this.props;
-    const {
-      loading,
-      tableResults,
-      timeseriesResults,
-      errorMessage,
-      pageLinks,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
-    } = this.state;
-
-    return children({
-      loading,
-      tableResults,
-      timeseriesResults,
-      errorMessage,
-      pageLinks,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
-    });
-  }
+  return children({
+    loading,
+    tableResults,
+    timeseriesResults,
+    errorMessage,
+    pageLinks,
+    timeseriesResultsTypes,
+    timeseriesResultsUnits,
+  });
 }
 
 export function cleanWidgetForRequest(widget: Widget): Widget {

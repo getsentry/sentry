@@ -8,13 +8,16 @@ import {
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type GenericWidgetQueries from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
-type QueueItem<SeriesResponse, TableResponse> = {
-  widgetQuery: GenericWidgetQueries<SeriesResponse, TableResponse>;
+interface WidgetQueryInstance {
+  fetchData: () => Promise<void>;
+}
+
+type QueueItem = {
+  widgetQuery: WidgetQueryInstance;
 };
 
-export type WidgetQueryQueue = ReactAsyncQueuer<QueueItem<any, any>>;
+export type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
 
 type Context = {
   queue: WidgetQueryQueue;
@@ -54,7 +57,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
             // TODO: Dynamically reduce concurrency
           },
         },
-        onSettled: (_item: QueueItem<any, any>, queuer) => {
+        onSettled: (_item: QueueItem, queuer) => {
           const queueIsEmpty = queuer.peekAllItems().length === 0;
           if (queueIsEmpty && startTimeRef.current) {
             const endTime = performance.now();
@@ -79,7 +82,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
   const queue = useAsyncQueuer(fetchWidgetItem, queueOptions);
 
   const context = useMemo(() => {
-    const addItem = (item: QueueItem<any, any>) => {
+    const addItem = (item: QueueItem) => {
       // Never add the same widget to the queue twice
       // even if the date selection has change `fetchData()` in `fetchWidgetItem` will still be called with the latest state.
       if (queue.peekPendingItems().some(i => i.widgetQuery === item.widgetQuery)) {
@@ -101,7 +104,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
   );
 }
 
-const fetchWidgetItem = async (item: QueueItem<any, any>) => {
+const fetchWidgetItem = async (item: QueueItem) => {
   const result = await item.widgetQuery.fetchData();
   return result;
 };
