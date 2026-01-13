@@ -240,9 +240,7 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="build_configuration:Debug",
         )
 
-        status, triggered_rules = _compute_overall_status(
-            [artifact], size_metrics_map, rules=[rule]
-        )
+        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
         assert status == StatusCheckStatus.FAILURE
 
     def test_status_check_succeeds_when_rule_matches_but_under_threshold(self):
@@ -277,9 +275,7 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="build_configuration:Debug",
         )
 
-        status, triggered_rules = _compute_overall_status(
-            [artifact], size_metrics_map, rules=[rule]
-        )
+        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
         assert status == StatusCheckStatus.SUCCESS
 
     def test_status_check_succeeds_when_rule_does_not_match(self):
@@ -314,9 +310,7 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="build_configuration:Debug",
         )
 
-        status, triggered_rules = _compute_overall_status(
-            [artifact], size_metrics_map, rules=[rule]
-        )
+        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
         assert status == StatusCheckStatus.SUCCESS
 
     def test_parse_rules_from_project_options(self):
@@ -729,7 +723,7 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="",
         )
 
-        status, triggered_rules = _compute_overall_status(
+        status = _compute_overall_status(
             [head_artifact],
             size_metrics_map,
             rules=[rule],
@@ -772,7 +766,5 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="",
         )
 
-        status, triggered_rules = _compute_overall_status(
-            [artifact], size_metrics_map, rules=[rule]
-        )
+        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
         assert status == StatusCheckStatus.SUCCESS

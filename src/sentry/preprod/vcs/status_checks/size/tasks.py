@@ -338,18 +338,13 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
             )
             return []
 
-        required_fields = [
-            ("id", str),
-            ("metric", str),
-            ("measurement", str),
-            ("value", (int, float)),
-        ]
-
         rules: list[StatusCheckRule] = []
         for rule_dict in rules_data:
-            if not all(
-                isinstance(rule_dict.get(field), expected_type)
-                for field, expected_type in required_fields
+            if (
+                not isinstance(rule_dict.get("id"), str)
+                or not isinstance(rule_dict.get("metric"), str)
+                or not isinstance(rule_dict.get("measurement"), str)
+                or not isinstance(rule_dict.get("value"), (int, float))
             ):
                 logger.warning(
                     "preprod.status_checks.rules.invalid_rule",
