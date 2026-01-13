@@ -99,7 +99,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
 
   return (
     <Grid
-      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: '50% 50%'}}
+      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: 'repeat(2, 1fr)'}}
       gap="lg"
       align="start"
     >

@@ -85,7 +85,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
           md: navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
           lg: `repeat(${cards.length}, minmax(0, 1fr))`,
         }}
-        gap="xl"
+        gap="lg"
         data-test-id="subscription-header-cards"
       >
         {cards}
