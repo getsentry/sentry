@@ -112,7 +112,9 @@ OURLOG_VIRTUAL_CONTEXTS = {
     for key in constants.PROJECT_FIELDS
 }
 
-LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
+LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
+    Literal["string", "number", "boolean"], dict[str, str]
+] = {
     "string": {
         definition.internal_name: definition.public_alias
         for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()

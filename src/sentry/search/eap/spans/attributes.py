@@ -591,7 +591,9 @@ def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumn
     )
 
 
-SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
+SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
+    Literal["string", "number", "boolean"], dict[str, str]
+] = {
     "string": {
         definition.internal_name: definition.public_alias
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()

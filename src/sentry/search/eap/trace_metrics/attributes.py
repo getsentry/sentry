@@ -83,7 +83,7 @@ TRACE_METRICS_VIRTUAL_CONTEXTS = {
 }
 
 TRACE_METRICS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
-    Literal["string", "number"], dict[str, str]
+    Literal["string", "number", "boolean"], dict[str, str]
 ] = {
     "string": {
         definition.internal_name: definition.public_alias
