@@ -597,6 +597,25 @@ class AuthHelperTest(TestCase):
         final_step = self._test_pipeline(flow=FLOW_SETUP_PROVIDER, referrer="foobar")
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
 
+    def test_deleted_auth_provider(self) -> None:
+        """Test that get_for_request returns None when AuthProvider is deleted."""
+        initial_state = {
+            "org_id": self.organization.id,
+            "flow": FLOW_LOGIN,
+            "provider_model_id": self.auth_provider_inst.id,
+            "provider_key": self.provider,
+            "referrer": None,
+        }
+        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client.set(self.auth_key, json.dumps(initial_state))
+
+        # Delete the AuthProvider after session state was created
+        self.auth_provider_inst.delete()
+
+        # Should return None instead of raising DoesNotExist
+        helper = AuthHelper.get_for_request(self.request)
+        assert helper is None
+
 
 @control_silo_test
 class HasVerifiedAccountTest(AuthIdentityHandlerTest):

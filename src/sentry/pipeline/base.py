@@ -81,7 +81,18 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         provider_model = None
         if state.provider_model_id:
             assert cls.provider_model_cls is not None
-            provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
+            try:
+                provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
+            except cls.provider_model_cls.DoesNotExist:
+                # The provider was deleted after the session state was created
+                logging.info(
+                    "Provider model no longer exists",
+                    extra={
+                        "provider_model_cls": cls.provider_model_cls.__name__,
+                        "provider_model_id": state.provider_model_id,
+                    },
+                )
+                return None
 
         organization: RpcOrganization | None = None
         if state.org_id:
