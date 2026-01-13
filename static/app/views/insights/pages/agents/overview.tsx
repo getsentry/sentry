@@ -130,8 +130,8 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                       />
                     }
                   >
-                    This dashboard may show incomplete data for this project due to
-                    transaction size limits.
+                    Transaction size limits may cause this dashboard to show partial data.
+                    Impact is limited to seer project.
                   </Alert>
                 </ModuleLayout.Full>
               )}
