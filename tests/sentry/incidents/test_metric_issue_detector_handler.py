@@ -334,6 +334,14 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
     def test_extract_eap_metrics_alert(self) -> None:
         assert (
             get_alert_type_from_aggregate_dataset(
+                "count(span.duration)", Dataset.EventsAnalyticsPlatform
+            )
+            == "eap_metrics"
+        )
+
+    def test_extract_eap_metrics_alert_trace_metrics(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset(
                 "per_second(value,metric_name_one,counter,-)", Dataset.EventsAnalyticsPlatform
             )
             == "eap_metrics"

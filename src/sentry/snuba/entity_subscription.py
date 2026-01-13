@@ -337,6 +337,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
                 use_aggregate_conditions=True,
                 disable_aggregate_extrapolation=False,
                 extrapolation_mode=proto_extrapolation_mode,
+                stable_timestamp_quantization=False,
             )
         else:
             search_config = SearchResolverConfig(
