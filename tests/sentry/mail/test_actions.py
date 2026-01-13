@@ -170,7 +170,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         )
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
-    @with_feature("organizations:workflow-engine-ui-links")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration(self) -> None:
         action_config = {
@@ -197,7 +196,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_all_members_fallthrough(self) -> None:
@@ -223,7 +221,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_noone_fallthrough(self) -> None:
@@ -246,7 +243,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_fallthrough_not_provided(self) -> None:
@@ -270,7 +266,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_hack_mail_workflow(self) -> None:

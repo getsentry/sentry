@@ -105,7 +105,6 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
 
     @responses.activate
     @with_feature("organizations:workflow-engine-single-process-workflows")
-    @with_feature("organizations:workflow-engine-ui-links")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_applies_correctly_for_legacy_webhooks_aci(self):
         responses.add(responses.POST, "http://my-fake-webhook.io")
@@ -163,7 +162,6 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
 
     @responses.activate
     @with_feature("organizations:workflow-engine-single-process-workflows")
-    @with_feature("organizations:workflow-engine-ui-links")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_legacy_webhooks_uneven_dual_write_aci(self):
         """
@@ -203,7 +201,6 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
 
     @responses.activate
     @with_feature("organizations:workflow-engine-single-process-workflows")
-    @with_feature("organizations:workflow-engine-ui-links")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.plugins.sentry_webhooks.plugin.WebHooksPlugin.notify_users")
     def test_error_for_legacy_webhooks_dual_write_aci(self, mock_notify_users):

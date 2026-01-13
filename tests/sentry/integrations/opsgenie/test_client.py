@@ -15,7 +15,6 @@ from sentry.testutils.asserts import (
     assert_slo_metric,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 
@@ -187,7 +186,6 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @with_feature("organizations:workflow-engine-ui-links")
     def test_send_notification_with_workflow_engine_ui_links(self, mock_record: MagicMock) -> None:
         resp_data = {
             "result": "Request will be processed",
