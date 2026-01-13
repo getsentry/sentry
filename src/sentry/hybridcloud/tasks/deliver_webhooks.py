@@ -399,8 +399,14 @@ def deliver_message(payload: WebhookPayload) -> None:
         )
         return
 
-    payload.schedule_next_attempt()
-    perform_request(payload)
+    try:
+        perform_request(payload)
+    except DeliveryFailed:
+        # Only schedule next attempt if request failed
+        payload.schedule_next_attempt()
+        raise
+
+    # Request succeeded, delete the payload
     payload.delete()
 
     duration = timezone.now() - payload.date_added
