@@ -292,14 +292,14 @@ const MessageBubble = styled('div')<{
     `
     cursor: pointer;
     &:hover {
-      border-color: ${p.theme.purple200};
-      background-color: ${p.theme.backgroundSecondary};
+      border-color: ${p.theme.tokens.border.accent.moderate};
+      background-color: ${p.theme.tokens.background.secondary};
     }
   `}
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.purple200};
+    outline: 2px solid ${p.theme.tokens.focus.default};
     outline-offset: -2px;
   `}
 `;
