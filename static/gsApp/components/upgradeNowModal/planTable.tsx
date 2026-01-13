@@ -176,7 +176,7 @@ const PlanLabel = styled('dt')<{hasChanged?: boolean; isTotal?: boolean}>`
 
   font-weight: ${p => (p.hasChanged || p.isTotal ? 'bold' : 'normal')};
   background: ${p =>
-    p.isTotal ? p.theme.tokens.background.accent.muted : 'transparent'};
+    p.isTotal ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
 `;
 
 const PlanValue = styled(PlanLabel)`

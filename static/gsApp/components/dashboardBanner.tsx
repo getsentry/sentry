@@ -35,7 +35,7 @@ function DashboardBanner({organization}: Props) {
 }
 
 const StyledBanner = styled(Banner)`
-  background-color: ${p => p.theme.tokens.background.accent.muted};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
