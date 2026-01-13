@@ -39,6 +39,8 @@ class PagerDutyClient(ApiClient):
     allow_redirects = False
     integration_name = IntegrationProviderSlug.PAGERDUTY.value
     base_url = "https://events.pagerduty.com/v2/enqueue"
+    # Set a shorter timeout for PagerDuty API calls to avoid exhausting the task deadline
+    timeout = 15
 
     def __init__(self, integration_key: str, integration_id: int | None) -> None:
         self.integration_key = integration_key

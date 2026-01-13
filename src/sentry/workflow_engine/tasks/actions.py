@@ -70,7 +70,7 @@ def build_trigger_action_task_params(
 @instrumented_task(
     name="sentry.workflow_engine.tasks.trigger_action",
     namespace=namespaces.workflow_engine_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=60,
     retry=Retry(times=3, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -145,7 +145,7 @@ def trigger_action(
         # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
         # in this scope is grouped properly.
         with timeout_grouping_context(action.type):
-            action.trigger(event_data, notification_uuid=notification_uuid)
+            action.trigger(event_data, notification_uuid=notification_uuid, detector=detector)
     else:
         logger.info(
             "workflow_engine.triggered_actions.dry-run",
