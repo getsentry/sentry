@@ -154,6 +154,13 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
   const prevPropsRef = useRef<
     GenericWidgetQueriesProps<SeriesResponse, TableResponse> | undefined
   >(undefined);
+  const rawResultsRef = useRef<SeriesResponse[] | undefined>(undefined);
+  const hasInitialFetchRef = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    rawResultsRef.current = rawResults;
+  }, [rawResults]);
 
   const applyDashboardFilters = useCallback(
     (widgetToFilter: Widget): Widget => {
@@ -304,7 +311,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
           );
         })
       );
-      const rawResultsClone = cloneDeep(rawResults) ?? [];
+      const rawResultsClone = cloneDeep(rawResultsRef.current) ?? [];
       const transformedTimeseriesResults: Series[] = []; // Watch out, this is a sparse array. `map` and `forEach` will skip the empty slots. Spreading the array with `...` will create an `undefined` for each slot.
       responses.forEach(([data], requestIndex) => {
         afterFetchSeriesData?.(data);
@@ -381,7 +388,6 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
       onDemandControlContext,
       mepSetting,
       samplingMode,
-      rawResults,
       afterFetchSeriesData,
       onDataFetched,
     ]
@@ -431,14 +437,19 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
 
   useEffect(() => {
     isMountedRef.current = true;
-    if (!propsLoading) {
-      fetchDataWithQueueIfAvailable();
-    }
-
     return () => {
       isMountedRef.current = false;
     };
-  }, [fetchDataWithQueueIfAvailable, propsLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!propsLoading && isMountedRef.current && !hasInitialFetchRef.current) {
+      hasInitialFetchRef.current = true;
+      prevPropsRef.current = props;
+      fetchDataWithQueueIfAvailable();
+    }
+  }, [propsLoading, fetchDataWithQueueIfAvailable, props]);
 
   useEffect(() => {
     const prevProps = prevPropsRef.current;
@@ -522,7 +533,6 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
 
     prevPropsRef.current = props;
   }, [
-    props,
     widget,
     selection,
     cursor,
@@ -535,6 +545,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     loading,
     rawResults,
     fetchDataWithQueueIfAvailable,
+    props,
   ]);
 
   return children({
