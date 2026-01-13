@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
@@ -124,7 +124,7 @@ export function CohortComparison({
         ) : (
           <Fragment>
             {selectedRangeToDates && (
-              <SelectionHintContainer>
+              <Stack gap="xs">
                 <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
                   {t(
                     'Selection is data between %s - %s',
@@ -135,7 +135,7 @@ export function CohortComparison({
                 <SelectionHint color="#A29FAA">
                   {t('Baseline is all other spans from your query')}
                 </SelectionHint>
-              </SelectionHintContainer>
+              </Stack>
             )}
             {filteredRankedAttributes.length > 0 ? (
               <Fragment>
@@ -176,16 +176,10 @@ export function CohortComparison({
   );
 }
 
-const SelectionHintContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const SelectionHint = styled(Text)<{color?: string}>`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 
   &::before {

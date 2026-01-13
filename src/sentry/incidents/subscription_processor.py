@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta
 from typing import Literal, TypedDict, TypeVar
 
@@ -203,13 +204,21 @@ class SubscriptionProcessor:
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
-            self.subscription.project
+            self.subscription.set_cached_field_value(
+                "project",
+                Project.objects.get_from_cache(id=self.subscription.project_id),
+            )
         except Project.DoesNotExist:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
             return False
         if self.subscription.project.status != ObjectStatus.ACTIVE:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
             return False
+
+        self.subscription.project.set_cached_field_value(
+            "organization",
+            Organization.objects.get_from_cache(id=self.subscription.project.organization_id),
+        )
 
         organization = self.subscription.project.organization
 
@@ -255,7 +264,7 @@ class SubscriptionProcessor:
             comparison_delta = self.get_comparison_delta(self.detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
-            if aggregation_value is None:
+            if aggregation_value is None or math.isnan(aggregation_value):
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 # We have an invalid aggregate, but we _did_ process the update, so we store
                 # last_update to reflect that and avoid reprocessing.

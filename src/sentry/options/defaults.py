@@ -694,6 +694,11 @@ register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMAT
 register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# List of GitHub org names that should always send directly to Seer (bypass Overwatch)
+register(
+    "seer.code-review.direct-to-seer-enabled-gh-orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -701,6 +706,13 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
+# GitHub Console SDK App (separate app for repository invitations)
+register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github-console-sdk-app.installation-id", default="", flags=FLAG_CREDENTIAL)
+register("github-console-sdk-app.private-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("github-console-sdk-app.client-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # Github Enterprise Integration
 register(
@@ -1342,6 +1354,14 @@ register(
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Option which rolls out counting transactions based on the span usage metric.
+register(
+    "ingest.billing_metrics_consumer.use_only_span_metric_orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
@@ -2231,6 +2251,7 @@ register(
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 
 # === Hybrid cloud subsystem options ===
 # UI rollout

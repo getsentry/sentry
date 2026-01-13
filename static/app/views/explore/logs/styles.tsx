@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HighlightComponent} from 'sentry/components/highlight';
@@ -168,8 +168,8 @@ export const DetailsWrapper = styled('tr')`
   white-space: nowrap;
   grid-column: 1 / -1;
   display: grid;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${1 /* place above the grid resizing lines */};
 `;
 
@@ -180,10 +180,9 @@ export const DetailsContent = styled(StyledPanel)`
   padding: ${space(1)} ${space(2)};
 `;
 
-export const LogFirstCellContent = styled('div')`
-  display: flex;
-  align-items: center;
-`;
+export function LogFirstCellContent(props: FlexProps<'div'>) {
+  return <Flex align="center" {...props} />;
+}
 
 export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
   ${NumberContainer} {
@@ -234,7 +233,7 @@ export const ColoredLogText = styled('span')<{
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: ${p => p.align || 'left'};
 `;
 
@@ -248,7 +247,7 @@ export const LogsHighlight = styled(HighlightComponent)`
 export const LogsFilteredHelperText = styled('span')`
   margin-left: 4px;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.colors.gray200};
 `;
 
@@ -279,12 +278,9 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${space(1)};
 `;
 
-export const TableActionsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-end;
-  align-items: center;
-`;
+export function TableActionsContainer(props: FlexProps<'div'>) {
+  return <Flex justify="end" align="center" gap="md" {...props} />;
+}
 
 export const LogsItemContainer = styled('div')`
   flex: 1 1 auto;
@@ -323,8 +319,8 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       return {
         background: theme.colors.gray200,
         backgroundLight: theme.backgroundSecondary,
-        border: theme.border,
-        borderHover: theme.border,
+        border: theme.tokens.border.primary,
+        borderHover: theme.tokens.border.primary,
         color: theme.colors.gray200,
       };
     case SeverityLevel.TRACE:

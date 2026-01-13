@@ -170,7 +170,7 @@ const Backdrop = styled(motion.div)`
 `;
 
 const Header = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ResizeHandle = styled(Flex)`
@@ -194,7 +194,7 @@ const ResizeHandle = styled(Flex)`
   }
 
   svg {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     transform: rotate(90deg);
   }
 `;

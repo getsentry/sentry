@@ -203,11 +203,11 @@ const DiffRow = styled('tr')`
 
     .old-line-number {
       background-color: ${p => p.theme.tokens.background.primary};
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
     .new-line-number {
       background-color: #d1f4db;
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
   }
 
@@ -226,7 +226,7 @@ const DiffRow = styled('tr')`
     .old-line-number,
     .new-line-number {
       background-color: #ffd7d5;
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
   }
 
@@ -252,19 +252,19 @@ const LineNumber = styled('td')`
   width: 50px;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   text-align: right;
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: 10px;
   user-select: none;
   vertical-align: top;
 
   &.old-line-number {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   &.new-line-number {
-    border-right: 2px solid ${p => p.theme.border};
+    border-right: 2px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

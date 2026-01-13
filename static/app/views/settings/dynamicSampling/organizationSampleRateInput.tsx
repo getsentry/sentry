@@ -119,22 +119,22 @@ const Label = styled('label')`
 
 const HelpText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PreviousValue = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ErrorMessage = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const AllDataStoredMessage = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.success};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const InputWrapper = styled('div')`

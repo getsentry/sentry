@@ -16,7 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
-import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
+import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
@@ -120,7 +120,7 @@ function DisabledMemberView(props: Props) {
   return (
     <PageContainer>
       <MinimalistSidebar>
-        {organization ? <OrgDropdown hideOrgLinks /> : null}
+        {organization ? <OrganizationDropdown hideCurrentOrganizationLinks /> : null}
         {<UserDropdown />}
       </MinimalistSidebar>
 
@@ -198,7 +198,7 @@ export default withSubscription(DisabledMemberView);
 
 const MinimalistSidebar = styled('div')`
   height: 60px;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
   display: flex;
   align-items: center;

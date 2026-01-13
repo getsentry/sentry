@@ -75,7 +75,7 @@ class QueryCard extends PureComponent<Props> {
 }
 
 const AvatarWrapper = styled('span')`
-  border: 3px solid ${p => p.theme.border};
+  border: 3px solid ${p => p.theme.tokens.border.primary};
   border-radius: 50%;
   height: min-content;
 `;
@@ -114,7 +114,7 @@ const QueryTitle = styled('div')`
 const QueryDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
   ${p => p.theme.overflowEllipsis};
 `;
@@ -142,7 +142,7 @@ const DateSelected = styled('div')`
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding-left: ${space(1)};
 `;
 

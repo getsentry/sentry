@@ -15,7 +15,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
 from sentry import audit_log, killswitches
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
 from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
@@ -1368,7 +1368,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor is not None
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
+        assign_seat.assert_called_with(seat_object=monitor)
 
         assert_org_audit_log_exists(
             organization=self.organization,
@@ -1410,7 +1410,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
+        assign_seat.assert_called_with(seat_object=monitor)
 
     @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
@@ -1438,4 +1438,4 @@ class MonitorConsumerTest(TestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
+        assign_seat.assert_called_with(seat_object=monitor)

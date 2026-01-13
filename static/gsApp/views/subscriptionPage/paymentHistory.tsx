@@ -189,11 +189,7 @@ function ReceiptGrid({
                 </Text>
               )}
               <Flex justify="end">
-                <LinkButton
-                  analyticsParams={{isNewBillingUI: true}}
-                  icon={<IconDownload />}
-                  href={payment.receipt.url}
-                >
+                <LinkButton icon={<IconDownload />} href={payment.receipt.url}>
                   {isSmallScreen ? undefined : t('Download PDF')}
                 </LinkButton>
               </Flex>

@@ -459,7 +459,7 @@ const MenuPanel = styled('div')<{
   position: absolute;
   width: 300px;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   max-height: ${p =>
@@ -475,7 +475,7 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
     p.isSelected
       ? p.theme.tokens.interactive.transparent.neutral.background.active
       : 'transparent'};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   &:last-child {
     border-bottom: none;
@@ -494,6 +494,6 @@ const ItemName = styled('div')`
 `;
 
 const ItemDescription = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
 `;

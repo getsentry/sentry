@@ -448,5 +448,5 @@ const BodyText = styled('div')`
 
 const FieldErrorLabel = styled('label')`
   padding-bottom: ${space(2)};
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;

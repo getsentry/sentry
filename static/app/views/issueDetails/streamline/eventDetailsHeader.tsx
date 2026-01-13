@@ -299,12 +299,12 @@ const OccurrenceSummarySection = styled(OccurrenceSummary)`
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.translucentBorder};
+  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
   margin: 0;
-  border: 0px solid ${p => p.theme.translucentBorder};
+  border: 0px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-width: 0 1px 1px 0;
   border-radius: 0;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};

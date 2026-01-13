@@ -214,12 +214,12 @@ export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       // Cursors and labels
       LABEL_FONT_COLOR: theme.tokens.content.primary,
       BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
-      CHART_CURSOR_INDICATOR: theme.subText,
-      CHART_LABEL_COLOR: theme.subText,
-      CURSOR_CROSSHAIR: theme.border,
+      CHART_CURSOR_INDICATOR: theme.tokens.content.secondary,
+      CHART_LABEL_COLOR: theme.tokens.content.secondary,
+      CURSOR_CROSSHAIR: theme.tokens.border.primary,
 
       // Special states
-      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
+      FOCUSED_FRAME_BORDER_COLOR: theme.tokens.focus.default,
       HIGHLIGHTED_LABEL_COLOR: `rgba(240, 240, 0, 1)`,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
       SELECTED_FRAME_BORDER_COLOR: theme.colors.blue500,
@@ -305,12 +305,12 @@ export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       // Cursors and labels
       LABEL_FONT_COLOR: theme.tokens.content.primary,
       BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
-      CHART_CURSOR_INDICATOR: theme.subText,
-      CHART_LABEL_COLOR: theme.subText,
-      CURSOR_CROSSHAIR: theme.border,
+      CHART_CURSOR_INDICATOR: theme.tokens.content.secondary,
+      CHART_LABEL_COLOR: theme.tokens.content.secondary,
+      CURSOR_CROSSHAIR: theme.tokens.border.primary,
 
       // Special states
-      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
+      FOCUSED_FRAME_BORDER_COLOR: theme.tokens.focus.default,
       HIGHLIGHTED_LABEL_COLOR: theme.colors.yellow400,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
       SELECTED_FRAME_BORDER_COLOR: theme.colors.blue500,

@@ -257,7 +257,7 @@ const StyledLayoutMain = styled(Layout.Main)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     padding-right: 0;
   }
 `;

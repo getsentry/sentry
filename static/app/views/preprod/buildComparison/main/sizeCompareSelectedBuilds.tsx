@@ -13,6 +13,7 @@ import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
@@ -41,7 +42,12 @@ function BuildButton({
   const dateBuilt = buildDetails.app_info?.date_built;
   const dateAdded = buildDetails.app_info?.date_added;
 
-  const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
+  const buildUrl =
+    getSizeBuildPath({
+      organizationSlug: organization.slug,
+      projectId,
+      baseArtifactId: buildId,
+    }) ?? '';
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;
@@ -258,7 +264,7 @@ const BuildBranch = styled('span')`
 `;
 
 const SelectBuild = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   border-style: dashed;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
