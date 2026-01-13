@@ -251,9 +251,10 @@ export const useAiAutofix = (
 
       try {
         const response = await api.requestPromise(
-          `/organizations/${orgSlug}/issues/${group.id}/autofix/?mode=legacy`,
+          `/organizations/${orgSlug}/issues/${group.id}/autofix/`,
           {
             method: 'POST',
+            query: {mode: 'legacy'},
             data: {
               event_id: event.id,
               instruction,
