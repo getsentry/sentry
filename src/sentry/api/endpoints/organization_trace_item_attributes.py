@@ -194,6 +194,9 @@ def as_attribute_key(
     elif type == "number":
         public_key = f"tags[{name},number]"
         public_name = name
+    elif type == "boolean":
+        public_key = f"tags[{name},boolean]"
+        public_name = name
     else:
         public_key = name
         public_name = name
