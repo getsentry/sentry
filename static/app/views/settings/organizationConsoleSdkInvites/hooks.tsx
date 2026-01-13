@@ -10,6 +10,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
@@ -64,10 +65,17 @@ export function useRevokeConsoleSdkPlatformInvite() {
         queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
       });
     },
-    onError: (_error, {email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
-      addErrorMessage(
-        tct('Failed to remove [platform] access for [email]', {platform, email})
-      );
+    onError: (
+      error: RequestError,
+      {email, platform}: UseRevokeConsoleSdkPlatformInviteParams
+    ) => {
+      const rawDetail = error.responseJSON?.detail;
+      const detail =
+        typeof rawDetail === 'string'
+          ? rawDetail
+          : (rawDetail?.message ??
+            tct('Failed to remove [platform] access for [email]', {platform, email}));
+      addErrorMessage(detail);
     },
   });
 }
