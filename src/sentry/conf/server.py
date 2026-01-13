@@ -2775,7 +2775,8 @@ SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 # In case of contention on the project counter, prevent workers saturation with
 # save_event tasks from single project.
 # Value is in milliseconds. Set to `None` to disable.
-SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
+# Increased from 1000ms to 3000ms to handle high-concurrency scenarios with index contention
+SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 3000
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []

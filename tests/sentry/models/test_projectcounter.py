@@ -1,8 +1,9 @@
 from contextlib import contextmanager
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.db import IntegrityError
+from django.db.utils import OperationalError
 
 from sentry.locks import locks
 from sentry.models.counter import (
@@ -10,6 +11,7 @@ from sentry.models.counter import (
     Counter,
     calculate_cached_id_block_size,
     increment_project_counter_in_cache,
+    increment_project_counter_in_database,
     refill_cached_short_ids,
 )
 from sentry.models.group import Group
@@ -340,3 +342,184 @@ def test_preallocation_early_return(default_project) -> None:
 def test_calculate_cached_id_block_size() -> None:
     assert calculate_cached_id_block_size(1) == 100
     assert calculate_cached_id_block_size(1000) == 1000
+
+
+@django_db_all
+def test_increment_project_counter_in_database_statement_timeout_retry(default_project) -> None:
+    """Test that increment_project_counter_in_database retries on statement timeout"""
+
+    class TimeoutError(OperationalError):
+        def __str__(self) -> str:
+            return "canceling statement due to statement timeout"
+
+    call_count = 0
+
+    def side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:  # Fail first 2 times
+            raise TimeoutError()
+        # Return a valid counter value on the third attempt
+        return Counter.objects.get(project=default_project).value + 1
+
+    with (
+        patch(
+            "sentry.models.counter.increment_project_counter_in_database",
+            wraps=increment_project_counter_in_database,
+        ),
+        patch("sentry.models.counter.time.sleep") as mock_sleep,
+        patch("sentry.models.counter.metrics.incr") as mock_metrics_incr,
+        patch("sentry.models.counter.logger.warning") as mock_logger_warning,
+    ):
+        # First, populate the database with an actual counter
+        Counter.objects.create(project=default_project, value=1)
+
+        # Now test the retry mechanism by patching the transaction.atomic
+        with patch("sentry.models.counter.transaction.atomic") as mock_atomic:
+            # Make the context manager work properly
+            mock_atomic.return_value.__enter__ = MagicMock()
+            mock_atomic.return_value.__exit__ = MagicMock(return_value=None)
+
+            # Create a custom cursor mock that will raise TimeoutError twice
+            cursor_call_count = 0
+
+            class CursorMock:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *args):
+                    pass
+
+                def execute(self, sql, params=None):
+                    nonlocal cursor_call_count
+                    cursor_call_count += 1
+                    # Fail on the main INSERT query (not on SHOW or SET queries)
+                    if "insert into sentry_projectcounter" in sql.lower():
+                        if cursor_call_count <= 2:
+                            raise TimeoutError()
+
+                def fetchone(self):
+                    # For SHOW statement_timeout query
+                    return ("0",)
+
+            with patch("sentry.models.counter.connections") as mock_connections:
+                mock_connections.__getitem__.return_value.cursor.return_value = CursorMock()
+
+                # This should succeed after 2 retries
+                result = increment_project_counter_in_database(default_project, delta=100)
+
+                # Should have retried twice
+                assert cursor_call_count == 3
+                assert mock_sleep.call_count == 2
+                # First retry: 50ms * 2^0 = 50ms
+                # Second retry: 50ms * 2^1 = 100ms
+                assert mock_sleep.call_args_list == [call(0.05), call(0.1)]
+
+                # Should have logged warnings
+                assert mock_logger_warning.call_count == 2
+
+                # Should have incremented retry metrics
+                retry_metric_calls = [
+                    call_
+                    for call_ in mock_metrics_incr.call_args_list
+                    if "statement_timeout_retry" in str(call_)
+                ]
+                assert len(retry_metric_calls) == 2
+
+
+@django_db_all
+def test_increment_project_counter_in_database_exhausted_retries(default_project) -> None:
+    """Test that increment_project_counter_in_database fails after exhausting retries"""
+
+    class TimeoutError(OperationalError):
+        def __str__(self) -> str:
+            return "canceling statement due to statement timeout"
+
+    with (
+        patch("sentry.models.counter.time.sleep") as mock_sleep,
+        patch("sentry.models.counter.metrics.incr") as mock_metrics_incr,
+        patch("sentry.models.counter.logger.error") as mock_logger_error,
+    ):
+        Counter.objects.create(project=default_project, value=1)
+
+        with patch("sentry.models.counter.transaction.atomic") as mock_atomic:
+            mock_atomic.return_value.__enter__ = MagicMock()
+            mock_atomic.return_value.__exit__ = MagicMock(return_value=None)
+
+            class CursorMock:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *args):
+                    pass
+
+                def execute(self, sql, params=None):
+                    # Always fail on the INSERT query
+                    if "insert into sentry_projectcounter" in sql.lower():
+                        raise TimeoutError()
+
+                def fetchone(self):
+                    return ("0",)
+
+            with patch("sentry.models.counter.connections") as mock_connections:
+                mock_connections.__getitem__.return_value.cursor.return_value = CursorMock()
+
+                # Should raise OperationalError after 3 attempts
+                with pytest.raises(OperationalError):
+                    increment_project_counter_in_database(default_project, delta=100)
+
+                # Should have retried twice (failed on 3rd attempt)
+                assert mock_sleep.call_count == 2
+
+                # Should have logged error about exhausting retries
+                assert mock_logger_error.call_count == 1
+                assert "Exhausted all retry attempts" in str(mock_logger_error.call_args)
+
+                # Should have incremented exhausted metric
+                exhausted_metric_calls = [
+                    call_
+                    for call_ in mock_metrics_incr.call_args_list
+                    if "statement_timeout_exhausted" in str(call_)
+                ]
+                assert len(exhausted_metric_calls) == 1
+
+
+@django_db_all
+def test_increment_project_counter_in_database_non_timeout_error(default_project) -> None:
+    """Test that non-timeout errors are not retried"""
+
+    class OtherError(OperationalError):
+        def __str__(self) -> str:
+            return "some other database error"
+
+    with patch("sentry.models.counter.time.sleep") as mock_sleep:
+        Counter.objects.create(project=default_project, value=1)
+
+        with patch("sentry.models.counter.transaction.atomic") as mock_atomic:
+            mock_atomic.return_value.__enter__ = MagicMock()
+            mock_atomic.return_value.__exit__ = MagicMock(return_value=None)
+
+            class CursorMock:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *args):
+                    pass
+
+                def execute(self, sql, params=None):
+                    if "insert into sentry_projectcounter" in sql.lower():
+                        raise OtherError()
+
+                def fetchone(self):
+                    return ("0",)
+
+            with patch("sentry.models.counter.connections") as mock_connections:
+                mock_connections.__getitem__.return_value.cursor.return_value = CursorMock()
+
+                # Should raise OperationalError immediately without retry
+                with pytest.raises(OperationalError) as exc_info:
+                    increment_project_counter_in_database(default_project, delta=100)
+
+                assert "some other database error" in str(exc_info.value)
+                # Should not have retried
+                assert mock_sleep.call_count == 0
