@@ -433,12 +433,11 @@ def show_rule_evaluation(artifact_id: int) -> None:
                 status = "⊘ Filtered out"
 
             logger.info(
-                "     %s | %s %s (threshold: %s%s)",
+                "     %s | %s %s (threshold: %s)",
                 status,
                 rule.metric,
                 rule.measurement,
                 rule.value,
-                rule.unit,
             )
             if rule.filter_query:
                 logger.info("        Filter: %s", rule.filter_query)

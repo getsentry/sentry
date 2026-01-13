@@ -63,10 +63,10 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        assert context["build.platform"] == "ios"
-        assert context["build.branch"] == "feature/test"
-        assert context["build.package_name"] == "com.example.app"
-        assert context["build.build_configuration"] == "Debug"
+        assert context["platform"] == "ios"
+        assert context["branch"] == "feature/test"
+        assert context["app_id"] == "com.example.app"
+        assert context["build_configuration"] == "Debug"
 
     def test_filter_context_without_build_configuration(self):
         artifact = PreprodArtifact.objects.create(
@@ -79,10 +79,10 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        assert context["build.platform"] == "android"
-        assert context["build.branch"] == "feature/test"
-        assert context["build.package_name"] == "com.example.android"
-        assert "build.build_configuration" not in context
+        assert context["platform"] == "android"
+        assert context["branch"] == "feature/test"
+        assert context["app_id"] == "com.example.android"
+        assert "build_configuration" not in context
 
     def test_rule_matches_build_configuration_single_value(self):
         artifact = PreprodArtifact.objects.create(
@@ -100,18 +100,16 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.build_configuration:Debug",
+            value=100 * 1024 * 1024,
+            filter_query="build_configuration:Debug",
         )
 
         rule_release = StatusCheckRule(
             id="rule2",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.build_configuration:Release",
+            value=100 * 1024 * 1024,
+            filter_query="build_configuration:Release",
         )
 
         assert _rule_matches_artifact(rule_debug, context) is True
@@ -133,9 +131,8 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.build_configuration:[Debug,Release]",
+            value=100 * 1024 * 1024,
+            filter_query="build_configuration:[Debug,Release]",
         )
 
         assert _rule_matches_artifact(rule, context) is True
@@ -156,18 +153,16 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="!build.build_configuration:Release",
+            value=100 * 1024 * 1024,
+            filter_query="!build_configuration:Release",
         )
 
         rule_not_debug = StatusCheckRule(
             id="rule2",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="!build.build_configuration:Debug",
+            value=100 * 1024 * 1024,
+            filter_query="!build_configuration:Debug",
         )
 
         assert _rule_matches_artifact(rule_not_release, context) is True
@@ -189,27 +184,24 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.platform:ios build.build_configuration:Release",
+            value=100 * 1024 * 1024,
+            filter_query="platform:ios build_configuration:Release",
         )
 
         rule_android_release = StatusCheckRule(
             id="rule2",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.platform:android build.build_configuration:Release",
+            value=100 * 1024 * 1024,
+            filter_query="platform:android build_configuration:Release",
         )
 
         rule_ios_debug = StatusCheckRule(
             id="rule3",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.platform:ios build.build_configuration:Debug",
+            value=100 * 1024 * 1024,
+            filter_query="platform:ios build_configuration:Debug",
         )
 
         assert _rule_matches_artifact(rule_ios_release, context) is True
@@ -244,12 +236,13 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.build_configuration:Debug",
+            value=100 * 1024 * 1024,
+            filter_query="build_configuration:Debug",
         )
 
-        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
         assert status == StatusCheckStatus.FAILURE
 
     def test_status_check_succeeds_when_rule_matches_but_under_threshold(self):
@@ -280,12 +273,13 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.build_configuration:Debug",
+            value=100 * 1024 * 1024,
+            filter_query="build_configuration:Debug",
         )
 
-        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
         assert status == StatusCheckStatus.SUCCESS
 
     def test_status_check_succeeds_when_rule_does_not_match(self):
@@ -316,12 +310,13 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
-            filter_query="build.build_configuration:Debug",
+            value=100 * 1024 * 1024,
+            filter_query="build_configuration:Debug",
         )
 
-        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
         assert status == StatusCheckStatus.SUCCESS
 
     def test_parse_rules_from_project_options(self):
@@ -332,7 +327,7 @@ class StatusCheckFiltersTest(TestCase):
         self.project.update_option(
             "sentry:preprod_size_status_checks_rules",
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", '
-            '"value": 100, "unit": "MB", "filterQuery": "build.build_configuration:Debug"}]',
+            '"value": 100, "filterQuery": "build_configuration:Debug"}]',
         )
 
         rules = _get_status_check_rules(self.project)
@@ -342,8 +337,7 @@ class StatusCheckFiltersTest(TestCase):
         assert rules[0].metric == "install_size"
         assert rules[0].measurement == "absolute"
         assert rules[0].value == 100
-        assert rules[0].unit == "MB"
-        assert rules[0].filter_query == "build.build_configuration:Debug"
+        assert rules[0].filter_query == "build_configuration:Debug"
 
     def test_evaluate_absolute_diff_threshold_exceeds(self):
         head_artifact = self.create_preprod_artifact(
@@ -387,8 +381,7 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute_diff",
-            value=5,
-            unit="MB",
+            value=5 * 1024 * 1024,
             filter_query="",
         )
 
@@ -436,8 +429,7 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute_diff",
-            value=5,
-            unit="MB",
+            value=5 * 1024 * 1024,
             filter_query="",
         )
 
@@ -486,7 +478,6 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="relative_diff",
             value=10,
-            unit="%",
             filter_query="",
         )
 
@@ -535,7 +526,6 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="relative_diff",
             value=10,
-            unit="%",
             filter_query="",
         )
 
@@ -560,8 +550,7 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute_diff",
-            value=5,
-            unit="MB",
+            value=5 * 1024 * 1024,
             filter_query="",
         )
 
@@ -570,7 +559,6 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="relative_diff",
             value=10,
-            unit="%",
             filter_query="",
         )
 
@@ -737,12 +725,11 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute_diff",
-            value=5,
-            unit="MB",
+            value=5 * 1024 * 1024,
             filter_query="",
         )
 
-        status = _compute_overall_status(
+        status, triggered_rules = _compute_overall_status(
             [head_artifact],
             size_metrics_map,
             rules=[rule],
@@ -781,10 +768,11 @@ class StatusCheckFiltersTest(TestCase):
             id="rule1",
             metric="install_size",
             measurement="absolute",
-            value=100,
-            unit="MB",
+            value=100 * 1024 * 1024,
             filter_query="",
         )
 
-        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
         assert status == StatusCheckStatus.SUCCESS
