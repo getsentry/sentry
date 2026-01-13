@@ -201,14 +201,36 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         blob.path = cls.generate_unique_path()
         storage = get_storage(cls._storage_config())
         storage.save(blob.path, fileobj)
-        try:
-            blob.save()
-        except IntegrityError:
-            # see `_save_blob` above
-            metrics.incr("filestore.upload_race", sample_rate=1.0)
-            saved_path = blob.path
-            blob = cls.objects.get(checksum=checksum)
-            storage.delete(saved_path)
+        
+        # Use a savepoint to handle race condition where blob is created concurrently
+        # This prevents breaking the outer transaction when an IntegrityError occurs
+        db_alias = router.db_for_write(cls)
+        
+        # Check if we're in a transaction - if so, use savepoint to handle race condition
+        if transaction.get_connection(db_alias).in_atomic_block:
+            sid = transaction.savepoint(using=db_alias)
+            try:
+                blob.save()
+                transaction.savepoint_commit(sid, using=db_alias)
+            except IntegrityError:
+                # Rollback to the savepoint to clear the broken transaction state
+                transaction.savepoint_rollback(sid, using=db_alias)
+                
+                # see `_save_blob` above - another process created the blob
+                metrics.incr("filestore.upload_race", sample_rate=1.0)
+                saved_path = blob.path
+                # Now we can safely query for the existing blob
+                blob = cls.objects.get(checksum=checksum)
+                storage.delete(saved_path)
+        else:
+            # Not in a transaction, use original behavior
+            try:
+                blob.save()
+            except IntegrityError:
+                metrics.incr("filestore.upload_race", sample_rate=1.0)
+                saved_path = blob.path
+                blob = cls.objects.get(checksum=checksum)
+                storage.delete(saved_path)
 
         metrics.distribution("filestore.blob-size", size, unit="byte")
         logger.debug("FileBlob.from_file.end")
