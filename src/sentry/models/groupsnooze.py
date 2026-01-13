@@ -222,7 +222,6 @@ class GroupSnooze(Model):
             metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "true"})
             return True
 
-        # Check if we're in cooldown period from a recent Snuba query
         if snuba_cooldown > 0:
             cooldown_result = cache.get(cooldown_key)
             if cooldown_result is not None:
@@ -236,9 +235,6 @@ class GroupSnooze(Model):
         real_count = group.count_users_seen(
             referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         )
-        # Store the Snuba result in cooldown cache to prevent query storms.
-        # Only cache when user count is below 95% of threshold to ensure
-        # timely snooze lifting when close to the threshold.
         if snuba_cooldown > 0 and real_count < threshold * 0.95:
             cache.set(cooldown_key, real_count, snuba_cooldown)
         cache.set(cache_key, real_count, CACHE_TTL)

@@ -883,11 +883,9 @@ register(
 )
 
 # Cooldown period (in seconds) between Snuba queries for groupsnooze user count validation.
-# Prevents query storms for high-volume issues where user count is close to threshold.
-# Set to 0 to disable the cooldown (not recommended for production).
 register(
     "snuba.groupsnooze.user-counts-cooldown-seconds",
-    default=60,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
