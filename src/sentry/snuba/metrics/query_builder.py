@@ -1395,11 +1395,17 @@ class SnubaResultConverter:
             self._use_case_id, self._organization_id, values_to_resolve
         )
 
+        def resolve_tag_value(value: int | str | None) -> str | None:
+            # Handle TAG_NOT_SET (0) the same way as reverse_resolve_weak
+            if value == 0:
+                return None
+            return resolved_values.get(value, value)
+
         groups: list[_BySeriesTotals] = [
             {
                 "by": {
                     key: (
-                        resolved_values.get(value, value)
+                        resolve_tag_value(value)
                         if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES
                         else value
                     )
