@@ -193,7 +193,7 @@ function AddToDashboardModal({
     };
   }, [api, organization.slug, selectedDashboardId]);
 
-  function goToDashboard(page: 'builder' | 'preview', state?: any) {
+  function goToDashboard(page: 'builder' | 'preview', widgetsState?: Widget[]) {
     const dashboardsPath =
       selectedDashboardId === NEW_DASHBOARD_ID
         ? `/organizations/${organization.slug}/dashboards/new/`
@@ -218,7 +218,7 @@ function AddToDashboardModal({
             : pageFiltersToQueryParams(selection)),
         },
       }),
-      {state}
+      {state: {widgets: widgetsState ?? []}}
     );
     closeModal();
   }
@@ -279,9 +279,7 @@ function AddToDashboardModal({
         getInitialColumnDepths()
       );
 
-      goToDashboard('preview', {
-        widgets: widgetsWithLayouts,
-      });
+      goToDashboard('preview', widgetsWithLayouts);
       closeModal();
       return;
     }

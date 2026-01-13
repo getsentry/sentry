@@ -32,7 +32,7 @@ export default function CreateDashboard() {
     ? cloneDashboard(template)
     : cloneDashboard(EMPTY_DASHBOARD);
 
-  const hasWidgetsToAdd = Object.keys(location.state?.widgets ?? {}).length > 0;
+  const hasWidgetsToAdd = !!location.state?.widgets && location.state.widgets.length > 0;
 
   const [dashboard] = useState<DashboardDetails>(() => {
     if (hasWidgetsToAdd) {
