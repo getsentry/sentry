@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import IntegrityError
+from django.db.utils import OperationalError
 
 from sentry.locks import locks
 from sentry.models.counter import (
@@ -10,6 +11,7 @@ from sentry.models.counter import (
     Counter,
     calculate_cached_id_block_size,
     increment_project_counter_in_cache,
+    increment_project_counter_in_database,
     refill_cached_short_ids,
 )
 from sentry.models.group import Group
@@ -340,3 +342,98 @@ def test_preallocation_early_return(default_project) -> None:
 def test_calculate_cached_id_block_size() -> None:
     assert calculate_cached_id_block_size(1) == 100
     assert calculate_cached_id_block_size(1000) == 1000
+
+
+@django_db_all
+def test_increment_project_counter_statement_timeout_retry(default_project) -> None:
+    """Test that statement timeout errors trigger retries and eventually succeed."""
+    call_count = 0
+
+    def mock_execute_with_timeout(sql, params=None):
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:
+            # Fail first 2 attempts with statement timeout
+            raise OperationalError(
+                "canceling statement due to statement timeout\n"
+                'CONTEXT:  while inserting index tuple (10255,244) in relation "sentry_projectcounter"\n'
+            )
+        # Third attempt succeeds
+        return None
+
+    with (
+        patch("sentry.models.counter.connections") as mock_connections,
+        patch("sentry.models.counter.time.sleep") as mock_sleep,
+    ):
+        mock_cursor = MagicMock()
+        mock_cursor.execute = mock_execute_with_timeout
+        mock_cursor.fetchone.return_value = [100]
+        mock_connections.__getitem__.return_value.cursor.return_value.__enter__.return_value = (
+            mock_cursor
+        )
+
+        result = increment_project_counter_in_database(default_project, delta=100)
+
+        # Should have called execute 3 times (2 failures + 1 success)
+        assert call_count == 3
+        # Should have slept twice (after first and second failures)
+        assert mock_sleep.call_count == 2
+        # Should return the result
+        assert result == 100
+
+
+@django_db_all
+def test_increment_project_counter_statement_timeout_exhausted(default_project) -> None:
+    """Test that statement timeout errors exhaust retries and raise."""
+
+    def mock_execute_with_timeout(sql, params=None):
+        # Always fail with statement timeout
+        raise OperationalError(
+            "canceling statement due to statement timeout\n"
+            'CONTEXT:  while inserting index tuple (10255,244) in relation "sentry_projectcounter"\n'
+        )
+
+    with (
+        patch("sentry.models.counter.connections") as mock_connections,
+        patch("sentry.models.counter.time.sleep") as mock_sleep,
+    ):
+        mock_cursor = MagicMock()
+        mock_cursor.execute = mock_execute_with_timeout
+        mock_connections.__getitem__.return_value.cursor.return_value.__enter__.return_value = (
+            mock_cursor
+        )
+
+        # Should raise after 4 attempts (1 initial + 3 retries)
+        with pytest.raises(OperationalError) as exc_info:
+            increment_project_counter_in_database(default_project, delta=100)
+
+        assert "canceling statement due to statement timeout" in str(exc_info.value)
+        # Should have slept 3 times (after first 3 failures)
+        assert mock_sleep.call_count == 3
+
+
+@django_db_all
+def test_increment_project_counter_non_timeout_operational_error(default_project) -> None:
+    """Test that non-timeout OperationalErrors are raised immediately without retry."""
+
+    def mock_execute_with_other_error(sql, params=None):
+        # Different OperationalError that shouldn't trigger retry
+        raise OperationalError("connection closed unexpectedly")
+
+    with (
+        patch("sentry.models.counter.connections") as mock_connections,
+        patch("sentry.models.counter.time.sleep") as mock_sleep,
+    ):
+        mock_cursor = MagicMock()
+        mock_cursor.execute = mock_execute_with_other_error
+        mock_connections.__getitem__.return_value.cursor.return_value.__enter__.return_value = (
+            mock_cursor
+        )
+
+        # Should raise immediately without retry
+        with pytest.raises(OperationalError) as exc_info:
+            increment_project_counter_in_database(default_project, delta=100)
+
+        assert "connection closed unexpectedly" in str(exc_info.value)
+        # Should not have slept (no retries)
+        assert mock_sleep.call_count == 0

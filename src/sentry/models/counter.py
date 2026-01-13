@@ -1,6 +1,10 @@
+import logging
+import time
+
 import sentry_sdk
 from django.conf import settings
 from django.db import connections, transaction
+from django.db.utils import OperationalError
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -17,6 +21,8 @@ from sentry.taskworker.namespaces import ingest_errors_tasks
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
+
+logger = logging.getLogger(__name__)
 
 LOW_WATER_RATIO = 0.2
 """
@@ -87,44 +93,93 @@ def increment_project_counter_in_cache(project, using="default") -> int:
 @sentry_sdk.tracing.trace
 @metrics.wraps("counter.increment_project_counter_in_database")
 def increment_project_counter_in_database(project, delta=1, using="default") -> int:
-    """This method primarily exists so that south code can use it."""
+    """This method primarily exists so that south code can use it.
+    
+    Retries on statement timeout due to database contention on sentry_projectcounter table.
+    """
     if delta <= 0:
         raise ValueError("There is only one way, and that's up.")
 
-    # To prevent the statement_timeout leaking into the session we need to use
-    # set local which can be used only within a transaction
-    with transaction.atomic(using=using):
-        with connections[using].cursor() as cur:
-            statement_timeout = None
-            if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
-                # WARNING: This is not a proper fix and should be removed once
-                #          we have better way of generating next_short_id.
-                cur.execute("show statement_timeout")
-                statement_timeout = cur.fetchone()[0]
-                cur.execute(
-                    "set local statement_timeout = %s",
-                    [settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT],
+    max_retries = 3
+    retry_delay_ms = 50  # Start with 50ms
+    
+    for attempt in range(max_retries + 1):
+        try:
+            # To prevent the statement_timeout leaking into the session we need to use
+            # set local which can be used only within a transaction
+            with transaction.atomic(using=using):
+                with connections[using].cursor() as cur:
+                    statement_timeout = None
+                    if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
+                        # WARNING: This is not a proper fix and should be removed once
+                        #          we have better way of generating next_short_id.
+                        cur.execute("show statement_timeout")
+                        statement_timeout = cur.fetchone()[0]
+                        cur.execute(
+                            "set local statement_timeout = %s",
+                            [settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT],
+                        )
+
+                    # Our postgres wrapper thing does not allow for named arguments
+                    cur.execute(
+                        "insert into sentry_projectcounter (project_id, value) "
+                        "values (%s, %s) "
+                        "on conflict (project_id) do update "
+                        "set value = sentry_projectcounter.value + %s "
+                        "returning value",
+                        [project.id, delta, delta],
+                    )
+
+                    project_counter = cur.fetchone()[0]
+
+                    if statement_timeout is not None:
+                        cur.execute(
+                            "set local statement_timeout = %s",
+                            [statement_timeout],
+                        )
+
+                    return project_counter
+        except OperationalError as e:
+            error_message = str(e)
+            is_statement_timeout = "canceling statement due to statement timeout" in error_message
+            
+            if is_statement_timeout and attempt < max_retries:
+                # Log retry attempt with context
+                logger.warning(
+                    "counter.increment_project_counter_in_database.retry",
+                    extra={
+                        "project_id": project.id,
+                        "delta": delta,
+                        "attempt": attempt + 1,
+                        "max_retries": max_retries,
+                        "retry_delay_ms": retry_delay_ms,
+                    },
                 )
-
-            # Our postgres wrapper thing does not allow for named arguments
-            cur.execute(
-                "insert into sentry_projectcounter (project_id, value) "
-                "values (%s, %s) "
-                "on conflict (project_id) do update "
-                "set value = sentry_projectcounter.value + %s "
-                "returning value",
-                [project.id, delta, delta],
-            )
-
-            project_counter = cur.fetchone()[0]
-
-            if statement_timeout is not None:
-                cur.execute(
-                    "set local statement_timeout = %s",
-                    [statement_timeout],
+                metrics.incr(
+                    "counter.increment_project_counter_in_database.statement_timeout_retry",
+                    tags={"attempt": attempt + 1},
                 )
-
-            return project_counter
+                
+                # Exponential backoff with jitter
+                time.sleep(retry_delay_ms / 1000.0)
+                retry_delay_ms *= 2
+                continue
+            
+            # Either not a statement timeout or we've exhausted retries
+            if is_statement_timeout:
+                logger.error(
+                    "counter.increment_project_counter_in_database.statement_timeout_exhausted",
+                    extra={
+                        "project_id": project.id,
+                        "delta": delta,
+                        "attempts": attempt + 1,
+                    },
+                )
+                metrics.incr("counter.increment_project_counter_in_database.statement_timeout_failed")
+            raise
+    
+    # This should never be reached, but for type safety
+    raise RuntimeError("Unexpected state in increment_project_counter_in_database")
 
 
 @instrumented_task(
