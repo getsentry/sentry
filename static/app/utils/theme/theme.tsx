@@ -207,10 +207,7 @@ const generateThemeUtils = (tokens: Tokens) => ({
   `,
 });
 
-const generateButtonTheme = (
-  colors: Colors,
-  tokens: Tokens
-): ButtonColors => ({
+const generateButtonTheme = (colors: Colors, tokens: Tokens): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
     color: tokens.content.primary,
