@@ -1,6 +1,8 @@
 from django.urls import reverse
 
+from sentry.constants import ObjectStatus
 from sentry.models.apitoken import ApiToken
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -166,3 +168,34 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"slug": self.organization.slug}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_repository_definition_with_external_id(self) -> None:
+        """Test that get_repository_definition works with external_id parameter"""
+        # Create a repository with an external_id
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="439438299",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        path = self._get_path("get_repository_definition")
+        response = self.client.post(
+            path,
+            data={
+                "args": {
+                    "external_id": "439438299",
+                    "repo_full_name": "getsentry/seer",
+                }
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data is not None
+        assert response.data["owner"] == "getsentry"
+        assert response.data["name"] == "seer"
+        assert response.data["external_id"] == "439438299"
