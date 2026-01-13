@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
@@ -39,11 +40,16 @@ export default function ConsoleSDKInvitesSettings() {
       <SettingsPageHeader
         title={t('Console SDK Invites')}
         action={
-          <RequestSdkAccessButton
-            disabled={!userHasConsoleAccess || !userHasQuotaRemaining}
-            organization={organization}
-            origin="org-settings"
-          />
+          <Tooltip
+            title={getTooltipText(userHasConsoleAccess, userHasQuotaRemaining)}
+            disabled={userHasConsoleAccess && userHasQuotaRemaining}
+          >
+            <RequestSdkAccessButton
+              disabled={!(userHasConsoleAccess && userHasQuotaRemaining)}
+              organization={organization}
+              origin="org-settings"
+            />
+          </Tooltip>
         }
       />
       <TextBlock>
@@ -96,6 +102,16 @@ export default function ConsoleSDKInvitesSettings() {
       </InvitesTable>
     </Fragment>
   );
+}
+
+function getTooltipText(userHasConsoleAccess: boolean, userHasQuotaRemaining: boolean) {
+  if (!userHasConsoleAccess) {
+    return t('Your organization does not have any console platforms enabled');
+  }
+  if (!userHasQuotaRemaining) {
+    return t('Your organization does not have any invites remaining');
+  }
+  return '';
 }
 
 function NoAccessAlert() {
