@@ -3,7 +3,10 @@ from jsonschema import ValidationError
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues import grouptype
+from sentry.issues.grouptype import (
+    GroupCategory,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -15,6 +18,7 @@ class TestIssueTypeCondition(ConditionTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
+        all_ids = grouptype.registry.get_all_group_type_ids()
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
