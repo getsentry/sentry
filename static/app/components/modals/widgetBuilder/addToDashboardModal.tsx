@@ -266,6 +266,7 @@ function AddToDashboardModal({
     if (!hasMultipleWidgets) {
       await handleAddWidget();
       goToDashboard('preview');
+      closeModal();
       return;
     }
 
