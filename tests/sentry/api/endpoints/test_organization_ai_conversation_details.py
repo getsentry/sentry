@@ -208,7 +208,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert "precise.start_ts" in span
         assert "precise.finish_ts" in span
         assert span["span.op"] == "gen_ai.chat"
+        assert "span.duration" in span
         assert span["gen_ai.conversation.id"] == conversation_id
+        # Verify project fields
+        assert "project" in span
+        assert span["project.id"] == self.project.id
+        # Verify transaction fields
+        assert "transaction" in span
+        assert "is_transaction" in span
         # Verify AI conversation attributes are included
         assert span["gen_ai.request.messages"] is not None
         assert span["gen_ai.response.text"] == "Hi there!"
