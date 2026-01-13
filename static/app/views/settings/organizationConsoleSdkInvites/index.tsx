@@ -10,6 +10,7 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -26,13 +27,19 @@ import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
 
-  const {data: invites, isPending} = useConsoleSdkInvites(organization.slug);
+  const {
+    data: invites,
+    isPending,
+    isError,
+    refetch,
+  } = useConsoleSdkInvites(organization.slug);
   const {mutate: revokePlatformInvite, isPending: isRevoking} =
     useRevokeConsoleSdkPlatformInvite();
 
   const userHasConsoleAccess = (organization.enabledConsolePlatforms?.length ?? 0) > 0;
   const userHasQuotaRemaining =
     !isPending &&
+    !isError &&
     organization.consoleSdkInviteQuota !== undefined &&
     organization.consoleSdkInviteQuota > 0 &&
     organization.consoleSdkInviteQuota > (invites?.length ?? 0);
@@ -74,7 +81,13 @@ export default function ConsoleSDKInvitesSettings() {
           </SimpleTable.Empty>
         )}
 
-        {!isPending && invites?.length === 0 && (
+        {isError && (
+          <SimpleTable.Empty>
+            <LoadingError onRetry={refetch} />
+          </SimpleTable.Empty>
+        )}
+
+        {!isPending && !isError && invites?.length === 0 && (
           <SimpleTable.Empty>{t('No invites found')}</SimpleTable.Empty>
         )}
 
