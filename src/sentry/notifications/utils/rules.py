@@ -40,7 +40,7 @@ def get_rule_or_workflow_id_default() -> str:
 
 
 def get_rule_or_workflow_id(rule: Rule) -> tuple[RuleIdType, str]:
-    keys = ["legacy_rule_id", "workflow_id"]
+    keys: list[RuleIdType] = ["legacy_rule_id", "workflow_id"]
     if options.get("workflow_engine.default_workflow_links"):
         keys = ["workflow_id", "legacy_rule_id"]
 
