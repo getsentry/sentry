@@ -4,6 +4,10 @@ on:
   # from GHA in getsentry/security-as-code on changes there.
 
   workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
