@@ -2,7 +2,6 @@ from django.db import models, router, transaction
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_model, region_silo_model
-from sentry.db.postgres.transactions import enforce_constraints
 
 
 class CacheVersionBase(Model):
@@ -14,7 +13,7 @@ class CacheVersionBase(Model):
 
     @classmethod
     def incr_version(cls, key: str) -> int:
-        with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
+        with transaction.atomic(router.db_for_write(cls)):
             obj, created = cls.objects.select_for_update().get_or_create(
                 key=key, defaults=dict(version=1)
             )
