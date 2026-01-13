@@ -1,22 +1,29 @@
 import styled from '@emotion/styled';
 
-// TODO(isabella): Instead of requiring the code using this component to
-// render the radio/checkbox, we should just render the radio/checkbox directly
-// depending on ariaRole
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+
 function CheckoutOption({
-  children,
   isSelected,
   onClick,
   dataTestId,
   ariaLabel,
   ariaRole,
+  topDecoration,
+  optionHeader,
+  optionDescription,
+  withDivider,
 }: {
   ariaLabel: string;
   ariaRole: 'radio' | 'checkbox';
-  children: React.ReactNode;
   dataTestId: string;
   isSelected: boolean;
   onClick: () => void;
+  optionDescription: React.ReactNode;
+  optionHeader: React.ReactNode;
+  topDecoration?: React.ReactNode;
+  withDivider?: boolean;
 }) {
   return (
     <Option
@@ -33,7 +40,27 @@ function CheckoutOption({
         }
       }}
     >
-      {children}
+      <Flex direction="column" padding="xl" gap="lg">
+        {!!topDecoration && topDecoration}
+        <Flex align="start" justify="between" gap="md">
+          <Container paddingTop="2xs">
+            {ariaRole === 'radio' ? (
+              <RadioMarker isSelected={isSelected} />
+            ) : (
+              <Checkbox
+                tabIndex={-1} // let parent handle the focus
+                aria-label={ariaLabel}
+                aria-checked={isSelected}
+                checked={isSelected}
+                onChange={onClick}
+              />
+            )}
+          </Container>
+          {optionHeader}
+        </Flex>
+        {withDivider && <Separator orientation="horizontal" border="primary" />}
+        {optionDescription}
+      </Flex>
     </Option>
   );
 }
@@ -111,4 +138,15 @@ const Option = styled('div')<{isSelected: boolean}>`
       transform: translateY(0px);
     }
   }
+`;
+
+const RadioMarker = styled('div')<{isSelected?: boolean}>`
+  width: ${p => p.theme.space.xl};
+  height: ${p => p.theme.space.xl};
+  border-radius: ${p => p.theme.space['3xl']};
+  background: ${p => p.theme.tokens.background.primary};
+  border-color: ${p =>
+    p.isSelected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary};
+  border-width: ${p => (p.isSelected ? '4px' : '1px')};
+  border-style: solid;
 `;
