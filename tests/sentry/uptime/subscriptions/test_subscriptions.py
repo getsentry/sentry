@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest import mock
 
 import pytest
@@ -40,6 +41,7 @@ from sentry.uptime.types import (
     DEFAULT_RECOVERY_THRESHOLD,
     UptimeMonitorMode,
 )
+from sentry.uptime.utils import build_last_interval_change_timestamp_key, get_cluster
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -143,6 +145,9 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         uptime_sub.refresh_from_db()
         prev_subscription_id = uptime_sub.subscription_id
 
+        # Create a detector for this subscription
+        detector = self.create_uptime_detector(uptime_subscription=uptime_sub)
+
         url = "https://santry.io"
         interval_seconds = 600
         timeout_ms = 1000
@@ -151,12 +156,13 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         trace_sampling = True
         with self.tasks():
             update_uptime_subscription(
-                uptime_sub,
-                url,
-                interval_seconds,
-                timeout_ms,
-                method,
-                [("something", "some_val")],
+                detector=detector,
+                subscription=uptime_sub,
+                url=url,
+                interval_seconds=interval_seconds,
+                timeout_ms=timeout_ms,
+                method=method,
+                headers=[("something", "some_val")],
                 body=body,
                 trace_sampling=trace_sampling,
             )
@@ -173,6 +179,55 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         assert uptime_sub.headers == [["something", "some_val"]]
         assert uptime_sub.body == body
         assert uptime_sub.trace_sampling == trace_sampling
+
+    def test_interval_change_sets_redis_timestamp(self) -> None:
+        """Verify that updating the interval sets the interval change timestamp in Redis."""
+        with self.tasks():
+            uptime_sub = create_uptime_subscription("https://sentry.io", 300, 500)
+        uptime_sub.refresh_from_db()
+
+        detector = self.create_uptime_detector(uptime_subscription=uptime_sub)
+        cluster = get_cluster()
+        interval_change_key = build_last_interval_change_timestamp_key(detector)
+
+        assert cluster.get(interval_change_key) is None
+
+        with self.tasks():
+            update_uptime_subscription(
+                detector=detector,
+                subscription=uptime_sub,
+                interval_seconds=600,
+            )
+
+        timestamp_ms = cluster.get(interval_change_key)
+        assert timestamp_ms is not None
+        assert int(timestamp_ms) > 0
+
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        assert abs(now_ms - int(timestamp_ms)) < 60000  # Within 60 seconds
+
+    def test_no_interval_change_no_redis_timestamp(self) -> None:
+        """Verify that updating without changing interval does not set Redis timestamp."""
+        with self.tasks():
+            uptime_sub = create_uptime_subscription("https://sentry.io", 300, 500)
+        uptime_sub.refresh_from_db()
+
+        # Create a detector for this subscription
+        detector = self.create_uptime_detector(uptime_subscription=uptime_sub)
+        cluster = get_cluster()
+        interval_change_key = build_last_interval_change_timestamp_key(detector)
+
+        # Update with the same interval (no change)
+        with self.tasks():
+            update_uptime_subscription(
+                detector=detector,
+                subscription=uptime_sub,
+                url="https://santry.io",  # Change something else
+                interval_seconds=300,  # Same as original
+            )
+
+        # Verify no timestamp was set
+        assert cluster.get(interval_change_key) is None
 
 
 class DeleteUptimeSubscriptionTest(UptimeTestCase):
