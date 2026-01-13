@@ -12,22 +12,33 @@ import type {
 // It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
 export function rc<T>(
   property: string,
-  value: Responsive<T> | undefined,
+  value: Responsive<T> | T | undefined,
   theme: Theme,
   // Optional resolver function to transform the value before it is applied to the CSS property.
-  resolver?: (value: T, breakpoint: BreakpointSize | undefined, theme: Theme) => string
+  resolver?: (
+    value: T extends Responsive<infer U> ? U : T,
+    breakpoint: BreakpointSize | undefined,
+    theme: Theme
+  ) => string,
+  defaultValue?: T
 ): SerializedStyles | undefined {
-  if (!value) {
+  const valueOrDefault = value ?? defaultValue;
+
+  if (!valueOrDefault) {
     return undefined;
   }
 
   // Most values are unlikely to be responsive, so we can resolve
   // them directly and return early.
-  if (!isResponsive(value)) {
+  if (!isResponsive(valueOrDefault)) {
     return css`
       ${property}: ${resolver
-        ? resolver(value as T, undefined, theme)
-        : (value as string)};
+        ? resolver(
+            valueOrDefault as T extends Responsive<infer U> ? U : T,
+            undefined,
+            theme
+          )
+        : (valueOrDefault as string)};
     `;
   }
 
@@ -35,7 +46,7 @@ export function rc<T>(
 
   return css`
     ${BREAKPOINT_ORDER.map(breakpoint => {
-      const v = value[breakpoint];
+      const v = valueOrDefault[breakpoint];
       if (v === undefined) {
         return undefined;
       }

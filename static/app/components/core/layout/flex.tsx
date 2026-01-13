@@ -64,7 +64,7 @@ export const Flex = styled(Container, {
     return !omitFlexProps.has(prop as any);
   },
 })<FlexProps<any>>`
-  ${p => rc('display', p.display ?? 'flex', p.theme, v => v ?? 'flex')};
+  ${p => rc('display', p.display, p.theme, undefined, 'flex')};
   ${p => rc('order', p.order, p.theme)};
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
 
