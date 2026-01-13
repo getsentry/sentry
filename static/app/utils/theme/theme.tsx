@@ -552,8 +552,6 @@ const commonTheme = {
   ...formTheme,
 };
 
-type Aliases = typeof lightAliases;
-
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
