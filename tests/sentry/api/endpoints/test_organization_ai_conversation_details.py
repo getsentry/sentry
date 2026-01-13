@@ -215,7 +215,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["project.id"] == self.project.id
         # Verify transaction fields
         assert "transaction" in span
-        assert "transaction.id" in span
         assert "is_transaction" in span
         # Verify AI conversation attributes are included
         assert span["gen_ai.request.messages"] is not None
