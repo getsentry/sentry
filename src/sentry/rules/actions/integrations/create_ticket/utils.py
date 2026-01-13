@@ -5,7 +5,6 @@ from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationInstallation
@@ -143,9 +142,9 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             installation, IssueBasicIntegration
         ), "Installation must be an IssueBasicIntegration to create a ticket"
         data["title"] = installation.get_group_title(event.group, event)
-        if features.has("organizations:workflow-engine-ui-links", organization):
-            workflow_id = data.get("workflow_id")
-            assert workflow_id is not None
+
+        workflow_id = data.get("workflow_id")
+        if workflow_id is not None:
             data["description"] = build_description_workflow_engine_ui(
                 event, workflow_id, installation, generate_footer
             )
