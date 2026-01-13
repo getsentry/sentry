@@ -103,6 +103,7 @@ export enum SpanFields {
   GEN_AI_RESPONSE_TEXT = 'gen_ai.response.text',
   GEN_AI_RESPONSE_OBJECT = 'gen_ai.response.object',
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
+  GEN_AI_RESPONSE_TOOL_CALLS = 'gen_ai.response.tool_calls',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
   GEN_AI_COST_INPUT_TOKENS = 'gen_ai.cost.input_tokens',
   GEN_AI_COST_OUTPUT_TOKENS = 'gen_ai.cost.output_tokens',
