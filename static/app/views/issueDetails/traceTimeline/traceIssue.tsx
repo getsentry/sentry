@@ -134,7 +134,7 @@ const TraceIssueLinkContainer = styled(Link)`
   font-size: ${p => p.theme.fontSize.md};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundTertiary};
+    background-color: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
