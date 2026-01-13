@@ -180,42 +180,44 @@ function ToggleConsolePlatformsModal({
               <SimpleTable.Empty>No invites found</SimpleTable.Empty>
             )}
 
-          {userIdentities.map(({email, platforms, user_id}: ConsoleSdkInviteUser) => (
-            <SimpleTable.Row key={user_id}>
-              <SimpleTable.RowCell>
-                <Link to={`/_admin/users/${user_id}`}>{email}</Link>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <Flex gap="sm">
-                  {platforms.map(platform => {
-                    const isPlatformRevoking =
-                      isRevokePending &&
-                      revokeVariables?.userId === user_id &&
-                      revokeVariables?.platform === platform;
+          {!isInvitesFetchPending &&
+            !isInvitesFetchError &&
+            userIdentities.map(({email, platforms, user_id}: ConsoleSdkInviteUser) => (
+              <SimpleTable.Row key={user_id}>
+                <SimpleTable.RowCell>
+                  <Link to={`/_admin/users/${user_id}`}>{email}</Link>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <Flex gap="sm">
+                    {platforms.map(platform => {
+                      const isPlatformRevoking =
+                        isRevokePending &&
+                        revokeVariables?.userId === user_id &&
+                        revokeVariables?.platform === platform;
 
-                    return (
-                      <Tag
-                        key={platform}
-                        variant="muted"
-                        onDismiss={() => {
-                          if (!isPlatformRevoking) {
-                            revokeConsoleInvite({
-                              userId: user_id,
-                              email,
-                              platform,
-                              orgSlug: organization.slug,
-                            });
-                          }
-                        }}
-                      >
-                        {platform}
-                      </Tag>
-                    );
-                  })}
-                </Flex>
-              </SimpleTable.RowCell>
-            </SimpleTable.Row>
-          ))}
+                      return (
+                        <Tag
+                          key={platform}
+                          variant="muted"
+                          onDismiss={() => {
+                            if (!isPlatformRevoking) {
+                              revokeConsoleInvite({
+                                userId: user_id,
+                                email,
+                                platform,
+                                orgSlug: organization.slug,
+                              });
+                            }
+                          }}
+                        >
+                          {platform}
+                        </Tag>
+                      );
+                    })}
+                  </Flex>
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            ))}
         </SimpleTableWithColumns>
       </Body>
     </Form>
