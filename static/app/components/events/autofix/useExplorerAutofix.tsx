@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
   setApiQueryData,
   useApiQuery,
@@ -407,6 +407,8 @@ export function useExplorerAutofix(
   const triggerCodingAgentHandoff = useCallback(
     async (runId: number, integrationId: number) => {
       setWaitingForResponse(true);
+
+      addLoadingMessage('Launching coding agent...');
 
       try {
         const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
