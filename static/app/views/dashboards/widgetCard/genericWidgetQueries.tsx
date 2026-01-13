@@ -440,7 +440,6 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     return () => {
       isMountedRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
