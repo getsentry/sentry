@@ -130,21 +130,32 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
     try:
         return getter(**params), False
     except Group.DoesNotExist as error:
+        from django.db import router
+
         from sentry.models.groupredirect import GroupRedirect
+
+        # Use the primary database for GroupRedirect lookups to avoid replication lag
+        # This is critical when a group has just been merged/deleted and the redirect
+        # may not yet be visible on replicas
+        redirect_db = router.db_for_write(GroupRedirect)
 
         if short_id:
             params = {
-                "id__in": GroupRedirect.objects.filter(
+                "id__in": GroupRedirect.objects.using(redirect_db)
+                .filter(
                     organization_id=organization.id,
                     previous_short_id=short_id.short_id,
                     previous_project_slug=short_id.project_slug,
-                ).values_list("group_id", flat=True)[:1]
+                )
+                .values_list("group_id", flat=True)[:1]
             }
         else:
             params = {
-                "id__in": GroupRedirect.objects.filter(
+                "id__in": GroupRedirect.objects.using(redirect_db)
+                .filter(
                     previous_group_id=id_or_qualified_short_id,
-                ).values_list("group_id", flat=True)[:1]
+                )
+                .values_list("group_id", flat=True)[:1]
             }
 
         try:

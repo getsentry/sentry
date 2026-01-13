@@ -512,6 +512,7 @@ def post_process_group(
     """
     Fires post processing hooks for a group.
     """
+    from sentry.models.group import Group
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
@@ -621,7 +622,20 @@ def post_process_group(
                 "is_new_group_environment": is_new_group_environment,
             }
 
-            group_event = update_event_group(event, group_state)
+            try:
+                group_event = update_event_group(event, group_state)
+            except Group.DoesNotExist:
+                # Group was deleted (likely merged) while this task was queued
+                logger.info(
+                    "post_process_group.group_not_found",
+                    extra={
+                        "event_id": event.event_id,
+                        "project_id": event.project_id,
+                        "group_id": group_id,
+                    },
+                )
+                return
+
             bind_organization_context(event.project.organization)
             _capture_event_stats(event)
             if should_update_escalating_metrics(event):

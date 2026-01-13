@@ -99,6 +99,40 @@ class GroupTest(TestCase, SnubaTestCase):
         with pytest.raises(Group.DoesNotExist):
             get_group_with_redirect(duplicate_id)
 
+    def test_get_group_with_redirect_uses_primary_db(self) -> None:
+        """
+        Test that get_group_with_redirect uses the primary database for
+        GroupRedirect lookups to avoid replication lag issues.
+        """
+        from django.db import router
+
+        from sentry.models.groupredirect import GroupRedirect
+
+        group = self.create_group()
+        duplicate_id = self.create_group().id
+        
+        # Delete the duplicate group and create a redirect
+        Group.objects.filter(id=duplicate_id).delete()
+        GroupRedirect.objects.create(group_id=group.id, previous_group_id=duplicate_id)
+
+        # Mock the GroupRedirect.objects.using() to verify it's called with write DB
+        with patch.object(GroupRedirect.objects, "using") as mock_using:
+            # Set up the mock to return a queryset-like object
+            mock_queryset = mock.Mock()
+            mock_queryset.filter.return_value = mock_queryset
+            mock_queryset.values_list.return_value = mock_queryset
+            mock_queryset.__getitem__.return_value = [group.id]
+            mock_using.return_value = mock_queryset
+
+            try:
+                get_group_with_redirect(duplicate_id)
+            except Group.DoesNotExist:
+                pass  # Expected since our mock doesn't fully implement the query
+
+            # Verify that using() was called with the write database
+            expected_db = router.db_for_write(GroupRedirect)
+            mock_using.assert_called_once_with(expected_db)
+
     def test_get_group_with_redirect_from_qualified_short_id(self) -> None:
         group = self.create_group()
         assert group.qualified_short_id

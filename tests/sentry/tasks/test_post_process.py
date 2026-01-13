@@ -3510,6 +3510,47 @@ class PostProcessGroupErrorTest(
             },
         )
 
+    @patch("sentry.tasks.post_process.logger")
+    def test_group_deleted_during_task_execution(self, mock_logger):
+        """
+        Test that post_process_group gracefully handles when a group is deleted
+        (e.g., due to a merge) while the task is queued/executing.
+        """
+        min_ago = before_now(minutes=1).isoformat()
+        event = self.create_event(
+            data={"message": "test message", "timestamp": min_ago},
+            project_id=self.project.id,
+        )
+        
+        # Write event to cache
+        cache_key = write_event_to_cache(event)
+        
+        # Simulate the group being deleted before post_process_group runs
+        # (e.g., due to a concurrent merge operation)
+        deleted_group_id = event.group_id
+        Group.objects.filter(id=deleted_group_id).delete()
+        
+        # post_process_group should handle this gracefully without raising
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=deleted_group_id,
+            project_id=event.project_id,
+            eventstream_type=EventStreamEventType.Error.value,
+        )
+        
+        # Verify that we logged the missing group
+        mock_logger.info.assert_called_with(
+            "post_process_group.group_not_found",
+            extra={
+                "event_id": event.event_id,
+                "project_id": event.project_id,
+                "group_id": deleted_group_id,
+            },
+        )
+
 
 class PostProcessGroupPerformanceTest(
     TestCase,
