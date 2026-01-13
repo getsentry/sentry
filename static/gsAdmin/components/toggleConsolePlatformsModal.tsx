@@ -18,6 +18,7 @@ import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
@@ -51,6 +52,8 @@ function InviteRow({invite, onRevoke, revokingPlatform, revokingUserId}: InviteR
           {platforms.map(platform => {
             const isPlatformRevoking =
               revokingUserId === user_id && revokingPlatform === platform;
+            const displayName =
+              CONSOLE_PLATFORM_METADATA[platform]?.displayName ?? platform;
 
             return (
               <Tag
@@ -62,7 +65,7 @@ function InviteRow({invite, onRevoke, revokingPlatform, revokingUserId}: InviteR
                   }
                 }}
               >
-                {platform}
+                {displayName}
               </Tag>
             );
           })}
