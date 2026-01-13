@@ -1,5 +1,6 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
@@ -20,17 +21,13 @@ import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {
-  TraceItemSearchQueryBuilder,
-  useTraceItemSearchQueryBuilderProps,
-} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -163,33 +160,12 @@ function MobileAppSizeSearchBar({
   WidgetBuilderSearchBarProps,
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
-  const {
-    selection: {projects},
-  } = usePageFilters();
-  const organization = useOrganization();
-
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.PREPROD,
-    enabled: organization.features.includes('preprod-app-size-dashboard'),
-  };
-
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
-
   return (
-    <TraceItemSearchQueryBuilder
+    <PreprodSearchBar
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
-      itemType={TraceItemDataset.PREPROD}
-      numberAttributes={numberAttributes}
-      stringAttributes={stringAttributes}
-      numberSecondaryAliases={numberSecondaryAliases}
-      stringSecondaryAliases={stringSecondaryAliases}
-      searchSource="dashboards"
-      projects={projects}
       portalTarget={portalTarget}
+      searchSource="dashboards"
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}
