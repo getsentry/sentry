@@ -157,16 +157,18 @@ def get_participants_by_event(
     DB calls while we iterate over every event. It would be great if we could
     combine some queries.
     """
-    return {
-        event: get_send_to(
-            project=project,
-            target_type=target_type,
-            target_identifier=target_identifier,
-            event=event,
-            fallthrough_choice=fallthrough_choice,
-        )
-        for event in get_event_from_groups_in_digest(digest)
-    }
+    from sentry.notifications.utils.participants import get_send_to_with_batched_suspect_committers
+    
+    events = list(get_event_from_groups_in_digest(digest))
+    
+    # Batch fetch suspect committers for all events to avoid sequential RPC calls
+    return get_send_to_with_batched_suspect_committers(
+        events=events,
+        project=project,
+        target_type=target_type,
+        target_identifier=target_identifier,
+        fallthrough_choice=fallthrough_choice,
+    )
 
 
 def sort_records(records: Sequence[Record]) -> Sequence[Record]:

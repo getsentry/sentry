@@ -275,6 +275,61 @@ def get_suspect_commit_users(project: Project, event: Event | GroupEvent) -> lis
     return [committer for committer in suspect_committers if committer.id in in_project_user_ids]
 
 
+def get_suspect_commit_users_for_events(
+    project: Project, events: Sequence[Event | GroupEvent]
+) -> Mapping[Event | GroupEvent, list[RpcUser]]:
+    """
+    Batch fetches suspect committers for multiple events in a single RPC call.
+
+    `project`: The project that the events are associated to
+    `events`: The events that suspect committers are wanted for
+
+    Returns a mapping of event to list of suspect commit users.
+    """
+    # Collect all unique emails from all events
+    event_to_emails: dict[Event | GroupEvent, list[str]] = {}
+    all_emails = set()
+
+    for event in events:
+        committers: Sequence[AuthorCommitsSerialized] = get_serialized_event_file_committers(
+            project, event
+        )
+        user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore[index]
+        event_to_emails[event] = user_emails
+        all_emails.update(user_emails)
+
+    # Make a single RPC call for all emails
+    if not all_emails:
+        return {event: [] for event in events}
+
+    all_suspect_committers = user_service.get_many_by_email(
+        emails=list(all_emails), is_verified=True
+    )
+
+    # Build a mapping of email to user
+    email_to_user = {user.email: user for user in all_suspect_committers if user.email}
+
+    # Get all in-project user IDs in a single query
+    in_project_user_ids = set(
+        OrganizationMember.objects.filter(
+            teams__projectteam__project__in=[project],
+            user_id__in=[user.id for user in all_suspect_committers],
+        ).values_list("user_id", flat=True)
+    )
+
+    # Build the result mapping
+    result: dict[Event | GroupEvent, list[RpcUser]] = {}
+    for event, emails in event_to_emails.items():
+        users = [
+            email_to_user[email]
+            for email in emails
+            if email in email_to_user and email_to_user[email].id in in_project_user_ids
+        ]
+        result[event] = users
+
+    return result
+
+
 def dedupe_suggested_assignees(suggested_assignees: Iterable[Actor]) -> list[Actor]:
     return list({assignee.id: assignee for assignee in suggested_assignees}.values())
 
@@ -386,6 +441,146 @@ def get_send_to(
         target_identifier,
         notification_uuid,
     )
+
+
+def get_send_to_with_batched_suspect_committers(
+    events: Sequence[Event | GroupEvent],
+    project: Project,
+    target_type: ActionTargetType,
+    target_identifier: int | None = None,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
+    fallthrough_choice: FallthroughChoiceType | None = None,
+    rules: Iterable[Rule] | None = None,
+    notification_uuid: str | None = None,
+) -> Mapping[Event | GroupEvent, Mapping[ExternalProviders, set[Actor]]]:
+    """
+    Optimized version of get_send_to that batches suspect committer fetching for multiple events.
+    
+    This reduces the number of RPC calls from O(n) to O(1) where n is the number of events,
+    significantly improving performance for digest processing.
+    """
+    # Batch fetch suspect committers for all events to avoid sequential RPC calls
+    suspect_committers_by_event: Mapping[Event | GroupEvent, list[RpcUser]] = {}
+    if target_type == ActionTargetType.ISSUE_OWNERS:
+        try:
+            suspect_committers_by_event = get_suspect_commit_users_for_events(project, events)
+        except Exception:
+            logger.exception("Could not batch fetch suspect committers. Continuing execution.")
+            # Fallback to empty mapping
+            suspect_committers_by_event = {event: [] for event in events}
+    
+    # Process each event with pre-fetched suspect committers
+    result = {}
+    for event in events:
+        suspect_committers = suspect_committers_by_event.get(event, [])
+        recipients = _determine_eligible_recipients_with_suspect_committers(
+            project, target_type, target_identifier, event, fallthrough_choice, suspect_committers
+        )
+
+        if rules:
+            rule_snoozes = RuleSnooze.objects.filter(Q(rule__in=rules))
+            muted_user_ids = []
+            for rule_snooze in rule_snoozes:
+                if rule_snooze.user_id is None:
+                    result[event] = {}
+                    continue
+                else:
+                    muted_user_ids.append(rule_snooze.user_id)
+
+            if muted_user_ids:
+                recipients = filter(
+                    lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
+                )
+        
+        result[event] = _get_recipients_by_provider(
+            project,
+            recipients,
+            notification_type_enum,
+            target_type,
+            target_identifier,
+            notification_uuid,
+        )
+    
+    return result
+
+
+def _determine_eligible_recipients_with_suspect_committers(
+    project: Project,
+    target_type: ActionTargetType,
+    target_identifier: int | None = None,
+    event: Event | GroupEvent | None = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
+    suspect_committers: list[RpcUser] | None = None,
+) -> Iterable[Actor]:
+    """
+    Internal version of determine_eligible_recipients that accepts pre-fetched suspect committers.
+    This is used for batch processing to avoid sequential RPC calls.
+    """
+    if not (project and project.teams.exists()):
+        logger.debug("Tried to send notification to invalid project: %s", project)
+
+    elif target_type == ActionTargetType.MEMBER:
+        user = get_user_from_identifier(project, target_identifier)
+        if user:
+            return [Actor.from_object(user)]
+
+    elif target_type == ActionTargetType.TEAM:
+        team = get_team_from_identifier(project, target_identifier)
+        if team:
+            return [Actor.from_orm_team(team)]
+
+    elif target_type == ActionTargetType.ISSUE_OWNERS:
+        if not event:
+            return []
+
+        suggested_assignees, outcome = get_owners(project, event, fallthrough_choice)
+
+        # We're adding the current assignee to the list of suggested assignees because
+        # a new issue could have multiple codeowners and one of them got auto-assigned.
+        group_assignee = (
+            GroupAssignee.objects.filter(group_id=event.group_id).first()
+            if event.group_id is not None
+            else None
+        )
+        if group_assignee:
+            outcome = "match"
+            assignee_actor = group_assignee.assigned_actor()
+            suggested_assignees.append(assignee_actor)
+
+        suspect_commit_users = None
+
+        # Use pre-fetched suspect committers if available
+        if suspect_committers is not None:
+            suspect_commit_users = Actor.many_from_object(suspect_committers)
+            suggested_assignees.extend(suspect_commit_users)
+        else:
+            # Fallback to individual fetching if not pre-fetched
+            try:
+                suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
+                suggested_assignees.extend(suspect_commit_users)
+            except (Release.DoesNotExist, Commit.DoesNotExist):
+                logger.info("Skipping suspect committers because release does not exist.")
+            except Exception:
+                logger.exception("Could not get suspect committers. Continuing execution.")
+
+        metrics.incr(
+            "features.owners.send_to",
+            tags={
+                "outcome": (
+                    outcome
+                    if outcome == "match" or fallthrough_choice is None
+                    else fallthrough_choice.value
+                ),
+                "hasSuspectCommitters": str(bool(suspect_commit_users)),
+            },
+        )
+
+        if suggested_assignees:
+            return dedupe_suggested_assignees(suggested_assignees)
+
+        return Actor.many_from_object(get_fallthrough_recipients(project, fallthrough_choice))
+
+    return set()
 
 
 def get_fallthrough_recipients(
