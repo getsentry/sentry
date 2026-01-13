@@ -88,7 +88,7 @@ const NeedHelpLink = styled(ExternalLink)`
 const ActiveTrialHeader = styled('div')`
   font-size: 14px;
   text-transform: uppercase;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 const ActiveTrialWrapper = styled('div')`
