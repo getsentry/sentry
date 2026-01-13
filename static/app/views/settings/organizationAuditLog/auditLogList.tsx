@@ -13,8 +13,11 @@ import {DateTime} from 'sentry/components/dateTime';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {
   getAbsoluteSummary,
   getArbitraryRelativePeriod,
@@ -328,9 +331,11 @@ function AuditLogList({
         }}
         utc={utc}
         maxPickableDays={getDaysSinceDate(organization.dateCreated)}
-        triggerProps={{
-          children: displayLabel,
-        }}
+        trigger={triggerProps => (
+          <TimeRangeSelectTrigger {...triggerProps}>
+            {displayLabel ?? triggerProps.children}
+          </TimeRangeSelectTrigger>
+        )}
       />
       <EventSelector
         clearable
