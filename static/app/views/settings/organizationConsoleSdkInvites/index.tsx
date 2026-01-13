@@ -52,7 +52,9 @@ export default function ConsoleSDKInvitesSettings() {
         action={
           <Tooltip
             title={getTooltipText(userHasConsoleAccess, userHasQuotaRemaining)}
-            disabled={userHasConsoleAccess && userHasQuotaRemaining}
+            disabled={
+              isPending || isError || (userHasConsoleAccess && userHasQuotaRemaining)
+            }
           >
             <RequestSdkAccessButton
               disabled={!(userHasConsoleAccess && userHasQuotaRemaining)}
