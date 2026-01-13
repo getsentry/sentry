@@ -135,6 +135,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     organization=self.context["organization"], user_id=user_id
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
+
+                # Store the user_id instead of email for consistency with the target property
+                # which expects an integer user_id
+                attrs["target_identifier"] = str(user_id)
         elif action_type == AlertRuleTriggerAction.Type.SLACK:
             if not attrs.get("integration_id"):
                 raise serializers.ValidationError(

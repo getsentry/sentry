@@ -1136,6 +1136,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     def test_user_email_identifier(self) -> None:
         # Test valid user email that belongs to organization
+        # Email should be converted to user_id during validation
         serializer = AlertRuleTriggerActionSerializer(
             context=self.context,
             data={
@@ -1147,7 +1148,8 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             },
         )
         assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["target_identifier"] == self.user.email
+        # Verify email was converted to user_id
+        assert serializer.validated_data["target_identifier"] == str(self.user.id)
 
         # Test user email that doesn't belong to organization
         other_user = self.create_user(email="outsider@example.com")
