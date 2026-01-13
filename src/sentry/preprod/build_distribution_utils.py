@@ -15,9 +15,8 @@ logger = logging.getLogger(__name__)
 
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
     # TODO: Adjust this logic when we have a better way to determine if an artifact is installable
-    build_number = (
-        artifact.mobile_app_info.build_number if hasattr(artifact, "mobile_app_info") else None
-    )
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    build_number = mobile_app_info.build_number if mobile_app_info else None
     return artifact.installable_app_file_id is not None and build_number is not None
 
 

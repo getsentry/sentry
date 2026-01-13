@@ -364,16 +364,9 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 }
             )
 
-        build_version = (
-            head_artifact.mobile_app_info.build_version
-            if hasattr(head_artifact, "mobile_app_info")
-            else None
-        )
-        build_number = (
-            head_artifact.mobile_app_info.build_number
-            if hasattr(head_artifact, "mobile_app_info")
-            else None
-        )
+        mobile_app_info = getattr(head_artifact, "mobile_app_info", None)
+        build_version = mobile_app_info.build_version if mobile_app_info else None
+        build_number = mobile_app_info.build_number if mobile_app_info else None
         if (
             head_artifact.app_id
             and build_version

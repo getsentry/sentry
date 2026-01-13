@@ -64,9 +64,8 @@ def bulk_delete_artifacts(
             all_file_ids.append(artifact.file_id)
         if artifact.installable_app_file_id:
             all_file_ids.append(artifact.installable_app_file_id)
-        app_icon_id = (
-            artifact.mobile_app_info.app_icon_id if hasattr(artifact, "mobile_app_info") else None
-        )
+        mobile_app_info = getattr(artifact, "mobile_app_info", None)
+        app_icon_id = mobile_app_info.app_icon_id if mobile_app_info else None
         if app_icon_id:
             try:
                 all_file_ids.append(int(app_icon_id))

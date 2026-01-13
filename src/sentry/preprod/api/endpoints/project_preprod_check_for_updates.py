@@ -145,32 +145,19 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 "No artifact found for binary identifier with version %s", provided_build_version
             )
 
-        build_version = (
-            preprod_artifact.mobile_app_info.build_version
-            if preprod_artifact and hasattr(preprod_artifact, "mobile_app_info")
-            else None
-        )
-        build_number = (
-            preprod_artifact.mobile_app_info.build_number
-            if preprod_artifact and hasattr(preprod_artifact, "mobile_app_info")
-            else None
-        )
-        app_name = (
-            preprod_artifact.mobile_app_info.app_name
-            if preprod_artifact and hasattr(preprod_artifact, "mobile_app_info")
-            else None
-        )
-        if preprod_artifact and build_version and build_number:
+        mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+
+        if preprod_artifact and mobile_app_info:
             current = InstallableBuildDetails(
                 id=str(preprod_artifact.id),
-                build_version=build_version,
-                build_number=build_number,
+                build_version=mobile_app_info.build_version,
+                build_number=mobile_app_info.build_number,
                 release_notes=(
                     preprod_artifact.extras.get("release_notes")
                     if preprod_artifact.extras
                     else None
                 ),
-                app_name=app_name,
+                app_name=mobile_app_info.app_name,
                 download_url=get_download_url_for_artifact(preprod_artifact),
                 created_date=preprod_artifact.date_added.isoformat(),
             )
@@ -224,21 +211,10 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                     ),
                 )
                 if not preprod_artifact or preprod_artifact.id != best_artifact.id:
-                    best_build_version = (
-                        best_artifact.mobile_app_info.build_version
-                        if hasattr(best_artifact, "mobile_app_info")
-                        else None
-                    )
-                    best_build_number = (
-                        best_artifact.mobile_app_info.build_number
-                        if hasattr(best_artifact, "mobile_app_info")
-                        else None
-                    )
-                    best_app_name = (
-                        best_artifact.mobile_app_info.app_name
-                        if hasattr(best_artifact, "mobile_app_info")
-                        else None
-                    )
+                    mobile_app_info = getattr(best_artifact, "mobile_app_info", None)
+                    best_build_version = mobile_app_info.build_version if mobile_app_info else None
+                    best_build_number = mobile_app_info.build_number if mobile_app_info else None
+                    best_app_name = mobile_app_info.app_name if mobile_app_info else None
                     if best_build_version and best_build_number:
                         update = InstallableBuildDetails(
                             id=str(best_artifact.id),

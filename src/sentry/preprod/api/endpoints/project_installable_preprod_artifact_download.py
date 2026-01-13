@@ -67,16 +67,10 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
 
         if format_type == "plist":
             app_id = preprod_artifact.app_id
-            build_version = (
-                preprod_artifact.mobile_app_info.build_version
-                if hasattr(preprod_artifact, "mobile_app_info")
-                else None
-            )
-            app_name = (
-                preprod_artifact.mobile_app_info.app_name
-                if hasattr(preprod_artifact, "mobile_app_info")
-                else None
-            )
+
+            mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+            build_version = mobile_app_info.build_version if mobile_app_info else None
+            app_name = mobile_app_info.app_name if mobile_app_info else None
             if not app_id or not build_version or not app_name:
                 return Response({"error": "App details not found"}, status=404)
 
@@ -143,18 +137,11 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
 
             fp = file_obj.getfile()
             filename = preprod_artifact.app_id or "app"
-            build_version = (
-                preprod_artifact.mobile_app_info.build_version
-                if hasattr(preprod_artifact, "mobile_app_info")
-                else None
-            )
+            mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+            build_version = mobile_app_info.build_version if mobile_app_info else None
             if build_version:
                 filename += f"@{build_version}"
-            build_number = (
-                preprod_artifact.mobile_app_info.build_number
-                if hasattr(preprod_artifact, "mobile_app_info")
-                else None
-            )
+            build_number = mobile_app_info.build_number if mobile_app_info else None
             if build_number:
                 filename += f"+{build_number}"
             ext = format_type if format_type else "bin"
