@@ -19,6 +19,7 @@ from requests.exceptions import Timeout
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.objectstore.endpoints.organization import get_raw_body
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.util import (
@@ -205,6 +206,12 @@ def proxy_region_request(
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
+    data = None
+    if url_name == "sentry-api-0-organization-objectstore":
+        data = get_raw_body(request)
+    else:
+        data = _body_with_length(request)
+
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
             resp = external_request(
@@ -212,7 +219,7 @@ def proxy_region_request(
                 url=target_url,
                 headers=header_dict,
                 params=dict(query_params) if query_params is not None else None,
-                data=_body_with_length(request),
+                data=data,
                 stream=True,
                 timeout=timeout,
                 # By default, external_request will resolve any redirects for any verb except for HEAD.
