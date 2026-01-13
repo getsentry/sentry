@@ -1,7 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Level} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';
-import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
@@ -15,32 +13,32 @@ const options: NonNullable<
       {
         value: BreadcrumbType.HTTP,
         label: 'HTTP request',
-        leadingItems: <Type variant="success" type={BreadcrumbType.HTTP} />,
+        leadingItems: <span>http</span>,
       },
       {
         value: BreadcrumbType.TRANSACTION,
         label: 'Transaction',
-        leadingItems: <Type variant="promotion" type={BreadcrumbType.TRANSACTION} />,
+        leadingItems: <span>transaction</span>,
       },
       {
         value: BreadcrumbType.UI,
         label: 'User Action',
-        leadingItems: <Type variant="accent" type={BreadcrumbType.UI} />,
+        leadingItems: <span>ui</span>,
       },
       {
         value: BreadcrumbType.NAVIGATION,
         label: 'Navigation',
-        leadingItems: <Type variant="success" type={BreadcrumbType.NAVIGATION} />,
+        leadingItems: <span>navigation</span>,
       },
       {
         value: BreadcrumbType.DEBUG,
         label: 'Debug',
-        leadingItems: <Type variant="accent" type={BreadcrumbType.DEBUG} />,
+        leadingItems: <span>debug</span>,
       },
       {
         value: BreadcrumbType.ERROR,
         label: 'Error',
-        leadingItems: <Type variant="danger" type={BreadcrumbType.ERROR} />,
+        leadingItems: <span>error</span>,
       },
     ],
   },
@@ -51,12 +49,12 @@ const options: NonNullable<
       {
         value: BreadcrumbLevelType.INFO,
         label: 'info',
-        leadingItems: <Level level={BreadcrumbLevelType.INFO} />,
+        leadingItems: <span>info</span>,
       },
       {
         value: BreadcrumbLevelType.ERROR,
         label: 'error',
-        leadingItems: <Level level={BreadcrumbLevelType.ERROR} />,
+        leadingItems: <span>error</span>,
       },
     ],
   },

@@ -22,13 +22,17 @@ import {
 import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 const MAX_BREADCRUMBS_HEIGHT = 400;
 
-export function BreadCrumbs({event}: {event: EventTransaction}) {
+interface EventBreadcrumbsSectionProps {
+  event: Event;
+}
+
+export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
   const theme = useTheme();
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
