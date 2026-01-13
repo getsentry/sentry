@@ -51,13 +51,11 @@ export default function ConsoleSDKInvitesSettings() {
         title={t('Console SDK Invites')}
         action={
           <Tooltip
-            title={getTooltipText(userHasConsoleAccess, userHasQuotaRemaining)}
-            disabled={
-              isPending || isError || (userHasConsoleAccess && userHasQuotaRemaining)
-            }
+            title={t('Your organization does not have any console platforms enabled')}
+            disabled={isPending || isError || userHasConsoleAccess}
           >
             <RequestSdkAccessButton
-              disabled={!(userHasConsoleAccess && userHasQuotaRemaining)}
+              disabled={isPending || isError || !userHasConsoleAccess}
               organization={organization}
               origin="org-settings"
             />
@@ -126,16 +124,6 @@ export default function ConsoleSDKInvitesSettings() {
       </InvitesTable>
     </Fragment>
   );
-}
-
-function getTooltipText(userHasConsoleAccess: boolean, userHasQuotaRemaining: boolean) {
-  if (!userHasConsoleAccess) {
-    return t('Your organization does not have any console platforms enabled');
-  }
-  if (!userHasQuotaRemaining) {
-    return t('Your organization does not have any invites remaining');
-  }
-  return '';
 }
 
 function NoAccessAlert() {
