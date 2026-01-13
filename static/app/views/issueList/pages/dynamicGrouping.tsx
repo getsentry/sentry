@@ -1021,7 +1021,7 @@ const CardContainer = styled('div')`
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
-    border-color: ${p => p.theme.colors.blue200};
+    border-color: ${p => p.theme.tokens.border.accent.moderate};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
@@ -1109,18 +1109,18 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
     switch (p.color) {
       case 'purple':
         return `
-          background: ${p.theme.colors.blue100};
-          color: ${p.theme.colors.blue400};
+          background: ${p.theme.tokens.background.transparent.accent.muted};
+          color: ${p.theme.tokens.content.accent};
         `;
       case 'yellow':
         return `
-          background: ${p.theme.colors.yellow100};
-          color: ${p.theme.colors.yellow400};
+          background: ${p.theme.tokens.background.transparent.warning.muted};
+          color: ${p.theme.tokens.content.warning};
         `;
       case 'red':
         return `
-          background: ${p.theme.colors.red100};
-          color: ${p.theme.colors.red400};
+          background: ${p.theme.tokens.background.transparent.danger.muted};
+          color: ${p.theme.tokens.content.danger};
         `;
       default:
         return '';
@@ -1225,7 +1225,7 @@ const ShowMoreButton = styled('button')`
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
-    border-color: ${p => p.theme.colors.blue400};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;

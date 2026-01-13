@@ -9,7 +9,6 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
-import Color from 'color';
 
 import {Text} from '@sentry/scraps/text';
 
@@ -355,8 +354,6 @@ export function EventGraph({
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
-    const translucentGray300 = Color(theme.colors.gray400).alpha(0.5).string();
-    const lightGray300 = Color(theme.colors.gray400).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -364,8 +361,8 @@ export function EventGraph({
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.colors.gray200,
-            color: lightGray300,
+            borderColor: theme.tokens.border.transparent.neutral.muted,
+            color: theme.tokens.dataviz.semantic.neutral,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -377,8 +374,10 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.colors.gray200,
-          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
+          borderColor: theme.tokens.border.transparent.neutral.muted,
+          color: isUnfilteredStatsEnabled
+            ? theme.tokens.dataviz.semantic.accent
+            : theme.tokens.dataviz.semantic.other,
         },
         data: userSeries,
         animation: false,
@@ -390,8 +389,8 @@ export function EventGraph({
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.colors.gray200,
-            color: lightGray300,
+            borderColor: theme.tokens.border.transparent.neutral.muted,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,
@@ -403,8 +402,10 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.colors.gray200,
-          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
+          borderColor: theme.tokens.border.transparent.neutral.muted,
+          color: isUnfilteredStatsEnabled
+            ? theme.tokens.dataviz.semantic.accent
+            : theme.tokens.dataviz.semantic.neutral,
         },
         data: eventSeries,
         animation: false,
