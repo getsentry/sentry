@@ -30,9 +30,7 @@ describe('theme', () => {
   it('serializes style object using vibrant variant', () => {
     const theme = renderHookWithProviders(useTheme).result.current;
 
-    render(
-      <div style={{borderColor: theme.tokens.border.promotion.vibrant}}>Hello</div>
-    );
+    render(<div style={{borderColor: theme.tokens.border.promotion.vibrant}}>Hello</div>);
 
     expect(screen.getByText('Hello')).toHaveStyle({
       borderColor: theme.tokens.border.promotion.vibrant,
