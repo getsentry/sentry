@@ -242,9 +242,8 @@ function AddToDashboardModal({
   }
 
   async function handleAddAndStayOnCurrentPage() {
-    await handleAddWidgetsToExistingDashboard();
-
     try {
+      await handleAddWidgetsToExistingDashboard();
       addSuccessMessage(t('Successfully added widget to dashboard'));
       closeModal();
     } catch (error) {
