@@ -416,6 +416,7 @@ export function useExplorerAutofix(
             `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
             {
               method: 'POST',
+              query: {mode: 'explorer'},
               data: {
                 step: 'coding_agent_handoff',
                 run_id: runId,
