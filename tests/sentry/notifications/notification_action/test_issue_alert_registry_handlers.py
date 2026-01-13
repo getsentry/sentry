@@ -127,11 +127,37 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         with pytest.raises(ValueError):
             self.handler.create_rule_instance_from_action(action, self.detector, job)
 
-    def test_create_rule_instance_from_action_missing_rule_raises_value_error(self) -> None:
+    def test_create_rule_instance_from_action_missing_alert_rule_workflow(self) -> None:
+        """Test that when AlertRuleWorkflow doesn't exist, the notification is still sent without legacy_rule_id"""
+        job = WorkflowEventData(
+            event=self.group_event, workflow_env=self.environment, group=self.group
+        )
+        # Create a new workflow without an AlertRuleWorkflow record
+        workflow = self.create_workflow(environment=self.environment)
+        action = self.create_action(
+            type=Action.Type.DISCORD,
+            integration_id="1234567890",
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
+            data={"tags": "environment,user,my_tag"},
+        )
+        action.workflow_id = workflow.id
+
+        # Should not raise an error, just log a warning
+        rule = self.handler.create_rule_instance_from_action(action, self.detector, job)
+
+        assert isinstance(rule, Rule)
+        assert rule.id == action.id
+        assert rule.project == self.detector.project
+        # The legacy_rule_id should not be set since AlertRuleWorkflow doesn't exist
+        assert "legacy_rule_id" not in rule.data["actions"][0]
+
+    def test_create_rule_instance_from_action_missing_rule_id_in_alert_rule_workflow(self) -> None:
+        """Test that when AlertRuleWorkflow exists but rule_id is None, legacy_rule_id is not set"""
         job = WorkflowEventData(
             event=self.group_event, workflow_env=self.environment, group=self.group
         )
         alert_rule = self.create_alert_rule(projects=[self.project], organization=self.organization)
+        # Create AlertRuleWorkflow with only alert_rule_id, not rule_id
         self.create_alert_rule_workflow(workflow=self.workflow, alert_rule_id=alert_rule.id)
         action = self.create_action(
             type=Action.Type.DISCORD,
@@ -139,9 +165,16 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
+        action.workflow_id = self.workflow.id
 
-        with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(action, self.detector, job)
+        # Should not raise an error, just log a warning
+        rule = self.handler.create_rule_instance_from_action(action, self.detector, job)
+
+        assert isinstance(rule, Rule)
+        assert rule.id == action.id
+        assert rule.project == self.detector.project
+        # The legacy_rule_id should not be set since rule_id is None
+        assert "legacy_rule_id" not in rule.data["actions"][0]
 
     def test_create_rule_instance_from_action(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""

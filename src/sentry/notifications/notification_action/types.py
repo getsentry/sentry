@@ -211,26 +211,42 @@ class BaseIssueAlertHandler(ABC):
                         workflow_id=workflow_id,
                     )
                 except AlertRuleWorkflow.DoesNotExist:
-                    raise ValueError(
-                        "AlertRuleWorkflow not found when querying for AlertRuleWorkflow"
+                    logger.warning(
+                        "AlertRuleWorkflow not found when querying for AlertRuleWorkflow",
+                        extra={
+                            "workflow_id": workflow_id,
+                            "action_id": action.id,
+                            "detector_id": detector.id,
+                        },
                     )
+                    # Don't fail if AlertRuleWorkflow doesn't exist - the notification can still be sent
+                    # without the legacy_rule_id (links might not work perfectly in old UI)
+                    alert_rule_workflow = None
 
-                if alert_rule_workflow.rule_id is None:
-                    raise ValueError("Rule not found when querying for AlertRuleWorkflow")
+                if alert_rule_workflow is not None:
+                    if alert_rule_workflow.rule_id is None:
+                        logger.warning(
+                            "Rule ID is None in AlertRuleWorkflow",
+                            extra={
+                                "workflow_id": workflow_id,
+                                "action_id": action.id,
+                                "detector_id": detector.id,
+                            },
+                        )
+                    else:
+                        data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
 
-                data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
-
-                # Get the legacy rule label
-                try:
-                    rule = Rule.objects.get(id=alert_rule_workflow.rule_id)
-                    label = rule.label
-                except Rule.DoesNotExist:
-                    logger.exception(
-                        "Rule not found when querying for AlertRuleWorkflow",
-                        extra={"rule_id": alert_rule_workflow.rule_id},
-                    )
-                    # We shouldn't fail badly here since we can still send the notification, so just set it to the rule id
-                    label = f"Rule {alert_rule_workflow.rule_id}"
+                        # Get the legacy rule label
+                        try:
+                            rule = Rule.objects.get(id=alert_rule_workflow.rule_id)
+                            label = rule.label
+                        except Rule.DoesNotExist:
+                            logger.exception(
+                                "Rule not found when querying for AlertRuleWorkflow",
+                                extra={"rule_id": alert_rule_workflow.rule_id},
+                            )
+                            # We shouldn't fail badly here since we can still send the notification, so just set it to the rule id
+                            label = f"Rule {alert_rule_workflow.rule_id}"
 
         # In the new UI, we need this for to build the link to the new rule in the notification action
         else:
