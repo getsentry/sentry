@@ -254,6 +254,21 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 raise serializers.ValidationError(
                     "You can use an MRI only on alerts on performance metrics"
                 )
+        
+        # Validate that dataset-specific columns are used with appropriate datasets
+        column = get_column_from_aggregate(
+            data["aggregate"],
+            allow_mri=False,
+            allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+        )
+        if column == "transaction.duration" and dataset not in {
+            Dataset.Transactions,
+            Dataset.PerformanceMetrics,
+            Dataset.EventsAnalyticsPlatform,
+        }:
+            raise serializers.ValidationError(
+                "transaction.duration can only be used with performance datasets (transactions, generic_metrics, or events_analytics_platform)"
+            )
 
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 
