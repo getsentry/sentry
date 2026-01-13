@@ -18,6 +18,7 @@ normalize it first.
 
 from collections.abc import MutableMapping, Sequence
 from datetime import date, datetime
+import logging
 from typing import Any
 from typing import Literal as TLiteral
 from typing import NotRequired, Required, TypedDict, cast
@@ -81,6 +82,8 @@ from sentry.net.http import connection_from_url
 from sentry.utils import json
 from sentry.utils.snuba import RetrySkipTimeout
 from sentry.utils.snuba_rpc import SnubaRPCError
+
+logger = logging.getLogger(__name__)
 
 ARITHMETIC_FUNCTION_MAP: dict[str, EAPColumn.BinaryFormula.Op.ValueType] = {
     "divide": EAPColumn.BinaryFormula.OP_DIVIDE,
@@ -417,11 +420,24 @@ def execute_query(request: TraceItemTableRequest, referrer: str):
 
     if http_resp.status >= 400:
         error = ErrorProto()
-        error.ParseFromString(http_resp.data)
+        try:
+            error.ParseFromString(http_resp.data)
+            error_message = str(error)
+        except Exception:
+            # If we can't parse the response as protobuf, use the raw response
+            # This can happen when Snuba returns non-protobuf errors (e.g., 503 HTML pages)
+            error_message = f"HTTP {http_resp.status}: {http_resp.data.decode('utf-8', errors='replace')[:500]}"
+            logger.warning(
+                "Failed to parse Snuba error response as protobuf",
+                extra={
+                    "status_code": http_resp.status,
+                    "response_preview": http_resp.data[:200],
+                },
+            )
         if http_resp.status == 404:
-            raise NotFound() from SnubaRPCError(error)
+            raise NotFound() from SnubaRPCError(error_message)
         else:
-            raise SnubaRPCError(error)
+            raise SnubaRPCError(error_message)
 
     response = TraceItemTableResponse()
     response.ParseFromString(http_resp.data)
