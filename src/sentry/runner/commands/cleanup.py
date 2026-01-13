@@ -99,9 +99,16 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
     logger = logging.getLogger("sentry.cleanup")
 
+    from django.db import close_old_connections
+
     from sentry.runner import configure
 
     configure()
+
+    # Close any database connections inherited from the parent process.
+    # When forking, child processes inherit file descriptors including database
+    # connections. These connections can become stale and cause OperationalError.
+    close_old_connections()
 
     from sentry import options
     from sentry.utils import metrics
