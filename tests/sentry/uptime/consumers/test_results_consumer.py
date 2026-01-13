@@ -52,7 +52,7 @@ from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.uptime.utils import (
     build_backlog_key,
     build_detector_fingerprint_component,
-    build_last_seen_interval_key,
+    build_last_interval_change_timestamp_key,
     build_last_update_key,
     get_cluster,
 )
@@ -313,16 +313,19 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
-        # has an interval of 300 seconds, which we're going to say was just recently
-        # changed.  Verify we don't emit any metrics recording of a missed check
+        # has an interval of 300 seconds. The interval was changed AFTER the last check,
+        # so this gap should be skipped (it's the interval transition).
+        last_update_ms = int(result["scheduled_check_time_ms"]) - (3500 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
-            int(result["scheduled_check_time_ms"]) - (3500 * 1000),
+            last_update_ms,
         )
 
+        # Set interval change timestamp to be AFTER the last update (between last check and now)
+        interval_change_ms = last_update_ms + (1000 * 1000)  # 1000 seconds after last check
         get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            3600 * 1000,
+            build_last_interval_change_timestamp_key(self.detector),
+            interval_change_ms,
         )
 
         with (
@@ -331,24 +334,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             self.send_result(result)
             logger.info.assert_any_call(
-                "uptime.result_processor.false_num_missing_check",
-                extra={**result},
+                "uptime.result_processor.skipping_backfill_interval_changed",
+                extra={
+                    "last_update_ms": last_update_ms,
+                    "interval_change_ms": interval_change_ms,
+                    **result,
+                },
             )
 
     def test_missed_check_updated_interval(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
-        # has an interval of 300 seconds, which we're going to say was just recently
-        # changed.  Verify we don't emit any metrics recording of a missed check
+        # has an interval of 300 seconds. The interval was changed AFTER the last check,
+        # so this gap should be skipped (it's the interval transition).
+        last_update_ms = int(result["scheduled_check_time_ms"]) - (3500 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
-            int(result["scheduled_check_time_ms"]) - (3500 * 1000),
+            last_update_ms,
         )
 
+        # Set interval change timestamp to be AFTER the last update
+        interval_change_ms = last_update_ms + (1000 * 1000)
         get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            3600 * 1000,
+            build_last_interval_change_timestamp_key(self.detector),
+            interval_change_ms,
         )
 
         with (
@@ -357,11 +367,16 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             self.send_result(result)
             logger.info.assert_any_call(
-                "uptime.result_processor.false_num_missing_check",
-                extra={**result},
+                "uptime.result_processor.skipping_backfill_interval_changed",
+                extra={
+                    "last_update_ms": last_update_ms,
+                    "interval_change_ms": interval_change_ms,
+                    **result,
+                },
             )
 
-        # Send another check that should now be classified as a miss
+        # Send another check that should now be classified as a miss because the last
+        # update is now AFTER the interval change timestamp
         result = self.create_uptime_result(self.subscription.subscription_id)
         result["scheduled_check_time_ms"] = int(result["scheduled_check_time_ms"]) + (600 * 1000)
         result["actual_check_time_ms"] = result["scheduled_check_time_ms"]
@@ -387,11 +402,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             last_update_time,
         )
 
-        get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            300 * 1000,
-        )
-
         # Enabling and disabling should clear the last_update_time, and we
         # will not produce any synthetic checks
         disable_uptime_detector(self.detector)
@@ -412,15 +422,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         # Pretend we got a result 900 seconds ago; the subscription
         # has an interval of 300 seconds.  We've missed two checks.
+        # No interval change timestamp is set, so backfill should run.
         last_update_time = int(result["scheduled_check_time_ms"]) - (900 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
             last_update_time,
-        )
-
-        get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            300 * 1000,
         )
 
         with (

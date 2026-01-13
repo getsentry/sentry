@@ -43,7 +43,7 @@ from sentry.uptime.utils import (
     build_backlog_key,
     build_backlog_schedule_lock_key,
     build_backlog_task_scheduled_key,
-    build_last_seen_interval_key,
+    build_last_interval_change_timestamp_key,
     build_last_update_key,
     get_cluster,
 )
@@ -204,73 +204,73 @@ def create_backfill_misses(
     # If the scheduled check is two or more intervals since the last seen check, we can declare the
     # intervening checks missed...
     if num_intervals > 1:
-        # ... but it might be the case that the user changed the frequency of the detector.  So, first
-        # verify that the interval in postgres is the same as the last-seen interval (in redis).
-        # We only store in redis when we encounter a difference like this, which means we won't be able
-        # to tell if a missed check is real with the very first missed check.  This is probably okay,
-        # and preferable to just writing the interval to redis on every check consumed.
-        last_interval_key = build_last_seen_interval_key(detector)
+        # Check if the interval was changed recently. If the last update happened before the
+        # interval change, this gap is just the transition between intervals and should be skipped.
+        last_interval_change_key = build_last_interval_change_timestamp_key(detector)
+        last_interval_change_ms_raw: str | None = cluster.get(last_interval_change_key)
 
-        # If we've never set an interval before, just set this to zero, which will never compare
-        # true with any valid interval.
-        last_interval_seen: str = cluster.get(last_interval_key) or "0"
-
-        if int(last_interval_seen) == subscription_interval_ms:
-            # Bound the number of missed checks we generate--just in case.
-            num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
-
-            metrics.distribution(
-                "uptime.result_processer.num_missing_check",
-                num_missed_checks,
-                tags=metric_tags,
-            )
-            logger.info(
-                "uptime.result_processor.num_missing_check",
-                extra={"num_missed_checks": num_missed_checks, **result},
-            )
-            if num_intervals != int(num_intervals):
+        if last_interval_change_ms_raw is not None:
+            last_interval_change_ms = int(last_interval_change_ms_raw)
+            if last_update_ms < last_interval_change_ms:
+                # Last check was before interval change - this gap is just the transition
                 logger.info(
-                    "uptime.result_processor.invalid_check_interval",
-                    0,
+                    "uptime.result_processor.skipping_backfill_interval_changed",
                     extra={
                         "last_update_ms": last_update_ms,
-                        "current_update_ms": result["scheduled_check_time_ms"],
-                        "interval_ms": subscription_interval_ms,
+                        "interval_change_ms": last_interval_change_ms,
                         **result,
                     },
                 )
+                return
 
-            synthetic_metric_tags = metric_tags.copy()
-            synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
-            for i in range(0, num_missed_checks):
-                missed_result: CheckResult = {
-                    "guid": uuid.uuid4().hex,
-                    "subscription_id": result["subscription_id"],
-                    "status": CHECKSTATUS_MISSED_WINDOW,
-                    "status_reason": {
-                        "type": "miss_backfill",
-                        "description": "Miss was never reported for this scheduled check_time",
-                    },
-                    "trace_id": uuid.uuid4().hex,
-                    "span_id": uuid.uuid4().hex,
-                    "region": result["region"],
-                    "scheduled_check_time_ms": last_update_ms
-                    + ((i + 1) * subscription_interval_ms),
-                    "actual_check_time_ms": result["actual_check_time_ms"],
-                    "duration_ms": 0,
-                    "request_info": None,
-                }
-                produce_eap_uptime_result(
-                    detector,
-                    missed_result,
-                    synthetic_metric_tags.copy(),
-                )
-        else:
+        # Bound the number of missed checks we generate--just in case.
+        num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
+
+        metrics.distribution(
+            "uptime.result_processer.num_missing_check",
+            num_missed_checks,
+            tags=metric_tags,
+        )
+        logger.info(
+            "uptime.result_processor.num_missing_check",
+            extra={"num_missed_checks": num_missed_checks, **result},
+        )
+        if num_intervals != int(num_intervals):
             logger.info(
-                "uptime.result_processor.false_num_missing_check",
-                extra={**result},
+                "uptime.result_processor.invalid_check_interval",
+                0,
+                extra={
+                    "last_update_ms": last_update_ms,
+                    "current_update_ms": result["scheduled_check_time_ms"],
+                    "interval_ms": subscription_interval_ms,
+                    **result,
+                },
             )
-            cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
+
+        synthetic_metric_tags = metric_tags.copy()
+        synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
+        for i in range(0, num_missed_checks):
+            missed_result: CheckResult = {
+                "guid": uuid.uuid4().hex,
+                "subscription_id": result["subscription_id"],
+                "status": CHECKSTATUS_MISSED_WINDOW,
+                "status_reason": {
+                    "type": "miss_backfill",
+                    "description": "Miss was never reported for this scheduled check_time",
+                },
+                "trace_id": uuid.uuid4().hex,
+                "span_id": uuid.uuid4().hex,
+                "region": result["region"],
+                "scheduled_check_time_ms": last_update_ms + ((i + 1) * subscription_interval_ms),
+                "actual_check_time_ms": result["actual_check_time_ms"],
+                "duration_ms": 0,
+                "request_info": None,
+            }
+            produce_eap_uptime_result(
+                detector,
+                missed_result,
+                synthetic_metric_tags.copy(),
+            )
 
 
 def process_result_internal(

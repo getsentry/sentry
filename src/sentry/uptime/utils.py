@@ -10,8 +10,8 @@ def build_last_update_key(detector: Detector) -> str:
     return f"project-sub-last-update:detector:{detector.id}"
 
 
-def build_last_seen_interval_key(detector: Detector) -> str:
-    return f"project-sub-last-seen-interval:detector:{detector.id}"
+def build_last_interval_change_timestamp_key(detector: Detector) -> str:
+    return f"project-sub-last-interval-change-timestamp:detector:{detector.id}"
 
 
 def build_detector_fingerprint_component(detector: Detector) -> str:
