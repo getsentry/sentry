@@ -30,6 +30,7 @@ export default function ConsoleSDKInvitesSettings() {
 
   const userHasConsoleAccess = (organization.enabledConsolePlatforms?.length ?? 0) > 0;
   const userHasQuotaRemaining =
+    !isPending &&
     organization.consoleSdkInviteQuota !== undefined &&
     organization.consoleSdkInviteQuota > 0 &&
     organization.consoleSdkInviteQuota > (invites?.length ?? 0);
