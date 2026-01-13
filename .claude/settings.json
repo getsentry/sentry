@@ -14,6 +14,7 @@
       "Bash(gh pr checks:*)",
       "Bash(gh pr view:*)",
       "Bash(gh run view:*)",
+      "Bash(gh repo view:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "mcp__sentry__find_organizations",
