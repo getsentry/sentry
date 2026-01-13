@@ -181,7 +181,11 @@ const ErrorTitleContainer = styled(ContextContainer)`
 const ErrorTitleBody = styled(ContextBody)`
   margin: 0;
   max-width: 450px;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const EventContextBody = styled(ContextBody)`

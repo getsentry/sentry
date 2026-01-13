@@ -219,7 +219,11 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.tokens.content.primary};
   position: relative;
   min-width: 10px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Location = styled('div')`
@@ -227,7 +231,11 @@ const Location = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   min-width: 10px;
   line-height: 1.1;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default EventOrGroupExtraDetails;

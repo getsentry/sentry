@@ -155,7 +155,11 @@ const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   color: ${p =>
     p.bold ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   padding-bottom: ${space(0.25)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Percent = styled(Text)`

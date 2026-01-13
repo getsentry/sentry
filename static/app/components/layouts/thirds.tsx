@@ -97,7 +97,10 @@ export const HeaderActions = styled('div')`
  * badges or ID badges)
  */
 export const Title = styled('h1')<{withMargins?: boolean}>`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 1.625rem;
   font-weight: 600;
   letter-spacing: -0.01em;

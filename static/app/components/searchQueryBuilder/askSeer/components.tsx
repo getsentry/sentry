@@ -48,7 +48,9 @@ export const AskSeerLabel = styled('span')<{
   fontWeight?: 'normal' | 'bold';
   width?: 'auto';
 }>`
-  ${p => p.theme.overflowEllipsis};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.fontWeight ?? p.theme.fontWeight.bold};

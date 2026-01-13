@@ -429,7 +429,11 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   overflow: hidden;
   > * {
     :nth-child(-n + 5) {
-      ${p => p.theme.overflowEllipsis};
+      display: block;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
       :nth-child(5n) {
         height: 100%;

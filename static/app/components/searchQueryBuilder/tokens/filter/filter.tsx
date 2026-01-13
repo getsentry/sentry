@@ -345,13 +345,19 @@ const FilterValueOr = styled('span')`
 `;
 
 const FilterMultiValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 110px;
   width: min-content;
 `;
 
 const FilterValueSingleTruncatedValue = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 100%;
   width: min-content;
 `;

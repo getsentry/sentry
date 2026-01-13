@@ -91,7 +91,10 @@ const ButtonLabelWrapper = styled(Flex)`
 `;
 
 export const FilterValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 300px;
   width: min-content;
 `;

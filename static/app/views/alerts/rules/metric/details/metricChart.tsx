@@ -765,7 +765,11 @@ const Filters = styled('span')`
 
 const QueryFilters = styled('span')`
   min-width: 0px;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSectionValue = styled(SectionValue)`

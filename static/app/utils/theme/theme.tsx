@@ -188,13 +188,6 @@ const generateThemeUtils = (tokens: Tokens) => ({
               : undefined,
     textDecorationStyle: 'dotted' as const,
   }),
-  overflowEllipsis: css`
-    display: block;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  `,
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
     clip: rect(0 0 0 0);

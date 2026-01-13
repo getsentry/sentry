@@ -342,7 +342,11 @@ const SectionTitleCollapsible = styled(Button, {
 `;
 
 const SectionTitleLabelWrap = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
 `;
 
@@ -425,7 +429,11 @@ const Item = styled(Link)<ItemProps>`
 `;
 
 const ItemText = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
