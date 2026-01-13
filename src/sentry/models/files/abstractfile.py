@@ -35,6 +35,10 @@ def _read_blob_with_retry(blob, new_checksum, tf, max_retries=3, initial_backoff
     """
     Read a blob file with retry logic for ReadTimeoutError.
     
+    This function handles transient read timeouts when fetching blob data from
+    the filestore. It retries with exponential backoff to handle slow or
+    temporarily unresponsive filestore services.
+    
     Args:
         blob: FileBlob object to read from
         new_checksum: Checksum object to update with chunk data
@@ -148,18 +152,52 @@ class ChunkedFileBlobIndexWrapper:
 
         mem = mmap.mmap(f.fileno(), size)
 
-        def fetch_file(offset, getfile) -> None:
-            with getfile() as sf:
-                while True:
-                    chunk = sf.read(65535)
-                    if not chunk:
-                        break
-                    mem[offset : offset + len(chunk)] = chunk
-                    offset += len(chunk)
+        def fetch_file(offset, getfile, blob_id=None, blob_checksum=None) -> None:
+            """Fetch file with retry logic for ReadTimeoutError"""
+            max_retries = 3
+            initial_backoff = 1.0
+            retry_count = 0
+            backoff = initial_backoff
+            
+            while retry_count <= max_retries:
+                try:
+                    with getfile() as sf:
+                        current_offset = offset
+                        while True:
+                            chunk = sf.read(65535)
+                            if not chunk:
+                                break
+                            mem[current_offset : current_offset + len(chunk)] = chunk
+                            current_offset += len(chunk)
+                    return  # Success
+                except ReadTimeoutError as e:
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        logger.error(
+                            "Failed to prefetch blob after %d retries",
+                            max_retries,
+                            exc_info=True,
+                            extra={"retry_count": retry_count, "blob_id": blob_id, "blob_checksum": blob_checksum},
+                        )
+                        raise
+                    
+                    logger.warning(
+                        "ReadTimeoutError while prefetching blob, retrying (%d/%d)",
+                        retry_count,
+                        max_retries,
+                        exc_info=True,
+                        extra={"backoff_seconds": backoff, "blob_id": blob_id, "blob_checksum": blob_checksum},
+                    )
+                    metrics.incr(
+                        "filestore.prefetch_read_timeout_retry",
+                        tags={"retry_attempt": str(retry_count)},
+                    )
+                    time.sleep(backoff)
+                    backoff *= 2  # Exponential backoff
 
         with ThreadPoolExecutor(max_workers=4) as exe:
             for idx in self._indexes:
-                exe.submit(fetch_file, idx.offset, idx.blob.getfile)
+                exe.submit(fetch_file, idx.offset, idx.blob.getfile, idx.blob.id, idx.blob.checksum)
 
         mem.flush()
         self._curfile = f
