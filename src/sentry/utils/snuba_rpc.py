@@ -362,14 +362,28 @@ def _make_rpc_request(
                 span.set_tag("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
                     error = ErrorProto()
-                    error.ParseFromString(http_resp.data)
+                    try:
+                        error.ParseFromString(http_resp.data)
+                        error_message = str(error)
+                    except Exception:
+                        # If we can't parse the response as protobuf, use the raw response
+                        # This can happen when Snuba returns non-protobuf errors (e.g., 503 HTML pages)
+                        error_message = f"HTTP {http_resp.status}: {http_resp.data.decode('utf-8', errors='replace')[:500]}"
+                        logger.warning(
+                            "Failed to parse Snuba error response as protobuf",
+                            extra={
+                                "status_code": http_resp.status,
+                                "referrer": referrer,
+                                "response_preview": http_resp.data[:200],
+                            },
+                        )
                     if SNUBA_INFO:
-                        log_snuba_info(f"{referrer}.error:\n{error}")
+                        log_snuba_info(f"{referrer}.error:\n{error_message}")
                     if http_resp.status == 404:
-                        raise NotFound() from SnubaRPCError(error)
+                        raise NotFound() from SnubaRPCError(error_message)
                     if http_resp.status == 429:
-                        raise SnubaRPCRateLimitExceeded(error)
-                    raise SnubaRPCError(error)
+                        raise SnubaRPCRateLimitExceeded(error_message)
+                    raise SnubaRPCError(error_message)
                 return http_resp
 
 
