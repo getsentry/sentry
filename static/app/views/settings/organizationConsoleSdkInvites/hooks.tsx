@@ -19,13 +19,6 @@ interface ConsoleSdkInviteUser {
   user_id: string;
 }
 
-interface UseRevokeConsoleSdkInviteParams {
-  email: string;
-  orgSlug: string;
-  userId: string;
-  onSuccess?: () => void;
-}
-
 interface UseRevokeConsoleSdkPlatformInviteParams {
   email: string;
   orgSlug: string;
@@ -40,34 +33,6 @@ export function useConsoleSdkInvites(orgSlug: string) {
       staleTime: 5000,
     }
   );
-}
-
-export function useRevokeConsoleSdkInvite() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({orgSlug, userId}: UseRevokeConsoleSdkInviteParams) => {
-      return fetchMutation({
-        method: 'DELETE',
-        url: `/organizations/${orgSlug}/console-sdk-invites/`,
-        data: {user_id: userId},
-      });
-    },
-    onMutate: ({email}: UseRevokeConsoleSdkInviteParams) => {
-      addLoadingMessage(tct('Removing console SDK access for [email]', {email}));
-    },
-    onSuccess: (_data, {email, orgSlug}: UseRevokeConsoleSdkInviteParams) => {
-      addSuccessMessage(
-        tct('Successfully removed console SDK access for [email]', {email})
-      );
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
-      });
-    },
-    onError: (_error, {email}: UseRevokeConsoleSdkInviteParams) => {
-      addErrorMessage(tct('Failed to remove console SDK access for [email]', {email}));
-    },
-  });
 }
 
 export function useRevokeConsoleSdkPlatformInvite() {
