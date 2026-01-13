@@ -96,3 +96,11 @@ class SlackClientTest(TestCase):
             sample_rate=1.0,
             tags={"status": "timeout"},
         )
+
+    def test_default_timeout(self) -> None:
+        client = SlackSdkClient(integration_id=self.integration.id)
+        assert client.timeout == 20
+
+    def test_custom_timeout(self) -> None:
+        client = SlackSdkClient(integration_id=self.integration.id, timeout=15)
+        assert client.timeout == 15

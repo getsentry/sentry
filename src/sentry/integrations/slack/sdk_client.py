@@ -91,7 +91,14 @@ class MetaClass(type):
 
 
 class SlackSdkClient(WebClient, metaclass=MetaClass):
-    def __init__(self, integration_id: int):
+    def __init__(self, integration_id: int, timeout: int = 20):
+        """
+        Initialize SlackSdkClient with a configurable timeout.
+
+        Args:
+            integration_id: The integration ID to use for authentication
+            timeout: Timeout in seconds for API calls (default: 20s, less than the 30s task deadline)
+        """
         self.integration_id = integration_id
 
         integration: Integration | RpcIntegration | None
@@ -119,4 +126,4 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
             raise ValueError(f"Missing token for integration with id {integration_id}")
 
         # TODO: missing from old SlackClient: verify_ssl, logging_context
-        super().__init__(token=access_token)
+        super().__init__(token=access_token, timeout=timeout)
