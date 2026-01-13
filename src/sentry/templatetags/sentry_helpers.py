@@ -304,6 +304,8 @@ def random_int(a, b=None):
 
 @register.filter
 def get_item(dictionary, key):
+    if dictionary is None:
+        return ""
     return dictionary.get(key, "")
 
 
