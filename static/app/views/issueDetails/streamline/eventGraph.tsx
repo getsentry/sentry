@@ -244,6 +244,9 @@ export function EventGraph({
     event,
     group,
     eventSeries,
+    isFiltered: isUnfilteredStatsEnabled,
+    unfilteredEventSeries,
+    seriesType: visibleSeries,
   });
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
