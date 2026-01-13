@@ -228,7 +228,7 @@ const LearnMore = styled(ExternalLink)`
 
   &:hover {
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.blue200};
+    text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 `;
 

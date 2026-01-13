@@ -322,7 +322,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.focus.default};
   }
 
   /**
@@ -336,7 +336,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
 `;

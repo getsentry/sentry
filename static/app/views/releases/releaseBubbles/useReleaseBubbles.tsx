@@ -191,7 +191,7 @@ function ReleaseBubbleSeries({
         // in the "padding" areas (i.e. so tooltips open)
         lineWidth: bubblePadding,
         stroke: 'transparent',
-        fill: theme.colors.blue500,
+        fill: theme.tokens.graphics.accent.vibrant,
         // TODO: figure out correct opacity calculations
         opacity: Math.round((Number(numberReleases) / avgReleases) * 50) / 100,
       },
@@ -205,7 +205,7 @@ function ReleaseBubbleSeries({
     renderItem: renderReleaseBubble,
     name: t('Releases'),
     data,
-    color: theme.colors.blue500,
+    color: theme.tokens.graphics.accent.vibrant,
     animation: false,
     markLine: {
       silent: true,
@@ -527,7 +527,7 @@ export function useReleaseBubbles({
           type: 'custom',
           renderItem: () => null,
           markArea: {
-            itemStyle: {color: theme.colors.blue500, opacity: 0.1},
+            itemStyle: {color: theme.tokens.graphics.accent.vibrant, opacity: 0.1},
             data: [
               [
                 {
@@ -643,7 +643,7 @@ export function useReleaseBubbles({
       legendSelected,
       releaseBubbleGrid,
       releaseBubbleXAxis,
-      theme.colors.blue500,
+      theme.tokens.graphics.accent.vibrant,
     ]
   );
 

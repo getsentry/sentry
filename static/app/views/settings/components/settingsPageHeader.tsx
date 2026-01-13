@@ -85,7 +85,8 @@ const Title = styled('div')<TitleProps>`
   margin: ${space(4)} ${space(2)} ${space(3)} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
-  color: ${p => (p.colorSubtitle ? p.theme.colors.blue500 : p.theme.colors.gray500)};
+  color: ${p =>
+    p.colorSubtitle ? p.theme.tokens.content.accent : p.theme.colors.gray500};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1.5)} 0 0;

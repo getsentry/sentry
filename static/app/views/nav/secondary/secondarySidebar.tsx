@@ -122,7 +122,7 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.colors.blue500};
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
     }
   }
 

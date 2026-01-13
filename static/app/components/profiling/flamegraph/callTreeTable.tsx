@@ -46,7 +46,7 @@ export const CallTreeTable = styled('div')`
     }
 
     &[tabindex='0'] {
-      background: ${p => p.theme.colors.blue400};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
       color: #fff;
 
       .${CallTreeTableClassNames.WEIGHT} {

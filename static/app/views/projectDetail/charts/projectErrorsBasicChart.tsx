@@ -95,7 +95,10 @@ function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
         series={series}
         isGroupedByDate
         showTimeInTooltip
-        colors={theme => [theme.colors.blue400, theme.colors.blue200]}
+        colors={theme => [
+          theme.tokens.dataviz.semantic.accent,
+          theme.tokens.dataviz.semantic.neutral,
+        ]}
         grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
       />
     </Fragment>

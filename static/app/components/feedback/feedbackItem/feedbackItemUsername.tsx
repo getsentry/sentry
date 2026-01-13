@@ -116,5 +116,5 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 }
 
 const Purple = styled('span')`
-  color: ${p => p.theme.colors.blue400};
+  color: ${p => p.theme.tokens.content.accent};
 `;

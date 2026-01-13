@@ -253,7 +253,7 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   }
 
   border-radius: 50%;
-  background: ${p => p.theme.colors.blue500};
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
   border: solid 2px ${p => p.theme.colors.surface300};
   position: absolute;
   width: 10px;

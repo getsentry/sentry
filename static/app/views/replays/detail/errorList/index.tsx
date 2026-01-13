@@ -202,7 +202,7 @@ const ErrorTable = styled('div')`
   border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue200};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     left: 0;
     position: absolute;
@@ -211,7 +211,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue200};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     right: 0;
     position: absolute;
@@ -220,7 +220,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeCurrentTime + .afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue400};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     left: 0;
     position: absolute;
@@ -229,7 +229,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue400};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     right: 0;
     position: absolute;

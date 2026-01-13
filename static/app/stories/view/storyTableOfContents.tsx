@@ -284,7 +284,7 @@ const StoryIndexList = styled('ul')`
   list-style: none;
   padding-left: ${p => p.theme.space.md};
   padding-right: ${p => p.theme.space.md};
-  border-left: 1px solid ${p => p.theme.tokens.border.muted};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0;
   margin-left: -${p => p.theme.space.xl};
   display: flex;
@@ -306,8 +306,8 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
   position: relative;
 
   &:hover {
-    background: ${p => p.theme.tokens.background.tertiary};
-    color: ${p => p.theme.tokens.content.primary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
   }
 
   ${p =>

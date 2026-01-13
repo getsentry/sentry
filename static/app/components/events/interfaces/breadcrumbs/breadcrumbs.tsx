@@ -326,7 +326,7 @@ const PanelDragHandle = styled('div')`
 
   &:hover::after,
   &.is-held:after {
-    background: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 

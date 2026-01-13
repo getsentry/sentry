@@ -250,7 +250,7 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
   ${p =>
     p.highlighted
       ? css`
-          border: 2px solid ${p.theme.colors.blue400};
+          border: 2px solid ${p.theme.tokens.border.accent.vibrant};
         `
       : css`
           padding: 1px;

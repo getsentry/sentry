@@ -539,19 +539,19 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
-        return p.theme.colors.pink500;
+        return p.theme.tokens.content.promotion;
       case 'pending':
-        return p.theme.colors.pink500;
+        return p.theme.tokens.content.promotion;
       case 'content':
-        return p.theme.colors.blue500;
+        return p.theme.tokens.content.accent;
       case 'success':
-        return p.theme.colors.green500;
+        return p.theme.tokens.content.success;
       case 'failure':
-        return p.theme.colors.red500;
+        return p.theme.tokens.content.danger;
       case 'mixed':
-        return p.theme.colors.yellow500;
+        return p.theme.tokens.content.warning;
       default:
-        return p.theme.colors.blue500;
+        return p.theme.tokens.content.accent;
     }
   }};
 

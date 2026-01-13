@@ -200,7 +200,7 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.colors.blue500,
+          color: theme.tokens.content.accent,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}

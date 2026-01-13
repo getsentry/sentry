@@ -220,7 +220,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => p.theme.colors.blue400};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
     }
   }
 `;

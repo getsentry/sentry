@@ -284,24 +284,24 @@ const ChapterWrapper = styled('details')`
   }
 
   &.activeChapter .beforeCurrentTime:last-child {
-    border-bottom-color: ${p => p.theme.colors.blue400};
+    border-bottom-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid ${p => p.theme.backgroundSecondary};
+    border-top: 1px solid ${p => p.theme.tokens.background.secondary};
   }
 
   [data-is-feedback='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.colors.pink100};
+      border-top: 1px solid ${p => p.theme.tokens.border.promotion.muted};
     }
   }
 
   [data-is-error='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.colors.red100};
+      border-top: 1px solid ${p => p.theme.tokens.border.danger.muted};
     }
   }
 `;
@@ -314,7 +314,7 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -341,18 +341,18 @@ const Chapter = styled('summary')`
   }
 
   [data-is-feedback='true'] & {
-    color: ${p => p.theme.colors.pink400};
+    color: ${p => p.theme.tokens.content.promotion};
 
     &:hover {
-      background-color: ${p => p.theme.colors.pink100};
+      background-color: ${p => p.theme.tokens.background.transparent.promotion.muted};
     }
   }
 
   [data-is-error='true'] & {
-    color: ${p => p.theme.colors.red400};
+    color: ${p => p.theme.tokens.content.danger};
 
     &:hover {
-      background-color: ${p => p.theme.colors.red100};
+      background-color: ${p => p.theme.tokens.background.transparent.danger.muted};
     }
   }
 `;
