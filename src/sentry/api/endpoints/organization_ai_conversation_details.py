@@ -27,7 +27,6 @@ AI_CONVERSATION_ATTRIBUTES = [
     "span.description",
     "span.duration",
     "transaction",
-    "transaction.id",
     "is_transaction",
     "gen_ai.conversation.id",
     "gen_ai.request.messages",
