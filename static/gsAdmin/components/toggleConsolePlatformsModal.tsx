@@ -22,7 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import {
   useConsoleSdkInvites,
-  useRevokeConsoleSdkInvite,
+  useRevokeConsoleSdkPlatformInvite,
   type ConsoleSdkInviteUser,
 } from 'sentry/views/settings/organizationConsoleSdkInvites/hooks';
 
@@ -50,7 +50,7 @@ function ToggleConsolePlatformsModal({
     mutate: revokeConsoleInvite,
     isPending: isRevokePending,
     variables: revokeVariables,
-  } = useRevokeConsoleSdkInvite();
+  } = useRevokeConsoleSdkPlatformInvite();
   const {isPending: isUpdatePending, mutate: updateConsolePlatforms} = useMutation({
     mutationFn: (data: Record<string, boolean | number>) => {
       const {newConsoleSdkInviteQuota, ...platforms} = data;
@@ -192,24 +192,22 @@ function ToggleConsolePlatformsModal({
                       const isPlatformRevoking =
                         isRevokePending &&
                         revokeVariables?.userId === user_id &&
-                        revokeVariables?.platforms?.includes(platform);
+                        revokeVariables?.platform === platform;
 
                       return (
                         <Tag
                           key={platform}
                           variant="muted"
-                          onDismiss={
-                            isPlatformRevoking
-                              ? undefined
-                              : () => {
-                                  revokeConsoleInvite({
-                                    userId: user_id,
-                                    email,
-                                    platforms: [platform],
-                                    orgSlug: organization.slug,
-                                  });
-                                }
-                          }
+                          onDismiss={() => {
+                            if (!isPlatformRevoking) {
+                              revokeConsoleInvite({
+                                userId: user_id,
+                                email,
+                                platform,
+                                orgSlug: organization.slug,
+                              });
+                            }
+                          }}
                         >
                           {platform}
                         </Tag>
