@@ -2,9 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink} from 'sentry/components/core/link';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import List from 'sentry/components/list';
@@ -13,20 +14,21 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconDelete} from 'sentry/icons';
+import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {useConsoleSdkInvites, useRevokeConsoleSdkInvite} from './hooks';
+import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
 
   const {data: invites, isPending} = useConsoleSdkInvites(organization.slug);
-  const {mutate: revokeInvite} = useRevokeConsoleSdkInvite();
+  const {mutate: revokePlatformInvite, isPending: isRevoking} =
+    useRevokeConsoleSdkPlatformInvite();
 
   const userHasConsoleAccess = (organization.enabledConsolePlatforms?.length ?? 0) > 0;
   const userHasQuotaRemaining =
@@ -63,8 +65,7 @@ export default function ConsoleSDKInvitesSettings() {
       <InvitesTable>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Email')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Repository')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell />
+          <SimpleTable.HeaderCell>{t('Platforms')}</SimpleTable.HeaderCell>
         </SimpleTable.Header>
 
         {isPending && (
@@ -82,21 +83,28 @@ export default function ConsoleSDKInvitesSettings() {
             <SimpleTable.RowCell>
               <TextOverflow>{invite.email}</TextOverflow>
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell>{invite.platforms.join(', ')}</SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <Button
-                size="sm"
-                icon={<IconDelete />}
-                onClick={() =>
-                  revokeInvite({
-                    userId: invite.user_id,
-                    email: invite.email,
-                    orgSlug: organization.slug,
-                  })
-                }
-              >
-                {t('Revoke')}
-              </Button>
+              <Flex gap="xs" wrap="wrap">
+                {invite.platforms.map(platform => (
+                  <Tag
+                    variant="info"
+                    key={platform}
+                    onDismiss={() => {
+                      if (isRevoking) {
+                        return;
+                      }
+                      revokePlatformInvite({
+                        userId: invite.user_id,
+                        email: invite.email,
+                        platform,
+                        orgSlug: organization.slug,
+                      });
+                    }}
+                  >
+                    {CONSOLE_PLATFORM_METADATA[platform]?.displayName ?? platform}
+                  </Tag>
+                ))}
+              </Flex>
             </SimpleTable.RowCell>
           </SimpleTable.Row>
         ))}
@@ -162,5 +170,5 @@ function NoQuotaRemaining({organization}: {organization: Organization}) {
 
 const InvitesTable = styled(SimpleTable)`
   margin-top: 1em;
-  grid-template-columns: 2fr 2fr max-content;
+  grid-template-columns: 1fr 2fr;
 `;
