@@ -14,6 +14,7 @@ import sentry_sdk
 from cachetools.func import ttl_cache
 from django.conf import settings
 from django.urls import reverse
+from google.auth import exceptions as google_auth_exceptions
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
 from rediscluster import RedisCluster
@@ -618,12 +619,31 @@ def get_sources_for_project(project):
     return sources
 
 
+# Timeout for GCP token refresh requests (in seconds)
+# This must be less than the task processing deadline to prevent deadline exceedance
+GCP_TOKEN_REFRESH_TIMEOUT = 10
+
+
 # Expire the cached token 10 minutes earlier so that we can confidently pass it
 # to symbolicator with its configured timeout of 5 minutes
 @ttl_cache(ttl=TOKEN_TTL_SECONDS - 600)
 def get_gcp_token(client_email):
+    """
+    Acquire an impersonated GCP access token for the given service account.
+
+    Returns None if the token cannot be acquired, allowing the caller to gracefully
+    handle the absence of GCP token-based symbol sources.
+    """
     # Fetch the regular credentials for GCP
-    source_credentials, _ = google.auth.default()
+    try:
+        source_credentials, _ = google.auth.default()
+    except Exception as e:
+        logger.warning(
+            "Failed to get default GCP credentials for impersonation: %s",
+            str(e),
+            exc_info=True,
+        )
+        return None
 
     if source_credentials is None:
         return None
@@ -636,7 +656,46 @@ def get_gcp_token(client_email):
         lifetime=TOKEN_TTL_SECONDS,
     )
 
-    target_credentials.refresh(Request())
+    try:
+        # Create a request with timeout to prevent hanging
+        # The default timeout is 120 seconds which can cause tasks to exceed their deadline
+        import requests
+        from requests.adapters import HTTPAdapter
+
+        class TimeoutHTTPAdapter(HTTPAdapter):
+            def __init__(self, timeout, *args, **kwargs):
+                self.timeout = timeout
+                super().__init__(*args, **kwargs)
+
+            def send(self, request, **kwargs):
+                kwargs["timeout"] = self.timeout
+                return super().send(request, **kwargs)
+
+        session = requests.Session()
+        adapter = TimeoutHTTPAdapter(timeout=GCP_TOKEN_REFRESH_TIMEOUT)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+
+        request = Request(session=session)
+        target_credentials.refresh(request)
+    except google_auth_exceptions.RefreshError as e:
+        # GCP IAM API can return transient errors (e.g., 503 Service Unavailable)
+        # Log the error and return None to allow the profile processing to continue
+        # without GCP token-based sources
+        logger.warning(
+            "Failed to acquire GCP impersonated credentials for %s: %s",
+            client_email,
+            str(e),
+            exc_info=True,
+        )
+        return None
+    except Exception as e:
+        # Catch any other unexpected errors during token refresh (including timeouts)
+        logger.exception(
+            "Unexpected error while acquiring GCP impersonated credentials for %s",
+            client_email,
+        )
+        return None
 
     if target_credentials.token is None:
         return None

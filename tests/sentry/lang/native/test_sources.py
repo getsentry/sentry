@@ -1,14 +1,16 @@
 import copy
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import jsonschema
 import pytest
 from django.conf import settings
 from django.test import override_settings
+from google.auth import exceptions as google_auth_exceptions
 
 from sentry.lang.native.sources import (
     BUILTIN_SOURCE_SCHEMA,
     filter_ignored_sources,
+    get_gcp_token,
     get_sources_for_project,
 )
 from sentry.testutils.helpers import Feature, override_options
@@ -19,6 +21,84 @@ from sentry.testutils.pytest.fixtures import django_db_all
 def test_validate_builtin_sources() -> None:
     for source in settings.SENTRY_BUILTIN_SOURCES.values():
         jsonschema.validate(source, BUILTIN_SOURCE_SCHEMA)
+
+
+class TestGetGcpToken:
+    @patch("sentry.lang.native.sources.google.auth.default")
+    @patch("sentry.lang.native.sources.impersonated_credentials.Credentials")
+    def test_refresh_error_handling(
+        self, mock_credentials_class, mock_google_auth_default
+    ) -> None:
+        """
+        Test that RefreshError from GCP API is caught and handled gracefully.
+        """
+        # Setup mock credentials
+        mock_source_creds = MagicMock()
+        mock_google_auth_default.return_value = (mock_source_creds, None)
+
+        # Setup mock target credentials to raise RefreshError
+        mock_target_creds = MagicMock()
+        mock_target_creds.refresh.side_effect = google_auth_exceptions.RefreshError(
+            "Unable to acquire impersonated credentials",
+            '{"error": {"code": 503, "message": "Service Unavailable"}}',
+        )
+        mock_credentials_class.return_value = mock_target_creds
+
+        # Call the function and verify it returns None
+        result = get_gcp_token("test@example.iam.gserviceaccount.com")
+        assert result is None
+
+    @patch("sentry.lang.native.sources.google.auth.default")
+    def test_google_auth_default_failure(self, mock_google_auth_default) -> None:
+        """
+        Test that exceptions from google.auth.default are caught and handled.
+        """
+        mock_google_auth_default.side_effect = Exception("Failed to get default credentials")
+
+        result = get_gcp_token("test@example.iam.gserviceaccount.com")
+        assert result is None
+
+    @patch("sentry.lang.native.sources.google.auth.default")
+    @patch("sentry.lang.native.sources.impersonated_credentials.Credentials")
+    def test_successful_token_acquisition(
+        self, mock_credentials_class, mock_google_auth_default
+    ) -> None:
+        """
+        Test successful token acquisition.
+        """
+        # Setup mock credentials
+        mock_source_creds = MagicMock()
+        mock_google_auth_default.return_value = (mock_source_creds, None)
+
+        # Setup mock target credentials with a valid token
+        mock_target_creds = MagicMock()
+        mock_target_creds.token = "ya29.test_token"
+        mock_target_creds.refresh.return_value = None
+        mock_credentials_class.return_value = mock_target_creds
+
+        result = get_gcp_token("test@example.iam.gserviceaccount.com")
+        assert result == "ya29.test_token"
+
+    @patch("sentry.lang.native.sources.google.auth.default")
+    @patch("sentry.lang.native.sources.impersonated_credentials.Credentials")
+    def test_token_is_none_after_refresh(
+        self, mock_credentials_class, mock_google_auth_default
+    ) -> None:
+        """
+        Test that None is returned when token is None after refresh.
+        """
+        # Setup mock credentials
+        mock_source_creds = MagicMock()
+        mock_google_auth_default.return_value = (mock_source_creds, None)
+
+        # Setup mock target credentials with None token
+        mock_target_creds = MagicMock()
+        mock_target_creds.token = None
+        mock_target_creds.refresh.return_value = None
+        mock_credentials_class.return_value = mock_target_creds
+
+        result = get_gcp_token("test@example.iam.gserviceaccount.com")
+        assert result is None
 
 
 SENTRY_BUILTIN_SOURCES_TEST = {
@@ -135,6 +215,35 @@ class TestGcpBearerAuthentication:
         assert sources[1]["private_key"] == "FAKE_PRIVATE_KEY_STRING"
         assert sources[2]["name"] == "aaa"
         assert sources[2]["bearer_token"] == "ya29.TOKEN"
+
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
+    @patch("sentry.lang.native.sources.get_gcp_token")
+    @django_db_all
+    def test_gcp_token_failure_graceful_degradation(
+        self, mock_get_gcp_token, default_project
+    ) -> None:
+        """
+        Tests that when GCP token acquisition fails, the source is still returned
+        without bearer_token, allowing symbolication to continue with other sources.
+        """
+        mock_get_gcp_token.return_value = None
+        features = {
+            "organizations:symbol-sources": True,
+        }
+        default_project.update_option("sentry:builtin_symbol_sources", ["aaa"])
+
+        with Feature(features):
+            sources = get_sources_for_project(default_project)
+
+        # Should still have the sentry source and the GCS source
+        assert len(sources) == 2
+        assert sources[0]["type"] == "sentry"
+        assert sources[1]["type"] == "gcs"
+        assert sources[1]["name"] == "aaa"
+        # The source should still have client_email since token fetch failed
+        assert sources[1]["client_email"] == "application@project-id.iam.gserviceaccount.com"
+        # But should not have bearer_token
+        assert "bearer_token" not in sources[1]
 
 
 class TestIgnoredSourcesFiltering:
