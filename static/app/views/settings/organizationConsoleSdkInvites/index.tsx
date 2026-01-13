@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,6 +14,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -26,34 +27,11 @@ export default function ConsoleSDKInvitesSettings() {
   const {data: invites, isPending} = useConsoleSdkInvites(organization.slug);
   const {mutate: revokeInvite} = useRevokeConsoleSdkInvite();
 
-  if ((organization.enabledConsolePlatforms?.length ?? 0) === 0) {
-    return (
-      <Alert.Container>
-        <Alert variant="warning" showIcon={false}>
-          {t(
-            'Your organization does not have any console platforms enabled. Please complete the middleware verification process for your platform:'
-          )}
-          <List symbol="bullet">
-            <ListItem>
-              <ExternalLink href="https://game.develop.playstation.net/tm/verify/functionalsw">
-                {t('PlayStation Partners')}
-              </ExternalLink>
-            </ListItem>
-            <ListItem>
-              <ExternalLink href="https://developer.nintendo.com/group/development/getting-started/g1kr9vj6/middleware/sentry">
-                {t('Nintendo Developer Portal')}
-              </ExternalLink>
-            </ListItem>
-            <ListItem>
-              <ExternalLink href="https://developer.microsoft.com/en-us/games/support/request-gdkx-middleware">
-                {t('Microsoft GDK Middleware')}
-              </ExternalLink>
-            </ListItem>
-          </List>
-        </Alert>
-      </Alert.Container>
-    );
-  }
+  const userHasConsoleAccess = (organization.enabledConsolePlatforms?.length ?? 0) > 0;
+  const userHasQuotaRemaining =
+    organization.consoleSdkInviteQuota !== undefined &&
+    organization.consoleSdkInviteQuota > 0 &&
+    organization.consoleSdkInviteQuota > (invites?.length ?? 0);
 
   return (
     <Fragment>
@@ -61,28 +39,20 @@ export default function ConsoleSDKInvitesSettings() {
       <SettingsPageHeader
         title={t('Console SDK Invites')}
         action={
-          <RequestSdkAccessButton organization={organization} origin="org-settings" />
+          <RequestSdkAccessButton
+            disabled={!userHasConsoleAccess || !userHasQuotaRemaining}
+            organization={organization}
+            origin="org-settings"
+          />
         }
       />
       <TextBlock>
         {t('Manage invitations to our private gaming console SDK GitHub repositories.')}
       </TextBlock>
-      {!isPending &&
-        organization.consoleSdkInviteQuota !== undefined &&
-        organization.consoleSdkInviteQuota > 0 &&
-        organization.consoleSdkInviteQuota <= (invites?.length ?? 0) && (
-          <Alert.Container>
-            <Alert variant="info" showIcon={false}>
-              {tct(
-                'This organization ([orgSlug]) has used all GitHub invites available. [mailto:Contact support] to increase the quota.',
-                {
-                  orgSlug: organization.slug,
-                  mailto: <a href="mailto:support@sentry.io" />,
-                }
-              )}
-            </Alert>
-          </Alert.Container>
-        )}
+      {!userHasConsoleAccess && <NoAccessAlert />}
+      {!isPending && userHasConsoleAccess && !userHasQuotaRemaining && (
+        <NoQuotaRemaining organization={organization} />
+      )}
       <InvitesTable>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Email')}</SimpleTable.HeaderCell>
@@ -125,6 +95,51 @@ export default function ConsoleSDKInvitesSettings() {
         ))}
       </InvitesTable>
     </Fragment>
+  );
+}
+
+function NoAccessAlert() {
+  return (
+    <Alert.Container>
+      <Alert variant="warning" showIcon={false}>
+        {t(
+          'Your organization does not have any console platforms enabled. Please complete the middleware verification process for your platform:'
+        )}
+        <List symbol="bullet">
+          <ListItem>
+            <ExternalLink href="https://game.develop.playstation.net/tm/verify/functionalsw">
+              {t('PlayStation Partners')}
+            </ExternalLink>
+          </ListItem>
+          <ListItem>
+            <ExternalLink href="https://developer.nintendo.com/group/development/getting-started/g1kr9vj6/middleware/sentry">
+              {t('Nintendo Developer Portal')}
+            </ExternalLink>
+          </ListItem>
+          <ListItem>
+            <ExternalLink href="https://developer.microsoft.com/en-us/games/support/request-gdkx-middleware">
+              {t('Microsoft GDK Middleware')}
+            </ExternalLink>
+          </ListItem>
+        </List>
+      </Alert>
+    </Alert.Container>
+  );
+}
+
+function NoQuotaRemaining({organization}: {organization: Organization}) {
+  return (
+    <Alert.Container>
+      <Alert variant="info" showIcon={false}>
+        {tct(
+          'This organization ([orgSlug]) has used all GitHub invites available. [mailto:Contact support] to increase the quota.',
+          {
+            orgSlug: organization.slug,
+            mailto: <a href="mailto:support@sentry.io" />,
+          }
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 
