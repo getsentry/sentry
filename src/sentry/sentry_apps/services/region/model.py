@@ -20,3 +20,16 @@ class RpcSelectRequesterResult(RpcModel):
     choices: list[list[str]] = Field(default_factory=list)
     default_value: str | None = None
     error: RpcSentryAppError | None = None
+
+
+class RpcPlatformExternalIssue(RpcModel):
+    id: str
+    issue_id: str
+    service_type: str
+    display_name: str
+    web_url: str
+
+
+class RpcIssueLinkResult(RpcModel):
+    external_issue: RpcPlatformExternalIssue | None = None
+    error: RpcSentryAppError | None = None
