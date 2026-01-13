@@ -6,7 +6,7 @@ from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.tasks import sync_status_outbound
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationFormError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationFormError
 from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
@@ -23,6 +23,14 @@ def raise_integration_form_error(*args, **kwargs):
 
 def raise_api_unauthorized_error(*args, **kwargs):
     raise ApiUnauthorized(text="auth failed")
+
+
+def raise_api_not_found_error(*args, **kwargs):
+    raise ApiError(
+        text='{"errorMessages":["Issue does not exist or you do not have permission to see it."],"errors":{}}',
+        code=404,
+    )
+
 
 
 @region_silo_test
@@ -166,3 +174,31 @@ class TestSyncStatusOutbound(TestCase):
         )
 
         assert_halt_metric(mock_record=mock_record, error_msg=ApiUnauthorized("auth failed"))
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_status_outbound")
+    def test_api_not_found_error_halts(
+        self, mock_sync_status: mock.MagicMock, mock_record: mock.MagicMock
+    ) -> None:
+        """Test that 404 errors are handled gracefully and halt the sync."""
+        mock_sync_status.side_effect = raise_api_not_found_error
+        external_issue: ExternalIssue = self.create_integration_external_issue(
+            group=self.group, key="foo_integration", integration=self.example_integration
+        )
+
+        sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+        assert_halt_metric(
+            mock_record=mock_record,
+            error_msg=ApiError(
+                '{"errorMessages":["Issue does not exist or you do not have permission to see it."],"errors":{}}',
+                code=404,
+            ),
+        )
