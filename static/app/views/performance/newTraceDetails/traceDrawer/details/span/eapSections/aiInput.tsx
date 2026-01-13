@@ -72,6 +72,24 @@ function parseAIMessages(messages: string): AIMessage[] | string {
           message !== null && Boolean(message.content)
       );
   } catch (error) {
+    // Check if this is a truncation error (unterminated string)
+    const isTruncationError =
+      error instanceof SyntaxError &&
+      (error.message.includes('Unterminated string') ||
+        error.message.includes('Unexpected end of JSON'));
+
+    if (isTruncationError) {
+      // Try to repair the JSON by finding the last complete message
+      try {
+        const repairedMessages = repairTruncatedJSON(messages);
+        if (repairedMessages) {
+          return repairedMessages;
+        }
+      } catch {
+        // If repair fails, fall through to default error handling
+      }
+    }
+
     try {
       Sentry.captureException(
         new Error('Error parsing ai.prompt.messages', {cause: error})
@@ -81,6 +99,61 @@ function parseAIMessages(messages: string): AIMessage[] | string {
     }
     return messages;
   }
+}
+
+function repairTruncatedJSON(jsonString: string): AIMessage[] | null {
+  // Try to find the last complete message object in the truncated JSON
+  // Strategy: Find the last complete '},' or '}]' pattern that closes a message
+  
+  // If it starts with '[', find the last complete message
+  if (jsonString.trim().startsWith('[')) {
+    // Find all positions where we have a complete message (ending with '}')
+    const messageEndPattern = /\}\s*(?:,|\])/g;
+    let lastValidEnd = -1;
+    let match;
+    
+    while ((match = messageEndPattern.exec(jsonString)) !== null) {
+      lastValidEnd = match.index + match[0].length;
+    }
+    
+    if (lastValidEnd > 0) {
+      // Try to parse up to the last valid message
+      let truncatedJson = jsonString.substring(0, lastValidEnd);
+      
+      // If it doesn't end with ']', add it
+      if (!truncatedJson.trim().endsWith(']')) {
+        truncatedJson = truncatedJson.replace(/,\s*$/, '') + ']';
+      }
+      
+      try {
+        const parsed = JSON.parse(truncatedJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Successfully repaired! Now process the messages
+          return parsed
+            .map((message: any) => {
+              if (!message.role || !message.content) {
+                return null;
+              }
+              return {
+                role: message.role,
+                content:
+                  message.role === 'tool'
+                    ? renderToolMessage(message.content)
+                    : renderTextMessages(message.content),
+              };
+            })
+            .filter(
+              (message): message is Exclude<typeof message, null> =>
+                message !== null && Boolean(message.content)
+            );
+        }
+      } catch {
+        // Repair attempt failed
+      }
+    }
+  }
+  
+  return null;
 }
 
 function transformInputMessages(inputMessages: string) {
@@ -102,6 +175,12 @@ function transformInputMessages(inputMessages: string) {
     }
     return JSON.stringify(result);
   } catch (error) {
+    // Check if this is a truncation error
+    const isTruncationError =
+      error instanceof SyntaxError &&
+      (error.message.includes('Unterminated string') ||
+        error.message.includes('Unexpected end of JSON'));
+
     try {
       Sentry.captureException(
         new Error('Error parsing ai.input_messages', {cause: error})
@@ -109,6 +188,12 @@ function transformInputMessages(inputMessages: string) {
     } catch {
       // ignore errors with browsers that don't support `cause`
     }
+
+    // For truncation errors, return undefined to prevent showing malformed data
+    if (isTruncationError) {
+      return undefined;
+    }
+
     return undefined;
   }
 }
@@ -130,11 +215,23 @@ function transformPrompt(prompt: string) {
     }
     return JSON.stringify(result);
   } catch (error) {
+    // Check if this is a truncation error
+    const isTruncationError =
+      error instanceof SyntaxError &&
+      (error.message.includes('Unterminated string') ||
+        error.message.includes('Unexpected end of JSON'));
+
     try {
       Sentry.captureException(new Error('Error parsing ai.prompt', {cause: error}));
     } catch {
       // ignore errors with browsers that don't support `cause`
     }
+
+    // For truncation errors, return undefined to prevent showing malformed data
+    if (isTruncationError) {
+      return undefined;
+    }
+
     return undefined;
   }
 }
