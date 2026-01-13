@@ -206,7 +206,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 best_artifact = max(
                     installable_artifacts,
                     key=lambda a: (
-                        (a.mobile_app_info.build_number if hasattr(a, "mobile_app_info") else 0),
+                        (a.mobile_app_info.build_number if a.mobile_app_info.build_number else 0),
                         a.date_added,
                     ),
                 )
