@@ -1,7 +1,7 @@
 import {css, useTheme} from '@emotion/react';
 import {expectTypeOf} from 'expect-type';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {render, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
 
 describe('theme', () => {
   describe('getColorPalette', () => {
@@ -43,7 +43,9 @@ describe('theme', () => {
         const theme = renderHookWithProviders(useTheme).result.current;
         const token = theme.tokens[name].promotion;
 
-        expect(token).toBe(token.vibrant);
+        // Test coercion to string equals vibrant value
+        expect(String(token)).toBe(token.vibrant);
+        expect(`${token}`).toBe(token.vibrant);
       }
     );
 
@@ -76,6 +78,29 @@ describe('theme', () => {
       `).toMatchObject({
         styles: expect.stringContaining(theme.tokens.border.danger.vibrant),
       });
+    });
+
+    it.each<['border' | 'graphics']>([['border'], ['graphics']])(
+      '%s token should serialize to vibrant value in JSON',
+      name => {
+        const theme = renderHookWithProviders(useTheme).result.current;
+        const token = theme.tokens[name].promotion;
+
+        const serialized = JSON.stringify({color: token});
+        const expected = JSON.stringify({color: token.vibrant});
+
+        expect(serialized).toBe(expected);
+      }
+    );
+  });
+
+  it('serializes style object to vibrant value in JSON', () => {
+    const theme = renderHookWithProviders(useTheme).result.current;
+
+    render(<div style={{borderColor: theme.tokens.border.promotion}}>Hello</div>);
+
+    expect(screen.getByText('Hello')).toHaveStyle({
+      borderColor: theme.tokens.border.promotion.vibrant,
     });
   });
 });
