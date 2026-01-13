@@ -1,20 +1,26 @@
 import {Button} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export function CopyLLMPromptButton() {
   const {copy} = useCopyToClipboard();
+  const organization = useOrganization();
 
   return (
     <Button
       size="sm"
       icon={<IconCopy />}
-      onClick={() =>
+      onClick={() => {
+        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+          organization,
+        });
         copy(LLM_ONBOARDING_INSTRUCTIONS, {
           successMessage: t('Copied instrumentation prompt to clipboard'),
-        })
-      }
+        });
+      }}
     >
       {t('Copy Prompt for AI Agent')}
     </Button>
@@ -182,8 +188,8 @@ with sentry_sdk.start_span(op="gen_ai.handoff", name=f"handoff from {a} to {b}")
 ## Key Rules
 
 1. **All complex data must be JSON-stringified** - span attributes only accept primitives
-2. **\`gen_ai.request.model\` is required** on all AI request and agent spans
-3. **Nest spans correctly:** Agent span → contains Request spans and Tool spans (siblings)
+2. **\`gen_ai.request.model\` is required** on \`gen_ai.request\` and \`gen_ai.invoke_agent\` spans
+3. **Nest spans correctly:** \`gen_ai.invoke_agent\` spans should contain \`gen_ai.request\` and \`gen_ai.execute_tool\` spans as children
 4. **JS min version:** \`@sentry/node@10.28.0\` or later
 5. **Enable PII:** \`sendDefaultPii: true\` (JS) / \`send_default_pii=True\` (Python) to capture inputs/outputs
 `;
