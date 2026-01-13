@@ -172,7 +172,7 @@ describe('SearchBarAction', () => {
     expect(screen.getAllByText('error')[0]).toBeInTheDocument();
 
     // Check Item
-    const infoItem = screen.getAllByText('info')[0];
+    const infoItem = screen.getAllByText('info')[0]!;
     await userEvent.click(infoItem);
 
     const infoOption = ('options' in levelOptions ? levelOptions.options : []).find(
