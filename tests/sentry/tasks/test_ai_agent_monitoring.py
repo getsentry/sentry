@@ -482,6 +482,27 @@ class FetchAIModelCostsTest(TestCase):
         assert "nonexistent-mapping" not in models
 
     @responses.activate
+    def test_fetch_ai_model_costs_with_baai_bge_m3(self) -> None:
+        """Test that BAAI/bge-m3 model is added as a hardcoded model"""
+        self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
+        self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
+
+        fetch_ai_model_costs()
+
+        cached_data = _get_ai_model_costs_from_cache()
+        assert cached_data is not None
+        models = cached_data.get("models")
+        assert models is not None
+
+        # Verify BAAI/bge-m3 is in the models dict
+        assert "BAAI/bge-m3" in models
+        baai_model = models["BAAI/bge-m3"]
+        assert baai_model.get("inputPerToken") == 0.0
+        assert baai_model.get("outputPerToken") == 0.0
+        assert baai_model.get("outputReasoningPerToken") == 0.0
+        assert baai_model.get("inputCachedPerToken") == 0.0
+
+    @responses.activate
     def test_fetch_ai_model_costs_with_normalized_and_prefix_glob_names(self) -> None:
         """Test that normalized and prefix glob versions of model names are added correctly"""
         # Mock responses with models that have dates/versions that should be normalized

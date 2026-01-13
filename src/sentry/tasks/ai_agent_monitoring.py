@@ -159,6 +159,16 @@ def fetch_ai_model_costs() -> None:
     # Add glob versions of model names for flexible matching
     _add_glob_model_names(models_dict)
 
+    # Add hardcoded models that are not available in external APIs
+    # BAAI/bge-m3 is a free, open-source embedding model
+    if "BAAI/bge-m3" not in models_dict:
+        models_dict["BAAI/bge-m3"] = AIModelCostV2(
+            inputPerToken=0.0,
+            outputPerToken=0.0,
+            outputReasoningPerToken=0.0,
+            inputCachedPerToken=0.0,
+        )
+
     ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
     cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)
 
