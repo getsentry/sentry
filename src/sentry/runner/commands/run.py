@@ -12,6 +12,7 @@ import click
 import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
+from sentry.utils.arroyo_patches import apply_all_patches
 from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
@@ -578,6 +579,9 @@ def basic_consumer(
 
         sentry run consumer ingest-occurrences --consumer-group occurrence-consumer -- --help
     """
+    # Apply arroyo patches for thread-safety before any arroyo code runs
+    apply_all_patches()
+
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
     from sentry.options import get
@@ -627,6 +631,8 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
     This does the same thing as 'sentry run consumer', but is not configurable,
     hardcodes consumer groups and is highly imperformant.
     """
+    # Apply arroyo patches for thread-safety before any arroyo code runs
+    apply_all_patches()
 
     from sentry.consumers import get_stream_processor
 
