@@ -7,7 +7,6 @@ import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {debossedBackground} from 'sentry/components/core/chonk';
 import type {
   GroupedOptionsType,
   OptionsType,
@@ -89,7 +88,7 @@ const getStylesConfig = ({
       color: 'currentcolor',
     },
   });
-  const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.interactive.chonky.debossed.neutral.chonk} inset`;
 
   return {
     control: (_, state) => ({
@@ -97,7 +96,7 @@ const getStylesConfig = ({
       color: state.isDisabled
         ? theme.tokens.content.disabled
         : theme.tokens.content.primary,
-      ...debossedBackground(theme),
+      backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.background,
       border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow,
       borderRadius: theme.form[size].borderRadius,
