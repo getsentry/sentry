@@ -63,7 +63,6 @@ export function useRevokeConsoleSdkPlatformInvite() {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
       });
-      onSuccess?.();
     },
     onError: (_error, {email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
       addErrorMessage(
