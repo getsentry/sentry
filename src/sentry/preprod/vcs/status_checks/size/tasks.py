@@ -46,16 +46,16 @@ RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
     key_mappings={
-        "build.platform": ["build.platform"],
-        "build.branch": ["build.branch"],
-        "build.package_name": ["build.package_name"],
-        "build.build_configuration": ["build.build_configuration"],
+        "platform": ["platform"],
+        "branch": ["branch"],
+        "app_id": ["app_id"],
+        "build_configuration": ["build_configuration"],
     },
     allowed_keys={
-        "build.platform",
-        "build.branch",
-        "build.package_name",
-        "build.build_configuration",
+        "platform",
+        "branch",
+        "app_id",
+        "build_configuration",
     },
 )
 
@@ -65,37 +65,34 @@ class StatusCheckRule:
     """A rule that defines when a status check should fail.
 
     Measurement types:
-    - absolute: Fail if size exceeds threshold (e.g., "fail if > 50MB")
-    - absolute_diff: Fail if size increases by more than threshold (e.g., "fail if +5MB")
-    - relative_diff: Fail if size increases by more than percentage (e.g., "fail if +10%")
+    - absolute: Fail if size exceeds threshold in bytes
+    - absolute_diff: Fail if size increases by more than threshold in bytes
+    - relative_diff: Fail if size increases by more than percentage
 
     Examples:
         StatusCheckRule(
             id="rule-1",
             metric="install_size",
             measurement="absolute",
-            value=50.0,
-            unit="MB",
+            value=52428800,
             filter_query="platform:iOS"
         )
-        Triggers failure if any iOS build exceeds 50MB.
+        Triggers failure if any iOS build exceeds 50MB (52428800 bytes).
 
         StatusCheckRule(
             id="rule-2",
             metric="install_size",
             measurement="absolute_diff",
-            value=5.0,
-            unit="MB",
+            value=5242880,
             filter_query="platform:iOS"
         )
-        Triggers failure if any iOS build increases by more than 5MB.
+        Triggers failure if any iOS build increases by more than 5MB (5242880 bytes).
 
         StatusCheckRule(
             id="rule-3",
             metric="download_size",
             measurement="relative_diff",
             value=10.0,
-            unit="%",
             filter_query=""
         )
         Triggers failure if any build's download size increases by more than 10%.
@@ -105,7 +102,6 @@ class StatusCheckRule:
     metric: str
     measurement: str
     value: float
-    unit: str
     filter_query: str = ""
 
 
@@ -159,7 +155,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
         )
         return
 
-    status_checks_enabled = preprod_artifact.project.get_option(ENABLED_OPTION_KEY, default=False)
+    status_checks_enabled = preprod_artifact.project.get_option(ENABLED_OPTION_KEY, default=True)
     if not status_checks_enabled:
         logger.info(
             "preprod.status_checks.create.disabled",
@@ -342,25 +338,34 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
             )
             return []
 
+        required_fields = [
+            ("id", str),
+            ("metric", str),
+            ("measurement", str),
+            ("value", (int, float)),
+        ]
+
         rules: list[StatusCheckRule] = []
         for rule_dict in rules_data:
-            filter_query_raw = rule_dict.get("filterQuery", "")
-            filter_query = str(filter_query_raw) if filter_query_raw is not None else ""
-
-            if not filter_query and "filters" in rule_dict:
-                logger.info(
-                    "preprod.status_checks.rules.legacy_format",
+            if not all(
+                isinstance(rule_dict.get(field), expected_type)
+                for field, expected_type in required_fields
+            ):
+                logger.warning(
+                    "preprod.status_checks.rules.invalid_rule",
                     extra={"project_id": project.id, "rule_id": rule_dict.get("id")},
                 )
                 continue
 
+            filter_query_raw = rule_dict.get("filterQuery", "")
+            filter_query = str(filter_query_raw) if filter_query_raw is not None else ""
+
             rules.append(
                 StatusCheckRule(
-                    id=rule_dict.get("id", ""),
-                    metric=rule_dict.get("metric", ""),
-                    measurement=rule_dict.get("measurement", ""),
-                    value=float(rule_dict.get("value", 0)),
-                    unit=rule_dict.get("unit", "MB"),
+                    id=rule_dict["id"],
+                    metric=rule_dict["metric"],
+                    measurement=rule_dict["measurement"],
+                    value=float(rule_dict["value"]),
                     filter_query=filter_query,
                 )
             )
@@ -386,7 +391,7 @@ def _fetch_base_size_metrics(
 
     for artifact in artifacts:
         base_artifact = artifact.get_base_artifact_for_commit().first()
-        if base_artifact and base_artifact.build_configuration == artifact.build_configuration:
+        if base_artifact:
             base_artifact_map[artifact.id] = base_artifact
 
     if not base_artifact_map:
@@ -414,31 +419,31 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str | N
     Extract build metadata from an artifact for filter matching.
 
     Returns a dict with keys matching the filter key format:
-    - build.branch: The branch name (from commit_comparison.head_ref)
-    - build.platform: "ios" or "android" (derived from artifact_type)
-    - build.package_name: The app ID (e.g., "com.example.app")
-    - build.build_configuration: The build configuration name
+    - branch: The branch name (from commit_comparison.head_ref)
+    - platform: "ios" or "android" (derived from artifact_type)
+    - app_id: The app ID (e.g., "com.example.app")
+    - build_configuration: The build configuration name
     """
     context: dict[str, str | None] = {}
 
     if artifact.commit_comparison and artifact.commit_comparison.head_ref:
-        context["build.branch"] = artifact.commit_comparison.head_ref
+        context["branch"] = artifact.commit_comparison.head_ref
 
     if artifact.artifact_type is not None:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            context["build.platform"] = "ios"
+            context["platform"] = "ios"
         elif artifact.artifact_type in (
             PreprodArtifact.ArtifactType.AAB,
             PreprodArtifact.ArtifactType.APK,
         ):
-            context["build.platform"] = "android"
+            context["platform"] = "android"
 
     if artifact.app_id:
-        context["build.package_name"] = artifact.app_id
+        context["app_id"] = artifact.app_id
 
     if artifact.build_configuration:
         try:
-            context["build.build_configuration"] = artifact.build_configuration.name
+            context["build_configuration"] = artifact.build_configuration.name
         except Exception:
             pass
 
@@ -502,18 +507,6 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str | None]
     return True
 
 
-def _convert_to_bytes(value: float, unit: str) -> float:
-    """Convert a value from the given unit to bytes."""
-    if unit == "MB":
-        return value * 1024 * 1024
-    elif unit == "%":
-        # Percentage is handled separately in threshold evaluation
-        return value
-    else:
-        # Assume bytes if unknown
-        return value
-
-
 def _get_metric_value(size_metrics: PreprodArtifactSizeMetrics, metric: str) -> int | None:
     """Get the relevant size value from metrics based on the metric type."""
     if metric == "install_size":
@@ -534,8 +527,8 @@ def _evaluate_rule_threshold(
     Returns True if the threshold is exceeded (rule triggers failure).
 
     Measurement types:
-    - absolute: Compare the absolute size against the threshold
-    - absolute_diff: Compare the absolute size difference (in MB) from baseline
+    - absolute: Compare the absolute size against the threshold in bytes
+    - absolute_diff: Compare the absolute size difference (in bytes) from baseline
     - relative_diff: Compare the relative size difference (in %) from baseline
     """
     if not size_metrics:
@@ -548,10 +541,8 @@ def _evaluate_rule_threshold(
     if current_value is None:
         return False
 
-    threshold_bytes = _convert_to_bytes(rule.value, rule.unit)
-
     if rule.measurement == "absolute":
-        return current_value > threshold_bytes
+        return current_value > rule.value
 
     elif rule.measurement == "absolute_diff":
         if not base_size_metrics:
@@ -565,7 +556,7 @@ def _evaluate_rule_threshold(
             return False
 
         diff = current_value - base_value
-        return diff > threshold_bytes
+        return diff > rule.value
 
     elif rule.measurement == "relative_diff":
         if not base_size_metrics:
@@ -644,7 +635,6 @@ def _compute_overall_status(
                                     "metric": rule.metric,
                                     "measurement": rule.measurement,
                                     "threshold": rule.value,
-                                    "unit": rule.unit,
                                 },
                             )
                             return StatusCheckStatus.FAILURE
