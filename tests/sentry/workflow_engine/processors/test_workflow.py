@@ -445,7 +445,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert WorkflowFireHistory.objects.count() == 3
         assert mock_trigger_action.call_count == 3
 
-    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_uses_issue_stream_workflows(self) -> None:
         issue_occurrence = self.build_occurrence()
         self.group_event.occurrence = issue_occurrence
@@ -466,7 +465,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert result.data.triggered_actions is not None
         assert len(result.data.triggered_actions) == 0
 
-    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_multiple_detectors__preferred(self) -> None:
         _, issue_stream_detector, _, _ = self.create_detector_and_workflow(
             name_prefix="issue_stream",
