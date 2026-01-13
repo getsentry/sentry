@@ -4,6 +4,7 @@ import posixpath
 
 import sentry_sdk
 from django.http.response import FileResponse, HttpResponseBase
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +14,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
+from sentry.models.project import Project
 from sentry.releases.endpoints.project_release_file_details import ClosesDependentFiles
 
 
@@ -55,7 +57,41 @@ class ProjectArtifactBundleFileDetailsEndpoint(
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, bundle_id, file_id) -> HttpResponseBase:
+    def convert_args(
+        self,
+        request: Request,
+        bundle_id: str,
+        file_id: str,
+        *args,
+        **kwargs,
+    ):
+        # Call parent to get project
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        project: Project = kwargs["project"]
+
+        # Fetch artifact bundle
+        try:
+            artifact_bundle = ArtifactBundle.objects.filter(
+                organization_id=project.organization.id,
+                bundle_id=bundle_id,
+                projectartifactbundle__project_id=project.id,
+            )[0]
+        except IndexError:
+            raise ParseError(
+                f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"
+            )
+
+        kwargs["artifact_bundle"] = artifact_bundle
+        kwargs["file_id"] = file_id
+        return args, kwargs
+
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        artifact_bundle: ArtifactBundle,
+        file_id: str,
+    ) -> HttpResponseBase:
         """
         Retrieve the file of an artifact bundle
         `````````````````````````````````
@@ -83,20 +119,6 @@ class ProjectArtifactBundleFileDetailsEndpoint(
         except (binascii.Error, UnicodeDecodeError):
             return Response(
                 {"error": f"The file_id {file_id} is invalid"},
-                status=400,
-            )
-
-        try:
-            artifact_bundle = ArtifactBundle.objects.filter(
-                organization_id=project.organization.id,
-                bundle_id=bundle_id,
-                projectartifactbundle__project_id=project.id,
-            )[0]
-        except IndexError:
-            return Response(
-                {
-                    "error": f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"
-                },
                 status=400,
             )
 
