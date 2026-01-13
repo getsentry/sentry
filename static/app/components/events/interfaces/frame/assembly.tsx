@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -14,27 +16,27 @@ type Props = {
 function Assembly({name, version, culture, publicKeyToken}: Props) {
   return (
     <AssemblyWrapper>
-      <AssemblyInfo>
+      <Flex align="center" marginRight="xl">
         <Caption>Assembly:</Caption>
         {name || '-'}
-      </AssemblyInfo>
-      <AssemblyInfo>
+      </Flex>
+      <Flex align="center" marginRight="xl">
         <Caption>{t('Version')}:</Caption>
         {version || '-'}
-      </AssemblyInfo>
+      </Flex>
 
       {culture && (
-        <AssemblyInfo>
+        <Flex align="center" marginRight="xl">
           <Caption>{t('Culture')}:</Caption>
           {culture}
-        </AssemblyInfo>
+        </Flex>
       )}
 
       {publicKeyToken && (
-        <AssemblyInfo>
+        <Flex align="center" marginRight="xl">
           <Caption>PublicKeyToken:</Caption>
           {publicKeyToken}
-        </AssemblyInfo>
+        </Flex>
       )}
     </AssemblyWrapper>
   );
@@ -48,12 +50,6 @@ const AssemblyWrapper = styled('div')`
   text-align: center;
   position: relative;
   padding: ${space(0.25)} ${space(3)};
-`;
-
-const AssemblyInfo = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(2)};
 `;
 
 const Caption = styled('span')`

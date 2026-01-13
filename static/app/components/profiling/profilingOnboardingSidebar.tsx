@@ -2,6 +2,8 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
@@ -202,7 +204,7 @@ function SidebarContent() {
 
   return (
     <Fragment>
-      <Content>
+      <Stack padding="xl" gap="md">
         <Heading>{t('Profile Code')}</Heading>
         <div
           onClick={e => {
@@ -241,7 +243,7 @@ function SidebarContent() {
             project={currentProject}
           />
         ) : null}
-      </Content>
+      </Stack>
     </Fragment>
   );
 }
@@ -380,13 +382,6 @@ const Introduction = styled('div')`
   & > p:not(:last-child) {
     margin-bottom: ${space(2)};
   }
-`;
-
-const Content = styled('div')`
-  padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 const Heading = styled('div')`

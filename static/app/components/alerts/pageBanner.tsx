@@ -1,6 +1,8 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
@@ -42,7 +44,7 @@ export default function PageBanner({
         />
       )}
       <Background image={image} />
-      <Stack>
+      <Stack justify="between" gap="md" maxWidth="50%">
         <TypeText>
           {icon}
           {title}
@@ -90,14 +92,6 @@ const Background = styled('div')<{image: any}>`
   background-image: url(${p => p.image});
   background-repeat: no-repeat;
   background-size: cover;
-`;
-
-const Stack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  max-width: 50%;
-  gap: ${space(1)};
 `;
 
 const TextContainer = styled('div')`

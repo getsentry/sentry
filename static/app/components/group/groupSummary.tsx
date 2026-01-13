@@ -2,7 +2,7 @@ import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {Button} from 'sentry/components/core/button';
@@ -207,8 +207,8 @@ function GroupSummaryPreview({
   return (
     <div data-testid="group-summary-preview">
       {isError ? <div>{t('Error loading summary')}</div> : null}
-      <Content>
-        <InsightGrid>
+      <Stack gap="md" position="relative">
+        <Stack gap="md">
           {insightCards.map(card => {
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
@@ -221,7 +221,7 @@ function GroupSummaryPreview({
                     <CardTitleText>{card.title}</CardTitleText>
                   </AiPrivacyTooltip>
                 </CardTitle>
-                <CardContentContainer>
+                <Flex align="center" gap="md">
                   <CardLineDecorationWrapper>
                     <CardLineDecoration />
                   </CardLineDecorationWrapper>
@@ -236,12 +236,12 @@ function GroupSummaryPreview({
                       )}
                     </CardContent>
                   )}
-                </CardContentContainer>
+                </Flex>
               </InsightCard>
             );
           })}
-        </InsightGrid>
-      </Content>
+        </Stack>
+      </Stack>
     </div>
   );
 }
@@ -279,9 +279,9 @@ function GroupSummaryCollapsed({
     <div data-testid="group-summary-collapsed">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       {!isError && (
-        <CollapsedContent>
+        <Stack position="relative">
           <CollapsedHeader onClick={handleToggle}>
-            <CollapsedHeaderContent>
+            <Flex justify="between" align="center" gap="md">
               {isPending ? (
                 <Placeholder height="1.5rem" width="80%" />
               ) : (
@@ -296,7 +296,7 @@ function GroupSummaryCollapsed({
                   <IconChevron direction="down" size="sm" />
                 )}
               </ChevronIcon>
-            </CollapsedHeaderContent>
+            </Flex>
           </CollapsedHeader>
 
           <ExpandableContent
@@ -323,7 +323,7 @@ function GroupSummaryCollapsed({
               />
             </Flex>
           </ExpandableContent>
-        </CollapsedContent>
+        </Stack>
       )}
     </div>
   );
@@ -394,8 +394,8 @@ function GroupSummaryFull({
   return (
     <Container data-testid="group-summary" width="100%">
       {isError ? <div>{t('Error loading summary')}</div> : null}
-      <Content>
-        <InsightGrid>
+      <Stack gap="md" position="relative">
+        <Stack gap="md">
           {insightCards.map(card => {
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
@@ -406,7 +406,7 @@ function GroupSummaryFull({
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
-                <CardContentContainer>
+                <Flex align="center" gap="md">
                   <CardLineDecorationWrapper>
                     <CardLineDecoration />
                   </CardLineDecorationWrapper>
@@ -422,13 +422,13 @@ function GroupSummaryFull({
                       )}
                     </CardContent>
                   )}
-                </CardContentContainer>
+                </Flex>
               </InsightCard>
             );
           })}
-        </InsightGrid>
+        </Stack>
         {data?.eventId && !isPending && event && event.id !== data?.eventId && (
-          <ResummarizeWrapper>
+          <Flex align="center" flexShrink={0} marginTop="md">
             <Button
               onClick={() => setForceEvent(true)}
               disabled={isPending}
@@ -437,25 +437,12 @@ function GroupSummaryFull({
             >
               {t('Summarize current event')}
             </Button>
-          </ResummarizeWrapper>
+          </Flex>
         )}
-      </Content>
+      </Stack>
     </Container>
   );
 }
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  position: relative;
-`;
-
-const InsightGrid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 const InsightCard = styled('div')`
   display: flex;
@@ -483,12 +470,6 @@ const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const CardContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const CardLineDecorationWrapper = styled('div')`
@@ -519,29 +500,9 @@ const CardContent = styled('div')`
   flex: 1;
 `;
 
-const ResummarizeWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-top: ${space(1)};
-  flex-shrink: 0;
-`;
-
-const CollapsedContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  position: relative;
-`;
-
 const CollapsedHeader = styled('div')`
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-`;
-
-const CollapsedHeaderContent = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
 `;
 
 const ChevronIcon = styled('div')`
