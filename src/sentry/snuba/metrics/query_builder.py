@@ -32,10 +32,10 @@ from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
+    bulk_reverse_resolve_tag_value,
     resolve_tag_key,
     resolve_tag_value,
     resolve_weak,
-    reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
@@ -1383,13 +1383,23 @@ class SnubaResultConverter:
             else {}
         )
 
+        # Collect all values that need resolving to avoid N+1 cache lookups
+        values_to_resolve: set[int | str | None] = set()
+        for tags, _ in groups_d.items():
+            for key, value in tags:
+                if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES:
+                    values_to_resolve.add(value)
+
+        # Bulk resolve all values at once
+        resolved_values = bulk_reverse_resolve_tag_value(
+            self._use_case_id, self._organization_id, values_to_resolve
+        )
+
         groups: list[_BySeriesTotals] = [
             {
                 "by": {
                     key: (
-                        reverse_resolve_tag_value(
-                            self._use_case_id, self._organization_id, value, weak=True
-                        )
+                        resolved_values.get(value, value)
                         if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES
                         else value
                     )
