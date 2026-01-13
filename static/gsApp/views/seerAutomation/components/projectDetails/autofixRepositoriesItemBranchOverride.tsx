@@ -31,7 +31,9 @@ export default function AutofixRepositoriesItemBranchOverride({
   const isValid = isOverrideValid(override);
 
   const getErrorStyle = (value: string) =>
-    hasAnyValue && !value.trim() ? {borderColor: theme.tokens.border.danger.vibrant} : undefined;
+    hasAnyValue && !value.trim()
+      ? {borderColor: theme.tokens.border.danger.vibrant}
+      : undefined;
 
   return (
     <Flex align="center" gap="sm">
