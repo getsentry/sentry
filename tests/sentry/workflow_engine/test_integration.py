@@ -572,7 +572,6 @@ class TestWorkflowEngineIntegrationPostProcessRollout(BaseWorkflowIntegrationTes
     @override_options(
         {
             "workflow_engine.issue_alert.group.type_id.ga": [1],
-            "workflow_engine.exclude_issue_stream_detector": True,
         }
     )
     def test_errors_only_rollout(self) -> None:
@@ -585,20 +584,6 @@ class TestWorkflowEngineIntegrationPostProcessRollout(BaseWorkflowIntegrationTes
     @override_options(
         {
             "workflow_engine.issue_alert.group.type_id.ga": [1],
-            "workflow_engine.exclude_issue_stream_detector": False,
-        }
-    )
-    def test_issue_stream_errors_only(self) -> None:
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
-        ) as mock_process_workflow:
-            self.call_post_process_group(self.feedback_group.id)
-            assert not mock_process_workflow.called  # still not called because not in rollout FF
-
-    @override_options(
-        {
-            "workflow_engine.issue_alert.group.type_id.ga": [1],
-            "workflow_engine.exclude_issue_stream_detector": False,
             "workflow_engine.issue_alert.group.type_id.rollout": [6001],
         }
     )

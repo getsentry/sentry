@@ -275,22 +275,20 @@ def get_detectors_for_event_data(
     We expect a detector to be passed in for Activity updates.
     """
     issue_stream_detector: Detector | None = None
-    exclude_issue_stream = options.get("workflow_engine.exclude_issue_stream_detector")
 
-    if not exclude_issue_stream:
-        try:
-            issue_stream_detector = Detector.get_issue_stream_detector_for_project(
-                event_data.group.project_id
-            )
-        except Detector.DoesNotExist:
-            metrics.incr("workflow_engine.detectors.error")
-            logger.exception(
-                "Issue stream detector not found for event",
-                extra={
-                    "project_id": event_data.group.project_id,
-                    "group_id": event_data.group.id,
-                },
-            )
+    try:
+        issue_stream_detector = Detector.get_issue_stream_detector_for_project(
+            event_data.group.project_id
+        )
+    except Detector.DoesNotExist:
+        metrics.incr("workflow_engine.detectors.error")
+        logger.exception(
+            "Issue stream detector not found for event",
+            extra={
+                "project_id": event_data.group.project_id,
+                "group_id": event_data.group.id,
+            },
+        )
 
     if detector is None and isinstance(event_data.event, GroupEvent):
         try:
