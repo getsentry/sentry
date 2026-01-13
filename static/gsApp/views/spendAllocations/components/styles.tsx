@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 
 export const Card = styled('div')`
@@ -31,8 +33,6 @@ export const Divider = styled('span')`
   height: ${space(3)};
 `;
 
-export const Centered = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
+export function Centered(props: FlexProps<'div'>) {
+  return <Flex justify="center" align="center" {...props} />;
+}
