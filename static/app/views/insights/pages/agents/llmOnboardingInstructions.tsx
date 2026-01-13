@@ -57,8 +57,8 @@ Check in this order - **use the highest-level framework found** (e.g., if using 
 | Vercel AI SDK | \`Sentry.vercelAIIntegration()\` | - | - |
 | LangGraph | \`Sentry.langGraphIntegration()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
 | LangChain | \`Sentry.langChainIntegration()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
-| OpenAI Agents | - | \`OpenAIAgentsIntegration()\` | - |
-| Pydantic AI | - | \`PydanticAIIntegration()\` | \`sentry-sdk[pydantic_ai]\` |
+| OpenAI Agents | - | Auto-enabled | - |
+| Pydantic AI | - | Auto-enabled | \`sentry-sdk[pydantic_ai]\` |
 | LiteLLM | - | \`LiteLLMIntegration()\` | \`sentry-sdk[litellm]\` |
 | OpenAI | \`Sentry.openAIIntegration()\` | Auto-enabled | - |
 | Anthropic | \`Sentry.anthropicAIIntegration()\` | Auto-enabled | - |
