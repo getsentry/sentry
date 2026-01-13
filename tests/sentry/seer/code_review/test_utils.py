@@ -287,25 +287,26 @@ class TestTransformWebhookToCodegenRequest:
 
 
 class TestMakeSeerRequestUrlSwitch(TestCase):
-    """Test that make_seer_request uses the correct Seer URL based on organization in payload."""
+    """Test that make_seer_request uses the correct Seer URL based on repo owner in payload."""
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.utils.connection_from_url")
     def test_uses_autofix_url_when_org_not_in_direct_to_seer_list(
         self, mock_connection: MagicMock, mock_request: MagicMock
     ) -> None:
-        """When organization is not in the direct-to-seer list, use SEER_AUTOFIX_URL."""
+        """When repo owner is not in the direct-to-seer list, use SEER_AUTOFIX_URL."""
         mock_response = MagicMock()
         mock_response.status = 200
         mock_response.data = b'{"success": true}'
         mock_request.return_value = mock_response
+        payload = {"data": {"repo": {"owner": "some-org"}}}
 
         with override_settings(
             SEER_AUTOFIX_URL="https://autofix.seer.example.com",
             SEER_PREVENT_AI_URL="https://preventai.seer.example.com",
         ):
             with self.options({"seer.code-review.direct-to-seer-enabled-gh-orgs": ["other-org"]}):
-                make_seer_request("/test/path", {"organization": {"login": "some-org"}})
+                make_seer_request("/test/path", payload)
 
             mock_connection.assert_called_once_with("https://autofix.seer.example.com")
 
@@ -314,17 +315,18 @@ class TestMakeSeerRequestUrlSwitch(TestCase):
     def test_uses_prevent_ai_url_when_org_in_direct_to_seer_list(
         self, mock_connection: MagicMock, mock_request: MagicMock
     ) -> None:
-        """When organization login is in the direct-to-seer list, use SEER_PREVENT_AI_URL."""
+        """When repo owner is in the direct-to-seer list, use SEER_PREVENT_AI_URL."""
         mock_response = MagicMock()
         mock_response.status = 200
         mock_response.data = b'{"success": true}'
         mock_request.return_value = mock_response
+        payload = {"data": {"repo": {"owner": "test-org"}}}
 
         with override_settings(
             SEER_AUTOFIX_URL="https://autofix.seer.example.com",
             SEER_PREVENT_AI_URL="https://preventai.seer.example.com",
         ):
             with self.options({"seer.code-review.direct-to-seer-enabled-gh-orgs": ["test-org"]}):
-                make_seer_request("/test/path", {"organization": {"login": "test-org"}})
+                make_seer_request("/test/path", payload)
 
             mock_connection.assert_called_once_with("https://preventai.seer.example.com")
