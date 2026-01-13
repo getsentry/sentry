@@ -212,7 +212,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 

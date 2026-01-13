@@ -381,7 +381,15 @@ const Container = styled(motion.div)<{required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => (p.required ? p.theme.colors.pink500 : p.theme.active)}20,
+      color-mix(
+        in srgb,
+        ${p =>
+            p.required
+              ? p.theme.colors.pink500
+              : p.theme.tokens.interactive.link.accent.active}
+          12.5%,
+        transparent
+      ),
       transparent
     );
     background-size: 2000px 100%;
@@ -408,7 +416,7 @@ const ActiveLogWrapper = styled('div')`
   align-items: flex-start;
   justify-content: space-between;
   padding: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   gap: ${space(1)};
   overflow: visible;
 `;

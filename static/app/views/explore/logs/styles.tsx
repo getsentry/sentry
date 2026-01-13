@@ -35,8 +35,17 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
-      background-color: ${p => p.theme.tokens.background.secondary};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
+
+    ${p =>
+      p.isClickable &&
+      `
+      &:active {
+        background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      }
+    `}
 
     &:not(:last-child) {
       border-bottom: 0;
@@ -451,7 +460,7 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   background: linear-gradient(
     to ${p => (p.position === 'top' ? 'bottom' : 'top')},
     rgb(from ${p => p.theme.tokens.background.tertiary} r g b / 75%),
-    rgb(from ${p => p.theme.backgroundSecondary} r g b / 0%)
+    rgb(from ${p => p.theme.tokens.background.secondary} r g b / 0%)
   );
   align-items: center;
   justify-content: center;

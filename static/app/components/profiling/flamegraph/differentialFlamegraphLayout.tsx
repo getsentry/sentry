@@ -121,8 +121,8 @@ const ProfileLabel = styled(CollapsibleTimelineLabel)`
   left: 0;
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary} 0%,
-    ${p => p.theme.backgroundSecondary} 80%,
+    ${p => p.theme.tokens.background.secondary} 0%,
+    ${p => p.theme.tokens.background.secondary} 80%,
     transparent 100%
   );
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
