@@ -115,7 +115,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   grid-template-columns: subgrid;
   grid-column: 1/-1;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};

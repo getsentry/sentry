@@ -100,7 +100,7 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
     !p.disableHover &&
     css`
       &:hover {
-        background-color: ${p.theme.backgroundSecondary};
+        background-color: ${p.theme.tokens.background.secondary};
       }
     `}
 `;

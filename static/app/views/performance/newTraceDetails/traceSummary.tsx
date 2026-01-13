@@ -207,7 +207,7 @@ const SectionContent = styled(MarkedText)`
   code {
     font-family: ${p => p.theme.text.familyMono};
     padding: ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     border-radius: ${p => p.theme.radius.md};
     font-size: 0.9em;
   }

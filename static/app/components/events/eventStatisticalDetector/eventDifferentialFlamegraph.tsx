@@ -516,7 +516,7 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.tokens.content.secondary};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 function DifferentialFlamegraphLegend() {
