@@ -1,7 +1,10 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {useDismissable} from 'sentry/components/banner';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,10 +13,13 @@ import type {DatePageFilterProps} from 'sentry/components/organizations/datePage
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {IconClose} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -51,6 +57,12 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   useDefaultToAllProjects();
 
   const agentSpanSearchProps = useAgentSpanSearchProps();
+  const isSentryEmployee = useIsSentryEmployee();
+  const pageFilters = usePageFilters();
+  const [dismissed, dismiss] = useDismissable('agents-overview-seer-data-banner');
+
+  const showSeerDataBanner =
+    isSentryEmployee && !dismissed && pageFilters.selection.projects.includes(6178942);
 
   useOverviewPageTrackPageload();
   useAgentMonitoringTrackPageView();
@@ -104,6 +116,25 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
+
+              {showSeerDataBanner && (
+                <ModuleLayout.Full>
+                  <Alert
+                    variant="info"
+                    trailingItems={
+                      <Button
+                        aria-label="Dismiss"
+                        icon={<IconClose />}
+                        size="xs"
+                        onClick={dismiss}
+                      />
+                    }
+                  >
+                    This dashboard may show incomplete data for this project due to
+                    transaction size limits.
+                  </Alert>
+                </ModuleLayout.Full>
+              )}
 
               <ModuleLayout.Full>
                 {showOnboarding ? (
