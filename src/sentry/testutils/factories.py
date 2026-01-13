@@ -2649,6 +2649,7 @@ class Factories:
         date_added: datetime | None = None,
         build_configuration: PreprodBuildConfiguration | None = None,
         extras: dict | None = None,
+        create_mobile_app_info: bool = True,
         **kwargs,
     ) -> PreprodArtifact:
         artifact = PreprodArtifact.objects.create(
@@ -2665,6 +2666,19 @@ class Factories:
         )
         if date_added is not None:
             artifact.update(date_added=date_added)
+
+        build_version = kwargs.get("build_version", None)
+        build_number = kwargs.get("build_number", None)
+        app_name = kwargs.get("app_name", None)
+        app_icon_id = kwargs.get("app_icon_id", None)
+        if create_mobile_app_info and (build_version or build_number or app_name or app_icon_id):
+            Factories.create_preprod_artifact_mobile_app_info(
+                artifact=artifact,
+                build_version=build_version,
+                build_number=build_number,
+                app_name=app_name,
+                app_icon_id=app_icon_id,
+            )
 
         return artifact
 
