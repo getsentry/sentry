@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 
@@ -20,9 +22,9 @@ class ProjectArtifactBundleEndpoint(ProjectEndpoint):
         self,
         request: Request,
         bundle_id: str,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         # Call parent to get project
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project: Project = kwargs["project"]
