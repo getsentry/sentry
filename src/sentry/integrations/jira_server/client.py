@@ -20,6 +20,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.net.http import SafeSession
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
@@ -75,6 +76,16 @@ class JiraServerClient(ApiClient):
 
     def get_cache_prefix(self) -> str:
         return "sentry-jira-server:"
+
+    def build_session(self) -> SafeSession:
+        """
+        Build a session with retries disabled to prevent OAuth1 nonce reuse.
+
+        OAuth1 signatures include a nonce that must be unique for each request.
+        If the HTTP client retries a request, it would reuse the same nonce,
+        causing Jira Server to reject it as a replay attack (oauth_problem=nonce_used).
+        """
+        return SafeSession(max_retries=0)
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         return self.authorize_request(prepared_request=prepared_request)
@@ -242,6 +253,16 @@ class JiraServerSetupClient(ApiClient):
         self.consumer_key = consumer_key
         self.private_key = private_key
         self.verify_ssl = verify_ssl
+
+    def build_session(self) -> SafeSession:
+        """
+        Build a session with retries disabled to prevent OAuth1 nonce reuse.
+
+        OAuth1 signatures include a nonce that must be unique for each request.
+        If the HTTP client retries a request, it would reuse the same nonce,
+        causing Jira Server to reject it as a replay attack (oauth_problem=nonce_used).
+        """
+        return SafeSession(max_retries=0)
 
     def get_request_token(self):
         """
