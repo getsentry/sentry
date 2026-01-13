@@ -247,7 +247,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     const {organization} = this.props;
     return (
       <div data-test-id="spike-protection-history-table">
-        <SectionHeading>
+        <Flex align="center" marginBottom="xl" gap="md">
           <Title>
             {t('Spike Protection')}
             <PageHeadingQuestionTooltip
@@ -264,7 +264,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             title={t('Go to spike protection settings')}
             to={`/settings/${organization.slug}/spike-protection/`}
           />
-        </SectionHeading>
+        </Flex>
         {this.renderTable()}
       </div>
     );
@@ -272,13 +272,6 @@ class SpikeProtectionHistoryTable extends Component<Props> {
 }
 
 export default withSubscription(withOrganization(SpikeProtectionHistoryTable));
-
-const SectionHeading = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
-  align-items: center;
-`;
 
 const Title = styled('div')`
   font-weight: bold;

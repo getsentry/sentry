@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -44,7 +45,7 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
           />
         }
       >
-        <AlertContent>
+        <Stack gap="xs">
           <AlertHeader>
             {t('Seer issue scans and fixes run automatically at low settings by default')}
           </AlertHeader>
@@ -56,17 +57,11 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
           <Link to={`/settings/${organization.slug}/seer/`}>
             {t('Manage Seer Automation Settings')}
           </Link>
-        </AlertContent>
+        </Stack>
       </Alert>
     </Alert.Container>
   );
 }
-
-const AlertContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
 
 const AlertHeader = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
