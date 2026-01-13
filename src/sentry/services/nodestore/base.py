@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import datetime, timedelta
 from threading import local
 from typing import Any
@@ -12,6 +14,8 @@ from django.utils.functional import cached_property
 from sentry import options
 from sentry.utils import json, metrics
 from sentry.utils.services import Service
+
+logger = logging.getLogger(__name__)
 
 # Cache an instance of the encoder we want to use
 json_dumps = json.JSONEncoder(
@@ -276,15 +280,76 @@ class NodeStorage(local, Service):
         raise NotImplementedError
 
     def _get_cache_item(self, item_id: str) -> Any | None:
-        if self.cache:
-            return self.cache.get(item_id)
-        return None
+        if not self.cache:
+            return None
+        
+        # Use a timeout to prevent blocking indefinitely on cache operations
+        cache_timeout = 10  # seconds
+        
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self.cache.get, item_id)
+                try:
+                    return future.result(timeout=cache_timeout)
+                except FuturesTimeoutError:
+                    logger.warning(
+                        "nodestore.cache.get_timeout",
+                        extra={
+                            "timeout": cache_timeout,
+                            "item_id": item_id,
+                        },
+                    )
+                    metrics.incr("nodestore.cache.timeout", tags={"operation": "get"})
+                    return None
+        except Exception as e:
+            logger.warning(
+                "nodestore.cache.get_error",
+                extra={
+                    "error": str(e),
+                    "item_id": item_id,
+                },
+                exc_info=True,
+            )
+            metrics.incr("nodestore.cache.error", tags={"operation": "get"})
+            return None
 
     @sentry_sdk.tracing.trace
     def _get_cache_items(self, id_list: list[str]) -> dict[str, Any]:
-        if self.cache:
-            return self.cache.get_many(id_list)
-        return {}
+        if not self.cache:
+            return {}
+        
+        # Use a timeout to prevent blocking indefinitely on cache operations
+        # This prevents tasks from exceeding their processing deadline when cache is slow
+        cache_timeout = 10  # seconds
+        
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self.cache.get_many, id_list)
+                try:
+                    return future.result(timeout=cache_timeout)
+                except FuturesTimeoutError:
+                    logger.warning(
+                        "nodestore.cache.get_many_timeout",
+                        extra={
+                            "timeout": cache_timeout,
+                            "num_ids": len(id_list),
+                        },
+                    )
+                    metrics.incr("nodestore.cache.timeout", tags={"operation": "get_many"})
+                    # Return empty dict to force fallback to nodestore backend
+                    return {}
+        except Exception as e:
+            logger.warning(
+                "nodestore.cache.get_many_error",
+                extra={
+                    "error": str(e),
+                    "num_ids": len(id_list),
+                },
+                exc_info=True,
+            )
+            metrics.incr("nodestore.cache.error", tags={"operation": "get_many"})
+            # Return empty dict to force fallback to nodestore backend
+            return {}
 
     def _set_cache_item(self, item_id: str, data: Any) -> None:
         if self.cache and data:
