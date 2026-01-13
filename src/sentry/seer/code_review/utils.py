@@ -92,8 +92,21 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     Returns:
         The response data from the Seer API
     """
+    # Import here to avoid circular import
+    from sentry.seer.code_review.webhooks.config import get_direct_to_seer_gh_orgs
+
+    seer_url = (
+        settings.SEER_PREVENT_AI_URL
+        if (
+            get_direct_to_seer_gh_orgs()
+            and "organization" in payload
+            and isinstance(payload["organization"], dict)
+            and payload["organization"].get("login") in get_direct_to_seer_gh_orgs()
+        )
+        else settings.SEER_AUTOFIX_URL
+    )
     response = make_signed_seer_api_request(
-        connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
+        connection_pool=connection_from_url(seer_url),
         path=path,
         body=orjson.dumps(payload),
     )
