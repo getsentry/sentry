@@ -203,21 +203,18 @@ class BaseIssueAlertHandler(ABC):
             data["actions"][0]["workflow_id"] = workflow_id
 
             # attempt to find legacy_rule_id from the alert rule workflow
-            try:
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(
-                    workflow_id=workflow_id,
-                )
-
-                rule = Rule.objects.get(id=alert_rule_workflow.rule_id)
-                label = rule.label
-                rule_id = rule.id
-            except AlertRuleWorkflow.DoesNotExist:
-                pass
-            except Rule.DoesNotExist:
-                logger.exception(
-                    "Rule not found when querying for AlertRuleWorkflow",
-                    extra={"rule_id": alert_rule_workflow.rule_id},
-                )
+            alert_rule_workflow = AlertRuleWorkflow.objects.filter(
+                workflow_id=workflow_id,
+            ).first()
+            if alert_rule_workflow:
+                try:
+                    label = Rule.objects.get(id=alert_rule_workflow.rule_id).label
+                    rule_id = alert_rule_workflow.rule_id
+                except Rule.DoesNotExist:
+                    logger.exception(
+                        "Rule not found when querying for AlertRuleWorkflow",
+                        extra={"rule_id": alert_rule_workflow.rule_id},
+                    )
 
             if rule_id:
                 data["actions"][0]["legacy_rule_id"] = rule_id
