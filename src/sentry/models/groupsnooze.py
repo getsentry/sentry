@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry import tsdb
+from sentry import options, tsdb
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -199,6 +199,7 @@ class GroupSnooze(Model):
 
     def test_user_counts(self, group: Group) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
+        cooldown_key = f"groupsnooze:v1:{self.id}:test_user_counts:snuba_cooldown"
         if self.state is None:
             users_seen = 0
         else:
@@ -207,6 +208,7 @@ class GroupSnooze(Model):
         threshold = self.user_count + users_seen
 
         CACHE_TTL = 3600  # Redis TTL in seconds
+        snuba_cooldown = options.get("snuba.groupsnooze.user-counts-cooldown-seconds")
 
         cached_event_count: int | float = float("inf")  # using +inf as a sentinel value
         try:
@@ -220,11 +222,25 @@ class GroupSnooze(Model):
             metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "true"})
             return True
 
+        # Check if we're in cooldown period from a recent Snuba query
+        if snuba_cooldown > 0:
+            cooldown_result = cache.get(cooldown_key)
+            if cooldown_result is not None:
+                metrics.incr(
+                    "groupsnooze.test_user_counts", tags={"cached": "true", "hit": "cooldown"}
+                )
+                return cooldown_result < threshold
+
         metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "false"})
         metrics.incr("groupsnooze.test_user_counts.snuba_call")
         real_count = group.count_users_seen(
             referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         )
+        # Store the Snuba result in cooldown cache to prevent query storms.
+        # Only cache when user count is below 95% of threshold to ensure
+        # timely snooze lifting when close to the threshold.
+        if snuba_cooldown > 0 and real_count < threshold * 0.95:
+            cache.set(cooldown_key, real_count, snuba_cooldown)
         cache.set(cache_key, real_count, CACHE_TTL)
         return real_count < threshold
 
