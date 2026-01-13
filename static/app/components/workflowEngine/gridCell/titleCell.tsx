@@ -94,7 +94,10 @@ const Name = styled('div')`
 
 const NameText = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: fit-content;
 `;
 

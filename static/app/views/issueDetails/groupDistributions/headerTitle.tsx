@@ -28,7 +28,11 @@ export default function HeaderTitle({
 }
 
 const Header = styled('h3')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;

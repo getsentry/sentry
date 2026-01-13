@@ -80,6 +80,10 @@ const CellWrapper = styled('div')`
 `;
 
 const TransactionLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0px;
 `;

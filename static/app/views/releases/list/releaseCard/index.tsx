@@ -286,7 +286,11 @@ function ReleaseCard({
 }
 
 const StyledVersion = styled(Version)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledPanel = styled(Panel)<{reloading: number}>`
@@ -426,7 +430,11 @@ export const ReleaseProjectsLayout = styled('div')<{
 `;
 
 export const ReleaseProjectColumn = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 20px;
 `;
 
