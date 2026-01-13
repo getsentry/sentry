@@ -42,10 +42,17 @@ def child_worker_init(process_type: str) -> None:
     Child worker processes are spawned and don't inherit db
     connections or configuration from the parent process.
     """
+    from django.db import close_old_connections
+
     from sentry.runner import configure
 
     if process_type == "spawn":
         configure()
+
+        # Close any database connections inherited from the parent process.
+        # When forking, child processes inherit file descriptors including database
+        # connections. These connections can become stale and cause OperationalError.
+        close_old_connections()
 
 
 @contextlib.contextmanager
