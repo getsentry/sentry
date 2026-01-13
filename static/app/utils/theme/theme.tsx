@@ -26,7 +26,6 @@ import type {
   LevelVariant,
   MotionDuration,
   MotionEasing,
-  TagVariant,
 } from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
@@ -339,58 +338,11 @@ const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors
   unknown: tokens.dataviz.semantic.other,
 });
 
-const generateTagTheme = (colors: Colors): TagColors => ({
-  muted: {
-    background: colors.surface500,
-    border: colors.gray200,
-    color: colors.gray500,
-  },
-
-  promotion: {
-    background: colors.pink100,
-    border: colors.pink100,
-    color: colors.pink500,
-  },
-
-  warning: {
-    background: colors.yellow100,
-    border: colors.yellow100,
-    color: colors.yellow500,
-  },
-
-  success: {
-    background: colors.green100,
-    border: colors.green100,
-    color: colors.green500,
-  },
-
-  danger: {
-    background: colors.red100,
-    border: colors.red100,
-    color: colors.red500,
-  },
-
-  info: {
-    background: colors.blue100,
-    border: colors.blue100,
-    color: colors.blue500,
-  },
-});
-
 /**
  * Theme definition
  */
 
 type Colors = typeof lightColors;
-
-type TagColors = Record<
-  TagVariant,
-  {
-    background: string;
-    border: string;
-    color: string;
-  }
->;
 
 type LevelColors = Record<LevelVariant, string>;
 
@@ -1275,7 +1227,6 @@ const lightThemeDefinition = {
   ...generateThemeUtils(baseLightTheme.tokens),
   alert: generateAlertTheme(lightColors, lightAliases, baseLightTheme.tokens),
   button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
-  tag: generateTagTheme(lightColors),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
@@ -1315,7 +1266,6 @@ export const darkTheme: SentryTheme = {
   ...generateThemeUtils(baseDarkTheme.tokens),
   alert: generateAlertTheme(darkColors, darkAliases, baseDarkTheme.tokens),
   button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
-  tag: generateTagTheme(darkColors),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
