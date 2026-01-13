@@ -200,10 +200,10 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return css`
       ${common}
       color: ${props.theme.white};
-      background: ${props.theme.active};
+      background: ${props.theme.tokens.interactive.link.accent.active};
 
       &:hover {
-        background: ${props.theme.activeHover};
+        background: ${props.theme.tokens.interactive.link.accent.hover};
       }
     `;
   }

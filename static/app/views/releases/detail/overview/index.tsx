@@ -569,7 +569,10 @@ const ReleaseDetailsPageFilters = styled('div')`
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.primary ? p.theme.activeText : p.theme.tokens.content.secondary)};
+  color: ${p =>
+    p.primary
+      ? p.theme.tokens.interactive.link.accent.rest
+      : p.theme.tokens.content.secondary};
 `;
 
 export default ReleaseOverview;
