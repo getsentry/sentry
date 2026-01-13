@@ -63,7 +63,10 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.notifications.utils.rules import (
+    get_rule_or_workflow_id,
+    get_rule_or_workflow_id_default,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
@@ -668,7 +671,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         rule_id = None
         rule_environment_id = None
-        key = "legacy_rule_id"
+        key = get_rule_or_workflow_id_default()
         if self.rules:
             key, value = get_rule_or_workflow_id(self.rules[0])
             rule_id = int(value)
