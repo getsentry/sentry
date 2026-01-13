@@ -193,7 +193,7 @@ const FileDiffWrapper = styled('div')<{showBorder?: boolean}>`
   line-height: 20px;
   vertical-align: middle;
   overflow: hidden;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   ${p => (p.showBorder ? `border: 1px solid ${p.theme.tokens.border.primary};` : '')}
   ${p => (p.showBorder ? `border-radius: ${p.theme.radius.md};` : '')}
 `;
