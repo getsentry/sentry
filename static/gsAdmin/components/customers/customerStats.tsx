@@ -72,7 +72,7 @@ export const useSeries = (): Record<string, SeriesItem> => {
     overQuota: {
       seriesName: SeriesName.OVER_QUOTA,
       data: [],
-      color: theme.tokens.graphics.promotion.vibrant,
+      color: theme.tokens.graphics.promotion.moderate,
     },
     totalFiltered: {
       seriesName: SeriesName.FILTERED,
