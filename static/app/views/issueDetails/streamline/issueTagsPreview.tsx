@@ -409,7 +409,7 @@ const TagPreviewGrid = styled(Link)`
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
-    background: ${p => p.theme.backgroundTertiary};
+    background: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -432,11 +432,11 @@ const LegendTitle = styled('div')`
 `;
 
 const DistributionsDrawerLink = styled(Link)`
-  color: ${p => p.theme.colors.blue400};
+  color: ${p => p.theme.tokens.content.accent};
   align-self: flex-start;
 
   &:hover {
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
 `;
 

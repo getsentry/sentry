@@ -12,7 +12,7 @@ const _Placeholder = styled('div')<{width: number}>`
   width: ${p => p.width}px;
   height: ${p => p.theme.fontSize.md};
   border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => p.theme.backgroundTertiary};
+  background-color: ${p => p.theme.tokens.background.tertiary};
 `;
 
 interface PlaceholderProps {

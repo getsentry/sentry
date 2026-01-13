@@ -337,7 +337,7 @@ const ActionButton = styled(Button)<{active?: boolean}>`
   ${p =>
     p.active &&
     css`
-      background-color: ${p.theme.colors.blue200};
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
     `}
 `;
 

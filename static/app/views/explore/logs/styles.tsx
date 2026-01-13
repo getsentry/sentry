@@ -35,7 +35,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
-      background-color: ${p => p.theme.backgroundSecondary};
+      background-color: ${p => p.theme.tokens.background.secondary};
     }
 
     &:not(:last-child) {
@@ -49,16 +49,16 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.colors.yellow100};
-    color: ${p => p.theme.colors.red400};
+    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+    color: ${p => p.theme.tokens.content.danger};
 
     &:hover {
-      background-color: ${p => p.theme.colors.yellow200};
+      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
     }
   }
 
   &.beforeHoverTime + &.afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue200};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     left: 0;
     position: absolute;
@@ -67,7 +67,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue200};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     right: 0;
     position: absolute;
@@ -76,7 +76,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime + &.afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue400};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     left: 0;
     position: absolute;
@@ -85,7 +85,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue400};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     right: 0;
     position: absolute;
@@ -317,68 +317,67 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   switch (level) {
     case SeverityLevel.DEFAULT:
       return {
-        background: theme.colors.gray200,
-        backgroundLight: theme.backgroundSecondary,
-        border: theme.tokens.border.primary,
-        borderHover: theme.tokens.border.primary,
-        color: theme.colors.gray200,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.secondary,
       };
     case SeverityLevel.TRACE:
       return {
-        background: theme.colors.blue400,
-        backgroundLight: theme.colors.blue100,
-        border: theme.colors.blue200,
-        borderHover: theme.colors.blue400,
-        color: theme.colors.blue500,
+        background: theme.tokens.graphics.accent.vibrant,
+        backgroundLight: theme.tokens.background.transparent.accent.muted,
+        border: theme.tokens.border.accent.moderate,
+        borderHover: theme.tokens.border.accent.vibrant,
+        color: theme.tokens.content.accent,
       };
     case SeverityLevel.WARN:
       return {
-        background: theme.colors.yellow400,
-        backgroundLight: theme.colors.yellow100,
-        border: theme.colors.yellow200,
-        borderHover: theme.colors.yellow400,
-        color: theme.colors.yellow500,
+        background: theme.tokens.graphics.warning.vibrant,
+        backgroundLight: theme.tokens.background.transparent.warning.muted,
+        border: theme.tokens.border.warning.moderate,
+        borderHover: theme.tokens.border.warning.vibrant,
+        color: theme.tokens.content.warning,
       };
     case SeverityLevel.ERROR:
-      // All these colours are likely changing, so we'll hold off moving them into theme for now.
       return {
-        background: '#FF7738', // Matches the legacy error level color
-        backgroundLight: 'rgba(245, 113, 54, 0.11)',
-        border: 'rgba(245, 113, 54, 0.55)',
-        borderHover: '#FF7738',
-        color: '#b34814',
+        background: theme.tokens.graphics.danger.vibrant,
+        backgroundLight: theme.tokens.background.transparent.danger.muted,
+        border: theme.tokens.border.danger.moderate,
+        borderHover: theme.tokens.border.danger.vibrant,
+        color: theme.tokens.content.danger,
       };
     case SeverityLevel.FATAL:
       return {
-        background: theme.colors.red400,
-        backgroundLight: theme.colors.red100,
-        border: theme.colors.red200,
-        borderHover: theme.colors.red400,
-        color: theme.colors.red500,
+        background: theme.tokens.graphics.danger.vibrant,
+        backgroundLight: theme.tokens.background.transparent.danger.muted,
+        border: theme.tokens.border.danger.moderate,
+        borderHover: theme.tokens.border.danger.vibrant,
+        color: theme.tokens.content.danger,
       };
     case SeverityLevel.DEBUG:
       return {
-        background: theme.colors.gray400,
-        backgroundLight: theme.colors.gray100,
-        border: theme.colors.gray200,
-        borderHover: theme.colors.gray400,
-        color: theme.colors.gray400,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.primary,
       };
     case SeverityLevel.INFO:
       return {
-        background: theme.colors.blue400,
-        backgroundLight: theme.colors.blue100,
-        border: theme.colors.blue200,
-        borderHover: theme.colors.blue400,
-        color: theme.colors.blue500,
+        background: theme.tokens.graphics.accent.vibrant,
+        backgroundLight: theme.tokens.background.transparent.accent.muted,
+        border: theme.tokens.border.transparent.accent.moderate,
+        borderHover: theme.tokens.border.transparent.accent.vibrant,
+        color: theme.tokens.content.accent,
       };
     case SeverityLevel.UNKNOWN:
       return {
-        background: theme.colors.gray400,
-        backgroundLight: theme.colors.gray100,
-        border: theme.colors.gray200,
-        borderHover: theme.colors.gray400,
-        color: theme.colors.gray200,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.secondary,
       };
     default:
       unreachable(level);
@@ -451,7 +450,7 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   display: flex;
   background: linear-gradient(
     to ${p => (p.position === 'top' ? 'bottom' : 'top')},
-    rgb(from ${p => p.theme.backgroundTertiary} r g b / 75%),
+    rgb(from ${p => p.theme.tokens.background.tertiary} r g b / 75%),
     rgb(from ${p => p.theme.backgroundSecondary} r g b / 0%)
   );
   align-items: center;

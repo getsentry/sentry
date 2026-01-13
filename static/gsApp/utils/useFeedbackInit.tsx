@@ -42,8 +42,8 @@ export default function useFeedbackInit() {
       #sentry-feedback {
         --foreground: ${theme.tokens.content.primary};
         --background: ${theme.tokens.background.primary};
-        --accent-foreground: ${theme.colors.white};
-        --accent-background: ${theme.colors.chonk.blue400};
+        --accent-foreground: ${theme.tokens.content.onVibrant.light};
+        --accent-background: ${theme.tokens.background.accent.vibrant};
         --success-color: ${theme.tokens.content.success};
         --error-color: ${theme.tokens.content.danger};
         --outline: 1px auto ${theme.tokens.border.accent};
