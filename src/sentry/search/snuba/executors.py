@@ -920,10 +920,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # If we had too_many_candidates, fall back to truncation instead of
             # returning empty. This handles selective filters (like assigned_to)
             # where random sampling is unlikely to find matches.
-            is_truncation_enabled = options.get(
-                "snuba.search.truncate-group-ids-for-selective-filters-enabled"
-            )
-            if too_many_candidates and original_group_ids and is_truncation_enabled:
+            if too_many_candidates and original_group_ids:
                 metrics.incr("snuba.search.hits_zero_fallback_to_truncation", skip_internal=False)
                 group_ids = original_group_ids[:max_candidates]
                 too_many_candidates = False
