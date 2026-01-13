@@ -206,14 +206,14 @@ export default PromotionModalWrapper;
 const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
 `;
 
 const DisclaimerText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 
