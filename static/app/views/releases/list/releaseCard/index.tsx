@@ -139,7 +139,7 @@ function ReleaseCard({
           )}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
-          <ReleaseInfoSubheaderUpper>
+          <Flex justify="between" flex="1 1 auto" height="100%">
             <PackageContainer>
               <PackageName>
                 {versionInfo?.package && (
@@ -206,7 +206,7 @@ function ReleaseCard({
                 </Tooltip>
               )}
             </FinalizeWrapper>
-          </ReleaseInfoSubheaderUpper>
+          </Flex>
         </ReleaseInfoSubheader>
       </ReleaseInfo>
 
@@ -238,11 +238,11 @@ function ReleaseCard({
               </ExpandButtonWrapper>
             )}
             collapseButton={({onCollapse}) => (
-              <CollapseButtonWrapper>
+              <Flex justify="center" align="center" height="41px">
                 <Button priority="primary" size="xs" onClick={onCollapse}>
                   {t('Collapse')}
                 </Button>
-              </CollapseButtonWrapper>
+              </Flex>
             )}
           >
             {projectsToShow.map((project, index) => {
@@ -323,14 +323,6 @@ const ReleaseInfoSubheader = styled('div')`
   flex-grow: 1;
 `;
 
-const ReleaseInfoSubheaderUpper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  flex: initial;
-  flex-grow: 1;
-  height: 100%;
-`;
 const FinalizeWrapper = styled('div')`
   display: flex;
   flex-direction: row;
@@ -409,13 +401,6 @@ const ExpandButtonWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     border-bottom-left-radius: ${p => p.theme.radius.md};
   }
-`;
-
-const CollapseButtonWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 41px;
 `;
 
 export const ReleaseProjectsLayout = styled('div')<{

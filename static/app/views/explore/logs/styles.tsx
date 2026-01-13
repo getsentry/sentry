@@ -450,7 +450,7 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   display: flex;
   background: linear-gradient(
     to ${p => (p.position === 'top' ? 'bottom' : 'top')},
-    rgb(from ${p => p.theme.backgroundTertiary} r g b / 75%),
+    rgb(from ${p => p.theme.tokens.background.tertiary} r g b / 75%),
     rgb(from ${p => p.theme.backgroundSecondary} r g b / 0%)
   );
   align-items: center;

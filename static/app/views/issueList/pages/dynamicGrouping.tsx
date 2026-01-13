@@ -735,7 +735,7 @@ function DynamicGrouping() {
           </Flex>
 
           <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
-            <ProjectPageFilter />
+            <ProjectPageFilter resetParamsOnChange={['cluster']} />
             {showDevTools && (
               <Button
                 size="sm"
@@ -1224,7 +1224,7 @@ const ShowMoreButton = styled('button')`
     color 0.15s ease;
 
   &:hover {
-    background: ${p => p.theme.backgroundTertiary};
+    background: ${p => p.theme.tokens.background.tertiary};
     border-color: ${p => p.theme.tokens.border.accent.vibrant};
     color: ${p => p.theme.tokens.content.primary};
   }
