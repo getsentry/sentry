@@ -1,6 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
-
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,42 +23,32 @@ interface Props {
 
 export function ReleasesSort({environments, sortBy, onChange}: Props) {
   return (
-    <CompositeSelect
-      trigger={triggerProps => (
-        <SelectTrigger.IconButton
-          {...triggerProps}
-          size="xs"
-          icon={<IconSort />}
-          title={t('Sort Releases')}
-          aria-label={t('Sort Releases')}
-        />
-      )}
-    >
-      <CompositeSelect.Region
-        label={t('Sort By')}
-        value={sortBy}
-        onChange={selection => {
-          onChange(selection.value);
-        }}
-        options={Object.entries(SORT_BY_OPTIONS).map(([name, filter]) => {
-          if (name !== ReleasesSortOption.ADOPTION) {
-            return {
-              label: filter.label,
-              value: name,
-            };
-          }
+    <CompactSelect
+      triggerProps={{
+        icon: <IconSort />,
+        title: t('Sort Releases'),
+        'aria-label': t('Sort Releases'),
+        children: '',
+        showChevron: false,
+      }}
+      value={sortBy}
+      onChange={option => onChange(option.value)}
+      options={Object.entries(SORT_BY_OPTIONS).map(([name, filter]) => {
+        // Adoption sort requires exactly one environment to be selected
+        const isAdoptionSort = name === ReleasesSortOption.ADOPTION;
+        const requiresSingleEnvironment = isAdoptionSort && environments.length !== 1;
 
-          const isNotSingleEnvironment = environments.length !== 1;
-          return {
-            label: filter.label,
-            value: name,
-            disabled: isNotSingleEnvironment,
-            tooltip: isNotSingleEnvironment
-              ? t('Select one environment to use this sort option.')
-              : undefined,
-          };
-        })}
-      />
-    </CompositeSelect>
+        return {
+          label: filter.label,
+          value: name,
+          disabled: requiresSingleEnvironment,
+          tooltip: requiresSingleEnvironment
+            ? t(
+                'Adoption sort requires exactly one environment. Please select a single environment to use this option.'
+              )
+            : undefined,
+        };
+      })}
+    />
   );
 }

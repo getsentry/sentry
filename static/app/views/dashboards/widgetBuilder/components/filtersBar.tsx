@@ -5,6 +5,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,6 +30,7 @@ function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
             isDisabled
             id="releases-select-control"
             selectedReleases={releases}
+            sortBy={ReleasesSortOption.DATE}
           />
         </ReleasesProvider>
       </StyledPageFilterBar>

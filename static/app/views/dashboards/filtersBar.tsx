@@ -1,6 +1,7 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -8,15 +9,15 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
-import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
@@ -29,9 +30,10 @@ import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import ReleasesSelectControl from './releasesSelectControl';
+import SortableReleasesFilter from './sortableReleasesFilter';
 import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
 import {DashboardFilterKeys} from './types';
 
@@ -64,7 +66,6 @@ export default function FiltersBar({
   shouldBusySaveButton,
   prebuiltDashboardId,
 }: FiltersBarProps) {
-  const {selection} = usePageFilters();
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
@@ -73,6 +74,28 @@ export default function FiltersBar({
   const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
     : [];
+
+  // Release sort state management with Nuqs
+  const [localStoragedReleaseBy, setLocalStoragedReleaseBy] =
+    useLocalStorageState<ReleasesSortByOption>(
+      'dashboardsReleasesSortBy',
+      ReleasesSortOption.DATE
+    );
+
+  const [urlSortReleasesBy, setUrlSortReleasesBy] = useQueryState(
+    'sortReleasesBy',
+    parseAsString.withDefault(ReleasesSortOption.DATE)
+  );
+
+  // Use URL value if present, otherwise fall back to localStorage
+  const effectiveSortBy = urlSortReleasesBy || localStoragedReleaseBy;
+
+  // Sync localStorage with URL
+  useEffect(() => {
+    if (urlSortReleasesBy && urlSortReleasesBy !== localStoragedReleaseBy) {
+      setLocalStoragedReleaseBy(urlSortReleasesBy as ReleasesSortByOption);
+    }
+  }, [urlSortReleasesBy, localStoragedReleaseBy, setLocalStoragedReleaseBy]);
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -139,22 +162,21 @@ export default function FiltersBar({
           }}
         />
       </PageFilterBar>
-      <ReleasesProvider organization={organization} selection={selection}>
-        <ReleasesSelectControl
-          handleChangeFilter={activeFilters => {
-            onDashboardFilterChange({
-              ...activeFilters,
-              [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
-            });
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'release',
-            });
-          }}
-          selectedReleases={selectedReleases}
-          isDisabled={isEditingDashboard}
-        />
-      </ReleasesProvider>
+      <SortableReleasesFilter
+        sortBy={effectiveSortBy as ReleasesSortByOption}
+        selectedReleases={selectedReleases}
+        isDisabled={isEditingDashboard}
+        handleChangeFilter={activeFilters => {
+          onDashboardFilterChange({
+            ...activeFilters,
+            [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+          });
+        }}
+        onSortChange={value => {
+          setUrlSortReleasesBy(value);
+          setLocalStoragedReleaseBy(value as ReleasesSortByOption);
+        }}
+      />
       {organization.features.includes('dashboards-global-filters') && (
         <Fragment>
           {activeGlobalFilters.map(filter => (

@@ -2,6 +2,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ReleasesContext} from 'sentry/utils/releases/releasesProvider';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
@@ -39,6 +40,7 @@ function renderReleasesSelect({
     >
       <ReleasesSelectControl
         selectedReleases={[]}
+        sortBy={ReleasesSortOption.DATE}
         handleChangeFilter={handleChangeFilter}
       />
     </ReleasesContext>
@@ -131,7 +133,11 @@ describe('Dashboards > ReleasesSelectControl', () => {
           onSearch: jest.fn(),
         }}
       >
-        <ReleasesSelectControl selectedReleases={[]} handleChangeFilter={jest.fn()} />
+        <ReleasesSelectControl
+          selectedReleases={[]}
+          sortBy={ReleasesSortOption.DATE}
+          handleChangeFilter={jest.fn()}
+        />
       </ReleasesContext>
     );
 

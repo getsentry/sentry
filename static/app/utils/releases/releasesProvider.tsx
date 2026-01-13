@@ -2,6 +2,7 @@ import {createContext, useContext, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -9,23 +10,26 @@ import type {Release} from 'sentry/types/release';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
 function fetchReleases(
   api: Client,
   orgSlug: string,
   selection: PageFilters,
-  search: string
+  search: string,
+  sortBy: ReleasesSortByOption
 ) {
   const {environments, projects} = selection;
 
   return api.requestPromise(`/organizations/${orgSlug}/releases/`, {
     method: 'GET',
     data: {
-      sort: 'date',
+      sort: sortBy,
       project: projects,
       per_page: 50,
       environment: environments,
       query: search,
+      flatten: sortBy === ReleasesSortOption.DATE ? 0 : 1,
     },
   });
 }
@@ -35,6 +39,7 @@ type ReleasesProviderProps = {
   organization: Organization;
   selection: PageFilters;
   skipLoad?: boolean;
+  sortBy?: ReleasesSortByOption;
 };
 
 function ReleasesProvider({
@@ -42,6 +47,7 @@ function ReleasesProvider({
   organization,
   selection,
   skipLoad = false,
+  sortBy = ReleasesSortOption.DATE,
 }: ReleasesProviderProps) {
   const api = useApi();
   const [releases, setReleases] = useState<Release[]>([]);
@@ -60,7 +66,7 @@ function ReleasesProvider({
 
     let shouldCancelRequest = false;
     setLoading(true);
-    fetchReleases(api, organization.slug, selection, searchTerm)
+    fetchReleases(api, organization.slug, selection, searchTerm, sortBy)
       .then(response => {
         if (shouldCancelRequest) {
           setLoading(false);
@@ -80,11 +86,11 @@ function ReleasesProvider({
         setLoading(false);
         handleXhrErrorResponse(errorResponse, e);
       });
+
     return () => {
       shouldCancelRequest = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skipLoad, api, organization.slug, JSON.stringify(selection), searchTerm]);
+  }, [api, organization.slug, selection, searchTerm, skipLoad, sortBy]);
 
   return (
     <ReleasesContext value={{releases, loading, onSearch: handleSearch}}>
