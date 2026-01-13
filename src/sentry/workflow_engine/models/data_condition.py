@@ -261,7 +261,7 @@ def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
         )
         return None
 
-    schema = handler.comparison_json_schema
+    schema = handler().comparison_json_schema
 
     try:
         validate(data_condition.comparison, schema)
