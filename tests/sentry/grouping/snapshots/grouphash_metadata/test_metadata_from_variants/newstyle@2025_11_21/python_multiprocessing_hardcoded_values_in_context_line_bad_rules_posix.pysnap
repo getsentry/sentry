@@ -22,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "3571928a03eadf8e0e5c9b10b81a51de"
+    hash: "4f60cfec2087a65190b283cb848bea62"
     contributing component: exception
     hint: None
     root_component:
@@ -37,7 +37,7 @@ contributing variants:
               function*
                 "<module>"
               context_line*
-                "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
+                "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=<int>, pipe_handle=<int>)"
             frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
               module*
                 "multiprocessing.spawn"
@@ -102,7 +102,7 @@ contributing variants:
               context_line*
                 "run_post_process_job("
   system*
-    hash: "6791947bdfd6cf2ca7024f026df974ae"
+    hash: "e5ae333037d1ba0ea9379b6d9693aca4"
     contributing component: exception
     hint: None
     root_component:
@@ -117,7 +117,7 @@ contributing variants:
               function*
                 "<module>"
               context_line*
-                "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
+                "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=<int>, pipe_handle=<int>)"
             frame*
               module*
                 "multiprocessing.spawn"
