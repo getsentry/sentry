@@ -111,6 +111,7 @@ const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
 
 const makeExplorerAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  {query: {mode: 'explorer'}},
 ];
 
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
@@ -329,6 +330,7 @@ export function useExplorerAutofix(
           `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
           {
             method: 'POST',
+            query: {mode: 'explorer'},
             data: {
               step,
               ...(runId !== undefined && {run_id: runId}),
