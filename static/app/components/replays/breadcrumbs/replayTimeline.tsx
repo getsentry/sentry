@@ -90,6 +90,7 @@ const CenteredStack = styled(Stacked)`
 `;
 
 const VisibleStack = styled(Stacked)`
+  background: ${p => p.theme.tokens.background.secondary};
   height: 100%;
   width: 100%;
 `;
