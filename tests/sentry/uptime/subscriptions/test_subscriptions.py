@@ -145,6 +145,9 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         uptime_sub.refresh_from_db()
         prev_subscription_id = uptime_sub.subscription_id
 
+        # Create a detector for this subscription
+        detector = self.create_uptime_detector(uptime_subscription=uptime_sub)
+
         url = "https://santry.io"
         interval_seconds = 600
         timeout_ms = 1000
@@ -153,12 +156,13 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         trace_sampling = True
         with self.tasks():
             update_uptime_subscription(
-                uptime_sub,
-                url,
-                interval_seconds,
-                timeout_ms,
-                method,
-                [("something", "some_val")],
+                detector=detector,
+                subscription=uptime_sub,
+                url=url,
+                interval_seconds=interval_seconds,
+                timeout_ms=timeout_ms,
+                method=method,
+                headers=[("something", "some_val")],
                 body=body,
                 trace_sampling=trace_sampling,
             )
