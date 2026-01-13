@@ -356,20 +356,34 @@ class OrganizationReleaseDetailsEndpoint(
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        if with_health and project_id:
+        # Validate and retrieve project if project_id is provided
+        project = None
+        if project_id:
             try:
-                project = Project.objects.get_from_cache(id=int(project_id))
+                project_id_int = int(project_id)
+                # -1 is a sentinel value meaning "all projects", treat it as no project specified
+                if project_id_int > 0:
+                    project = Project.objects.get_from_cache(id=project_id_int)
+                else:
+                    project_id = None  # Reset to None to skip project-specific logic
             except (ValueError, Project.DoesNotExist):
-                raise ParseError(detail="Invalid project")
+                if with_health:
+                    # Only raise error for with_health requests to maintain backward compatibility
+                    raise ParseError(detail="Invalid project")
+                else:
+                    # For other requests, silently skip project-specific logic
+                    project_id = None
+
+        if with_health and project:
             release._for_project_id = project.id
 
-        if project_id:
+        if project:
             # Add sessions time bound to current project meta data
             environments = set(request.GET.getlist("environment")) or None
             current_project_meta.update(
                 {
                     **release_health.backend.get_release_sessions_time_bounds(
-                        project_id=int(project_id),
+                        project_id=project.id,
                         release=release.version,
                         org_id=organization.id,
                         environments=environments,
