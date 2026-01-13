@@ -59,7 +59,7 @@ export const inputStyles = ({
     color: theme.tokens.content.primary,
     backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.background,
     boxShadow,
-    border: `1px solid ${theme.tokens.border.primary}`,
+    border: `1px solid ${theme.tokens.interactive.chonky.debossed.neutral.chonk}`,
     fontFamily: theme.font.family[monospace ? 'mono' : 'sans'],
     fontWeight: theme.font.weight[monospace ? 'mono' : 'sans'].regular,
     resize: 'vertical',

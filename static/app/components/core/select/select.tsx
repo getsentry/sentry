@@ -97,7 +97,7 @@ const getStylesConfig = ({
         ? theme.tokens.content.disabled
         : theme.tokens.content.primary,
       backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.background,
-      border: `1px solid ${theme.tokens.border.primary}`,
+      border: `1px solid ${theme.tokens.interactive.chonky.debossed.neutral.chonk}`,
       boxShadow,
       borderRadius: theme.form[size].borderRadius,
       transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
