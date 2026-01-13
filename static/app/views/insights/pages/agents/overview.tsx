@@ -131,7 +131,7 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                     }
                   >
                     SENTRY EMPLOYEES: Transaction size limits make seer instrumentation
-                    incomplete. Impact is limited to seer project.
+                    incomplete. Data shown here does not reflect actual state.
                   </Alert>
                 </ModuleLayout.Full>
               )}
