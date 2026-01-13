@@ -3,10 +3,8 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-import {Stack} from '@sentry/scraps/layout';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
