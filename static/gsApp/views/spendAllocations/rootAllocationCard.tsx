@@ -61,7 +61,7 @@ function RootAllocationCard({
               Click the button to create one and to enable spend allocation for{' '}
               {selectedMetric}.
             </NoRootInfo>
-            <EnableRoot>
+            <Flex justify="center" align="center" area="bt" column="-auto / span 1">
               <Button
                 icon={<IconAdd />}
                 onClick={createRootAllocation}
@@ -69,7 +69,7 @@ function RootAllocationCard({
               >
                 Create Organization-Level Allocation
               </Button>
-            </EnableRoot>
+            </Flex>
           </Flex>
         </Card>
       )}
@@ -203,14 +203,6 @@ const Body = styled('div')`
 
 const RootAllocation = styled('div')`
   margin: ${space(2)} 0;
-`;
-
-const EnableRoot = styled('div')`
-  grid-column: -auto / span 1;
-  grid-area: bt;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 `;
 
 const NoRootInfo = styled('div')`

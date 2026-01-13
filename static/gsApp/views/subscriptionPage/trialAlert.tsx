@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Container} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -49,10 +49,10 @@ function TrialAlert({organization, subscription}: Props) {
     >
       <SubscriptionBody withPadding>
         <TrialInfo>
-          <TrialHeader>
+          <Flex align="center" gap="md">
             <StyledHeading>{trialName}</StyledHeading>
             <TrialBadge subscription={subscription} organization={organization} />
-          </TrialHeader>
+          </Flex>
           <StyledSubText>
             {tct("With your trial you have access to Sentry's [featuresName] features.", {
               featuresName,
@@ -80,12 +80,6 @@ const TrialInfo = styled('div')`
   display: grid;
   grid-auto-rows: auto;
   gap: ${space(1)};
-`;
-
-const TrialHeader = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledHeading = styled('span')`
