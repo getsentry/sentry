@@ -4,7 +4,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.endpoints.synapse.authentication import SynapseAuthPermission
+from sentry.api.endpoints.synapse.authentication import (
+    SynapseAuthPermission,
+    SynapseSignatureAuthentication,
+)
 
 
 @control_silo_endpoint
@@ -18,6 +21,7 @@ class OrgCellMappingsEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    authentication_classes = (SynapseSignatureAuthentication,)
     permission_classes = (SynapseAuthPermission,)
 
     def get(self, request: Request) -> Response:
