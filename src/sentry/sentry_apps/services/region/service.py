@@ -9,7 +9,11 @@ from typing import Any
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.services.region.model import RpcIssueLinkResult, RpcSelectRequesterResult
+from sentry.sentry_apps.services.region.model import (
+    RpcDeleteResult,
+    RpcIssueLinkResult,
+    RpcSelectRequesterResult,
+)
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
 
@@ -76,6 +80,18 @@ class SentryAppRegionService(RpcService):
         identifier: str,
     ) -> RpcIssueLinkResult:
         """Invokes ExternalIssueCreator to create an external issue."""
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def delete_external_issue(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        external_issue_id: int,
+    ) -> RpcDeleteResult:
+        """Deletes a PlatformExternalIssue by id."""
         pass
 
 

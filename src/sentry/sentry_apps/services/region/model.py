@@ -33,3 +33,8 @@ class RpcPlatformExternalIssue(RpcModel):
 class RpcIssueLinkResult(RpcModel):
     external_issue: RpcPlatformExternalIssue | None = None
     error: RpcSentryAppError | None = None
+
+
+class RpcDeleteResult(RpcModel):
+    success: bool = False
+    error: RpcSentryAppError | None = None

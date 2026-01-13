@@ -177,3 +177,37 @@ class TestSentryAppRegionService(TestCase):
         assert result.external_issue is None
         assert "Could not find the corresponding issue" in result.error.message
         assert result.error.status_code == 404
+
+    def test_delete_external_issue(self) -> None:
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            external_issue = PlatformExternalIssue.objects.create(
+                group_id=self.group.id,
+                project_id=self.project.id,
+                service_type=self.sentry_app.slug,
+                display_name="Test#1",
+                web_url="https://example.com/issue/1",
+            )
+            external_issue_id = external_issue.id
+
+        result = sentry_app_region_service.delete_external_issue(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            external_issue_id=external_issue_id,
+        )
+
+        assert result.error is None
+        assert result.success is True
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.filter(id=external_issue_id).exists()
+
+    def test_delete_external_issue_error(self) -> None:
+        result = sentry_app_region_service.delete_external_issue(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            external_issue_id=999999,
+        )
+
+        assert result.error is not None
+        assert result.success is False
+        assert "Could not find the corresponding external issue" in result.error.message
+        assert result.error.status_code == 404
