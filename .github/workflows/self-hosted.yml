@@ -17,6 +17,10 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=4096'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   self-hosted:
     runs-on: ${{ matrix.os }}
