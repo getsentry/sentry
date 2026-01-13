@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
@@ -18,7 +19,6 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
@@ -55,6 +55,7 @@ type Props = {
 };
 
 export function SpendAllocationsRoot({organization, subscription}: Props) {
+  const theme = useTheme();
   const [errors, setErrors] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [orgEnabledFlag, setOrgEnabledFlag] = useState<boolean>(true);
@@ -317,14 +318,16 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                   'Allocate event resources to important projects every billing period.'
                 )}
                 action={
-                  <StyledLearnMoreButton
-                    organization={organization}
-                    source="allocations-upsell"
-                    href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
-                    external
-                  >
-                    {t('Documentation')}
-                  </StyledLearnMoreButton>
+                  <Container margin="sm">
+                    <LearnMoreButton
+                      organization={organization}
+                      source="allocations-upsell"
+                      href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
+                      external
+                    >
+                      {t('Documentation')}
+                    </LearnMoreButton>
+                  </Container>
                 }
               >
                 {tct(
@@ -370,7 +373,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                 <LinkButton
                   aria-label={t('Manage Subscription')}
                   size="sm"
-                  style={{marginRight: space(1)}}
+                  style={{marginRight: theme.space.md}}
                   to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
                 >
                   {t('Manage Subscription')}
@@ -401,12 +404,14 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         )}
       </div>
       {!isLoading && !canViewSpendAllocation && (
-        <StyledPermissionAlert
-          data-test-id="permission-alert"
-          message={t(
-            'Only users with billing or write permissions can view spend allocation details.'
-          )}
-        />
+        <Container marginTop="3xl">
+          <OrganizationPermissionAlert
+            data-test-id="permission-alert"
+            message={t(
+              'Only users with billing or write permissions can view spend allocation details.'
+            )}
+          />
+        </Container>
       )}
 
       {canViewSpendAllocation && (
@@ -520,8 +525,8 @@ export default withOrganization(withSubscription(SpendAllocationsRoot));
 const PageGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
-  margin: ${space(2)} 0;
+  gap: ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space.xl} 0;
 
   @media (min-width: 0) {
     grid-template-columns: repeat(3, 1fr);
@@ -543,15 +548,7 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
 `;
 
-const StyledPermissionAlert = styled(OrganizationPermissionAlert)`
-  margin-top: 30px;
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
   grid-column: auto / span 1;
   grid-area: bb;
-`;
-
-const StyledLearnMoreButton = styled(LearnMoreButton)`
-  margin: ${space(0.75)};
 `;
