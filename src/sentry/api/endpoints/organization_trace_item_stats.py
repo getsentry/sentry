@@ -21,7 +21,7 @@ from sentry.models.organization import Organization
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
-    SPAN_ATTRIBUTE_DEFINITIONS,
+    SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -53,8 +53,8 @@ class TraceItemStatsPaginator:
 
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
-        data = self.data_fn(offset=offset, limit=limit + 1)
-        has_more = data[1] >= limit + 1
+        data = self.data_fn(offset=offset, limit=limit)
+        has_more = data[1] >= offset + limit + 1
 
         return CursorResult(
             data,
@@ -145,6 +145,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                     config=resolver_config,
                     search_resolver=resolver,
                     max_buckets=1,
+                    skip_translate_internal_to_public_alias=True,
                 )
 
         def run_stats_query_with_error_handling(attributes):
@@ -169,21 +170,27 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
 
             preflight_stats = run_stats_query_with_span_ids(f"id:[{span_id_list}]")
             try:
-                attr_keys = list(preflight_stats[0]["attribute_distributions"]["data"].keys())
+                internal_alias_attr_keys = list(
+                    preflight_stats[0]["attribute_distributions"]["data"].keys()
+                )
             except (IndexError, KeyError):
                 return {"data": []}, 0
 
             sanitized_keys = []
-            for key in attr_keys:
-                if key in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
+            for internal_name in internal_alias_attr_keys:
+                public_alias = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string", {}).get(
+                    internal_name, internal_name
+                )
+
+                if public_alias in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
                     continue
 
                 if value_substring_match:
-                    if value_substring_match in key:
-                        sanitized_keys.append(key)
+                    if value_substring_match in public_alias:
+                        sanitized_keys.append(internal_name)
                     continue
 
-                sanitized_keys.append(key)
+                sanitized_keys.append(internal_name)
 
             sanitized_keys = sanitized_keys[offset : offset + limit]
 
@@ -192,17 +199,9 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
 
             request_attrs_list = []
             for requested_key in sanitized_keys:
-                if requested_key in SPAN_ATTRIBUTE_DEFINITIONS:
-                    request_attrs_list.append(
-                        AttributeKey(
-                            name=SPAN_ATTRIBUTE_DEFINITIONS[requested_key].internal_name,
-                            type=AttributeKey.TYPE_STRING,
-                        )
-                    )
-                else:
-                    request_attrs_list.append(
-                        AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
-                    )
+                request_attrs_list.append(
+                    AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
+                )
 
             chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
             for i, attr in enumerate(request_attrs_list):

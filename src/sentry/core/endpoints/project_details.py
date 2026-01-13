@@ -69,6 +69,10 @@ logger = logging.getLogger(__name__)
 MAX_SENSITIVE_FIELD_CHARS = 4000
 
 
+def coerce_to_string_or_none(value) -> str | None:
+    return None if value is None else str(value)
+
+
 def clean_newline_inputs(value, case_insensitive=True):
     result = []
     for v in value.split("\n"):
@@ -942,6 +946,26 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "sentry:uptime_autodetection" in options:
                 project.update_option(
                     "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
+                )
+            if "sentry:preprod_size_status_checks_enabled" in options:
+                project.update_option(
+                    "sentry:preprod_size_status_checks_enabled",
+                    bool(options["sentry:preprod_size_status_checks_enabled"]),
+                )
+            if "sentry:preprod_size_status_checks_rules" in options:
+                project.update_option(
+                    "sentry:preprod_size_status_checks_rules",
+                    options["sentry:preprod_size_status_checks_rules"],
+                )
+            if "sentry:preprod_size_enabled_query" in options:
+                project.update_option(
+                    "sentry:preprod_size_enabled_query",
+                    coerce_to_string_or_none(options["sentry:preprod_size_enabled_query"]),
+                )
+            if "sentry:preprod_distribution_enabled_query" in options:
+                project.update_option(
+                    "sentry:preprod_distribution_enabled_query",
+                    coerce_to_string_or_none(options["sentry:preprod_distribution_enabled_query"]),
                 )
 
         self.create_audit_entry(

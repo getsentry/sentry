@@ -9,6 +9,11 @@ export enum LogsAnalyticsPageSource {
 }
 
 export type LogsAnalyticsEventParameters = {
+  'logs.ai_query_applied': {
+    group_by_count: number;
+    organization: Organization;
+    query: string;
+  };
   'logs.auto_refresh.timeout': {
     organization: Organization;
     page_source: LogsAnalyticsPageSource;
@@ -55,18 +60,15 @@ export type LogsAnalyticsEventParameters = {
     organization: Organization;
     platform: PlatformKey | 'unknown';
   };
-
   'logs.save_as': {
     save_type: 'alert' | 'dashboard' | 'update_query';
     ui_source: 'toolbar' | 'chart' | 'compare chart' | 'searchbar';
   };
-
   'logs.save_query_modal': {
     action: 'open' | 'submit';
     save_type: 'save_new_query' | 'rename_query';
     ui_source: 'toolbar' | 'table';
   };
-
   'logs.table.row_copied_as_json': {
     log_id: string;
     organization: Organization;
@@ -115,4 +117,5 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
+  'logs.ai_query_applied': 'Logs AI Query Applied',
 };

@@ -336,7 +336,7 @@ const NavLink = styled(Link, {
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
 
   /* Disable default link styles and only apply them to the icon container */
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   outline: none;
   box-shadow: none;
   transition: none;
@@ -367,32 +367,34 @@ const NavLink = styled(Link, {
   &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
-      background-color: ${p => p.theme.colors.blue100};
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
     }
   }
 
   &:hover,
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.gray100};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   }
 
   &[aria-current='page'] {
-    color: ${p => p.theme.tokens.content.accent};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
     &::before {
       opacity: 1;
     }
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.blue100};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     }
 
     &:hover {
-      ${NavLinkIconContainer} {
-        background-color: ${p => p.theme.colors.blue100};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover} ${NavLinkIconContainer} {
+        background-color: ${p =>
+          p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }
     }
   }
@@ -443,7 +445,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   text-align: center;
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSize.xs};
-  background: ${p => p.theme.colors.blue500};
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;
   height: 10px;
   border-radius: 50%;

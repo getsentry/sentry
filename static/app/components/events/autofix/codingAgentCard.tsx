@@ -200,7 +200,7 @@ export default CodingAgentCard;
 const VerticalLine = styled('div')`
   width: 0;
   height: ${p => p.theme.space.xl};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   margin-left: 16px;
   margin-bottom: -1px;
 `;
@@ -227,7 +227,7 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const StyledCard = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -281,12 +281,12 @@ const DetailRow = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Label = styled('span')`
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   min-width: 80px;
 `;
 
@@ -316,7 +316,7 @@ const ResultItem = styled('div')`
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
     p.status === CodingAgentStatus.FAILED
-      ? p.theme.errorText
+      ? p.theme.tokens.content.danger
       : p.theme.tokens.content.primary};
 `;
 

@@ -192,14 +192,18 @@ export function RepoSelector() {
 }
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
 const Syncbutton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};
 `;

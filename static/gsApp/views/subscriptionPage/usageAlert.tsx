@@ -160,7 +160,7 @@ function UsageAlert({subscription, usage}: Props) {
       >
         <SubscriptionBody withPadding>
           <UsageInfo>
-            <IconWarning size="md" color="yellow300" />
+            <IconWarning size="md" variant="warning" />
             <div>
               <h3>{t('Grace Period')}</h3>
               <Description>
@@ -316,6 +316,6 @@ const UsageInfo = styled('div')`
 
 const Description = styled(TextBlock)`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;

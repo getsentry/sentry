@@ -6,7 +6,6 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
@@ -220,11 +219,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <Fragment>
-      {enableAISearch ? (
-        <Feature features="organizations:gen-ai-explore-traces">
-          <AskSeer state={state} />
-        </Feature>
-      ) : null}
+      {enableAISearch ? <AskSeer state={state} /> : null}
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (
@@ -542,7 +537,11 @@ const RecentFilterPill = styled('li')`
 `;
 
 const RecentFilterPillLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
@@ -552,13 +551,13 @@ const SectionButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${p => p.theme.space.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border: 0;
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.colors.blue100};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue100};
-    color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.accent};
     font-weight: ${p => p.theme.fontWeight.bold};
   }
 `;
@@ -576,7 +575,7 @@ const EmptyState = styled('div')`
   height: 100%;
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   div {
     max-width: 280px;

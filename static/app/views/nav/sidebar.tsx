@@ -16,7 +16,7 @@ import {
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
-import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
+import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
 import {useStackedNavigationTour, useTourModal} from 'sentry/views/nav/tour/tour';
@@ -55,7 +55,7 @@ export function Sidebar() {
         tourIsActive={currentStepId !== null}
       >
         <SidebarHeader isSuperuser={showSuperuserWarning}>
-          <OrgDropdown />
+          <OrganizationDropdown />
           {showSuperuserWarning && (
             <SuperuserBadge>
               <Hook name="component:superuser-warning" organization={organization} />
@@ -93,7 +93,7 @@ export function Sidebar() {
 const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   padding: ${space(1.5)} 0 ${space(1)} 0;
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
@@ -129,5 +129,5 @@ const SuperuserBadge = styled('div')`
   z-index: ${p => p.theme.zIndex.initial};
   left: 0;
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  background: ${p => p.theme.colors.chonk.red400};
+  background: ${p => p.theme.tokens.background.danger.vibrant};
 `;

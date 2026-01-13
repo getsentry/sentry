@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Link} from 'sentry/components/core/link';
@@ -167,7 +169,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
   );
 
   return (
-    <FlamegraphContainer>
+    <Stack gap="lg">
       <StyledPanel>
         <DifferentialFlamegraphToolbar
           frameFilter={frameFilterSetting}
@@ -179,9 +181,9 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         />
         <DifferentialFlamegraphContainer>
           {props.after.isPending || props.before.isPending ? (
-            <LoadingIndicatorContainer>
+            <Stack justify="center" width="100%" height="100%" position="absolute">
               <LoadingIndicator />
-            </LoadingIndicatorContainer>
+            </Stack>
           ) : props.before.isError && props.after.isError ? (
             <ErrorMessageContainer>
               {t('Failed to load flamegraph for before and after regression time range.')}
@@ -206,7 +208,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       </StyledPanel>
 
       <StyledPanel>
-        <DifferentialFlamegraphFunctionsContainer>
+        <Flex padding="md">
           <DifferentialFlamegraphChangedFunctions
             loading={props.after.isPending || props.before.isPending}
             title={t('Slower functions')}
@@ -223,11 +225,11 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             flamegraph={differentialFlamegraph}
             makeFunctionLink={makeFunctionFlamechartLink}
           />
-        </DifferentialFlamegraphFunctionsContainer>
+        </Flex>
       </StyledPanel>
 
       <StyledPanel>
-        <DifferentialFlamegraphFunctionsContainer>
+        <Flex padding="md">
           <DifferentialFlamegraphChangedFunctions
             loading={props.after.isPending || props.before.isPending}
             title={t('New functions')}
@@ -244,9 +246,9 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             flamegraph={differentialFlamegraph}
             makeFunctionLink={makeFunctionFlamechartLink}
           />
-        </DifferentialFlamegraphFunctionsContainer>
+        </Flex>
       </StyledPanel>
-    </FlamegraphContainer>
+    </Stack>
   );
 }
 
@@ -431,7 +433,7 @@ const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
   height: 10px;
   border-radius: 2px;
   display: inline-block;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-right: ${space(0.25)};
   background-color: ${p => p.theme.colors.green400};
 `;
@@ -452,7 +454,7 @@ const DifferentialFlamegraphChangedFunctionStats = styled('div')`
 `;
 
 const DifferentialFlamegraphFunctionSecondaryStats = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
@@ -470,7 +472,7 @@ const DifferentialFlamegraphChangedFunctionNameLink = styled(Link)`
 `;
 
 const DifferentialFlamegraphChangedFunctionModule = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   min-width: 0;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -514,8 +516,8 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
-  border-top: 1px solid ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.secondary};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.backgroundSecondary};
 `;
 
@@ -537,7 +539,7 @@ function DifferentialFlamegraphLegend() {
     };
   }, [theme]);
   return (
-    <DifferentialFlamegraphLegendContainer>
+    <Flex justify="between" align="center">
       <div>+</div>
       <DifferentialFlamegraphLegendBar
         style={{
@@ -545,16 +547,9 @@ function DifferentialFlamegraphLegend() {
         }}
       />
       <div>-</div>
-    </DifferentialFlamegraphLegendContainer>
+    </Flex>
   );
 }
-
-const DifferentialFlamegraphLegendContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const DifferentialFlamegraphLegendBar = styled('div')`
   width: 60px;
@@ -569,7 +564,7 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
   title: string;
 }) {
   return (
-    <DifferentialFlamegraphChangedFunctionsTitleContainer>
+    <Flex justify="between" align="center">
       <DifferentialFlamegraphChangedFunctionsTitleText>
         <div>{props.title}</div>
         <DifferentialFlamegraphChangedFunctionsSubtitleText>
@@ -592,15 +587,9 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
           aria-label={t('Next page')}
         />
       </ButtonBar>
-    </DifferentialFlamegraphChangedFunctionsTitleContainer>
+    </Flex>
   );
 }
-
-const DifferentialFlamegraphChangedFunctionsTitleContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const DifferentialFlamegraphChangedFunctionsTitleText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -610,13 +599,7 @@ const DifferentialFlamegraphChangedFunctionsTitleText = styled('div')`
 const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const DifferentialFlamegraphFunctionsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  padding: ${space(1)};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DifferentialFlamegraphPaginationButton = styled(Button)`
@@ -632,30 +615,15 @@ const ErrorMessageContainer = styled('div')`
   width: 100%;
   height: 100%;
   background-color: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   padding: ${space(2)} ${space(4)};
-`;
-
-const LoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
 `;
 
 const DifferentialFlamegraphContainer = styled('div')`
   position: relative;
   width: 100%;
   height: 420px;
-`;
-
-const FlamegraphContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
 `;
 
 const StyledPanel = styled(Panel)`

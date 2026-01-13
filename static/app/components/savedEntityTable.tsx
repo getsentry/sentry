@@ -131,7 +131,7 @@ SavedEntityTable.CellStar = function CellStar({
     <Button
       aria-label={isStarred ? t('Unstar') : t('Star')}
       borderless
-      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} />}
+      icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={onClick}
     />
@@ -141,8 +141,12 @@ SavedEntityTable.CellStar = function CellStar({
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.border};
-  ${p => p.theme.overflowEllipsis};
+  text-decoration-color: ${p => p.theme.tokens.border.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 SavedEntityTable.CellName = function CellName({
@@ -271,7 +275,14 @@ SavedEntityTable.CellTimeSince = function CellTimeSince({date}: {date: string | 
   return <TimeSince date={date} unitStyle="short" />;
 };
 
-SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser}) {
+SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser | null}) {
+  if (!user) {
+    return (
+      <SavedEntityTable.CellTextContent>
+        {t('Unknown User')}
+      </SavedEntityTable.CellTextContent>
+    );
+  }
   return <UserAvatar user={user} size={20} hasTooltip />;
 };
 
@@ -297,5 +308,9 @@ const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
 `;
 
 const OverflowEllipsis = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

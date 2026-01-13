@@ -157,7 +157,7 @@ export function DrawerHeader({
 const HeaderBar = styled('div')`
   margin: 0 ${space(2)};
   margin-left: ${space(1)};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
@@ -170,7 +170,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? space(1) : 0)};
   padding: ${space(1.5)};
-  box-shadow: ${p => p.theme.border} 0 1px;
+  box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
   padding-left: ${p => (p.hideCloseButton ? '24px' : space(2))};
   padding-top: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
   padding-bottom: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
@@ -190,7 +190,7 @@ const DrawerContainer = styled('div')`
 
 const DrawerSlidePanel = styled(SlideOverPanel)`
   box-shadow: 0 0 0 1px ${p => p.theme.dropShadowHeavy};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   pointer-events: auto;
   height: 100%;
@@ -248,7 +248,7 @@ const ResizeHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.colors.blue500};
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
     }
   }
 
@@ -265,7 +265,7 @@ const ResizeHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.colors.blue500};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 

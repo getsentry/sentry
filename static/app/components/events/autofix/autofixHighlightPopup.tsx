@@ -697,7 +697,7 @@ const Container = styled(motion.div, {
   width: 100%;
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   box-shadow: ${p => (p.isFocused ? p.theme.dropShadowHeavy : p.theme.dropShadowLight)};
   transition: box-shadow 200ms ease;
@@ -733,7 +733,7 @@ const StyledInput = styled(TextArea)`
   resize: none;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -745,7 +745,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 2;
 `;
 
@@ -761,7 +761,7 @@ const Header = styled('div')`
 
 const SelectedText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
   white-space: nowrap;
   overflow: hidden;
@@ -779,7 +779,7 @@ const Arrow = styled('div')`
   width: 12px;
   height: 12px;
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-right: none;
   border-bottom: none;
   top: 20px;
@@ -827,13 +827,13 @@ const CircularSeerIcon = styled('div')`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: ${p => p.theme.colors.blue400};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   flex-shrink: 0;
 
   > svg {
     width: 18px;
     height: 18px;
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.tokens.content.onVibrant.light};
   }
 `;
 
@@ -865,7 +865,7 @@ const HeaderRight = styled('div')`
 
 const ReworkText = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${ReworkHeaderSection}:hover & {
     color: ${p => p.theme.tokens.content.primary};

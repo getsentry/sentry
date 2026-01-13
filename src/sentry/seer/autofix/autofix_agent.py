@@ -21,8 +21,9 @@ from sentry.seer.autofix.prompts import (
     solution_prompt,
     triage_prompt,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
 from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.explorer.client_models import SeerRunState
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 
@@ -230,3 +231,114 @@ def get_autofix_explorer_state(organization: Organization, group_id: int):
 
     # Return the most recent run's state
     return client.get_run(runs[0].run_id)
+
+
+def generate_autofix_handoff_prompt(
+    state: SeerRunState,
+    instruction: str | None = None,
+) -> str:
+    """
+    Generate a prompt for coding agents from autofix run state.
+
+    Extracts root_cause and solution artifacts to create a comprehensive
+    prompt for the coding agent.
+    """
+    parts = ["Please fix the following issue. Ensure that your fix is fully working."]
+
+    if instruction and instruction.strip():
+        parts.append(instruction.strip())
+
+    artifacts = state.get_artifacts()
+
+    # Add root cause if present
+    root_cause = artifacts.get("root_cause")
+    if root_cause and root_cause.data:
+        parts.append("## Root Cause Analysis")
+        if "one_line_description" in root_cause.data:
+            parts.append(root_cause.data["one_line_description"])
+        if "five_whys" in root_cause.data:
+            for i, why in enumerate(root_cause.data["five_whys"], 1):
+                parts.append(f"{i}. {why}")
+        if "reproduction_steps" in root_cause.data:
+            for step in root_cause.data["reproduction_steps"]:
+                parts.append(f"- {step}")
+
+    # Add solution if present
+    solution = artifacts.get("solution")
+    if solution and solution.data:
+        parts.append("## Proposed Solution")
+        if "one_line_summary" in solution.data:
+            parts.append(solution.data["one_line_summary"])
+        if "steps" in solution.data:
+            for step in solution.data["steps"]:
+                if isinstance(step, dict):
+                    title = step.get("title", "")
+                    desc = step.get("description", "")
+                    parts.append(f"- **{title}**: {desc}")
+
+    return "\n\n".join(parts)
+
+
+def trigger_coding_agent_handoff(
+    group: Group,
+    run_id: int,
+    integration_id: int,
+) -> dict[str, list]:
+    """
+    Trigger a coding agent handoff for an existing Explorer-based autofix run.
+
+    This fetches the current run state, generates a prompt from artifacts
+    (root cause, solution, file patches), and launches coding agents.
+
+    Args:
+        group: The Sentry group (issue)
+        run_id: The existing Explorer run ID
+        integration_id: The coding agent integration ID (e.g., Cursor)
+
+    Returns:
+        Dictionary with 'successes' and 'failures' lists
+    """
+    # Fetch project preferences for repos and auto_create_pr setting
+    auto_create_pr = False
+    repos: list[str] = []
+    try:
+        preference_response = get_project_seer_preferences(group.project_id)
+        if preference_response and preference_response.preference:
+            repos = [
+                f"{repo.owner}/{repo.name}" for repo in preference_response.preference.repositories
+            ]
+            if preference_response.preference.automation_handoff:
+                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
+    except Exception:
+        logger.exception(
+            "autofix.coding_agent_handoff.get_preferences_error",
+            extra={
+                "organization_id": group.organization.id,
+                "run_id": run_id,
+                "project_id": group.project_id,
+            },
+        )
+
+    if not repos:
+        return {
+            "successes": [],
+            "failures": [{"error_message": "No repositories configured in project preferences"}],
+        }
+
+    client = SeerExplorerClient(
+        organization=group.organization,
+        user=None,
+        category_key="autofix",
+        category_value=str(group.id),
+    )
+    state = client.get_run(run_id)
+    prompt = generate_autofix_handoff_prompt(state)
+
+    return client.launch_coding_agents(
+        run_id=run_id,
+        integration_id=integration_id,
+        prompt=prompt,
+        repos=repos,
+        branch_name_base=group.title or "seer",
+        auto_create_pr=auto_create_pr,
+    )

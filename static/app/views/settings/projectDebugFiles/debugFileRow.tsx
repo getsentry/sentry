@@ -179,7 +179,7 @@ const TimeAndSizeWrapper = styled('div')`
   display: flex;
   font-size: ${p => p.theme.fontSize.sm};
   margin-top: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
 `;
 
@@ -204,15 +204,19 @@ const Name = styled('div')`
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     line-height: 1.7;
   }
 `;
 
 const DetailsItem = styled('div')`
-  ${p => p.theme.overflowEllipsis}
-  margin-top: ${space(1)}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: ${space(1)};
 `;
 
 export default DebugFileRow;

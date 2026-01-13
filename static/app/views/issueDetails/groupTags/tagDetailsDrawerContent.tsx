@@ -348,7 +348,7 @@ const Table = styled('div')`
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -361,13 +361,13 @@ const ColumnSort = styled(Link)`
   gap: ${space(0.5)};
   align-items: center;
   white-space: nowrap;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -378,7 +378,7 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0 ${space(1)};
 `;
 
@@ -406,7 +406,7 @@ const RightAlignedValue = styled('div')`
 `;
 
 const UserSubtitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: inline-block; /* Prevent inheriting text decoration */
 `;
 
@@ -416,11 +416,15 @@ const ValueLink = styled(Link)`
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ExternalLinkbutton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const UserValue = styled('div')`

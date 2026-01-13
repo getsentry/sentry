@@ -18,7 +18,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAlertRulePermission
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -30,8 +30,9 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
+from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.models import (
@@ -72,7 +73,7 @@ def flip_sort_direction(sort_field: str) -> str:
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
+class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -276,6 +277,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         """
         Create a new monitor.
         """
+        self.check_can_create_alert(request, organization)
+
         validator = MonitorValidator(
             data=request.data,
             context={"organization": organization, "access": request.access, "request": request},
@@ -326,7 +329,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward
         if status == ObjectStatus.ACTIVE:
-            assign_result = quotas.backend.check_assign_seats(DataCategory.MONITOR_SEAT, monitors)
+            assign_result = quotas.backend.check_assign_seats(seat_objects=monitors)
             if not assign_result.assignable:
                 return self.respond(assign_result.reason, status=400)
 
@@ -339,14 +342,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Monitor)):
                 # Attempt to assign a monitor seat
                 if status == ObjectStatus.ACTIVE:
-                    outcome = quotas.backend.assign_seat(DataCategory.MONITOR_SEAT, monitor)
+                    outcome = quotas.backend.assign_seat(seat_object=monitor)
                     if outcome != Outcome.ACCEPTED:
                         errored.append(monitor)
                         continue
 
                 # Attempt to unassign the monitor seat
                 if status == ObjectStatus.DISABLED:
-                    quotas.backend.disable_seat(DataCategory.MONITOR_SEAT, monitor)
+                    quotas.backend.disable_seat(seat_object=monitor)
 
                 # Propagate is_muted to all monitor environments
                 if is_muted is not None:

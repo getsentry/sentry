@@ -2,7 +2,8 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Tag as Badge} from 'sentry/components/core/badge/tag';
+import {Stack} from '@sentry/scraps/layout';
+
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
@@ -14,12 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {
-  FieldKind,
-  FieldValueType,
-  getFieldDefinition,
-  prettifyTagKey,
-} from 'sentry/utils/fields';
+import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -28,6 +24,7 @@ import {
   formatHintName,
   parseTagKey,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
@@ -153,15 +150,6 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
   function HintItem({hint, index}: {hint: Tag; index: number}) {
     const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
 
-    const hintType =
-      hintFieldDefinition?.valueType === FieldValueType.BOOLEAN ? (
-        <Badge variant="muted">{t('boolean')}</Badge>
-      ) : hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION ? (
-        <Badge variant="success">{t('number')}</Badge>
-      ) : (
-        <Badge variant="info">{t('string')}</Badge>
-      );
-
     return (
       <div ref={virtualizer.measureElement} data-index={index}>
         <StyledMultipleCheckboxItem
@@ -173,7 +161,10 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
             <Tooltip title={formatHintName(hint)} showOnlyOnOverflow skipWrapper>
               <CheckboxLabel>{formatHintName(hint)}</CheckboxLabel>
             </Tooltip>
-            {hintType}
+            <TypeBadge
+              kind={hint.kind}
+              valueType={hintFieldDefinition?.valueType ?? undefined}
+            />
           </CheckboxLabelContainer>
         </StyledMultipleCheckboxItem>
       </div>
@@ -184,7 +175,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
     <DrawerContainer>
       <DrawerHeader hideBar />
       <StyledDrawerBody>
-        <HeaderContainer>
+        <Stack marginBottom="xl" gap="md">
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
             <InputGroup.LeadingItems disablePointerEvents>
@@ -199,7 +190,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
               autoFocus
             />
           </StyledInputGroup>
-        </HeaderContainer>
+        </Stack>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
           <ScrollContainer ref={scrollContainerRef}>
             <AllItemsContainer height={virtualizer.getTotalSize()}>
@@ -236,13 +227,6 @@ const StyledDrawerBody = styled(DrawerBody)`
   flex-direction: column;
 `;
 
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: ${space(2)};
-  gap: ${space(1)};
-`;
-
 const CheckboxLabelContainer = styled('div')`
   display: flex;
   align-items: center;
@@ -256,7 +240,11 @@ const CheckboxLabelContainer = styled('div')`
 const CheckboxLabel = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledMultipleCheckbox = styled(MultipleCheckbox)`
@@ -268,7 +256,7 @@ const StyledMultipleCheckbox = styled(MultipleCheckbox)`
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   width: 100%;
   padding: ${space(1)} ${space(0.5)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;
@@ -289,8 +277,11 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   }
 
   & > label > span {
+    display: block;
     width: 100%;
-    ${p => p.theme.overflowEllipsis};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
@@ -323,7 +314,7 @@ const NoAttributesMessage = styled('div')`
   justify-content: center;
   align-items: center;
   margin-top: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledInputGroup = styled(InputGroup)`

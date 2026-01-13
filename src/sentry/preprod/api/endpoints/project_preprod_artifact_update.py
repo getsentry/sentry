@@ -21,7 +21,7 @@ from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
 )
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -289,6 +289,22 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
         if "app_icon_id" in data:
             head_artifact.app_icon_id = data["app_icon_id"]
             updated_fields.append("app_icon_id")
+
+        mobile_app_info_updates = {}
+        if "build_version" in data:
+            mobile_app_info_updates["build_version"] = data["build_version"]
+        if "build_number" in data:
+            mobile_app_info_updates["build_number"] = data["build_number"]
+        if "app_icon_id" in data:
+            mobile_app_info_updates["app_icon_id"] = data["app_icon_id"]
+        if "app_name" in data:
+            mobile_app_info_updates["app_name"] = data["app_name"]
+
+        if mobile_app_info_updates:
+            PreprodArtifactMobileAppInfo.objects.update_or_create(
+                preprod_artifact=head_artifact,
+                defaults=mobile_app_info_updates,
+            )
 
         extras_updates = {}
 

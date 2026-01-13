@@ -413,7 +413,7 @@ const DropdownContainer = styled('div')<{isOpen: boolean}>`
   z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.tokens.background.primary};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   margin-top: ${space(1)};
   max-height: 300px;
@@ -437,7 +437,7 @@ const DropdownTitle = styled('header')`
   align-items: center;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
 
@@ -455,9 +455,11 @@ const DropdownListItem = styled(ListItem)`
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 
-  &:hover,
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
   &.active {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -467,14 +469,18 @@ const DropdownItemTitleWrapper = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};

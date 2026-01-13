@@ -94,5 +94,5 @@ function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
 const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);
 
 const Disabled = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

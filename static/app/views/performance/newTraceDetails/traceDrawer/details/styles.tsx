@@ -10,7 +10,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -53,7 +53,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {Color} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -117,7 +116,11 @@ const Title = styled(FlexBox)`
 `;
 
 const LegacyTitleText = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TitleText = styled('div')`
@@ -153,12 +156,16 @@ function SubtitleWithCopyButton({
 }
 
 const SubTitleWrapper = styled(FlexBox)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSubTitleText = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 function TitleOp({text}: {text: string}) {
@@ -191,7 +198,11 @@ const Type = styled('div')`
 const TitleOpText = styled('div')`
   font-size: 15px;
   font-weight: ${p => p.theme.fontWeight.bold};
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Table = styled('table')`
@@ -452,7 +463,7 @@ function Highlights({
   return (
     <Fragment>
       <HighlightsWrapper>
-        <HighlightsLeftColumn>
+        <Stack justify="center" align="center">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
               project={project ? project : {slug: node.projectSlug ?? ''}}
@@ -461,8 +472,8 @@ function Highlights({
             />
           </Tooltip>
           <VerticalLine />
-        </HighlightsLeftColumn>
-        <HighlightsRightColumn>
+        </Stack>
+        <Stack justify="left" flex="1" height="100%" overflow="hidden">
           <HighlightOp>{node.op}</HighlightOp>
           <HighlightsDurationWrapper>
             <HighlightDuration>
@@ -512,7 +523,7 @@ function Highlights({
               {footerContent}
             </Fragment>
           )}
-        </HighlightsRightColumn>
+        </Stack>
       </HighlightsWrapper>
       <SectionDivider />
     </Fragment>
@@ -533,7 +544,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
       <HighlightsSpanCount>
         {t('Most frequent span ops for this transaction are')}
       </HighlightsSpanCount>
-      <TopOpsList>
+      <Flex wrap="wrap" gap="md">
         {breakdown.slice(0, 3).map(currOp => {
           const {name, percentage} = currOp;
 
@@ -552,13 +563,13 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
                 })
               }
             >
-              <IconCircleFill size="xs" color={color as Color} />
+              <StyledIconCircleFill size="xs" fill={color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
             </HighlightsOpRow>
           );
         })}
-      </TopOpsList>
+      </Flex>
     </HighlightsOpsBreakdownWrapper>
   );
 }
@@ -592,7 +603,7 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   return (
     <HighlightsOpsBreakdownWrapper>
       <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
-      <TopOpsList>
+      <Flex wrap="wrap" gap="md">
         {displayOps.map(currOp => {
           const operationName = currOp.op;
           const color = pickBarColor(operationName, theme);
@@ -609,26 +620,23 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
                 })
               }
             >
-              <IconCircleFill size="xs" color={color as Color} />
+              <StyledIconCircleFill size="xs" fill={color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
             </HighlightsOpRow>
           );
         })}
-      </TopOpsList>
+      </Flex>
     </HighlightsOpsBreakdownWrapper>
   );
 }
 
-const TopOpsList = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(1)};
+const StyledIconCircleFill = styled(IconCircleFill)<{fill: string}>`
+  fill: ${p => p.fill};
 `;
 
 const HighlightsOpPct = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: 14px;
 `;
 
@@ -691,7 +699,7 @@ const HighlightedAttributesWrapper = styled('div')`
 `;
 
 const HighlightedAttributeName = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const OpenInAIFocusButton = styled(LinkButton)`
@@ -707,14 +715,14 @@ const StyledPanelHeader = styled(PanelHeader)`
 `;
 
 const SectionDivider = styled('hr')`
-  border-color: ${p => p.theme.translucentBorder};
+  border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
   margin: ${space(1)} 0;
 `;
 
 const VerticalLine = styled('div')`
   width: 1px;
   height: 100%;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   margin-top: ${space(0.5)};
 `;
 
@@ -724,22 +732,6 @@ const HighlightsWrapper = styled('div')`
   gap: ${space(1)};
   width: 100%;
   margin: ${space(1)} 0;
-`;
-
-const HighlightsLeftColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-`;
-
-const HighlightsRightColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: left;
-  height: 100%;
-  flex: 1;
-  overflow: hidden;
 `;
 
 function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
@@ -997,7 +989,7 @@ function NodeActions(props: {
   }, [organization, params.traceSlug, props.node, props.profilerId, props.threadId]);
 
   return (
-    <ActionWrapper>
+    <Flex align="center" gap="xs" overflow="visible">
       <Tooltip title={t('Show in view')} skipWrapper>
         <ActionButton
           onClick={_e => {
@@ -1042,7 +1034,7 @@ function NodeActions(props: {
         </Tooltip>
       ) : null}
       <PanelPositionDropDown organization={organization} />
-    </ActionWrapper>
+    </Flex>
   );
 }
 
@@ -1070,13 +1062,6 @@ const ActionButton = styled(Button)`
 
 const ActionLinkButton = styled(LinkButton)`
   ${actionButtonStyles};
-`;
-
-const ActionWrapper = styled('div')`
-  overflow: visible;
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
@@ -1281,7 +1266,7 @@ const MarkdownContainer = styled('div')`
   blockquote {
     margin: 0;
     padding: ${p => p.theme.space.sm};
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.primary};
   }
   pre {
     margin: 0;
@@ -1293,7 +1278,7 @@ const MarkdownContainer = styled('div')`
   }
   hr {
     margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
   table {
     border-collapse: collapse;
@@ -1302,7 +1287,7 @@ const MarkdownContainer = styled('div')`
   }
   table th,
   table td {
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
     padding: ${p => p.theme.space.xs};
   }
 `;

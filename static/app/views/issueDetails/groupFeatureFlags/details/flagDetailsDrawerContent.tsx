@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
@@ -78,7 +80,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
 
   if (!flagLog.data.length) {
     return (
-      <EmptyStateContainer>
+      <Stack align="center">
         <StyledEmptyStateWarning withIcon={false} small>
           {t('No audit logs were found for this feature flag.')}
         </StyledEmptyStateWarning>
@@ -91,7 +93,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
         >
           {t('See all flags')}
         </LinkButton>
-      </EmptyStateContainer>
+      </Stack>
     );
   }
 
@@ -231,7 +233,7 @@ const Table = styled('div')`
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -242,7 +244,7 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0 ${space(1)};
 `;
 
@@ -267,12 +269,6 @@ const Row = styled(Body)`
 
 const LeftAlignedValue = styled('div')`
   text-align: left;
-`;
-
-const EmptyStateContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

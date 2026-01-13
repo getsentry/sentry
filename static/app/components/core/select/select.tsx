@@ -7,7 +7,6 @@ import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {debossedBackground} from 'sentry/components/core/chonk';
 import type {
   GroupedOptionsType,
   OptionsType,
@@ -82,19 +81,23 @@ const getStylesConfig = ({
     padding: '0 4px 0 4px',
     alignItems: 'center',
     cursor: state.isDisabled ? 'not-allowed' : 'pointer',
-    color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
+    color: state.isDisabled
+      ? theme.tokens.content.disabled
+      : theme.tokens.content.primary,
     ':hover': {
       color: 'currentcolor',
     },
   });
-  const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.interactive.chonky.debossed.neutral.chonk} inset`;
 
   return {
     control: (_, state) => ({
       display: 'flex',
-      color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
-      ...debossedBackground(theme),
-      border: `1px solid ${theme.border}`,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.primary,
+      backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.background,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow,
       borderRadius: theme.form[size].borderRadius,
       transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
@@ -102,7 +105,7 @@ const getStylesConfig = ({
       ...(state.isFocused && theme.focusRing(boxShadow)),
       ...(state.isDisabled && {
         background: theme.tokens.background.primary,
-        color: theme.disabled,
+        color: theme.tokens.content.disabled,
         cursor: 'not-allowed',
         opacity: '60%',
       }),
@@ -120,7 +123,7 @@ const getStylesConfig = ({
       zIndex: theme.zIndex.dropdown,
       background: theme.tokens.background.primary,
       borderRadius: theme.radius.md,
-      border: `1px solid ${theme.border}`,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow: 'none',
       width: 'auto',
       minWidth: '100%',
@@ -128,7 +131,7 @@ const getStylesConfig = ({
     }),
     noOptionsMessage: provided => ({
       ...provided,
-      color: theme.disabled,
+      color: theme.tokens.content.disabled,
     }),
     menuPortal: provided => ({
       ...provided,
@@ -163,7 +166,7 @@ const getStylesConfig = ({
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.colors.blue200} ${theme.tokens.background.primary}`,
+        scrollbarColor: `${theme.tokens.graphics.accent.moderate} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({
@@ -173,7 +176,9 @@ const getStylesConfig = ({
     }),
     singleValue: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.primary,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,
@@ -182,14 +187,16 @@ const getStylesConfig = ({
     }),
     placeholder: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.subText,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.secondary,
     }),
     multiValue: provided => ({
       ...provided,
       backgroundColor: theme.tokens.background.primary,
-      color: isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: isDisabled ? theme.tokens.content.disabled : theme.tokens.content.primary,
       borderRadius: '4px',
-      border: `1px solid ${theme.border}`,
+      border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,
       display: 'flex',
       margin: 0,
@@ -199,7 +206,7 @@ const getStylesConfig = ({
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: isDisabled ? theme.disabled : theme.tokens.content.primary,
+      color: isDisabled ? theme.tokens.content.disabled : theme.tokens.content.primary,
       padding: multiValueSizeMapping[size].spacing,
       paddingLeft: multiValueSizeMapping[size].spacing,
       height: multiValueSizeMapping[size].height,
@@ -218,7 +225,7 @@ const getStylesConfig = ({
         : {
             '&:hover': {
               cursor: 'pointer',
-              background: theme.hover,
+              background: theme.tokens.interactive.transparent.neutral.background.hover,
             },
           }),
     }),
@@ -234,7 +241,7 @@ const getStylesConfig = ({
       ...provided,
       lineHeight: '1.5',
       fontWeight: 600,
-      color: theme.subText,
+      color: theme.tokens.content.secondary,
       marginBottom: 0,
       padding: `${space(0.5)} ${space(1.5)}`,
       ':empty': {
@@ -308,15 +315,15 @@ export const CheckWrap = styled('div')<{
     p.isMultiple
       ? css`
           padding: 1px;
-          border: solid 1px ${p.theme.border};
+          border: solid 1px ${p.theme.tokens.border.primary};
           background: ${p.theme.tokens.background.primary};
           border-radius: 2px;
           height: 1em;
           margin-top: 2px;
           ${p.isSelected &&
           css`
-            background: ${p.theme.colors.blue400};
-            border-color: ${p.theme.colors.blue400};
+            background: ${p.theme.tokens.background.accent.vibrant};
+            border-color: ${p.theme.tokens.background.accent.vibrant};
           `}
         `
       : css`
@@ -377,7 +384,11 @@ const SingleValueWrap = styled('div')`
 `;
 
 const SingleValueLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {

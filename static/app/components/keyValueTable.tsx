@@ -30,7 +30,11 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
   padding: ${space(0.5)} ${space(1)};
   font-weight: ${theme.fontWeight.normal};
   line-height: inherit;
-  ${theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   background-color: ${type === 'error'
     ? theme.colors.red100 + ' !important'
@@ -51,6 +55,6 @@ const Key = styled('dt')<{type: Props['type']}>`
 
 const Value = styled('dd')<{type: Props['type']}>`
   ${commonStyles};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: right;
 `;

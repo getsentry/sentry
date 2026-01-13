@@ -13,7 +13,7 @@ from django.core.management.base import BaseCommand
 from django.urls import URLPattern, URLResolver
 
 from sentry.silo.base import SiloMode
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 
 # There are a handful of catchall routes
 # that we don't want to handle in controlsilo
@@ -115,15 +115,20 @@ class Command(BaseCommand):
             except ImportError as err:
                 raise CommandError(f"Could not load view in {module}: {err}")
 
-            # If a view/endpoint doesn't have a silo_limit it is likely a basic django view
+            # If a view/endpoint doesn't have a silo_limit it is likely a basic django view.
             # We have tests in tests/sentry/silo/test_base.py that ensure all views/endpoints
-            # have silo annotations on them. BaseView subclasses generally render HTML,
-            # and we don't need them in the controlsilo URL inventory as the UI doesn't
-            # fetch data from them.
-            if (
-                not hasattr(view_func, "silo_limit")
-                or isinstance(view_func, type)
-                and issubclass(view_func, BaseView)
+            # have silo annotations on them. We skip including URLs for react views
+            # as the UI doesn't make requests to them, but the UI code *does* make
+            # requests to other HTML views (like sentry-wizard)
+            if not hasattr(view_func, "silo_limit") or (
+                isinstance(view_func, type)
+                and issubclass(
+                    view_func,
+                    (
+                        ReactPageView,
+                        GenericReactPageView,
+                    ),
+                )
             ):
                 continue
 

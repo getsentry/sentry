@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -41,8 +43,8 @@ function Banner(props: BannerProps) {
       <ActionsWrapper>
         <BannerTitle>{props.title}</BannerTitle>
         <BannerDescription>{props.description}</BannerDescription>
-        <ButtonsWrapper>
-          <ActionButton>
+        <Flex align="center" gap="xs">
+          <Flex gap="md">
             <Button
               priority="primary"
               onClick={event => {
@@ -52,8 +54,8 @@ function Banner(props: BannerProps) {
             >
               {props.primaryButtonText}
             </Button>
-          </ActionButton>
-          <ActionButton>
+          </Flex>
+          <Flex gap="md">
             <LinkButton
               onClick={props.onSecondaryButtonClick}
               href={props.docsRoute}
@@ -61,8 +63,8 @@ function Banner(props: BannerProps) {
             >
               {t('Learn More')}
             </LinkButton>
-          </ActionButton>
-        </ButtonsWrapper>
+          </Flex>
+        </Flex>
       </ActionsWrapper>
       <BannerBackground image={props.image} />
       <CloseDropdownMenu
@@ -92,7 +94,7 @@ function Banner(props: BannerProps) {
 
 const BannerWrapper = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(3)};
   background: linear-gradient(
@@ -106,12 +108,6 @@ const BannerWrapper = styled('div')`
 
 const ActionsWrapper = styled('div')`
   max-width: 50%;
-`;
-
-const ButtonsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const BannerTitle = styled('div')`
@@ -150,11 +146,6 @@ const BannerBackground = styled('div')<{image: any}>`
   @container (max-width: 840px) {
     display: none;
   }
-`;
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const TraceWarningComponents = {

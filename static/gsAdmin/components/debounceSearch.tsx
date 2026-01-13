@@ -157,7 +157,8 @@ function DebounceSearch({
 }
 
 const Card = styled('div')<{highlight?: boolean}>`
-  background: ${p => (p.highlight ? p.theme.gray100 : p.theme.tokens.background.primary)};
+  background: ${p =>
+    p.highlight ? p.theme.colors.gray100 : p.theme.tokens.background.primary};
   color: ${p => (p.highlight ? p.theme.active : p.theme.tokens.content.primary)};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${space(2)};
@@ -171,7 +172,7 @@ const SearchResults = styled('div')`
 const SuggestionCard = styled(Card)`
   &:hover {
     color: ${p => p.theme.active};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.colors.gray100};
     cursor: pointer;
   }
 `;

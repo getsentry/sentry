@@ -90,6 +90,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "installation_type"]
+
     def send_message(self, channel_id: str, message: str) -> None:
         client = self.get_client()
 
@@ -110,7 +113,11 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             translate_slack_api_error(e)
 
     def send_threaded_message(
-        self, *, channel_id: str, renderable: SlackRenderable, thread_ts: str
+        self,
+        *,
+        channel_id: str,
+        renderable: SlackRenderable,
+        thread_ts: str,
     ) -> None:
         client = self.get_client()
         try:
@@ -119,6 +126,26 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 blocks=renderable["blocks"],
                 text=renderable["text"],
                 thread_ts=thread_ts,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def send_threaded_ephemeral_message(
+        self,
+        *,
+        slack_user_id: str,
+        channel_id: str,
+        renderable: SlackRenderable,
+        thread_ts: str,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_postEphemeral(
+                channel=channel_id,
+                blocks=renderable["blocks"],
+                text=renderable["text"],
+                thread_ts=thread_ts,
+                user=slack_user_id,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)

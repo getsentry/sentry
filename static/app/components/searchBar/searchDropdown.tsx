@@ -504,7 +504,7 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -518,7 +518,7 @@ const SearchDropdownGroupTitle = styled('header')`
   align-items: center;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
 
@@ -561,9 +561,11 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
       return css`
         cursor: pointer;
 
-        &:hover,
+        &:hover {
+          background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+        }
         &.active {
-          background: ${p.theme.hover};
+          background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
         }
       `;
     }
@@ -580,7 +582,6 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
 `;
 
 const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
-  display: flex;
   flex-grow: 1;
   flex-shrink: ${p => (p.hasSingleField ? '1' : '0')};
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
@@ -591,14 +592,19 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
 
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const RestOfWordsContainer = styled('span')<{
   hasSplit?: boolean;
   isFirstWordHidden?: boolean;
 }>`
-  color: ${p => (p.hasSplit ? p.theme.colors.blue500 : p.theme.tokens.content.primary)};
+  color: ${p =>
+    p.hasSplit ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
   margin-left: ${p => (p.isFirstWordHidden ? space(1) : '0px')};
 `;
 
@@ -615,15 +621,17 @@ const TagWrapper = styled('span')`
 `;
 
 const Documentation = styled('span')`
-  display: flex;
   flex: 2;
   padding: 0 ${space(1)};
   min-width: 0;
 
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: ${p => p.theme.fontSize.md};
   font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: pre;
 `;
 
@@ -642,7 +650,7 @@ const DropdownFooter = styled(`div`)`
 `;
 
 const HotkeyGlyphWrapper = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-right: ${space(0.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -677,7 +685,11 @@ const Value = styled('span')<{hasDocs?: boolean}>`
 
   max-width: ${p => (p.hasDocs ? '280px' : 'none')};
 
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IconOpenWithMargin = styled(IconOpen)`
@@ -689,5 +701,9 @@ const RecommendedItem = styled('div')`
 `;
 
 const RecommendedItemTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

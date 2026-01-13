@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HighlightComponent} from 'sentry/components/highlight';
@@ -35,7 +35,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
-      background-color: ${p => p.theme.backgroundSecondary};
+      background-color: ${p => p.theme.tokens.background.secondary};
     }
 
     &:not(:last-child) {
@@ -49,16 +49,16 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.colors.yellow100};
-    color: ${p => p.theme.colors.red400};
+    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+    color: ${p => p.theme.tokens.content.danger};
 
     &:hover {
-      background-color: ${p => p.theme.colors.yellow200};
+      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
     }
   }
 
   &.beforeHoverTime + &.afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue200};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     left: 0;
     position: absolute;
@@ -67,7 +67,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue200};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     right: 0;
     position: absolute;
@@ -76,7 +76,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime + &.afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue400};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     left: 0;
     position: absolute;
@@ -85,7 +85,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue400};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     right: 0;
     position: absolute;
@@ -168,8 +168,8 @@ export const DetailsWrapper = styled('tr')`
   white-space: nowrap;
   grid-column: 1 / -1;
   display: grid;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${1 /* place above the grid resizing lines */};
 `;
 
@@ -180,10 +180,9 @@ export const DetailsContent = styled(StyledPanel)`
   padding: ${space(1)} ${space(2)};
 `;
 
-export const LogFirstCellContent = styled('div')`
-  display: flex;
-  align-items: center;
-`;
+export function LogFirstCellContent(props: FlexProps<'div'>) {
+  return <Flex align="center" {...props} />;
+}
 
 export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
   ${NumberContainer} {
@@ -234,7 +233,7 @@ export const ColoredLogText = styled('span')<{
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: ${p => p.align || 'left'};
 `;
 
@@ -248,7 +247,7 @@ export const LogsHighlight = styled(HighlightComponent)`
 export const LogsFilteredHelperText = styled('span')`
   margin-left: 4px;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.colors.gray200};
 `;
 
@@ -279,12 +278,9 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${space(1)};
 `;
 
-export const TableActionsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-end;
-  align-items: center;
-`;
+export function TableActionsContainer(props: FlexProps<'div'>) {
+  return <Flex justify="end" align="center" gap="md" {...props} />;
+}
 
 export const LogsItemContainer = styled('div')`
   flex: 1 1 auto;
@@ -321,68 +317,67 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   switch (level) {
     case SeverityLevel.DEFAULT:
       return {
-        background: theme.colors.gray200,
-        backgroundLight: theme.backgroundSecondary,
-        border: theme.border,
-        borderHover: theme.border,
-        color: theme.colors.gray200,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.secondary,
       };
     case SeverityLevel.TRACE:
       return {
-        background: theme.colors.blue400,
-        backgroundLight: theme.colors.blue100,
-        border: theme.colors.blue200,
-        borderHover: theme.colors.blue400,
-        color: theme.colors.blue500,
+        background: theme.tokens.graphics.accent.vibrant,
+        backgroundLight: theme.tokens.background.transparent.accent.muted,
+        border: theme.tokens.border.accent.moderate,
+        borderHover: theme.tokens.border.accent.vibrant,
+        color: theme.tokens.content.accent,
       };
     case SeverityLevel.WARN:
       return {
-        background: theme.colors.yellow400,
-        backgroundLight: theme.colors.yellow100,
-        border: theme.colors.yellow200,
-        borderHover: theme.colors.yellow400,
-        color: theme.colors.yellow500,
+        background: theme.tokens.graphics.warning.vibrant,
+        backgroundLight: theme.tokens.background.transparent.warning.muted,
+        border: theme.tokens.border.warning.moderate,
+        borderHover: theme.tokens.border.warning.vibrant,
+        color: theme.tokens.content.warning,
       };
     case SeverityLevel.ERROR:
-      // All these colours are likely changing, so we'll hold off moving them into theme for now.
       return {
-        background: '#FF7738', // Matches the legacy error level color
-        backgroundLight: 'rgba(245, 113, 54, 0.11)',
-        border: 'rgba(245, 113, 54, 0.55)',
-        borderHover: '#FF7738',
-        color: '#b34814',
+        background: theme.tokens.graphics.danger.vibrant,
+        backgroundLight: theme.tokens.background.transparent.danger.muted,
+        border: theme.tokens.border.danger.moderate,
+        borderHover: theme.tokens.border.danger.vibrant,
+        color: theme.tokens.content.danger,
       };
     case SeverityLevel.FATAL:
       return {
-        background: theme.colors.red400,
-        backgroundLight: theme.colors.red100,
-        border: theme.colors.red200,
-        borderHover: theme.colors.red400,
-        color: theme.colors.red500,
+        background: theme.tokens.graphics.danger.vibrant,
+        backgroundLight: theme.tokens.background.transparent.danger.muted,
+        border: theme.tokens.border.danger.moderate,
+        borderHover: theme.tokens.border.danger.vibrant,
+        color: theme.tokens.content.danger,
       };
     case SeverityLevel.DEBUG:
       return {
-        background: theme.colors.gray400,
-        backgroundLight: theme.colors.gray100,
-        border: theme.colors.gray200,
-        borderHover: theme.colors.gray400,
-        color: theme.colors.gray400,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.primary,
       };
     case SeverityLevel.INFO:
       return {
-        background: theme.colors.blue400,
-        backgroundLight: theme.colors.blue100,
-        border: theme.colors.blue200,
-        borderHover: theme.colors.blue400,
-        color: theme.colors.blue500,
+        background: theme.tokens.graphics.accent.vibrant,
+        backgroundLight: theme.tokens.background.transparent.accent.muted,
+        border: theme.tokens.border.transparent.accent.moderate,
+        borderHover: theme.tokens.border.transparent.accent.vibrant,
+        color: theme.tokens.content.accent,
       };
     case SeverityLevel.UNKNOWN:
       return {
-        background: theme.colors.gray400,
-        backgroundLight: theme.colors.gray100,
-        border: theme.colors.gray200,
-        borderHover: theme.colors.gray400,
-        color: theme.colors.gray200,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.secondary,
       };
     default:
       unreachable(level);
@@ -455,7 +450,7 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   display: flex;
   background: linear-gradient(
     to ${p => (p.position === 'top' ? 'bottom' : 'top')},
-    rgb(from ${p => p.theme.backgroundTertiary} r g b / 75%),
+    rgb(from ${p => p.theme.tokens.background.tertiary} r g b / 75%),
     rgb(from ${p => p.theme.backgroundSecondary} r g b / 0%)
   );
   align-items: center;

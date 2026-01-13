@@ -262,7 +262,7 @@ const Currency = styled('div')`
     position: absolute;
     padding: 9px ${p => p.theme.space.xl} ${p => p.theme.space.md};
     content: '$';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.sm};
     font-weight: bold;
   }

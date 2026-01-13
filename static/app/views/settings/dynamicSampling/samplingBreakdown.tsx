@@ -186,7 +186,7 @@ const Breakdown = styled('div')`
   width: 100%;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  background: ${p => p.theme.backgroundTertiary};
+  background: ${p => p.theme.tokens.background.tertiary};
 `;
 
 const Legend = styled('div')`
@@ -207,12 +207,12 @@ const Total = styled('div')`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 
 const EmptyStateText = styled('div')`
   text-align: center;
   padding: ${space(0.5)} 0 ${space(3)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

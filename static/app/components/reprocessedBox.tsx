@@ -77,7 +77,7 @@ function ReprocessedBox({
         <IconCheckmark variant="success" />
         <span>{renderMessage()}</span>
         <StyledIconClose
-          color="successText"
+          variant="success"
           aria-label={t('Dismiss')}
           onClick={handleBannerDismiss}
         />

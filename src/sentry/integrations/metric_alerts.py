@@ -256,22 +256,6 @@ def incident_attachment_info(
             )
 
         title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
-
-    elif features.has("organizations:workflow-engine-ui-links", organization):
-        if metric_issue_context.group is None:
-            raise ValueError("Group is required for workflow engine UI links")
-
-        # We don't need to save the query param the alert rule id here because the link is to the group and not the alert rule
-        # TODO(iamrajjoshi): This this through and perhaps
-        workflow_engine_ui_params = title_link_params.copy()
-        workflow_engine_ui_params.pop("alert", None)
-
-        title_link = build_title_link_workflow_engine_ui(
-            metric_issue_context.group.id,
-            organization,
-            metric_issue_context.group.project.id,
-            workflow_engine_ui_params,
-        )
     else:
         title_link = build_title_link(
             alert_context.action_identifier_id, organization, title_link_params
