@@ -66,7 +66,7 @@ export default function ConsoleSDKInvitesSettings() {
         {t('Manage invitations to our private gaming console SDK GitHub repositories.')}
       </TextBlock>
       {!userHasConsoleAccess && <NoAccessAlert />}
-      {!isPending && userHasConsoleAccess && !userHasQuotaRemaining && (
+      {!isPending && !isError && userHasConsoleAccess && !userHasQuotaRemaining && (
         <NoQuotaRemaining organization={organization} />
       )}
       <InvitesTable>
