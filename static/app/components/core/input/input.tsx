@@ -2,7 +2,6 @@ import isPropValid from '@emotion/is-prop-valid';
 import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {debossedBackground} from 'sentry/components/core/chonk';
 import {type FormSize, type StrictCSSObject} from 'sentry/utils/theme';
 
 export interface InputProps
@@ -58,7 +57,7 @@ export const inputStyles = ({
     display: 'block',
     width: '100%',
     color: theme.tokens.content.primary,
-    ...debossedBackground(theme),
+    backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.chonk,
     boxShadow,
     border: `1px solid ${theme.tokens.border.primary}`,
     fontFamily: theme.font.family[monospace ? 'mono' : 'sans'],
