@@ -20,7 +20,7 @@ interface IssueViewsProps {
 }
 
 export interface IssueView extends IssueViewParams {
-  createdBy: AvatarUser;
+  createdBy: AvatarUser | null;
   dateCreated: string;
   dateUpdated: string;
   id: string;

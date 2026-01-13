@@ -271,7 +271,14 @@ SavedEntityTable.CellTimeSince = function CellTimeSince({date}: {date: string | 
   return <TimeSince date={date} unitStyle="short" />;
 };
 
-SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser}) {
+SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser | null}) {
+  if (!user) {
+    return (
+      <SavedEntityTable.CellTextContent>
+        {t('Unknown User')}
+      </SavedEntityTable.CellTextContent>
+    );
+  }
   return <UserAvatar user={user} size={20} hasTooltip />;
 };
 
