@@ -2,12 +2,29 @@ from __future__ import annotations
 
 from typing import Any
 
-from rest_framework.exceptions import ParseError
+from rest_framework import status
+from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.project import Project
+
+
+class ArtifactBundleError(APIException):
+    """
+    Custom exception that produces {"error": "..."} format for backward compatibility.
+
+    The original endpoints returned Response({"error": "..."}, status=400), so we need
+    to maintain this format to avoid breaking API clients that parse the "error" key.
+    """
+
+    status_code = status.HTTP_400_BAD_REQUEST
+
+    def __init__(self, message: str):
+        # Set detail directly to produce {"error": "..."} format
+        # instead of DRF's default {"detail": "..."} format
+        self.detail = {"error": message}
 
 
 class ProjectArtifactBundleEndpoint(ProjectEndpoint):
@@ -37,7 +54,7 @@ class ProjectArtifactBundleEndpoint(ProjectEndpoint):
                 projectartifactbundle__project_id=project.id,
             )[0]
         except IndexError:
-            raise ParseError(
+            raise ArtifactBundleError(
                 f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"
             )
 
