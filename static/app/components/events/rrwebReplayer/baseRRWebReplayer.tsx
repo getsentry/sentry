@@ -256,7 +256,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
   .rr-controller__btns button.active {
     color: ${p => p.theme.white};
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 
   .rr-controller__btns button:disabled {
@@ -319,7 +319,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   }
 
   .switch input[type='checkbox']:checked + label:after {
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.interactive.link.accent.active};
     transform: translateX(16px);
   }
 `;

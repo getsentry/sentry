@@ -134,7 +134,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
               fontSize: 12,
               fontWeight: 'bold',
               fontFamily: 'Rubik',
-              color: theme.activeText,
+              color: theme.tokens.interactive.link.accent.rest,
             },
           },
         },
