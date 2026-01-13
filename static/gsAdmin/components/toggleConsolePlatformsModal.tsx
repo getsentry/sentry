@@ -47,7 +47,7 @@ function InviteRow({invite, onRevoke, revokingPlatform, revokingUserId}: InviteR
         </Link>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Flex gap="sm">
+        <Flex gap="sm" wrap="wrap">
           {platforms.map(platform => {
             const isPlatformRevoking =
               revokingUserId === user_id && revokingPlatform === platform;
@@ -309,7 +309,7 @@ const NumberFieldFromConfig = styled(FieldFromConfig)`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 2fr max-content;
+  grid-template-columns: 1fr 1fr max-content;
 `;
 
 export function openToggleConsolePlatformsModal({
