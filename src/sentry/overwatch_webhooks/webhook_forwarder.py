@@ -16,7 +16,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
-from sentry.seer.code_review.utils import is_githug_org_direct_to_seer, should_forward_to_overwatch
+from sentry.seer.code_review.utils import is_githug_org_direct_to_seer
+from sentry.seer.code_review.utils import (
+    should_forward_to_overwatch as should_forward_to_overwatch_for_event,
+)
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -25,23 +28,6 @@ _INSTALLATION_EVENTS = {
     GithubWebhookType.INSTALLATION,
     GithubWebhookType.INSTALLATION_REPOSITORIES,
 }
-
-
-def get_github_events_to_forward_overwatch() -> set[GithubWebhookType]:
-    """
-    Returns the set of GitHub webhook event types that should be forwarded to Overwatch.
-
-    Installation events are always included. Other event types can be controlled via options:
-    - When option is True: forward to Overwatch
-    - When option is False: forward to Seer (handled elsewhere)
-    """
-    events = set(_INSTALLATION_EVENTS)
-
-    for webhook_type in GithubWebhookType:
-        if should_forward_to_overwatch(webhook_type):
-            events.add(webhook_type)
-
-    return events
 
 
 @dataclass(frozen=True)
@@ -66,14 +52,16 @@ class OverwatchGithubWebhookForwarder:
 
     def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
         event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
-        events_to_forward = get_github_events_to_forward_overwatch()
-        should_forward = event_type in events_to_forward
+        # Installation events are always forwarded
+        is_installation = event_type in _INSTALLATION_EVENTS
+        # Other events are controlled by options
+        should_forward = is_installation or should_forward_to_overwatch_for_event(event_type)
         verbose_log(
             "overwatch.debug.should_forward_to_overwatch.checked",
             extra={
                 "event_type": event_type,
                 "should_forward": should_forward,
-                "enabled_events": list(events_to_forward),
+                "is_installation": is_installation,
             },
         )
         return should_forward

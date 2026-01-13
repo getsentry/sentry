@@ -328,8 +328,14 @@ def is_githug_org_direct_to_seer(event_payload: Mapping[str, Any]) -> bool:
     """
     Determine if the GitHub org is in the direct-to-seer whitelist.
     """
-    github_org = event_payload.get("repository", {}).get("owner", {}).get("login")
-    return github_org is not None and github_org in _whitelisted_gh_orgs()
+    repository = event_payload.get("repository", {})
+    if not isinstance(repository, dict):
+        return False
+    owner = repository.get("owner", {})
+    if not isinstance(owner, dict):
+        return False
+    github_org = owner.get("login")
+    return github_org is not None and github_org in _direct_to_seer_gh_orgs()
 
 
 def should_forward_to_overwatch(github_event: GithubWebhookType) -> bool:
@@ -337,7 +343,7 @@ def should_forward_to_overwatch(github_event: GithubWebhookType) -> bool:
     Determine if a GitHub webhook event should be forwarded to Overwatch.
 
     - If there is no option key (i.e., _get_webhook_option_key returns None),
-      the event should be forwarded to Overwatch (returns True).
+      the event should NOT be forwarded to Overwatch (returns False).
       This ensures events like CHECK_RUN are excluded from forwarding.
     - If there is an option key, forwarding is controlled by the option value.
 
@@ -345,13 +351,15 @@ def should_forward_to_overwatch(github_event: GithubWebhookType) -> bool:
         github_event: The GitHub webhook event type.
 
     Returns:
-        bool: True if the event should not be forwarded to Overwatch, False otherwise.
+        bool: True if the event should be forwarded to Overwatch, False otherwise.
     """
-    option_key = _get_webhook_option_key(github_event) or ""
-    return True if options.get(option_key) or option_key == "" else False
+    option_key = _get_webhook_option_key(github_event)
+    if option_key is None:
+        return False
+    return options.get(option_key)
 
 
-def _whitelisted_gh_orgs() -> list[str]:
+def _direct_to_seer_gh_orgs() -> list[str]:
     """
     Returns the list of GitHub org names that should always send directly to Seer.
     """
