@@ -36,6 +36,34 @@ R = TypeVar("R")
 T = TypeVar("T", bound=Mapping[str, Any])
 
 
+def _safe_add_request_to_buffer(
+    buffer: SentryAppWebhookRequestsBuffer, **kwargs: Any
+) -> None:
+    """
+    Safely add a webhook request to the buffer, catching any errors that might occur
+    during Redis cluster initialization or other buffer operations.
+    
+    This prevents Redis-related issues (like cluster slot discovery timeouts) from
+    failing the webhook task after the webhook has been successfully sent.
+    """
+    try:
+        buffer.add_request(**kwargs)
+    except Exception as e:
+        # Log the error but don't raise it - we've already sent the webhook successfully
+        # and losing the request log is better than failing the entire task
+        logger.warning(
+            "sentry_app.webhook.buffer_add_request_failed",
+            extra={
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "event": kwargs.get("event"),
+                "org_id": kwargs.get("org_id"),
+                "response_code": kwargs.get("response_code"),
+            },
+            exc_info=True,
+        )
+
+
 def ignore_unpublished_app_errors(
     func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R],
 ) -> Callable[Concatenate[SentryApp | RpcSentryApp, P], R | None]:
@@ -117,7 +145,8 @@ def send_and_save_webhook_request(
                 },
             )
             track_response_code(error_type, slug, event)
-            buffer.add_request(
+            _safe_add_request_to_buffer(
+                buffer,
                 response_code=TIMEOUT_STATUS_CODE,
                 org_id=org_id,
                 event=event,
@@ -139,7 +168,8 @@ def send_and_save_webhook_request(
             raise
 
         track_response_code(response.status_code, slug, event)
-        buffer.add_request(
+        _safe_add_request_to_buffer(
+            buffer,
             response_code=response.status_code,
             org_id=org_id,
             event=event,

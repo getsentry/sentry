@@ -15,7 +15,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
-from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
+from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE, _safe_add_request_to_buffer
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,8 @@ def send_and_save_sentry_app_request(
                 },
             )
             track_response_code(error_type, slug, event)
-            buffer.add_request(
+            _safe_add_request_to_buffer(
+                buffer,
                 response_code=TIMEOUT_STATUS_CODE,
                 org_id=org_id,
                 event=event,
@@ -101,7 +102,8 @@ def send_and_save_sentry_app_request(
             raise
 
         track_response_code(resp.status_code, slug, event)
-        buffer.add_request(
+        _safe_add_request_to_buffer(
+            buffer,
             response_code=resp.status_code,
             org_id=org_id,
             event=event,
