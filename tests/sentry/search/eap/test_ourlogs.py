@@ -249,6 +249,12 @@ class SearchResolverQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match="Condition is missing on the left side"):
             self.resolver.resolve_query("( OR ) message:foo")
 
+    def test_empty_parens(self) -> None:
+        # Test empty parentheses - should return None (no filters)
+        where, having, _ = self.resolver.resolve_query("( )")
+        assert where is None
+        assert having is None
+
 
 def test_count_default_argument() -> None:
     resolver = SearchResolver(
