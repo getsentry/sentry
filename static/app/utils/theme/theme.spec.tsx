@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import {expectTypeOf} from 'expect-type';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
@@ -24,6 +24,58 @@ describe('theme', () => {
         | readonly ['#7B52FF', '#401477', '#FF049B']
         | readonly ['#7B52FF', '#613CB9', '#FF049B']
       >();
+    });
+  });
+
+  describe('backwards compatibility tokens', () => {
+    it.each<['border' | 'graphics']>([['border'], ['graphics']])(
+      '%s should coerce to vibrant in template literals',
+      name => {
+        const theme = renderHookWithProviders(useTheme).result.current;
+        const token = theme.tokens[name].promotion;
+        expect(`color: ${token}`).toBe(`color: ${token.vibrant}`);
+      }
+    );
+
+    it.each<['border' | 'graphics']>([['border'], ['graphics']])(
+      '%s token should equal its vibrant value when coerced',
+      name => {
+        const theme = renderHookWithProviders(useTheme).result.current;
+        const token = theme.tokens[name].promotion;
+
+        expect(token).toBe(token.vibrant);
+      }
+    );
+
+    it('should work with Emotion css function for border tokens', () => {
+      const theme = renderHookWithProviders(useTheme).result.current;
+
+      expect(css`
+        border: 1px solid ${theme.tokens.border.promotion};
+      `).toMatchObject({
+        styles: expect.stringContaining(theme.tokens.border.promotion.vibrant),
+      });
+    });
+
+    it('should work with css template', () => {
+      const theme = renderHookWithProviders(useTheme).result.current;
+
+      expect(css`
+        background: ${theme.tokens.graphics.promotion};
+      `).toMatchObject({
+        styles: expect.stringContaining(theme.tokens.graphics.promotion.vibrant),
+      });
+    });
+
+    it('should work via object reference', () => {
+      const theme = renderHookWithProviders(useTheme).result.current;
+      const config = {iconBorder: theme.tokens.border.danger};
+
+      expect(css`
+        border-color: ${config.iconBorder};
+      `).toMatchObject({
+        styles: expect.stringContaining(theme.tokens.border.danger.vibrant),
+      });
     });
   });
 });
