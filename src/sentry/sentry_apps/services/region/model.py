@@ -38,3 +38,13 @@ class RpcIssueLinkResult(RpcModel):
 class RpcDeleteResult(RpcModel):
     success: bool = False
     error: RpcSentryAppError | None = None
+
+
+class RpcServiceHookProject(RpcModel):
+    id: str
+    project_id: str
+
+
+class RpcServiceHookProjectsResult(RpcModel):
+    projects: list[RpcServiceHookProject] = Field(default_factory=list)
+    error: RpcSentryAppError | None = None

@@ -7,6 +7,7 @@ from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIs
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.region.model import (
     RpcDeleteResult,
@@ -14,6 +15,8 @@ from sentry.sentry_apps.services.region.model import (
     RpcPlatformExternalIssue,
     RpcSelectRequesterResult,
     RpcSentryAppError,
+    RpcServiceHookProject,
+    RpcServiceHookProjectsResult,
 )
 from sentry.sentry_apps.services.region.service import SentryAppRegionService
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -199,3 +202,31 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
 
         deletions.exec_sync(platform_external_issue)
         return RpcDeleteResult(success=True)
+
+    def get_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+    ) -> RpcServiceHookProjectsResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ GET
+        """
+        try:
+            hook = ServiceHook.objects.get(installation_id=installation.id)
+        except ServiceHook.DoesNotExist:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Could not find service hook for installation",
+                    webhook_context={},
+                    status_code=404,
+                )
+            )
+
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
+        return RpcServiceHookProjectsResult(
+            projects=[
+                RpcServiceHookProject(id=str(hp.id), project_id=str(hp.project_id))
+                for hp in hook_projects
+            ]
+        )
