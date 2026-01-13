@@ -26,6 +26,99 @@ import {
   type ConsoleSdkInviteUser,
 } from 'sentry/views/settings/organizationConsoleSdkInvites/hooks';
 
+type ConsolePlatform = ConsoleSdkInviteUser['platforms'][number];
+
+interface InviteRowProps {
+  invite: ConsoleSdkInviteUser;
+  onRevoke: (params: {email: string; platform: ConsolePlatform; userId: string}) => void;
+  revokingPlatform: ConsolePlatform | null;
+  revokingUserId: string | null;
+}
+
+function InviteRow({invite, onRevoke, revokingPlatform, revokingUserId}: InviteRowProps) {
+  const {email, platforms, user_id} = invite;
+
+  return (
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
+        <Link to={`/_admin/users/${user_id}`}>{email}</Link>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Flex gap="sm">
+          {platforms.map(platform => {
+            const isPlatformRevoking =
+              revokingUserId === user_id && revokingPlatform === platform;
+
+            return (
+              <Tag
+                key={platform}
+                variant="info"
+                onDismiss={() => {
+                  if (!isPlatformRevoking) {
+                    onRevoke({userId: user_id, email, platform});
+                  }
+                }}
+              >
+                {platform}
+              </Tag>
+            );
+          })}
+        </Flex>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
+  );
+}
+
+interface InvitesTableProps {
+  invites: ConsoleSdkInviteUser[];
+  isError: boolean;
+  isPending: boolean;
+  onRefetch: () => void;
+  onRevoke: (params: {email: string; platform: ConsolePlatform; userId: string}) => void;
+  revokingPlatform: ConsolePlatform | null;
+  revokingUserId: string | null;
+}
+
+function InvitesTableContent({
+  invites,
+  isPending,
+  isError,
+  onRefetch,
+  onRevoke,
+  revokingUserId,
+  revokingPlatform,
+}: InvitesTableProps) {
+  if (isPending) {
+    return (
+      <SimpleTable.Empty>
+        <LoadingIndicator />
+      </SimpleTable.Empty>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SimpleTable.Empty>
+        <LoadingError onRetry={onRefetch} />
+      </SimpleTable.Empty>
+    );
+  }
+
+  if (invites.length === 0) {
+    return <SimpleTable.Empty>No invites found</SimpleTable.Empty>;
+  }
+
+  return invites.map(invite => (
+    <InviteRow
+      key={invite.user_id}
+      invite={invite}
+      onRevoke={onRevoke}
+      revokingUserId={revokingUserId}
+      revokingPlatform={revokingPlatform}
+    />
+  ));
+}
+
 interface ToggleConsolePlatformsModalProps extends ModalRenderProps {
   onSuccess: () => void;
   organization: Organization;
@@ -46,11 +139,13 @@ function ToggleConsolePlatformsModal({
     isError: isInvitesFetchError,
     refetch: refetchInvites,
   } = useConsoleSdkInvites(organization.slug);
+
   const {
     mutate: revokeConsoleInvite,
     isPending: isRevokePending,
     variables: revokeVariables,
   } = useRevokeConsoleSdkPlatformInvite();
+
   const {isPending: isUpdatePending, mutate: updateConsolePlatforms} = useMutation({
     mutationFn: (data: Record<string, boolean | number>) => {
       const {newConsoleSdkInviteQuota, ...platforms} = data;
@@ -80,6 +175,23 @@ function ToggleConsolePlatformsModal({
       addErrorMessage(`Failed to update console platforms for ${organization.slug}`);
     },
   });
+
+  const handleRevoke = ({
+    userId,
+    email,
+    platform,
+  }: {
+    email: string;
+    platform: ConsolePlatform;
+    userId: string;
+  }) => {
+    revokeConsoleInvite({
+      userId,
+      email,
+      platform,
+      orgSlug: organization.slug,
+    });
+  };
 
   return (
     <Form
@@ -162,62 +274,17 @@ function ToggleConsolePlatformsModal({
             <SimpleTable.HeaderCell>Email</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
           </SimpleTable.Header>
-          {isInvitesFetchPending && (
-            <SimpleTable.Empty>
-              <LoadingIndicator />
-            </SimpleTable.Empty>
-          )}
-
-          {isInvitesFetchError && (
-            <SimpleTable.Empty>
-              <LoadingError onRetry={refetchInvites} />
-            </SimpleTable.Empty>
-          )}
-
-          {!isInvitesFetchPending &&
-            !isInvitesFetchError &&
-            userIdentities.length === 0 && (
-              <SimpleTable.Empty>No invites found</SimpleTable.Empty>
-            )}
-
-          {!isInvitesFetchPending &&
-            !isInvitesFetchError &&
-            userIdentities.map(({email, platforms, user_id}: ConsoleSdkInviteUser) => (
-              <SimpleTable.Row key={user_id}>
-                <SimpleTable.RowCell>
-                  <Link to={`/_admin/users/${user_id}`}>{email}</Link>
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Flex gap="sm">
-                    {platforms.map(platform => {
-                      const isPlatformRevoking =
-                        isRevokePending &&
-                        revokeVariables?.userId === user_id &&
-                        revokeVariables?.platform === platform;
-
-                      return (
-                        <Tag
-                          key={platform}
-                          variant="info"
-                          onDismiss={() => {
-                            if (!isPlatformRevoking) {
-                              revokeConsoleInvite({
-                                userId: user_id,
-                                email,
-                                platform,
-                                orgSlug: organization.slug,
-                              });
-                            }
-                          }}
-                        >
-                          {platform}
-                        </Tag>
-                      );
-                    })}
-                  </Flex>
-                </SimpleTable.RowCell>
-              </SimpleTable.Row>
-            ))}
+          <InvitesTableContent
+            invites={userIdentities}
+            isPending={isInvitesFetchPending}
+            isError={isInvitesFetchError}
+            onRefetch={refetchInvites}
+            onRevoke={handleRevoke}
+            revokingUserId={isRevokePending ? (revokeVariables?.userId ?? null) : null}
+            revokingPlatform={
+              isRevokePending ? (revokeVariables?.platform ?? null) : null
+            }
+          />
         </SimpleTableWithColumns>
       </Body>
     </Form>
