@@ -263,6 +263,9 @@ class GitHubEnterpriseIntegration(
 
         return False
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "installation_id", "account_type"]
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
