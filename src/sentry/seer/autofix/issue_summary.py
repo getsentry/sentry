@@ -242,7 +242,7 @@ def _call_seer(
             "organization_id": group.organization.id,
             "project_id": group.project.id,
         },
-        option=orjson.OPT_NON_STR_KEYS,
+        option=orjson.OPT_NON_STR_KEYS | orjson.OPT_UTC_Z,
     )
 
     # Route to summarization URL
@@ -281,7 +281,7 @@ def _generate_fixability_score(
     response = make_signed_seer_api_request(
         fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
-        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
+        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS | orjson.OPT_UTC_Z),
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
     )
     if response.status >= 400:
