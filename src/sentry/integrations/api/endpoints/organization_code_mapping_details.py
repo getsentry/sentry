@@ -52,7 +52,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
 
         return (args, kwargs)
 
-    def put(self, request: Request, config_id, organization, config, new_project) -> Response:
+    def put(self, request: Request, config_id, organization, config, new_project=None) -> Response:
         """
         Update a repository project path config
         ``````````````````
@@ -66,6 +66,10 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
+        # If new_project is not provided, use the existing project from config
+        if new_project is None:
+            new_project = config.project
+        
         if not request.access.has_projects_access([config.project, new_project]):
             return self.respond(status=status.HTTP_403_FORBIDDEN)
 
