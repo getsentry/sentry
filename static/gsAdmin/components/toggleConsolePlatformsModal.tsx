@@ -198,7 +198,7 @@ function ToggleConsolePlatformsModal({
                       return (
                         <Tag
                           key={platform}
-                          variant="muted"
+                          variant="info"
                           onDismiss={() => {
                             if (!isPlatformRevoking) {
                               revokeConsoleInvite({
