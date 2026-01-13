@@ -106,7 +106,7 @@ class VSTSIdentityProvider(OAuth2Provider):
             "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
             "client_assertion": client_secret,
             "grant_type": "refresh_token",
-            "assertion": refresh_token,
+            "refresh_token": refresh_token,
             "redirect_uri": absolute_uri(oauth_redirect_url),
         }
 
