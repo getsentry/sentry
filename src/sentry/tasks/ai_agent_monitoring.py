@@ -160,14 +160,25 @@ def fetch_ai_model_costs() -> None:
     _add_glob_model_names(models_dict)
 
     # Add hardcoded models that are not available in external APIs
-    # BAAI/bge-m3 is a free, open-source embedding model
-    if "BAAI/bge-m3" not in models_dict:
-        models_dict["BAAI/bge-m3"] = AIModelCostV2(
+    # These are typically free, open-source embedding models
+    hardcoded_models = {
+        "BAAI/bge-m3": AIModelCostV2(
             inputPerToken=0.0,
             outputPerToken=0.0,
             outputReasoningPerToken=0.0,
             inputCachedPerToken=0.0,
-        )
+        ),
+        "jinaai/jina-embeddings-v2-base-en": AIModelCostV2(
+            inputPerToken=0.0,
+            outputPerToken=0.0,
+            outputReasoningPerToken=0.0,
+            inputCachedPerToken=0.0,
+        ),
+    }
+
+    for model_id, cost_data in hardcoded_models.items():
+        if model_id not in models_dict:
+            models_dict[model_id] = cost_data
 
     ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
     cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)

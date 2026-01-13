@@ -482,8 +482,8 @@ class FetchAIModelCostsTest(TestCase):
         assert "nonexistent-mapping" not in models
 
     @responses.activate
-    def test_fetch_ai_model_costs_with_baai_bge_m3(self) -> None:
-        """Test that BAAI/bge-m3 model is added as a hardcoded model"""
+    def test_fetch_ai_model_costs_with_hardcoded_embedding_models(self) -> None:
+        """Test that hardcoded embedding models are added (BAAI/bge-m3, jina-embeddings)"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
 
@@ -501,6 +501,14 @@ class FetchAIModelCostsTest(TestCase):
         assert baai_model.get("outputPerToken") == 0.0
         assert baai_model.get("outputReasoningPerToken") == 0.0
         assert baai_model.get("inputCachedPerToken") == 0.0
+
+        # Verify jinaai/jina-embeddings-v2-base-en is in the models dict
+        assert "jinaai/jina-embeddings-v2-base-en" in models
+        jina_model = models["jinaai/jina-embeddings-v2-base-en"]
+        assert jina_model.get("inputPerToken") == 0.0
+        assert jina_model.get("outputPerToken") == 0.0
+        assert jina_model.get("outputReasoningPerToken") == 0.0
+        assert jina_model.get("inputCachedPerToken") == 0.0
 
     @responses.activate
     def test_fetch_ai_model_costs_with_normalized_and_prefix_glob_names(self) -> None:
