@@ -51,3 +51,14 @@ export function Divider() {
 export function Centered(props: FlexProps<'div'>) {
   return <Flex justify="center" align="center" {...props} />;
 }
+
+export function Cell({
+  children,
+  textAlign,
+}: {
+  children?: React.ReactNode;
+  textAlign?: 'left' | 'center' | 'right';
+}) {
+  const theme = useTheme();
+  return <td style={{padding: theme.space.xl, textAlign}}>{children}</td>;
+}

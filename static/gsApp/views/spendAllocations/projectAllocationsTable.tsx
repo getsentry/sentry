@@ -10,7 +10,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
 import AllocationRow from './components/allocationRow';
-import {Centered, Divider, HalvedWithDivider} from './components/styles';
+import {Cell, Centered, Divider, HalvedWithDivider} from './components/styles';
 import type {SpendAllocation} from './components/types';
 import type {BigNumUnits} from './utils';
 import {midPeriod} from './utils';
@@ -109,9 +109,7 @@ function ProjectAllocationsTable({
           ))}
           {!filteredMetrics.length && (
             <tr>
-              <td data-test-id="no-allocations" style={{padding: '16px'}}>
-                {t('No allocations set')}
-              </td>
+              <Cell data-test-id="no-allocations">{t('No allocations set')}</Cell>
             </tr>
           )}
         </tbody>

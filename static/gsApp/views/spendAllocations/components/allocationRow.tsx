@@ -10,7 +10,7 @@ import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import type {BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 
-import {Centered, Divider, HalvedWithDivider} from './styles';
+import {Cell, Centered, Divider, HalvedWithDivider} from './styles';
 import type {SpendAllocation} from './types';
 
 type AllocationRowProps = {
@@ -32,9 +32,9 @@ function AllocationRow({
 
   return (
     <tr data-test-id="allocation-row">
-      <td style={{padding: '16px'}}>{allocation.targetSlug}</td>
-      <td style={{padding: '16px'}} />
-      <td style={{padding: '16px'}}>
+      <Cell>{allocation.targetSlug}</Cell>
+      <Cell />
+      <Cell>
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
@@ -59,9 +59,9 @@ function AllocationRow({
             </Tooltip>
           </Centered>
         </HalvedWithDivider>
-      </td>
-      <td style={{padding: '16px'}} />
-      <td style={{padding: '16px'}}>
+      </Cell>
+      <Cell />
+      <Cell>
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
@@ -101,8 +101,8 @@ function AllocationRow({
             </Tooltip>
           </Centered>
         </HalvedWithDivider>
-      </td>
-      <td style={{padding: '16px', textAlign: 'right'}}>
+      </Cell>
+      <Cell textAlign="right">
         {allocation.targetType !== 'Organization' && (
           <Button
             aria-label={t('Edit')}
@@ -132,7 +132,7 @@ function AllocationRow({
             data-test-id="delete"
           />
         )}
-      </td>
+      </Cell>
     </tr>
   );
 }

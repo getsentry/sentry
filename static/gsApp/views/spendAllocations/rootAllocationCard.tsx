@@ -209,10 +209,12 @@ const Table = styled('table')`
   }
 `;
 
-const THead = styled('th')`
-  padding: ${p => p.theme.space.md};
-`;
+function THead({children}: {children?: React.ReactNode}) {
+  const theme = useTheme();
+  return <th style={{padding: theme.space.md}}>{children}</th>;
+}
 
-const Cell = styled('td')`
-  padding: ${p => p.theme.space.md};
-`;
+function Cell({children}: {children?: React.ReactNode}) {
+  const theme = useTheme();
+  return <td style={{padding: theme.space.md}}>{children}</td>;
+}

@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
@@ -413,9 +413,14 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           />
         </Container>
       )}
-
       {canViewSpendAllocation && (
-        <PageGrid data-test-id="subhead-actions">
+        <Grid
+          columns={{xs: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)'}}
+          areas={{xs: 'bb bb dd', lg: 'bb bb dd . .'}}
+          gap="xl"
+          margin="xl 0"
+          data-test-id="subhead-actions"
+        >
           <StyledButtonBar>
             <Stack align="center" column="2 / 5">
               <strong>
@@ -455,7 +460,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               setCurrentCursor('');
             }}
           />
-        </PageGrid>
+        </Grid>
       )}
       {isLoading && <LoadingIndicator />}
       {errors && (
@@ -521,22 +526,6 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 }
 
 export default withOrganization(withSubscription(SpendAllocationsRoot));
-
-const PageGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.xl};
-  margin: ${p => p.theme.space.xl} 0;
-
-  @media (min-width: 0) {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-areas: 'bb bb dd';
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-areas: 'bb bb dd . .';
-  }
-`;
 
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;
