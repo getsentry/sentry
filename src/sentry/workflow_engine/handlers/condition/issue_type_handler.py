@@ -1,10 +1,7 @@
 from typing import Any
 
 from sentry.issues import grouptype
-from sentry.issues.grouptype import (
-    GroupType,
-    InvalidGroupTypeError,
-)
+from sentry.issues.grouptype import GroupType, InvalidGroupTypeError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
