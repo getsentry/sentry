@@ -7,9 +7,8 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 
 import {SectionLabel} from './statusCheckSharedComponents';
 import type {StatusCheckRule} from './types';
@@ -26,26 +25,6 @@ interface Props {
   onSave: (rule: StatusCheckRule) => void;
   rule: StatusCheckRule;
 }
-
-const FILTER_KEYS: TagCollection = {
-  'build.platform': {key: 'build.platform', name: 'Platform'},
-  'build.package_name': {key: 'build.package_name', name: 'Package Name'},
-  'build.build_configuration': {
-    key: 'build.build_configuration',
-    name: 'Build Configuration',
-  },
-  'build.branch': {key: 'build.branch', name: 'Branch'},
-};
-
-const getTagValues = (
-  tag: {key: string; name: string},
-  _searchQuery: string
-): Promise<string[]> => {
-  if (tag.key === 'build.platform') {
-    return Promise.resolve(['android', 'ios']);
-  }
-  return Promise.resolve([]);
-};
 
 export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   const [metric, setMetric] = useState(rule.metric);
@@ -118,16 +97,17 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
 
       <Stack gap="sm">
         <SectionLabel>{t('For')}</SectionLabel>
-        <SearchQueryBuilder
-          filterKeys={FILTER_KEYS}
-          getTagValues={getTagValues}
+        <PreprodSearchBar
           initialQuery={filterQuery}
-          onChange={handleQueryChange}
+          onChange={(query, _state) => handleQueryChange(query)}
           searchSource="preprod_status_check_filters"
-          disallowFreeText
-          disallowLogicalOperators
-          placeholder={t('Add build filters...')}
           portalTarget={document.body}
+          allowedKeys={[
+            'app_id',
+            'git_head_ref',
+            'build_configuration_name',
+            'platform_name',
+          ]}
         />
       </Stack>
 
