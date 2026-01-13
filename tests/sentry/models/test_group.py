@@ -547,6 +547,51 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
                 },
             )
 
+    def test_has_replays_rate_limit_exceeded(self) -> None:
+        """Test that has_replays gracefully handles rate limit exceptions."""
+        from sentry.utils.snuba import RateLimitExceeded
+
+        self.project.flags.has_replays = True
+        self.project.save()
+
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).isoformat()},
+            project_id=self.project.id,
+        )
+
+        group = event.group
+
+        # Mock get_replay_counts to raise RateLimitExceeded
+        with mock.patch(
+            "sentry.replays.usecases.replay_counts.get_replay_counts",
+            side_effect=RateLimitExceeded("Rate limit exceeded"),
+        ):
+            # Ensure metrics are tracked
+            with mock.patch("sentry.models.group.metrics.incr") as incr:
+                # Should return False instead of raising exception
+                assert group.has_replays() is False
+
+                # Verify rate limit metric was incremented
+                incr.assert_any_call("group.has_replays.rate_limit_exceeded")
+
+            # Verify logging occurred
+            with mock.patch("sentry.models.group.logger.warning") as warning:
+                # Clear cache to force another query
+                cache.delete(f"group:has_replays:{group.id}")
+
+                with mock.patch(
+                    "sentry.replays.usecases.replay_counts.get_replay_counts",
+                    side_effect=RateLimitExceeded("Rate limit exceeded"),
+                ):
+                    assert group.has_replays() is False
+
+                    # Verify warning was logged with proper context
+                    warning.assert_called_once()
+                    call_args = warning.call_args
+                    assert call_args[0][0] == "Rate limit exceeded when checking for replays"
+                    assert call_args[1]["extra"]["group_id"] == group.id
+                    assert call_args[1]["extra"]["project_id"] == self.project.id
+
     def test_update_group_status_with_custom_update_date(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         custom_datetime = timezone.now() + timedelta(hours=1)
