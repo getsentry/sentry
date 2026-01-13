@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 from django.core.files.base import ContentFile
-from django.db import DatabaseError
+from django.db import DatabaseError, IntegrityError, router, transaction
 from django.utils import timezone
 
 from sentry.models.files.file import File
@@ -75,6 +75,38 @@ class FileBlobTest(TestCase):
         file_1.putfile(contents)
 
         assert FileBlob.objects.count() == 1
+
+    def test_from_file_handles_race_condition_in_atomic_block(self) -> None:
+        """
+        Test that FileBlob.from_file handles IntegrityError within an atomic
+        transaction without causing TransactionManagementError.
+        
+        This simulates the race condition where two concurrent processes try to
+        create the same blob, which was causing the issue in data_export.tasks.
+        """
+        contents = ContentFile(b"test content for race condition")
+        
+        # Create the first blob outside the transaction
+        blob1 = FileBlob.from_file(contents)
+        assert blob1.id is not None
+        
+        # Now simulate a race condition within an atomic transaction
+        # where we try to create the same blob again
+        contents.seek(0)
+        
+        with transaction.atomic(using=router.db_for_write(FileBlob)):
+            # This should handle the IntegrityError gracefully using savepoints
+            # and return the existing blob without raising TransactionManagementError
+            blob2 = FileBlob.from_file(contents)
+            
+            # Should return the same blob
+            assert blob1.id == blob2.id
+            assert blob1.checksum == blob2.checksum
+            
+            # Verify we can still query the database after the race condition
+            # This would fail with TransactionManagementError before the fix
+            all_blobs = FileBlob.objects.all()
+            assert len(all_blobs) == 1
 
 
 class FileTest(TestCase):
