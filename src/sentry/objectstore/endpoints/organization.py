@@ -85,7 +85,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
+
         headers.pop("Host", None)
+        headers.pop("Content-Length", None)
         transfer_encoding = headers.pop("Transfer-Encoding", "")
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
@@ -99,7 +101,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
                 "request_id": request.META.get("HTTP_X_REQUEST_ID"),
                 "content_type": request.META.get("CONTENT_TYPE"),
                 "content_length": request.META.get("CONTENT_LENGTH"),
-                "transfer_encoding": request.META.get("HTTP_TRANSFER_ENCODING"),
+                "transfer_encoding": transfer_encoding,
                 "server_software": request.META.get("SERVER_SOFTWARE"),
                 "has_wsgi_input": wsgi_input is not None,
                 "x_forwarded_for": request.META.get("HTTP_X_FORWARDED_FOR"),
@@ -131,10 +133,6 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
                 # This code path assumes wsgiref, used in dev/test mode.
                 # Note that we don't handle non-chunked transfer encoding here as our client (which we use for tests) always uses chunked encoding.
                 stream = ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
-
-        # This is also for wsgiref only
-        if "WSGIServer" in request.META.get("SERVER_SOFTWARE", ""):
-            headers.pop("Content-Length", None)
 
         response = requests.request(
             request.method,
