@@ -17,11 +17,7 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
-from sentry.models.apidevicecode import (
-    DEFAULT_INTERVAL,
-    ApiDeviceCode,
-    DeviceCodeStatus,
-)
+from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
 from sentry.ratelimits import backend as ratelimiter
