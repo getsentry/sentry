@@ -63,6 +63,6 @@ const ExampleItem = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundTertiary};
+    background-color: ${p => p.theme.tokens.background.tertiary};
   }
 `;

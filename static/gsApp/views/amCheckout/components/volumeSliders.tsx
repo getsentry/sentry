@@ -14,6 +14,7 @@ import {defined} from 'sentry/utils';
 import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getPlanCategoryName,
   getSingularCategoryName,
   isByteCategory,
@@ -21,8 +22,6 @@ import {
 import UnitTypeItem from 'getsentry/views/amCheckout/components/unitTypeItem';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-
-const ATTACHMENT_DIGITS = 2;
 
 function renderHovercardBody() {
   return (
@@ -107,6 +106,8 @@ function VolumeSliders({
             buckets: activePlan.planCategories[category],
           });
 
+          const categoryInfo = getCategoryInfoFromPlural(category);
+
           const min = allowedValues[0];
           const max = allowedValues.slice(-1)[0];
 
@@ -114,12 +115,8 @@ function VolumeSliders({
           const price = utils.displayPrice({cents: eventBucket.price});
           const unitPrice = utils.displayUnitPrice({
             cents: eventBucket.unitPrice || 0,
-            ...(category === DataCategory.ATTACHMENTS
-              ? {
-                  minDigits: ATTACHMENT_DIGITS,
-                  maxDigits: ATTACHMENT_DIGITS,
-                }
-              : {}),
+            minDigits: categoryInfo?.formatting.priceFormatting.minFractionDigits,
+            maxDigits: categoryInfo?.formatting.priceFormatting.maxFractionDigits,
           });
 
           const sliderId = `slider-${category}`;
@@ -329,7 +326,7 @@ const PerformanceUnits = styled(BaseRow)`
 
 const PerformanceTag = styled(BaseRow)`
   gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 const VolumeAmount = styled('div')`

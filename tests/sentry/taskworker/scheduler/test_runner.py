@@ -15,7 +15,7 @@ from sentry.utils.redis import redis_clusters
 
 @pytest.fixture
 def task_app() -> TaskworkerApp:
-    app = TaskworkerApp()
+    app = TaskworkerApp(name="sentry")
     namespace = app.taskregistry.create_namespace("test")
 
     @namespace.register(name="valid")
@@ -534,7 +534,7 @@ def test_schedulerunner_tick_stale_lock_doesnt_starve_other_tasks(
 
 @pytest.mark.django_db
 def test_schedulerunner_silo_limited_task_has_task_properties() -> None:
-    app = TaskworkerApp()
+    app = TaskworkerApp(name="sentry")
     namespace = app.taskregistry.create_namespace("test")
 
     @namespace.register(

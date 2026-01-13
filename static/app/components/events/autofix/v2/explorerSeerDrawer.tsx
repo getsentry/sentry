@@ -436,7 +436,7 @@ const SeerDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space['2xl']};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;

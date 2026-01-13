@@ -22,7 +22,6 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
     build_configuration: 'Release',
     date_built: '2023-01-01T00:00:00Z',
     date_added: '2023-01-01T00:00:00Z',
-    is_installable: true,
   },
   distribution_info: {
     is_installable: true,
@@ -84,7 +83,7 @@ describe('BuildDetailsSidebarContent', () => {
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
   });
 
-  it('renders app info section when artifact state is PROCESSED', async () => {
+  it('renders app info, build metadata section when artifact state is PROCESSED', async () => {
     const buildDetailsData = {
       ...mockBuildDetailsData,
       state: BuildDetailsState.PROCESSED,
@@ -109,7 +108,7 @@ describe('BuildDetailsSidebarContent', () => {
     expect(screen.getByText('test-repo')).toBeInTheDocument(); // repo_name
   });
 
-  it('hides app info section when artifact state is UPLOADED', async () => {
+  it('hides app info, status check info and build metadata section when artifact state is UPLOADED', () => {
     const buildDetailsData = {
       ...mockBuildDetailsData,
       state: BuildDetailsState.UPLOADED,
@@ -119,22 +118,13 @@ describe('BuildDetailsSidebarContent', () => {
       organization,
     });
 
-    // Build Metadata should still show VCS data
-    await waitFor(() => {
-      expect(screen.getByText('Build Metadata')).toBeInTheDocument();
-    });
-    expect(screen.getByText('abc123')).toBeInTheDocument(); // head_sha
-    expect(screen.getByText('def456')).toBeInTheDocument(); // base_sha
-    expect(screen.getByText('main')).toBeInTheDocument(); // head_ref
-    expect(screen.getByText('master')).toBeInTheDocument(); // base_ref
-    expect(screen.getByText('123')).toBeInTheDocument(); // pr_number
-    expect(screen.getByText('test-repo')).toBeInTheDocument(); // repo_name
-
-    // App info should be hidden
+    // App info, status check info and build metadata section should be hidden
     expect(screen.queryByText('Test App')).not.toBeInTheDocument();
+    expect(screen.queryByText('Status check info')).not.toBeInTheDocument();
+    expect(screen.queryByText('Build Metadata')).not.toBeInTheDocument();
   });
 
-  it('hides app info section when artifact state is UPLOADING', async () => {
+  it('hides app info, status check info and build metadata section when artifact state is UPLOADING', () => {
     const buildDetailsData = {
       ...mockBuildDetailsData,
       state: BuildDetailsState.UPLOADING,
@@ -144,22 +134,13 @@ describe('BuildDetailsSidebarContent', () => {
       organization,
     });
 
-    // Build Metadata should still show VCS data
-    await waitFor(() => {
-      expect(screen.getByText('Build Metadata')).toBeInTheDocument();
-    });
-    expect(screen.getByText('abc123')).toBeInTheDocument(); // head_sha
-    expect(screen.getByText('def456')).toBeInTheDocument(); // base_sha
-    expect(screen.getByText('main')).toBeInTheDocument(); // head_ref
-    expect(screen.getByText('master')).toBeInTheDocument(); // base_ref
-    expect(screen.getByText('123')).toBeInTheDocument(); // pr_number
-    expect(screen.getByText('test-repo')).toBeInTheDocument(); // repo_name
-
-    // App info should be hidden
+    // App info, status check info and build metadata section should be hidden
     expect(screen.queryByText('Test App')).not.toBeInTheDocument();
+    expect(screen.queryByText('Status check info')).not.toBeInTheDocument();
+    expect(screen.queryByText('Build Metadata')).not.toBeInTheDocument();
   });
 
-  it('hides app info section when artifact state is FAILED', async () => {
+  it('hides app info, status check info and build metadata section when artifact state is FAILED', () => {
     const buildDetailsData = {
       ...mockBuildDetailsData,
       state: BuildDetailsState.FAILED,
@@ -169,19 +150,10 @@ describe('BuildDetailsSidebarContent', () => {
       organization,
     });
 
-    // Build Metadata should still show VCS data
-    await waitFor(() => {
-      expect(screen.getByText('Build Metadata')).toBeInTheDocument();
-    });
-    expect(screen.getByText('abc123')).toBeInTheDocument(); // head_sha
-    expect(screen.getByText('def456')).toBeInTheDocument(); // base_sha
-    expect(screen.getByText('main')).toBeInTheDocument(); // head_ref
-    expect(screen.getByText('master')).toBeInTheDocument(); // base_ref
-    expect(screen.getByText('123')).toBeInTheDocument(); // pr_number
-    expect(screen.getByText('test-repo')).toBeInTheDocument(); // repo_name
-
-    // App info should be hidden
+    // App info, status check info and build metadata section should be hidden
     expect(screen.queryByText('Test App')).not.toBeInTheDocument();
+    expect(screen.queryByText('Status check info')).not.toBeInTheDocument();
+    expect(screen.queryByText('Build Metadata')).not.toBeInTheDocument();
   });
 
   describe('Base Build row', () => {

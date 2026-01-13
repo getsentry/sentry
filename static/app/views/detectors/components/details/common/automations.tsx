@@ -82,10 +82,19 @@ function DetectorAutomationsTable({
   const detectorIds = [detectorId, issueStreamDetectorId];
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
+  const [triggeredBySort, setTriggeredBySort] = useState<'asc' | 'desc'>('desc');
   const onSearch = useCallback((query: string) => {
     setSearchQuery(query);
     setCursor(undefined);
   }, []);
+
+  const handleTriggeredBySort = useCallback(() => {
+    setTriggeredBySort(sort => (sort === 'asc' ? 'desc' : 'asc'));
+    setCursor(undefined);
+  }, []);
+
+  const priorityDetector =
+    triggeredBySort === 'desc' ? detectorId : (issueStreamDetectorId ?? detectorId);
 
   const {
     data: automations,
@@ -99,6 +108,7 @@ function DetectorAutomationsTable({
       limit: AUTOMATIONS_PER_PAGE,
       cursor,
       query: searchQuery || undefined,
+      priorityDetector,
     },
     {enabled: !issueStreamDetectorsPending}
   );
@@ -140,7 +150,11 @@ function DetectorAutomationsTable({
             <SimpleTable.HeaderCell data-column-name="action-filters">
               {t('Actions')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="triggered-by">
+            <SimpleTable.HeaderCell
+              data-column-name="triggered-by"
+              sort={triggeredBySort}
+              handleSortClick={handleTriggeredBySort}
+            >
               {t('Triggered By Issues')}
             </SimpleTable.HeaderCell>
           </SimpleTable.Header>

@@ -154,13 +154,13 @@ interface DataCategoryFormattingInfo {
    */
   bigNumUnit: 0 | 1;
   /**
-   * Formatting options for price display.
-   * minIntegerDigits: minimum integer digits (bytes use 2, counts use 5)
-   * maxIntegerDigits: maximum integer digits (bytes use 2, counts use 7)
+   * Formatting options for price display (decimal places).
+   * minFractionDigits: minimum fraction digits (bytes use 2, counts use 5)
+   * maxFractionDigits: maximum fraction digits (bytes use 2, counts use 7)
    */
   priceFormatting: {
-    maxIntegerDigits: number;
-    minIntegerDigits: number;
+    maxFractionDigits: number;
+    minFractionDigits: number;
   };
   /**
    * Whether to use abbreviated formatting for projected values.

@@ -1355,6 +1355,14 @@ register(
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Option which rolls out counting transactions based on the span usage metric.
+register(
+    "ingest.billing_metrics_consumer.use_only_span_metric_orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -3840,15 +3848,6 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Option to enable truncation of group IDs in Snuba query
-# when search filters are selective.
-register(
-    "snuba.search.truncate-group-ids-for-selective-filters-enabled",
-    type=Bool,
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organization slug allowlist to enable Autopilot for specific organizations.

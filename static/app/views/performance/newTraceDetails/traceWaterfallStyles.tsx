@@ -1,14 +1,14 @@
 import type {Theme} from '@emotion/react';
 
 export const traceGridCssVariables = ({theme}: {theme: Theme}) => `
-  --info: ${theme.colors.blue500};
-  --warning: ${theme.colors.yellow400};
-  --debug: ${theme.colors.blue400};
-  --error: ${theme.tokens.graphics.danger};
-  --fatal: ${theme.tokens.graphics.danger};
-  --default: ${theme.colors.gray400};
-  --unknown: ${theme.colors.gray400};
-  --profile: ${theme.colors.blue400};
-  --autogrouped: ${theme.colors.blue400};
-  --occurence: ${theme.colors.blue400};
+  --info: ${theme.tokens.graphics.accent.vibrant};
+  --warning: ${theme.tokens.graphics.warning.vibrant};
+  --debug: ${theme.tokens.graphics.accent.vibrant};
+  --error: ${theme.tokens.graphics.danger.vibrant};
+  --fatal: ${theme.tokens.graphics.danger.vibrant};
+  --default: ${theme.tokens.graphics.neutral.vibrant};
+  --unknown: ${theme.tokens.graphics.neutral.vibrant};
+  --profile: ${theme.tokens.graphics.accent.vibrant};
+  --autogrouped: ${theme.tokens.graphics.accent.vibrant};
+  --occurence: ${theme.tokens.graphics.accent.vibrant};
 `;
