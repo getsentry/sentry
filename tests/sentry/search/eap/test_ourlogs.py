@@ -17,6 +17,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -232,6 +233,21 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query(None)
         assert where is None
         assert having is None
+
+    def test_bare_or_operator_in_parens(self) -> None:
+        # Test for issue where ( OR ) creates a bare operator
+        with pytest.raises(InvalidSearchQuery, match="Condition is missing on the left side"):
+            self.resolver.resolve_query("( OR )")
+
+    def test_bare_and_operator_in_parens(self) -> None:
+        # Test for issue where ( AND ) creates a bare operator
+        with pytest.raises(InvalidSearchQuery, match="Condition is missing on the left side"):
+            self.resolver.resolve_query("( AND )")
+
+    def test_bare_or_operator_with_valid_filter(self) -> None:
+        # Test case from the issue - ( OR ) followed by valid filters
+        with pytest.raises(InvalidSearchQuery, match="Condition is missing on the left side"):
+            self.resolver.resolve_query("( OR ) message:foo")
 
 
 def test_count_default_argument() -> None:

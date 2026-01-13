@@ -244,6 +244,11 @@ class SearchResolver:
                 return self._resolve_terms([terms[0]])
             elif isinstance(terms[0], event_search.AggregateFilter):
                 return self._resolve_terms([terms[0]])
+            elif event_search.SearchBoolean.is_operator(terms[0]):
+                # Handle bare operators (e.g., from "( OR )" or "( AND )")
+                raise InvalidSearchQuery(
+                    f"Condition is missing on the left side of '{terms[0]}' operator"
+                )
             else:
                 raise NotImplementedError("Haven't handled all the search expressions yet")
 
