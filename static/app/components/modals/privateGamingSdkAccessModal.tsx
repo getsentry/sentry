@@ -88,7 +88,7 @@ export function PrivateGamingSdkAccessModal({
     data: userIdentities,
     refetch,
   } = useApiQuery<UserIdentityConfig[]>(['/users/me/user-identities/'], {
-    staleTime: Infinity,
+    staleTime: 5000,
   });
 
   const mutation = useMutation<

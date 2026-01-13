@@ -31,7 +31,7 @@ export function useConsoleSdkInvites(orgSlug: string) {
   return useApiQuery<ConsoleSdkInviteUser[]>(
     [`/organizations/${orgSlug}/console-sdk-invites/`],
     {
-      staleTime: Infinity,
+      staleTime: 5000,
     }
   );
 }
