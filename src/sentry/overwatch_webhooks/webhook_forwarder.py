@@ -16,7 +16,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
-from sentry.seer.code_review.utils import get_github_org_is_whitelisted, get_option_for_event
+from sentry.seer.code_review.utils import is_githug_org_direct_to_seer, should_forward_to_overwatch
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -38,7 +38,7 @@ def get_github_events_to_forward_overwatch() -> set[GithubWebhookType]:
     events = set(_INSTALLATION_EVENTS)
 
     for webhook_type in GithubWebhookType:
-        if get_option_for_event(webhook_type):
+        if should_forward_to_overwatch(webhook_type):
             events.add(webhook_type)
 
     return events
@@ -144,7 +144,7 @@ class OverwatchGithubWebhookForwarder:
                 # feature isn't enabled, no work to do
                 return
 
-            if get_github_org_is_whitelisted(event):
+            if is_githug_org_direct_to_seer(event):
                 github_org = event.get("repository", {}).get("owner", {}).get("login")
                 verbose_log(
                     "overwatch.debug.github_org_whitelisted_for_direct_to_seer",

@@ -22,7 +22,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha, should_proceed
+from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha, should_forward_to_seer
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
 
-    if should_proceed(github_event, event):
+    if should_forward_to_seer(github_event, event):
         if comment_id:
             _add_eyes_reaction_to_comment(
                 github_event,

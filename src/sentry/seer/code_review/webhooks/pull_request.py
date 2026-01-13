@@ -22,7 +22,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha, should_proceed
+from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha, should_forward_to_seer
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def handle_pull_request_event(
     if pull_request.get("draft") is True:
         return
 
-    if should_proceed(github_event, event):
+    if should_forward_to_seer(github_event, event):
         from .task import schedule_task
 
         schedule_task(

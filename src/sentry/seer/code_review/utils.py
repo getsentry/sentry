@@ -309,20 +309,22 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     return None
 
 
-def should_proceed(github_event: GithubWebhookType, event_payload: Mapping[str, Any]) -> bool:
+def should_forward_to_seer(
+    github_event: GithubWebhookType, event_payload: Mapping[str, Any]
+) -> bool:
     """
     Determine if we should proceed with the code review flow to Seer.
 
     We will proceed if the GitHub org is in the direct-to-seer whitelist.
     For CHECK_RUN events (no option key), we always proceed.
     """
-    if not get_option_for_event(github_event):
+    if not should_forward_to_overwatch(github_event):
         return True
 
-    return get_github_org_is_whitelisted(event_payload)
+    return is_githug_org_direct_to_seer(event_payload)
 
 
-def get_github_org_is_whitelisted(event_payload: Mapping[str, Any]) -> bool:
+def is_githug_org_direct_to_seer(event_payload: Mapping[str, Any]) -> bool:
     """
     Determine if the GitHub org is in the direct-to-seer whitelist.
     """
@@ -330,9 +332,20 @@ def get_github_org_is_whitelisted(event_payload: Mapping[str, Any]) -> bool:
     return github_org is not None and github_org in _whitelisted_gh_orgs()
 
 
-def get_option_for_event(github_event: GithubWebhookType) -> bool:
+def should_forward_to_overwatch(github_event: GithubWebhookType) -> bool:
     """
-    Get the option for a given GitHub webhook event.
+    Determine if a GitHub webhook event should be forwarded to Overwatch.
+
+    - If there is no option key (i.e., _get_webhook_option_key returns None),
+      the event should be forwarded to Overwatch (returns True).
+      This ensures events like CHECK_RUN are excluded from forwarding.
+    - If there is an option key, forwarding is controlled by the option value.
+
+    Args:
+        github_event: The GitHub webhook event type.
+
+    Returns:
+        bool: True if the event should not be forwarded to Overwatch, False otherwise.
     """
     option_key = _get_webhook_option_key(github_event) or ""
     return True if options.get(option_key) or option_key == "" else False
