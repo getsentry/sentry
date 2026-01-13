@@ -60,7 +60,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
     return LineSeries({
       name: t('Spike Protection Threshold'),
       lineStyle: {type: 'dotted'},
-      color: theme.gray300,
+      color: theme.colors.gray400,
       data: seriesData,
       legendHoverLink: false,
       zlevel: 2,
