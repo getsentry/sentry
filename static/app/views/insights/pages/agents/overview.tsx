@@ -120,7 +120,7 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
               {showSeerDataBanner && (
                 <ModuleLayout.Full>
                   <Alert
-                    variant="info"
+                    variant="warning"
                     trailingItems={
                       <Button
                         aria-label="Dismiss"
@@ -130,8 +130,8 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                       />
                     }
                   >
-                    Transaction size limits may cause this dashboard to show partial data.
-                    Impact is limited to seer project.
+                    SENTRY EMPLOYEES: Transaction size limits make seer instrumentation
+                    incomplete. Impact is limited to seer project.
                   </Alert>
                 </ModuleLayout.Full>
               )}
