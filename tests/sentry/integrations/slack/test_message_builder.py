@@ -1168,6 +1168,44 @@ class BuildGroupAttachmentReplaysTest(TestCase):
             in blocks["blocks"][3]["elements"][0]["text"]
         )
 
+    def test_build_issue_with_rate_limit_on_replay_check(self) -> None:
+        """Test that Slack notification builds successfully when replay check hits rate limit."""
+        from sentry.utils.snuba import RateLimitExceeded
+
+        self.project.flags.has_replays = True
+        self.project.save()
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        # Mock the get_replay_counts to raise RateLimitExceeded
+        with patch(
+            "sentry.replays.usecases.replay_counts.get_replay_counts",
+            side_effect=RateLimitExceeded("Rate limit exceeded"),
+        ):
+            with self.feature(
+                ["organizations:session-replay", "organizations:session-replay-slack-new-issue"]
+            ):
+                # Should not raise an exception, should build successfully
+                blocks = SlackIssuesMessageBuilder(
+                    event.group, event.for_group(event.group)
+                ).build()
+                assert isinstance(blocks, dict)
+
+                # Verify the footer block exists (where replay link would be)
+                footer_text = blocks["blocks"][3]["elements"][0]["text"]
+                # Should NOT contain replay link since rate limit was hit
+                assert "View Replays" not in footer_text
+                # But should still have the rest of the footer
+                assert event.group.qualified_short_id in footer_text
+
 
 class ActionsTest(TestCase):
     def test_identity_and_action(self) -> None:
