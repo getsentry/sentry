@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -14,7 +15,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TextOverflow from 'sentry/components/textOverflow';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -71,7 +71,7 @@ export default function ConsoleSDKInvitesSettings() {
       )}
       <InvitesTable>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Email')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Platforms')}</SimpleTable.HeaderCell>
         </SimpleTable.Header>
 
@@ -94,7 +94,9 @@ export default function ConsoleSDKInvitesSettings() {
         {invites?.map(invite => (
           <SimpleTable.Row key={invite.user_id}>
             <SimpleTable.RowCell>
-              <TextOverflow>{invite.email}</TextOverflow>
+              <Link to={`/settings/${organization.slug}/members/${invite.user_id}/`}>
+                <Text wordBreak="break-all">{invite.email}</Text>
+              </Link>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <Flex gap="xs" wrap="wrap">
