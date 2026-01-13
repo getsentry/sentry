@@ -330,6 +330,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         # in the work item response.
         # TODO(jess): figure out if there's a better way to do this
         vsts_project_name = work_item["fields"]["System.TeamProject"]
+        work_item_type = work_item["fields"]["System.WorkItemType"]
 
         vsts_projects = client.get_projects()
 
@@ -374,6 +375,65 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                 },
             )
             raise
+        except ApiError as error:
+            # Check if this is an invalid state error
+            error_message = str(error)
+            if "not in the list of supported values" in error_message and "State" in error_message:
+                self.logger.info(
+                    "vsts.invalid-state-attempting-fallback",
+                    extra={
+                        "integration_id": external_issue.integration_id,
+                        "is_resolved": is_resolved,
+                        "issue_key": external_issue.key,
+                        "configured_status": status,
+                        "work_item_type": work_item_type,
+                        "exception": error,
+                    },
+                )
+                # Try to find a valid fallback state
+                fallback_status = self._find_fallback_state(
+                    client, vsts_project_id, work_item_type, is_resolved
+                )
+                if fallback_status:
+                    self.logger.info(
+                        "vsts.using-fallback-state",
+                        extra={
+                            "integration_id": external_issue.integration_id,
+                            "is_resolved": is_resolved,
+                            "issue_key": external_issue.key,
+                            "configured_status": status,
+                            "fallback_status": fallback_status,
+                            "work_item_type": work_item_type,
+                        },
+                    )
+                    try:
+                        client.update_work_item(external_issue.key, state=fallback_status)
+                        return
+                    except Exception as fallback_error:
+                        self.logger.warning(
+                            "vsts.fallback-state-failed",
+                            extra={
+                                "integration_id": external_issue.integration_id,
+                                "is_resolved": is_resolved,
+                                "issue_key": external_issue.key,
+                                "fallback_status": fallback_status,
+                                "exception": fallback_error,
+                            },
+                        )
+                # If we couldn't find or apply a fallback, log and skip the sync
+                self.logger.warning(
+                    "vsts.status-sync-skipped-invalid-state",
+                    extra={
+                        "integration_id": external_issue.integration_id,
+                        "is_resolved": is_resolved,
+                        "issue_key": external_issue.key,
+                        "configured_status": status,
+                        "work_item_type": work_item_type,
+                    },
+                )
+                return
+            # For other errors, use the standard error handling
+            self.raise_error(error)
         except Exception as e:
             self.raise_error(e)
 
@@ -397,6 +457,49 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
             )
             return set()
         return {state["name"] for state in all_states if state["category"] in self.done_categories}
+
+    def _find_fallback_state(
+        self, client, project_id: str, work_item_type: str, is_resolved: bool
+    ) -> str | None:
+        """
+        Find a valid fallback state for a work item type when the configured state is invalid.
+        
+        For resolved states, looks for states in done categories (Resolved, Completed, Closed).
+        For unresolved states, looks for active states (New, Active, etc.).
+        """
+        try:
+            states_response = client.get_work_item_states_for_type(project_id, work_item_type)
+            valid_states = states_response.get("value", [])
+            
+            if not valid_states:
+                return None
+            
+            if is_resolved:
+                # Look for states in done categories
+                for state in valid_states:
+                    if state.get("category") in self.done_categories:
+                        return state["name"]
+            else:
+                # Look for active/new states (not in done categories)
+                for state in valid_states:
+                    if state.get("category") not in self.done_categories:
+                        return state["name"]
+            
+            # If no category-appropriate state found, return the first valid state
+            if valid_states:
+                return valid_states[0]["name"]
+                
+        except Exception as err:
+            self.logger.warning(
+                "vsts.find-fallback-state-failed",
+                extra={
+                    "integration_id": self.model.id,
+                    "work_item_type": work_item_type,
+                    "exception": err,
+                },
+            )
+        
+        return None
 
     def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
         return (external_issue.metadata or {}).get("display_name", "")

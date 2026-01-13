@@ -314,6 +314,17 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
                 break
         return response
 
+    def get_work_item_states_for_type(self, project: str, work_item_type: str) -> dict[str, Any]:
+        """Get valid states for a specific work item type."""
+        return self.get(
+            VstsApiPath.work_item_states.format(
+                instance=self.base_url,
+                project=project,
+                type=work_item_type,
+            ),
+            api_preview=True,
+        )
+
     def get_work_item_categories(self, project: str) -> dict[str, Any]:
         return self.get(
             VstsApiPath.work_item_categories.format(instance=self.base_url, project=project)

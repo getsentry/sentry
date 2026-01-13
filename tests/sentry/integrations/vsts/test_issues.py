@@ -471,6 +471,153 @@ class VstsIssueSyncTest(VstsIssueBase):
         with pytest.raises(ApiUnauthorized):
             self.integration.sync_status_outbound(external_issue, True, self.project.id)
 
+    @responses.activate
+    def test_sync_status_outbound_invalid_state_with_fallback(self) -> None:
+        """Test that when a configured state is invalid, we fall back to a valid state."""
+        vsts_work_item_id = 5
+        
+        # Mock get_work_item - returns work item with type "User Story"
+        work_item_response_user_story = WORK_ITEM_RESPONSE.replace(
+            '"System.WorkItemType": "Product Backlog Item"',
+            '"System.WorkItemType": "User Story"'
+        )
+        responses.add(
+            responses.GET,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+            body=work_item_response_user_story,
+            content_type="application/json",
+        )
+        
+        # Mock get_projects
+        responses.add(
+            responses.GET,
+            "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
+            body=GET_PROJECTS_RESPONSE,
+            content_type="application/json",
+        )
+        
+        # Mock first update attempt - fails with invalid state error
+        responses.add(
+            responses.PATCH,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+            json={
+                "$id": "1",
+                "message": "The field 'State' contains the value 'Resolved' that is not in the list of supported values",
+            },
+            status=400,
+        )
+        
+        # Mock get_work_item_states_for_type - returns valid states for User Story
+        responses.add(
+            responses.GET,
+            "https://fabrikam-fiber-inc.visualstudio.com/ac7c05bb-7f8e-4880-85a6-e08f37fd4a10/_apis/wit/workitemtypes/User Story/states",
+            json={
+                "count": 4,
+                "value": [
+                    {"name": "New", "color": "b2b2b2", "category": "Proposed"},
+                    {"name": "Active", "color": "007acc", "category": "InProgress"},
+                    {"name": "Done", "color": "339933", "category": "Completed"},
+                    {"name": "Removed", "color": "999999", "category": "Removed"},
+                ],
+            },
+        )
+        
+        # Mock second update attempt with fallback state - succeeds
+        responses.add(
+            responses.PATCH,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+            body=WORK_ITEM_RESPONSE,
+            content_type="application/json",
+        )
+        
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.model.id,
+            key=vsts_work_item_id,
+            title="I'm a title!",
+            description="I'm a description.",
+        )
+        
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            IntegrationExternalProject.objects.create(
+                external_id="ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+                organization_integration_id=self.integration.org_integration.id,
+                resolved_status="Resolved",  # Invalid for User Story
+                unresolved_status="New",
+            )
+        
+        # Should not raise an exception, should use fallback
+        self.integration.sync_status_outbound(external_issue, True, self.project.id)
+        
+        # Verify the calls
+        assert len(responses.calls) == 5
+        # Last call should be the successful update with fallback state "Done"
+        last_request_body = orjson.loads(responses.calls[4].request.body)
+        assert last_request_body == [
+            {"path": "/fields/System.State", "value": "Done", "op": "replace"}
+        ]
+
+    @responses.activate
+    def test_sync_status_outbound_invalid_state_no_fallback(self) -> None:
+        """Test that when a configured state is invalid and no fallback exists, we skip gracefully."""
+        vsts_work_item_id = 5
+        
+        # Mock get_work_item
+        responses.add(
+            responses.GET,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+            body=WORK_ITEM_RESPONSE,
+            content_type="application/json",
+        )
+        
+        # Mock get_projects
+        responses.add(
+            responses.GET,
+            "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
+            body=GET_PROJECTS_RESPONSE,
+            content_type="application/json",
+        )
+        
+        # Mock first update attempt - fails with invalid state error
+        responses.add(
+            responses.PATCH,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+            json={
+                "$id": "1",
+                "message": "The field 'State' contains the value 'Resolved' that is not in the list of supported values",
+            },
+            status=400,
+        )
+        
+        # Mock get_work_item_states_for_type - returns empty (no valid states found)
+        responses.add(
+            responses.GET,
+            "https://fabrikam-fiber-inc.visualstudio.com/ac7c05bb-7f8e-4880-85a6-e08f37fd4a10/_apis/wit/workitemtypes/Product Backlog Item/states",
+            json={"count": 0, "value": []},
+        )
+        
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.model.id,
+            key=vsts_work_item_id,
+            title="I'm a title!",
+            description="I'm a description.",
+        )
+        
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            IntegrationExternalProject.objects.create(
+                external_id="ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+                organization_integration_id=self.integration.org_integration.id,
+                resolved_status="Resolved",
+                unresolved_status="New",
+            )
+        
+        # Should not raise an exception, should skip gracefully
+        self.integration.sync_status_outbound(external_issue, True, self.project.id)
+        
+        # Verify we attempted to get states but didn't make a second update attempt
+        assert len(responses.calls) == 4
+
     def test_get_issue_url(self) -> None:
         work_id = 345
         url = self.integration.get_issue_url(work_id)
