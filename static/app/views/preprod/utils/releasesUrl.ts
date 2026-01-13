@@ -4,6 +4,7 @@ type ReleasesUrlParams = {
 };
 
 export function makeReleasesUrl(
+  organizationSlug: string,
   projectId: string | undefined,
   {query, tab = 'mobile-builds'}: ReleasesUrlParams = {}
 ): string {
@@ -25,5 +26,5 @@ export function makeReleasesUrl(
     params.set('query', queries.join(' '));
   }
 
-  return `/explore/releases/?${params}`;
+  return `/organizations/${organizationSlug}/explore/releases/?${params}`;
 }
