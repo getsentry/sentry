@@ -3,6 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
@@ -1098,14 +1100,14 @@ export default function ReleaseComparisonChart({
                 ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
                 : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
             </ShowMoreTitle>
-            <ShowMoreButton>
+            <Flex justify="end" align="center" column="2 / -1">
               <Button
                 borderless
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
                 aria-label={t('Toggle additional charts')}
               />
-            </ShowMoreButton>
+            </Flex>
           </ShowMoreWrapper>
         )}
       </ChartTable>
@@ -1176,11 +1178,4 @@ const ShowMoreTitle = styled('div')`
   svg {
     margin-left: ${space(0.25)};
   }
-`;
-
-const ShowMoreButton = styled('div')`
-  grid-column: 2 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 `;

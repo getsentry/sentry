@@ -1,6 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
@@ -89,9 +91,9 @@ export default function ReplayLayout({
   if (layout === LayoutKey.NO_VIDEO) {
     return (
       <BodyGrid>
-        <BodySlider ref={measureRef}>
+        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
           {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
-        </BodySlider>
+        </Stack>
       </BodyGrid>
     );
   }
@@ -99,7 +101,7 @@ export default function ReplayLayout({
   if (layout === LayoutKey.SIDEBAR_LEFT) {
     return (
       <BodyGrid>
-        <BodySlider ref={measureRef}>
+        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
           {hasSize ? (
             <SplitPanel
               key={layout}
@@ -113,7 +115,7 @@ export default function ReplayLayout({
               right={focusArea}
             />
           ) : null}
-        </BodySlider>
+        </Stack>
         {controller}
       </BodyGrid>
     );
@@ -122,7 +124,7 @@ export default function ReplayLayout({
   // layout === 'topbar'
   return (
     <BodyGrid>
-      <BodySlider ref={measureRef}>
+      <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
           <SplitPanel
             key={layout}
@@ -136,7 +138,7 @@ export default function ReplayLayout({
             bottom={focusArea}
           />
         ) : null}
-      </BodySlider>
+      </Stack>
       {controller}
     </BodyGrid>
   );
@@ -161,13 +163,6 @@ const BodyGrid = styled('main')`
   Grid items have default \`min-height: auto\` to contain all content.
   https://stackoverflow.com/a/43312314
   */
-  min-height: 0;
-`;
-
-const BodySlider = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
   min-height: 0;
 `;
 
