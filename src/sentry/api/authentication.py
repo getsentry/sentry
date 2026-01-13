@@ -654,7 +654,7 @@ def compare_service_signature(
     signature: str,
     shared_secret_setting: list[str],
     service_name: str,
-    signature_prefix: str = "rpc0:",
+    signature_prefix: str = "rpc0",
     include_url_in_signature: bool = False,
 ) -> bool:
     """
@@ -669,7 +669,7 @@ def compare_service_signature(
         signature: The signature to validate
         shared_secret_setting: List of shared secrets from settings
         service_name: Name of the service for logging (e.g., "Seer", "Launchpad")
-        signature_prefix: Expected prefix for the signature (e.g., "rpc0:", "service0:"). Defaults to "rpc0:" for backward compatibility.
+        signature_prefix: Expected prefix for the signature (e.g., "rpc0", "service0"). The colon will be added automatically. Defaults to "rpc0" for backward compatibility.
         include_url_in_signature: If True, signs "url:body". If False, signs only "body". Defaults to False for backward compatibility.
     """
 
@@ -684,7 +684,7 @@ def compare_service_signature(
             f"Cannot validate {service_name} request signatures with empty shared secret"
         )
 
-    if not signature.startswith(signature_prefix):
+    if not signature.startswith(f"{signature_prefix}:"):
         logger.error(
             "%s signature validation failed: invalid signature prefix (expected %s)",
             service_name,
@@ -727,7 +727,7 @@ class HmacSignatureAuthentication(StandardAuthentication):
     - shared_secret_setting_name: str - name of the settings attribute (e.g., "SEER_RPC_SHARED_SECRET")
     - service_name: str - name of the service for logging (e.g., "Seer", "Launchpad")
     - sdk_tag_name: str - name for the SDK tag (e.g., "seer_rpc_auth", "launchpad_rpc_auth")
-    - signature_prefix: str - prefix for the signature format (e.g., "rpc0:", "service0:"). Defaults to "rpc0:" for backward compatibility.
+    - signature_prefix: str - prefix for the signature format (e.g., "rpc0", "service0"). The colon will be added automatically. Defaults to "rpc0" for backward compatibility.
     - include_url_in_signature: bool - If True, signs "url:body". If False, signs only "body". Defaults to False for backward compatibility.
     """
 
@@ -735,7 +735,7 @@ class HmacSignatureAuthentication(StandardAuthentication):
     shared_secret_setting_name: str
     service_name: str
     sdk_tag_name: str
-    signature_prefix: str = "rpc0:"
+    signature_prefix: str = "rpc0"
     include_url_in_signature: bool = False
 
     def accepts_auth(self, auth: list[bytes]) -> bool:

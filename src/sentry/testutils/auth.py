@@ -9,7 +9,7 @@ def generate_service_request_signature(
     body: bytes,
     shared_secret_setting: list[str] | None,
     service_name: str,
-    signature_prefix: str = "rpc0:",
+    signature_prefix: str = "rpc0",
     include_url_in_signature: bool = False,
 ) -> str:
     """
@@ -22,7 +22,7 @@ def generate_service_request_signature(
         body: The request body to sign. For GET requests (which have no body), use an empty bytes string (b"").
         shared_secret_setting: List of shared secrets from settings
         service_name: Name of the service for error messages
-        signature_prefix: Prefix for the signature format (e.g., "rpc0:", "service0:")
+        signature_prefix: Prefix for the signature format (e.g., "rpc0", "service0"). The colon will be added automatically.
         include_url_in_signature: If True, signs "url:body". If False, signs only "body". Defaults to False for backward compatibility.
 
     NOTE: This function is used only for testing and has been moved from
@@ -44,4 +44,4 @@ def generate_service_request_signature(
 
     secret = shared_secret_setting[0]
     signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
-    return f"{signature_prefix}{signature}"
+    return f"{signature_prefix}:{signature}"
