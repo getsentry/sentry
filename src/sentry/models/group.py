@@ -782,6 +782,7 @@ class Group(Model):
 
         from sentry.replays.usecases.replay_counts import get_replay_counts
         from sentry.search.events.types import SnubaParams
+        from sentry.utils.snuba import RateLimitExceeded
 
         metrics.incr("group.has_replays")
 
@@ -807,25 +808,39 @@ class Group(Model):
             else Dataset.IssuePlatform
         )
 
-        counts = get_replay_counts(
-            make_snuba_params_for_replay_count_query(),
-            f"issue.id:[{self.id}]",
-            return_ids=False,
-            data_source=data_source,
-        )
+        try:
+            counts = get_replay_counts(
+                make_snuba_params_for_replay_count_query(),
+                f"issue.id:[{self.id}]",
+                return_ids=False,
+                data_source=data_source,
+            )
 
-        has_replays = counts.get(self.id, 0) > 0
-        # need to refactor counts so that the type of the key returned in the dict is always a str
-        # for typing
-        metrics.incr(
-            "group.has_replays.replay_count_query",
-            tags={
-                "has_replays": has_replays,
-            },
-        )
-        cache.set(_cache_key(self.id), has_replays, 300)
+            has_replays = counts.get(self.id, 0) > 0
+            # need to refactor counts so that the type of the key returned in the dict is always a str
+            # for typing
+            metrics.incr(
+                "group.has_replays.replay_count_query",
+                tags={
+                    "has_replays": has_replays,
+                },
+            )
+            cache.set(_cache_key(self.id), has_replays, 300)
 
-        return has_replays
+            return has_replays
+        except RateLimitExceeded:
+            # When Snuba rate limits are exceeded, gracefully degrade by assuming no replays
+            # This prevents notifications from failing while still allowing them to be sent
+            metrics.incr("group.has_replays.rate_limit_exceeded")
+            logger.warning(
+                "Rate limit exceeded when checking for replays",
+                extra={
+                    "group_id": self.id,
+                    "project_id": self.project_id,
+                    "organization_id": self.project.organization_id,
+                },
+            )
+            return False
 
     def get_status(self):
         # XXX(dcramer): GroupSerializer reimplements this logic
