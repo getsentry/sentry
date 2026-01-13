@@ -1,7 +1,7 @@
-import pytest
 from unittest.mock import ANY, MagicMock, patch
 from urllib.parse import urlencode
 
+import pytest
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
 
