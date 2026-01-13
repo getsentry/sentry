@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/detectors/components/forms/uptime/fields';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
+import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 
 function UptimeDetectorForm() {
   const theme = useTheme();
@@ -42,6 +43,7 @@ function UptimeDetectorForm() {
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
       <UptimeDetectorFormDetectSection />
+      <UptimeDetectorVerificationSection />
       <UptimeDetectorResolveSection />
       <AssignSection />
       <DescribeSection />

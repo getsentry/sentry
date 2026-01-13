@@ -12,6 +12,7 @@ export enum UptimeMonitorMode {
 }
 
 export interface UptimeRule {
+  assertion: Assertion | null;
   body: string | null;
   downtimeThreshold: number;
   environment: string | null;
@@ -78,3 +79,69 @@ type StatsBucket = {
 };
 
 export type CheckStatusBucket = [timestamp: number, stats: StatsBucket];
+
+// Uptime Assertion Types (matching Rust types from uptime-checker)
+
+export interface Assertion {
+  // XXX(epurkhiser): The uptime-checker would actually allow this to be any
+  // Op, but we're restricting it on the frontend to always be a AndOp.
+  root: AndOp;
+}
+
+export type Comparison =
+  | {cmp: 'always'}
+  | {cmp: 'never'}
+  | {cmp: 'less_than'}
+  | {cmp: 'greater_than'}
+  | {cmp: 'equals'}
+  | {cmp: 'not_equal'};
+
+export type HeaderOperand =
+  | {header_op: 'none'}
+  | {header_op: 'literal'; value: string}
+  | {header_op: 'glob'; pattern: {value: string}};
+
+export interface AndOp {
+  children: Op[];
+  id: string;
+  op: 'and';
+}
+
+export interface OrOp {
+  children: Op[];
+  id: string;
+  op: 'or';
+}
+
+export interface NotOp {
+  id: string;
+  op: 'not';
+  operand: Op;
+}
+
+export interface StatusCodeOp {
+  id: string;
+  op: 'status_code_check';
+  operator: Comparison;
+  value: number;
+}
+
+export interface JsonPathOp {
+  id: string;
+  op: 'json_path';
+  value: string;
+}
+
+export interface HeaderCheckOp {
+  id: string;
+  key_op: Comparison;
+  key_operand: HeaderOperand;
+  op: 'header_check';
+  value_op: Comparison;
+  value_operand: HeaderOperand;
+}
+
+export type GroupOp = AndOp | OrOp;
+export type LogicalOp = GroupOp | NotOp;
+
+export type Op = LogicalOp | StatusCodeOp | JsonPathOp | HeaderCheckOp;

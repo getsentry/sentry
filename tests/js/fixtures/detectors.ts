@@ -167,6 +167,7 @@ function UptimeSubscriptionDataSourceFixture(
     sourceId: '1',
     type: 'uptime_subscription',
     queryObj: {
+      assertion: null,
       body: null,
       headers: [],
       intervalSeconds: 60,
