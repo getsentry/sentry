@@ -836,13 +836,6 @@ def detect_expired_preprod_artifacts() -> None:
 
     if updated_artifact_ids:
         for artifact_id in updated_artifact_ids:
-            sentry_sdk.capture_message(
-                "PreprodArtifact expired",
-                level="error",
-                extras={
-                    "artifact_id": artifact_id,
-                },
-            )
             try:
                 create_preprod_status_check_task.apply_async(
                     kwargs={"preprod_artifact_id": artifact_id}
