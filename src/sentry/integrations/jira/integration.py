@@ -714,6 +714,24 @@ class JiraIntegration(IssueSyncIntegration):
 
         return issue_type_meta
 
+    def validate_issue_type(self, issue_type: str, meta: dict) -> None:
+        """
+        Validates that the provided issue type ID exists in the project's available issue types.
+        
+        Raises IntegrationFormError if the issue type is invalid.
+        """
+        self.parse_jira_issue_metadata(meta)
+        issue_types = meta["issuetypes"]
+        available_ids = [t["id"] for t in issue_types]
+        
+        if issue_type not in available_ids:
+            available_names = [f"{t['name']} (id: {t['id']})" for t in issue_types]
+            error_message = (
+                f"The issue type selected is invalid. "
+                f"Available issue types for this project: {', '.join(available_names)}"
+            )
+            raise IntegrationFormError({"issuetype": [error_message]})
+
     def get_issue_create_meta(self, client, project_id, jira_projects):
         meta = None
         if project_id:
@@ -971,6 +989,9 @@ class JiraIntegration(IssueSyncIntegration):
             raise IntegrationConfigurationError(
                 "Could not fetch issue create configuration from Jira."
             )
+
+        # Validate that the issue type exists for this project
+        self.validate_issue_type(data["issuetype"], meta)
 
         issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
         cleaned_data = self._clean_and_transform_issue_data(

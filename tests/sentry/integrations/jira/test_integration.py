@@ -884,6 +884,35 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         assert result["key"] == "APP-123"
 
+    @responses.activate
+    def test_create_issue_with_invalid_issuetype(self) -> None:
+        """Test that creating an issue with an invalid issue type ID raises IntegrationFormError."""
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        
+        # Try to create issue with invalid issuetype ID '10357' when only '1' is available
+        with pytest.raises(IntegrationFormError) as exc_info:
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "10357",  # Invalid - only '1' exists in metadata
+                    "project": "10000",
+                }
+            )
+        
+        # Verify the error message
+        error = exc_info.value
+        assert "issuetype" in error.field_errors
+        assert "invalid" in error.field_errors["issuetype"][0].lower()
+        assert "Bug (id: 1)" in error.field_errors["issuetype"][0]
+
     def test_outbound_issue_sync(self) -> None:
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=self.integration.id, key="SEN-5"
