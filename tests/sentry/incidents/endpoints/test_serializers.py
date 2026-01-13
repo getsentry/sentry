@@ -591,7 +591,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             },
             {
                 "nonFieldErrors": [
-                    "transaction.duration can only be used with performance datasets (transactions, generic_metrics, or events_analytics_platform)"
+                    "Invalid Metric: transaction.duration can only be used with performance datasets (transactions, generic_metrics, or events_analytics_platform)"
                 ]
             },
         )

@@ -267,7 +267,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             Dataset.EventsAnalyticsPlatform,
         }:
             raise serializers.ValidationError(
-                "transaction.duration can only be used with performance datasets (transactions, generic_metrics, or events_analytics_platform)"
+                "Invalid Metric: transaction.duration can only be used with performance datasets (transactions, generic_metrics, or events_analytics_platform)"
             )
 
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
