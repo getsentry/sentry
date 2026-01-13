@@ -34,30 +34,10 @@ export interface LegacyTokens {
   };
   border: {
     /**
-     * @deprecated Use `border.accent.vibrant` for the same color, or access `.muted`, `.moderate`, or `.vibrant` variants
-     */
-    accent: string;
-    /**
-     * @deprecated Use `border.danger.vibrant` for the same color, or access `.muted`, `.moderate`, or `.vibrant` variants
-     */
-    danger: string;
-    /**
      * @deprecated Use `border.secondary` instead
      */
     muted: string;
     primary: string;
-    /**
-     * @deprecated Use `border.promotion.vibrant` for the same color, or access `.muted`, `.moderate`, or `.vibrant` variants
-     */
-    promotion: string;
-    /**
-     * @deprecated Use `border.success.vibrant` for the same color, or access `.muted`, `.moderate`, or `.vibrant` variants
-     */
-    success: string;
-    /**
-     * @deprecated Use `border.warning.vibrant` for the same color, or access `.muted`, `.moderate`, or `.vibrant` variants
-     */
-    warning: string;
   };
   component: {
     link: {
@@ -125,13 +105,6 @@ export function withLegacyTokens<T extends Record<string, any>>(
   const border = {
     ...tokens.border,
     muted: tokens.border.secondary,
-
-    // Apply Proxy to semantic color tokens
-    accent: createBackwardsCompatibleToken(tokens.border.accent),
-    promotion: createBackwardsCompatibleToken(tokens.border.promotion),
-    danger: createBackwardsCompatibleToken(tokens.border.danger),
-    warning: createBackwardsCompatibleToken(tokens.border.warning),
-    success: createBackwardsCompatibleToken(tokens.border.success),
   };
 
   const content = {
