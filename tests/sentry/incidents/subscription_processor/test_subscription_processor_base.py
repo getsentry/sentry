@@ -46,7 +46,9 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
 
     @cached_property
     def sub(self):
-        subscription_id = int(self.metric_detector.data_sources.first().source_id)
+        data_source = self.metric_detector.data_sources.first()
+        assert data_source is not None
+        subscription_id = int(data_source.source_id)
         return QuerySubscription.objects.get(id=subscription_id)
 
     def create_detector_data_source_and_data_conditions(self) -> Detector:
@@ -196,13 +198,12 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             time_delta = timedelta()
         if subscription is None:
             subscription = self.sub
-        processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
         with (
             self.feature(["organizations:incidents", "organizations:performance-view"]),
             self.capture_on_commit_callbacks(execute=True),
         ):
-            return processor.process_update(message)
+            return SubscriptionProcessor.process(subscription, message)
 
     def get_detector_state(self, detector: Detector) -> int:
         detector_state = DetectorState.objects.get(detector=detector)
@@ -214,7 +215,6 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
         stored_timestamp = timezone.now() + timedelta(minutes=10)
         store_detector_last_update(self.metric_detector, self.project.id, stored_timestamp)
 
-        processor = SubscriptionProcessor(self.sub)
         old_update_message = self.build_subscription_update(
             self.sub, value=self.critical_threshold + 1, time_delta=timedelta(minutes=5)
         )
@@ -223,7 +223,7 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
             self.feature(["organizations:incidents", "organizations:performance-view"]),
             self.capture_on_commit_callbacks(execute=True),
         ):
-            result = processor.process_update(old_update_message)
+            result = SubscriptionProcessor.process(self.sub, old_update_message)
 
         assert result is False
 
@@ -248,14 +248,11 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
                 snuba_query=snuba_query,
             )
 
-        processor = SubscriptionProcessor(subscription_without_detector)
-        assert processor.detector is None
-
         message = self.build_subscription_update(subscription_without_detector, value=100)
         with (
             self.feature(["organizations:incidents", "organizations:performance-view"]),
             self.capture_on_commit_callbacks(execute=True),
         ):
-            result = processor.process_update(message)
+            result = SubscriptionProcessor.process(subscription_without_detector, message)
 
         assert result is False
