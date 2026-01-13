@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
@@ -60,6 +61,23 @@ def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | N
     return any(request.access.has_scope(s) for s in set(allowed_scopes))
 
 
+def handle_sentry_app_exception(exception: Exception) -> Response | None:
+    """
+    Formats known SentryApp errors into a Response object, otherwise returns None.
+    """
+    if isinstance(exception, (SentryAppError, SentryAppIntegratorError)):
+        response_body = exception.to_public_dict()
+        response = Response(response_body, status=exception.status_code)
+        response.exception = True
+        return response
+
+    elif isinstance(exception, SentryAppSentryError):
+        return Response(exception.to_public_dict(), status=500)
+
+    # If not an audited sentry app error then default to using default error handler
+    return None
+
+
 class SentryAppsPermission(SentryPermission):
     scope_map = {
         "GET": PARANOID_GET,
@@ -94,25 +112,9 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
 
 class IntegrationPlatformEndpoint(Endpoint):
     def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
-        return self._handle_sentry_app_exception(
-            exception=exc
-        ) or super().handle_exception_with_details(request, exc, handler_context, scope)
-
-    def _handle_sentry_app_exception(self, exception: Exception):
-        if isinstance(exception, (SentryAppError, SentryAppIntegratorError)):
-            response_body = exception.to_public_dict()
-
-            response = Response(response_body, status=exception.status_code)
-            response.exception = True
-            return response
-
-        elif isinstance(exception, SentryAppSentryError):
-            return Response(
-                exception.to_public_dict(),
-                status=500,
-            )
-        # If not an audited sentry app error then default to using default error handler
-        return None
+        return handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
+            request, exc, handler_context, scope
+        )
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
@@ -405,6 +407,42 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(self, request: Request, uuid, *args, **kwargs):
         installations = app_service.get_many(filter=dict(uuids=[uuid]))
+        installation = installations[0] if installations else None
+        if installation is None:
+            raise SentryAppError(
+                message="Could not find given sentry app installation",
+                status_code=404,
+            )
+
+        self.check_object_permissions(request, installation)
+
+        sentry_sdk.get_isolation_scope().set_tag("sentry_app_installation", installation.uuid)
+
+        kwargs["installation"] = installation
+        return (args, kwargs)
+
+
+class OrganizationSentryAppInstallationBaseEndpoint(OrganizationEndpoint):
+    """
+    A reimplementation of SentryAppInstallationBaseEndpoint, scoped to a single organization.
+    This was done to ensure the region-based SentryApp endpoints are cell-safe.
+    """
+
+    permission_classes: tuple[type[BasePermission], ...] = (SentryAppInstallationPermission,)
+
+    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
+        return handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
+            request, exc, handler_context, scope
+        )
+
+    def convert_args(
+        self, request: Request, organization_id_or_slug: int | str, uuid: str, *args, **kwargs
+    ):
+        (args, kwargs) = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+        organization = kwargs["organization"]
+        installations = app_service.get_many(
+            filter=dict(organization_id=organization.id, uuids=[uuid])
+        )
         installation = installations[0] if installations else None
         if installation is None:
             raise SentryAppError(

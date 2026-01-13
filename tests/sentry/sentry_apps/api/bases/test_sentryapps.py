@@ -10,6 +10,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationPermission,
     SentryAppPermission,
+    handle_sentry_app_exception,
 )
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
@@ -235,7 +236,7 @@ class IntegrationPlatformEndpointTest(TestCase):
 
     def test_handle_sentry_app_error(self) -> None:
         error = SentryAppError(message="cool", status_code=400)
-        response = self.endpoint._handle_sentry_app_exception(error)
+        response = handle_sentry_app_exception(error)
 
         assert response.status_code == 400
         assert response.exception is True
@@ -249,7 +250,7 @@ class IntegrationPlatformEndpointTest(TestCase):
             public_context=public_context,
             status_code=400,
         )
-        response = self.endpoint._handle_sentry_app_exception(error)
+        response = handle_sentry_app_exception(error)
 
         assert response.status_code == 400
         assert response.exception is True
@@ -260,7 +261,7 @@ class IntegrationPlatformEndpointTest(TestCase):
         error = SentryAppSentryError(
             message="bruh", webhook_context={"bruh": "bruhhh"}, public_context=public_context
         )
-        response = self.endpoint._handle_sentry_app_exception(error)
+        response = handle_sentry_app_exception(error)
 
         assert response.status_code == 500
         assert response.data == {
