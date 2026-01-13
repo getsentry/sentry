@@ -62,12 +62,19 @@ def _patch_arroyo_metrics_buffer() -> None:
     import weakref
 
     _locks: Any = weakref.WeakKeyDictionary()
+    _locks_lock = Lock()  # Protects access to _locks dictionary
 
     def _get_lock(self: Any) -> Lock:
         """Get or create a lock for this MetricsBuffer instance."""
-        if self not in _locks:
-            _locks[self] = Lock()
-        return _locks[self]
+        # Use setdefault which is atomic for dict operations
+        try:
+            return _locks[self]
+        except KeyError:
+            with _locks_lock:
+                # Double-check after acquiring lock
+                if self not in _locks:
+                    _locks[self] = Lock()
+                return _locks[self]
 
     # Patch the flush method
     original_flush = MetricsBuffer.flush
