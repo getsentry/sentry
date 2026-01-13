@@ -23,6 +23,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.users.services.user.service import user_service
 
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
@@ -116,8 +117,22 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 if not access.has_team_access(team):
                     raise serializers.ValidationError("Team does not exist")
             elif target_type == AlertRuleTriggerAction.TargetType.USER:
+                # identifier can be either a user_id (integer) or an email address (string)
+                user_id = None
+                try:
+                    # Try to parse as integer (user_id)
+                    user_id = int(identifier)
+                except (ValueError, TypeError):
+                    # identifier is an email address, look up the user
+                    user = user_service.get_user_by_email(email=identifier)
+                    if user is None:
+                        raise serializers.ValidationError(
+                            f"User with email {identifier} does not exist"
+                        )
+                    user_id = user.id
+
                 if not OrganizationMember.objects.filter(
-                    organization=self.context["organization"], user_id=identifier
+                    organization=self.context["organization"], user_id=user_id
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
         elif action_type == AlertRuleTriggerAction.Type.SLACK:

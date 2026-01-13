@@ -1134,6 +1134,40 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
 
+    def test_user_email_identifier(self) -> None:
+        # Test valid user email that belongs to organization
+        serializer = AlertRuleTriggerActionSerializer(
+            context=self.context,
+            data={
+                "type": AlertRuleTriggerAction.get_registered_factory(
+                    AlertRuleTriggerAction.Type.EMAIL
+                ).slug,
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
+                "target_identifier": self.user.email,
+            },
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["target_identifier"] == self.user.email
+
+        # Test user email that doesn't belong to organization
+        other_user = self.create_user(email="outsider@example.com")
+        self.run_fail_validation_test(
+            {
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
+                "target_identifier": other_user.email,
+            },
+            {"nonFieldErrors": ["User does not belong to this organization"]},
+        )
+
+        # Test email for user that doesn't exist
+        self.run_fail_validation_test(
+            {
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
+                "target_identifier": "nonexistent@example.com",
+            },
+            {"nonFieldErrors": ["User with email nonexistent@example.com does not exist"]},
+        )
+
     def test_invalid_priority(self) -> None:
         self.run_fail_validation_test(
             {
