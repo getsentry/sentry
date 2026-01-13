@@ -855,6 +855,55 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
+    def test_multiple_swizzle_wrapper_frames_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        Multiple SentrySwizzleWrapper frames in the stack.
+        Even though each individual frame would be ignored when it's the only SDK frame,
+        having multiple SDK frames (even if all conditional) should be reported.
+        """
+        # Frames ordered from oldest (caller) to youngest (exception)
+        frames = [
+            {
+                "function": "-[UIApplication sendEvent:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[UIGestureRecognizer _updateGestureForActiveEvents]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                # Second SentrySwizzleWrapper frame
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_3",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSString substringWithRange:]",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            True,  # Should be reported - multiple SDK frames even if all conditional
+            mock_sdk_crash_reporter,
+        )
+
 
 class SDKCrashDetectionCocoaTest(
     TestCase,

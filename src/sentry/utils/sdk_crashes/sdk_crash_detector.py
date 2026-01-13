@@ -91,25 +91,34 @@ class SDKCrashDetector:
         # are SDK frames or from system libraries.
         iter_frames = [f for f in reversed(frames) if f is not None]
 
-        # First pass: check if there are non-conditional SDK frames anywhere
-        has_non_conditional_sdk_frame = False
-        for frame in iter_frames:
-            if (
-                self.is_sdk_frame(frame)
-                and not self._matches_ignore_when_only_sdk_frame(frame)
-                and not self._matches_sdk_crash_ignore(frame)
-            ):
-                has_non_conditional_sdk_frame = True
-                break
-
-        # Main loop: determine if this is an SDK crash
+        # Loop 1: Check if we should ignore the crash altogether because a frame matches
+        # sdk_crash_ignore_matchers. These are typically SDK test methods (like +[SentrySDK crash])
+        # that intentionally crash for testing purposes.
         for frame in iter_frames:
             if self._matches_sdk_crash_ignore(frame):
-                continue
+                return False
 
+        # Loop 2: Check if the only SDK frame is a conditional one (like SentrySwizzleWrapper).
+        # These frames are SDK instrumentation frames that intercept calls but don't cause crashes
+        # themselves. If there's exactly one SDK frame and it's conditional, it's not an SDK crash.
+        # Multiple SDK frames (even if all conditional) should still be detected as SDK crashes.
+        conditional_sdk_frame_count = 0
+        has_non_conditional_sdk_frame = False
+        for frame in iter_frames:
             if self.is_sdk_frame(frame):
                 if self._matches_ignore_when_only_sdk_frame(frame):
-                    return has_non_conditional_sdk_frame
+                    conditional_sdk_frame_count += 1
+                else:
+                    has_non_conditional_sdk_frame = True
+                    break
+
+        if conditional_sdk_frame_count == 1 and not has_non_conditional_sdk_frame:
+            return False
+
+        # Loop 3: Determine if this is an SDK crash based on frame ordering.
+        # If the first non-system frame (closest to crash origin) is an SDK frame, it's an SDK crash.
+        for frame in iter_frames:
+            if self.is_sdk_frame(frame):
                 return True
 
             if not self.is_system_library_frame(frame):
