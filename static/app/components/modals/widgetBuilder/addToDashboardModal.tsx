@@ -121,7 +121,6 @@ function AddToDashboardModal({
     null
   );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
-  // Use first widget for current add to dashboard previews
   const widget = widgets[0];
   const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
     getFallbackWidgetTitle(widget)
@@ -223,50 +222,38 @@ function AddToDashboardModal({
     closeModal();
   }
 
-  async function handleAddWidget() {
-    if (selectedDashboard === null) {
-      return;
-    }
+  function normalizeWidgets(widgetsToNormalize: Widget[]): Widget[] {
+    return widgetsToNormalize.map(w => {
+      let newOrderBy = orderBy ?? w.queries[0]!.orderby;
+      if (!(DisplayType.AREA && w.queries[0]!.columns.length)) {
+        newOrderBy = ''; // Clear orderby if its not a top n visualization.
+      }
+      const queries = w.queries.map(query => ({
+        ...query,
+        orderby: newOrderBy,
+      }));
 
-    let newOrderBy = orderBy ?? widget.queries[0]!.orderby;
-    if (!(DisplayType.AREA && widget.queries[0]!.columns.length)) {
-      newOrderBy = ''; // Clear orderby if its not a top n visualization.
-    }
-    const queries = widget.queries.map(query => ({
-      ...query,
-      orderby: newOrderBy,
-    }));
-
-    const newWidget = {
-      ...widget,
-      title: newWidgetTitle,
-      queries,
-    };
-
-    const newDashboard = {
-      ...selectedDashboard,
-      widgets: [...selectedDashboard.widgets, newWidget],
-    };
-
-    await updateDashboard(api, organization.slug, newDashboard);
+      return {
+        ...w,
+        title: hasMultipleWidgets ? (w.title ?? DEFAULT_WIDGET_NAME) : newWidgetTitle,
+        queries,
+      };
+    });
   }
 
   async function handleAddAndStayOnCurrentPage() {
-    await handleAddWidget();
+    await handleAddWidgetsToExistingDashboard();
 
-    closeModal();
-    addSuccessMessage(t('Successfully added widget to dashboard'));
+    try {
+      addSuccessMessage(t('Successfully added widget to dashboard'));
+      closeModal();
+    } catch (error) {
+      addErrorMessage(t('Failed to add widget to dashboard'));
+    }
   }
 
   async function handleAddAndOpenDashboard() {
     if (!canSubmit) {
-      return;
-    }
-
-    if (!hasMultipleWidgets) {
-      await handleAddWidget();
-      goToDashboard('preview');
-      closeModal();
       return;
     }
 
@@ -287,7 +274,7 @@ function AddToDashboardModal({
     // For existing dashboards, add widgets via API first, then navigate
     try {
       addLoadingMessage(t('Adding widgets to dashboard...'));
-      await handleAddMultipleWidgetsToExistingDashboard();
+      await handleAddWidgetsToExistingDashboard();
       addSuccessMessage(t('Successfully added widgets to dashboard'));
 
       // Navigate to dashboard (widgets already saved, no location state needed)
@@ -298,7 +285,7 @@ function AddToDashboardModal({
     }
   }
 
-  async function handleAddMultipleWidgetsToExistingDashboard() {
+  async function handleAddWidgetsToExistingDashboard() {
     if (selectedDashboard === null) {
       return;
     }
@@ -314,7 +301,7 @@ function AddToDashboardModal({
     // Add all widgets to the dashboard
     const newDashboard = {
       ...selectedDashboard,
-      widgets: [...selectedDashboard.widgets, ...widgetsWithLayouts],
+      widgets: [...selectedDashboard.widgets, ...normalizeWidgets(widgetsWithLayouts)],
     };
 
     await updateDashboard(api, organization.slug, newDashboard);

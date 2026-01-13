@@ -419,7 +419,9 @@ describe('add to dashboard modal', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            widgets: [{...widget, widgetType: WidgetType.ERRORS}],
+            widgets: [
+              {...widget, widgetType: WidgetType.ERRORS, layout: expect.any(Object)},
+            ],
           }),
         })
       );
@@ -496,6 +498,7 @@ describe('add to dashboard modal', () => {
                   },
                 ],
                 title: 'Test title',
+                layout: expect.any(Object),
               },
             ],
           }),
@@ -576,6 +579,7 @@ describe('add to dashboard modal', () => {
                   },
                 ],
                 title: 'Test title',
+                layout: expect.any(Object),
               },
             ],
           }),
@@ -1035,7 +1039,7 @@ describe('add to dashboard modal', () => {
           '/organizations/org-slug/dashboards/1/',
           expect.objectContaining({
             data: expect.objectContaining({
-              widgets: expect.arrayContaining([
+              widgets: [
                 expect.objectContaining({
                   title: 'Widget 1',
                   description: 'First widget',
@@ -1046,7 +1050,7 @@ describe('add to dashboard modal', () => {
                   description: 'Second widget',
                   displayType: DisplayType.AREA,
                 }),
-              ]),
+              ],
             }),
           })
         );
