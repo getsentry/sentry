@@ -164,3 +164,37 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         # Should still return 404 because the comparison doesn't exist for this organization
         assert response.status_code == 404
         assert response.json()["detail"] == "Comparison not found."
+
+    def test_download_size_analysis_comparison_invalid_head_size_metric_id(self) -> None:
+        # Test with invalid head size metric ID (non-numeric string)
+        url = self._get_url(head_size_metric_id="a", base_size_metric_id=self.base_size_metrics.id)
+        response = self.client.get(url)
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid size metric ID. Must be a valid integer."
+
+    def test_download_size_analysis_comparison_invalid_base_size_metric_id(self) -> None:
+        # Test with invalid base size metric ID (non-numeric string)
+        url = self._get_url(head_size_metric_id=self.head_size_metrics.id, base_size_metric_id="b")
+        response = self.client.get(url)
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid size metric ID. Must be a valid integer."
+
+    def test_download_size_analysis_comparison_invalid_both_size_metric_ids(self) -> None:
+        # Test with both invalid size metric IDs
+        url = self._get_url(head_size_metric_id="a", base_size_metric_id="b")
+        response = self.client.get(url)
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid size metric ID. Must be a valid integer."
+
+    def test_download_size_analysis_comparison_undefined_size_metric_id(self) -> None:
+        # Test with "undefined" as size metric ID (common frontend error)
+        url = self._get_url(
+            head_size_metric_id="undefined", base_size_metric_id=self.base_size_metrics.id
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid size metric ID. Must be a valid integer."

@@ -27,7 +27,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
     }
 
     def get(
-        self, request: Request, project: Project, head_size_metric_id: int, base_size_metric_id: int
+        self, request: Request, project: Project, head_size_metric_id: str, base_size_metric_id: str
     ) -> HttpResponseBase:
         """
         Download size analysis comparison results for specific size metrics
@@ -44,13 +44,23 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
         :auth: required
         """
 
+        # Validate and convert metric IDs to integers
+        try:
+            head_size_metric_id_int = int(head_size_metric_id)
+            base_size_metric_id_int = int(base_size_metric_id)
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "Invalid size metric ID. Must be a valid integer."},
+                status=400,
+            )
+
         analytics.record(
             PreprodArtifactApiSizeAnalysisCompareDownloadEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                head_size_metric_id=str(head_size_metric_id),
-                base_size_metric_id=str(base_size_metric_id),
+                head_size_metric_id=str(head_size_metric_id_int),
+                base_size_metric_id=str(base_size_metric_id_int),
             )
         )
 
@@ -62,23 +72,23 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
         logger.info(
             "preprod.size_analysis.compare.api.download",
             extra={
-                "head_size_metric_id": head_size_metric_id,
-                "base_size_metric_id": base_size_metric_id,
+                "head_size_metric_id": head_size_metric_id_int,
+                "base_size_metric_id": base_size_metric_id_int,
             },
         )
 
         try:
             comparison_obj = PreprodArtifactSizeComparison.objects.get(
-                head_size_analysis_id=head_size_metric_id,
-                base_size_analysis_id=base_size_metric_id,
+                head_size_analysis_id=head_size_metric_id_int,
+                base_size_analysis_id=base_size_metric_id_int,
                 organization_id=project.organization_id,
             )
         except PreprodArtifactSizeComparison.DoesNotExist:
             logger.info(
                 "preprod.size_analysis.compare.api.download.no_comparison_obj",
                 extra={
-                    "head_size_metric_id": head_size_metric_id,
-                    "base_size_metric_id": base_size_metric_id,
+                    "head_size_metric_id": head_size_metric_id_int,
+                    "base_size_metric_id": base_size_metric_id_int,
                 },
             )
             return Response({"detail": "Comparison not found."}, status=404)
