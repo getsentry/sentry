@@ -374,9 +374,12 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Delete an Organization's Workflows",
+        operation_id="Delete an Organization's Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            WorkflowParams.QUERY,
+            WorkflowParams.ID,
+            OrganizationParams.PROJECT,
         ],
         responses={
             200: RESPONSE_SUCCESS,
@@ -389,7 +392,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     )
     def delete(self, request, organization):
         """
-        Deletes workflows for a given org
+        Bulk delete alerts for a given organization
         """
         if not (
             request.GET.getlist("id")
