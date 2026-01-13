@@ -23,6 +23,7 @@ function LaunchpadAdminPage() {
   const [deleteArtifactId, setDeleteArtifactId] = useState<string>('');
   const [fetchInfoArtifactId, setFetchInfoArtifactId] = useState<string>('');
   const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState<string>('');
+  const [downloadArtifactId, setDownloadArtifactId] = useState<string>('');
   const [fetchedArtifactInfo, setFetchedArtifactInfo] = useState<any>(null);
   const regions = ConfigStore.get('regions');
   const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
@@ -129,6 +130,69 @@ function LaunchpadAdminPage() {
     },
   });
 
+  const handleDownloadArtifact = async () => {
+    if (!downloadArtifactId) {
+      addErrorMessage('Artifact ID is required');
+      return;
+    }
+    if (!region) {
+      addErrorMessage('Please select a region first');
+      return;
+    }
+
+    try {
+      const artifactInfo = await api.requestPromise(
+        `/internal/preprod-artifact/${downloadArtifactId}/info/`,
+        {
+          method: 'GET',
+          host: region?.url,
+        }
+      );
+
+      const orgSlug = artifactInfo.artifact_info?.project?.organization_slug;
+      const projectSlug = artifactInfo.artifact_info?.project?.slug;
+      const artifactId = artifactInfo.artifact_info?.id;
+
+      if (!orgSlug || !projectSlug || !artifactId) {
+        addErrorMessage('Could not retrieve artifact details');
+        return;
+      }
+
+      const downloadUrl = `${region.url}/api/0/internal/${orgSlug}/${projectSlug}/files/preprodartifacts/${artifactId}/`;
+
+      const response = await fetch(downloadUrl, {
+        method: 'HEAD',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          addErrorMessage('Permission denied. Staff access may be required.');
+        } else if (response.status === 404) {
+          addErrorMessage('Build file not found.');
+        } else if (response.status === 401) {
+          addErrorMessage('Unauthorized.');
+        } else {
+          addErrorMessage(`Download failed (status: ${response.status})`);
+        }
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `preprod_artifact_${artifactId}.zip`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      addSuccessMessage(`Build download started for artifact: ${downloadArtifactId}`);
+      setDownloadArtifactId('');
+    } catch (error) {
+      addErrorMessage(`Failed to download artifact: ${downloadArtifactId}`);
+    }
+  };
+
   const handleRerunSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!region) {
@@ -217,6 +281,11 @@ function LaunchpadAdminPage() {
         batchDeleteArtifacts();
       },
     });
+  };
+
+  const handleDownloadSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    handleDownloadArtifact();
   };
 
   return (
@@ -372,6 +441,37 @@ function LaunchpadAdminPage() {
                   `}
                 >
                   Batch Delete
+                </Button>
+              </Flex>
+            </Container>
+          </form>
+
+          <form onSubmit={handleDownloadSubmit}>
+            <Container background="secondary" border="primary" radius="md" padding="lg">
+              <Flex direction="column" gap="md">
+                <Heading as="h3">Download Build</Heading>
+                <Text as="p" variant="muted">
+                  Download the build file for a specific preprod artifact.
+                </Text>
+                <label htmlFor="downloadArtifactId">
+                  <Text bold>Preprod Artifact ID:</Text>
+                </label>
+                <StyledInput
+                  type="text"
+                  name="downloadArtifactId"
+                  value={downloadArtifactId}
+                  onChange={e => setDownloadArtifactId(e.target.value)}
+                  placeholder="Enter preprod artifact ID"
+                />
+                <Button
+                  priority="default"
+                  type="submit"
+                  disabled={!downloadArtifactId.trim() || !region}
+                  css={css`
+                    width: fit-content;
+                  `}
+                >
+                  Download Build
                 </Button>
               </Flex>
             </Container>

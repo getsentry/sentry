@@ -133,8 +133,8 @@ export default function BuildDetails() {
           <BuildError
             title="Build details unavailable"
             message={
-              typeof buildDetailsQuery.error?.responseJSON?.error === 'string'
-                ? buildDetailsQuery.error?.responseJSON.error
+              typeof buildDetailsQuery.error?.responseJSON?.detail === 'string'
+                ? buildDetailsQuery.error?.responseJSON.detail
                 : t('Unable to load build details for this artifact')
             }
           >
