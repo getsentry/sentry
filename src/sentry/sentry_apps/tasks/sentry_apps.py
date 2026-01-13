@@ -29,7 +29,7 @@ from sentry.analytics.events.sentryapp_issue_webhooks import (
     SentryAppIssueUnresolved,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.exceptions import RestrictedIPAddress
@@ -559,7 +559,9 @@ def workflow_notification(
 
         install, issue, user = webhook_data
         data = kwargs.get("data", {})
-        data.update({"issue": serialize(issue)})
+        data.update(
+            {"issue": serialize(issue, serializer=GroupSerializer(collapse=["stats", "unhandled"]))}
+        )
 
     send_webhooks(installation=install, event=event, data=data, actor=user)
 
