@@ -54,11 +54,14 @@ class OverwatchGithubWebhookForwarder:
         event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
         if event_type is None:
             return False
-        event_type = GithubWebhookType(event_type)
+        try:
+            event_type_enum = GithubWebhookType(event_type)
+        except ValueError:
+            return False
         # Installation events are always forwarded
-        is_installation = event_type in _INSTALLATION_EVENTS
+        is_installation = event_type_enum in _INSTALLATION_EVENTS
         # Other events are controlled by options
-        should_forward = is_installation or should_forward_to_overwatch_for_event(event_type)
+        should_forward = is_installation or should_forward_to_overwatch_for_event(event_type_enum)
         verbose_log(
             "overwatch.debug.should_forward_to_overwatch.checked",
             extra={
@@ -135,14 +138,6 @@ class OverwatchGithubWebhookForwarder:
                 # feature isn't enabled, no work to do
                 return
 
-            if is_github_org_direct_to_seer(event):
-                github_org = event.get("repository", {}).get("owner", {}).get("login")
-                verbose_log(
-                    "overwatch.debug.github_org_whitelisted_for_direct_to_seer",
-                    extra={"github_org": github_org},
-                )
-                return
-
             orgs_by_region = self._get_org_summaries_by_region_for_integration(
                 integration=self.integration
             )
@@ -161,6 +156,14 @@ class OverwatchGithubWebhookForwarder:
                         "orgs_by_region_empty": not orgs_by_region,
                         "event_in_forward_list": self.should_forward_to_overwatch(headers),
                     },
+                )
+                return
+
+            if is_github_org_direct_to_seer(event):
+                github_org = event.get("repository", {}).get("owner", {}).get("login")
+                verbose_log(
+                    "overwatch.debug.github_org_whitelisted_for_direct_to_seer",
+                    extra={"github_org": github_org},
                 )
                 return
 
