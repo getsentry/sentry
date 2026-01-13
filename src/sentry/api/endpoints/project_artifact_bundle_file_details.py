@@ -4,14 +4,14 @@ import posixpath
 
 import sentry_sdk
 from django.http.response import FileResponse, HttpResponseBase
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.artifact_bundle import ProjectArtifactBundleEndpoint
+from sentry.api.bases.project import ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
 from sentry.models.project import Project
@@ -49,7 +49,7 @@ class ProjectArtifactBundleFileDetailsMixin:
 
 @region_silo_endpoint
 class ProjectArtifactBundleFileDetailsEndpoint(
-    ProjectEndpoint, ProjectArtifactBundleFileDetailsMixin
+    ProjectArtifactBundleEndpoint, ProjectArtifactBundleFileDetailsMixin
 ):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
@@ -65,23 +65,10 @@ class ProjectArtifactBundleFileDetailsEndpoint(
         *args,
         **kwargs,
     ):
-        # Call parent to get project
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-        project: Project = kwargs["project"]
+        # Call parent to get project and artifact_bundle
+        args, kwargs = super().convert_args(request, bundle_id, *args, **kwargs)
 
-        # Fetch artifact bundle
-        try:
-            artifact_bundle = ArtifactBundle.objects.filter(
-                organization_id=project.organization.id,
-                bundle_id=bundle_id,
-                projectartifactbundle__project_id=project.id,
-            )[0]
-        except IndexError:
-            raise ParseError(
-                f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"
-            )
-
-        kwargs["artifact_bundle"] = artifact_bundle
+        # Add file_id to kwargs for this endpoint
         kwargs["file_id"] = file_id
         return args, kwargs
 
