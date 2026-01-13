@@ -31,13 +31,215 @@ ModelType = TypeVar("ModelType", bound=models.Model)
 
 
 class WorkflowValidator(CamelSnakeSerializer):
-    id = serializers.CharField(required=False)
-    name = serializers.CharField(required=True, max_length=256)
-    enabled = serializers.BooleanField(required=False, default=True)
-    config = serializers.JSONField(required=False)
-    environment_id = serializers.IntegerField(required=False)
-    triggers = BaseDataConditionGroupValidator(required=False)
-    action_filters = serializers.ListField(required=False)
+    id = serializers.CharField(required=False, help_text="The ID of the existing alert")
+    name = serializers.CharField(required=True, max_length=256, help_text="The name of the alert")
+    enabled = serializers.BooleanField(
+        required=False, default=True, help_text="Whether the alert is enabled or disabled"
+    )
+    config = serializers.JSONField(
+        required=False,
+        help_text="""
+        Typically the frequency at which the alert will fire
+
+        ```json
+            {
+                "frequency":3600
+            }
+        ```
+        """,
+    )
+    environment_id = serializers.IntegerField(
+        required=False, help_text="The environment for the alert to evaluate in"
+    )
+    triggers = BaseDataConditionGroupValidator(
+        required=False,
+        help_text="""The conditions on which the alert will trigger
+        ```json
+            "triggers": {
+                "id": "1234567",
+                "organizationId": "1",
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "id": "123",
+                        "type": "first_seen_event",
+                        "comparison": true,
+                        "conditionResult": true
+                    },
+                    {
+                        "id": "456",
+                        "type": "issue_resolved_trigger",
+                        "comparison": true,
+                        "conditionResult": true
+                    },
+                    {
+                        "id": "789",
+                        "type": "reappeared_event",
+                        "comparison": true,
+                        "conditionResult": true
+                    },
+                    {
+                        "id": "321",
+                        "type": "regression_event",
+                        "comparison": true,
+                        "conditionResult": true
+                    }
+                ],
+                "actions": []
+            }
+        ```
+        """,
+    )
+    action_filters = serializers.ListField(
+        required=False,
+        help_text="""The filters before the action will fire
+        ```json
+            "actionFilters": [
+                {
+                    "id": "123456",
+                    "organizationId": "1",
+                    "logicType": "any-short",
+                    "conditions": [
+                        {
+                            "id": "1",
+                            "type": "age_comparison",
+                            "comparison": {
+                                "time": "minute",
+                                "value": 10,
+                                "comparisonType": "older"
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "2",
+                            "type": "assigned_to",
+                            "comparison": {
+                                "targetType": "Member",
+                                "targetIdentifier": 232692
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "3",
+                            "type": "issue_category",
+                            "comparison": {
+                                "value": 1
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "4",
+                            "type": "issue_occurrences",
+                            "comparison": {
+                                "value": 10
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "5",
+                            "type": "issue_priority_deescalating",
+                            "comparison": true,
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "6",
+                            "type": "issue_priority_greater_or_equal",
+                            "comparison": 75,
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "7",
+                            "type": "event_unique_user_frequency_count",
+                            "comparison": {
+                                "value": 100,
+                                "filters": [],
+                                "interval": "1h"
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "8",
+                            "type": "event_frequency_count",
+                            "comparison": {
+                                "value": 100,
+                                "interval": "1h"
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "9",
+                            "type": "percent_sessions_count",
+                            "comparison": {
+                                "value": 10,
+                                "interval": "1h"
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "10",
+                            "type": "event_attribute",
+                            "comparison": {
+                                "match": "co",
+                                "value": "bar",
+                                "attribute": "message"
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "11",
+                            "type": "tagged_event",
+                            "comparison": {
+                                "key": "level",
+                                "match": "eq",
+                                "value": "error"
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "12",
+                            "type": "latest_release",
+                            "comparison": true,
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "10479291",
+                            "type": "latest_adopted_release",
+                            "comparison": {
+                                "environment": "58451",
+                                "ageComparison": "older",
+                                "releaseAgeType": "oldest"
+                            },
+                            "conditionResult": true
+                        },
+                        {
+                            "id": "13",
+                            "type": "level",
+                            "comparison": {
+                                "level": 50,
+                                "match": "eq"
+                            },
+                            "conditionResult": true
+                        }
+                    ],
+                    "actions": [
+                        {
+                            "id": "123",
+                            "type": "email",
+                            "integrationId": null,
+                            "data": {},
+                            "config": {
+                                "targetType": "user",
+                                "targetDisplay": null,
+                                "targetIdentifier": "56789"
+                            },
+                            "status": "active"
+                        }
+                    ]
+                }
+            ]
+        ```
+        """,
+    )
 
     def _split_action_and_condition_group(
         self, action_filter: dict[str, Any]
