@@ -62,15 +62,13 @@ class SubscriptionProcessor:
     def __init__(
         self,
         subscription: QuerySubscription,
-        subscription_update: QuerySubscriptionUpdate,
         detector: Detector,
     ) -> None:
         """
-        Initialize with pre-validated subscription, update, and detector.
+        Initialize with pre-validated subscription and detector.
         Use the `process` classmethod rather than calling this directly.
         """
         self.subscription = subscription
-        self.subscription_update = subscription_update
         self.detector = detector
         self.last_update = get_detector_last_update(detector, subscription.project_id)
 
@@ -94,14 +92,12 @@ class SubscriptionProcessor:
             logger.info("Detector not found", extra={"subscription_id": subscription.id})
             metrics.incr(
                 "incidents.subscription_processor.detector_lookup",
-                amount=1,
                 tags={"found": "False"},
             )
             return False
 
         metrics.incr(
             "incidents.subscription_processor.detector_lookup",
-            amount=1,
             tags={"found": "True"},
         )
 
@@ -122,8 +118,8 @@ class SubscriptionProcessor:
         project.set_cached_field_value("organization", organization)
 
         # Create processor and run
-        processor = cls(subscription, subscription_update, detector)
-        return processor.process_update()
+        processor = cls(subscription, detector)
+        return processor.process_update(subscription_update)
 
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
@@ -246,7 +242,7 @@ class SubscriptionProcessor:
 
         return False
 
-    def process_update(self) -> bool:
+    def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """
         Core processing method. Assumes subscription has cached project/organization
         and detector exists (enforced by the `process` classmethod).
@@ -257,14 +253,14 @@ class SubscriptionProcessor:
         if self.has_downgraded(dataset, organization):
             return False
 
-        if self.subscription_update["timestamp"] <= self.last_update:
+        if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return False
 
-        self.last_update = self.subscription_update["timestamp"]
+        self.last_update = subscription_update["timestamp"]
 
         if (
-            len(self.subscription_update["values"]["data"]) > 1
+            len(subscription_update["values"]["data"]) > 1
             and self.subscription.snuba_query.dataset != Dataset.Metrics.value
         ):
             logger.warning(
@@ -273,7 +269,7 @@ class SubscriptionProcessor:
                     "subscription_id": self.subscription.id,
                     "dataset": self.subscription.snuba_query.dataset,
                     "snuba_subscription_id": self.subscription.subscription_id,
-                    "result": self.subscription_update,
+                    "result": subscription_update,
                 },
             )
 
@@ -283,9 +279,7 @@ class SubscriptionProcessor:
         ):
             metrics.incr("incidents.alert_rules.process_update.start")
             comparison_delta = self.get_comparison_delta(self.detector)
-            aggregation_value = self.get_aggregation_value(
-                self.subscription_update, comparison_delta
-            )
+            aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
             if aggregation_value is None or math.isnan(aggregation_value):
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
@@ -297,7 +291,7 @@ class SubscriptionProcessor:
                 return False
 
             self.process_results_workflow_engine(
-                self.detector, self.subscription_update, aggregation_value
+                self.detector, subscription_update, aggregation_value
             )
             # Ensure that we have last_update stored for all Detector evaluations.
             store_detector_last_update(
