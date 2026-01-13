@@ -19,6 +19,7 @@ import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -26,6 +27,7 @@ import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
+  const user = useUser();
 
   const {
     data: invites,
@@ -100,25 +102,48 @@ export default function ConsoleSDKInvitesSettings() {
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <Flex gap="xs" wrap="wrap">
-                {invite.platforms.map(platform => (
-                  <Tag
-                    variant="info"
-                    key={platform}
-                    onDismiss={() => {
-                      if (isRevoking) {
-                        return;
-                      }
-                      revokePlatformInvite({
-                        userId: invite.user_id,
-                        email: invite.email,
-                        platform,
-                        orgSlug: organization.slug,
-                      });
-                    }}
-                  >
-                    {CONSOLE_PLATFORM_METADATA[platform]?.displayName ?? platform}
-                  </Tag>
-                ))}
+                {invite.platforms.map(platform => {
+                  const canManageAllInvites = ['admin', 'manager', 'owner'].includes(
+                    organization.orgRole ?? ''
+                  );
+                  const canManageInvite =
+                    canManageAllInvites || invite.email === user.email;
+                  const displayName =
+                    CONSOLE_PLATFORM_METADATA[platform]?.displayName ?? platform;
+
+                  if (canManageInvite) {
+                    return (
+                      <Tag
+                        variant="info"
+                        key={platform}
+                        onDismiss={() => {
+                          if (isRevoking) {
+                            return;
+                          }
+                          revokePlatformInvite({
+                            userId: invite.user_id,
+                            email: invite.email,
+                            platform,
+                            orgSlug: organization.slug,
+                          });
+                        }}
+                      >
+                        {displayName}
+                      </Tag>
+                    );
+                  }
+
+                  return (
+                    <Tooltip
+                      key={platform}
+                      title={t('Organization members can only manage their own invites')}
+                    >
+                      <Tag variant="muted" style={{cursor: 'not-allowed'}}>
+                        {displayName}
+                      </Tag>
+                    </Tooltip>
+                  );
+                })}
               </Flex>
             </SimpleTable.RowCell>
           </SimpleTable.Row>

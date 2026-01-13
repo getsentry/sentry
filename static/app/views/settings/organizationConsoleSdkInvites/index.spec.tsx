@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -9,6 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 import ConsoleSDKInvitesSettings from './index';
@@ -19,6 +21,7 @@ describe('ConsoleSDKInvitesSettings', () => {
   const defaultOrganization = OrganizationFixture({
     enabledConsolePlatforms: ['playstation', 'xbox'],
     consoleSdkInviteQuota: 10,
+    orgRole: 'admin',
   });
 
   beforeEach(() => {
@@ -274,5 +277,134 @@ describe('ConsoleSDKInvitesSettings', () => {
         expect(indicators.addErrorMessage).toHaveBeenCalled();
       });
     });
+
+    it('allows members to revoke their own invites', async () => {
+      const memberOrg = OrganizationFixture({
+        enabledConsolePlatforms: ['playstation'],
+        consoleSdkInviteQuota: 10,
+        orgRole: 'member',
+      });
+
+      OrganizationsStore.addOrReplace(memberOrg);
+      ConfigStore.set('user', UserFixture({email: 'member@example.com'}));
+
+      const invites = [
+        {
+          user_id: '1',
+          email: 'member@example.com',
+          platforms: ['playstation'],
+        },
+      ];
+
+      MockApiClient.addMockResponse({
+        url: ENDPOINT,
+        method: 'GET',
+        body: invites,
+      });
+
+      const deleteMock = MockApiClient.addMockResponse({
+        url: ENDPOINT,
+        method: 'DELETE',
+        body: {success: true},
+      });
+
+      render(<ConsoleSDKInvitesSettings />, {organization: memberOrg});
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+      // Member should see dismiss button for their own invite
+      const dismissButton = screen.getByRole('button', {name: 'Dismiss'});
+      expect(dismissButton).toBeInTheDocument();
+
+      await userEvent.click(dismissButton);
+
+      await waitFor(() => {
+        expect(deleteMock).toHaveBeenCalled();
+      });
+    });
+
+    it.each(['member', 'billing'] as const)(
+      'prevents %s users from revoking other users invites',
+      async role => {
+        const org = OrganizationFixture({
+          enabledConsolePlatforms: ['playstation'],
+          consoleSdkInviteQuota: 10,
+          orgRole: role,
+        });
+
+        OrganizationsStore.addOrReplace(org);
+        ConfigStore.set('user', UserFixture({email: `${role}@example.com`}));
+
+        const invites = [
+          {
+            user_id: '2',
+            email: 'other-user@example.com',
+            platforms: ['playstation'],
+          },
+        ];
+
+        MockApiClient.addMockResponse({
+          url: ENDPOINT,
+          method: 'GET',
+          body: invites,
+        });
+
+        render(<ConsoleSDKInvitesSettings />, {organization: org});
+
+        await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+        // Platform tag should be visible but no dismiss button
+        expect(screen.getByText('PlayStation')).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Dismiss'})).not.toBeInTheDocument();
+      }
+    );
+
+    it.each(['admin', 'manager', 'owner'] as const)(
+      'allows %s users to revoke any users invites',
+      async role => {
+        const org = OrganizationFixture({
+          enabledConsolePlatforms: ['playstation'],
+          consoleSdkInviteQuota: 10,
+          orgRole: role,
+        });
+
+        OrganizationsStore.addOrReplace(org);
+        ConfigStore.set('user', UserFixture({email: `${role}@example.com`}));
+
+        const invites = [
+          {
+            user_id: '2',
+            email: 'other-user@example.com',
+            platforms: ['playstation'],
+          },
+        ];
+
+        MockApiClient.addMockResponse({
+          url: ENDPOINT,
+          method: 'GET',
+          body: invites,
+        });
+
+        const deleteMock = MockApiClient.addMockResponse({
+          url: ENDPOINT,
+          method: 'DELETE',
+          body: {success: true},
+        });
+
+        render(<ConsoleSDKInvitesSettings />, {organization: org});
+
+        await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+        // Should see dismiss button for any invite
+        const dismissButton = screen.getByRole('button', {name: 'Dismiss'});
+        expect(dismissButton).toBeInTheDocument();
+
+        await userEvent.click(dismissButton);
+
+        await waitFor(() => {
+          expect(deleteMock).toHaveBeenCalled();
+        });
+      }
+    );
   });
 });
