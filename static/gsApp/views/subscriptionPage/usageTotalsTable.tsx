@@ -390,7 +390,7 @@ const Bar = styled('div')<{
   display: block;
   width: ${p => `${p.fillPercentage}%`};
   height: 7px;
-  background: ${p => p.barColor ?? p.theme.gray200};
+  background: ${p => p.barColor ?? p.theme.colors.gray200};
   border-top-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.radius.md : 0)};
   border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.radius.md : 0)};
   border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.radius.md : 0)};

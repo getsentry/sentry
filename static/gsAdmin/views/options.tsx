@@ -121,7 +121,7 @@ const OptionContainer = styled('div')`
 `;
 
 const FormattedValue = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   opacity: 0.5;
 `;
 

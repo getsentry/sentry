@@ -60,6 +60,6 @@ const UnitTitle = styled('div')`
 
 const Weight = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   align-self: start;
 `;
