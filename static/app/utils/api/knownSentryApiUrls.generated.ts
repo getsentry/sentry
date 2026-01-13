@@ -197,6 +197,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/api-keys/'
   | '/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/'
   | '/organizations/$organizationIdOrSlug/artifactbundle/assemble/'
+  | '/organizations/$organizationIdOrSlug/attribute-mappings/'
   | '/organizations/$organizationIdOrSlug/audit-logs/'
   | '/organizations/$organizationIdOrSlug/auth-provider/'
   | '/organizations/$organizationIdOrSlug/auth-providers/'
