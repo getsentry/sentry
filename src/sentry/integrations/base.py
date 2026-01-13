@@ -444,7 +444,7 @@ class IntegrationInstallation(abc.ABC):
             A dictionary containing only the allowlisted metadata fields.
         """
         allowed_keys = self._get_debug_metadata_keys()
-        return {key: value for key, value in self.model.metadata.items() if key in allowed_keys}
+        return {key: self.model.metadata.get(key) for key in allowed_keys}
 
     @abc.abstractmethod
     def get_client(self) -> Any:
