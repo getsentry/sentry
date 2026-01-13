@@ -99,6 +99,34 @@ class TestStatefulDetectorHandler(TestCase):
             handler = MockDetectorStateHandler(detector=fetched_detector)
             assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
 
+    def test_init__invalid_condition_result(self) -> None:
+        """Test that invalid condition_result values are handled gracefully."""
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.detector.save()
+
+        # Create a condition with a valid result
+        self.create_data_condition(
+            type="eq",
+            comparison="HIGH",
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=Level.HIGH,
+        )
+
+        # Create a condition with an invalid result (1 is not a valid DetectorPriorityLevel)
+        self.create_data_condition(
+            type="eq",
+            comparison="INVALID",
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=1,  # Invalid: should be 0, 25, 50, or 75
+        )
+
+        fetched_detector = self._get_full_detector()
+
+        # Should not crash when encountering invalid condition_result
+        handler = MockDetectorStateHandler(detector=fetched_detector)
+        # Should only include the valid HIGH level, not the invalid one
+        assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
+
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
     def setUp(self) -> None:
