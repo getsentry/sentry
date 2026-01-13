@@ -2,6 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -41,7 +42,9 @@ function InviteRow({invite, onRevoke, revokingPlatform, revokingUserId}: InviteR
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell>
-        <Link to={`/_admin/users/${user_id}`}>{email}</Link>
+        <Link to={`/_admin/users/${user_id}`}>
+          <Text wordBreak="break-all">{email}</Text>
+        </Link>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Flex gap="sm">
@@ -271,7 +274,7 @@ function ToggleConsolePlatformsModal({
 
         <SimpleTableWithColumns>
           <SimpleTable.Header>
-            <SimpleTable.HeaderCell>Email</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>User</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
           </SimpleTable.Header>
           <InvitesTableContent
