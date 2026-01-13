@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
 
 import type {DateString} from 'sentry/types/core';
-import useApi from 'sentry/utils/useApi';
+import type {SavedQuery} from 'sentry/types/organization';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -23,18 +24,16 @@ type ReplaySavedQueryRequest = {
 };
 
 export function useReplaySaveQuery(query: string) {
-  const api = useApi();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
-  const requestData = useMemo((): ReplaySavedQueryRequest => {
+  const requestData = useMemo((): Omit<ReplaySavedQueryRequest, 'name' | 'starred'> => {
     const {selection} = pageFilters;
     const {datetime, projects, environments} = selection;
     const {start, end, period} = datetime;
 
     return {
-      name: '',
       projects,
       dataset: 'replays',
       start,
@@ -50,23 +49,30 @@ export function useReplaySaveQuery(query: string) {
     };
   }, [pageFilters, query]);
 
-  const saveQuery = useCallback(
-    async (name: string, starred = true) => {
-      const response = await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/`,
-        {
+  const {mutateAsync} = useMutation<SavedQuery, Error, {name: string; starred?: boolean}>(
+    {
+      mutationFn: ({name, starred = true}) => {
+        return fetchMutation<SavedQuery>({
           method: 'POST',
+          url: `/organizations/${organization.slug}/explore/saved/`,
           data: {
             ...requestData,
             name,
             starred,
           },
-        }
-      );
-      invalidateSavedQueries();
-      return response;
+        });
+      },
+      onSuccess: () => {
+        invalidateSavedQueries();
+      },
+    }
+  );
+
+  const saveQuery = useCallback(
+    (name: string, starred = true) => {
+      return mutateAsync({name, starred});
     },
-    [api, organization.slug, requestData, invalidateSavedQueries]
+    [mutateAsync]
   );
 
   return {saveQuery};
