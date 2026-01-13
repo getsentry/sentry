@@ -389,7 +389,8 @@ const Container = styled(motion.div)<{required: boolean}>`
               : p.theme.tokens.interactive.link.accent.active}
           12.5%,
         transparent
-      )
+      ),
+      transparent
     );
     background-size: 2000px 100%;
     border-radius: ${p => p.theme.radius.md};
