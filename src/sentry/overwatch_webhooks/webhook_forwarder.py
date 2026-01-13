@@ -16,8 +16,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
-from sentry.seer.code_review.utils import get_webhook_option_key
-from sentry.seer.code_review.webhooks.config import get_direct_to_seer_gh_orgs
+from sentry.seer.code_review.utils import get_github_org_is_whitelisted, get_option_for_event
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -39,8 +38,7 @@ def get_github_events_to_forward_overwatch() -> set[GithubWebhookType]:
     events = set(_INSTALLATION_EVENTS)
 
     for webhook_type in GithubWebhookType:
-        option_key = get_webhook_option_key(webhook_type)
-        if option_key and options.get(option_key):
+        if get_option_for_event(webhook_type):
             events.add(webhook_type)
 
     return events
@@ -146,19 +144,11 @@ class OverwatchGithubWebhookForwarder:
                 # feature isn't enabled, no work to do
                 return
 
-            repository = event.get("repository", {})
-            github_org = None
-            if isinstance(repository, dict):
-                github_org = repository.get("owner", {}).get("login")
-
-            direct_to_seer_orgs = get_direct_to_seer_gh_orgs()
-            if github_org and github_org in direct_to_seer_orgs:
+            if get_github_org_is_whitelisted(event):
+                github_org = event.get("repository", {}).get("owner", {}).get("login")
                 verbose_log(
-                    "overwatch.debug.github_org_not_whitelisted",
-                    extra={
-                        "github_org": github_org,
-                        "direct_to_seer_orgs": direct_to_seer_orgs,
-                    },
+                    "overwatch.debug.github_org_whitelisted_for_direct_to_seer",
+                    extra={"github_org": github_org},
                 )
                 return
 

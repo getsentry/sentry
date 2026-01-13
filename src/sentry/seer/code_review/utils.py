@@ -6,6 +6,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry import options
 from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -62,7 +63,7 @@ def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint
     return SeerEndpoint.OVERWATCH_REQUEST
 
 
-def get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
+def _get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
     """
     Get the option key for a given GitHub webhook type.
 
@@ -306,3 +307,40 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
         return str(user_id)
 
     return None
+
+
+def should_proceed(github_event: GithubWebhookType, event_payload: Mapping[str, Any]) -> bool:
+    """
+    Determine if we should proceed with the code review flow to Seer.
+
+    We will proceed if the GitHub org is in the direct-to-seer whitelist.
+    For CHECK_RUN events (no option key), we always proceed.
+    """
+    if not get_option_for_event(github_event):
+        return True
+
+    return get_github_org_is_whitelisted(event_payload)
+
+
+def get_github_org_is_whitelisted(event_payload: Mapping[str, Any]) -> bool:
+    """
+    Determine if the GitHub org is in the direct-to-seer whitelist.
+    """
+    github_org = event_payload.get("repository", {}).get("owner", {}).get("login")
+    if not github_org or github_org in _whitelisted_gh_orgs():
+        return True
+    return False
+
+
+def get_option_for_event(github_event: GithubWebhookType) -> bool:
+    """
+    Get the option for a given GitHub webhook event.
+    """
+    return not options.get(_get_webhook_option_key(github_event))
+
+
+def _whitelisted_gh_orgs() -> list[str]:
+    """
+    Returns the list of GitHub org names that should always send directly to Seer.
+    """
+    return options.get("seer.code-review.direct-to-seer-enabled-gh-orgs") or []

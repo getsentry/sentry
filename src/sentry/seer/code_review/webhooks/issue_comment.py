@@ -22,8 +22,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha
-from .config import get_direct_to_seer_gh_orgs
+from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha, should_proceed
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +93,6 @@ def handle_issue_comment_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
-    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -129,7 +127,7 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
 
-    if github_org in get_direct_to_seer_gh_orgs():
+    if should_proceed(github_event, event):
         if comment_id:
             _add_eyes_reaction_to_comment(
                 github_event,

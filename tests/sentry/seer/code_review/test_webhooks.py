@@ -464,7 +464,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
             enqueued_at_str=self.enqueued_at_str,
         )
 
-        assert not mock_request.called
+        assert mock_request.call_count == 1
+        pr_call = mock_request.call_args
+        assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
 
 
 class TestIsPrReviewCommand:
