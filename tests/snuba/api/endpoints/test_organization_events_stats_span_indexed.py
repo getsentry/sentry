@@ -2593,3 +2593,73 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
 
         count_foo_1 = sum(entry[1][0]["count"] for entry in response.data["foo,1.0"]["data"])
         assert count_foo_1 == 1
+
+    def test_top_events_with_aggregate_functions_in_field(self) -> None:
+        """Test that topEvents works when aggregate functions are passed in the field parameter.
+        
+        This test specifically validates the fix for SnubaRPCError code 400:
+        "Column is not one of: aggregate, attribute key, or formula"
+        
+        The issue occurred because aggregate functions in the 'field' parameter
+        were incorrectly included in raw_groupby, causing malformed Snuba queries.
+        """
+        # Create spans with different transactions and statuses
+        self.store_spans(
+            [
+                # Transaction "foo" - 3 spans total, 1 failed
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "ok"}},
+                    start_ts=self.day_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "ok"}},
+                    start_ts=self.day_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "internal_error"}},
+                    start_ts=self.day_ago,
+                ),
+                # Transaction "bar" - 2 spans total, 1 failed
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar", "status": "ok"}},
+                    start_ts=self.day_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar", "status": "internal_error"}},
+                    start_ts=self.day_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        # This query should not fail with SnubaRPCError code 400
+        # The field parameter includes aggregate functions that should be filtered out
+        # from raw_groupby and only used in yAxis
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=1),
+                "interval": "1h",
+                "yAxis": ["count(span.duration)", "failure_rate()", "failure_count()"],
+                "field": [
+                    "transaction",
+                    "tags[http.response.status_code,number]",
+                    "count(span.duration)",
+                    "failure_rate()",
+                    "failure_count()",
+                ],
+                "query": "failure_rate():>0.1",
+                "orderby": ["-count(span.duration)"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "topEvents": 5,
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        
+        # The request should succeed (not return 400)
+        assert response.status_code == 200, response.content
+        
+        # Verify that we got results for the transactions
+        assert "foo" in response.data or "foo,None" in response.data
+        assert response.data  # Should have some data
