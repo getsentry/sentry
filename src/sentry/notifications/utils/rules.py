@@ -49,4 +49,4 @@ def get_rule_or_workflow_id(rule: Rule) -> tuple[RuleIdType, str]:
             return (key, get_key_from_rule_data(rule, key))
         except AssertionError:
             pass
-    return (get_rule_or_workflow_id_default(), str(rule.id))
+    return (keys[0], str(rule.id))  # default is first key
