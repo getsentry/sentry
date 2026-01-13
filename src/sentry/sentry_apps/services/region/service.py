@@ -63,5 +63,20 @@ class SentryAppRegionService(RpcService):
         """Invokes IssueLinkCreator to create an issue link."""
         pass
 
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def create_external_issue(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        issue_id: int,
+        web_url: str,
+        project: str,
+        identifier: str,
+    ) -> RpcIssueLinkResult:
+        """Invokes ExternalIssueCreator to create an external issue."""
+        pass
+
 
 sentry_app_region_service = SentryAppRegionService.create_delegation()
