@@ -49,7 +49,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         subscription_id = int(self.metric_detector.data_sources.first().source_id)
         return QuerySubscription.objects.get(id=subscription_id)
 
-    def create_detector_data_source_and_data_conditions(self):
+    def create_detector_data_source_and_data_conditions(self) -> Detector:
         detector = self.create_detector(
             project=self.project,
             workflow_condition_group=self.create_data_condition_group(),
@@ -126,7 +126,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         )
 
     @cached_property
-    def metric_detector(self):
+    def metric_detector(self) -> Detector:
         return self.create_detector_data_source_and_data_conditions()
 
     @cached_property

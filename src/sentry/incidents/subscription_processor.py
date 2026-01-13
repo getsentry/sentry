@@ -64,7 +64,6 @@ class SubscriptionProcessor:
         self.detector: Detector | None = None
         self.last_update = to_datetime(0)
 
-        # We're doing workflow engine processing, we need the Detector.
         try:
             self.detector = Detector.objects.get(
                 data_sources__source_id=str(self.subscription.id),
@@ -116,11 +115,9 @@ class SubscriptionProcessor:
 
         return aggregation_value
 
-    def get_comparison_delta(self, detector: Detector | None) -> int | None:
-        if detector:
-            detector_cfg: MetricIssueDetectorConfig = detector.config
-            return detector_cfg.get("comparison_delta")
-        return None
+    def get_comparison_delta(self, detector: Detector) -> int | None:
+        detector_cfg: MetricIssueDetectorConfig = detector.config
+        return detector_cfg.get("comparison_delta")
 
     def process_results_workflow_engine(
         self,
@@ -201,6 +198,20 @@ class SubscriptionProcessor:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
         """
+        detector = self.detector
+        metrics.incr(
+            "incidents.subscription_processor.detector_lookup",
+            amount=1,
+            tags={"found": str(detector is not None)},
+        )
+        if detector is None:
+            # Absent detector means it was deleted or reassociated.
+            # We quietly exit without processing the update.
+            logger.info(
+                "Detector not found for subscription, skipping subscription processing",
+                extra={"subscription_id": self.subscription.id},
+            )
+            return False
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
@@ -251,35 +262,19 @@ class SubscriptionProcessor:
             track_memory_usage("incidents.alert_rules.process_update_memory"),
         ):
             metrics.incr("incidents.alert_rules.process_update.start")
-            if self.detector is None:
-                logger.error(
-                    "No detector found for subscription, skipping subscription processing",
-                    extra={
-                        "subscription_id": self.subscription.id,
-                        "project_id": self.subscription.project.id,
-                    },
-                )
-                return False
-
-            comparison_delta = self.get_comparison_delta(self.detector)
+            comparison_delta = self.get_comparison_delta(detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
             if aggregation_value is None or math.isnan(aggregation_value):
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 # We have an invalid aggregate, but we _did_ process the update, so we store
                 # last_update to reflect that and avoid reprocessing.
-                store_detector_last_update(
-                    self.detector, self.subscription.project.id, self.last_update
-                )
+                store_detector_last_update(detector, self.subscription.project.id, self.last_update)
                 return False
 
-            self.process_results_workflow_engine(
-                self.detector, subscription_update, aggregation_value
-            )
+            self.process_results_workflow_engine(detector, subscription_update, aggregation_value)
             # Ensure that we have last_update stored for all Detector evaluations.
-            store_detector_last_update(
-                self.detector, self.subscription.project.id, self.last_update
-            )
+            store_detector_last_update(detector, self.subscription.project.id, self.last_update)
             return True
 
 

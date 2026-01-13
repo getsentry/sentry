@@ -58,13 +58,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.sub.project.save()
 
         assert self.send_update(self.critical_threshold + 1) is False
-        mock_metrics.incr.assert_has_calls([call(metrics_call)])
-
-        mock_metrics.reset_mock()
+        mock_metrics.incr.assert_any_call(metrics_call)
 
         self.sub.project.delete()
         assert self.send_update(self.critical_threshold + 1) is False
-        mock_metrics.incr.assert_has_calls([call(metrics_call)])
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_has_downgraded_incidents(self, mock_metrics: MagicMock) -> None:
@@ -129,16 +126,14 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         mock_metrics.incr.reset_mock()
         assert self.send_update(value=self.critical_threshold + 1) is False
 
-        mock_metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.skipping_already_processed_update"
-        )
+        mock_metrics.incr.assert_any_call("incidents.alert_rules.skipping_already_processed_update")
         mock_metrics.incr.reset_mock()
         assert (
             self.send_update(value=self.critical_threshold + 1, time_delta=timedelta(hours=1))
             is True
         )
 
-        mock_metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
+        mock_metrics.incr.assert_any_call("incidents.alert_rules.process_update.start")
 
     def test_resolve(self) -> None:
         self.send_update(self.critical_threshold + 1, timedelta(minutes=-2))
