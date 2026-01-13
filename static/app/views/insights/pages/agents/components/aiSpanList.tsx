@@ -489,7 +489,11 @@ const TransactionButton = styled('button')`
   }
 
   & > span {
-    ${p => p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     flex: 1;
     min-width: 0;
     text-align: left;

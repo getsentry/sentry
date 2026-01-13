@@ -152,7 +152,11 @@ function IssueContext(props: BaseContextProps) {
 const IssueTitleBody = styled(ContextBody)`
   margin: 0;
   max-width: 300px;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IssueContextContainer = styled(ContextContainer)`

@@ -242,7 +242,11 @@ const ThreadName = styled('div')`
 const ActiveThreadName = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
   max-width: 200px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledGrid = styled(ThreadSelectorGrid)`
