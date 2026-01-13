@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import logging
+import threading
 from datetime import timedelta
 from typing import Any, Generic, cast
 from uuid import uuid4
@@ -37,6 +38,23 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 REDIS_TTL = int(timedelta(days=7).total_seconds())
+
+# Thread-local storage for detector state cache to avoid N+1 queries
+# within the same task/request processing multiple results for the same detector
+_thread_local = threading.local()
+
+
+def get_detector_state_cache() -> dict[int, dict[DetectorGroupKey, DetectorState]]:
+    """Get the thread-local detector state cache."""
+    if not hasattr(_thread_local, "detector_state_cache"):
+        _thread_local.detector_state_cache = {}
+    return _thread_local.detector_state_cache
+
+
+def clear_detector_state_cache():
+    """Clear the thread-local detector state cache."""
+    if hasattr(_thread_local, "detector_state_cache"):
+        _thread_local.detector_state_cache = {}
 
 
 def get_redis_client() -> RetryingRedisCluster:
@@ -156,18 +174,51 @@ class DetectorStateManager:
 
         If there's no `DetectorState` row for a `detector`/`group_key` pair then we'll exclude
         the group_key from the returned dict.
+        
+        Uses thread-local caching to avoid N+1 queries when processing multiple data packets
+        with the same detector in sequence (e.g., in uptime backlog processing).
         """
-        # TODO: Cache this query (or individual fetches, then bulk fetch anything missing)
+        cache = get_detector_state_cache()
+        detector_id = self.detector.id
+        
+        # Check if we have cached results for this detector
+        if detector_id in cache:
+            cached_states = cache[detector_id]
+            # Check if all requested keys have been queried before (even if they don't exist)
+            all_cached = all(key in cached_states for key in group_keys)
+            if all_cached:
+                # Return cached results for requested keys (excluding None values for non-existent states)
+                return {
+                    key: cached_states[key]
+                    for key in group_keys
+                    if key in cached_states and cached_states[key] is not None
+                }
+        
+        # Query for the detector states
         query_filter = Q(
             detector_group_key__in=[group_key for group_key in group_keys if group_key is not None]
         )
         if None in group_keys:
             query_filter |= Q(detector_group_key__isnull=True)
 
-        return {
+        result = {
             detector_state.detector_group_key: detector_state
             for detector_state in self.detector.detectorstate_set.filter(query_filter)
         }
+        
+        # Update the cache - store all queried states
+        if detector_id not in cache:
+            cache[detector_id] = {}
+        
+        # Mark all queried keys in cache
+        for key in group_keys:
+            if key in result:
+                cache[detector_id][key] = result[key]
+            else:
+                # Mark that we've queried for this key and it doesn't exist
+                cache[detector_id][key] = None
+        
+        return result
 
     def build_key(
         self, group_key: DetectorGroupKey = None, postfix: str | int | None = None

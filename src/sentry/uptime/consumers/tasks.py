@@ -10,8 +10,11 @@ from sentry.uptime.consumers.results_consumer import (
     create_backfill_misses,
     get_host_provider_if_valid,
     process_result_internal,
+    record_check_completion_metrics,
+    record_check_metrics,
 )
 from sentry.uptime.models import UptimeSubscription, get_detector
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.uptime.utils import (
     build_backlog_key,
     build_backlog_schedule_lock_key,
@@ -20,6 +23,7 @@ from sentry.uptime.utils import (
     get_cluster,
 )
 from sentry.utils import json, metrics
+from sentry.workflow_engine.handlers.detector.stateful import clear_detector_state_cache
 from sentry.workflow_engine.models.detector import Detector
 
 logger = logging.getLogger(__name__)
@@ -40,6 +44,15 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
     Attempts to process results in scheduled_check_time order. If gaps remain, reschedules with backoff.
     After max attempts, processes all results and allows normal backfill.
     """
+    try:
+        _process_uptime_backlog_impl(subscription_id, attempt)
+    finally:
+        # Clear thread-local cache to avoid N+1 queries
+        clear_detector_state_cache()
+
+
+def _process_uptime_backlog_impl(subscription_id: str, attempt: int):
+    """Implementation of process_uptime_backlog with cache cleanup handled by caller."""
     cluster = get_cluster()
     backlog_key = build_backlog_key(subscription_id)
     task_scheduled_key = build_backlog_task_scheduled_key(subscription_id)
