@@ -11,8 +11,12 @@ from django.db import connections
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
+from sentry.utils.arroyo_patches import apply_all_patches
 
 pytest_plugins = ["sentry.testutils.pytest"]
+
+# Apply arroyo patches early to ensure thread-safety for all tests
+apply_all_patches()
 
 
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
