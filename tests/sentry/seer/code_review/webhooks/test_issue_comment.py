@@ -16,7 +16,6 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     OPTIONS_TO_SET = {
         "github.webhook.issue-comment": False,
-        "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
     }
 
     @pytest.fixture(autouse=True)
@@ -169,27 +168,3 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_user"] == "test-user"
             assert payload["data"]["config"]["trigger_comment_id"] == 123456789
             assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
-
-    def test_processes_whitelisted_github_org(self) -> None:
-        """Test that whitelisted GitHub organizations are processed."""
-        with self.code_review_setup(), self.tasks():
-            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-            self.mock_reaction.assert_called_once()
-            self.mock_seer.assert_called_once()
-
-    def test_skips_non_whitelisted_github_org(self) -> None:
-        """Test that non-whitelisted GitHub organizations are skipped."""
-        with self.code_review_setup(), self.tasks():
-            event = self._build_issue_comment_event(
-                f"Please {SENTRY_REVIEW_COMMAND} this PR", github_org="random-org"
-            )
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-            self.mock_reaction.assert_not_called()
-            self.mock_seer.assert_not_called()

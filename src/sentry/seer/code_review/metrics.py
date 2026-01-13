@@ -18,6 +18,7 @@ class WebhookFilteredReason(StrEnum):
     )
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
+    OVERWATCH_ENABLED = "overwatch_enabled"  # Option set to route to Overwatch not Seer
 
 
 CodeReviewFilteredReason = WebhookFilteredReason | PreflightDenialReason

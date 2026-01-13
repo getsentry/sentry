@@ -10,21 +10,21 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.seer.code_review.utils import get_webhook_option_key
 
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
-    record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
     record_webhook_received,
 )
 from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha
-from .config import get_direct_to_seer_gh_orgs
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,6 @@ def handle_pull_request_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
-    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -136,16 +135,19 @@ def handle_pull_request_event(
     if pull_request.get("draft") is True:
         return
 
-    if github_org in get_direct_to_seer_gh_orgs():
-        from .task import schedule_task
+    overwatch_enabled = options.get(get_webhook_option_key(github_event))
+    if overwatch_enabled:
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.OVERWATCH_ENABLED)
+        return
 
-        schedule_task(
-            github_event=github_event,
-            github_event_action=action_value,
-            event=event,
-            organization=organization,
-            repo=repo,
-            target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
-            trigger=_get_trigger_for_action(action),
-        )
-        record_webhook_enqueued(github_event, action_value)
+    from .task import schedule_task
+
+    schedule_task(
+        github_event=github_event,
+        github_event_action=action_value,
+        event=event,
+        organization=organization,
+        repo=repo,
+        target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
+        trigger=_get_trigger_for_action(action),
+    )
