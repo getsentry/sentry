@@ -462,7 +462,7 @@ def _call_autofix(
                 "stopping_point": stopping_point,
             },
         },
-        option=orjson.OPT_NON_STR_KEYS,
+        option=orjson.OPT_NON_STR_KEYS | orjson.OPT_UTC_Z,
     )
 
     response = requests.post(
