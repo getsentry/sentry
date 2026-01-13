@@ -1,10 +1,9 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -121,7 +120,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             project={project}
             organization={props.organization}
           />
-          <Flex>
+          <Flex align="center" gap="md">
             <Projects projects={projects} logs={props.logs} tree={props.tree} />
           </Flex>
         </TraceHeaderComponents.HeaderRow>
@@ -129,10 +128,3 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     </TraceHeaderComponents.HeaderLayout>
   );
 }
-
-const Flex = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
-  align-items: center;
-`;

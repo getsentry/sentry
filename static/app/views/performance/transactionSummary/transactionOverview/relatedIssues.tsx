@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -101,7 +103,7 @@ function RelatedIssues({
 
   return (
     <Fragment>
-      <ControlsWrapper>
+      <Flex justify="between" align="center" marginBottom="md">
         <SectionHeading>{t('Related Issues')}</SectionHeading>
         <LinkButton
           data-test-id="issues-open"
@@ -111,7 +113,7 @@ function RelatedIssues({
         >
           {t('Open in Issues')}
         </LinkButton>
-      </ControlsWrapper>
+      </Flex>
 
       <TableWrapper>
         <GroupList
@@ -127,13 +129,6 @@ function RelatedIssues({
     </Fragment>
   );
 }
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
 
 const TableWrapper = styled('div')`
   margin-bottom: ${space(4)};

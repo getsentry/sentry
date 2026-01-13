@@ -10,7 +10,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -451,7 +451,7 @@ function Highlights({
   return (
     <Fragment>
       <HighlightsWrapper>
-        <HighlightsLeftColumn>
+        <Stack justify="center" align="center">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
               project={project ? project : {slug: node.projectSlug ?? ''}}
@@ -460,8 +460,8 @@ function Highlights({
             />
           </Tooltip>
           <VerticalLine />
-        </HighlightsLeftColumn>
-        <HighlightsRightColumn>
+        </Stack>
+        <Stack justify="left" flex="1" height="100%" overflow="hidden">
           <HighlightOp>{node.op}</HighlightOp>
           <HighlightsDurationWrapper>
             <HighlightDuration>
@@ -511,7 +511,7 @@ function Highlights({
               {footerContent}
             </Fragment>
           )}
-        </HighlightsRightColumn>
+        </Stack>
       </HighlightsWrapper>
       <SectionDivider />
     </Fragment>
@@ -532,7 +532,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
       <HighlightsSpanCount>
         {t('Most frequent span ops for this transaction are')}
       </HighlightsSpanCount>
-      <TopOpsList>
+      <Flex wrap="wrap" gap="md">
         {breakdown.slice(0, 3).map(currOp => {
           const {name, percentage} = currOp;
 
@@ -557,7 +557,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
             </HighlightsOpRow>
           );
         })}
-      </TopOpsList>
+      </Flex>
     </HighlightsOpsBreakdownWrapper>
   );
 }
@@ -591,7 +591,7 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   return (
     <HighlightsOpsBreakdownWrapper>
       <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
-      <TopOpsList>
+      <Flex wrap="wrap" gap="md">
         {displayOps.map(currOp => {
           const operationName = currOp.op;
           const color = pickBarColor(operationName, theme);
@@ -614,20 +614,13 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
             </HighlightsOpRow>
           );
         })}
-      </TopOpsList>
+      </Flex>
     </HighlightsOpsBreakdownWrapper>
   );
 }
 
 const StyledIconCircleFill = styled(IconCircleFill)<{fill: string}>`
   fill: ${p => p.fill};
-`;
-
-const TopOpsList = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const HighlightsOpPct = styled('div')`
@@ -727,22 +720,6 @@ const HighlightsWrapper = styled('div')`
   gap: ${space(1)};
   width: 100%;
   margin: ${space(1)} 0;
-`;
-
-const HighlightsLeftColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-`;
-
-const HighlightsRightColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: left;
-  height: 100%;
-  flex: 1;
-  overflow: hidden;
 `;
 
 function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
@@ -1000,7 +977,7 @@ function NodeActions(props: {
   }, [organization, params.traceSlug, props.node, props.profilerId, props.threadId]);
 
   return (
-    <ActionWrapper>
+    <Flex align="center" gap="xs" overflow="visible">
       <Tooltip title={t('Show in view')} skipWrapper>
         <ActionButton
           onClick={_e => {
@@ -1045,7 +1022,7 @@ function NodeActions(props: {
         </Tooltip>
       ) : null}
       <PanelPositionDropDown organization={organization} />
-    </ActionWrapper>
+    </Flex>
   );
 }
 
@@ -1073,13 +1050,6 @@ const ActionButton = styled(Button)`
 
 const ActionLinkButton = styled(LinkButton)`
   ${actionButtonStyles};
-`;
-
-const ActionWrapper = styled('div')`
-  overflow: visible;
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {

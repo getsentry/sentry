@@ -1,7 +1,8 @@
 import {Component, useEffect, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -362,13 +363,17 @@ class _Table extends Component<Props, State> {
                 'Transactions are grouped together until we receive enough data to identify parameter patterns.'
               )}
             >
-              <UnparameterizedTooltipWrapper data-test-id="unparameterized-indicator">
+              <Flex
+                justify="center"
+                align="center"
+                data-test-id="unparameterized-indicator"
+              >
                 <LoadingIndicator
                   mini
                   size={16}
                   style={{margin: 0, width: 16, height: 16}}
                 />
-              </UnparameterizedTooltipWrapper>
+              </Flex>
             </Tooltip>
           );
         }
@@ -669,11 +674,5 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
     />
   );
 }
-
-const UnparameterizedTooltipWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
 
 export default Table;

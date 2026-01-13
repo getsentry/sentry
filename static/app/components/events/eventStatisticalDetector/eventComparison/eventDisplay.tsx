@@ -2,6 +2,8 @@ import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -22,7 +24,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -203,9 +204,9 @@ function EventDisplay({
     organization,
   });
   return (
-    <EventDisplayContainer>
+    <Stack gap="md">
       <div>
-        <StyledControlBar>
+        <Flex justify="between">
           <StyledEventControls>
             <CompactSelect
               size="sm"
@@ -262,7 +263,7 @@ function EventDisplay({
               />
             </NavButtons>
           </div>
-        </StyledControlBar>
+        </Flex>
         <ComparisonContentWrapper>
           <Link to={fullEventTarget}>
             <MinimapContainer>
@@ -289,17 +290,11 @@ function EventDisplay({
       </div>
 
       <EventTags event={eventData} projectSlug={project.slug} />
-    </EventDisplayContainer>
+    </Stack>
   );
 }
 
 export {EventDisplay};
-
-const EventDisplayContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-`;
 
 const ButtonLabelWrapper = styled('span')`
   width: 100%;
@@ -307,11 +302,6 @@ const ButtonLabelWrapper = styled('span')`
   align-items: center;
   display: inline-grid;
   grid-template-columns: 1fr auto;
-`;
-
-const StyledControlBar = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const StyledEventControls = styled('div')`
