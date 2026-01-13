@@ -464,6 +464,7 @@ const appConfig: Configuration = {
                   'tests/**/*',
                   '**/*.spec.*',
                   'static/eslint/**/*',
+                  'scripts/**/*',
                 ],
               },
             },
