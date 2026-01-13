@@ -110,12 +110,16 @@ class SDKCrashDetector:
         if not potential_sdk_crash:
             return False
 
-        # Loop 2: Check if any frame matches sdk_crash_ignore_matchers.
+        # Loop 2: Check if any frame (up to the first SDK frame) matches sdk_crash_ignore_matchers.
         # These are SDK methods used for testing (e.g., +[SentrySDK crash]) that intentionally
-        # trigger crashes and should not be reported as SDK crashes.
+        # trigger crashes and should not be reported as SDK crashes. We only check frames up to
+        # the first SDK frame to match the original single-loop algorithm behavior.
         for frame in iter_frames:
             if self._matches_sdk_crash_ignore(frame):
                 return False
+            if self.is_sdk_frame(frame):
+                # Stop at the first SDK frame; don't check older frames in the call stack.
+                break
 
         # Loop 3: Check if the only SDK frame is a "conditional" one (e.g., SentrySwizzleWrapper).
         # These are SDK instrumentation frames that intercept calls but are unlikely to cause
