@@ -75,6 +75,7 @@ register_grouping_config(
     initial_context={
         "use_legacy_exception_subcomponent_order": False,
         "handle_js_single_frame_url_origin_backwards": False,
+        "prevent_python_multiprocessing_context_line_parameterization": False,
     },
     enhancements_base="all-platforms:2025-11-21",
 )
