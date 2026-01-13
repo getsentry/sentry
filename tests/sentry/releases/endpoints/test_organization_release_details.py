@@ -86,6 +86,29 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 404
 
+    def test_project_sentinel_value_negative_one(self) -> None:
+        """
+        Test that project=-1 (sentinel value for "all projects") is handled correctly
+        and doesn't cause a ValueError
+        """
+        release = Release.objects.create(organization_id=self.organization.id, version="test-release")
+        release.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+        self.login_as(user=self.user1)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "version": release.version},
+        )
+        # Test with project=-1 (sentinel value)
+        response = self.client.get(url, {"project": -1})
+
+        assert response.status_code == 200
+        assert response.data["version"] == release.version
+        # currentProjectMeta should be empty when project=-1 is passed
+        assert response.data["currentProjectMeta"] == {}
+
     def test_multiple_projects(self) -> None:
         team2 = self.create_team(organization=self.organization)
 
