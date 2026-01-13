@@ -56,7 +56,7 @@ QUERY_TYPE_VALID_DATASETS = {
         Dataset.PerformanceMetrics,
         Dataset.EventsAnalyticsPlatform,
     },
-    SnubaQuery.Type.CRASH_RATE: {Dataset.Metrics},
+    SnubaQuery.Type.CRASH_RATE: {Dataset.Sessions, Dataset.Metrics},
 }
 
 QUERY_TYPE_VALID_EVENT_TYPES = {

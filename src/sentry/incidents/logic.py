@@ -495,6 +495,7 @@ query_datasets_to_type = {
     Dataset.Events: SnubaQuery.Type.ERROR,
     Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
+    Dataset.Sessions: SnubaQuery.Type.CRASH_RATE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
     Dataset.EventsAnalyticsPlatform: SnubaQuery.Type.PERFORMANCE,
 }
