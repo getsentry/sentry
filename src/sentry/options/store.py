@@ -7,6 +7,7 @@ from time import time
 from typing import Any
 
 from django.conf import settings
+from django.db import DatabaseError, transaction
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from sentry_sdk.integrations.logging import ignore_logger
@@ -260,14 +261,65 @@ class OptionsStore:
         return self.set_cache(key, value)
 
     def set_store(self, key, value, channel: UpdateChannel):
-        self.model.objects.update_or_create(
-            key=key.name,
-            defaults={
-                "value": value,
-                "last_updated": timezone.now(),
-                "last_updated_by": channel.value,
-            },
-        )
+        """
+        Update or create an option in the database with graceful handling of lock contention.
+        
+        This method attempts to update the option value without blocking when concurrent
+        tasks are trying to update the same option. If a lock cannot be acquired immediately,
+        the update is skipped since another task is already updating the same option.
+        
+        This is particularly important for high-frequency tasks like send_ping that
+        run every minute across multiple workers, which would otherwise cause lock
+        contention and deadline exceeded errors.
+        """
+        try:
+            # First, try to get the existing row with NOWAIT lock to avoid blocking
+            with transaction.atomic():
+                try:
+                    # Use select_for_update(nowait=True) to fail fast if row is locked
+                    option = self.model.objects.select_for_update(nowait=True).get(key=key.name)
+                    # Update existing option
+                    option.value = value
+                    option.last_updated = timezone.now()
+                    option.last_updated_by = channel.value
+                    option.save()
+                except self.model.DoesNotExist:
+                    # Option doesn't exist yet, create it
+                    # This may still race with other creates, so handle IntegrityError
+                    try:
+                        self.model.objects.create(
+                            key=key.name,
+                            value=value,
+                            last_updated=timezone.now(),
+                            last_updated_by=channel.value,
+                        )
+                    except DatabaseError:
+                        # Another task created it concurrently, that's fine
+                        # The other task is also setting a similar value
+                        logger.debug(
+                            "option.concurrent_create",
+                            extra={"key": key.name},
+                        )
+        except DatabaseError as e:
+            # Lock could not be acquired (nowait=True raised OperationalError)
+            # or some other database error occurred
+            # This is expected in high-concurrency scenarios - another worker
+            # is already updating this option, so we can safely skip
+            error_msg = str(e).lower()
+            if "lock" in error_msg or "could not obtain lock" in error_msg:
+                logger.debug(
+                    "option.lock_contention_skipped",
+                    extra={"key": key.name, "error": str(e)},
+                )
+            else:
+                # Re-raise unexpected database errors
+                logger.warning(
+                    "option.database_error",
+                    extra={"key": key.name, "error": str(e)},
+                    exc_info=True,
+                )
+                if settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS:
+                    raise
 
     def set_cache(self, key, value):
         if self.cache is None:

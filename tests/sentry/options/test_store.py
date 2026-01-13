@@ -1,10 +1,11 @@
 from functools import cached_property
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid1
 
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
+from django.db import DatabaseError, OperationalError
 from django.test import override_settings
 
 from sentry.models.options.option import Option
@@ -176,3 +177,90 @@ class OptionsStoreTest(TestCase):
         mocked_time.return_value = 26
         store.clean_local_cache()
         assert not store._local_cache
+
+    def test_lock_contention_handling(self) -> None:
+        """Test that set_store gracefully handles lock contention without blocking."""
+        store, key = self.store, self.key
+
+        # First, create the option
+        store.set(key, "initial", UpdateChannel.CLI)
+        assert store.get(key) == "initial"
+
+        # Mock select_for_update to raise OperationalError simulating lock contention
+        with patch.object(
+            Option.objects, "select_for_update"
+        ) as mock_select_for_update:
+            mock_queryset = Mock()
+            mock_queryset.get.side_effect = OperationalError("could not obtain lock")
+            mock_select_for_update.return_value = mock_queryset
+
+            # This should not raise an exception, but skip the update gracefully
+            store.set_store(key, "locked", UpdateChannel.CLI)
+
+            # Verify select_for_update was called with nowait=True
+            mock_select_for_update.assert_called_once_with(nowait=True)
+
+        # The value should remain unchanged since the update was skipped
+        store.flush_local_cache()
+        assert store.get(key) == "initial"
+
+    def test_lock_contention_on_create(self) -> None:
+        """Test that concurrent creates are handled gracefully."""
+        store = self.store
+        key = self.make_key()
+
+        # Mock select_for_update to raise DoesNotExist, then mock create to raise DatabaseError
+        with patch.object(
+            Option.objects, "select_for_update"
+        ) as mock_select_for_update:
+            mock_queryset = Mock()
+            mock_queryset.get.side_effect = Option.DoesNotExist
+            mock_select_for_update.return_value = mock_queryset
+
+            with patch.object(
+                Option.objects, "create", side_effect=DatabaseError("duplicate key value")
+            ):
+                # This should not raise an exception
+                store.set_store(key, "concurrent", UpdateChannel.CLI)
+
+        # The option should not exist since both operations failed
+        assert store.get_store(key, silent=True) is None
+
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=True)
+    def test_unexpected_database_error_with_complain(self) -> None:
+        """Test that unexpected database errors are raised when COMPLAIN_ON_ERRORS is True."""
+        store, key = self.store, self.key
+
+        # Create the option first
+        store.set(key, "initial", UpdateChannel.CLI)
+
+        # Mock select_for_update to raise a non-lock related DatabaseError
+        with patch.object(
+            Option.objects, "select_for_update"
+        ) as mock_select_for_update:
+            mock_queryset = Mock()
+            mock_queryset.get.side_effect = DatabaseError("connection lost")
+            mock_select_for_update.return_value = mock_queryset
+
+            # This should raise the exception since it's not a lock error
+            with pytest.raises(DatabaseError, match="connection lost"):
+                store.set_store(key, "error", UpdateChannel.CLI)
+
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
+    def test_unexpected_database_error_without_complain(self) -> None:
+        """Test that unexpected database errors are logged but not raised when COMPLAIN_ON_ERRORS is False."""
+        store, key = self.store, self.key
+
+        # Create the option first
+        store.set(key, "initial", UpdateChannel.CLI)
+
+        # Mock select_for_update to raise a non-lock related DatabaseError
+        with patch.object(
+            Option.objects, "select_for_update"
+        ) as mock_select_for_update:
+            mock_queryset = Mock()
+            mock_queryset.get.side_effect = DatabaseError("connection lost")
+            mock_select_for_update.return_value = mock_queryset
+
+            # This should not raise, just log
+            store.set_store(key, "error", UpdateChannel.CLI)
