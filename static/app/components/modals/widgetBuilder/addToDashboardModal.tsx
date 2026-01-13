@@ -280,7 +280,6 @@ function AddToDashboardModal({
 
       goToDashboard('preview', {
         widgets: widgetsWithLayouts,
-        source: 'trace-metrics',
       });
       closeModal();
       return;
