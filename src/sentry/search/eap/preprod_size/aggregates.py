@@ -17,4 +17,17 @@ PREPROD_SIZE_AGGREGATE_DEFINITIONS = {
             )
         ],
     ),
+    "min": AggregateDefinition(
+        internal_function=Function.FUNCTION_MIN,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                },
+            )
+        ],
+    ),
 }
