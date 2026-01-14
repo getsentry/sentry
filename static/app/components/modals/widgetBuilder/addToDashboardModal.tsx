@@ -340,9 +340,9 @@ function AddToDashboardModal({
           .map(({title, id, widgetDisplay}) => ({
             label: title,
             value: id,
-            disabled: widgetDisplay.length >= MAX_WIDGETS,
+            disabled: widgetDisplay.length + widgets.length >= MAX_WIDGETS,
             tooltip:
-              widgetDisplay.length >= MAX_WIDGETS &&
+              widgetDisplay.length + widgets.length >= MAX_WIDGETS &&
               tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                 maxWidgets: MAX_WIDGETS,
               }),
@@ -350,7 +350,7 @@ function AddToDashboardModal({
           })),
       ].filter(Boolean) as Array<SelectValue<string>>;
     },
-    [currentDashboardId, dashboards]
+    [currentDashboardId, dashboards, widgets.length]
   );
 
   const widgetLegendState = new WidgetLegendSelectionState({
