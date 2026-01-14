@@ -232,36 +232,6 @@ class TestSentryAppRegionService(TestCase):
             project2.id,
         }
         assert all(hp.id is not None for hp in result.service_hook_projects)
-        assert result.next_cursor is None
-
-    def test_get_service_hook_projects_paginated(self) -> None:
-        project2 = self.create_project(organization=self.org)
-        project3 = self.create_project(organization=self.org)
-
-        self.create_service_hook_project(project_id=self.project.id)
-        self.create_service_hook_project(project_id=project2.id)
-        self.create_service_hook_project(project_id=project3.id)
-
-        result = sentry_app_region_service.get_service_hook_projects(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            limit=2,
-        )
-
-        assert result.error is None
-        assert len(result.service_hook_projects) == 2
-        assert result.next_cursor == 2
-
-        result2 = sentry_app_region_service.get_service_hook_projects(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            cursor=result.next_cursor,
-            limit=2,
-        )
-
-        assert result2.error is None
-        assert len(result2.service_hook_projects) == 1
-        assert result2.next_cursor is None
 
     def test_set_service_hook_projects(self) -> None:
         project2 = self.create_project(organization=self.org)
@@ -278,7 +248,6 @@ class TestSentryAppRegionService(TestCase):
         assert result.error is None
         assert {hp.project_id for hp in result.service_hook_projects} == {project2.id, project3.id}
         assert all(hp.id is not None for hp in result.service_hook_projects)
-        assert result.next_cursor is None
 
         with assume_test_silo_mode_of(ServiceHook):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
@@ -315,7 +284,6 @@ class TestSentryAppRegionService(TestCase):
         assert result.error is None
         assert {hp.project_id for hp in result.service_hook_projects} == {project2.id, project3.id}
         assert all(hp.id is not None for hp in result.service_hook_projects)
-        assert result.next_cursor is None
 
         with assume_test_silo_mode_of(ServiceHook):
             hook = ServiceHook.objects.get(installation_id=self.install.id)

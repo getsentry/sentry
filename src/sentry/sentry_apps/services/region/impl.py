@@ -210,21 +210,10 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        cursor: int | None = None,
-        limit: int = 100,
     ) -> RpcServiceHookProjectsResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ GET
         """
-        if cursor is not None and cursor < 0:
-            return RpcServiceHookProjectsResult(
-                error=RpcSentryAppError(
-                    message="Cursor cannot be negative",
-                    webhook_context={},
-                    status_code=400,
-                )
-            )
-
         try:
             hook = ServiceHook.objects.get(installation_id=installation.id)
         except ServiceHook.DoesNotExist:
@@ -236,21 +225,14 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 )
             )
 
-        offset = cursor or 0
-        queryset = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by("project_id")
-
-        hook_projects = list(queryset[offset : offset + limit + 1])
-
-        next_cursor = None
-        if len(hook_projects) > limit:
-            hook_projects = hook_projects[:limit]
-            next_cursor = offset + limit
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by(
+            "project_id"
+        )
 
         return RpcServiceHookProjectsResult(
             service_hook_projects=[
                 RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
             ],
-            next_cursor=next_cursor,
         )
 
     def set_service_hook_projects(
@@ -259,28 +241,18 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         project_ids: list[int],
-        cursor: int | None = None,
-        limit: int = 100,
     ) -> RpcServiceHookProjectsResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ POST
         """
         from django.db import router, transaction
 
-        if cursor is not None and cursor < 0:
-            return RpcServiceHookProjectsResult(
-                error=RpcSentryAppError(
-                    message="Cursor cannot be negative",
-                    webhook_context={},
-                    status_code=400,
-                )
-            )
-
         if project_ids:
+            unique_project_ids = set(project_ids)
             valid_project_count = Project.objects.filter(
-                organization_id=organization_id, id__in=project_ids
+                organization_id=organization_id, id__in=unique_project_ids
             ).count()
-            if valid_project_count != len(project_ids):
+            if valid_project_count != len(unique_project_ids):
                 return RpcServiceHookProjectsResult(
                     error=RpcSentryAppError(
                         message="One or more project IDs do not belong to the organization",
@@ -322,21 +294,14 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                     service_hook_id=hook.id,
                 )
 
-        offset = cursor or 0
-        queryset = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by("project_id")
-
-        hook_projects = list(queryset[offset : offset + limit + 1])
-
-        next_cursor = None
-        if len(hook_projects) > limit:
-            hook_projects = hook_projects[:limit]
-            next_cursor = offset + limit
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by(
+            "project_id"
+        )
 
         return RpcServiceHookProjectsResult(
             service_hook_projects=[
                 RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
             ],
-            next_cursor=next_cursor,
         )
 
     def delete_service_hook_projects(

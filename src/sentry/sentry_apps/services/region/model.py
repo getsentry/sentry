@@ -49,5 +49,4 @@ class RpcServiceHookProject(RpcModel):
 
 class RpcServiceHookProjectsResult(RpcModel):
     service_hook_projects: list[RpcServiceHookProject] = Field(default_factory=list)
-    next_cursor: int | None = None
     error: RpcSentryAppError | None = None

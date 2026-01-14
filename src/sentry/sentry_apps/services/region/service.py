@@ -102,8 +102,6 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        cursor: int | None = None,
-        limit: int = 100,
     ) -> RpcServiceHookProjectsResult:
         """Returns the project IDs associated with an installation's service hook."""
         pass
@@ -116,10 +114,8 @@ class SentryAppRegionService(RpcService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         project_ids: list[int],
-        cursor: int | None = None,
-        limit: int = 100,
     ) -> RpcServiceHookProjectsResult:
-        """Replaces all service hook projects with the given project IDs and returns paginated results."""
+        """Replaces all service hook projects with the given project IDs."""
         pass
 
     @regional_rpc_method(ByOrganizationId())
