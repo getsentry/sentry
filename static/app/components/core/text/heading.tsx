@@ -34,7 +34,7 @@ export const Heading = styled(
     rc('font-size', p.size ?? getDefaultHeadingFontSize(p.as), p.theme, v => {
       return getFontSize(v, p.theme);
     })};
-  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v))};
+  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
   ${p => rc('text-align', p.align, p.theme)};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};

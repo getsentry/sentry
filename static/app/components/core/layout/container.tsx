@@ -251,7 +251,10 @@ export const Container = styled(
   ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
   ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
-  ${p => rc('background', p.background, p.theme, v => p.theme.tokens.background[v])};
+  ${p =>
+    rc('background', p.background, p.theme, v =>
+      v ? p.theme.tokens.background[v] : undefined
+    )};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 
