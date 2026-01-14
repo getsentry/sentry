@@ -32,6 +32,12 @@ class AttributeMappingResponse(TypedDict):
     searchType: str
 
 
+# The role of this endpoint is to provide a list of attributes that include their
+# mappings from internal name to public alias and search type. This is used to make the
+# connection between internal names in the Sentry Conventions to their public aliases and
+# search types.
+
+
 @region_silo_endpoint
 class OrganizationAttributeMappingsEndpoint(OrganizationEndpoint):
     publish_status = {
