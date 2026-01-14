@@ -1,17 +1,14 @@
 import {useEffect, useState} from 'react';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   IssuesConfig,
   type IssuesSeriesResponse,
 } from 'sentry/views/dashboards/datasetConfig/issues';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -20,25 +17,17 @@ import type {
 import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 type Props = {
-  api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  organization: Organization;
-  selection: PageFilters;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
-  queue?: WidgetQueryQueue;
 };
 
 function IssueWidgetQueries({
-  queue,
   children,
-  api,
-  organization,
-  selection,
   widget,
   cursor,
   limit,
@@ -63,11 +52,7 @@ function IssueWidgetQueries({
   };
 
   const {loading, ...rest} = useGenericWidgetQueries<IssuesSeriesResponse, Group[]>({
-    queue,
     config,
-    api,
-    organization,
-    selection,
     widget,
     cursor,
     limit,

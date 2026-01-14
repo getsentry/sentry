@@ -53,7 +53,6 @@ export function VisualizationWidget({
     <WidgetCardDataLoader
       widget={widget}
       dashboardFilters={dashboardFilters}
-      selection={selection}
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}

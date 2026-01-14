@@ -1,18 +1,14 @@
 import {useCallback, useState} from 'react';
 
-import type {Client} from 'sentry/api';
-import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   EMPTY_METRIC_SELECTION,
   TraceMetricsConfig,
 } from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import type {
@@ -25,9 +21,7 @@ type SeriesResult = EventsTimeSeriesResponse;
 type TableResult = EventsTableData;
 
 type TraceMetricsWidgetQueriesProps = {
-  api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  selection: PageFilters;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
@@ -35,7 +29,6 @@ type TraceMetricsWidgetQueriesProps = {
   onBestEffortDataFetched?: () => void;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
-  queue?: WidgetQueryQueue;
 };
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
@@ -66,9 +59,6 @@ function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
 
 function TraceMetricsWidgetQueriesSingleRequestImpl({
   children,
-  api,
-  queue,
-  selection,
   widget,
   cursor,
   limit,
@@ -78,7 +68,6 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   getConfidenceInformation,
 }: TraceMetricsWidgetQueriesImplProps) {
   const config = TraceMetricsConfig;
-  const organization = useOrganization();
   const [confidence, setConfidence] = useState<Confidence | null>(null);
   const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
   const [isSampled, setIsSampled] = useState<boolean | null>(null);
@@ -106,10 +95,6 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
 
   const props = useGenericWidgetQueries<SeriesResult, TableResult>({
     config,
-    api,
-    queue,
-    organization,
-    selection,
     widget,
     cursor,
     limit,

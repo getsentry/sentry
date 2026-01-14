@@ -1,10 +1,7 @@
-import type {Client} from 'sentry/api';
-import type {PageFilters} from 'sentry/types/core';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
-  Organization,
 } from 'sentry/types/organization';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -17,7 +14,6 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
@@ -31,10 +27,7 @@ type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEve
 type TableResult = TableData | EventsTableData;
 
 type Props = {
-  api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  organization: Organization;
-  selection: PageFilters;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
@@ -42,15 +35,10 @@ type Props = {
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
-  queue?: WidgetQueryQueue;
 };
 
 function WidgetQueriesWithOnDemandControl({
-  api,
-  queue,
   children,
-  organization,
-  selection,
   widget,
   dashboardFilters,
   cursor,
@@ -62,7 +50,10 @@ function WidgetQueriesWithOnDemandControl({
   afterFetchTableData,
   mepSettingContext,
   OnDemandControlContext,
-}: Omit<Props, 'onWidgetSplitDecision'> & {
+}: Omit<
+  Props,
+  'onWidgetSplitDecision' | 'api' | 'queue' | 'organization' | 'selection'
+> & {
   OnDemandControlContext: any;
   afterFetchSeriesData: (rawResults: SeriesResult) => void;
   afterFetchTableData: (rawResults: TableResult) => void;
@@ -70,11 +61,7 @@ function WidgetQueriesWithOnDemandControl({
   mepSettingContext: ReturnType<typeof useMEPSettingContext>;
 }) {
   const props = useGenericWidgetQueries<SeriesResult, TableResult>({
-    queue,
     config,
-    api,
-    organization,
-    selection,
     widget,
     samplingMode:
       widget.widgetType === WidgetType.SPANS ? SAMPLING_MODE.NORMAL : undefined,
@@ -94,11 +81,7 @@ function WidgetQueriesWithOnDemandControl({
 }
 
 function WidgetQueries({
-  api,
-  queue,
   children,
-  organization,
-  selection,
   widget,
   dashboardFilters,
   cursor,
@@ -106,7 +89,7 @@ function WidgetQueries({
   onDataFetched,
   onWidgetSplitDecision,
   onDataFetchStart,
-}: Props) {
+}: Omit<Props, 'api' | 'queue' | 'organization' | 'selection'>) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
     widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
@@ -213,10 +196,6 @@ function WidgetQueries({
     <OnDemandControlConsumer>
       {OnDemandControlContext => (
         <WidgetQueriesWithOnDemandControl
-          api={api}
-          queue={queue}
-          organization={organization}
-          selection={selection}
           widget={widget}
           dashboardFilters={dashboardFilters}
           cursor={cursor}

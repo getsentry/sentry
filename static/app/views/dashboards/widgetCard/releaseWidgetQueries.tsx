@@ -5,9 +5,7 @@ import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
@@ -18,6 +16,7 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -27,7 +26,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -43,7 +41,6 @@ import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 interface ReleaseWidgetQueriesProps {
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  selection: PageFilters;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
@@ -53,7 +50,6 @@ interface ReleaseWidgetQueriesProps {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
-  queue?: WidgetQueryQueue;
 }
 
 export function derivedMetricsToField(field: string): string {
@@ -158,8 +154,7 @@ function customDidUpdateComparator(
   prevProps: UseGenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>,
   nextProps: UseGenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>
 ) {
-  const {loading, limit, widget, cursor, organization, selection, dashboardFilters} =
-    nextProps;
+  const {loading, limit, widget, cursor, dashboardFilters} = nextProps;
   const ignoredWidgetProps: Array<Partial<keyof Widget>> = [
     'queries',
     'title',
@@ -177,9 +172,8 @@ function customDidUpdateComparator(
   ];
   return (
     limit !== prevProps.limit ||
-    organization.slug !== prevProps.organization.slug ||
     !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
-    !isSelectionEqual(selection, prevProps.selection) ||
+    // organization and selection are now handled internally by the hook
     // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
     !isEqual(
       omit(widget, ignoredWidgetProps),
@@ -210,14 +204,12 @@ function customDidUpdateComparator(
 
 function ReleaseWidgetQueries({
   widget,
-  selection,
   dashboardFilters,
   cursor,
   limit,
   onDataFetched,
   onDataFetchStart,
   children,
-  queue,
 }: ReleaseWidgetQueriesProps) {
   const config = ReleasesConfig;
 
@@ -225,6 +217,8 @@ function ReleaseWidgetQueries({
   const allProjects = useProjects();
   const api = useApi();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | undefined>(
     undefined
   );
@@ -381,11 +375,7 @@ function ReleaseWidgetQueries({
     SessionApiResponse,
     SessionApiResponse
   >({
-    queue,
     config,
-    api,
-    organization,
-    selection,
     widget: transformedWidget,
     dashboardFilters,
     cursor,

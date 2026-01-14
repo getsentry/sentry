@@ -3,16 +3,18 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -20,7 +22,7 @@ import {
   dashboardFiltersToString,
   isChartDisplayType,
 } from 'sentry/views/dashboards/utils';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export function getReferrer(displayType: DisplayType) {
@@ -66,10 +68,7 @@ export type GenericWidgetQueriesChildrenProps = {
 };
 
 export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
-  api: Client;
   config: DatasetConfig<SeriesResponse, TableResponse>;
-  organization: Organization;
-  selection: PageFilters;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;
   afterFetchTableData?: (
@@ -96,7 +95,6 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
-  queue?: WidgetQueryQueue;
   samplingMode?: SamplingMode;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
@@ -107,10 +105,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
 ): GenericWidgetQueriesChildrenProps {
   const {
-    api,
     config,
-    organization,
-    selection,
     widget,
     afterFetchSeriesData,
     afterFetchTableData,
@@ -125,10 +120,15 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     onDataFetchStart,
     onDataFetched,
     onDemandControlContext,
-    queue,
     samplingMode,
     skipDashboardFilterParens,
   } = props;
+
+  // Use hooks to get required dependencies
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const {queue} = useWidgetQueryQueue();
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
@@ -152,6 +152,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   const prevPropsRef = useRef<
     UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> | undefined
   >(undefined);
+  const prevSelectionRef = useRef(selection);
   const rawResultsRef = useRef<SeriesResponse[] | undefined>(undefined);
   const hasInitialFetchRef = useRef(false);
   // Ref to store the latest fetchData function for the queue
@@ -535,11 +536,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
           !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
           !isEqual(forceOnDemand, prevProps.forceOnDemand) ||
           !isEqual(disabled, prevProps.disabled) ||
-          !isSelectionEqual(selection, prevProps.selection) ||
+          !isSelectionEqual(selection, prevSelectionRef.current) ||
           cursor !== prevProps.cursor
     ) {
       fetchDataWithQueueIfAvailable();
       prevPropsRef.current = props;
+      prevSelectionRef.current = selection;
       return;
     }
 
