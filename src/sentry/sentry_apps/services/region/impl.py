@@ -1,12 +1,15 @@
 from typing import Any
 
+from sentry import deletions
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.region.model import (
+    RpcEmptyResult,
     RpcPlatformExternalIssue,
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
@@ -168,3 +171,33 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 web_url=external_issue.web_url,
             )
         )
+
+    def delete_external_issue(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        external_issue_id: int,
+    ) -> RpcEmptyResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_details.py @ DELETE
+        """
+        try:
+            platform_external_issue = PlatformExternalIssue.objects.get(
+                id=external_issue_id,
+                project__organization_id=organization_id,
+                service_type=installation.sentry_app.slug,
+            )
+        except PlatformExternalIssue.DoesNotExist:
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="Could not find the corresponding external issue from given external_issue_id",
+                    webhook_context={},
+                    status_code=404,
+                ),
+            )
+
+        deletions.exec_sync(platform_external_issue)
+
+        return RpcEmptyResult()
