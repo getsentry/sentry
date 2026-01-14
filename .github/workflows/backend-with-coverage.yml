@@ -142,11 +142,10 @@ jobs:
         with:
           project_id: sentry-dev-tooling
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account: ${{ secrets.SUDO_GCP_SERVICE_ACCOUNT }}
+          service_account: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
       - name: Upload coverage to GCS
         uses: google-github-actions/upload-cloud-storage@v2
         with:
           path: .coverage.combined
-          project_id: sentry-dev-tooling
           destination: sentry-coverage-data/${{ steps.commit-info.outputs.sha }}
