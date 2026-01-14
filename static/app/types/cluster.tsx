@@ -25,6 +25,7 @@ export interface ClusterSummary {
   code_area_tags?: string[];
   error_type?: string;
   error_type_tags?: string[];
+  explorer_run_id?: number;
   impact?: string;
   location?: string;
   service_tags?: string[];
