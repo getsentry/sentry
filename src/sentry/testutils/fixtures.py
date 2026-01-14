@@ -43,6 +43,7 @@ from sentry.monitors.models import (
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.preprod.models import (
     PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
@@ -922,6 +923,13 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_preprod_artifact(project=project, **kwargs)
+
+    def create_preprod_artifact_mobile_app_info(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodArtifactMobileAppInfo:
+        return Factories.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=preprod_artifact, **kwargs
+        )
 
     def create_preprod_artifact_size_metrics(
         self, preprod_artifact: PreprodArtifact, **kwargs
