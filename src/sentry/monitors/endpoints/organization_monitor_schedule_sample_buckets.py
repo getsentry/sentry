@@ -56,7 +56,11 @@ def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshol
 
     open_period = total_threshold * SAMPLE_OPEN_PERIOD_RATIO
 
-    fixed_count = padding * 2 + failure_threshold + recovery_threshold + open_period
+    # We subtract one from the thresholds since the last tick is not a
+    # sub-threshold tick.
+    sub_failure_threshold = failure_threshold - 1
+    sub_recovery_threshold = recovery_threshold - 1
+    fixed_count = padding * 2 + sub_failure_threshold + sub_recovery_threshold + open_period
     if fixed_count > num_ticks:
         raise ValueError("n is too small for the given thresholds and ratios")
 
@@ -65,9 +69,9 @@ def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshol
 
     return (
         ["ok"] * padding
-        + ["sub_failure_error"] * failure_threshold
+        + ["sub_failure_error"] * sub_failure_threshold
         + ["error"] * middle_errors
-        + ["sub_recovery_ok"] * recovery_threshold
+        + ["sub_recovery_ok"] * sub_recovery_threshold
         + ["ok"] * padding
     )
 

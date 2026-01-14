@@ -116,6 +116,7 @@ export function Preview() {
               />
             }
           />
+          <OpenPeriod bucketedData={sampleBucketsData} timeWindowConfig={timeWindowConfig} />
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
           <TimeLineContainer>
             <CheckInTimeline<PreviewStatus>
@@ -170,8 +171,34 @@ function OpenPeriod({
     return null;
   }
 
-  const left = lastSubFailureIdx * bucketPixels - underscanStartOffset;
-  const right = (lastSubRecoveryIdx + 1) * bucketPixels - underscanStartOffset;
+  // We want to draw the open period from:
+  // - the first ERROR bucket after the (sub-threshold) failure buckets, to
+  // - the first OK bucket after the (sub-threshold) recovery buckets.
+  let openBarStartIdx: number | null = null;
+  for (let i = lastSubFailureIdx + 1; i < bucketedData.length; i++) {
+    const status = getBucketStatus(bucketedData[i]?.[1]);
+    if (status === PreviewStatus.ERROR) {
+      openBarStartIdx = i;
+      break;
+    }
+  }
+
+  let openBarEndIdx: number | null = null;
+  for (let i = lastSubRecoveryIdx + 1; i < bucketedData.length; i++) {
+    const status = getBucketStatus(bucketedData[i]?.[1]);
+    if (status === PreviewStatus.OK) {
+      openBarEndIdx = i;
+      break;
+    }
+  }
+
+  if (openBarStartIdx === null || openBarEndIdx === null || openBarEndIdx <= openBarStartIdx) {
+    return null;
+  }
+
+  // openBarEndIdx is the first OK bucket after recovery, so end at its start boundary.
+  const left = openBarStartIdx * bucketPixels - underscanStartOffset;
+  const right = openBarEndIdx * bucketPixels - underscanStartOffset;
   const width = right - left;
 
   if (width <= 0) {
@@ -195,10 +222,12 @@ function OpenPeriod({
         <OpenPeriodLabel>{t('New Open Period')}</OpenPeriodLabel>
       </OpenPeriodBar>
       <OpenPeriodCountLabel style={{left}}>
-        {failureCount} {tn('failed check-in', 'failed check-ins', failureCount)}
+        {failureCount + 1}{' '}
+        {tn('failed check-in', 'failed check-ins', failureCount)}
       </OpenPeriodCountLabel>
       <OpenPeriodCountLabel style={{left: right}}>
-        {successCount} {tn('success check-in', 'success check-ins', successCount)}
+        {successCount + 1}{' '}
+        {tn('success check-in', 'success check-ins', successCount)}
       </OpenPeriodCountLabel>
     </Fragment>
   );

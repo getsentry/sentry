@@ -42,24 +42,24 @@ class SampleScheduleBucketsTest(APITestCase):
         for i in range(26):
             assert buckets[i][0] == start + i * 3600
 
-        # First 3 padding ticks are OK
-        for i in range(0, 3):
+        # First 5 padding ticks are OK
+        for i in range(0, 5):
             assert buckets[i][1] == {"ok": 1}
 
-        # Next 2 are sub-failure errors (failure threshold)
-        for i in range(3, 5):
+        # Next 1 is a sub-failure error (failure threshold - 1)
+        for i in range(5, 6):
             assert buckets[i][1] == {"sub_failure_error": 1}
 
-        # Next 15 are ERROR (open period)
-        for i in range(5, 20):
+        # Next are ERROR (open period, plus any remainder after fixed segments)
+        for i in range(6, 19):
             assert buckets[i][1] == {"error": 1}
 
-        # Next 3 are sub-recovery OKs (recovery threshold)
-        for i in range(20, 23):
+        # Next 2 are sub-recovery OKs (recovery threshold - 1)
+        for i in range(19, 21):
             assert buckets[i][1] == {"sub_recovery_ok": 1}
 
-        # Next 3 padding ticks are OK
-        for i in range(23, 26):
+        # Next 5 padding ticks are OK
+        for i in range(21, 26):
             assert buckets[i][1] == {"ok": 1}
 
     @freeze_time("2023-10-26T12:32:25Z")
@@ -88,15 +88,15 @@ class SampleScheduleBucketsTest(APITestCase):
         for i in range(26):
             assert buckets[i][0] == start + i * interval
 
-        for i in range(0, 3):
+        for i in range(0, 5):
             assert buckets[i][1] == {"ok": 1}
-        for i in range(3, 5):
+        for i in range(5, 6):
             assert buckets[i][1] == {"sub_failure_error": 1}
-        for i in range(5, 20):
+        for i in range(6, 19):
             assert buckets[i][1] == {"error": 1}
-        for i in range(20, 23):
+        for i in range(19, 21):
             assert buckets[i][1] == {"sub_recovery_ok": 1}
-        for i in range(23, 26):
+        for i in range(21, 26):
             assert buckets[i][1] == {"ok": 1}
 
     @freeze_time("2023-10-26T12:32:25Z")
@@ -128,17 +128,17 @@ class SampleScheduleBucketsTest(APITestCase):
 
         expected_bucket_stats = [
             {"ok": 2},
+            {"ok": 2},
             {"ok": 1, "sub_failure_error": 1},
-            {"sub_failure_error": 1, "error": 1},
             {"error": 2},
             {"error": 2},
             {"error": 2},
             {"error": 2},
             {"error": 2},
             {"error": 2},
-            {"error": 2},
-            {"sub_recovery_ok": 2},
+            {"error": 1, "sub_recovery_ok": 1},
             {"sub_recovery_ok": 1, "ok": 1},
+            {"ok": 2},
             {"ok": 2},
         ]
 
