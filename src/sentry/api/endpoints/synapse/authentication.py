@@ -14,7 +14,7 @@ class SynapseSignatureAuthentication(HmacSignatureAuthentication):
     Requests are sent with an HMAC signed by SYNAPSE_HMAC_SECRET.
     """
 
-    token_name = b"Signature"
+    token_name = b"signature"
     shared_secret_setting_name = "SYNAPSE_HMAC_SECRET"
     service_name = "Synapse"
     sdk_tag_name = "synapse_auth"
