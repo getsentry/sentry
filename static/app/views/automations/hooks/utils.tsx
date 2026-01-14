@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {ActionType} from 'sentry/types/workflowEngine/actions';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation, StatusWarning} from 'sentry/types/workflowEngine/automations';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
