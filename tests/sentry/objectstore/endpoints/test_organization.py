@@ -167,7 +167,6 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     content_type="application/octet-stream",
                     follow=True,
-                    Authorization=auth_header,
                 )
                 assert_status_code(response, 201)
                 object_key = json.loads(b"".join(response.streaming_content))["key"]
