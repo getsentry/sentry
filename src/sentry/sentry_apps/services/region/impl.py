@@ -2,6 +2,7 @@ from typing import Any
 
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
@@ -96,6 +97,60 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 user=user,
             ).run()
         except (SentryAppIntegratorError, SentryAppSentryError) as e:
+            return RpcPlatformExternalIssueResult(
+                error=RpcSentryAppError(
+                    message=e.message,
+                    webhook_context=e.webhook_context,
+                    status_code=e.status_code,
+                )
+            )
+
+        return RpcPlatformExternalIssueResult(
+            external_issue=RpcPlatformExternalIssue(
+                id=str(external_issue.id),
+                issue_id=str(external_issue.group_id),
+                service_type=external_issue.service_type,
+                display_name=external_issue.display_name,
+                web_url=external_issue.web_url,
+            )
+        )
+
+    def create_external_issue(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        group_id: int,
+        web_url: str,
+        project: str,
+        identifier: str,
+    ) -> RpcPlatformExternalIssueResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issues.py @ POST
+        """
+        try:
+            group = Group.objects.get(
+                id=group_id,
+                project_id__in=Project.objects.filter(organization_id=organization_id),
+            )
+        except Group.DoesNotExist:
+            return RpcPlatformExternalIssueResult(
+                error=RpcSentryAppError(
+                    message="Could not find the corresponding issue for the given issueId",
+                    webhook_context={},
+                    status_code=404,
+                )
+            )
+
+        try:
+            external_issue = ExternalIssueCreator(
+                install=installation,
+                group=group,
+                web_url=web_url,
+                project=project,
+                identifier=identifier,
+            ).run()
+        except SentryAppSentryError as e:
             return RpcPlatformExternalIssueResult(
                 error=RpcSentryAppError(
                     message=e.message,
