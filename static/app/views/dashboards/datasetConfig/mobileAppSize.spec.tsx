@@ -136,7 +136,7 @@ describe('MobileAppSizeConfig', () => {
     it('makes request with correct dataset and yAxis', async () => {
       const api = new MockApiClient();
       const widget = WidgetFixture({
-        widgetType: WidgetType.MOBILE_APP_SIZE,
+        widgetType: WidgetType.PREPROD_APP_SIZE,
         queries: [
           {
             conditions: 'app_id:com.example.app',
@@ -180,7 +180,7 @@ describe('MobileAppSizeConfig', () => {
     it('includes topEvents and field params when columns are specified', async () => {
       const api = new MockApiClient();
       const widget = WidgetFixture({
-        widgetType: WidgetType.MOBILE_APP_SIZE,
+        widgetType: WidgetType.PREPROD_APP_SIZE,
         limit: 5,
         queries: [
           {

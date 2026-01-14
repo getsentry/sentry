@@ -111,7 +111,7 @@ function WidgetBuilderDatasetSelector() {
 
   if (organization.features.includes('preprod-app-size-dashboard')) {
     datasetOptions.push({
-      value: WidgetType.MOBILE_APP_SIZE,
+      value: WidgetType.PREPROD_APP_SIZE,
       label: t('Mobile Builds'),
       details: t('Mobile app size metrics'),
     });

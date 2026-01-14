@@ -292,7 +292,7 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
             ? typeof SpansConfig
             : T extends WidgetType.TRACEMETRICS
               ? typeof TraceMetricsConfig
-              : T extends WidgetType.MOBILE_APP_SIZE
+              : T extends WidgetType.PREPROD_APP_SIZE
                 ? typeof MobileAppSizeConfig
                 : typeof ErrorsAndTransactionsConfig;
 
@@ -323,7 +323,7 @@ export function getDatasetConfig(
       return SpansConfig;
     case WidgetType.TRACEMETRICS:
       return TraceMetricsConfig;
-    case WidgetType.MOBILE_APP_SIZE:
+    case WidgetType.PREPROD_APP_SIZE:
       return MobileAppSizeConfig;
     case WidgetType.DISCOVER:
     default:

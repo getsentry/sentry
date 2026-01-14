@@ -60,7 +60,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 };
 
 // TODO(telkins): Add MIN aggregation once backend support is added
-const MOBILE_APP_SIZE_AGGREGATIONS: Record<string, Aggregation> = {
+const PREPROD_APP_SIZE_AGGREGATIONS: Record<string, Aggregation> = {
   [AggregationKey.MAX]: {
     isSortable: true,
     outputType: null,
@@ -84,7 +84,7 @@ function getPrimaryFieldOptions(
     organization,
     tagKeys: [],
     fieldKeys: [],
-    aggregations: MOBILE_APP_SIZE_AGGREGATIONS,
+    aggregations: PREPROD_APP_SIZE_AGGREGATIONS,
   });
 
   // Only add numeric size fields for use in aggregate functions
