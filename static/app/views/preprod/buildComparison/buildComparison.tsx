@@ -21,7 +21,10 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 export default function BuildComparison() {
   const organization = useOrganization();
   const theme = useTheme();
-  const params = useParams() as {headId: string; baseId?: string};
+  const params = useParams<{
+    headId: string;
+    baseId?: string;
+  }>();
 
   const headArtifactId = params.headId;
   const baseArtifactId = params.baseId;

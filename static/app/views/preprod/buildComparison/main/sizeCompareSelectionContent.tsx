@@ -35,7 +35,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
   isSizeInfoCompleted,
@@ -64,21 +63,18 @@ export function SizeCompareSelectionContent({
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {projectId} = useParams<{
-    projectId: string;
-  }>();
+  const {project: projectId, cursor} = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      cursor: decodeScalar,
+    },
+  });
   const project = ProjectsStore.getBySlug(projectId);
   const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const {cursor} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-    },
-  });
 
   const queryParams: Record<string, any> = {
     per_page: 25,
