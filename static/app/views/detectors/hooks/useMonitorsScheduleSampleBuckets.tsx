@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -13,43 +14,22 @@ import {
 } from 'sentry/views/detectors/components/forms/cron/fields';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
-export type CheckInBucketStats = Record<string, number>;
-export type CheckInBucket = [bucketStartTs: number, stats: CheckInBucketStats];
-export type ScheduleSampleBucketsResponse = CheckInBucket[];
-
 interface UseMonitorsScheduleSampleBucketsOptions {
-  /**
-   * Bucket size in seconds (matches rollup config interval in the frontend).
-   */
+  end: number | undefined;
   interval: number | undefined;
-  /**
-   * Unix timestamp (seconds) for the first bucket in the window. For timeline
-   * preview this can be `timeWindowConfig.start` (includes underscan).
-   */
   start: number | undefined;
-  /**
-   * Optional unix timestamp (seconds) for end of bucket window. When provided,
-   * backend will generate buckets for the entire range [start, endTs].
-   */
-  endTs?: number | undefined;
-  /**
-   * Optional unix timestamp (seconds) for the first scheduled tick. Use this
-   * when `start` includes underscan (e.g. `timeWindowConfig.start`).
-   */
-  periodStart?: number | undefined;
-  /**
-   * Optional number of buckets in the main timeline (excluding underscan). When
-   * provided with periodStart, the backend will prepend ok buckets from start
-   * -> periodStart.
-   */
-  totalBuckets?: number | undefined;
+}
+
+export enum PreviewStatus {
+  OK = 'ok',
+  ERROR = 'error',
+  SUB_FAILURE_ERROR = 'sub_failure_error',
+  SUB_RECOVERY_OK = 'sub_recovery_ok',
 }
 
 export function useMonitorsScheduleSampleBuckets({
   start,
-  periodStart,
-  totalBuckets,
-  endTs,
+  end,
   interval,
 }: UseMonitorsScheduleSampleBucketsOptions) {
   const organization = useOrganization();
@@ -72,43 +52,40 @@ export function useMonitorsScheduleSampleBuckets({
   const recoveryThreshold =
     useCronDetectorFormField('recoveryThreshold') ?? CRON_DEFAULT_RECOVERY_THRESHOLD;
 
-  const schedule =
-    scheduleType === ScheduleType.INTERVAL
-      ? [scheduleIntervalValue, scheduleIntervalUnit]
-      : scheduleCrontab;
+  const query = useMemo(() => {
+    const schedule =
+      scheduleType === ScheduleType.INTERVAL
+        ? [scheduleIntervalValue, scheduleIntervalUnit]
+        : scheduleCrontab;
 
-  const query = useMemo(
-    () => ({
+    return {
       failure_issue_threshold: failureIssueThreshold,
       recovery_threshold: recoveryThreshold,
       schedule_type: scheduleType,
       timezone,
       schedule,
       start,
-      period_start: periodStart,
-      total_buckets: totalBuckets,
-      end: endTs,
+      end,
       interval,
-    }),
-    [
-      failureIssueThreshold,
-      interval,
-      recoveryThreshold,
-      schedule,
-      scheduleType,
-      start,
-      periodStart,
-      totalBuckets,
-      endTs,
-      timezone,
-    ]
-  );
+    };
+  }, [
+    failureIssueThreshold,
+    interval,
+    recoveryThreshold,
+    scheduleCrontab,
+    scheduleIntervalUnit,
+    scheduleIntervalValue,
+    scheduleType,
+    start,
+    end,
+    timezone,
+  ]);
 
-  return useApiQuery<ScheduleSampleBucketsResponse>(
+  return useApiQuery<Array<CheckInBucket<PreviewStatus>>>(
     [`/organizations/${organization.slug}/monitors-schedule-buckets/`, {query}],
     {
       staleTime: 0,
-      enabled: start !== undefined && interval !== undefined,
+      enabled: start !== undefined && end !== undefined && interval !== undefined,
       retry: false,
     }
   );
