@@ -285,3 +285,52 @@ class TestSentryAppRegionService(TestCase):
         with assume_test_silo_mode_of(ServiceHook):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert not ServiceHookProject.objects.filter(service_hook_id=hook.id).exists()
+
+    def test_record_interaction_sentry_app_viewed(self) -> None:
+        result = sentry_app_region_service.record_interaction(
+            organization_id=self.org.id,
+            sentry_app_id=self.sentry_app.id,
+            sentry_app_slug=self.sentry_app.slug,
+            tsdb_field="sentry_app_viewed",
+        )
+
+        assert result.success is True
+        assert result.error is None
+
+    def test_record_interaction_component_interacted(self) -> None:
+        result = sentry_app_region_service.record_interaction(
+            organization_id=self.org.id,
+            sentry_app_id=self.sentry_app.id,
+            sentry_app_slug=self.sentry_app.slug,
+            tsdb_field="sentry_app_component_interacted",
+            component_type="issue-link",
+        )
+
+        assert result.success is True
+        assert result.error is None
+
+    def test_record_interaction_invalid_tsdb_field(self) -> None:
+        result = sentry_app_region_service.record_interaction(
+            organization_id=self.org.id,
+            sentry_app_id=self.sentry_app.id,
+            sentry_app_slug=self.sentry_app.slug,
+            tsdb_field="invalid_field",
+        )
+
+        assert result.success is False
+        assert result.error is not None
+        assert result.error.status_code == 400
+        assert "tsdbField must be one of" in result.error.message
+
+    def test_record_interaction_missing_component_type(self) -> None:
+        result = sentry_app_region_service.record_interaction(
+            organization_id=self.org.id,
+            sentry_app_id=self.sentry_app.id,
+            sentry_app_slug=self.sentry_app.slug,
+            tsdb_field="sentry_app_component_interacted",
+        )
+
+        assert result.success is False
+        assert result.error is not None
+        assert result.error.status_code == 400
+        assert "componentType is required" in result.error.message

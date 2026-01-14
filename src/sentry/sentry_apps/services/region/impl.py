@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry import deletions
+from sentry import deletions, tsdb
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
@@ -20,7 +20,10 @@ from sentry.sentry_apps.services.region.model import (
 )
 from sentry.sentry_apps.services.region.service import SentryAppRegionService
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.tsdb.base import TSDBModel
 from sentry.users.services.user import RpcUser
+
+COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
 class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
@@ -341,5 +344,46 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
 
         hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
         deletions.exec_sync_many(list(hook_projects))
+
+        return RpcEmptyResult()
+
+    def record_interaction(
+        self,
+        *,
+        organization_id: int,
+        sentry_app_id: int,
+        sentry_app_slug: str,
+        tsdb_field: str,
+        component_type: str | None = None,
+    ) -> RpcEmptyResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ POST
+        """
+        model = getattr(TSDBModel, tsdb_field, None)
+
+        if model == TSDBModel.sentry_app_component_interacted:
+            if component_type is None or component_type not in COMPONENT_TYPES:
+                return RpcEmptyResult(
+                    success=False,
+                    error=RpcSentryAppError(
+                        message=f"The field componentType is required and must be one of {COMPONENT_TYPES}",
+                        webhook_context={},
+                        status_code=400,
+                    ),
+                )
+            key = f"{sentry_app_slug}:{component_type}"
+        elif model == TSDBModel.sentry_app_viewed:
+            key = sentry_app_id
+        else:
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="The tsdbField must be one of: sentry_app_viewed, sentry_app_component_interacted",
+                    webhook_context={},
+                    status_code=400,
+                ),
+            )
+
+        tsdb.backend.incr(model, key)
 
         return RpcEmptyResult()
