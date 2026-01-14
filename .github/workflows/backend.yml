@@ -312,7 +312,7 @@ jobs:
           fi
 
   migration-lockfile-guard:
-    if: needs.files-changed.outputs.migrations_added == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.migrations_added == 'true'
     needs: files-changed
     name: verify migration lockfile updated
     runs-on: ubuntu-24.04
