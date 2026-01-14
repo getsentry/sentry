@@ -54,7 +54,8 @@ export function useInitialMetricDetectorFormData(): Partial<MetricDetectorFormDa
     datasetConfig,
     organization
   );
-  const queryFromUrl = decodeScalar(location.query.query);
+  const queryFromUrl =
+    location.query.query === '' ? '' : decodeScalar(location.query.query);
   const defaultQuery = DEFAULT_THRESHOLD_METRIC_FORM_DATA.query ?? '';
   const query = queryFromUrl === undefined ? defaultQuery : queryFromUrl;
   const environmentFromUrl = decodeScalar(location.query.environment, '') ?? '';
