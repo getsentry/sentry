@@ -93,27 +93,27 @@ Required context variables:
           return port2;
         }
 
-        function getCookieValue(cookie, domain) {
-          return `${cookie}; domain=${domain}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
+        function makeCookieValue(name, value, domain, maxAge) {
+          return `${name}=${value}; domain=${domain}; path=/; max-age=${maxAge || 31536000}; SameSite=none; partitioned; secure`;
         }
 
         function clearCookies() {
           document.cookie.split(';').forEach(cookie => {
             const name = cookie.split('=')[0].trim();
-            document.cookie = getCookieValue(`${name}=`, window.location.hostname);
-            document.cookie = getCookieValue(`${name}=`, regionUrl);
+            document.cookie = makeCookieValue(name, '', window.location.hostname, 0);
+            document.cookie = makeCookieValue(name, '', regionUrl, 0);
           });
         }
 
         const loginWindowMessageDispatch = {
           'did-login': ({ sessionCookieName, sessionCookieValue, csrfCookieName, csrfToken, token }) => {
             if (sessionCookieName && sessionCookieValue) {
-              document.cookie = getCookieValue(`${sessionCookieName}=${sessionCookieValue}`, window.location.hostname);
+              document.cookie = makeCookieValue(sessionCookieName, sessionCookieValue, window.location.hostname);
               log('Saved session cookie', document.cookie.indexOf(sessionCookieName) >= 0);
             }
             if (csrfCookieName && csrfToken) {
               sessionStorage.setItem('csrfToken', csrfToken);
-              document.cookie = getCookieValue(`${csrfCookieName}=${csrfToken}`, window.location.hostname)
+              document.cookie = makeCookieValue(csrfCookieName, csrfToken, window.location.hostname)
               log('Saved CSRF token', document.cookie.indexOf(csrfCookieName) >= 0);
             }
             if (token) {
