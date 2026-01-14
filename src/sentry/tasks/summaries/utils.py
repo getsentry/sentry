@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any, cast
 
@@ -20,7 +21,10 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import TeamStatus
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
@@ -74,6 +78,8 @@ class ProjectContext:
     dropped_transaction_count = 0
     accepted_replay_count = 0
     dropped_replay_count = 0
+    accepted_log_count = 0
+    dropped_log_count = 0
 
     new_substatus_count = 0
     ongoing_substatus_count = 0
@@ -99,6 +105,14 @@ class ProjectContext:
         self.transaction_count_by_day = {}
         # Dictionary of { timestamp: count }
         self.replay_count_by_day = {}
+        # Dictionary of { timestamp: count }
+        self.log_count_by_day = {}
+
+        # Log data
+        # Tuple of (severity, message, count)
+        self.key_error_logs: list[tuple[str, str, int]] = []
+        # Dictionary of { severity: count }
+        self.log_volume_by_severity = {}
 
     def __repr__(self) -> str:
         return "\n".join(
@@ -107,6 +121,7 @@ class ProjectContext:
                 f"Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]",
                 f"Transactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]",
                 f"Replays: [Accepted {self.accepted_replay_count} Dropped {self.dropped_replay_count}]",
+                f"Logs: [Accepted {self.accepted_log_count} Dropped {self.dropped_log_count}]",
             ]
         )
 
@@ -121,6 +136,8 @@ class ProjectContext:
             and not self.dropped_transaction_count
             and not self.accepted_replay_count
             and not self.dropped_replay_count
+            and not self.accepted_log_count
+            and not self.dropped_log_count
         )
 
 
@@ -465,6 +482,130 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         if item["substatus"] == GroupSubStatus.REGRESSED:
             project_ctx.regression_substatus_count = item["total"]
         project_ctx.total_substatus_count += item["total"]
+
+
+def project_log_volume_timeseries(
+    ctx: OrganizationReportContext, project_ids: Sequence[int], referrer: str
+) -> dict[int, dict[int, int]]:
+    """
+    Query log volume by day for all projects in the organization.
+    Returns {project_id: {timestamp: count}}
+    """
+    with sentry_sdk.start_span(op="weekly_reports.project_log_volume_timeseries"):
+        snuba_params = SnubaParams(
+            start=ctx.start,
+            end=ctx.end,
+            organization_id=ctx.organization.id,
+            project_ids=list(project_ids),
+            granularity_secs=ONE_DAY,
+        )
+
+        try:
+            result = OurLogs.run_timeseries_query(
+                params=snuba_params,
+                query_string="",  # No filtering, get all logs
+                y_axes=["count()"],
+                referrer=referrer,
+                config=SearchResolverConfig(use_aggregate_conditions=False),
+            )
+
+            log_counts_by_project: dict[int, dict[int, int]] = {}
+            for row in result.data:
+                project_id = row.get("project.id")
+                timestamp = int(row.get("time", 0) / 1000)  # Convert ms to seconds
+                count = row.get("count()", 0)
+
+                if project_id and timestamp:
+                    if project_id not in log_counts_by_project:
+                        log_counts_by_project[project_id] = {}
+                    log_counts_by_project[project_id][timestamp] = count
+
+            return log_counts_by_project
+        except Exception:
+            # If logs querying fails, return empty dict
+            return {}
+
+
+def project_log_volume_by_severity(
+    ctx: OrganizationReportContext, project_ids: Sequence[int], referrer: str
+) -> dict[int, dict[str, int]]:
+    """
+    Query log counts by severity level for projects.
+    Returns {project_id: {severity: count}}
+    """
+    with sentry_sdk.start_span(op="weekly_reports.project_log_volume_by_severity"):
+        snuba_params = SnubaParams(
+            start=ctx.start,
+            end=ctx.end,
+            organization_id=ctx.organization.id,
+            project_ids=list(project_ids),
+        )
+
+        try:
+            severity_counts: dict[int, dict[str, int]] = {}
+
+            for severity in ["error", "fatal", "warning", "info", "debug"]:
+                result = OurLogs.run_timeseries_query(
+                    params=snuba_params,
+                    query_string=f"severity:{severity}",
+                    y_axes=["count()"],
+                    referrer=referrer,
+                    config=SearchResolverConfig(use_aggregate_conditions=False),
+                )
+
+                for row in result.data:
+                    project_id = row.get("project.id")
+                    count = row.get("count()", 0)
+
+                    if project_id:
+                        if project_id not in severity_counts:
+                            severity_counts[project_id] = {}
+                        severity_counts[project_id][severity] = (
+                            severity_counts[project_id].get(severity, 0) + count
+                        )
+
+            return severity_counts
+        except Exception:
+            return {}
+
+
+def project_key_error_logs(
+    ctx: OrganizationReportContext, project: Project, referrer: str
+) -> list[tuple[str, str, int]]:
+    """
+    Query top error/fatal log messages for a project.
+    Returns list of (severity, message, count) tuples.
+    """
+    with sentry_sdk.start_span(op="weekly_reports.project_key_error_logs"):
+        snuba_params = SnubaParams(
+            start=ctx.start,
+            end=ctx.end,
+            organization_id=ctx.organization.id,
+            project_ids=[project.id],
+        )
+
+        try:
+            result = OurLogs.run_table_query(
+                params=snuba_params,
+                query_string="severity:[error,fatal]",
+                selected_columns=["message", "severity"],
+                orderby=["-count"],
+                offset=0,
+                limit=5,
+                referrer=referrer,
+                config=SearchResolverConfig(use_aggregate_conditions=False),
+            )
+
+            key_logs = []
+            for row in result.data:
+                message = row.get("message", "")[:100]  # Truncate long messages
+                severity = row.get("severity", "error")
+                count = row.get("count", 0)
+                key_logs.append((severity, message, count))
+
+            return key_logs
+        except Exception:
+            return []
 
 
 def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:

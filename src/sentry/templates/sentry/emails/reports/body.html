@@ -371,6 +371,43 @@
       </td>
     {% endif %}
 
+    {% if trends.total_log_count > 0 %}
+    <td class="project-breakdown-graph-cell logs">
+      <h4 class="total-count-title">Total Project Logs</h4>
+      <h1 style="margin: 0;" class="total-count">{{ trends.total_log_count|small_count:1 }}</h1>
+      <a href="{% org_url organization '/' %}"
+        style="font-size: 12px; margin-bottom: 16px; display: block;">View Logs</a>
+      <table class="graph">
+        <tr>
+          {% for timestamp, project_values in trends.series %}
+          <td valign="bottom" class="bar"
+            style="height: {{ height }}px; width: {% widthratio 1 trends.series|length 100 %}%">
+            <table class="bar">
+              {% for project_value in project_values %}
+              <tr>
+                <td height="{% widthratio project_value.log_count trends.log_maximum height %}"
+                  style="background-color: {{ project_value.color }};">&nbsp;</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td height="1" style="background-color: #ebe9f7;"></td>
+              </tr>
+              {% endfor %}
+            </table>
+          </td>
+          {% endfor %}
+        </tr>
+        <tr>
+          {% for timestamp, project_values in trends.series %}
+          <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
+            {{ timestamp|date:"D" }}
+          </td>
+          {% endfor %}
+        </tr>
+      </table>
+    </td>
+    {% endif %}
+
     </tr></tbody></table>
 
     <table class="summary">
@@ -382,6 +419,8 @@
           <th style="width: 5em;" class="numeric col-dropped col-errors-dropped">Dropped</th>
           <th style="width: 7em;" class="numeric">Transactions</th>
           <th style="width: 7em;" class="numeric col-dropped">Dropped</th>
+          <th style="width: 5em;" class="numeric">Logs</th>
+          <th style="width: 5em;" class="numeric col-dropped">Dropped</th>
         </tr>
       </thead>
       <tbody>
@@ -391,12 +430,14 @@
               {% if project.color %}<span style="background: {{ project.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
           </td>
           <td>
-              {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
+              {% if project.url %}<a href="{{ project.url %}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
           </td>
           <td class="numeric">{{ project.accepted_error_count|small_count:1 }}</td>
           <td class="numeric col-dropped col-errors-dropped">{{ project.dropped_error_count|small_count:1 }}</td>
           <td class="numeric">{{ project.accepted_transaction_count|small_count:1 }}</td>
           <td class="numeric col-dropped">{{ project.dropped_transaction_count|small_count:1 }}</td>
+          <td class="numeric">{{ project.accepted_log_count|small_count:1 }}</td>
+          <td class="numeric col-dropped">{{ project.dropped_log_count|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -512,6 +553,80 @@
         <div style="font-size: 12px; color: #80708F;">{{a.group.get_type_display}}</div>
       </div>
       <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if log_volume_by_severity.total_count > 0 %}
+  <div id="log-volume-by-severity">
+    <h4>Log Volume by Severity</h4>
+    <table style="width: 100%; margin-bottom: 20px;">
+      <tr>
+        <td style="padding: 4px 0;">
+          <div style="display: flex; align-items: center;">
+            <span style="width: 80px; font-size: 12px;">ERROR</span>
+            <div style="flex: 1; height: 20px; background-color: #f55459; border-radius: 2px; max-width: {% widthratio log_volume_by_severity.error_count log_volume_by_severity.total_count 400 %}px;">
+              <span style="color: white; padding-left: 8px; font-size: 12px; line-height: 20px;">{{ log_volume_by_severity.error_count|small_count:1 }}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 4px 0;">
+          <div style="display: flex; align-items: center;">
+            <span style="width: 80px; font-size: 12px;">FATAL</span>
+            <div style="flex: 1; height: 20px; background-color: #d1021c; border-radius: 2px; max-width: {% widthratio log_volume_by_severity.fatal_count log_volume_by_severity.total_count 400 %}px;">
+              <span style="color: white; padding-left: 8px; font-size: 12px; line-height: 20px;">{{ log_volume_by_severity.fatal_count|small_count:1 }}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 4px 0;">
+          <div style="display: flex; align-items: center;">
+            <span style="width: 80px; font-size: 12px;">WARNING</span>
+            <div style="flex: 1; height: 20px; background-color: #f2b712; border-radius: 2px; max-width: {% widthratio log_volume_by_severity.warning_count log_volume_by_severity.total_count 400 %}px;">
+              <span style="color: white; padding-left: 8px; font-size: 12px; line-height: 20px;">{{ log_volume_by_severity.warning_count|small_count:1 }}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 4px 0;">
+          <div style="display: flex; align-items: center;">
+            <span style="width: 80px; font-size: 12px;">INFO</span>
+            <div style="flex: 1; height: 20px; background-color: #2788ce; border-radius: 2px; max-width: {% widthratio log_volume_by_severity.info_count log_volume_by_severity.total_count 400 %}px;">
+              <span style="color: white; padding-left: 8px; font-size: 12px; line-height: 20px;">{{ log_volume_by_severity.info_count|small_count:1 }}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 4px 0;">
+          <div style="display: flex; align-items: center;">
+            <span style="width: 80px; font-size: 12px;">DEBUG</span>
+            <div style="flex: 1; height: 20px; background-color: #80708f; border-radius: 2px; max-width: {% widthratio log_volume_by_severity.debug_count log_volume_by_severity.total_count 400 %}px;">
+              <span style="color: white; padding-left: 8px; font-size: 12px; line-height: 20px;">{{ log_volume_by_severity.debug_count|small_count:1 }}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if key_error_logs|length > 0 %}
+  <div id="key-error-logs">
+    <h4>Most Frequent Error Logs</h4>
+    {% for log in key_error_logs %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{log.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        <div style="display: block; font-size: 14px; font-family: monospace; white-space: pre-wrap; word-break: break-word; color: #2e2733;">{{log.message}}</div>
+        <div style="font-size: 12px; color: #80708F; margin-top: 4px;">{{log.project.name}}</div>
+      </div>
+      <span style="background-color: #f55459; color: white; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%; text-transform: uppercase;">{{log.severity}}</span>
     </div>
     {% endfor %}
   </div>

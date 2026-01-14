@@ -828,6 +828,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             "dropped_replay_count": 0,
             "dropped_transaction_count": 9,
             "accepted_transaction_count": 3,
+            "dropped_log_count": 0,
+            "accepted_log_count": 0,
         }
 
         assert ctx["trends"]["series"][-2][1][0] == {
@@ -835,6 +837,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             "error_count": 1,
             "replay_count": 0,
             "transaction_count": 3,
+            "log_count": 0,
         }
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
@@ -1308,3 +1311,43 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             message_params = call_args.kwargs
             context = message_params["context"]
             assert len(context["trends"]["legend"]) == 0
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_log_fields_in_context(self, message_builder: mock.MagicMock) -> None:
+        """Verify log fields are present in template context even with no log data."""
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=5
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        message_params = message_builder.call_args.kwargs
+        ctx = message_params["context"]
+
+        # Verify trends include log fields
+        assert "total_log_count" in ctx["trends"]
+        assert "log_maximum" in ctx["trends"]
+
+        # Verify legend includes log counts (should be 0 with no log data)
+        legend = ctx["trends"]["legend"][0]
+        assert "accepted_log_count" in legend
+        assert "dropped_log_count" in legend
+        assert legend["accepted_log_count"] == 0
+        assert legend["dropped_log_count"] == 0
+
+        # Verify series includes log counts
+        series_data = ctx["trends"]["series"][0][1][0]
+        assert "log_count" in series_data
+        assert series_data["log_count"] == 0
+
+        # Verify log-specific sections exist
+        assert "key_error_logs" in ctx
+        assert "log_volume_by_severity" in ctx
+        assert isinstance(ctx["key_error_logs"], list)
+        assert isinstance(ctx["log_volume_by_severity"], dict)
+
+        # With no log data, these should be empty
+        assert len(ctx["key_error_logs"]) == 0
+        assert ctx["log_volume_by_severity"]["total_count"] == 0

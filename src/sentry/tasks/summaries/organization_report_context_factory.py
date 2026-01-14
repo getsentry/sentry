@@ -12,10 +12,13 @@ from sentry.tasks.summaries.utils import (
     fetch_key_performance_issue_groups,
     organization_project_issue_substatus_summaries,
     project_event_counts_for_organization,
+    project_key_error_logs,
     project_key_errors,
     project_key_performance_issues,
     project_key_transactions_last_week,
     project_key_transactions_this_week,
+    project_log_volume_by_severity,
+    project_log_volume_timeseries,
 )
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
@@ -159,6 +162,44 @@ class OrganizationReportContextFactory:
         with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
             fetch_key_performance_issue_groups(ctx)
 
+    def _append_project_log_data(self, ctx: OrganizationReportContext) -> None:
+        with sentry_sdk.start_span(op="weekly_reports.project_log_data"):
+            project_ids = list(ctx.projects_context_map.keys())
+
+            # Query log volume timeseries
+            log_counts_by_project = project_log_volume_timeseries(
+                ctx, project_ids, Referrer.REPORTS_KEY_LOGS.value
+            )
+
+            for project_id, counts_by_day in log_counts_by_project.items():
+                if project_id in ctx.projects_context_map:
+                    project_ctx = ctx.projects_context_map[project_id]
+                    if isinstance(project_ctx, ProjectContext):
+                        for timestamp, count in counts_by_day.items():
+                            project_ctx.log_count_by_day[timestamp] = count
+                            project_ctx.accepted_log_count += count
+
+            # Query log volume by severity
+            severity_counts = project_log_volume_by_severity(
+                ctx, project_ids, Referrer.REPORTS_KEY_LOGS.value
+            )
+
+            for project_id, severities in severity_counts.items():
+                if project_id in ctx.projects_context_map:
+                    project_ctx = ctx.projects_context_map[project_id]
+                    if isinstance(project_ctx, ProjectContext):
+                        project_ctx.log_volume_by_severity = severities
+
+            # Query top error logs for each project
+            for project in ctx.organization.project_set.all():
+                if project.id in ctx.projects_context_map:
+                    key_logs = project_key_error_logs(
+                        ctx, project, Referrer.REPORTS_KEY_LOGS.value
+                    )
+                    project_ctx = ctx.projects_context_map[project.id]
+                    if isinstance(project_ctx, ProjectContext) and key_logs:
+                        project_ctx.key_error_logs = key_logs
+
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
         self._append_user_project_ownership(ctx)
@@ -167,4 +208,5 @@ class OrganizationReportContextFactory:
         self._append_project_key_errors(ctx)
         self._hydrate_key_error_groups(ctx)
         self._hydrate_key_performance_issue_groups(ctx)
+        self._append_project_log_data(ctx)
         return ctx

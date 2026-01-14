@@ -506,10 +506,12 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     project_ctx.dropped_transaction_count,
                     project_ctx.accepted_replay_count,
                     project_ctx.dropped_replay_count,
+                    project_ctx.accepted_log_count,
+                    project_ctx.dropped_log_count,
                 )
                 for project_ctx in project_ctxs
             ]
-            return tuple(sum(event[i] for event in event_counts) for i in range(6))
+            return tuple(sum(event[i] for event in event_counts) for i in range(8))
 
         # Highest volume projects go first
         projects_associated_with_user = sorted(
@@ -525,6 +527,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             total_dropped_transaction,
             total_replays,
             total_dropped_replays,
+            total_logs,
+            total_dropped_logs,
         ) = sum_event_counts(projects_associated_with_user)
 
         # The number of reports to keep is the same as the number of colors
@@ -547,6 +551,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                 "accepted_transaction_count": project_ctx.accepted_transaction_count,
                 "dropped_replay_count": project_ctx.dropped_replay_count,
                 "accepted_replay_count": project_ctx.accepted_replay_count,
+                "dropped_log_count": project_ctx.dropped_log_count,
+                "accepted_log_count": project_ctx.accepted_log_count,
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -559,6 +565,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                 others_dropped_transaction,
                 others_replays,
                 others_dropped_replays,
+                others_logs,
+                others_dropped_logs,
             ) = sum_event_counts(projects_not_taken)
             legend.append(
                 {
@@ -570,6 +578,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     "accepted_transaction_count": others_transaction,
                     "dropped_replay_count": others_dropped_replays,
                     "accepted_replay_count": others_replays,
+                    "dropped_log_count": others_dropped_logs,
+                    "accepted_log_count": others_logs,
                 }
             )
         if len(projects_taken) > 1:
@@ -583,6 +593,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     "accepted_transaction_count": total_transaction,
                     "dropped_replay_count": total_dropped_replays,
                     "accepted_replay_count": total_replays,
+                    "dropped_log_count": total_dropped_logs,
+                    "accepted_log_count": total_logs,
                 }
             )
 
@@ -596,6 +608,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
                     "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
                     "replay_count": project_ctx.replay_count_by_day.get(t, 0),
+                    "log_count": project_ctx.log_count_by_day.get(t, 0),
                 }
                 for i, project_ctx in enumerate(projects_taken)
             ]
@@ -615,6 +628,10 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                             project_ctx.replay_count_by_day.get(t, 0)
                             for project_ctx in projects_not_taken
                         ),
+                        "log_count": sum(
+                            project_ctx.log_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
+                        ),
                     }
                 )
             series.append((to_datetime(t), project_series))
@@ -624,6 +641,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_error_count": total_error,
             "total_transaction_count": total_transaction,
             "total_replay_count": total_replays,
+            "total_log_count": total_logs,
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
@@ -633,6 +651,13 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "replay_maximum": (
                 max(  # The max replay count on any single day
                     sum(value["replay_count"] for value in values) for timestamp, values in series
+                )
+                if len(projects_taken) > 0
+                else 0
+            ),
+            "log_maximum": (
+                max(  # The max log count on any single day
+                    sum(value["log_count"] for value in values) for timestamp, values in series
                 )
                 if len(projects_taken) > 0
                 else 0
@@ -720,6 +745,42 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_substatus_count": total_substatus_count,
         }
 
+    def key_error_logs():
+        def all_key_error_logs():
+            for project_ctx in user_projects:
+                for severity, message, count in project_ctx.key_error_logs:
+                    yield {
+                        "severity": severity,
+                        "message": message,
+                        "count": count,
+                        "project": project_ctx.project,
+                    }
+
+        return heapq.nlargest(5, all_key_error_logs(), lambda d: d["count"])
+
+    def log_volume_by_severity():
+        error_count = 0
+        fatal_count = 0
+        warning_count = 0
+        info_count = 0
+        debug_count = 0
+        for project_ctx in user_projects:
+            error_count += project_ctx.log_volume_by_severity.get("error", 0)
+            fatal_count += project_ctx.log_volume_by_severity.get("fatal", 0)
+            warning_count += project_ctx.log_volume_by_severity.get("warning", 0)
+            info_count += project_ctx.log_volume_by_severity.get("info", 0)
+            debug_count += project_ctx.log_volume_by_severity.get("debug", 0)
+
+        total = error_count + fatal_count + warning_count + info_count + debug_count
+        return {
+            "error_count": error_count,
+            "fatal_count": fatal_count,
+            "warning_count": warning_count,
+            "info_count": info_count,
+            "debug_count": debug_count,
+            "total_count": total,
+        }
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -729,6 +790,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
         "issue_summary": issue_summary(),
+        "key_error_logs": key_error_logs(),
+        "log_volume_by_severity": log_volume_by_severity(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
     }

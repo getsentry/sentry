@@ -786,6 +786,7 @@ class Referrer(StrEnum):
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
     REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
+    REPORTS_KEY_LOGS = "reports.key_logs"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
     DAILY_SUMMARY_KEY_ERRORS = "daily_summary.key_errors"
