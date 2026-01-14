@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Iterator
 from typing import Any
 from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
@@ -100,7 +100,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         return stream_response(response)
 
 
-def get_raw_body(request: HttpRequest) -> Generator[bytes] | ChunkedEncodingDecoder | None:
+def get_raw_body(
+    request: HttpRequest,
+) -> Generator[bytes] | ChunkedEncodingDecoder | _body_with_length | None:
     wsgi_input = request.META.get("wsgi.input")
     if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
         return wsgi_input
@@ -124,9 +126,15 @@ def get_raw_body(request: HttpRequest) -> Generator[bytes] | ChunkedEncodingDeco
 
         return wsgi_input
 
-    # This assumes wsgiref, used in dev/test mode.
-    # Note that we don't handle non-chunked transfer encoding here as our client (which we use for tests) always uses chunked encoding.
-    return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+    # wsgiref (dev/test server)
+    if (
+        hasattr(wsgi_input, "_read")
+        and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
+    ):
+        return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+
+    # wsgiref and the request has been already proxied through control silo
+    return _body_with_length(request)
 
 
 def get_target_url(path: str) -> str:
@@ -138,6 +146,22 @@ def get_target_url(path: str) -> str:
     # It's responsibility of Objectstore to deal with them correctly
     target = base + "/" + path
     return target
+
+
+class _body_with_length:
+    """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
+
+    def __init__(self, request: HttpRequest):
+        self.request = request
+
+    def __iter__(self) -> Iterator[bytes]:
+        return iter(self.request)
+
+    def __len__(self) -> int:
+        return int(self.request.headers.get("Content-Length", "0"))
+
+    def read(self, size: int | None = None) -> bytes:
+        return self.request.read(size)
 
 
 def stream_response(external_response: ExternalResponse) -> StreamingHttpResponse:
