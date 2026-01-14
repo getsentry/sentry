@@ -137,9 +137,18 @@ type ContainerPropsWithChildren<T extends ContainerElement = 'div'> =
     children?: React.ReactNode;
     htmlFor?: T extends 'label' ? string : never;
     ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
-  } & React.DetailedHTMLProps<
-      React.HTMLAttributes<HTMLElementTagNameMap[T]>,
-      HTMLElementTagNameMap[T]
+    /**
+     * Deprecated in favor of the Container component API.
+     * If you have an is an unsupported use-case, please contact design engineering for support.
+     * @deprecated
+     */
+    style?: React.CSSProperties;
+  } & Omit<
+      React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+        HTMLElementTagNameMap[T]
+      >,
+      'style'
     >;
 
 type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
@@ -148,6 +157,12 @@ type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
     as?: never;
     htmlFor?: never;
     ref?: never;
+    /**
+     * Deprecated in favor of the Container component API.
+     * If you have an is an unsupported use-case, please contact design engineering for support.
+     * @deprecated
+     */
+    style?: React.CSSProperties;
   } & Partial<
       Record<
         // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
@@ -157,7 +172,7 @@ type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
             React.HTMLAttributes<HTMLElementTagNameMap[T]>,
             HTMLElementTagNameMap[T]
           >,
-          'children'
+          'children' | 'style'
         >,
         never
       >
