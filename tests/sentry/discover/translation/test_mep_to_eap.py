@@ -24,11 +24,19 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
         ),
         pytest.param(
             "!foo:true OR transaction.duration:11",
-            "(!foo:true OR span.duration:11) AND is_transaction:1",
+            "(!(tags[foo,boolean]:true OR tags[foo,number]:1 OR foo:true) OR span.duration:11) AND is_transaction:1",
         ),
         pytest.param(
             "foo:true OR transaction.duration:11",
-            "((tags[foo,number]:1 OR foo:true) OR span.duration:11) AND is_transaction:1",
+            "((tags[foo,boolean]:true OR tags[foo,number]:1 OR foo:true) OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
+            "foo:false OR transaction.duration:11",
+            "((tags[foo,boolean]:false OR tags[foo,number]:0 OR foo:false) OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
+            "tags[test_bool,boolean]:true",
+            "(tags[test_bool,boolean]:true) AND is_transaction:1",
         ),
         pytest.param(
             "has:transaction.duration OR has:measurements.lcp",

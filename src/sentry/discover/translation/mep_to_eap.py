@@ -237,16 +237,19 @@ class TranslationVisitor(NodeVisitor):
             if flattened_parsed_val_str in ["0", "1"]:
                 new_parsed_key = [f"tags[{flattened_parsed_key_str},number]"]
                 children[1] = new_parsed_key
-
                 return children or node.text
 
-            flattened_parsed_val_num = None
-            if negation == "":
-                if flattened_parsed_val_str.lower() == "true":
-                    flattened_parsed_val_num = "1"
-                elif flattened_parsed_val_str.lower() == "false":
-                    flattened_parsed_val_num = "0"
-                return f"(tags[{flattened_parsed_key_str},number]:{flattened_parsed_val_num if flattened_parsed_val_num is not None else flattened_parsed_val_str} OR {flattened_parsed_key_str}:{flattened_parsed_val_str})"
+            # Handle true/false values with backwards compatible OR pattern
+            # Supports: tags[key,boolean], tags[key,number], and raw key formats
+            if flattened_parsed_val_str.lower() in ["true", "false"]:
+                flattened_parsed_val_num = (
+                    "1" if flattened_parsed_val_str.lower() == "true" else "0"
+                )
+                if negation == "":
+                    return f"(tags[{flattened_parsed_key_str},boolean]:{flattened_parsed_val_str} OR tags[{flattened_parsed_key_str},number]:{flattened_parsed_val_num} OR {flattened_parsed_key_str}:{flattened_parsed_val_str})"
+                else:
+                    # For negated filters, apply negation to the whole OR group
+                    return f"!(tags[{flattened_parsed_key_str},boolean]:{flattened_parsed_val_str} OR tags[{flattened_parsed_key_str},number]:{flattened_parsed_val_num} OR {flattened_parsed_key_str}:{flattened_parsed_val_str})"
 
         return children or node.text
 

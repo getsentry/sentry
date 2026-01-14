@@ -143,6 +143,33 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
                 {"key": "span.duration", "name": "span.duration"},
             ]
 
+    def test_tags_list_boolean(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            is_eap=True,
+        )
+
+        for features in [
+            None,  # use the default features
+            ["organizations:performance-trace-explorer"],
+        ]:
+            response = self.do_request(
+                features=features,
+                query={"dataset": "spans", "type": "boolean", "process": 1},
+            )
+            assert response.status_code == 200, response.data
+            # is_transaction is a known boolean field on spans
+            assert {"key": "is_transaction", "name": "is_transaction"} in response.data
+
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-spans-fields-values"
