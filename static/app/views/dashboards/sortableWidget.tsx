@@ -151,7 +151,12 @@ function SortableWidget(props: Props) {
   };
 
   return (
-    <GridWidgetWrapper ref={widgetRef} onClick={onWidgetClick} isClickable={hasSlideout}>
+    <GridWidgetWrapper
+      ref={widgetRef}
+      onClick={onWidgetClick}
+      isClickable={hasSlideout}
+      data-test-id="sortable-widget"
+    >
       <DashboardsMEPProvider>
         <LazyRender containerHeight={200} withoutContainer>
           <WidgetCard {...widgetProps} />
