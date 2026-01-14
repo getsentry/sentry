@@ -24,7 +24,7 @@ from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.project import Project
-from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT, MIN_THRESHOLD
+from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
 from sentry.monitors.models import (
     MONITOR_CONFIG,
@@ -208,18 +208,18 @@ class ConfigValidator(serializers.Serializer):
     failure_issue_threshold = EmptyIntegerField(
         required=False,
         allow_null=True,
-        default=MIN_THRESHOLD,
+        default=None,
         help_text="How many consecutive missed or failed check-ins in a row before creating a new issue.",
-        min_value=MIN_THRESHOLD,
+        min_value=1,
         max_value=MAX_THRESHOLD,
     )
 
     recovery_threshold = EmptyIntegerField(
         required=False,
         allow_null=True,
-        default=MIN_THRESHOLD,
+        default=None,
         help_text="How many successful check-ins in a row before resolving an issue.",
-        min_value=MIN_THRESHOLD,
+        min_value=1,
         max_value=MAX_THRESHOLD,
     )
 

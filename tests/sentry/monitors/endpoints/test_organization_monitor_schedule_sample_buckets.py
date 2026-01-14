@@ -46,16 +46,16 @@ class SampleScheduleBucketsTest(APITestCase):
         for i in range(0, 5):
             assert buckets[i][1] == {"ok": 1}
 
-        # Next 2 are sub-failure errors (failure threshold)
-        for i in range(5, 7):
+        # Next 1 is a sub-failure error (failure threshold - 1)
+        for i in range(5, 6):
             assert buckets[i][1] == {"sub_failure_error": 1}
 
-        # Next 11 are ERROR (open period + remaining window)
-        for i in range(7, 18):
+        # Next are ERROR (open period, plus any remainder after fixed segments)
+        for i in range(6, 19):
             assert buckets[i][1] == {"error": 1}
 
-        # Next 3 are sub-recovery OKs (recovery threshold)
-        for i in range(18, 21):
+        # Next 2 are sub-recovery OKs (recovery threshold - 1)
+        for i in range(19, 21):
             assert buckets[i][1] == {"sub_recovery_ok": 1}
 
         # Next 5 padding ticks are OK
@@ -90,11 +90,11 @@ class SampleScheduleBucketsTest(APITestCase):
 
         for i in range(0, 5):
             assert buckets[i][1] == {"ok": 1}
-        for i in range(5, 7):
+        for i in range(5, 6):
             assert buckets[i][1] == {"sub_failure_error": 1}
-        for i in range(7, 18):
+        for i in range(6, 19):
             assert buckets[i][1] == {"error": 1}
-        for i in range(18, 21):
+        for i in range(19, 21):
             assert buckets[i][1] == {"sub_recovery_ok": 1}
         for i in range(21, 26):
             assert buckets[i][1] == {"ok": 1}
@@ -130,13 +130,13 @@ class SampleScheduleBucketsTest(APITestCase):
             {"ok": 2},
             {"ok": 2},
             {"ok": 1, "sub_failure_error": 1},
-            {"sub_failure_error": 1, "error": 1},
             {"error": 2},
             {"error": 2},
             {"error": 2},
             {"error": 2},
             {"error": 2},
-            {"sub_recovery_ok": 2},
+            {"error": 2},
+            {"error": 1, "sub_recovery_ok": 1},
             {"sub_recovery_ok": 1, "ok": 1},
             {"ok": 2},
             {"ok": 2},

@@ -16,6 +16,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.monitors.constants import (
+    MIN_THRESHOLD,
     SAMPLE_OPEN_PERIOD_RATIO,
     SAMPLE_PADDING_RATIO_OF_THRESHOLD,
     SAMPLE_PADDING_TICKS_MIN_COUNT,
@@ -53,8 +54,8 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         config = validator.validated_data
-        failure_threshold = config.get("failure_issue_threshold")
-        recovery_threshold = config.get("recovery_threshold")
+        failure_threshold = config.get("failure_issue_threshold", MIN_THRESHOLD)
+        recovery_threshold = config.get("recovery_threshold", MIN_THRESHOLD)
 
         num_ticks = _get_num_ticks(
             failure_threshold=failure_threshold,

@@ -10,7 +10,6 @@ from sentry import analytics
 from sentry.analytics.events.cron_monitor_broken_status_recovery import (
     CronMonitorBrokenStatusRecovery,
 )
-from sentry.monitors.constants import MIN_THRESHOLD
 from sentry.monitors.logic.incident_occurrence import (
     dispatch_incident_occurrence,
     resolve_incident_group,
@@ -55,9 +54,7 @@ def try_incident_threshold(
 
     monitor_env = failed_checkin.monitor_environment
 
-    failure_issue_threshold = monitor_env.monitor.config.get(
-        "failure_issue_threshold", MIN_THRESHOLD
-    )
+    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 1)
     if not failure_issue_threshold:
         failure_issue_threshold = 1
 
@@ -139,9 +136,9 @@ def try_incident_resolution(ok_checkin: MonitorCheckIn) -> bool:
     if monitor_env.status == MonitorStatus.OK or ok_checkin.status != CheckInStatus.OK:
         return False
 
-    recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", MIN_THRESHOLD)
+    recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 1)
     if not recovery_threshold:
-        recovery_threshold = MIN_THRESHOLD
+        recovery_threshold = 1
 
     # Run incident logic if recovery threshold is set
     if recovery_threshold > 1:
