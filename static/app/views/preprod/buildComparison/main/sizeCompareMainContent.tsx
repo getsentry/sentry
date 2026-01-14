@@ -110,7 +110,7 @@ export function SizeCompareMainContent() {
       navigate(
         getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId: projectId!,
+          projectId,
           headArtifactId: headArtifactId!,
           baseArtifactId,
         })
@@ -267,7 +267,7 @@ export function SizeCompareMainContent() {
           navigate(
             getCompareBuildPath({
               organizationSlug: organization.slug,
-              projectId: projectId!,
+              projectId,
               headArtifactId: headArtifactId!,
             })
           );
