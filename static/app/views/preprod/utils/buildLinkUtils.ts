@@ -38,10 +38,10 @@ export function getCompareBuildPath(params: {
   const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
 
   if (baseArtifactId) {
-    return `/organizations/${organizationSlug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
+    return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
   }
 
-  return `/organizations/${organizationSlug}/preprod/${projectId}/compare/${headArtifactId}/?project=${projectId}`;
+  return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/?project=${projectId}`;
 }
 
 export function getListBuildPath(params: {
