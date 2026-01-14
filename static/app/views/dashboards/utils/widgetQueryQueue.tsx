@@ -82,8 +82,8 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
 
   const context = useMemo(() => {
     const addItem = (item: QueueItem) => {
-      // Never add the same widget to the queue twice
-      // even if the date selection has change `fetchData()` in `fetchWidgetItem` will still be called with the latest state.
+      // Never add the same widget to the queue twice based on widgetId
+      // When fetchData executes from the queue, it reads from refs to get the latest state (widget, selection, etc.)
       if (queue.peekPendingItems().some(i => i.widgetId === item.widgetId)) {
         return true;
       }

@@ -157,10 +157,48 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
   const rawResultsRef = useRef<SeriesResponse[] | undefined>(undefined);
   const hasInitialFetchRef = useRef(false);
 
-  // Keep ref in sync with state
+  // Store latest props for queue execution to avoid stale closures
+  const latestPropsRef = useRef({
+    widget,
+    selection,
+    cursor,
+    limit,
+    disabled,
+    mepSetting,
+    samplingMode,
+    onDemandControlContext,
+    dashboardFilters,
+    forceOnDemand,
+  });
+
+  // Keep refs in sync with latest props
   useEffect(() => {
     rawResultsRef.current = rawResults;
-  }, [rawResults]);
+    latestPropsRef.current = {
+      widget,
+      selection,
+      cursor,
+      limit,
+      disabled,
+      mepSetting,
+      samplingMode,
+      onDemandControlContext,
+      dashboardFilters,
+      forceOnDemand,
+    };
+  }, [
+    rawResults,
+    widget,
+    selection,
+    cursor,
+    limit,
+    disabled,
+    mepSetting,
+    samplingMode,
+    onDemandControlContext,
+    dashboardFilters,
+    forceOnDemand,
+  ]);
 
   const applyDashboardFilters = useCallback(
     (widgetToFilter: Widget): Widget => {
@@ -192,14 +230,18 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
 
   const fetchTableData = useCallback(
     async (fetchID: symbol) => {
-      if (disabled) {
+      // Read from ref to get latest props (avoids stale closure when queued)
+      const currentProps = latestPropsRef.current;
+
+      if (currentProps.disabled) {
         return;
       }
-      const originalWidget = widget;
+      const originalWidget = currentProps.widget;
       const widgetToFetch = widgetForRequest(cloneDeep(originalWidget));
       const responses = await Promise.all(
         widgetToFetch.queries.map(query => {
-          const requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
+          const requestLimit: number | undefined =
+            currentProps.limit ?? DEFAULT_TABLE_LIMIT;
           const requestCreator = config.getTableRequest;
 
           if (!requestCreator) {
@@ -213,13 +255,13 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
             widgetToFetch,
             query,
             organization,
-            selection,
-            onDemandControlContext,
+            currentProps.selection,
+            currentProps.onDemandControlContext,
             requestLimit,
-            cursor,
+            currentProps.cursor,
             getReferrer(widgetToFetch.displayType),
-            mepSetting,
-            samplingMode
+            currentProps.mepSetting,
+            currentProps.samplingMode
           );
         })
       );
@@ -268,32 +310,23 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
         setTableResults(transformedTableResults);
         setPageLinks(responsePageLinks);
       }
+      // Intentionally reading widget, selection, etc. from latestPropsRef instead of closure
+      // to avoid stale data when function is queued and props change before execution
     },
-    [
-      disabled,
-      widget,
-      widgetForRequest,
-      limit,
-      config,
-      api,
-      organization,
-      selection,
-      onDemandControlContext,
-      cursor,
-      mepSetting,
-      samplingMode,
-      afterFetchTableData,
-      onDataFetched,
-    ]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [widgetForRequest, config, api, organization, afterFetchTableData, onDataFetched]
   );
 
   const fetchSeriesData = useCallback(
     async (fetchID: symbol) => {
-      if (disabled) {
+      // Read from ref to get latest props (avoids stale closure when queued)
+      const currentProps = latestPropsRef.current;
+
+      if (currentProps.disabled) {
         return;
       }
 
-      const originalWidget = widget;
+      const originalWidget = currentProps.widget;
       const widgetToFetch = widgetForRequest(cloneDeep(originalWidget));
 
       const responses = await Promise.all(
@@ -303,11 +336,11 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
             widgetToFetch,
             index,
             organization,
-            selection,
-            onDemandControlContext,
+            currentProps.selection,
+            currentProps.onDemandControlContext,
             getReferrer(widgetToFetch.displayType),
-            mepSetting,
-            samplingMode
+            currentProps.mepSetting,
+            currentProps.samplingMode
           );
         })
       );
@@ -377,20 +410,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
         setTimeseriesResultsUnits(newTimeseriesResultsUnits);
       }
     },
-    [
-      disabled,
-      widget,
-      widgetForRequest,
-      config,
-      api,
-      organization,
-      selection,
-      onDemandControlContext,
-      mepSetting,
-      samplingMode,
-      afterFetchSeriesData,
-      onDataFetched,
-    ]
+    [widgetForRequest, config, api, organization, afterFetchSeriesData, onDataFetched]
   );
 
   const fetchData = useCallback(async () => {
@@ -404,7 +424,9 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     onDataFetchStart?.();
 
     try {
-      if (isChartDisplayType(widget.displayType)) {
+      // Read from ref to get latest widget (avoids stale closure when queued)
+      const currentWidget = latestPropsRef.current.widget;
+      if (isChartDisplayType(currentWidget.displayType)) {
         await fetchSeriesData(fetchID);
       } else {
         await fetchTableData(fetchID);
@@ -420,7 +442,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
         setLoading(false);
       }
     }
-  }, [widget, onDataFetchStart, fetchSeriesData, fetchTableData]);
+  }, [onDataFetchStart, fetchSeriesData, fetchTableData]);
 
   const fetchDataWithQueueIfAvailable = useCallback(() => {
     // We use the widget id to deduplicate requests for the same widget, if it's missing we don't use the queue.
