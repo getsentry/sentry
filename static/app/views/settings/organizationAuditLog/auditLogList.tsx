@@ -5,7 +5,7 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -368,10 +368,10 @@ function AuditLogList({
             <Fragment key={entry.id}>
               <UserInfo>
                 <div>{getAvatarDisplay(entry.actor)}</div>
-                <NameContainer>
+                <Stack justify="center">
                   {addUsernameDisplay(entry.actor)}
                   <AuditNote entry={entry} orgSlug={organization.slug} />
-                </NameContainer>
+                </Stack>
               </UserInfo>
               <Flex align="center">
                 <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
@@ -423,12 +423,6 @@ const UserInfo = styled('div')`
   line-height: 1.2;
   font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
-`;
-
-const NameContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const Note = styled('div')`

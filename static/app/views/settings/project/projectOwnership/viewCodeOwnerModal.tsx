@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
+
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
@@ -18,13 +18,13 @@ function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModalProps) 
   return (
     <Fragment>
       <Header closeButton>
-        <HeaderContainer>
+        <Flex align="center" gap="md">
           {getCodeOwnerIcon(codeowner.provider)}
           <h4>{codeowner.codeMapping?.repoName}</h4>
-        </HeaderContainer>
+        </Flex>
       </Header>
       <Body>
-        <BodyContainer>
+        <Stack gap="xl">
           <div>
             <div>
               <SectionHeading>{t('Code Mapping:')}</SectionHeading>
@@ -41,23 +41,11 @@ function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModalProps) 
             raw={codeowner.ownershipSyntax || ''}
             dateUpdated={codeowner.dateUpdated}
           />
-        </BodyContainer>
+        </Stack>
       </Body>
     </Fragment>
   );
 }
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const BodyContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 export const modalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.sm}) {

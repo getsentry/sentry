@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -82,9 +84,9 @@ function HomePage(props: Props) {
   }
   return (
     <SplashWrapper>
-      <Header>
+      <Flex align="center" margin="3xl 0">
         <HeaderTitle>Welcome to the Admin Portal!</HeaderTitle>
-      </Header>
+      </Flex>
       <div>
         <strong>
           This is an internal tool meant to enable Sentry Employees (you!) to better
@@ -92,12 +94,12 @@ function HomePage(props: Props) {
         </strong>
         <div>If you have any questions, ask us in #discuss-admin</div>
       </div>
-      <Centered>
+      <Flex justify="center" margin="xl 0">
         <Warning>
           <strong>NOTE:</strong>&nbsp;
           <span>All actions are logged and audited</span>
         </Warning>
-      </Centered>
+      </Flex>
       <div>
         <SearchLabel>Users</SearchLabel>
         <DebounceSearch
@@ -168,11 +170,6 @@ const SplashWrapper = styled('div')`
   padding: ${space(3)};
 `;
 
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: ${space(4)} 0;
-`;
 const HeaderTitle = styled('h3')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
@@ -185,12 +182,6 @@ const OverviewWrap = styled('div')`
 `;
 const SecondaryText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Centered = styled('div')`
-  display: flex;
-  justify-content: center;
-  margin: ${space(2)} 0;
 `;
 
 const Warning = styled('div')`

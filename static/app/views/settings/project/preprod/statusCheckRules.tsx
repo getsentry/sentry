@@ -117,7 +117,7 @@ export function StatusCheckRules() {
           </Fragment>
         ) : (
           <EmptyStateContainer>
-            <ContentWrapper>
+            <Stack align="start" gap="lg">
               <Heading as="h3">{t('Get the most out of Size Analysis')}</Heading>
               <Text>
                 {t('Connect at least one repository to get Size Analysis status checks')}
@@ -125,7 +125,7 @@ export function StatusCheckRules() {
               <LinkButton to={`/settings/${organization.slug}/repos/`} priority="primary">
                 {t('Add Repo')}
               </LinkButton>
-            </ContentWrapper>
+            </Stack>
             <ImageContainer />
           </EmptyStateContainer>
         )}
@@ -144,13 +144,6 @@ const EmptyStateContainer = styled('div')`
   align-items: center;
   padding: 56px 48px;
   gap: ${p => p.theme.space.xl};
-`;
-
-const ContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.lg};
 `;
 
 const ImageContainer = styled('div')`

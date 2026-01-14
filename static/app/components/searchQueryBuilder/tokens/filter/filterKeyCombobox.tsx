@@ -1,7 +1,8 @@
 import {useCallback, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {Item} from '@react-stately/collections';
 import type {Node} from '@react-types/shared';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -162,7 +163,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   }, [onCommit]);
 
   return (
-    <EditingWrapper>
+    <Flex align="center" paddingLeft="2xs" maxWidth="400px" height="100%">
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={sortedFilterKeys}
@@ -186,14 +187,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
           </Item>
         )}
       </SearchQueryBuilderCombobox>
-    </EditingWrapper>
+    </Flex>
   );
 }
-
-const EditingWrapper = styled('div')`
-  display: flex;
-  height: 100%;
-  align-items: center;
-  max-width: 400px;
-  padding-left: ${p => p.theme.space['2xs']};
-`;
