@@ -360,6 +360,19 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       : undefined;
   }
 
+  get traceOrigin(): number {
+    return (
+      ((this.value &&
+        Array.isArray(this.value) &&
+        this.value[0] &&
+        'additional_attributes' in this.value[0] &&
+        (this.value[0].additional_attributes?.[
+          'tags[performance.timeOrigin,number]'
+        ] as number)) ||
+        0) * 1000
+    );
+  }
+
   isRootNodeChild(): boolean {
     return this.parent?.value === null;
   }

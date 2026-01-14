@@ -521,7 +521,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           collectTraceMeasurements(
             tree,
             c,
-            c.space[0],
+            traceNode.traceOrigin || c.space[0],
             c.measurements,
             tree.vitals,
             tree.vital_types
@@ -676,7 +676,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           collectTraceMeasurements(
             tree,
             node,
-            baseTraceNode.space[0],
+            baseTraceNode.traceOrigin || baseTraceNode.space[0],
             node.measurements,
             this.vitals,
             this.vital_types
