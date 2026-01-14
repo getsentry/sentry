@@ -16,7 +16,7 @@ import type {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, FieldKind} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -59,9 +59,20 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-// TODO(telkins): Add MIN aggregation once backend support is added
 const PREPROD_APP_SIZE_AGGREGATIONS: Record<string, Aggregation> = {
   [AggregationKey.MAX]: {
+    isSortable: true,
+    outputType: null,
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['number'],
+        defaultValue: 'install_size',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MIN]: {
     isSortable: true,
     outputType: null,
     parameters: [
@@ -115,7 +126,7 @@ function filterAggregateParams(option: FieldValueOption, _fieldValue?: QueryFiel
     return true;
   }
 
-  // Only allow numeric fields for max aggregation
+  // Only allow numeric fields for aggregation
   if ('dataType' in option.value.meta) {
     return option.value.meta.dataType === 'number';
   }
@@ -138,8 +149,7 @@ function getGroupByFieldOptions(
 
   const tagOptions: Record<string, FieldValueOption> = {};
   for (const [key, tag] of Object.entries(tags)) {
-    // Skip numeric fields since they are for aggregation, not grouping
-    if (tag.kind === 'measurement' || key.includes('size')) {
+    if (!(tag.kind === FieldKind.TAG || tag.kind === FieldKind.FIELD)) {
       continue;
     }
     tagOptions[`field:${key}`] = {
@@ -340,6 +350,8 @@ export const MobileAppSizeConfig: DatasetConfig<
     return {
       'max(install_size)': 'size',
       'max(download_size)': 'size',
+      'min(install_size)': 'size',
+      'min(download_size)': 'size',
     };
   },
   filterAggregateParams,
