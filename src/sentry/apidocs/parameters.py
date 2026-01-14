@@ -526,6 +526,23 @@ class DetectorWorkflowParams:
     )
 
 
+class DataConditionParams:
+    GROUP = OpenApiParameter(
+        name="group",
+        location="query",
+        required=True,
+        type=int,
+        description="""The type of data conditions to return.
+
+Available fields are:
+- `detector_trigger`
+- `workflow_trigger`
+- `action_filter`
+
+        """,
+    )
+
+
 class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",

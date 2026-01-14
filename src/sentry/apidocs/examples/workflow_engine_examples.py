@@ -185,3 +185,83 @@ class WorkflowEngineExamples:
             response_only=True,
         )
     ]
+
+    LIST_DATA_CONDITIONS = [
+        OpenApiExample(
+            "List all data conditions for the given grouping",
+            value=[
+                {
+                    "type": "anomaly_detection",
+                    "handlerGroup": "detector_trigger",
+                    "comparisonJsonSchema": {
+                        "type": "object",
+                        "properties": {
+                            "sensitivity": {"type": "string", "enum": ["low", "medium", "high"]},
+                            "seasonality": {
+                                "type": "string",
+                                "enum": [
+                                    "auto",
+                                    "hourly",
+                                    "daily",
+                                    "weekly",
+                                    "hourly_daily",
+                                    "hourly_weekly",
+                                    "hourly_daily_weekly",
+                                    "daily_weekly",
+                                ],
+                            },
+                            "threshold_type": {"type": "integer", "enum": [0, 1, 2]},
+                        },
+                        "required": ["sensitivity", "seasonality", "threshold_type"],
+                        "additionalProperties": False,
+                    },
+                },
+                {
+                    "type": "first_seen_event",
+                    "handlerGroup": "workflow_trigger",
+                    "comparisonJsonSchema": {"type": "boolean"},
+                },
+                {
+                    "type": "issue_resolved_trigger",
+                    "handlerGroup": "workflow_trigger",
+                    "comparisonJsonSchema": {"type": "boolean"},
+                },
+                {
+                    "type": "reappeared_event",
+                    "handlerGroup": "workflow_trigger",
+                    "comparisonJsonSchema": {"type": "boolean"},
+                },
+                {
+                    "type": "regression_event",
+                    "handlerGroup": "workflow_trigger",
+                    "comparisonJsonSchema": {"type": "boolean"},
+                },
+                {
+                    "type": "assigned_to",
+                    "handlerGroup": "action_filter",
+                    "comparisonJsonSchema": {
+                        "type": "object",
+                        "properties": {
+                            "target_type": {
+                                "type": "string",
+                                "enum": ["Unassigned", "Team", "Member"],
+                            },
+                            "target_identifier": {"type": ["integer", "string"]},
+                        },
+                        "required": ["target_type"],
+                        "additionalProperties": False,
+                        "allOf": [
+                            {
+                                "if": {"properties": {"target_type": {"const": "Unassigned"}}},
+                                "then": {"required": ["target_type"]},
+                                "else": {"required": ["target_type", "target_identifier"]},
+                            }
+                        ],
+                    },
+                    "handlerSubgroup": "issue_attributes",
+                },
+            ],
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]

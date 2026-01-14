@@ -13,7 +13,8 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
+from sentry.apidocs.parameters import DataConditionParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.workflow_engine.endpoints.serializers.data_condition_handler_serializer import (
     DataConditionHandlerResponse,
@@ -25,6 +26,7 @@ from sentry.workflow_engine.types import DataConditionHandler
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Workflows"])
 class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -35,6 +37,7 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
         operation_id="Fetch Data Conditions",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            DataConditionParams.GROUP,
         ],
         responses={
             201: inline_sentry_response_serializer(
@@ -45,10 +48,11 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.LIST_DATA_CONDITIONS,
     )
     def get(self, request, organization):
         """
-        Returns a list of data conditions for a given org
+        Returns a list of data conditions for a given organization
         """
         group = request.GET.get("group")
         try:
