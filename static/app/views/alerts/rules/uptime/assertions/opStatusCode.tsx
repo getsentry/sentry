@@ -52,13 +52,13 @@ export function AssertionOpStatusCode({
         </InputGroup.LeadingItems>
         <InputGroup.Input
           id={inputId}
-          type="number"
+          type="text"
           value={value.value}
-          min={100}
-          max={599}
           onChange={e => {
-            const newValue = parseInt(e.target.value, 10);
-            if (!isNaN(newValue)) {
+            // Only allow numeric input
+            const inputValue = e.target.value;
+            if (inputValue === '' || /^\d+$/.test(inputValue)) {
+              const newValue = inputValue === '' ? 0 : parseInt(inputValue, 10);
               // Clamp status code to valid HTTP range (100-599)
               const clampedValue = Math.max(100, Math.min(599, newValue));
               onChange({...value, value: clampedValue});

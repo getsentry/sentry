@@ -36,7 +36,7 @@ describe('AssertionOpStatusCode', () => {
       value: 200,
     });
 
-    expect(screen.getByRole('spinbutton')).toHaveValue(200);
+    expect(screen.getByRole('textbox')).toHaveValue('200');
     expect(getComparison('=')).toBeInTheDocument();
   });
 
@@ -63,7 +63,7 @@ describe('AssertionOpStatusCode', () => {
   it('calls onChange when status code value changes', async () => {
     await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
 
-    const input = screen.getByRole('spinbutton');
+    const input = screen.getByRole('textbox');
     await userEvent.clear(input);
     await userEvent.type(input, '404');
 
@@ -103,26 +103,37 @@ describe('AssertionOpStatusCode', () => {
     expect(mockOnRemove).toHaveBeenCalledTimes(1);
   });
 
-  it('enforces min and max constraints on status code input', async () => {
+  it('clamps status code to valid range (100-599)', async () => {
     await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
 
-    const input = screen.getByRole('spinbutton');
-    if (!(input instanceof HTMLInputElement)) {
-      throw new Error('Not an input');
-    }
+    const input = screen.getByRole('textbox');
 
-    expect(input.min).toBe('100');
-    expect(input.max).toBe('599');
+    // Test value above max gets clamped to 599
+    await userEvent.clear(input);
+    await userEvent.type(input, '999');
+    expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({value: 599}));
+
+    jest.clearAllMocks();
+
+    // Test value below min gets clamped to 100
+    await userEvent.clear(input);
+    await userEvent.type(input, '50');
+    expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({value: 100}));
   });
 
-  it('handles invalid number input gracefully', async () => {
+  it('rejects non-numeric input', async () => {
     await renderOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
 
-    const input = screen.getByRole('spinbutton');
+    const input = screen.getByRole('textbox');
     await userEvent.clear(input);
+
+    // Clear mocks after clearing input (which triggers onChange with empty value)
+    jest.clearAllMocks();
+
+    // Try to type non-numeric characters
     await userEvent.type(input, 'abc');
 
-    // onChange should not be called with NaN
+    // onChange should not be called when non-numeric characters are entered
     expect(mockOnChange).not.toHaveBeenCalled();
   });
 
