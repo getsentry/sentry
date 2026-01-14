@@ -168,25 +168,7 @@ type AlertColors = Record<
   }
 >;
 
-const generateThemeUtils = (tokens: Tokens) => ({
-  tooltipUnderline: (
-    underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
-  ) => ({
-    textDecoration: 'underline' as const,
-    textDecorationThickness: '0.75px',
-    textUnderlineOffset: '1.25px',
-    textDecorationColor:
-      underlineColor === 'warning'
-        ? tokens.content.warning
-        : underlineColor === 'danger'
-          ? tokens.content.danger
-          : underlineColor === 'success'
-            ? tokens.content.success
-            : underlineColor === 'muted'
-              ? tokens.content.secondary
-              : undefined,
-    textDecorationStyle: 'dotted' as const,
-  }),
+const generateThemeUtils = () => ({
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
     clip: rect(0 0 0 0);
@@ -1157,7 +1139,7 @@ const lightThemeDefinition = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(baseLightTheme.tokens),
+  ...generateThemeUtils(),
   alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
   button: generateButtonTheme(lightColors, baseLightTheme.tokens),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
@@ -1195,7 +1177,7 @@ export const darkTheme: SentryTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(baseDarkTheme.tokens),
+  ...generateThemeUtils(),
   alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
   button: generateButtonTheme(darkColors, baseDarkTheme.tokens),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
