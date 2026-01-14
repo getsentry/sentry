@@ -44,6 +44,8 @@ export function makeMonitorDetailsQueryKey(
 // Orders the status in terms of ascending precedence for showing to the user
 export const checkInStatusPrecedent: CheckInStatus[] = [
   CheckInStatus.UNKNOWN,
+  CheckInStatus.SUB_FAILURE_ERROR,
+  CheckInStatus.SUB_RECOVERY_OK,
   CheckInStatus.ERROR,
   CheckInStatus.TIMEOUT,
   CheckInStatus.MISSED,
@@ -58,6 +60,8 @@ export const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.MISSED]: t('Missed'),
   [CheckInStatus.TIMEOUT]: t('Timed Out'),
   [CheckInStatus.UNKNOWN]: t('Unknown'),
+  [CheckInStatus.SUB_FAILURE_ERROR]: t('Failed (Sub-Threshold)'),
+  [CheckInStatus.SUB_RECOVERY_OK]: t('Okay (Sub-Threshold)'),
 };
 
 export const tickStyle: TickStyle<CheckInStatus> = theme => ({
@@ -86,6 +90,16 @@ export const tickStyle: TickStyle<CheckInStatus> = theme => ({
     labelColor: theme.colors.gray500,
     tickColor: theme.colors.gray400,
     hatchTick: theme.colors.gray200,
+  },
+  [CheckInStatus.SUB_FAILURE_ERROR]: {
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
+    hatchTick: theme.colors.red200,
+  },
+  [CheckInStatus.SUB_RECOVERY_OK]: {
+    labelColor: theme.colors.green500,
+    tickColor: theme.colors.green400,
+    hatchTick: theme.colors.green200,
   },
 });
 

@@ -87,7 +87,7 @@ export function useMonitorsScheduleSampleBuckets({
       start,
       period_start: periodStart,
       total_buckets: totalBuckets,
-      end_ts: endTs,
+      end: endTs,
       interval,
     }),
     [

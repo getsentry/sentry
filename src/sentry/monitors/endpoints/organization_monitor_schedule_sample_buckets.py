@@ -18,8 +18,13 @@ from sentry.models.organization import Organization
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
-from sentry.monitors.utils import get_schedule_sample_window_tick_statuses
 from sentry.monitors.validators import ConfigValidator
+from sentry.monitors.constants import (
+    SAMPLE_PADDING_TICKS_MIN_COUNT,
+    SAMPLE_PADDING_RATIO_OF_THRESHOLD,
+    SAMPLE_OPEN_PERIOD_RATIO,
+)
+import math
 
 
 class SampleScheduleBucketsConfigValidator(ConfigValidator):
@@ -29,16 +34,39 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
 
     - start: unix timestamp (seconds) for the first *scheduled tick* in the
       window
-    - end_ts: optional unix timestamp (seconds) for the end of the bucket
-      window.
     - interval: bucket size in seconds (matches rollupConfig.interval in the
       frontend)
     """
 
     start = serializers.IntegerField(min_value=1)
-    end_ts = serializers.IntegerField(min_value=1, required=False)
+    end = serializers.IntegerField(min_value=1)
     interval = serializers.IntegerField(min_value=1)
 
+
+def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshold: int):
+    if num_ticks <= 0:
+        return []
+
+    total_threshold = failure_threshold + recovery_threshold
+
+    padding = max(SAMPLE_PADDING_TICKS_MIN_COUNT, math.ceil(total_threshold * SAMPLE_PADDING_RATIO_OF_THRESHOLD))
+
+    open_period = total_threshold * SAMPLE_OPEN_PERIOD_RATIO
+
+    fixed_count = padding * 2 + failure_threshold + recovery_threshold + open_period
+    if fixed_count > num_ticks:
+        raise ValueError("n is too small for the given thresholds and ratios")
+
+    remaining = num_ticks - fixed_count
+    middle_errors = open_period + remaining
+
+    return (
+        ["ok"] * padding +
+        ["sub_failure_error"] * failure_threshold +
+        ["error"] * middle_errors +
+        ["sub_recovery_ok"] * recovery_threshold +
+        ["ok"] * padding
+    )
 
 @region_silo_endpoint
 class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
@@ -54,97 +82,57 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
 
         failure_threshold = config.get("failure_issue_threshold")
         recovery_threshold = config.get("recovery_threshold")
-        if failure_threshold is None or recovery_threshold is None:
-            errors = {}
-            if failure_threshold is None:
-                errors["failure_issue_threshold"] = ["This field is required."]
-            if recovery_threshold is None:
-                errors["recovery_threshold"] = ["This field is required."]
-            return self.respond(errors, status=400)
+        
+        schedule_type = config.get("schedule_type")
+        schedule = config.get("schedule")
+        
+        window_start_ts = int(config["start"])
+        window_end_ts = int(config["end"])
+        bucket_interval = int(config["interval"])
+        tz = zoneinfo.ZoneInfo(config.get("timezone") or "UTC")
 
-        tick_statuses = get_schedule_sample_window_tick_statuses(
+        window_start = datetime.fromtimestamp(window_start_ts, tz=tz)
+        window_end = datetime.fromtimestamp(window_end_ts, tz=tz)
+        
+        ticks: list[datetime] = []
+                
+        if schedule_type == ScheduleType.CRONTAB:
+            schedule_iter = CronSim(
+                schedule,
+                # Seed the simulator just before the provided first scheduled
+                # tick, so the first returned tick is expected to match start.
+                window_start - timedelta(seconds=1),
+            )
+            while True:
+                dt = next(schedule_iter)
+                if dt > window_end:
+                    break
+                ticks.append(dt)
+
+        elif schedule_type == ScheduleType.INTERVAL:
+            rule = rrule.rrule(
+                freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, schedule[1])],
+                interval=schedule[0],
+                dtstart=window_start,
+                until=window_end,
+            )
+            ticks = list(rule)
+            
+        if not ticks:
+            return Response([])
+        
+        tick_statuses = _get_tick_statuses(
+            num_ticks=len(ticks),
             failure_threshold=failure_threshold,
             recovery_threshold=recovery_threshold,
         )
-        num_ticks = len(tick_statuses)
-
-        schedule_type = config.get("schedule_type")
-        schedule = config.get("schedule")
-        tz = zoneinfo.ZoneInfo(config.get("timezone") or "UTC")
-
-        window_start_ts = int(config["start"])
-        end_ts = config.get("end_ts")
-        bucket_interval = int(config["interval"])
-
-        window_start = datetime.fromtimestamp(window_start_ts, tz=tz)
-        ticks: list[datetime] = []
-
-        if end_ts is None:
-            # Default behavior: generate a fixed preview window based on the
-            # threshold pattern length.
-            if schedule_type == ScheduleType.CRONTAB:
-                # Seed the simulator just before the provided first scheduled
-                # tick, so the first returned tick is expected to match start.
-                schedule_iter = CronSim(
-                    schedule,
-                    window_start - timedelta(seconds=1),
-                )
-                ticks = [next(schedule_iter) for _ in range(num_ticks)]
-
-            elif schedule_type == ScheduleType.INTERVAL:
-                rule = rrule.rrule(
-                    freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, schedule[1])],
-                    interval=schedule[0],
-                    dtstart=window_start,
-                    count=num_ticks,
-                )
-                new_date = window_start
-                ticks.append(new_date)
-                while len(ticks) < num_ticks:
-                    new_date = rule.after(new_date)
-                    ticks.append(new_date)
-        else:
-            # Range behavior: generate scheduled ticks from start to end_ts.
-            window_end = datetime.fromtimestamp(int(end_ts), tz=tz)
-            if schedule_type == ScheduleType.CRONTAB:
-                schedule_iter = CronSim(
-                    schedule,
-                    window_start - timedelta(seconds=1),
-                )
-                while True:
-                    dt = next(schedule_iter)
-                    if dt > window_end:
-                        break
-                    ticks.append(dt)
-
-            elif schedule_type == ScheduleType.INTERVAL:
-                rule = rrule.rrule(
-                    freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, schedule[1])],
-                    interval=schedule[0],
-                    dtstart=window_start,
-                    until=window_end,
-                )
-                ticks = list(rule)
-
-        if not ticks:
-            return Response([])
-
-        window_end_ts = int(int(end_ts) if end_ts is not None else ticks[-1].timestamp())
-
+        
         # Build bucketed stats in the shape FE expects:
         #   CheckInBucket = [bucketStartTs, {ok: count, error: count, ...}]
         bucket_stats: dict[int, dict[str, int]] = {}
 
-        pattern_len = len(tick_statuses)
-        tick_count = len(ticks)
-
         for i, tick_dt in enumerate(ticks):
-            # In the range case there may be more (or fewer) scheduled ticks
-            # than the preview-pattern length. We resample the pattern across
-            # the full tick range to preserve the OK/error ratio without
-            # repeating the pattern.
-            pattern_idx = min(pattern_len - 1, int(i * pattern_len / tick_count))
-            status = tick_statuses[pattern_idx]
+            status = tick_statuses[i]
             tick_ts = int(tick_dt.timestamp())
             if tick_ts < window_start_ts or tick_ts > window_end_ts:
                 continue

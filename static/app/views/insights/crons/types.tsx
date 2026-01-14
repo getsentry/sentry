@@ -29,6 +29,8 @@ export enum CheckInStatus {
   MISSED = 'missed',
   TIMEOUT = 'timeout',
   UNKNOWN = 'unknown',
+  SUB_FAILURE_ERROR = 'sub_failure_error',
+  SUB_RECOVERY_OK = 'sub_recovery_ok',
 }
 
 interface BaseConfig {

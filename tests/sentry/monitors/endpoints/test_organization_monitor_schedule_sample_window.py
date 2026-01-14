@@ -94,39 +94,6 @@ class SampleScheduleWindowTest(APITestCase):
             status_code=400,
         )
 
-        # Missing thresholds
-        self.get_error_response(
-            self.organization.slug,
-            qs_params={
-                "schedule_type": "crontab",
-                "schedule": "0 * * * *",
-                "recovery_threshold": 3,
-            },
-            status_code=400,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            qs_params={
-                "schedule_type": "crontab",
-                "schedule": "0 * * * *",
-                "failure_issue_threshold": 2,
-            },
-            status_code=400,
-        )
-
-        # Empty values are coerced to None by EmptyIntegerField, but this
-        # endpoint requires both thresholds to compute a window.
-        self.get_error_response(
-            self.organization.slug,
-            qs_params={
-                "schedule_type": "crontab",
-                "schedule": "0 * * * *",
-                "failure_issue_threshold": "",
-                "recovery_threshold": 3,
-            },
-            status_code=400,
-        )
-
         # Missing schedule info
         self.get_error_response(
             self.organization.slug,

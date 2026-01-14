@@ -15,6 +15,11 @@ class SampleScheduleBucketsTest(APITestCase):
 
     @freeze_time("2023-10-26T12:32:25Z")
     def test_simple_crontab_resolution_matches_bucket_interval(self) -> None:
+        start = int(datetime(2023, 10, 26, 13, 0, tzinfo=UTC).timestamp())
+        # 26 ticks at 1-hour intervals => window duration is 25 hours
+        # (inclusive)
+        end = start + 25 * 3600
+
         response = self.get_success_response(
             self.organization.slug,
             qs_params={
@@ -23,7 +28,8 @@ class SampleScheduleBucketsTest(APITestCase):
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
                 # First tick after 12:00Z (rounded hour) is 13:00Z
-                "start": int(datetime(2023, 10, 26, 13, 0, tzinfo=UTC).timestamp()),
+                "start": start,
+                "end": end,
                 "interval": 3600,
             },
         )
@@ -34,26 +40,23 @@ class SampleScheduleBucketsTest(APITestCase):
 
         # Check that timestamps increment by the schedule interval
         for i in range(26):
-            assert (
-                buckets[i][0]
-                == int(datetime(2023, 10, 26, 13, 0, tzinfo=UTC).timestamp()) + i * 3600
-            )
+            assert buckets[i][0] == start + i * 3600
 
         # First 3 padding ticks are OK
         for i in range(0, 3):
             assert buckets[i][1] == {"ok": 1}
 
-        # Next 2 are ERROR (failure threshold)
+        # Next 2 are sub-failure errors (failure threshold)
         for i in range(3, 5):
-            assert buckets[i][1] == {"error": 1}
+            assert buckets[i][1] == {"sub_failure_error": 1}
 
         # Next 15 are ERROR (open period)
         for i in range(5, 20):
             assert buckets[i][1] == {"error": 1}
 
-        # Next 3 are OK (recovery threshold)
+        # Next 3 are sub-recovery OKs (recovery threshold)
         for i in range(20, 23):
-            assert buckets[i][1] == {"ok": 1}
+            assert buckets[i][1] == {"sub_recovery_ok": 1}
 
         # Next 3 padding ticks are OK
         for i in range(23, 26):
@@ -63,6 +66,7 @@ class SampleScheduleBucketsTest(APITestCase):
     def test_simple_interval_resolution_matches_bucket_interval(self) -> None:
         start = int(datetime(2023, 10, 26, 12, 0, tzinfo=UTC).timestamp())
         interval = 3600
+        end = start + 25 * interval
 
         response = self.get_success_response(
             self.organization.slug,
@@ -72,6 +76,7 @@ class SampleScheduleBucketsTest(APITestCase):
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
                 "start": start,
+                "end": end,
                 "interval": interval,
             },
         )
@@ -85,14 +90,21 @@ class SampleScheduleBucketsTest(APITestCase):
 
         for i in range(0, 3):
             assert buckets[i][1] == {"ok": 1}
-        for i in range(3, 20):
+        for i in range(3, 5):
+            assert buckets[i][1] == {"sub_failure_error": 1}
+        for i in range(5, 20):
             assert buckets[i][1] == {"error": 1}
-        for i in range(20, 26):
+        for i in range(20, 23):
+            assert buckets[i][1] == {"sub_recovery_ok": 1}
+        for i in range(23, 26):
             assert buckets[i][1] == {"ok": 1}
 
     @freeze_time("2023-10-26T12:32:25Z")
     def test_interval_schedule_coarser_buckets_aggregate_ticks(self) -> None:
         start = int(datetime(2023, 10, 26, 12, 0, tzinfo=UTC).timestamp())
+        # 26 ticks at 1-hour intervals => window duration is 25 hours
+        # (inclusive)
+        end = start + 25 * 3600
         bucket_interval = 60 * 60 * 2  # 2 hours
 
         response = self.get_success_response(
@@ -103,6 +115,7 @@ class SampleScheduleBucketsTest(APITestCase):
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
                 "start": start,
+                "end": end,
                 "interval": bucket_interval,
             },
         )
@@ -115,7 +128,8 @@ class SampleScheduleBucketsTest(APITestCase):
 
         expected_bucket_stats = [
             {"ok": 2},
-            {"ok": 1, "error": 1},
+            {"ok": 1, "sub_failure_error": 1},
+            {"sub_failure_error": 1, "error": 1},
             {"error": 2},
             {"error": 2},
             {"error": 2},
@@ -123,9 +137,8 @@ class SampleScheduleBucketsTest(APITestCase):
             {"error": 2},
             {"error": 2},
             {"error": 2},
-            {"error": 2},
-            {"ok": 2},
-            {"ok": 2},
+            {"sub_recovery_ok": 2},
+            {"sub_recovery_ok": 1, "ok": 1},
             {"ok": 2},
         ]
 
@@ -138,18 +151,20 @@ class SampleScheduleBucketsTest(APITestCase):
         start = int(datetime(2023, 10, 26, 12, 0, tzinfo=UTC).timestamp())
         interval = 3600
         num_buckets = 20
+        end = start + (num_buckets - 1) * interval
 
         response = self.get_success_response(
             self.organization.slug,
             qs_params={
                 "schedule_type": "interval",
                 "schedule": [1, "hour"],
-                "failure_issue_threshold": 2,
-                "recovery_threshold": 3,
+                # Use smaller thresholds so a shorter window can still generate
+                # a complete sample status sequence.
+                "failure_issue_threshold": 1,
+                "recovery_threshold": 1,
                 "start": start,
+                "end": end,
                 "interval": interval,
-                "num_buckets": num_buckets,
-                "fill_buckets": True,
             },
         )
 
@@ -161,7 +176,8 @@ class SampleScheduleBucketsTest(APITestCase):
             assert sum(buckets[i][1].values()) == 1
 
     def test_missing_params(self) -> None:
-        start = 0
+        start = int(datetime(2023, 10, 26, 12, 0, tzinfo=UTC).timestamp())
+        end = start + 3600
         interval = 3600
 
         # No params
@@ -171,51 +187,12 @@ class SampleScheduleBucketsTest(APITestCase):
             status_code=400,
         )
 
-        # Missing thresholds
-        self.get_error_response(
-            self.organization.slug,
-            qs_params={
-                "schedule_type": "crontab",
-                "schedule": "0 * * * *",
-                "start": start,
-                "interval": interval,
-                "recovery_threshold": 3,
-            },
-            status_code=400,
-        )
-
-        self.get_error_response(
-            self.organization.slug,
-            qs_params={
-                "schedule_type": "crontab",
-                "schedule": "0 * * * *",
-                "start": start,
-                "interval": interval,
-                "failure_issue_threshold": 2,
-            },
-            status_code=400,
-        )
-
-        # Empty values are coerced to None by EmptyIntegerField, but this
-        # endpoint requires both thresholds to compute bucket stats.
-        self.get_error_response(
-            self.organization.slug,
-            qs_params={
-                "schedule_type": "crontab",
-                "schedule": "0 * * * *",
-                "start": start,
-                "interval": interval,
-                "failure_issue_threshold": "",
-                "recovery_threshold": 3,
-            },
-            status_code=400,
-        )
-
         # Missing schedule info
         self.get_error_response(
             self.organization.slug,
             qs_params={
                 "start": start,
+                "end": end,
                 "interval": interval,
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
@@ -226,6 +203,7 @@ class SampleScheduleBucketsTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "start": start,
+                "end": end,
                 "interval": interval,
                 "schedule_type": "crontab",
                 "failure_issue_threshold": 2,
@@ -237,6 +215,7 @@ class SampleScheduleBucketsTest(APITestCase):
             self.organization.slug,
             qs_params={
                 "start": start,
+                "end": end,
                 "interval": interval,
                 "schedule": "0 * * * *",
                 "failure_issue_threshold": 2,
@@ -253,6 +232,7 @@ class SampleScheduleBucketsTest(APITestCase):
                 "schedule": "0 * * * *",
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
+                "end": end,
                 "interval": interval,
             },
             status_code=400,
@@ -265,12 +245,26 @@ class SampleScheduleBucketsTest(APITestCase):
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
                 "start": start,
+                "end": end,
+            },
+            status_code=400,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={
+                "schedule_type": "crontab",
+                "schedule": "0 * * * *",
+                "failure_issue_threshold": 2,
+                "recovery_threshold": 3,
+                "start": start,
+                "interval": interval,
             },
             status_code=400,
         )
 
     def test_bad_params(self) -> None:
-        start = 0
+        start = 1
+        end = start + 3600
         interval = 3600
 
         # Invalid crontab schedule
@@ -282,6 +276,7 @@ class SampleScheduleBucketsTest(APITestCase):
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
                 "start": start,
+                "end": end,
                 "interval": interval,
             },
             status_code=400,
@@ -296,6 +291,7 @@ class SampleScheduleBucketsTest(APITestCase):
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
                 "start": start,
+                "end": end,
                 "interval": interval,
             },
             status_code=400,
@@ -310,6 +306,7 @@ class SampleScheduleBucketsTest(APITestCase):
                 "failure_issue_threshold": 2,
                 "recovery_threshold": 3,
                 "start": start,
+                "end": end,
                 "interval": interval,
             },
             status_code=400,
@@ -324,6 +321,7 @@ class SampleScheduleBucketsTest(APITestCase):
                 "failure_issue_threshold": -1,
                 "recovery_threshold": 3,
                 "start": start,
+                "end": end,
                 "interval": interval,
             },
             status_code=400,

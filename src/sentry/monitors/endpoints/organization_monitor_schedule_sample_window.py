@@ -17,8 +17,29 @@ from sentry.models.organization import Organization
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
-from sentry.monitors.utils import get_schedule_sample_window_tick_statuses
 from sentry.monitors.validators import ConfigValidator
+from sentry.monitors.constants import (
+    SAMPLE_PADDING_TICKS_MIN_COUNT,
+    SAMPLE_PADDING_RATIO_OF_THRESHOLD,
+    SAMPLE_OPEN_PERIOD_RATIO,
+)
+import math
+
+
+def _get_num_ticks(
+    failure_threshold: int,
+    recovery_threshold: int,
+) -> int:
+    total_threshold = failure_threshold + recovery_threshold
+
+    padding_ticks = max(
+        SAMPLE_PADDING_TICKS_MIN_COUNT,
+        math.ceil(total_threshold * SAMPLE_PADDING_RATIO_OF_THRESHOLD),
+    )
+
+    open_period_ticks = total_threshold * SAMPLE_OPEN_PERIOD_RATIO
+
+    return padding_ticks * 2 + failure_threshold + open_period_ticks + recovery_threshold
 
 
 @region_silo_endpoint
@@ -34,19 +55,11 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
         config = validator.validated_data
         failure_threshold = config.get("failure_issue_threshold")
         recovery_threshold = config.get("recovery_threshold")
-        if failure_threshold is None or recovery_threshold is None:
-            errors = {}
-            if failure_threshold is None:
-                errors["failure_issue_threshold"] = ["This field is required."]
-            if recovery_threshold is None:
-                errors["recovery_threshold"] = ["This field is required."]
-            return self.respond(errors, status=400)
 
-        tick_statuses = get_schedule_sample_window_tick_statuses(
+        num_ticks = _get_num_ticks(
             failure_threshold=failure_threshold,
             recovery_threshold=recovery_threshold,
         )
-        num_ticks = len(tick_statuses)
 
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")

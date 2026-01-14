@@ -30,6 +30,7 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -461,23 +462,3 @@ def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
             )
     except Detector.DoesNotExist:
         return None
-
-
-def get_schedule_sample_window_tick_statuses(
-    failure_threshold: int, recovery_threshold: int
-) -> list[str]:
-    total_threshold = failure_threshold + recovery_threshold
-    padding_ticks = max(2, ceil(total_threshold / 2))
-    open_period_ticks = total_threshold * 3
-    status_to_name = dict(CheckInStatus.as_choices())
-
-    ok = status_to_name[CheckInStatus.OK]
-    error = status_to_name[CheckInStatus.ERROR]
-
-    return (
-        [ok] * padding_ticks
-        + [error] * failure_threshold
-        + [error] * open_period_ticks
-        + [ok] * recovery_threshold
-        + [ok] * padding_ticks
-    )
