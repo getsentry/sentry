@@ -2,6 +2,8 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
@@ -230,13 +232,13 @@ export function SeerSectionCtaButton({
       priority="primary"
     >
       {getButtonText()}
-      <ChevronContainer>
+      <Flex justify="center" align="center" marginLeft="xs" width="16px" height="16px">
         {isAutofixInProgress ? (
           <StyledLoadingIndicator size={14} />
         ) : (
           <IconChevron direction="right" size="xs" />
         )}
-      </ChevronContainer>
+      </Flex>
     </StyledButton>
   );
 }
@@ -244,15 +246,6 @@ export function SeerSectionCtaButton({
 const StyledButton = styled(LinkButton)`
   margin-top: ${space(1)};
   width: 100%;
-`;
-
-const ChevronContainer = styled('div')`
-  margin-left: ${space(0.5)};
-  height: 16px;
-  width: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

@@ -397,10 +397,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     onUpdate,
   });
   return (
-    <ActionWrapper>
+    <Flex align="center" gap="xs">
       {hasStreamlinedUI &&
         (isResolved || isIgnored ? (
-          <ResolvedActionWapper>
+          <Flex align="center" gap="md">
             <ResolvedWrapper>
               <IconCheckmark size="md" />
               <Flex direction="column">
@@ -443,7 +443,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 {isResolved ? t('Unresolve') : t('Unarchive')}
               </Button>
             )}
-          </ResolvedActionWapper>
+          </Flex>
         ) : (
           <Fragment>
             {resolveCap.enabled && (
@@ -679,15 +679,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           )}
         </Fragment>
       )}
-    </ActionWrapper>
+    </Flex>
   );
 }
-
-const ActionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
 
 const ResolvedWrapper = styled('div')`
   display: flex;
@@ -696,12 +690,6 @@ const ResolvedWrapper = styled('div')`
   color: ${p => p.theme.colors.green500};
   font-weight: bold;
   font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const ResolvedActionWapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const ReasonBanner = styled('div')`

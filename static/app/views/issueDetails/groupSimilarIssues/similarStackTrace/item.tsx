@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -116,14 +118,14 @@ export function SimilarStackTraceItem(props: Props) {
           <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
         </EventDetails>
 
-        <Diff>
+        <Flex align="center" marginRight="2xs" height="100%">
           <Button onClick={handleShowDiff} size="sm">
             {t('Diff')}
           </Button>
-        </Diff>
+        </Flex>
       </Details>
 
-      <Columns>
+      <Flex align="center" flexShrink={0} width="350px" minWidth="350px">
         <StyledCount value={issue.count} />
         {similarInterfaces.map(interfaceName => {
           const avgScore = aggregate?.[interfaceName];
@@ -155,7 +157,7 @@ export function SimilarStackTraceItem(props: Props) {
             </Column>
           );
         })}
-      </Columns>
+      </Flex>
     </StyledPanelItem>
   );
 }
@@ -177,14 +179,6 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${space(1)} 0;
 `;
 
-const Columns = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  min-width: 350px;
-  width: 350px;
-`;
-
 const columnStyle = css`
   flex: 1;
   flex-shrink: 0;
@@ -200,13 +194,6 @@ const Column = styled('div')`
 const StyledCount = styled(Count)`
   ${columnStyle}
   font-variant-numeric: tabular-nums;
-`;
-
-const Diff = styled('div')`
-  height: 100%;
-  display: flex;
-  align-items: center;
-  margin-right: ${space(0.25)};
 `;
 
 const EventDetails = styled('div')`

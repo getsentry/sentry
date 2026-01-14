@@ -108,10 +108,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="md">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -164,10 +164,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               crumbs={[
                 {
                   label: (
-                    <CrumbContainer>
+                    <Flex align="center" gap="md">
                       <ProjectAvatar project={project} />
                       <ShortId>{group.shortId}</ShortId>
-                    </CrumbContainer>
+                    </Flex>
                   ),
                 },
                 {label: getShortEventId(event.id)},
@@ -193,10 +193,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="md">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -380,10 +380,10 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           crumbs={[
             {
               label: (
-                <CrumbContainer>
+                <Flex align="center" gap="md">
                   <ProjectAvatar project={project} />
                   <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
+                </Flex>
               ),
             },
             {label: getShortEventId(event.id)},
@@ -612,12 +612,6 @@ const Header = styled('h3')`
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
   padding: 0;
-`;
-
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const ShortId = styled('div')`
