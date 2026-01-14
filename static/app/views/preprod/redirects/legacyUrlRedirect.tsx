@@ -24,7 +24,6 @@ export default function LegacyPreprodRedirect() {
     let newPath = '';
 
     if (isCompare && headArtifactId) {
-      // Old compare URL - default to size comparison
       const compareType = 'size';
       if (baseArtifactId) {
         newPath = `/organizations/${organization.slug}/preprod/${compareType}/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
@@ -32,10 +31,8 @@ export default function LegacyPreprodRedirect() {
         newPath = `/organizations/${organization.slug}/preprod/${compareType}/compare/${headArtifactId}/?project=${projectId}`;
       }
     } else if (isInstall && artifactId) {
-      // Old install URL
       newPath = `/organizations/${organization.slug}/preprod/install/${artifactId}/?project=${projectId}`;
     } else if (artifactId) {
-      // Old size URL
       newPath = `/organizations/${organization.slug}/preprod/size/${artifactId}/?project=${projectId}`;
     }
 

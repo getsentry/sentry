@@ -2489,17 +2489,14 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
-    // Size view
     {
       path: 'size/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
     },
-    // Install view
     {
       path: 'install/:artifactId/',
       component: make(() => import('sentry/views/preprod/install/installPage')),
     },
-    // Size comparison
     {
       path: 'size/compare/:headId/',
       component: make(
@@ -2512,7 +2509,6 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/preprod/buildComparison/buildComparison')
       ),
     },
-    // Snapshots/distribution comparison
     {
       path: 'snapshots/compare/:headId/',
       component: make(
@@ -2525,7 +2521,6 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/preprod/buildComparison/buildComparison')
       ),
     },
-    // Legacy redirects
     {
       path: ':projectId/:artifactId/',
       component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),

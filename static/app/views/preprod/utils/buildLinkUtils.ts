@@ -18,7 +18,6 @@ export function getBaseBuildPath(
     return `/organizations/${organizationSlug}/preprod/${viewType}/${baseArtifactId}/?project=${projectId}`;
   }
 
-  // Default to size view if no viewType specified
   return `/organizations/${organizationSlug}/preprod/size/${baseArtifactId}/?project=${projectId}`;
 }
 

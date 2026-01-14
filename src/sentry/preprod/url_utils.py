@@ -7,10 +7,6 @@ from sentry.preprod.models import PreprodArtifact
 def get_preprod_artifact_url(preprod_artifact: PreprodArtifact, view_type: str = "size") -> str:
     """
     Build a region/customer-domain aware absolute URL for the preprod artifact UI.
-
-    Args:
-        preprod_artifact: The PreprodArtifact object
-        view_type: The view type ('size' or 'install')
     """
     organization: Organization = Organization.objects.get_from_cache(
         id=preprod_artifact.project.organization_id
@@ -25,11 +21,6 @@ def get_preprod_artifact_comparison_url(
 ) -> str:
     """
     Build a region/customer-domain aware absolute URL for the preprod artifact comparison UI.
-
-    Args:
-        preprod_artifact: The head PreprodArtifact object
-        base_artifact: The base PreprodArtifact object
-        comparison_type: The comparison type ('size' or 'snapshots')
     """
     organization: Organization = Organization.objects.get_from_cache(
         id=preprod_artifact.project.organization_id
