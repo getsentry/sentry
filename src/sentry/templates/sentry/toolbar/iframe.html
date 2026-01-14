@@ -109,18 +109,18 @@ Required context variables:
           'did-login': ({ sessionCookieName, sessionCookieValue, csrfCookieName, csrfToken, token }) => {
             if (sessionCookieName && sessionCookieValue) {
               document.cookie = getCookieValue(`${sessionCookieName}=${sessionCookieValue}`, window.location.hostname);
-              log('Saved a cookie', document.cookie.indexOf(cookie) >= 0);
+              log('Saved session cookie', document.cookie.indexOf(sessionCookieName) >= 0);
             }
             if (csrfCookieName && csrfToken) {
               sessionStorage.setItem('csrfToken', csrfToken);
               document.cookie = getCookieValue(`${csrfCookieName}=${csrfToken}`, window.location.hostname)
-              log('Saved a CSRF token to sessionStorage');
+              log('Saved CSRF token', document.cookie.indexOf(csrfCookieName) >= 0);
             }
             if (token) {
               localStorage.setItem('accessToken', token);
               log('Saved an accessToken to localStorage');
             }
-            if (!cookie && !token) {
+            if ((!sessionCookieValue || !csrfToken) && !token) {
               log('Unexpected: No access token found!');
             }
 
