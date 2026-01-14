@@ -29,6 +29,8 @@ type TraceMetricsWidgetQueriesProps = {
   onBestEffortDataFetched?: () => void;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: any;
 };
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
@@ -66,6 +68,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   onDataFetched,
   onDataFetchStart,
   getConfidenceInformation,
+  selection,
 }: TraceMetricsWidgetQueriesImplProps) {
   const config = TraceMetricsConfig;
   const [confidence, setConfidence] = useState<Confidence | null>(null);
@@ -105,6 +108,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     samplingMode: SAMPLING_MODE.NORMAL,
     disabled,
     loading: disabled,
+    selection,
   });
 
   return getDynamicText({

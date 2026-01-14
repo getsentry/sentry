@@ -40,6 +40,8 @@ type SpansWidgetQueriesProps = {
   onBestEffortDataFetched?: () => void;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: any;
 };
 
 type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
@@ -108,6 +110,7 @@ function SpansWidgetQueriesSingleRequestImpl({
   onDataFetched,
   onDataFetchStart,
   getConfidenceInformation,
+  selection,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
   const [confidence, setConfidence] = useState<Confidence | null>(null);
@@ -138,6 +141,7 @@ function SpansWidgetQueriesSingleRequestImpl({
     onDataFetchStart,
     afterFetchSeriesData,
     samplingMode: SAMPLING_MODE.NORMAL,
+    selection,
   });
 
   return getDynamicText({

@@ -156,7 +156,7 @@ function customDidUpdateComparator(
   prevProps: UseGenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>,
   nextProps: UseGenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>
 ) {
-  const {loading, limit, widget, cursor, dashboardFilters} = nextProps;
+  const {loading, limit, widget, cursor, dashboardFilters, selection} = nextProps;
   const ignoredWidgetProps: Array<Partial<keyof Widget>> = [
     'queries',
     'title',
@@ -175,7 +175,10 @@ function customDidUpdateComparator(
   return (
     limit !== prevProps.limit ||
     !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
-    // organization and selection are now handled internally by the hook
+    // Compare selection changes (if selection override is provided, compare it; otherwise hook handles it)
+    (selection !== undefined &&
+      prevProps.selection !== undefined &&
+      !isEqual(selection, prevProps.selection)) ||
     // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
     !isEqual(
       omit(widget, ignoredWidgetProps),
