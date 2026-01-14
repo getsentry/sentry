@@ -202,7 +202,7 @@ export function TransactionNodeDetails({
 
         {replay ? null : <ReplayPreview event={event} organization={organization} />}
 
-        <BreadCrumbs event={event} organization={organization} />
+        <BreadCrumbs event={event} />
 
         {project ? (
           <EventAttachments event={event} project={project} group={undefined} />
