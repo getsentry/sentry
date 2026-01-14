@@ -30,7 +30,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.detector import enforce_config_schema
-from sentry.workflow_engine.types import DataConditionType
+from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
 
 
 @dataclass(frozen=True)
@@ -93,6 +93,28 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             raise serializers.ValidationError(
                 "Only one data source is allowed for this detector type."
             )
+        return value
+
+    def validate_condition_group(self, value: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate that all conditions have valid detector priority levels as their condition_result.
+        """
+        conditions = value.get("conditions", [])
+        for condition in conditions:
+            condition_result = condition.get("condition_result")
+
+            if not isinstance(condition_result, int):
+                raise serializers.ValidationError(
+                    "condition_result must be a valid detector priority level integer"
+                )
+
+            try:
+                DetectorPriorityLevel(condition_result)
+            except ValueError:
+                raise serializers.ValidationError(
+                    f"Invalid detector priority level: {condition_result}"
+                )
+
         return value
 
     def get_quota(self) -> DetectorQuota:
