@@ -2,6 +2,8 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -112,9 +114,9 @@ export default function ProfileFlamegraphWrapper() {
             <FlamegraphStateLocalStorageSync />
             <FlamegraphContainer>
               {profiles.type === 'loading' || profiledTransaction.type === 'loading' ? (
-                <LoadingIndicatorContainer>
+                <Stack justify="center" width="100%" height="100%" position="absolute">
                   <LoadingIndicator />
-                </LoadingIndicatorContainer>
+                </Stack>
               ) : null}
               <ProfileFlamegraph />
             </FlamegraphContainer>
@@ -149,15 +151,6 @@ function ProfileGroupTypeProvider({
     </ProfileGroupProvider>
   );
 }
-
-const LoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-`;
 
 const FlamegraphContainer = styled('div')`
   display: flex;

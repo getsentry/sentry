@@ -315,10 +315,10 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           return {
             key: targetId,
             label: (
-              <DropdownItem>
+              <Flex justify="between" width="150px">
                 {getShortEventId(targetId)}
                 {timestamp}
-              </DropdownItem>
+              </Flex>
             ),
             textValue: targetId,
             to: generateProfileRouteFromProfileReference({
@@ -510,10 +510,4 @@ const StyledPagination = styled(Pagination)`
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
-`;
-
-const DropdownItem = styled('div')`
-  width: 150px;
-  display: flex;
-  justify-content: space-between;
 `;

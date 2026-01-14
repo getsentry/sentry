@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Button} from 'sentry/components/core/button';
@@ -12,7 +13,6 @@ import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -225,7 +225,7 @@ export function SuspectFunctionsTable({
 
   return (
     <Fragment>
-      <TableHeader>
+      <Flex justify="between" marginBottom="md">
         <SectionHeading>{t('Suspect Functions')}</SectionHeading>
         <ButtonBar merged gap="0">
           <Button
@@ -241,7 +241,7 @@ export function SuspectFunctionsTable({
             {...pagination.nextButtonProps}
           />
         </ButtonBar>
-      </TableHeader>
+      </Flex>
       <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
@@ -392,9 +392,3 @@ function useMemoryPagination(items: any[], size: number) {
     },
   };
 }
-
-const TableHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
