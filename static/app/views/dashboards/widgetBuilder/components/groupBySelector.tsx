@@ -14,6 +14,7 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
@@ -39,8 +40,15 @@ function WidgetBuilderGroupBySelector({
   const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
   const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
 
-  const {attributes: preprodStringAttributes} = useTraceItemAttributes('string');
-  const {attributes: preprodNumberAttributes} = useTraceItemAttributes('number');
+  // PREPROD uses TraceItemAttributeContext, not SpanTagsContext
+  const {attributes: preprodStringAttributes} = useTraceItemAttributes(
+    'string',
+    HIDDEN_PREPROD_ATTRIBUTES
+  );
+  const {attributes: preprodNumberAttributes} = useTraceItemAttributes(
+    'number',
+    HIDDEN_PREPROD_ATTRIBUTES
+  );
 
   const groupByOptions = useMemo(() => {
     const datasetConfig = getDatasetConfig(state.dataset);

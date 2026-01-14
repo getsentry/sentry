@@ -30,6 +30,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -100,7 +101,7 @@ function getPrimaryFieldOptions(
 
   // Only add numeric size fields for use in aggregate functions
   // String fields like app_id, app_name, build_version are only used
-  // for filtering and will be available via the search bar
+  // for filtering/grouping and will be available via the search bar
   const mobileAppSizeFields: Record<string, FieldValueOption> = {
     'measurement:install_size': {
       label: 'install_size',
@@ -149,11 +150,11 @@ function getGroupByFieldOptions(
 
   const tagOptions: Record<string, FieldValueOption> = {};
   for (const tag of Object.values(tags)) {
-    tagOptions[`${tag.kind}:${tag.key}`] = {
+    tagOptions[`${tag.kind}:${tag.name}`] = {
       label: tag.name,
       value: {
         kind: FieldValueKind.TAG,
-        meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
+        meta: {name: tag.name, dataType: tag.kind === 'tag' ? 'string' : 'number'},
       },
     };
   }
@@ -175,9 +176,9 @@ function MobileAppSizeSearchBar({
   } = usePageFilters();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
 
   return (
     <TraceItemSearchQueryBuilder
@@ -206,9 +207,9 @@ function useMobileAppSizeSearchBarDataProvider(
   } = usePageFilters();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
