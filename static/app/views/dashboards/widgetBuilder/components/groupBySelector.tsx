@@ -15,9 +15,8 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface WidgetBuilderGroupBySelectorProps {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
@@ -40,16 +39,8 @@ function WidgetBuilderGroupBySelector({
   const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
   const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
 
-  const preprodAttributeConfig = {
-    traceItemType: TraceItemDataset.PREPROD,
-    enabled:
-      state.dataset === WidgetType.PREPROD_APP_SIZE &&
-      organization.features.includes('preprod-app-size-dashboard'),
-  };
-  const {attributes: preprodStringAttributes} = useTraceItemAttributesWithConfig(
-    preprodAttributeConfig,
-    'string'
-  );
+  const {attributes: preprodStringAttributes} = useTraceItemAttributes('string');
+  const {attributes: preprodNumberAttributes} = useTraceItemAttributes('number');
 
   const groupByOptions = useMemo(() => {
     const datasetConfig = getDatasetConfig(state.dataset);
@@ -69,13 +60,17 @@ function WidgetBuilderGroupBySelector({
     }
 
     if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
-      return datasetConfig.getGroupByFieldOptions(organization, preprodStringAttributes);
+      return datasetConfig.getGroupByFieldOptions(organization, {
+        ...preprodStringAttributes,
+        ...preprodNumberAttributes,
+      });
     }
 
     return datasetConfig.getGroupByFieldOptions(organization, tags);
   }, [
     numericSpanTags,
     organization,
+    preprodNumberAttributes,
     preprodStringAttributes,
     state.dataset,
     stringSpanTags,
