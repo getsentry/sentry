@@ -19,7 +19,7 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
     @classproperty
-    def comparison_json_schema(self) -> dict[str, Any]:
+    def comparison_json_schema(cls) -> dict[str, Any]:
         return {
             "type": "object",
             "properties": {"value": {"type": "integer", "enum": get_all_valid_type_ids()}},
