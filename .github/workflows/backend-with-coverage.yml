@@ -189,7 +189,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.SUDO_GCP_SERVICE_ACCOUNT }}
+          service_account: ${{ secrets.SUDO_GCP_SERVICE_ACCOUNT }}
 
       - name: Upload coverage to GCS
         uses: google-github-actions/upload-cloud-storage@v2
