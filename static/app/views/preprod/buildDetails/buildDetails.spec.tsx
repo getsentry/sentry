@@ -16,9 +16,12 @@ describe('BuildDetails', () => {
 
   const initialRouterConfig = {
     location: {
-      pathname: `/organizations/${organization.slug}/projects/project-1/preprod/artifacts/artifact-1/`,
+      pathname: `/organizations/${organization.slug}/preprod/project-1/artifact-1/`,
+      query: {
+        project: 'project-1',
+      },
     },
-    route: '/organizations/:orgId/projects/:projectId/preprod/artifacts/:artifactId/',
+    route: '/organizations/:orgId/preprod/:projectId/:artifactId/',
   };
 
   const BUILD_DETAILS_URL = `/projects/org-slug/project-1/preprodartifacts/artifact-1/build-details/`;

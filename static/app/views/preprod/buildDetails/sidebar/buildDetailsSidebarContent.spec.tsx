@@ -243,7 +243,7 @@ describe('BuildDetailsSidebarContent', () => {
       const baseBuildLink = screen.getByRole('link', {name: 'v1.0 (2)'});
       expect(baseBuildLink).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/preprod/${defaultProps.projectId}/base-artifact-id/`
+        `/organizations/${organization.slug}/preprod/${defaultProps.projectId}/base-artifact-id/?project=${defaultProps.projectId}`
       );
 
       // Should be an internal link (not opening in a new tab)
