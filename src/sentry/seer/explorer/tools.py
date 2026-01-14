@@ -911,6 +911,10 @@ def get_group_tags_overview(
     Get tag data for a group and time range from the events-facets endpoint.
     Then compute the percentages for each tag key.
     """
+    if start is None and end is None:
+        # Use tagstore if no time range is provided (more efficient).
+        return get_all_tags_overview(group)
+
     dataset = "errors" if group.issue_category == GroupCategory.ERROR else "issuePlatform"
 
     params = {

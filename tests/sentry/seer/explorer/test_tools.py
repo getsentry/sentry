@@ -1050,7 +1050,9 @@ def _validate_event_timeseries(timeseries: dict, expected_total: int | None = No
 class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     @patch("sentry.seer.explorer.tools.client.get")
-    def test_builds_group_tag_keys_from_facets(self, mock_client_get, mock_get_overview):
+    def test_tags_overview_builds_group_tag_keys_from_facets(
+        self, mock_client_get, mock_get_overview
+    ):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -1114,7 +1116,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     @patch("sentry.seer.explorer.tools.client.get")
-    def test_calls_facets_endpoint_without_dates(self, mock_client_get, mock_get_overview):
+    def test_tags_overview_no_date_filter_uses_tagstore(self, mock_client_get, mock_get_overview):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -1132,18 +1134,13 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
 
         get_group_tags_overview(group, organization, 10)
 
-        mock_client_get.assert_called_once()
-        call_kwargs = mock_client_get.call_args.kwargs
-        assert call_kwargs["path"] == f"/organizations/{organization.slug}/events-facets/"
-        assert call_kwargs["params"]["query"] == f"issue:{group.qualified_short_id}"
-        assert call_kwargs["params"]["dataset"] == "errors"
-        assert call_kwargs["params"]["project"] == [project.id]
-        assert "start" not in call_kwargs["params"]
-        assert "end" not in call_kwargs["params"]
+        mock_client_get.assert_not_called()
+        mock_get_overview.assert_called_once()
+        assert mock_get_overview.call_args.args[0] == group
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     @patch("sentry.seer.explorer.tools.client.get")
-    def test_issue_platform_dataset(self, mock_client_get, mock_get_overview):
+    def test_tags_overview_issue_platform_dataset(self, mock_client_get, mock_get_overview):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -1160,7 +1157,9 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         mock_client_get.return_value = SimpleNamespace(data=facets_response)
         mock_get_overview.return_value = {"tags_overview": []}
 
-        get_group_tags_overview(group, organization, 10)
+        start = _get_utc_iso_without_timezone(datetime.now(UTC) - timedelta(days=1))
+        end = _get_utc_iso_without_timezone(datetime.now(UTC))
+        get_group_tags_overview(group, organization, 10, start=start, end=end)
 
         mock_client_get.assert_called_once()
         call_kwargs = mock_client_get.call_args.kwargs
@@ -1169,7 +1168,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         assert call_kwargs["params"]["query"] == f"issue:{group.qualified_short_id}"
         assert call_kwargs["params"]["project"] == [project.id]
 
-    def test_integration_filters_by_group_and_time(self):
+    def test_tags_overview_integration_filters_by_group_and_time(self):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         self.login_as(self.user)
@@ -1244,7 +1243,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         role_values = {v["value"]: v["percentage"] for v in role_tag["top_values"]}
         assert role_values == {"admin": "50%", "other": "50%"}
 
-    def test_integration_empty_response(self):
+    def test_tags_overview_integration_empty_response(self):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         self.login_as(self.user)
@@ -1722,7 +1721,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         )
 
         with patch(
-            "sentry.seer.explorer.tools.quotas.backend.get_event_retention",
+            "sentry.quotas.backend.get_event_retention",
             return_value=retention_days,
         ):
             with patch(
@@ -1759,7 +1758,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with patch("sentry.seer.explorer.tools.quotas.backend.get_event_retention", return_value=5):
+        with patch("sentry.quotas.backend.get_event_retention", return_value=5):
             result = _get_recommended_event(
                 group=event.group,
                 organization=project.organization,
