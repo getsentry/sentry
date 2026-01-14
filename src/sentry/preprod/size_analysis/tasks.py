@@ -293,18 +293,26 @@ def manual_size_analysis_comparison(
         )
         return
 
-    head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact_id__in=[head_artifact.id],
-        preprod_artifact__project__organization_id=org_id,
-        preprod_artifact__project_id=project_id,
-    ).select_related("preprod_artifact")
+    head_size_metrics_qs = (
+        PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[head_artifact.id],
+            preprod_artifact__project__organization_id=org_id,
+            preprod_artifact__project_id=project_id,
+        )
+        .select_related("preprod_artifact")
+        .select_related("preprod_artifact__mobile_app_info")
+    )
     head_size_metrics = list(head_size_metrics_qs)
 
-    base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact_id__in=[base_artifact.id],
-        preprod_artifact__project__organization_id=org_id,
-        preprod_artifact__project_id=project_id,
-    ).select_related("preprod_artifact")
+    base_size_metrics_qs = (
+        PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[base_artifact.id],
+            preprod_artifact__project__organization_id=org_id,
+            preprod_artifact__project_id=project_id,
+        )
+        .select_related("preprod_artifact")
+        .select_related("preprod_artifact__mobile_app_info")
+    )
     base_size_metrics = list(base_size_metrics_qs)
 
     logger.info(

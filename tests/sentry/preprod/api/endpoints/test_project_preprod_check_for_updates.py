@@ -59,7 +59,15 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             "main_binary_identifier": "test-identifier-123",
         }
         defaults.update(kwargs)
-        return self.create_preprod_artifact(**defaults)
+        self.preprod_artifact = self.create_preprod_artifact(**defaults)
+        self.mobile_app_info = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.preprod_artifact,
+            build_version=defaults["build_version"],
+            build_number=defaults["build_number"],
+            app_name=defaults.get("app_name"),
+            app_icon_id=defaults.get("app_icon_id"),
+        )
+        return self.preprod_artifact
 
     def _create_ios_artifact(self, **kwargs):
         """Helper to create an iOS artifact with default values"""
@@ -77,7 +85,15 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             "main_binary_identifier": "test-identifier-123",
         }
         defaults.update(kwargs)
-        return self.create_preprod_artifact(**defaults)
+        self.preprod_artifact = self.create_preprod_artifact(**defaults)
+        self.mobile_app_info = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.preprod_artifact,
+            build_version=defaults["build_version"],
+            build_number=defaults["build_number"],
+            app_name=defaults.get("app_name"),
+            app_icon_id=defaults.get("app_icon_id"),
+        )
+        return self.preprod_artifact
 
     def test_missing_required_parameters(self):
         """Test that missing required parameters return 400"""
