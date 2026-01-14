@@ -4,6 +4,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 export const SORT_BY_OPTIONS = {
   [ReleasesSortOption.SESSIONS_24_HOURS]: {label: t('Active Sessions')},
@@ -18,12 +19,13 @@ export const SORT_BY_OPTIONS = {
 export type ReleasesSortByOption = keyof typeof SORT_BY_OPTIONS;
 
 interface Props {
-  environments: string[];
   onChange: (sortBy: string) => void;
   sortBy: ReleasesSortByOption;
 }
 
-export function ReleasesSortSelect({environments, sortBy, onChange}: Props) {
+export function ReleasesSortSelect({sortBy, onChange}: Props) {
+  const {selection} = usePageFilters();
+  const {environments} = selection;
   return (
     <CompactSelect
       value={sortBy}

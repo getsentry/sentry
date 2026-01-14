@@ -1,7 +1,6 @@
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {
   ReleasesSortSelect,
@@ -27,7 +26,6 @@ export function SortableReleasesFilter({
   onSortChange,
 }: Props) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
 
   return (
     <PageFilterBar>
@@ -48,7 +46,6 @@ export function SortableReleasesFilter({
       />
       <ReleasesSortSelect
         sortBy={sortBy}
-        environments={selection.environments}
         onChange={value => {
           onSortChange?.(value);
           trackAnalytics('dashboards2.filter.change', {

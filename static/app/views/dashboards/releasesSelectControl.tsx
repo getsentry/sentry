@@ -43,28 +43,6 @@ const ALIASED_RELEASES = [
   },
 ];
 
-type LabelDetailsProps = {
-  dateCreated?: string;
-  eventCount?: number;
-};
-
-function LabelDetails(props: LabelDetailsProps) {
-  return (
-    <Flex justify="space-between" gap="sm" style={{minWidth: 200}}>
-      <div>
-        {defined(props.eventCount)
-          ? tn('%s event', '%s events', props.eventCount)
-          : t('No events')}
-      </div>
-      <div>
-        {defined(props.dateCreated) && (
-          <DateTime dateOnly year date={props.dateCreated} />
-        )}
-      </div>
-    </Flex>
-  );
-}
-
 export function ReleasesSelectControl({
   handleChangeFilter,
   selectedReleases,
@@ -165,6 +143,28 @@ export function ReleasesSelectControl({
         </SelectTrigger.Button>
       )}
     />
+  );
+}
+
+type LabelDetailsProps = {
+  dateCreated?: string;
+  eventCount?: number;
+};
+
+function LabelDetails(props: LabelDetailsProps) {
+  return (
+    <Flex justify="space-between" gap="sm" style={{minWidth: 200}}>
+      <div>
+        {defined(props.eventCount)
+          ? tn('%s event', '%s events', props.eventCount)
+          : t('No events')}
+      </div>
+      <div>
+        {defined(props.dateCreated) && (
+          <DateTime dateOnly year date={props.dateCreated} />
+        )}
+      </div>
+    </Flex>
   );
 }
 
