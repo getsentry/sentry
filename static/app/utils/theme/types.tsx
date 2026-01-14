@@ -109,19 +109,6 @@ export type LevelVariant =
   | 'default'
   | 'unknown';
 
-/**
- * Button style variant.
- *
- * Note: 'disabled' is a state, not a variant, but is included for backwards compatibility.
- */
-export type ButtonVariant =
-  | 'default'
-  | 'primary'
-  | 'danger'
-  | 'link'
-  | 'disabled'
-  | 'transparent';
-
 // -----------------------------------------------------------------------------
 // Internal types
 // -----------------------------------------------------------------------------

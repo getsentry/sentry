@@ -211,7 +211,7 @@ const QueryButton = styled('button')`
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px ${p => p.theme.button.default.focusBorder};
+    box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
   }
 `;
 

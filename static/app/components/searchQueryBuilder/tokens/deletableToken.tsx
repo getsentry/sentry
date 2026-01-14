@@ -105,7 +105,7 @@ const FloatingCloseButton = styled('button')`
   &:hover {
     outline: none;
     border: none;
-    background: ${p => p.theme.button.default.background};
+    background: ${p => p.theme.tokens.background.primary};
   }
 
   &:focus-visible {

@@ -819,8 +819,7 @@ const ButtonGroup = styled('div')`
 const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
-  background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.tokens.background.primary};
+  background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
   transition:
     background-color 0.2s ease-in-out,

@@ -151,7 +151,7 @@ function TrialStartedSidebarItem({
             backgroundImage: `linear-gradient(45deg, ${theme.tokens.background.accent.vibrant} 100%, transparent 0%)`,
           },
 
-          color: theme.button.primary.color,
+          color: theme.colors.white,
 
           transition: testableTransition({
             duration: 0.35,
@@ -177,7 +177,7 @@ const startedStyle = (theme: Theme) => css`
   }
 
   &:hover a {
-    color: ${theme.button.primary.color};
+    color: ${theme.colors.white};
   }
 
   &:hover {

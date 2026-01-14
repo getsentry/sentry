@@ -215,9 +215,7 @@ export const SourceCard = styled(Button)<{isHighlighted?: boolean}>`
   gap: ${space(0.5)};
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p =>
-    p.isHighlighted
-      ? p.theme.button.primary.colorActive
-      : p.theme.tokens.content.secondary};
+    p.isHighlighted ? p.theme.colors.white : p.theme.tokens.content.secondary};
   white-space: nowrap;
   flex-shrink: 0;
 `;

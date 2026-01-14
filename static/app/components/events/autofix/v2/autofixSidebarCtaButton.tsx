@@ -165,8 +165,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin-left: ${p => p.theme.space.md};
 
   .loading-indicator {
-    border-color: ${p => color(p.theme.button.primary.color).alpha(0.35).string()};
-    border-left-color: ${p => p.theme.button.primary.color};
+    border-color: ${p => color(p.theme.colors.white).alpha(0.35).string()};
+    border-left-color: ${p => p.theme.colors.white};
   }
 `;
 
