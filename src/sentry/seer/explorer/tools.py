@@ -8,7 +8,7 @@ from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry import eventstore, features, quotas
+from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
@@ -34,7 +34,13 @@ from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.explorer.utils import (
+    _convert_profile_to_execution_tree,
+    fetch_profile_data,
+    get_group_date_range,
+    get_retention_boundary,
+    get_timeseries_count_total,
+)
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -722,46 +728,66 @@ EVENT_TIMESERIES_RESOLUTIONS = (
 
 def _get_issue_event_timeseries(
     *,
+    group: Group,
     organization: Organization,
-    project_id: int,
-    issue_short_id: str,
-    first_seen_delta: timedelta,
-    issue_category: GroupCategory,
+    start: str | None = None,
+    end: str | None = None,
 ) -> tuple[dict[str, Any], str, str] | None:
     """
     Get event counts over time for an issue (no group by) by calling the events-stats endpoint. Dynamically picks
-    a stats period and interval based on the issue's first seen date and EVENT_TIMESERIES_RESOLUTIONS.
+    an interval based on the time range and EVENT_TIMESERIES_RESOLUTIONS.
     """
+    start_dt = datetime.fromisoformat(start) if start else None
+    end_dt = datetime.fromisoformat(end) if end else None
+    start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
+    if start_dt >= end_dt:
+        logger.warning(
+            "_get_issue_event_timeseries: Time range outside retention",
+            extra={
+                "group_id": group.id,
+                "organization_id": organization.id,
+                "start": start_dt,
+                "end": end_dt,
+            },
+        )
+        return None
 
-    stats_period, interval = None, None
+    # Round up to nearest supported period
+    delta = end_dt - start_dt
+    selected_period, selected_delta, interval = None, None, None
     for p, i in EVENT_TIMESERIES_RESOLUTIONS:
-        delta = parse_stats_period(p)
-        if delta and first_seen_delta <= delta:
-            stats_period, interval = p, i
+        d = parse_stats_period(p)
+        if d and delta <= d:
+            selected_period, selected_delta, interval = p, d, i
             break
-    stats_period = stats_period or "90d"
+    selected_period = selected_period or "90d"
+    selected_delta = selected_delta or timedelta(days=90)
     interval = interval or "3d"
+
+    # Adjust range to equal period
+    end_dt = start_dt + selected_delta
 
     # Use the correct dataset based on issue category
     # Error issues are stored in the "events" dataset, while issue platform issues
     # (performance, etc.) are stored in "issuePlatform" (search_issues)
-    dataset = "errors" if issue_category == GroupCategory.ERROR else "issuePlatform"
+    dataset = "errors" if group.issue_category == GroupCategory.ERROR else "issuePlatform"
 
     data = execute_timeseries_query(
         org_id=organization.id,
         dataset=dataset,
         y_axes=["count()"],
         group_by=[],
-        query=f"issue:{issue_short_id}",
-        stats_period=stats_period,
+        query=f"issue:{group.qualified_short_id}",
+        start=start_dt.isoformat(),
+        end=end_dt.isoformat(),
         interval=interval,
-        project_ids=[project_id],
+        project_ids=[group.project_id],
         partial=True,
     )
 
     if data is None:
         return None
-    return data, stats_period, interval
+    return data, selected_period, interval
 
 
 def _get_recommended_event(
@@ -776,17 +802,7 @@ def _get_recommended_event(
     If multiple events are valid, return the one with highest RECOMMENDED ordering.
     If no events are valid, return the highest recommended event.
     """
-    if start is None:
-        start = group.first_seen
-    if end is None:
-        end = group.last_seen + timedelta(seconds=5)
-
-    # Clamp start to retention boundary to avoid QueryOutsideRetentionError
-    retention_days = quotas.backend.get_event_retention(organization=organization) or 90
-    now = datetime.now(UTC) if start.tzinfo else datetime.now(UTC).replace(tzinfo=None)
-    retention_boundary = now - timedelta(days=retention_days)
-    start = max(start, retention_boundary)
-
+    start, end = get_group_date_range(group, organization, start, end)
     if start >= end:
         logger.warning(
             "_get_recommended_event: Time range outside retention",
@@ -795,7 +811,6 @@ def _get_recommended_event(
                 "organization_id": organization.id,
                 "start": start,
                 "end": end,
-                "retention_days": retention_days,
             },
         )
         return None
@@ -840,6 +855,7 @@ def _get_recommended_event(
             # Query EAP to get the span count of each trace.
             # Extend the time range by +-1 day to account for min/max trace start/end times.
             # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
+            retention_boundary = get_retention_boundary(organization, bool(w_start.tzinfo))
             spans_start = max(w_start - timedelta(days=1), retention_boundary)
             spans_end = w_end + timedelta(days=1)
 
@@ -984,26 +1000,26 @@ def get_issue_and_event_response(
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
 
+        ts_result = _get_issue_event_timeseries(
+            group=group,
+            organization=organization,
+            start=start,
+            end=end,
+        )
+        if ts_result:
+            timeseries, timeseries_stats_period, timeseries_interval = ts_result
+        else:
+            timeseries, timeseries_stats_period, timeseries_interval = None, None, None
+
+        event_count = get_timeseries_count_total(timeseries) if timeseries else 0
         try:
-            tags_overview = get_group_tags_overview(group, organization, 1000, start, end)
+            tags_overview = get_group_tags_overview(group, organization, event_count, start, end)
         except Exception:
             logger.exception(
                 "Failed to get tags overview for issue",
                 extra={"organization_id": organization.id, "issue_id": group.id},
             )
             tags_overview = None
-
-        ts_result = _get_issue_event_timeseries(
-            organization=organization,
-            project_id=group.project_id,
-            issue_short_id=group.qualified_short_id,
-            first_seen_delta=datetime.now(UTC) - group.first_seen,
-            issue_category=group.issue_category,
-        )
-        if ts_result:
-            timeseries, timeseries_stats_period, timeseries_interval = ts_result
-        else:
-            timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
         # Fetch user activity (comments, status changes, etc.)
         try:

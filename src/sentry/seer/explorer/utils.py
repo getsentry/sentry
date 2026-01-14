@@ -5,6 +5,9 @@ from typing import Any
 
 import orjson
 
+from sentry import quotas
+from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import get_from_profiling_service
@@ -459,3 +462,35 @@ def fetch_profile_data(
     if response.status == 200:
         return orjson.loads(response.data)
     return None
+
+
+def get_retention_boundary(organization: Organization, has_timezone: bool) -> datetime:
+    """Get the minimum datetime within retention, based on current time."""
+    retention_days = quotas.backend.get_event_retention(organization=organization) or 90
+    now = datetime.now(UTC) if has_timezone else datetime.now(UTC).replace(tzinfo=None)
+    return now - timedelta(days=retention_days)
+
+
+def get_group_date_range(
+    group: Group,
+    organization: Organization,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> tuple[datetime, datetime]:
+    """Get the time range of an issue using optional start and end times, the group's first and last seen times, and clamping to the retention boundary."""
+    if start is None:
+        start = group.first_seen
+    if end is None:
+        end = group.last_seen + timedelta(seconds=5)  # Fuzz for 1 event cases.
+
+    retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
+    start = max(start, retention_boundary)
+    return start, end
+
+
+def get_timeseries_count_total(timeseries_response: dict[str, Any]) -> int:
+    """Get the total sum of count() values from a timeseries response."""
+    if "count()" not in timeseries_response:
+        return 0
+    data = timeseries_response["count()"]["data"]
+    return sum(item[1][0]["count"] for item in data)
