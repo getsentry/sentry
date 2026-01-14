@@ -83,7 +83,7 @@ def create_instrumentation_issue(
         event_data=event_data,
     )
 
-    logger.info(
+    logger.warning(
         "autopilot.instrumentation_issue.created",
         extra={
             "project_id": project_id,
@@ -183,8 +183,6 @@ def run_sdk_update_detector_for_organization(organization: Organization):
 
     # Determine if each SDK needs an update for each project
     sdk_versions = get_sdk_versions()
-    logger.warning("sdk_versions: %s", sdk_versions)
-    logger.warning("latest_sdks: %s", latest_sdks)
 
     def needs_update(sdk_name, sdk_version):
         if sdk_name not in sdk_versions:
