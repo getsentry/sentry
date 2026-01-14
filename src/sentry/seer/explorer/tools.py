@@ -149,10 +149,13 @@ def execute_table_query(
 
     # Traces mode uses a different endpoint and doesn't need field selection
     if mode == "traces":
+        # Traces endpoint only supports -timestamp sort
+        if sort is not None and sort != "-timestamp":
+            raise ValueError("traces mode only supports sort by -timestamp")
         params: dict[str, Any] = {
             "dataset": "spans",  # traces endpoint only supports spans dataset
             "query": query or None,
-            "sort": sort,
+            "sort": "-timestamp",  # Always use -timestamp for traces
             "per_page": per_page,
             "statsPeriod": stats_period,
             "start": start,

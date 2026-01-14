@@ -172,6 +172,55 @@ class TestExecuteTableQueryMode:
 
         mock_client.get.assert_not_called()
 
+    @patch("sentry.seer.explorer.tools.Organization")
+    @patch("sentry.seer.explorer.tools.client")
+    def test_traces_mode_rejects_invalid_sort(
+        self, mock_client: Mock, mock_org_model: Mock
+    ) -> None:
+        """Test that traces mode rejects sort values other than -timestamp."""
+        mock_org = Mock()
+        mock_org.id = 1
+        mock_org.slug = "test-org"
+        mock_org_model.objects.get.return_value = mock_org
+
+        with pytest.raises(ValueError, match="traces mode only supports sort by -timestamp"):
+            execute_table_query(
+                org_id=1,
+                dataset="spans",
+                fields=[],
+                query="",
+                per_page=5,
+                mode="traces",
+                sort="-span.duration",  # Invalid sort for traces mode
+            )
+
+        mock_client.get.assert_not_called()
+
+    @patch("sentry.seer.explorer.tools.Organization")
+    @patch("sentry.seer.explorer.tools.client")
+    def test_traces_mode_always_uses_timestamp_sort(
+        self, mock_client: Mock, mock_org_model: Mock
+    ) -> None:
+        """Test that traces mode always sets sort to -timestamp."""
+        mock_org = Mock()
+        mock_org.id = 1
+        mock_org.slug = "test-org"
+        mock_org_model.objects.get.return_value = mock_org
+        mock_client.get.return_value = Mock(data={"data": []})
+
+        # Call without specifying sort
+        execute_table_query(
+            org_id=1,
+            dataset="spans",
+            fields=[],
+            query="",
+            per_page=5,
+            mode="traces",
+        )
+
+        call_kwargs = mock_client.get.call_args.kwargs
+        assert call_kwargs["params"]["sort"] == "-timestamp"
+
 
 class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     default_span_fields = [
