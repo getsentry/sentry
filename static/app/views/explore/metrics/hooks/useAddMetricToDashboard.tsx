@@ -12,7 +12,10 @@ import {
   DEFAULT_WIDGET_NAME,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {
+  handleAddMultipleQueriesToDashboard,
+  handleAddQueryToDashboard,
+} from 'sentry/views/discover/utils';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
@@ -58,19 +61,36 @@ export function useAddMetricToDashboard() {
   );
 
   const addToDashboard = useCallback(
-    (metricQuery: BaseMetricQuery) => {
-      const eventView = getEventView(metricQuery);
+    (metricQuery: BaseMetricQuery | BaseMetricQuery[]) => {
+      const queries = Array.isArray(metricQuery) ? metricQuery : [metricQuery];
+      const eventViews = queries.map(q => getEventView(q));
 
-      handleAddQueryToDashboard({
-        organization,
-        location,
-        eventView,
-        yAxis: eventView.yAxis,
-        widgetType: WidgetType.TRACEMETRICS,
-        source: DashboardWidgetSource.TRACEMETRICS,
-      });
+      if (eventViews.length === 0) {
+        return;
+      }
+
+      // For multiple queries, we need to call a different modal opener
+      if (queries.length > 1) {
+        handleAddMultipleQueriesToDashboard({
+          organization,
+          location,
+          eventViews,
+          widgetType: WidgetType.TRACEMETRICS,
+          source: DashboardWidgetSource.TRACEMETRICS,
+          selection,
+        });
+      } else {
+        handleAddQueryToDashboard({
+          organization,
+          location,
+          eventView: eventViews[0]!,
+          yAxis: eventViews[0]!.yAxis,
+          widgetType: WidgetType.TRACEMETRICS,
+          source: DashboardWidgetSource.TRACEMETRICS,
+        });
+      }
     },
-    [organization, location, getEventView]
+    [organization, location, getEventView, selection]
   );
 
   return {
