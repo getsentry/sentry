@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from sentry.seer.autofix.coding_agent import _launch_agents_for_repos
 from sentry.seer.autofix.utils import AutofixRequest, AutofixState, AutofixTriggerSource
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 
@@ -233,3 +234,65 @@ class TestLaunchAgentsForRepos(TestCase):
         assert mock_installation.launch.called
         launch_request = mock_installation.launch.call_args[0][0]
         assert launch_request.auto_create_pr is False
+
+    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    def test_api_error_401_includes_credentials_message(
+        self, mock_get_preferences, mock_get_prompt, mock_store_states
+    ):
+        """Test that 401 ApiError failures include credentials hint in error message."""
+        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
+        mock_get_prompt.return_value = "Test prompt"
+
+        mock_installation = MagicMock()
+        mock_installation.launch.side_effect = ApiError(
+            text='{"code":"internal","message":"Error"}',
+            code=401,
+            url="https://api.cursor.com/v0/agents",
+        )
+
+        result = _launch_agents_for_repos(
+            installation=mock_installation,
+            autofix_state=self.autofix_state,
+            run_id=self.run_id,
+            organization=self.organization,
+            trigger_source=AutofixTriggerSource.SOLUTION,
+        )
+
+        assert len(result["failures"]) == 1
+        assert result["failures"][0]["repo_name"] == "getsentry/sentry"
+        error_message = result["failures"][0]["error_message"]
+        assert "Failed to make request to coding agent" in error_message
+        assert "https://api.cursor.com/v0/agents" in error_message
+        assert "Please check that your API credentials are correct" in error_message
+        assert "401" in error_message
+        assert '{"code":"internal","message":"Error"}' in error_message
+
+    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    def test_api_error_non_401_includes_status_code(
+        self, mock_get_preferences, mock_get_prompt, mock_store_states
+    ):
+        """Test that non-401 ApiError failures include status code in error message."""
+        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
+        mock_get_prompt.return_value = "Test prompt"
+
+        mock_installation = MagicMock()
+        mock_installation.launch.side_effect = ApiError(
+            text="Some error message",
+            code=500,
+        )
+
+        result = _launch_agents_for_repos(
+            installation=mock_installation,
+            autofix_state=self.autofix_state,
+            run_id=self.run_id,
+            organization=self.organization,
+            trigger_source=AutofixTriggerSource.SOLUTION,
+        )
+
+        assert len(result["failures"]) == 1
+        error_message = result["failures"][0]["error_message"]
+        assert error_message == "Failed to make request to coding agent. 500 Error: Some error message"
