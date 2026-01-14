@@ -82,10 +82,10 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
 
         failure_threshold = config.get("failure_issue_threshold")
         recovery_threshold = config.get("recovery_threshold")
-        
+
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")
-        
+
         window_start_ts = int(config["start"])
         window_end_ts = int(config["end"])
         bucket_interval = int(config["interval"])
@@ -93,9 +93,9 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
 
         window_start = datetime.fromtimestamp(window_start_ts, tz=tz)
         window_end = datetime.fromtimestamp(window_end_ts, tz=tz)
-        
+
         ticks: list[datetime] = []
-                
+
         if schedule_type == ScheduleType.CRONTAB:
             schedule_iter = CronSim(
                 schedule,
@@ -117,16 +117,16 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
                 until=window_end,
             )
             ticks = list(rule)
-            
+
         if not ticks:
             return Response([])
-        
+
         tick_statuses = _get_tick_statuses(
             num_ticks=len(ticks),
             failure_threshold=failure_threshold,
             recovery_threshold=recovery_threshold,
         )
-        
+
         # Build bucketed stats in the shape FE expects:
         #   CheckInBucket = [bucketStartTs, {ok: count, error: count, ...}]
         bucket_stats: dict[int, dict[str, int]] = {}

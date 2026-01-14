@@ -27,7 +27,7 @@ DEFAULT_CHECKIN_MARGIN = 1
 SAMPLE_PADDING_TICKS_MIN_COUNT = 2
 
 # ratio of padding ticks to be generated for a sample window, relative to the total thresholds
-SAMPLE_PADDING_RATIO_OF_THRESHOLD = 1  
+SAMPLE_PADDING_RATIO_OF_THRESHOLD = 1
 
 # ratio of issue open period ticks to be generated for a sample window, relative to the total thresholds
 SAMPLE_OPEN_PERIOD_RATIO = 2
