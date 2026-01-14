@@ -29,8 +29,6 @@ type TraceMetricsWidgetQueriesProps = {
   onBestEffortDataFetched?: () => void;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
-  // Optional selection override for widget viewer modal zoom functionality
-  selection?: any;
 };
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
@@ -67,7 +65,6 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   dashboardFilters,
   onDataFetched,
   onDataFetchStart,
-  selection,
   getConfidenceInformation,
 }: TraceMetricsWidgetQueriesImplProps) {
   const config = TraceMetricsConfig;
@@ -104,7 +101,6 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     dashboardFilters,
     onDataFetched,
     onDataFetchStart,
-    selection,
     afterFetchSeriesData,
     samplingMode: SAMPLING_MODE.NORMAL,
     disabled,
