@@ -11,11 +11,11 @@ import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextBu
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import type {
-  DataConditionGroup,
+import {
   DataConditionGroupLogicType,
+  DataConditionHandlerGroupType,
+  type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {DataConditionHandlerGroupType} from 'sentry/types/workflowEngine/dataConditions';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -71,7 +71,12 @@ export default function AutomationBuilder() {
                       isSearchable={false}
                       isClearable={false}
                       name={`${state.triggers.id}.logicType`}
-                      value={state.triggers.logicType}
+                      value={
+                        // We do not expose ANY as a valid option, but it is
+                        state.triggers.logicType === DataConditionGroupLogicType.ANY
+                          ? DataConditionGroupLogicType.ANY_SHORT_CIRCUIT
+                          : state.triggers.logicType
+                      }
                       onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
                         actions.updateWhenLogicType(option.value)
                       }
@@ -187,7 +192,13 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
                     flexibleControlStateSize
                     options={FILTER_MATCH_OPTIONS}
                     size="xs"
-                    value={actionFilter.logicType}
+                    value={
+                      FILTER_MATCH_OPTIONS.find(
+                        choice =>
+                          choice.value === actionFilter.logicType ||
+                          choice.alias === actionFilter.logicType
+                      )?.value || actionFilter.logicType
+                    }
                     onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
                       actions.updateIfLogicType(actionFilter.id, option.value)
                     }
