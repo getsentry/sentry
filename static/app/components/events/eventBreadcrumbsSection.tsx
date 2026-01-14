@@ -21,13 +21,18 @@ import {
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
+import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 const MAX_BREADCRUMBS_HEIGHT = 400;
 
-export function BreadCrumbs({event}: {event: EventTransaction}) {
+interface EventBreadcrumbsSectionProps {
+  event: Event;
+}
+
+export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
   const theme = useTheme();
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
@@ -158,7 +163,7 @@ const BreadcrumbsContainer = styled('div')`
 
 const ActionsWrapper = styled('div')`
   display: flex;
-  gap: ${p => p.theme.space.md};
+  gap: ${space(1)};
   align-items: center;
 
   @container (max-width: 400px) {
@@ -179,11 +184,10 @@ const SearchInput = styled(InputGroup.Input)`
 const ScrollContainer = styled('div')`
   max-height: ${MAX_BREADCRUMBS_HEIGHT}px;
   overflow-y: auto;
-  padding-right: ${p => p.theme.space.md};
 `;
 
 const EmptyMessage = styled('div')`
   color: ${p => p.theme.tokens.content.muted};
-  padding: ${p => p.theme.space.xl};
+  padding: ${space(2)};
   text-align: center;
 `;
