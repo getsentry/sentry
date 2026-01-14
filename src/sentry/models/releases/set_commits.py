@@ -283,7 +283,7 @@ def update_group_resolutions(release, commit_author_by_commit):
 
 
 def create_commit_authors(commit_list, release):
-    # Step 1: Collect unique emails and their author data
+    # Collect unique emails and their author data
     author_data_by_email = {}
     for data in commit_list:
         author_email = data.get("author_email")
@@ -309,7 +309,7 @@ def create_commit_authors(commit_list, release):
             data["author_model"] = None
         return
 
-    # Step 2: Batch fetch existing authors (1 query instead of N)
+    # Batch fetch existing authors
     existing_authors = {
         author.email: author
         for author in CommitAuthor.objects.filter(
@@ -318,11 +318,11 @@ def create_commit_authors(commit_list, release):
         )
     }
 
-    # Step 3: Identify authors needing creation
+    # Identify authors needing creation
     emails_to_create = set(author_data_by_email.keys()) - set(existing_authors.keys())
 
     if emails_to_create:
-        # Step 4: Batch create missing authors (1 query)
+        # Batch create missing authors
         authors_to_create = [
             CommitAuthor(
                 organization_id=release.organization_id,
@@ -342,7 +342,7 @@ def create_commit_authors(commit_list, release):
         for author in newly_created:
             existing_authors[author.email] = author
 
-    # Step 5: Batch update names where needed (1 query)
+    # Batch update names where needed
     authors_to_update = []
     for email, author in existing_authors.items():
         expected_name = author_data_by_email[email]["name"]
@@ -353,7 +353,7 @@ def create_commit_authors(commit_list, release):
     if authors_to_update:
         CommitAuthor.objects.bulk_update(authors_to_update, ["name"])
 
-    # Step 6: Assign author models to commit data
+    # Assign author models to commit data
     for data in commit_list:
         author_email = data.pop("_normalized_email", None)
         data["author_model"] = existing_authors.get(author_email) if author_email else None
