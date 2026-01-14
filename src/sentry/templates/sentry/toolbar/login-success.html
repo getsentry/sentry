@@ -23,7 +23,8 @@
     (function() {
       const orgSlug = '{{ organization_slug|escape }}';
       const delay = {{ delay_ms|escapejs }};
-      const cookie = '{{ cookie|escapejs }}';
+      const sessionCookieName = '{{ session_cookie_name|escapejs }}';
+      const sessionCookieValue = '{{ session_cookie_value|escapejs }}';
       const csrfCookieName = '{{ csrf_cookie_name|escapejs }}';
       const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith(csrfCookieName + '='))?.split('=')[1] ?? '';
       const token = '{{ token|escapejs }}';
@@ -43,7 +44,9 @@
         window.opener.postMessage({
           source: 'sentry-toolbar',
           message: 'did-login',
-          cookie,
+          sessionCookieName,
+          sessionCookieValue,
+          csrfCookieName,
           csrfToken,
           token,
         }, window.location.origin);

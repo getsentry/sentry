@@ -97,14 +97,23 @@ Required context variables:
           return `${cookie}; domain=${domain}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
         }
 
+        function clearCookies() {
+          document.cookie.split(';').forEach(cookie => {
+            const name = cookie.split('=')[0].trim();
+            document.cookie = getCookieValue(`${name}=`, window.location.hostname);
+            document.cookie = getCookieValue(`${name}=`, regionUrl);
+          });
+        }
+
         const loginWindowMessageDispatch = {
-          'did-login': ({ cookie, csrfToken, token }) => {
-            if (cookie) {
-              document.cookie = getCookieValue(cookie, window.location.hostname);
+          'did-login': ({ sessionCookieName, sessionCookieValue, csrfCookieName, csrfToken, token }) => {
+            if (sessionCookieName && sessionCookieValue) {
+              document.cookie = getCookieValue(`${sessionCookieName}=${sessionCookieValue}`, window.location.hostname);
               log('Saved a cookie', document.cookie.indexOf(cookie) >= 0);
             }
-            if (csrfToken) {
+            if (csrfCookieName && csrfToken) {
               sessionStorage.setItem('csrfToken', csrfToken);
+              document.cookie = getCookieValue(`${csrfCookieName}=${csrfToken}`, window.location.hostname)
               log('Saved a CSRF token to sessionStorage');
             }
             if (token) {
@@ -134,15 +143,13 @@ Required context variables:
           },
 
           'request-logout': () => {
-            const cookie = document.cookie.split('=').at(0) + '=';
-            document.cookie = getCookieValue(cookie, window.location.hostname);
-            document.cookie = getCookieValue(cookie, regionUrl);
-            log('Cleared the current cookie');
+            clearCookies();
+            log('Cleared the cookies');
 
             sessionStorage.removeItem('csrfToken');
             log('Removed CSRF token from sessionStorage');
 
-            const accessToken = localStorage.removeItem('accessToken')
+            localStorage.removeItem('accessToken')
             log('Removed accessToken from localStorage');
 
             postStateMessage('stale');
@@ -163,7 +170,11 @@ Required context variables:
             // If either of these is invalid, or both are missing, we will
             // forward the resulting 401 to the application, which will request
             // tokens be destroyed and reload the iframe in an unauth state.
-            log('Has access info', { cookie: Boolean(document.cookie), accessToken: Boolean(accessToken) });
+            log('Has access info', {
+              cookie: Boolean(document.cookie),
+              csrfToken: sessionStorage.getItem('csrfToken'),
+              accessToken: Boolean(accessToken),
+            });
 
             const url = new URL('/api/0' + path, organizationUrl);
             const initWithCreds = {
@@ -186,9 +197,7 @@ Required context variables:
         log('Init', { referrerOrigin, state });
 
         if (state === 'logged-out') {
-          const cookie = document.cookie.split('=').at(0) + '=';
-          document.cookie = getCookieValue(cookie, window.location.hostname);
-          document.cookie = getCookieValue(cookie, regionUrl);
+          clearCookies();
         }
 
         window.addEventListener('message', handleLoginWindowMessage);
