@@ -17,6 +17,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
@@ -551,7 +552,7 @@ export function Control({
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
                   : menuBody}
-                {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+                {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
                   <MenuFooter>
                     {typeof menuFooter === 'function'
@@ -577,7 +578,11 @@ const ControlWrap = styled('div')`
 `;
 
 export const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
 `;
 
@@ -597,7 +602,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   align-items: center;
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
-  box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+  box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   [data-menu-has-search='true'] > & {
     padding-bottom: 0;
@@ -635,7 +640,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
 `;
@@ -687,14 +692,8 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   z-index: ${p => p?.zIndex};
 `;
 
-const OptionsWrap = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-`;
-
 const MenuFooter = styled('div')`
-  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
+  box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   padding: ${space(1)} ${space(1.5)};
   z-index: 2;
 `;

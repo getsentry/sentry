@@ -2,7 +2,6 @@ import React from 'react';
 import {useTheme} from '@emotion/react';
 import {Elements} from '@stripe/react-stripe-js';
 
-import {debossedBackground} from 'sentry/components/core/chonk';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
@@ -45,21 +44,22 @@ function StripeWrapper({
             colorBackground: theme.tokens.background.primary,
             borderRadius: theme.radius.md,
             colorText: theme.tokens.content.primary,
-            colorDanger: theme.danger,
-            colorSuccess: theme.success,
-            colorWarning: theme.warning,
+            colorDanger: theme.tokens.content.danger,
+            colorSuccess: theme.tokens.content.success,
+            colorWarning: theme.tokens.content.warning,
             iconColor: theme.tokens.content.primary,
           },
           rules: {
             '.Input': {
               fontSize: theme.fontSize.md,
-              boxShadow: `0px 2px 0px 0px ${theme.tokens.border.primary} inset`,
-              backgroundColor: debossedBackground(theme).backgroundColor,
+              boxShadow: `0px 2px 0px 0px ${theme.tokens.interactive.chonky.debossed.neutral.chonk} inset`,
+              backgroundColor:
+                theme.tokens.interactive.chonky.debossed.neutral.background,
               padding: `${theme.space.lg} ${theme.space.xl}`,
             },
             '.Label': {
               fontSize: theme.fontSize.sm,
-              color: theme.subText,
+              color: theme.tokens.content.secondary,
             },
           },
         },

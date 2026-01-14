@@ -57,7 +57,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
     return Array.from(DATASET_CHOICES.entries()).map(([widgetType, label]) => ({
       label,
       value: widgetType,
-      trailingItems: <IconArrow direction="right" color="subText" size="xs" />,
+      trailingItems: <IconArrow direction="right" variant="muted" size="xs" />,
     }));
   }, []);
 

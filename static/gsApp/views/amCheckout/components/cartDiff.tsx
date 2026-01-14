@@ -33,7 +33,7 @@ import * as utils from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED,
@@ -621,7 +621,7 @@ const Change = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.sm};
   font-family: ${p => p.theme.text.familyMono};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
 
   &::before {
@@ -655,7 +655,7 @@ const Removed = styled(Change)<{prefersDarkMode?: boolean}>`
 const ChangedCategory = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ChangeSection = styled('div')`

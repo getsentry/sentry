@@ -8,7 +8,7 @@ from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry import eventstore, features
+from sentry import eventstore, features, quotas
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
@@ -45,7 +45,7 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
-from sentry.utils.dates import outside_retention_with_modified_start, parse_stats_period
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
 
@@ -404,7 +404,12 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         projects=projects,
         organization=organization,
     )
-    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_EXPLORER_TOOLS)
+    events = query_trace_data(
+        snuba_params,
+        full_trace_id,
+        additional_attributes=["span.status_code"],
+        referrer=Referrer.SEER_EXPLORER_TOOLS,
+    )
 
     return EAPTrace(
         trace_id=full_trace_id,
@@ -626,45 +631,75 @@ def rpc_get_profile_flamegraph(
     }
 
 
-def get_repository_definition(*, organization_id: int, repo_full_name: str) -> dict | None:
+def get_repository_definition(
+    *,
+    organization_id: int,
+    repo_full_name: str,
+    external_id: str | None = None,
+) -> dict | None:
     """
-    Look up a repository by full name (owner/repo-name) that the org has access to.
+    Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
+
+    Lookup priority:
+    1. external_id (GitHub's repo ID - stable across renames)
+    2. Current name (exact match)
 
     Args:
         organization_id: The ID of the organization
         repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
+        external_id: Optional external repository ID (e.g., GitHub repo ID). Stable across renames.
+                     If provided, this is used for lookup instead of name.
 
     Returns:
-        dict with RepoDefinition fields if found, None otherwise
+        dict with RepoDefinition fields if found, None otherwise. Includes external_id
+        which should be stored for future lookups.
     """
-    parts = repo_full_name.split("/")
-    if len(parts) != 2:
-        logger.warning(
-            "seer.rpc.invalid_repo_name_format",
-            extra={"repo_full_name": repo_full_name},
-        )
-        return None
+    repo: Repository | None = None
 
-    owner, name = parts
+    if external_id:
+        repo = Repository.objects.filter(
+            organization_id=organization_id,
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+        ).first()
 
-    repo = Repository.objects.filter(
-        organization_id=organization_id,
-        name=repo_full_name,
-        status=ObjectStatus.ACTIVE,
-        provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
-    ).first()
+    if not repo:
+        parts = repo_full_name.split("/")
+        if len(parts) < 2:
+            logger.warning(
+                "seer.rpc.invalid_repo_name_format",
+                extra={"repo_full_name": repo_full_name},
+            )
+            return None
+
+        repo = Repository.objects.filter(
+            organization_id=organization_id,
+            name=repo_full_name,
+            status=ObjectStatus.ACTIVE,
+            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+        ).first()
 
     if not repo:
         logger.info(
             "seer.rpc.repository_not_found",
-            extra={"organization_id": organization_id, "repo_full_name": repo_full_name},
+            extra={
+                "organization_id": organization_id,
+                "repo_full_name": repo_full_name,
+                "external_id": external_id,
+            },
         )
         return None
 
+    # Use the actual repo name from the database, not the requested name.
+    repo_name_parts = repo.name.split("/")
+    owner = repo_name_parts[0]
+    name = "/".join(repo_name_parts[1:])
+
     return {
         "organization_id": organization_id,
-        "integration_id": str(repo.integration_id) if repo.integration_id else None,
+        "integration_id": str(repo.integration_id) if repo.integration_id is not None else None,
         "provider": repo.provider,
         "owner": owner,
         "name": name,
@@ -745,8 +780,13 @@ def _get_recommended_event(
     if end is None:
         end = group.last_seen + timedelta(seconds=5)
 
-    expired, _ = outside_retention_with_modified_start(start, end, organization)
-    if expired:
+    # Clamp start to retention boundary to avoid QueryOutsideRetentionError
+    retention_days = quotas.backend.get_event_retention(organization=organization) or 90
+    now = datetime.now(UTC) if start.tzinfo else datetime.now(UTC).replace(tzinfo=None)
+    retention_boundary = now - timedelta(days=retention_days)
+    start = max(start, retention_boundary)
+
+    if start >= end:
         logger.warning(
             "_get_recommended_event: Time range outside retention",
             extra={
@@ -754,6 +794,7 @@ def _get_recommended_event(
                 "organization_id": organization.id,
                 "start": start,
                 "end": end,
+                "retention_days": retention_days,
             },
         )
         return None
@@ -766,11 +807,12 @@ def _get_recommended_event(
     w_size = timedelta(days=3)
     w_start = max(end - w_size, start)
     w_end = end
-    event_query_limit = 50
+    event_query_limit = 100
     fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
 
     while w_start >= start:
-        # Get candidate events with the standard recommended ordering. This is an expensive orderby, hence the sliding window.
+        # Get candidate events with the standard recommended ordering.
+        # This is an expensive orderby, hence the inner limit and sliding window.
         events: list[Event] = eventstore.backend.get_events_snql(
             organization_id=organization.id,
             group_id=group.id,
@@ -796,7 +838,8 @@ def _get_recommended_event(
         if len(trace_ids) > 0:
             # Query EAP to get the span count of each trace.
             # Extend the time range by +-1 day to account for min/max trace start/end times.
-            spans_start = w_start - timedelta(days=1)
+            # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
+            spans_start = max(w_start - timedelta(days=1), retention_boundary)
             spans_end = w_end + timedelta(days=1)
 
             count_field = "count(span.duration)"

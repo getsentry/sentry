@@ -1,5 +1,6 @@
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -16,7 +17,7 @@ export default function TestAnalyticsPageWrapper() {
     <SentryDocumentTitle title={TESTS_PAGE_TITLE} orgSlug={organization.slug}>
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <HeaderContentBar>
+          <Flex justify="between" align="center">
             <Layout.Title>
               {TESTS_PAGE_TITLE}
               <FeatureBadge type="beta" />
@@ -29,7 +30,7 @@ export default function TestAnalyticsPageWrapper() {
                 },
               }}
             />
-          </HeaderContentBar>
+          </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -42,10 +43,3 @@ export default function TestAnalyticsPageWrapper() {
     </SentryDocumentTitle>
   );
 }
-
-const HeaderContentBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;

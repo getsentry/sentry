@@ -130,7 +130,7 @@ export function IssueViewItem({
               }}
             >
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
-              <IconGrabbable color="gray300" />
+              <IconGrabbable variant="muted" />
             </GrabHandleWrapper>
             <ProjectIcon
               projectPlatforms={projectPlatforms}
@@ -253,7 +253,7 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   }
 
   border-radius: 50%;
-  background: ${p => p.theme.colors.blue500};
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
   border: solid 2px ${p => p.theme.colors.surface300};
   position: absolute;
   width: 10px;
@@ -284,5 +284,9 @@ const GrabHandleWrapper = styled(motion.div)`
 `;
 
 const TruncatedTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

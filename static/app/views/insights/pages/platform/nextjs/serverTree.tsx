@@ -70,7 +70,7 @@ const HOVERCARD_BODY_CLASS_NAME = 'ssrTreeHovercard';
 
 const getP95Threshold = (avg: number) => {
   return {
-    error: avg * 3,
+    danger: avg * 3,
     warning: avg * 2,
   };
 };
@@ -265,7 +265,7 @@ function TreeNodeRenderer({
       <Fragment>
         <div>
           <PathWrapper style={{paddingLeft: indent * 18}}>
-            <IconCode color="subText" size="xs" />
+            <IconCode variant="muted" size="xs" />
             <TextOverflow>
               {exploreLink ? <Link to={exploreLink}>{item.name}</Link> : item.name}
             </TextOverflow>
@@ -296,9 +296,9 @@ function TreeNodeRenderer({
             direction={isCollapsed ? 'right' : 'down'}
           />
           {item.type === 'file' ? (
-            <IconFile color="subText" size="xs" />
+            <IconFile variant="muted" size="xs" />
           ) : (
-            <IconProject color="subText" size="xs" />
+            <IconProject variant="muted" size="xs" />
           )}
           <ClassNames>
             {({css: className}) => (
@@ -360,9 +360,9 @@ const HeaderCell = styled('div')`
   padding: ${space(2)} ${space(0.75)};
   text-transform: uppercase;
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   white-space: nowrap;
   line-height: 1;
   position: sticky;
@@ -381,7 +381,7 @@ const PathWrapper = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   user-select: none;
   width: 10px;
@@ -427,7 +427,7 @@ const TreeGrid = styled('div')`
   & > *:nth-child(8n + 2),
   & > *:nth-child(8n + 3),
   & > *:nth-child(8n + 4) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

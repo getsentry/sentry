@@ -26,7 +26,6 @@ import type {
   LevelVariant,
   MotionDuration,
   MotionEasing,
-  TagVariant,
 } from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
@@ -169,25 +168,25 @@ type AlertColors = Record<
   }
 >;
 
-const generateThemeUtils = (
-  colors: ReturnType<typeof deprecatedColorMappings>,
-  aliases: Aliases
-) => ({
-  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+const generateThemeUtils = (tokens: Tokens) => ({
+  tooltipUnderline: (
+    underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
+  ) => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationColor:
+      underlineColor === 'warning'
+        ? tokens.content.warning
+        : underlineColor === 'danger'
+          ? tokens.content.danger
+          : underlineColor === 'success'
+            ? tokens.content.success
+            : underlineColor === 'muted'
+              ? tokens.content.secondary
+              : undefined,
     textDecorationStyle: 'dotted' as const,
   }),
-  overflowEllipsis: css`
-    display: block;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  `,
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
     clip: rect(0 0 0 0);
@@ -200,33 +199,18 @@ const generateThemeUtils = (
   `,
 });
 
-const generateThemePrismVariables = (
-  prismColors: typeof prismLight,
-  blockBackground: string
-) =>
-  // eslint-disable-next-line @emotion/syntax-preference
-  css({
-    // block background differs based on light/dark mode
-    '--prism-block-background': blockBackground,
-    ...prismColors,
-  });
-
-const generateButtonTheme = (
-  colors: Colors,
-  alias: Aliases,
-  tokens: Tokens
-): ButtonColors => ({
+const generateButtonTheme = (colors: Colors, tokens: Tokens): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
     color: tokens.content.primary,
     colorActive: tokens.content.primary,
-    background: alias.background,
-    backgroundActive: alias.hover,
-    border: alias.border,
-    borderActive: alias.border,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    background: tokens.background.primary,
+    backgroundActive: tokens.background.transparent.neutral.muted,
+    border: tokens.border.primary,
+    borderActive: tokens.border.primary,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   primary: {
     color: colors.white,
@@ -236,8 +220,8 @@ const generateButtonTheme = (
     border: colors.blue400,
     borderActive: colors.blue400,
     borderTranslucent: colors.blue400,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   danger: {
     color: colors.white,
@@ -251,24 +235,24 @@ const generateButtonTheme = (
     focusShadow: colors.red200,
   },
   link: {
-    color: alias.linkColor,
-    colorActive: alias.linkHoverColor,
+    color: tokens.interactive.link.accent.rest,
+    colorActive: tokens.interactive.link.accent.hover,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',
     borderActive: 'transparent',
     borderTranslucent: 'transparent',
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
+    focusBorder: tokens.focus.default,
+    focusShadow: tokens.focus.default,
   },
   disabled: {
-    color: alias.disabled,
-    colorActive: alias.disabled,
-    background: alias.background,
-    backgroundActive: alias.background,
-    border: alias.disabledBorder,
-    borderActive: alias.disabledBorder,
-    borderTranslucent: alias.translucentInnerBorder,
+    color: tokens.content.disabled,
+    colorActive: tokens.content.disabled,
+    background: tokens.background.primary,
+    backgroundActive: tokens.background.primary,
+    border: tokens.content.disabled,
+    borderActive: tokens.content.disabled,
+    borderTranslucent: tokens.border.transparent.neutral.muted,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
@@ -285,7 +269,7 @@ const generateButtonTheme = (
   },
 });
 
-const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
+const generateAlertTheme = (colors: Colors, tokens: Tokens): AlertColors => ({
   info: {
     border: colors.blue200,
     background: colors.blue400,
@@ -302,9 +286,9 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
   muted: {
     background: colors.gray200,
-    backgroundLight: alias.backgroundSecondary,
-    border: alias.border,
-    borderHover: alias.border,
+    backgroundLight: tokens.background.secondary,
+    border: tokens.border.primary,
+    borderHover: tokens.border.primary,
     color: 'inherit',
   },
   warning: {
@@ -339,58 +323,11 @@ const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors
   unknown: tokens.dataviz.semantic.other,
 });
 
-const generateTagTheme = (colors: Colors): TagColors => ({
-  muted: {
-    background: colors.surface500,
-    border: colors.gray200,
-    color: colors.gray500,
-  },
-
-  promotion: {
-    background: colors.pink100,
-    border: colors.pink100,
-    color: colors.pink500,
-  },
-
-  warning: {
-    background: colors.yellow100,
-    border: colors.yellow100,
-    color: colors.yellow500,
-  },
-
-  success: {
-    background: colors.green100,
-    border: colors.green100,
-    color: colors.green500,
-  },
-
-  danger: {
-    background: colors.red100,
-    border: colors.red100,
-    color: colors.red500,
-  },
-
-  info: {
-    background: colors.blue100,
-    border: colors.blue100,
-    color: colors.blue500,
-  },
-});
-
 /**
  * Theme definition
  */
 
 type Colors = typeof lightColors;
-
-type TagColors = Record<
-  TagVariant,
-  {
-    background: string;
-    border: string;
-    color: string;
-  }
->;
 
 type LevelColors = Record<LevelVariant, string>;
 
@@ -560,14 +497,6 @@ const commonTheme = {
   ...formTheme,
 };
 
-export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
-type Aliases = typeof lightAliases;
-/**
- * Do not use this type. Use direct colors access via theme.colors or encapsulate
- * colors into human readable variants that signify the color's purpose.
- * @deprecated
- */
-export type ColorOrAlias = keyof Aliases | Color;
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
@@ -1101,51 +1030,6 @@ const darkColors: Colors = {
   },
 };
 
-// Prism colors
-// @TODO(jonasbadalic): are these final?
-const prismLight = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#332B3B',
-  '--prism-inline-code': '#332B3B',
-  '--prism-inline-code-background': '#F5F3F7',
-  '--prism-highlight-background': '#5C78A31C',
-  '--prism-highlight-accent': '#5C78A344',
-  '--prism-comment': '#80708F',
-  '--prism-punctuation': '#332B3B',
-  '--prism-property': '#18408B',
-  '--prism-selector': '#177861',
-  '--prism-operator': '#235CC8',
-  '--prism-variable': '#332B3B',
-  '--prism-function': '#235CC8',
-  '--prism-keyword': '#BB3A3D',
-};
-
-// @TODO(jonasbadalic): are these final?
-const prismDark = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#D6D0DC',
-  '--prism-inline-code': '#D6D0DC',
-  '--prism-inline-code-background': '#18121C',
-  '--prism-highlight-background': '#A8A2C31C',
-  '--prism-highlight-accent': '#A8A2C344',
-  '--prism-comment': '#998DA5',
-  '--prism-punctuation': '#D6D0DC',
-  '--prism-property': '#70A2FF',
-  '--prism-selector': '#1DCDA4',
-  '--prism-operator': '#70A2FF',
-  '--prism-variable': '#D6D0DC',
-  '--prism-function': '#70A2FF',
-  '--prism-keyword': '#F8777C',
-};
-
 // @TODO(jonasbadalic): are these final?
 const lightShadows = {
   dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
@@ -1162,119 +1046,6 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (tokens: Tokens, colors: typeof lightColors) => ({
-  /**
-   * Text that should not have as much emphasis
-   */
-  subText: tokens.content.secondary,
-
-  /**
-   * Primary background color
-   */
-  background: tokens.background.primary,
-
-  /**
-   * Secondary background color used as a slight contrast against primary background
-   */
-  backgroundSecondary: tokens.background.secondary,
-
-  /**
-   * Tertiary background color used as a stronger contrast against primary background
-   */
-  backgroundTertiary: tokens.background.tertiary,
-
-  /**
-   * Background for the header of a page
-   */
-  headerBackground: tokens.background.primary,
-
-  /**
-   * Primary border color
-   */
-  border: tokens.border.primary,
-  translucentBorder: tokens.border.transparent.neutral.muted,
-
-  /**
-   * Inner borders, e.g. borders inside of a grid
-   */
-  innerBorder: tokens.border.secondary,
-  translucentInnerBorder: tokens.border.transparent.neutral.muted,
-
-  /**
-   * A color that denotes a "success", or something good
-   */
-  success: tokens.content.success,
-  successText: tokens.content.success,
-
-  /**
-   * A color that denotes an error, or something that is wrong
-   */
-  error: tokens.content.danger,
-  errorText: tokens.content.danger,
-
-  /**
-   * A color that denotes danger, for dangerous actions like deletion
-   */
-  danger: tokens.content.danger,
-  dangerText: tokens.content.danger,
-
-  /**
-   * A color that denotes a warning
-   */
-  warning: tokens.content.warning,
-  warningText: tokens.content.warning,
-
-  /**
-   * A color that indicates something is disabled where user can not interact or use
-   * it in the usual manner (implies that there is an "enabled" state)
-   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
-   */
-  disabled: colors.gray400,
-  disabledBorder: colors.gray400,
-
-  /**
-   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
-   * interaction (hover/press) states.
-   * @deprecated
-   */
-  hover: colors.gray100,
-
-  /**
-   * Indicates that something is "active" or "selected"
-   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
-   */
-  active: tokens.interactive.link.accent.active,
-  activeHover: tokens.interactive.link.accent.hover,
-  activeText: tokens.interactive.link.accent.rest,
-
-  /**
-   * Indicates that something has "focus", which is different than "active" state as it is more temporal
-   * and should be a bit subtler than active
-   */
-  focus: tokens.border.accent.vibrant,
-  focusBorder: tokens.border.accent.vibrant,
-
-  /**
-   * Link color indicates that something is clickable
-   */
-  linkColor: tokens.interactive.link.accent.rest,
-  linkHoverColor: tokens.interactive.link.accent.hover,
-  linkUnderline: tokens.interactive.link.accent.rest,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBar: colors.chonk.blue400,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBackground: colors.gray100,
-});
-
-const lightAliases = generateAliases(baseLightTheme.tokens, lightColors);
-const darkAliases = generateAliases(baseDarkTheme.tokens, darkColors);
-
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get black() {
@@ -1283,27 +1054,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get white() {
     return colors.white;
-  },
-
-  /** @deprecated */
-  get gray500() {
-    return colors.gray800;
-  },
-  /** @deprecated */
-  get gray400() {
-    return colors.gray500;
-  },
-  /** @deprecated */
-  get gray300() {
-    return colors.gray400;
-  },
-  /** @deprecated */
-  get gray200() {
-    return colors.gray200;
-  },
-  /** @deprecated */
-  get gray100() {
-    return colors.gray100;
   },
 
   /** @deprecated */
@@ -1338,23 +1088,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get blue100() {
     return colors.blue100;
-  },
-
-  /** @deprecated */
-  get pink400() {
-    return colors.pink500;
-  },
-  /** @deprecated */
-  get pink300() {
-    return colors.pink400;
-  },
-  /** @deprecated */
-  get pink200() {
-    return colors.pink200;
-  },
-  /** @deprecated */
-  get pink100() {
-    return colors.pink100;
   },
 
   /** @deprecated */
@@ -1415,20 +1148,18 @@ const lightThemeDefinition = {
   ...commonTheme,
   ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
-  ...lightAliases,
   ...lightShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseLightTheme.tokens),
-  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
+  focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
-  alert: generateAlertTheme(lightColors, lightAliases),
-  button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
-  tag: generateTagTheme(lightColors),
+  ...generateThemeUtils(baseLightTheme.tokens),
+  alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
+  button: generateButtonTheme(lightColors, baseLightTheme.tokens),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
@@ -1436,15 +1167,6 @@ const lightThemeDefinition = {
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
-
-  prismVariables: generateThemePrismVariables(
-    prismLight,
-    lightAliases.backgroundSecondary
-  ),
-  prismDarkVariables: generateThemePrismVariables(
-    prismDark,
-    baseDarkTheme.tokens.background.primary
-  ),
 
   colors: lightColors,
 };
@@ -1464,20 +1186,18 @@ export const darkTheme: SentryTheme = {
 
   ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
-  ...darkAliases,
   ...darkShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseDarkTheme.tokens),
-  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
+  focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
-    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
-  alert: generateAlertTheme(darkColors, darkAliases),
-  button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
-  tag: generateTagTheme(darkColors),
+  ...generateThemeUtils(baseDarkTheme.tokens),
+  alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
+  button: generateButtonTheme(darkColors, baseDarkTheme.tokens),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
@@ -1485,12 +1205,6 @@ export const darkTheme: SentryTheme = {
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
-
-  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
-  prismDarkVariables: generateThemePrismVariables(
-    prismDark,
-    baseDarkTheme.tokens.background.primary
-  ),
 
   colors: darkColors,
 };

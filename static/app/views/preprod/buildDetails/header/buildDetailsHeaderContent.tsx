@@ -33,6 +33,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 import {useBuildDetailsActions} from './useBuildDetailsActions';
@@ -84,11 +85,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getBySlug(projectId);
+  const project = ProjectsStore.getById(projectId);
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
@@ -98,7 +99,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(project?.id, {
+      to: makeReleasesUrl(organization.slug, projectId, {
         query: version,
         tab: 'mobile-builds',
       }),
@@ -165,7 +166,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             }}
           />
           <Link
-            to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
+            to={getCompareBuildPath({
+              organizationSlug: organization.slug,
+              projectId,
+              headArtifactId: buildDetailsData.id,
+            })}
             onClick={handleCompareClick}
           >
             <Button size="sm" priority="default" icon={<IconTelescope />}>
@@ -204,7 +209,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                   key: 'delete',
                   label: (
                     <Flex align="center" gap="sm">
-                      <IconDelete size="sm" color="danger" />
+                      <IconDelete size="sm" variant="danger" />
                       <Text variant="danger">{t('Delete Build')}</Text>
                     </Flex>
                   ),

@@ -3,9 +3,10 @@ import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import BaseSearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const FILTER_TO_NAME = {
   slowestTests: 'Slowest Tests',
@@ -63,14 +64,14 @@ export function TestSearchBar({testCount}: TestSearchBarProps) {
   }, [handleSearchChange]);
 
   return (
-    <Container>
+    <Flex align="center" gap="lg" width="100%">
       <Title>{searchTitle}</Title>
       <StyledSearchBar
         placeholder={t('Search by test name')}
         onChange={handleSearchChange}
         query={term}
       />
-    </Container>
+    </Flex>
   );
 }
 
@@ -84,11 +85,4 @@ const Title = styled('h2')`
   flex-shrink: 0;
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
-`;
-
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1.5)};
-  width: 100%;
 `;

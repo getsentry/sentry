@@ -1,4 +1,6 @@
-import {t} from 'sentry/locale';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+
+import {t, td} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -18,6 +20,7 @@ export enum FieldKind {
   EQUATION = 'equation',
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
+  BOOLEAN = 'boolean',
 }
 
 export enum FieldKey {
@@ -2109,7 +2112,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
 
 const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2979,12 +2982,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3293,7 +3296,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     allowWildcard: true,
   },
   [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3388,6 +3391,10 @@ export const getFieldDefinition = (
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
 
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'log':
@@ -3406,6 +3413,11 @@ export const getFieldDefinition = (
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'tracemetric':
@@ -3424,6 +3436,11 @@ export const getFieldDefinition = (
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'event':
@@ -3455,7 +3472,16 @@ const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+
+  if (result?.[2] === 'number') {
+    return FieldKind.MEASUREMENT;
+  }
+
+  if (result?.[2] === 'boolean') {
+    return FieldKind.BOOLEAN;
+  }
+
+  return FieldKind.TAG;
 }
 
 export function prettifyTagKey(key: string): string {

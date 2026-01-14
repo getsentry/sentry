@@ -183,13 +183,13 @@ const EditInput = styled(TextArea)`
 `;
 
 const AddButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RethinkLabel = styled('span')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-right: ${space(0.5)};
 `;

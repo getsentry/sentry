@@ -143,11 +143,15 @@ export default AskUserQuestionBlock;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
-  border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
+  border-bottom: ${p =>
+    p.isLast ? 'none' : `1px solid ${p.theme.tokens.border.primary}`};
   position: relative;
   flex-shrink: 0;
   cursor: pointer;
-  background: ${p => (p.isFocused ? p.theme.hover : 'transparent')};
+  background: ${p =>
+    p.isFocused
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : 'transparent'};
 `;
 
 const BlockContentWrapper = styled('div')`
@@ -179,7 +183,7 @@ const OptionRow = styled('div')<{isSelected: boolean}>`
   transition: background-color 0.15s ease;
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

@@ -248,7 +248,7 @@ const ContentWrapper = styled('div')<{
       ? p.theme.alert.danger.color
       : p.isSuspectFlag
         ? p.theme.colors.yellow500
-        : p.theme.subText};
+        : p.theme.tokens.content.secondary};
   box-shadow: inset 0 0 0 1px
     ${p =>
       p.hasErrors
@@ -268,7 +268,7 @@ const ContentWrapper = styled('div')<{
         ? p.theme.alert.danger.backgroundLight
         : p.isSuspectFlag
           ? p.theme.colors.yellow100
-          : p.theme.backgroundSecondary};
+          : p.theme.tokens.background.secondary};
   }
 
   .invisible {
@@ -326,7 +326,7 @@ const CardColumn = styled('div')`
 `;
 
 export const ValueLink = styled(Link)`
-  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
+  text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
 `;
 
 const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`

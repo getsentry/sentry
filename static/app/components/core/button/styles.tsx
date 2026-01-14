@@ -1,5 +1,4 @@
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
-import {chonkFor} from 'sentry/components/core/chonk';
 // eslint-disable-next-line boundaries/element-types
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
 // eslint-disable-next-line boundaries/element-types
@@ -126,8 +125,8 @@ export function DO_NOT_USE_getButtonStyles(
       color: p.disabled || p.busy ? undefined : buttonTheme.color,
 
       '&::after': {
-        border: `1px solid ${p.theme.focusBorder}`,
-        boxShadow: `0 0 0 1px ${p.theme.focusBorder}`,
+        border: `1px solid ${p.theme.tokens.focus.default}`,
+        boxShadow: `0 0 0 1px ${p.theme.tokens.focus.default}`,
       },
     },
 
@@ -269,39 +268,39 @@ function getButtonTheme(type: ButtonType, theme: Theme) {
   switch (type) {
     case 'default':
       return {
-        surface: theme.colors.surface500,
-        background: theme.colors.surface100,
-        color: theme.colors.gray800,
+        surface: theme.tokens.interactive.chonky.embossed.neutral.background,
+        background: theme.tokens.interactive.chonky.embossed.neutral.chonk,
+        color: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
       };
     case 'accent':
       return {
-        surface: theme.colors.chonk.blue400,
-        background: chonkFor(theme, theme.colors.chonk.blue400),
-        color: theme.colors.white,
+        surface: theme.tokens.interactive.chonky.embossed.accent.background,
+        background: theme.tokens.interactive.chonky.embossed.accent.chonk,
+        color: theme.tokens.interactive.chonky.embossed.accent.content,
       };
     case 'warning':
       return {
-        surface: theme.colors.chonk.yellow400,
-        background: chonkFor(theme, theme.colors.chonk.yellow400),
-        color: theme.colors.black,
+        surface: theme.tokens.interactive.chonky.embossed.warning.background,
+        background: theme.tokens.interactive.chonky.embossed.warning.chonk,
+        color: theme.tokens.interactive.chonky.embossed.warning.content,
       };
     case 'danger':
       return {
-        surface: theme.colors.chonk.red400,
-        background: chonkFor(theme, theme.colors.chonk.red400),
-        color: theme.colors.white,
+        surface: theme.tokens.interactive.chonky.embossed.danger.background,
+        background: theme.tokens.interactive.chonky.embossed.danger.chonk,
+        color: theme.tokens.interactive.chonky.embossed.danger.content,
       };
     case 'transparent':
       return {
-        surface: 'transparent',
-        background: 'transparent',
-        color: theme.colors.gray800,
+        surface: theme.tokens.interactive.transparent.neutral.background.rest,
+        background: theme.tokens.interactive.transparent.neutral.background.rest,
+        color: theme.tokens.interactive.transparent.neutral.content.primary,
       };
     case 'link':
       return {
         surface: 'transparent',
         background: 'transparent',
-        color: theme.linkColor,
+        color: theme.tokens.interactive.link.accent.rest,
       };
     default:
       return {};

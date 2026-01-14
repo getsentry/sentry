@@ -235,7 +235,11 @@ const ReleasesTable = styled('div')`
 `;
 
 const StyledVersion = styled(Version)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.6;
   font-variant-numeric: tabular-nums;
 `;

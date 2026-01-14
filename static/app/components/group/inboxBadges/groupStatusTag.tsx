@@ -51,6 +51,5 @@ const StyledTag = styled(Tag, {
 `;
 
 const Separator = styled('span')<{variant: TagVariant}>`
-  color: ${p => p.theme.tag[p.variant].border};
   opacity: 80%;
 `;

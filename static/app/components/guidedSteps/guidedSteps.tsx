@@ -251,7 +251,7 @@ const StepWrapper = styled('div')`
     position: absolute;
     height: calc(100% + ${space(2)});
     width: 1px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }
 `;
@@ -279,26 +279,29 @@ const StepHeading = styled('h4')<{isActive: boolean}>`
   margin: 0;
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 `;
 
 const StepDoneIcon = styled(IconCheckmark, {
   shouldForwardProp: prop => prop !== 'isActive',
 })<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.successText : p.theme.subText)};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
   margin-left: ${space(1)};
   vertical-align: middle;
 `;
 
 const StepOptionalLabel = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   margin-top: -${space(0.75)};
   margin-bottom: ${space(1)};
 `;
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   p {
     margin-bottom: ${space(1)};

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,7 +13,6 @@ import {IconCheckmark, IconSeer, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {Color} from 'sentry/utils/theme';
 
 import {AddOnCategory} from 'getsentry/types';
 import {getReservedBudgetCategoryForAddOn} from 'getsentry/utils/billing';
@@ -55,7 +53,6 @@ function ProductSelect({
       subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
   );
 
-  const theme = useTheme();
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
 
   return (
@@ -193,9 +190,9 @@ function ProductSelect({
                             key={category}
                             data-test-id={`product-option-feature-${category}`}
                           >
-                            <IconContainer>
-                              <IconCheckmark color={theme.successText as Color} />
-                            </IconContainer>
+                            <Flex align="center" marginTop="2xs">
+                              <IconCheckmark variant="success" />
+                            </Flex>
                             <Flex direction="column" gap="xs">
                               <Text size="md">
                                 {getSingularCategoryName({
@@ -309,12 +306,6 @@ function ProductSelect({
 }
 
 export default ProductSelect;
-
-const IconContainer = styled('div')`
-  margin-top: ${p => p.theme.space['2xs']};
-  display: flex;
-  align-items: center;
-`;
 
 const FeatureItem = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};

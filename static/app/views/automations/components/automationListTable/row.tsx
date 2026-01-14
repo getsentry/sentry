@@ -47,13 +47,13 @@ export function AutomationListRow({
       <SimpleTable.RowCell>
         <Flex gap="md" align="center">
           {canEditAutomations && (
-            <CheckboxWrapper>
+            <Flex align="center" flexShrink={0} width="20px" height="20px">
               <Checkbox
                 checked={selected}
                 onChange={() => onSelect(automation.id)}
                 className="select-row"
               />
-            </CheckboxWrapper>
+            </Flex>
           )}
           <AutomationTitleCell automation={automation} />
         </Flex>
@@ -100,7 +100,8 @@ const AutomationSimpleTableRow = styled(SimpleTable.Row)`
   min-height: 54px;
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   @media (hover: hover) {
@@ -110,12 +111,4 @@ const AutomationSimpleTableRow = styled(SimpleTable.Row)`
       }
     }
   }
-`;
-
-const CheckboxWrapper = styled('div')`
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
 `;

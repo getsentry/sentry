@@ -1,32 +1,21 @@
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsBreadcrumb from 'sentry/views/settings/components/settingsBreadcrumb';
 import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
-import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-import {hasNewBillingUI} from 'getsentry/utils/billing';
-
-type Props = {
-  children: React.ReactNode;
-};
-
-export default function SubscriptionSettingsLayout(props: Props) {
-  const organization = useOrganization();
-  const isNewBillingUI = hasNewBillingUI(organization);
-
+export default function SubscriptionSettingsLayout() {
   const location = useLocation();
   const params = useParams();
   const routes = useRoutes();
-  const {children} = props;
   let feedbackSource = location.pathname;
   for (let i = routes.length - 1; i >= 0; i--) {
     const route = routes[i] as RouteWithName;
@@ -34,9 +23,6 @@ export default function SubscriptionSettingsLayout(props: Props) {
       feedbackSource = route.name;
       break;
     }
-  }
-  if (!isNewBillingUI) {
-    return <SettingsLayout>{children}</SettingsLayout>;
   }
 
   return (
@@ -63,7 +49,7 @@ export default function SubscriptionSettingsLayout(props: Props) {
         </Flex>
       </StyledSettingsHeader>
       <Flex minWidth={0} flex="1" direction="column">
-        {children}
+        <Outlet />
       </Flex>
     </SettingsColumn>
   );

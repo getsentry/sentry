@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
@@ -149,7 +151,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
   }
 
   return (
-    <TraceViewWaterfallWrapper>
+    <Stack height="100%">
       <TraceWaterfall
         traceSlug={firstTrace.traceSlug}
         trace={trace}
@@ -162,24 +164,18 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
         source="replay"
         replay={replay}
       />
-    </TraceViewWaterfallWrapper>
+    </Stack>
   );
 }
 
 // This has the gray background, to match other loaders on Replay Details
 const StyledPlaceholder = styled(Placeholder)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
 // White background, to match the loaded component
 const BorderedSection = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const TraceViewWaterfallWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 `;

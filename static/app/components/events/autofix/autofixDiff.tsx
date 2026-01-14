@@ -692,8 +692,9 @@ const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   }
   line-height: 20px;
   vertical-align: middle;
-  border: 1px solid ${p => p.theme.border};
-  border-color: ${p => (p.integratedStyle ? 'transparent' : p.theme.border)};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-color: ${p =>
+    p.integratedStyle ? 'transparent' : p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   background-color: ${p => p.theme.tokens.background.primary};
@@ -705,7 +706,7 @@ const FileHeader = styled('div')`
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr auto;
   gap: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 `;
@@ -717,11 +718,11 @@ const FileAddedRemoved = styled('div')`
 `;
 
 const FileAdded = styled('div')`
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const FileRemoved = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const FileName = styled('div')`
@@ -733,7 +734,8 @@ const FileName = styled('div')`
 `;
 
 const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
-  border-top: ${p => (p.integratedStyle ? 'none' : '1px solid ' + p.theme.innerBorder)};
+  border-top: ${p =>
+    p.integratedStyle ? 'none' : '1px solid ' + p.theme.tokens.border.secondary};
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
@@ -741,13 +743,13 @@ const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
 
 const HunkHeaderEmptySpace = styled('div')`
   grid-column: 1 / 3;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
   white-space: pre-wrap;
 `;
@@ -757,8 +759,8 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
   padding: ${space(0.25)} ${space(1)};
   user-select: none;
 
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -836,7 +838,7 @@ const EditOverlay = styled('div')`
   left: 50%;
   right: ${space(2)};
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -851,7 +853,7 @@ const EditOverlay = styled('div')`
 
 const OverlayHeader = styled('div')`
   padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayContent = styled('div')`
@@ -861,7 +863,7 @@ const OverlayContent = styled('div')`
 
 const OverlayFooter = styled('div')`
   padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayButtonGroup = styled('div')`
@@ -888,13 +890,13 @@ const RemovedLine = styled('div')`
 const StyledTextArea = styled(TextArea)`
   font-family: ${p => p.theme.text.familyMono};
   background-color: ${DIFF_COLORS.addedRow};
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.tokens.border.primary};
   position: relative;
   min-height: 250px;
 
   &:focus {
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.focus.default};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 
@@ -919,7 +921,7 @@ const SectionTitle = styled('p')`
 
 const NoChangesMessage = styled('p')`
   margin: ${space(1)} 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.family};
 `;
 

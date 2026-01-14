@@ -69,7 +69,7 @@ function OrgStatsProfilingBanner() {
 const BannerGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 
@@ -85,12 +85,12 @@ const HeaderItem = styled('div')`
   grid-column: span 1;
 
   padding: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 2;
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -101,16 +101,16 @@ const HeaderItem = styled('div')`
 
 const CategoryItemLeft = styled('div')`
   grid-column: span 1;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     border-bottom: none;
   }
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-left: 1px solid ${p => p.theme.border};
-    border-right: 1px solid ${p => p.theme.border};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     border-bottom: none;
   }
 `;

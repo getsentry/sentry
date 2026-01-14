@@ -1,8 +1,83 @@
 {
-  "extends": "./config/tsconfig.base.json",
+  "$schema": "http://json.schemastore.org/tsconfig",
+
   "compilerOptions": {
+    // NOTE: We DO NOT use typescript to compile the application. SWC is
+    // responsible for handing transformation of tsx files into plain JavaScript
+    "module": "preserve",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
+
+    // We add esnext to lib to pull in types for all newer ECMAScript features
+    "lib": ["esnext", "dom", "dom.iterable"],
+
+    // Skip type checking of all declaration files
+    "skipLibCheck": true,
+
+    // We do not actually use tsc to output any JavaScript anywhere
+    "noEmit": true,
+
+    // Don't do anything to JSX. This doesn't really matter since we don't use
+    // typescript to compile files, but left here for documentation purposes.
+    "jsx": "preserve",
+    "jsxImportSource": "@emotion/react",
+
+    // Type checking specific options
+    "alwaysStrict": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "strict": true,
+    "strictBindCallApply": false,
+    "useUnknownInCatchVariables": true,
+
+    // Emit configuration
+    "declaration": false,
+    "declarationMap": false,
+    "downlevelIteration": true,
+    "importHelpers": true,
+    "inlineSources": false,
+    "noEmitHelpers": true,
+    "sourceMap": true,
+    "pretty": false,
     "allowJs": true,
     "checkJs": true,
+
+    "esModuleInterop": true,
+    "experimentalDecorators": false,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+
+    "paths": {
+      "@sentry/scraps/*": ["./static/app/components/core/*"],
+      "sentry/*": ["./static/app/*"],
+      "sentry-fixture/*": ["./tests/js/fixtures/*"],
+      "sentry-test/*": ["./tests/js/sentry-test/*"],
+      "getsentry-test/*": ["./tests/js/getsentry-test/*"],
+      "sentry-images/*": ["./static/images/*"],
+      "sentry-locale/*": ["./src/sentry/locale/*"],
+      "sentry-logos/*": ["./src/sentry/static/sentry/images/logos/*"],
+      "sentry-fonts/*": ["./static/fonts/*"],
+      "getsentry/*": ["./static/gsApp/*"],
+      "getsentry-images/*": ["./static/images/*"],
+      "admin/*": ["./static/gsAdmin/*"],
+    },
+
+    "plugins": [
+      // The styled plugin provides language server autocompletion for styled
+      // component template strings
+      {
+        "name": "@styled/typescript-styled-plugin",
+        "lint": {
+          "validProperties": ["container-type"],
+          "unknownAtRules": "ignore"
+        }
+      }
+    ]
   },
   "include": [
     "*.config.mjs",
@@ -14,5 +89,6 @@
     "tests/js",
     "config",
     "scripts"
-  ]
+  ],
+  "exclude": ["./node_modules"]
 }

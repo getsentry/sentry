@@ -72,7 +72,7 @@ export function ProjectOverrideForm({
         collapsible
         renderHeader={() => (
           <Flex padding="sm lg" borderBottom="primary" gap="md" align="center">
-            <IconInfo size="sm" color="subText" />
+            <IconInfo size="sm" variant="muted" />
             <Text variant="muted" size="sm" bold>
               {t('Overrides set here will only affect this project')}
             </Text>
@@ -82,7 +82,7 @@ export function ProjectOverrideForm({
           <Flex justify="between" padding="lg xl">
             <Button
               size="sm"
-              icon={<IconRefresh color="danger" transform="scale(-1, 1)" />}
+              icon={<IconRefresh variant="danger" transform="scale(-1, 1)" />}
               disabled={disabled}
               onClick={() => {
                 updateDataForwarder({
@@ -110,7 +110,7 @@ const OverrideForm = styled(JsonForm)`
   }
   ${PanelHeader} {
     text-transform: none;
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   }
   margin: 0;

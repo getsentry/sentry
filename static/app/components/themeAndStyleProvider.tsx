@@ -63,14 +63,14 @@ export function ThemeAndStyleProvider({children}: Props) {
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
   const didPrintBanner = useRef(false);
-  if (!didPrintBanner.current && NODE_ENV !== 'development') {
+  if (!didPrintBanner.current && NODE_ENV !== 'development' && NODE_ENV !== 'test') {
     didPrintBanner.current = true;
     printConsoleBanner(theme.tokens.content.accent, theme.font.family.mono);
   }
 
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
+      <GlobalStyles theme={theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>

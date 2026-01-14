@@ -133,9 +133,8 @@ function AllocationForm({
   }, [allocationVolume, costPerItem]);
 
   const metricUnit = useMemo(() => {
-    return selectedMetric === DataCategory.ATTACHMENTS
-      ? BigNumUnits.KILO_BYTES
-      : BigNumUnits.NUMBERS;
+    const categoryInfo = getCategoryInfoFromPlural(selectedMetric);
+    return categoryInfo?.formatting.bigNumUnit ?? BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
   useEffect(() => {
@@ -502,7 +501,7 @@ const FancyInput = styled('input')`
   line-height: 1.4;
   font-size: ${p => p.theme.fontSize.md};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px ${p => 'solid ' + p.theme.border};
+  border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
   padding: ${space(1)} ${space(2)};
 
   ::-webkit-outer-spin-button,

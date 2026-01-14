@@ -285,7 +285,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
 const ResizableVerticalDrawer = styled('div')`
   width: 1px;
   grid-area: drawer;
-  background-color: ${p => p.theme.backgroundTertiary};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   position: relative;
 `;
 
@@ -341,7 +341,7 @@ const Separator = styled('li')`
   width: 1px;
   height: 66%;
   margin: 0 ${space(1)};
-  background: 1px solid ${p => p.theme.border};
+  background: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
 `;
 
@@ -350,7 +350,7 @@ const ProfilingDetailsFrameTabs = styled('ul')`
   list-style-type: none;
   padding: 0 ${space(1)};
   margin: 0;
-  border-top: 1px solid ${prop => prop.theme.border};
+  border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
   background-color: ${props => props.theme.colors.surface300};
   user-select: none;
   grid-area: tabs;
@@ -396,7 +396,7 @@ const ProfilingDetailsListItem = styled('li')<{
 
   &.active button {
     font-weight: ${p => p.theme.fontWeight.bold};
-    border-bottom: 2px solid ${prop => prop.theme.active};
+    border-bottom: 2px solid ${prop => prop.theme.tokens.interactive.link.accent.active};
   }
 `;
 

@@ -183,7 +183,7 @@ export function AppSizeInsightsSidebarRow({
                   width: '100%',
                   overflow: 'hidden',
                   '& > :nth-child(odd)': {
-                    backgroundColor: theme.backgroundSecondary,
+                    backgroundColor: theme.tokens.background.secondary,
                   },
                 })}
               >
@@ -371,7 +371,7 @@ function OptimizableImageFileRow({
           {hasMetadata && (
             <Tooltip title={tooltipContent} isHoverable skipWrapper>
               <Flex align="center" style={{flexShrink: 0}}>
-                <IconFlag size="xs" color="subText" />
+                <IconFlag size="xs" variant="muted" />
               </Flex>
             </Tooltip>
           )}

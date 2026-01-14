@@ -106,7 +106,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
           {showErrorState && (
             <StyledPanelItem span={6} overflow>
               <WarningStreamWrapper>
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
               </WarningStreamWrapper>
             </StyledPanelItem>
           )}
@@ -196,6 +196,9 @@ function TraceRow({
     return [...leadingProjects, ...trailingProjects];
   }, [selectedProjects, trace]);
 
+  const projectSlugs =
+    traceProjects.length > 0 ? traceProjects : trace.project ? [trace.project] : [];
+
   return (
     <Fragment>
       <StyledPanelItem align="center" center onClick={onClickExpand}>
@@ -214,7 +217,9 @@ function TraceRow({
           }
         />
         <TraceIdRenderer
+          projectSlugs={projectSlugs}
           traceId={trace.trace}
+          traceName={trace.name}
           timestamp={trace.end}
           onClick={event => {
             event.stopPropagation();
@@ -230,15 +235,7 @@ function TraceRow({
         <Tooltip title={trace.name} containerDisplayMode="block" showOnlyOnOverflow>
           <Description>
             <ProjectBadgeWrapper>
-              <ProjectsRenderer
-                projectSlugs={
-                  traceProjects.length > 0
-                    ? traceProjects
-                    : trace.project
-                      ? [trace.project]
-                      : []
-                }
-              />
+              <ProjectsRenderer projectSlugs={projectSlugs} />
             </ProjectBadgeWrapper>
             {trace.name ? (
               <WrappingText>{trace.name}</WrappingText>

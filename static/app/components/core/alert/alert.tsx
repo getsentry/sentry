@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -66,32 +68,32 @@ function getAlertTokens(variant: AlertProps['variant'], theme: Theme) {
   switch (variant) {
     case 'info':
       return {
-        background: theme.colors.blue100,
-        iconBackground: theme.colors.chonk.blue400,
-        border: theme.tokens.border.accent,
+        background: theme.tokens.background.transparent.accent.muted,
+        iconBackground: theme.tokens.background.accent.vibrant,
+        border: theme.tokens.border.accent.moderate,
       };
     case 'danger':
       return {
-        background: theme.colors.red100,
-        iconBackground: theme.colors.chonk.red400,
-        border: theme.tokens.border.danger,
+        background: theme.tokens.background.transparent.danger.muted,
+        iconBackground: theme.tokens.background.danger.vibrant,
+        border: theme.tokens.border.danger.moderate,
       };
     case 'warning':
       return {
-        background: theme.colors.yellow100,
-        iconBackground: theme.colors.chonk.yellow400,
-        border: theme.tokens.border.warning,
+        background: theme.tokens.background.transparent.warning.muted,
+        iconBackground: theme.tokens.background.warning.vibrant,
+        border: theme.tokens.border.warning.moderate,
       };
     case 'success':
       return {
-        background: theme.colors.green100,
-        iconBackground: theme.colors.chonk.green400,
-        border: theme.tokens.border.success,
+        background: theme.tokens.background.transparent.success.muted,
+        iconBackground: theme.tokens.background.success.vibrant,
+        border: theme.tokens.border.success.moderate,
       };
     case 'muted':
       return {
-        background: theme.colors.surface500,
-        iconBackground: theme.colors.surface500,
+        background: theme.tokens.background.primary,
+        iconBackground: theme.tokens.background.primary,
         border: theme.tokens.border.primary,
       };
     default:
@@ -181,12 +183,6 @@ const StyledIconWrapper = styled('div')<{variant: AlertProps['variant']}>`
         : p.theme.colors.black};
 `;
 
-const StyledExpandIconWrap = styled('div')`
-  display: flex;
-  align-items: center;
-  align-self: flex-start;
-`;
-
 const StyledExpandContainer = styled('div')<{
   showIcon: boolean;
   showTrailingItems: boolean;
@@ -258,7 +254,7 @@ export function Alert({
           </StyledTrailingItems>
         )}
         {showExpand && (
-          <StyledExpandIconWrap>
+          <Flex align="center" alignSelf="flex-start">
             <Button
               size="zero"
               borderless
@@ -269,7 +265,7 @@ export function Alert({
                 props.handleExpandChange?.(!isExpanded);
               }}
             />
-          </StyledExpandIconWrap>
+          </Flex>
         )}
         {isExpanded && (
           <Fragment>
