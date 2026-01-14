@@ -391,7 +391,7 @@ function ReleaseWidgetQueries({
     limit: getLimit(widget.displayType, limit),
     onDataFetched,
     onDataFetchStart,
-    selection: propsSelection,
+    selection,
     loading: requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined,
     customDidUpdateComparator,
     afterFetchTableData: afterFetchData,
