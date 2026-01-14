@@ -76,7 +76,7 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
           ? [
               theme.tokens.background.primary,
               theme.colors.surface200,
-              theme.colors.surface500,
+              theme.tokens.background.primary,
             ]
           : `#00000000`,
       }}
