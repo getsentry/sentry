@@ -2521,22 +2521,6 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/preprod/buildComparison/buildComparison')
       ),
     },
-    {
-      path: ':projectId/:artifactId/',
-      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
-    },
-    {
-      path: ':projectId/:artifactId/install/',
-      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
-    },
-    {
-      path: ':projectId/compare/:headArtifactId/',
-      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
-    },
-    {
-      path: ':projectId/compare/:headArtifactId/:baseArtifactId/',
-      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
-    },
   ];
   const preprodRoutes: SentryRouteObject = {
     path: '/preprod/',
