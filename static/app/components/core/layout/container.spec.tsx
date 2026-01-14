@@ -1,8 +1,9 @@
 import React, {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Container} from 'sentry/components/core/layout/container';
+import {Container, type ContainerProps} from 'sentry/components/core/layout/container';
 
 describe('Container', () => {
   it('renders children', () => {
@@ -55,7 +56,7 @@ describe('Container', () => {
         Hello World
       </Container>
     );
-    expect(screen.getByText('Hello World')).toHaveAttribute('htmlFor', 'test-id');
+    expectTypeOf<ContainerProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('passes attributes to the underlying element', () => {

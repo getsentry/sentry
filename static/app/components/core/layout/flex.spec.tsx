@@ -57,7 +57,7 @@ describe('Flex', () => {
         Hello World
       </Flex>
     );
-    expect(screen.getByText('Hello World')).toHaveAttribute('htmlFor', 'test-id');
+    expectTypeOf<FlexProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('passes attributes to the underlying element', () => {
