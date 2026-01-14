@@ -2032,51 +2032,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         self.project.refresh_from_db()
         assert self.project.flags.has_insights_db
 
-    def test_first_insight_span_agents_via_gen_ai_op_name(self) -> None:
-        """Test that spans with gen_ai.operation.name sentry tag trigger agents insight."""
-        event_data = make_event(
-            transaction="test_transaction",
-            contexts={
-                "trace": {
-                    "parent_span_id": "bce14471e0e9654d",
-                    "op": "foobar",
-                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                    "span_id": "bf5be759039ede9a",
-                }
-            },
-            spans=[
-                {
-                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                    "parent_span_id": "bf5be759039ede9a",
-                    "span_id": "a" * 16,
-                    "start_timestamp": 0,
-                    "timestamp": 1,
-                    "same_process_as_parent": True,
-                    "op": "http.client",
-                    "description": "POST /api/chat",
-                    "sentry_tags": {
-                        "description": "POST /api/chat",
-                        "category": "http",
-                        "op": "http.client",
-                        "transaction": "/app/index",
-                        "gen_ai.operation.name": "chat",
-                    },
-                }
-            ],
-            timestamp="2019-06-14T14:01:40Z",
-            start_timestamp="2019-06-14T14:01:40Z",
-            type="transaction",
-        )
-
-        assert not self.project.flags.has_insights_agent_monitoring
-
-        manager = EventManager(event_data)
-        manager.normalize()
-        manager.save(self.project.id)
-
-        self.project.refresh_from_db()
-        assert self.project.flags.has_insights_agent_monitoring
-
     def test_sdk(self) -> None:
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
         manager.normalize()
