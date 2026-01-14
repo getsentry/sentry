@@ -25,8 +25,6 @@ function priorityToType(priority: ButtonProps['priority']): ButtonType {
       return 'accent';
     case 'danger':
       return 'danger';
-    // @ts-expect-error the previous button did not have this variant, but we still want to
-    // forward it so that we can write the stories for it
     case 'warning':
       return 'warning';
     case 'transparent':
