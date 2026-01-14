@@ -2,6 +2,8 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
@@ -198,7 +200,7 @@ export function OnboardingWithoutContext() {
   }
 
   return (
-    <OnboardingWrapper data-test-id="targeted-onboarding">
+    <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
@@ -281,7 +283,7 @@ export function OnboardingWithoutContext() {
           animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
         />
       </Container>
-    </OnboardingWrapper>
+    </Stack>
   );
 }
 
@@ -364,12 +366,6 @@ const SkipOnboardingLink = styled(Link)`
 const UpsellWrapper = styled('div')`
   grid-column: 3;
   margin-left: auto;
-`;
-
-const OnboardingWrapper = styled('main')`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
 `;
 
 export default Onboarding;
