@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -99,7 +101,7 @@ function IntegrationRow(props: Props) {
 
   return (
     <PanelRow noPadding data-test-id={slug}>
-      <FlexContainer>
+      <Flex align="center" padding="xl">
         {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
@@ -108,14 +110,14 @@ function IntegrationRow(props: Props) {
             {renderDetails()}
           </IntegrationDetails>
         </TitleContainer>
-        <TagsContainer>
+        <Flex justify="end" wrap="wrap" flex="3" padding="0 xl" gap="md">
           {categories?.map(category => (
             <Tag key={category} variant={category === publishStatus ? 'info' : 'muted'}>
               {category === 'api' ? 'API' : startCase(category)}
             </Tag>
           ))}
-        </TagsContainer>
-      </FlexContainer>
+        </Flex>
+      </Flex>
       {alertText && (
         <AlertContainer>
           <Alert.Container>
@@ -160,26 +162,10 @@ const PanelRow = styled(PanelItem)`
   flex-direction: column;
 `;
 
-const FlexContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(2)};
-`;
-
 const TitleContainer = styled('div')`
   flex: 1;
   padding: 0 16px;
   white-space: nowrap;
-`;
-
-const TagsContainer = styled('div')`
-  flex: 3;
-  padding: 0 ${space(2)};
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  justify-content: flex-end;
 `;
 
 const IntegrationName = styled(Link)`
