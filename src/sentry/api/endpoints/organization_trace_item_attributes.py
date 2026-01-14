@@ -223,12 +223,6 @@ def as_attribute_key(
     return attribute_key
 
 
-ATTR_TYPE_MAP = {
-    "number": AttributeKey.Type.TYPE_DOUBLE,
-    "boolean": AttributeKey.Type.TYPE_BOOLEAN,
-}
-
-
 @region_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
@@ -283,7 +277,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
 
-        attr_type = ATTR_TYPE_MAP.get(attribute_type, AttributeKey.Type.TYPE_STRING)
+        attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
+            attribute_type, AttributeKey.Type.TYPE_STRING
+        )
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def data_fn(offset: int, limit: int):

@@ -35,11 +35,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 
-ATTR_MAP = {
-    "number": AttributeKey.Type.TYPE_DOUBLE,
-    "boolean": AttributeKey.Type.TYPE_BOOLEAN,
-}
-
 
 def as_tag_key(name: str, type: Literal["string", "number", "boolean"]):
     key, _, _ = translate_internal_to_public_alias(name, type, SupportedTraceItemType.SPANS)
@@ -116,7 +111,9 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             )
             meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
-            attr_type = ATTR_MAP.get(serialized["type"], AttributeKey.Type.TYPE_STRING)
+            attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
+                serialized["type"], AttributeKey.Type.TYPE_STRING
+            )
             rpc_request = TraceItemAttributeNamesRequest(
                 meta=meta,
                 limit=max_span_tags,
