@@ -19,7 +19,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -31,10 +30,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {
-  useTraceItemAttributes,
-  useTraceItemAttributesWithConfig,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -63,6 +59,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
+// TODO(telkins): Add MIN aggregation once backend support is added
 const MOBILE_APP_SIZE_AGGREGATIONS: Record<string, Aggregation> = {
   [AggregationKey.MAX]: {
     isSortable: true,
@@ -94,15 +91,15 @@ function getPrimaryFieldOptions(
   // String fields like app_id, app_name, build_version are only used
   // for filtering and will be available via the search bar
   const mobileAppSizeFields: Record<string, FieldValueOption> = {
-    'field:install_size': {
-      label: 'Install Size',
+    'measurement:install_size': {
+      label: 'install_size',
       value: {
         kind: FieldValueKind.TAG,
         meta: {name: 'install_size', dataType: 'number'},
       },
     },
-    'field:download_size': {
-      label: 'Download Size',
+    'measurement:download_size': {
+      label: 'download_size',
       value: {
         kind: FieldValueKind.TAG,
         meta: {name: 'download_size', dataType: 'number'},
@@ -197,18 +194,14 @@ function MobileAppSizeSearchBar({
 function useMobileAppSizeSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
-  const organization = useOrganization();
-
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.PREPROD,
-    enabled: organization.features.includes('preprod-app-size-dashboard'),
-  };
+  const {
+    selection: {projects},
+  } = usePageFilters();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useTraceItemAttributes('string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useTraceItemAttributes('number');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -218,8 +211,8 @@ function useMobileAppSizeSearchBarDataProvider(
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
-      initialQuery: widgetQuery?.conditions ?? '',
-      projects: pageFilters.projects,
+      initialQuery: props.widgetQuery?.conditions ?? '',
+      projects,
     });
   return {
     getFilterKeySections: () => filterKeySections,
