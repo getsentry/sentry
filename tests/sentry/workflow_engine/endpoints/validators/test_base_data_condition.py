@@ -19,7 +19,7 @@ class MockDataConditionHandler(DataConditionHandler[dict[str, str]]):
 
 @mock.patch(
     "sentry.workflow_engine.registry.condition_handler_registry.get",
-    return_value=MockDataConditionHandler(),
+    return_value=MockDataConditionHandler,
 )
 class TestBaseDataConditionValidator(TestCase):
     def setUp(self) -> None:
