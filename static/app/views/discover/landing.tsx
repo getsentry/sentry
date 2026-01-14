@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
@@ -245,7 +246,7 @@ function DiscoverLanding() {
               ) : status === 'error' ? (
                 <LoadingError message={error.message} />
               ) : (
-                <QueriesContainer>
+                <Stack gap="xl">
                   {organization.features.includes('expose-migrated-discover-queries') && (
                     <Alert variant="info">
                       {tct(
@@ -265,7 +266,7 @@ function DiscoverLanding() {
                     organization={organization}
                     refetchSavedQueries={refreshSavedQueries}
                   />
-                </QueriesContainer>
+                </Stack>
               )}
             </Layout.Main>
           </Layout.Body>
@@ -297,12 +298,6 @@ const StyledActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
-`;
-
-const QueriesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
 `;
 
 export default DiscoverLanding;

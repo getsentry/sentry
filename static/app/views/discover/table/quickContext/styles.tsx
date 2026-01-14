@@ -1,18 +1,16 @@
 import styled from '@emotion/styled';
 
 import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Flex, Stack, type FlexProps} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
 export function ContextContainer(props: FlexProps) {
   return <Stack {...props} />;
 }
 
-export const ContextHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-bottom: ${space(0.75)};
-`;
+export function ContextHeader(props: FlexProps<'div'>) {
+  return <Flex align="center" marginBottom="sm" {...props} />;
+}
 
 export const ContextTitle = styled('h6')`
   color: ${p => p.theme.tokens.content.secondary};
