@@ -269,9 +269,9 @@ export function NewIssueExperienceButton() {
 }
 
 const StyledDropdownButton = styled(DropdownButton)`
-  color: ${p => p.theme.button.primary.background};
+  color: ${p => p.theme.colors.blue400};
   :hover {
-    color: ${p => p.theme.button.primary.background};
+    color: ${p => p.theme.colors.blue400};
   }
 `;
 
