@@ -64,7 +64,7 @@ class StatusCheckFiltersTest(TestCase):
         context = _get_artifact_filter_context(artifact)
 
         assert context["platform"] == "ios"
-        assert context["branch"] == "feature/test"
+        assert context["git_head_ref"] == "feature/test"
         assert context["app_id"] == "com.example.app"
         assert context["build_configuration"] == "Debug"
 
@@ -80,7 +80,7 @@ class StatusCheckFiltersTest(TestCase):
         context = _get_artifact_filter_context(artifact)
 
         assert context["platform"] == "android"
-        assert context["branch"] == "feature/test"
+        assert context["git_head_ref"] == "feature/test"
         assert context["app_id"] == "com.example.android"
         assert "build_configuration" not in context
 

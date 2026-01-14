@@ -47,13 +47,13 @@ preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
     key_mappings={
         "platform": ["platform"],
-        "branch": ["branch"],
+        "git_head_ref": ["git_head_ref"],
         "app_id": ["app_id"],
         "build_configuration": ["build_configuration"],
     },
     allowed_keys={
         "platform",
-        "branch",
+        "git_head_ref",
         "app_id",
         "build_configuration",
     },
@@ -414,7 +414,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str | N
     Extract build metadata from an artifact for filter matching.
 
     Returns a dict with keys matching the filter key format:
-    - branch: The branch name (from commit_comparison.head_ref)
+    - git_head_ref: The git_head_ref name (from commit_comparison.head_ref)
     - platform: "ios" or "android" (derived from artifact_type)
     - app_id: The app ID (e.g., "com.example.app")
     - build_configuration: The build configuration name
@@ -422,7 +422,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str | N
     context: dict[str, str | None] = {}
 
     if artifact.commit_comparison and artifact.commit_comparison.head_ref:
-        context["branch"] = artifact.commit_comparison.head_ref
+        context["git_head_ref"] = artifact.commit_comparison.head_ref
 
     if artifact.artifact_type is not None:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:

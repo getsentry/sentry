@@ -36,7 +36,7 @@ const FILTER_KEYS: TagCollection = {
     key: 'build_configuration',
     name: 'Build Configuration',
   },
-  branch: {key: 'branch', name: 'Branch'},
+  git_head_ref: {key: 'git_head_ref', name: 'Branch'},
 };
 
 const getTagValues = (
