@@ -140,6 +140,7 @@ jobs:
         id: gcloud-auth
         uses: google-github-actions/auth@v2
         with:
+          project_id: sentry-dev-tooling
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account: ${{ secrets.SUDO_GCP_SERVICE_ACCOUNT }}
 
