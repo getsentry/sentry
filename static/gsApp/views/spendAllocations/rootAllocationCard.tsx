@@ -54,11 +54,11 @@ function RootAllocationCard({
           <Flex justify="between">
             <Container marginRight="xl">
               {t(
-                'There is currently no organization-level allocation for this billing metric.'
+                'There is currently no organization-level allocation for this billing metric. '
               )}
               <Text>
                 {t(
-                  'An organization-level allocation is required to distribute allocations to projects.'
+                  'An organization-level allocation is required to distribute allocations to projects. '
                 )}
               </Text>
               <Text>
@@ -179,7 +179,7 @@ function RootAllocationCard({
                       >
                         &nbsp;
                         <span style={{color: theme.red400, marginLeft: theme.space.md}}>
-                          {tct('[overCount] over', {
+                          {tct('([overCount] over)', {
                             overCount: bigNumFormatter(
                               rootAllocation.consumedQuantity -
                                 rootAllocation.reservedQuantity,

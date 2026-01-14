@@ -264,7 +264,7 @@ function AllocationForm({
       <OffsetBody>
         <Container padding="xl">
           <form>
-            <HalvedGrid>
+            <HalvedGrid padding="md lg">
               <Text size="xl">{t('Select Category:')}</Text>
               <Select
                 name="category"
