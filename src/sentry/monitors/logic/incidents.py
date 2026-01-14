@@ -10,13 +10,13 @@ from sentry import analytics
 from sentry.analytics.events.cron_monitor_broken_status_recovery import (
     CronMonitorBrokenStatusRecovery,
 )
+from sentry.monitors.constants import MIN_THRESHOLD
 from sentry.monitors.logic.incident_occurrence import (
     dispatch_incident_occurrence,
     resolve_incident_group,
 )
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident, MonitorStatus
 from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
-from sentry.monitors.constants import MIN_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,9 @@ def try_incident_threshold(
 
     monitor_env = failed_checkin.monitor_environment
 
-    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", MIN_THRESHOLD)
+    failure_issue_threshold = monitor_env.monitor.config.get(
+        "failure_issue_threshold", MIN_THRESHOLD
+    )
     if not failure_issue_threshold:
         failure_issue_threshold = 1
 

@@ -1,4 +1,5 @@
 import logging
+import math
 from collections import defaultdict
 from datetime import datetime, timedelta
 from math import ceil
@@ -30,7 +31,6 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
-import math
 
 logger = logging.getLogger(__name__)
 

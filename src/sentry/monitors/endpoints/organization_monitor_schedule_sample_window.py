@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import zoneinfo
 from datetime import datetime
 from typing import cast
@@ -14,16 +15,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
+from sentry.monitors.constants import (
+    SAMPLE_OPEN_PERIOD_RATIO,
+    SAMPLE_PADDING_RATIO_OF_THRESHOLD,
+    SAMPLE_PADDING_TICKS_MIN_COUNT,
+)
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
 from sentry.monitors.validators import ConfigValidator
-from sentry.monitors.constants import (
-    SAMPLE_PADDING_TICKS_MIN_COUNT,
-    SAMPLE_PADDING_RATIO_OF_THRESHOLD,
-    SAMPLE_OPEN_PERIOD_RATIO,
-)
-import math
 
 
 def _get_num_ticks(

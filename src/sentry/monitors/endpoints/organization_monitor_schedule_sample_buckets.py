@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import zoneinfo
 from datetime import datetime, timedelta
 from typing import cast
@@ -15,16 +16,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
+from sentry.monitors.constants import (
+    SAMPLE_OPEN_PERIOD_RATIO,
+    SAMPLE_PADDING_RATIO_OF_THRESHOLD,
+    SAMPLE_PADDING_TICKS_MIN_COUNT,
+)
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
 from sentry.monitors.validators import ConfigValidator
-from sentry.monitors.constants import (
-    SAMPLE_PADDING_TICKS_MIN_COUNT,
-    SAMPLE_PADDING_RATIO_OF_THRESHOLD,
-    SAMPLE_OPEN_PERIOD_RATIO,
-)
-import math
 
 
 class SampleScheduleBucketsConfigValidator(ConfigValidator):
@@ -49,7 +49,10 @@ def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshol
 
     total_threshold = failure_threshold + recovery_threshold
 
-    padding = max(SAMPLE_PADDING_TICKS_MIN_COUNT, math.ceil(total_threshold * SAMPLE_PADDING_RATIO_OF_THRESHOLD))
+    padding = max(
+        SAMPLE_PADDING_TICKS_MIN_COUNT,
+        math.ceil(total_threshold * SAMPLE_PADDING_RATIO_OF_THRESHOLD),
+    )
 
     open_period = total_threshold * SAMPLE_OPEN_PERIOD_RATIO
 
@@ -61,12 +64,13 @@ def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshol
     middle_errors = open_period + remaining
 
     return (
-        ["ok"] * padding +
-        ["sub_failure_error"] * failure_threshold +
-        ["error"] * middle_errors +
-        ["sub_recovery_ok"] * recovery_threshold +
         ["ok"] * padding
+        + ["sub_failure_error"] * failure_threshold
+        + ["error"] * middle_errors
+        + ["sub_recovery_ok"] * recovery_threshold
+        + ["ok"] * padding
     )
+
 
 @region_silo_endpoint
 class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
