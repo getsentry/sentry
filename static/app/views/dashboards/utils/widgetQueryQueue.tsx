@@ -1,3 +1,4 @@
+import type {RefObject} from 'react';
 import {createContext, useContext, useMemo, useRef} from 'react';
 import {metrics} from '@sentry/react';
 import {
@@ -12,8 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 type FetchDataFn = () => Promise<void>;
 
 type QueueItem = {
-  fetchData: FetchDataFn;
-  widgetId: string;
+  fetchDataRef: RefObject<FetchDataFn>;
 };
 
 export type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
@@ -82,9 +82,10 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
 
   const context = useMemo(() => {
     const addItem = (item: QueueItem) => {
-      // Never add the same widget to the queue twice based on widgetId
-      // When fetchData executes from the queue, it reads from refs to get the latest state (widget, selection, etc.)
-      if (queue.peekPendingItems().some(i => i.widgetId === item.widgetId)) {
+      // Never add the same component instance to the queue twice based on fetchDataRef
+      // Each component instance has its own fetchDataRef, so this deduplicates per-instance
+      // When the queue executes, it calls fetchDataRef.current which always points to the latest fetchData function
+      if (queue.peekPendingItems().some(i => i.fetchDataRef === item.fetchDataRef)) {
         return true;
       }
       const queueIsEmpty = queue.peekAllItems().length === 0;
@@ -104,7 +105,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
 }
 
 const fetchWidgetItem = async (item: QueueItem) => {
-  const {fetchData} = item;
-  const result = await fetchData();
+  // Call the function from the ref - this always gets the latest version with current props
+  const result = await item.fetchDataRef.current();
   return result;
 };

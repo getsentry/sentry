@@ -156,6 +156,8 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
   >(undefined);
   const rawResultsRef = useRef<SeriesResponse[] | undefined>(undefined);
   const hasInitialFetchRef = useRef(false);
+  // Ref to store the latest fetchData function for the queue
+  const fetchDataRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   // Store latest props for queue execution to avoid stale closures
   const latestPropsRef = useRef({
@@ -169,6 +171,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     onDemandControlContext,
     dashboardFilters,
     forceOnDemand,
+    skipDashboardFilterParens,
   });
 
   // Keep refs in sync with latest props
@@ -185,6 +188,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
       onDemandControlContext,
       dashboardFilters,
       forceOnDemand,
+      skipDashboardFilterParens,
     };
   }, [
     rawResults,
@@ -198,27 +202,27 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     onDemandControlContext,
     dashboardFilters,
     forceOnDemand,
+    skipDashboardFilterParens,
   ]);
 
-  const applyDashboardFilters = useCallback(
-    (widgetToFilter: Widget): Widget => {
-      const dashboardFilterConditions = dashboardFiltersToString(
-        dashboardFilters,
-        widgetToFilter.widgetType
-      );
-      widgetToFilter.queries.forEach(query => {
-        if (dashboardFilterConditions) {
-          // If there is no base query, there's no need to add parens
-          if (query.conditions && !skipDashboardFilterParens) {
-            query.conditions = `(${query.conditions})`;
-          }
-          query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
+  const applyDashboardFilters = useCallback((widgetToFilter: Widget): Widget => {
+    // Read from ref to get latest dashboard filters (avoids stale closure when queued)
+    const currentProps = latestPropsRef.current;
+    const dashboardFilterConditions = dashboardFiltersToString(
+      currentProps.dashboardFilters,
+      widgetToFilter.widgetType
+    );
+    widgetToFilter.queries.forEach(query => {
+      if (dashboardFilterConditions) {
+        // If there is no base query, there's no need to add parens
+        if (query.conditions && !currentProps.skipDashboardFilterParens) {
+          query.conditions = `(${query.conditions})`;
         }
-      });
-      return widgetToFilter;
-    },
-    [dashboardFilters, skipDashboardFilterParens]
-  );
+        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
+      }
+    });
+    return widgetToFilter;
+  }, []);
 
   const widgetForRequest = useCallback(
     (widgetToProcess: Widget): Widget => {
@@ -276,7 +280,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
           data,
           widgetToFetch.queries[0]!,
           organization,
-          selection
+          currentProps.selection
         ) as TableDataWithTitle;
         transformedData.title = widgetToFetch.queries[i]?.name ?? '';
 
@@ -313,7 +317,6 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
       // Intentionally reading widget, selection, etc. from latestPropsRef instead of closure
       // to avoid stale data when function is queued and props change before execution
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [widgetForRequest, config, api, organization, afterFetchTableData, onDataFetched]
   );
 
@@ -444,19 +447,25 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     }
   }, [onDataFetchStart, fetchSeriesData, fetchTableData]);
 
+  // Keep fetchDataRef in sync with the latest fetchData function
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  }, [fetchData]);
+
   const fetchDataWithQueueIfAvailable = useCallback(() => {
-    // We use the widget id to deduplicate requests for the same widget, if it's missing we don't use the queue.
-    if (queue && widget.id) {
-      queryFetchIDRef.current = undefined;
+    if (queue) {
+      // Pass the ref to the queue instead of the function
+      // When the queue executes, it will call fetchDataRef.current which always points to the latest fetchData
+      // Deduplication is based on fetchDataRef identity (per-component-instance)
       setLoading(true);
       setTableResults(undefined);
       setTimeseriesResults(undefined);
       setErrorMessage(undefined);
-      queue.addItem({fetchData, widgetId: widget.id});
+      queue.addItem({fetchDataRef});
       return;
     }
     fetchData();
-  }, [queue, fetchData, widget.id]);
+  }, [queue, fetchData]);
 
   useEffect(() => {
     isMountedRef.current = true;
