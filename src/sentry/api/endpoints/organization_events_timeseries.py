@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -24,6 +25,10 @@ from sentry.api.endpoints.timeseries import (
     TimeSeries,
 )
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs import constants as api_constants
+from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -75,10 +80,11 @@ def null_zero(value: float) -> float | None:
         return value
 
 
+@extend_schema(tags=["Explore"])
 @region_silo_endpoint
 class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     enforce_rate_limit = True
@@ -147,7 +153,43 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         else:
             return None
 
+    @extend_schema(
+        operation_id="Query Explore Events in Timeseries Format",
+        parameters=[
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
+            VisibilityParams.TOP_EVENTS,
+            VisibilityParams.COMPARISON_DELTA,
+            VisibilityParams.DATASET,
+            VisibilityParams.INTERVAL,
+            VisibilityParams.SORT,
+            VisibilityParams.GROUP_BY,
+            VisibilityParams.Y_AXIS,
+            VisibilityParams.QUERY,
+            VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
+            VisibilityParams.PREVENT_METRIC_AGGREGATES,
+            VisibilityParams.EXCLUDE_OTHER,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsTimeseriesResponse", StatsResponse
+            ),
+            400: OpenApiResponse(description="Invalid Query"),
+            404: api_constants.RESPONSE_NOT_FOUND,
+        },
+        examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Retrieves explore data for a given organization as a timeseries.
+
+        This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
+        on the parameters passed
+        """
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
