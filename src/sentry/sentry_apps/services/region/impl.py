@@ -15,6 +15,7 @@ from sentry.sentry_apps.services.region.model import (
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcSentryAppError,
+    RpcServiceHookProject,
     RpcServiceHookProjectsResult,
 )
 from sentry.sentry_apps.services.region.service import SentryAppRegionService
@@ -209,6 +210,8 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
+        cursor: int | None = None,
+        limit: int = 100,
     ) -> RpcServiceHookProjectsResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ GET
@@ -224,10 +227,109 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 )
             )
 
-        project_ids = list(
-            ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
-                "project_id", flat=True
-            )
+        offset = cursor or 0
+        queryset = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by("project_id")
+
+        hook_projects = list(queryset[offset : offset + limit + 1])
+
+        next_cursor = None
+        if len(hook_projects) > limit:
+            hook_projects = hook_projects[:limit]
+            next_cursor = offset + limit
+
+        return RpcServiceHookProjectsResult(
+            service_hook_projects=[
+                RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
+            ],
+            next_cursor=next_cursor,
         )
 
-        return RpcServiceHookProjectsResult(project_ids=project_ids)
+    def set_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        project_ids: list[int],
+        cursor: int | None = None,
+        limit: int = 100,
+    ) -> RpcServiceHookProjectsResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ POST
+        """
+        from django.db import router, transaction
+
+        try:
+            hook = ServiceHook.objects.get(installation_id=installation.id)
+        except ServiceHook.DoesNotExist:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Service hook not found for installation",
+                    webhook_context={},
+                    status_code=404,
+                )
+            )
+
+        new_project_ids = set(project_ids)
+
+        with transaction.atomic(router.db_for_write(ServiceHookProject)):
+            existing_project_ids = set(
+                ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
+                    "project_id", flat=True
+                )
+            )
+
+            projects_to_add = new_project_ids - existing_project_ids
+            projects_to_remove = existing_project_ids - new_project_ids
+
+            ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id__in=projects_to_remove
+            ).delete()
+
+            for project_id in projects_to_add:
+                ServiceHookProject.objects.create(
+                    project_id=project_id,
+                    service_hook_id=hook.id,
+                )
+
+        offset = cursor or 0
+        queryset = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by("project_id")
+
+        hook_projects = list(queryset[offset : offset + limit + 1])
+
+        next_cursor = None
+        if len(hook_projects) > limit:
+            hook_projects = hook_projects[:limit]
+            next_cursor = offset + limit
+
+        return RpcServiceHookProjectsResult(
+            service_hook_projects=[
+                RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
+            ],
+            next_cursor=next_cursor,
+        )
+
+    def delete_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+    ) -> RpcEmptyResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ DELETE
+        """
+        try:
+            hook = ServiceHook.objects.get(installation_id=installation.id)
+        except ServiceHook.DoesNotExist:
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="Service hook not found for installation",
+                    webhook_context={},
+                    status_code=404,
+                ),
+            )
+
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
+        deletions.exec_sync_many(list(hook_projects))
+
+        return RpcEmptyResult()

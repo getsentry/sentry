@@ -102,8 +102,35 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
+        cursor: int | None = None,
+        limit: int = 100,
     ) -> RpcServiceHookProjectsResult:
         """Returns the project IDs associated with an installation's service hook."""
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def set_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        project_ids: list[int],
+        cursor: int | None = None,
+        limit: int = 100,
+    ) -> RpcServiceHookProjectsResult:
+        """Replaces all service hook projects with the given project IDs and returns paginated results."""
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def delete_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+    ) -> RpcEmptyResult:
+        """Deletes all service hook projects for an installation."""
         pass
 
 

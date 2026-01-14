@@ -224,7 +224,12 @@ class TestSentryAppRegionService(TestCase):
         )
 
         assert result.error is None
-        assert set(result.project_ids) == {self.project.id, project2.id}
+        assert {hp.project_id for hp in result.service_hook_projects} == {
+            self.project.id,
+            project2.id,
+        }
+        assert all(hp.id is not None for hp in result.service_hook_projects)
+        assert result.next_cursor is None
 
     def test_get_service_hook_projects_empty(self) -> None:
         result = sentry_app_region_service.get_service_hook_projects(
@@ -233,4 +238,124 @@ class TestSentryAppRegionService(TestCase):
         )
 
         assert result.error is None
-        assert result.project_ids == []
+        assert result.service_hook_projects == []
+        assert result.next_cursor is None
+
+    def test_get_service_hook_projects_paginated(self) -> None:
+        project2 = self.create_project(organization=self.org)
+        project3 = self.create_project(organization=self.org)
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project2.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project3.id)
+
+        result = sentry_app_region_service.get_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            limit=2,
+        )
+
+        assert result.error is None
+        assert len(result.service_hook_projects) == 2
+        assert result.next_cursor == 2
+
+        result2 = sentry_app_region_service.get_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            cursor=result.next_cursor,
+            limit=2,
+        )
+
+        assert result2.error is None
+        assert len(result2.service_hook_projects) == 1
+        assert result2.next_cursor is None
+
+    def test_set_service_hook_projects(self) -> None:
+        project2 = self.create_project(organization=self.org)
+        project3 = self.create_project(organization=self.org)
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
+
+        result = sentry_app_region_service.set_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            project_ids=[project2.id, project3.id],
+        )
+
+        assert result.error is None
+        assert {hp.project_id for hp in result.service_hook_projects} == {project2.id, project3.id}
+        assert all(hp.id is not None for hp in result.service_hook_projects)
+        assert result.next_cursor is None
+
+        with assume_test_silo_mode_of(ServiceHookProject):
+            assert not ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id=self.project.id
+            ).exists()
+            assert ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id=project2.id
+            ).exists()
+            assert ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id=project3.id
+            ).exists()
+
+    def test_set_service_hook_projects_partial_overlap(self) -> None:
+        project2 = self.create_project(organization=self.org)
+        project3 = self.create_project(organization=self.org)
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project2.id)
+
+        result = sentry_app_region_service.set_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            project_ids=[project2.id, project3.id],
+        )
+
+        assert result.error is None
+        assert {hp.project_id for hp in result.service_hook_projects} == {project2.id, project3.id}
+        assert all(hp.id is not None for hp in result.service_hook_projects)
+        assert result.next_cursor is None
+
+        with assume_test_silo_mode_of(ServiceHookProject):
+            assert not ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id=self.project.id
+            ).exists()
+            assert ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id=project2.id
+            ).exists()
+            assert ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id=project3.id
+            ).exists()
+
+    def test_delete_service_hook_projects(self) -> None:
+        project2 = self.create_project(organization=self.org)
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project2.id)
+
+        result = sentry_app_region_service.delete_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+        )
+
+        assert result.success is True
+        assert result.error is None
+        with assume_test_silo_mode_of(ServiceHookProject):
+            assert not ServiceHookProject.objects.filter(service_hook_id=hook.id).exists()
+
+    def test_delete_service_hook_projects_empty(self) -> None:
+        result = sentry_app_region_service.delete_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+        )
+
+        assert result.success is True
+        assert result.error is None
