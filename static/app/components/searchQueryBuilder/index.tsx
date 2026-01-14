@@ -49,6 +49,11 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  /**
+   * The badge type to display for the AI search option.
+   * Defaults to 'beta'.
+   */
+  aiSearchBadgeType?: 'alpha' | 'beta';
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
@@ -328,11 +333,11 @@ const ButtonsWrapper = styled('div')`
 `;
 
 const ActionButton = styled(Button)<{active?: boolean}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p =>
     p.active &&
     css`
-      background-color: ${p.theme.colors.blue200};
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
     `}
 `;
 
@@ -343,6 +348,6 @@ const PositionedSearchIconContainer = styled('div')`
 `;
 
 const SearchIcon = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
 `;

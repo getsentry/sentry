@@ -21,7 +21,7 @@ from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
 )
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -270,25 +270,25 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             head_artifact.state = PreprodArtifact.ArtifactState.FAILED
             updated_fields.append("state")
 
-        if "build_version" in data:
-            head_artifact.build_version = data["build_version"]
-            updated_fields.append("build_version")
-
-        if "build_number" in data:
-            head_artifact.build_number = data["build_number"]
-            updated_fields.append("build_number")
-
         if "app_id" in data:
             head_artifact.app_id = data["app_id"]
             updated_fields.append("app_id")
 
-        if "app_name" in data:
-            head_artifact.app_name = data["app_name"]
-            updated_fields.append("app_name")
-
+        mobile_app_info_updates = {}
+        if "build_version" in data:
+            mobile_app_info_updates["build_version"] = data["build_version"]
+        if "build_number" in data:
+            mobile_app_info_updates["build_number"] = data["build_number"]
         if "app_icon_id" in data:
-            head_artifact.app_icon_id = data["app_icon_id"]
-            updated_fields.append("app_icon_id")
+            mobile_app_info_updates["app_icon_id"] = data["app_icon_id"]
+        if "app_name" in data:
+            mobile_app_info_updates["app_name"] = data["app_name"]
+
+        if mobile_app_info_updates:
+            PreprodArtifactMobileAppInfo.objects.update_or_create(
+                preprod_artifact=head_artifact,
+                defaults=mobile_app_info_updates,
+            )
 
         extras_updates = {}
 
@@ -364,16 +364,19 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 }
             )
 
+        mobile_app_info = getattr(head_artifact, "mobile_app_info", None)
+        build_version = mobile_app_info.build_version if mobile_app_info else None
+        build_number = mobile_app_info.build_number if mobile_app_info else None
         if (
             head_artifact.app_id
-            and head_artifact.build_version
+            and build_version
             and head_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
         ):
             find_or_create_release(
                 project=project,
                 package=head_artifact.app_id,
-                version=head_artifact.build_version,
-                build_number=head_artifact.build_number,
+                version=build_version,
+                build_number=build_number,
             )
 
         return Response(

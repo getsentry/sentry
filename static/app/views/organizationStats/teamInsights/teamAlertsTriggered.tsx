@@ -113,7 +113,9 @@ function TeamAlertsTriggered({
     }
 
     return (
-      <SubText color={diff <= 0 ? theme.tokens.content.success : theme.errorText}>
+      <SubText
+        color={diff <= 0 ? theme.tokens.content.success : theme.tokens.content.danger}
+      >
         {formatPercentage(Math.abs(diff / weeklyAvg), 0)}
         <PaddedIconArrow direction={diff <= 0 ? 'down' : 'up'} size="xs" />
       </SubText>
@@ -237,7 +239,11 @@ const StyledPanelTable = styled(PanelTable)`
 `;
 
 const AlertNameContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const AlignRight = styled('div')`

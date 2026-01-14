@@ -69,7 +69,13 @@ const RepoListItemContainer = styled('div')<{
   padding-left: ${space(1.5)};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   ${p =>
@@ -104,7 +110,7 @@ const RepoName = styled('div')`
 
 const RepoProvider = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 

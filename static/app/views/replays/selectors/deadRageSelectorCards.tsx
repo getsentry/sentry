@@ -32,7 +32,7 @@ export default function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              <TitleTooltipContainer>
+              <Flex align="center" gap="md">
                 {t('Most Dead Clicks')}
                 <QuestionTooltip
                   size="xs"
@@ -42,7 +42,7 @@ export default function DeadRageSelectorCards() {
                   )}
                   isHoverable
                 />
-              </TitleTooltipContainer>
+              </Flex>
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -54,7 +54,7 @@ export default function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              <TitleTooltipContainer>
+              <Flex align="center" gap="md">
                 {t('Most Rage Clicks')}
                 <QuestionTooltip
                   size="xs"
@@ -64,7 +64,7 @@ export default function DeadRageSelectorCards() {
                   )}
                   isHoverable
                 />
-              </TitleTooltipContainer>
+              </Flex>
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -226,12 +226,6 @@ const StyledAccordionHeader = styled('div')`
   align-items: center;
 `;
 
-const TitleTooltipContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const StyledWidgetHeader = styled(HeaderTitleLegend)`
   display: grid;
   justify-content: space-between;
@@ -273,7 +267,7 @@ const EmptyHeader = styled(Flex)`
   justify-content: center;
   align-items: center;
   gap: ${space(1.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

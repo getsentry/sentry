@@ -769,7 +769,7 @@ const CheckboxLabel = styled('label')`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.colors.blue500};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   border-radius: 50%;
   margin-top: 1px;
   margin-left: ${space(2)};
@@ -839,7 +839,7 @@ const Wrapper = styled(PanelItem)<{
           background-color: ${p.theme.tokens.background.secondary};
         }
         100% {
-          background-color: ${p.theme.backgroundSecondary};
+          background-color: ${p.theme.tokens.background.secondary};
         }
       }
     `};
@@ -890,14 +890,14 @@ const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value
   font-size: ${p => p.theme.fontSize.sm};
   display: flex;
   justify-content: right;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -910,7 +910,7 @@ const CountTooltipContent = styled('div')`
   align-items: center;
 
   h4 {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
@@ -1010,7 +1010,10 @@ const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -1023,7 +1026,10 @@ const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

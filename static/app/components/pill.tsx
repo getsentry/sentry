@@ -95,7 +95,7 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
       `;
     default:
       return css`
-        background: ${theme.backgroundSecondary};
+        background: ${theme.tokens.background.secondary};
         font-family: ${theme.text.familyMono};
       `;
   }
@@ -129,7 +129,7 @@ const PillValue = styled(PillName)`
   .external-icon {
     display: inline;
     margin: 0 0 0 ${space(1)};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     &:hover {
       color: ${p => p.theme.tokens.content.primary};
     }

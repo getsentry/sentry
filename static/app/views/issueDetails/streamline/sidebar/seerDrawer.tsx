@@ -570,7 +570,7 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`
@@ -587,7 +587,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
 const SeerDrawerBody = styled(DrawerBody)`

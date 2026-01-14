@@ -48,11 +48,11 @@ const Description = styled('p')`
   font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 0px;
   font-weight: normal;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const UnitTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: 600;
@@ -60,6 +60,6 @@ const UnitTitle = styled('div')`
 
 const Weight = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   align-self: start;
 `;

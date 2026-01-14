@@ -522,7 +522,7 @@ const PositionedSearchIconContainer = styled('div')`
 `;
 
 const SearchIcon = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
 `;
 

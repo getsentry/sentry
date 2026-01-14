@@ -14,20 +14,17 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.utils import metrics
 
-from ..utils import _get_target_commit_sha
-from .config import get_direct_to_seer_gh_orgs
+from ..metrics import (
+    CodeReviewErrorType,
+    WebhookFilteredReason,
+    record_webhook_filtered,
+    record_webhook_handler_error,
+    record_webhook_received,
+)
+from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha, should_forward_to_seer
 
 logger = logging.getLogger(__name__)
-
-
-class ErrorStatus(enum.StrEnum):
-    MISSING_PULL_REQUEST = "missing_pull_request"
-    MISSING_ACTION = "missing_action"
-    UNSUPPORTED_ACTION = "unsupported_action"
-    DRAFT_PR = "draft_pr"
 
 
 class Log(enum.StrEnum):
@@ -35,11 +32,6 @@ class Log(enum.StrEnum):
     MISSING_ACTION = "github.webhook.pull_request.missing-action"
     UNSUPPORTED_ACTION = "github.webhook.pull_request.unsupported-action"
     DRAFT_PR = "github.webhook.pull_request.draft-pr"
-
-
-class Metrics(enum.StrEnum):
-    ERROR = "seer.code_review.webhook.pull_request.error"
-    OUTCOME = "seer.code_review.webhook.pull_request.outcome"
 
 
 class PullRequestAction(enum.StrEnum):
@@ -79,29 +71,14 @@ WHITELISTED_ACTIONS = {
 }
 
 
-def _get_trigger_for_action(action: PullRequestAction) -> CodeReviewTrigger:
+def _get_trigger_for_action(action: PullRequestAction) -> SeerCodeReviewTrigger:
     match action:
         case PullRequestAction.OPENED | PullRequestAction.READY_FOR_REVIEW:
-            return CodeReviewTrigger.ON_READY_FOR_REVIEW
+            return SeerCodeReviewTrigger.ON_READY_FOR_REVIEW
         case PullRequestAction.SYNCHRONIZE:
-            return CodeReviewTrigger.ON_NEW_COMMIT
+            return SeerCodeReviewTrigger.ON_NEW_COMMIT
         case _:
             raise ValueError(f"Unsupported pull request action: {action}")
-
-
-def _warn_and_increment_metric(
-    error_status: ErrorStatus,
-    extra: Mapping[str, Any],
-    action: PullRequestAction | str | None = None,
-) -> None:
-    """
-    Warn and increment metric for a given error status and action.
-    """
-    logger.warning(Log[error_status.name].value, extra=extra)
-    tags = {"error_status": error_status.value}
-    if action:
-        tags["action"] = action
-    metrics.incr(Metrics.ERROR.value, tags=tags)
 
 
 def handle_pull_request_event(
@@ -119,35 +96,49 @@ def handle_pull_request_event(
     This handler processes PR events and sends them directly to Seer
     """
     extra = {"organization_id": organization.id, "repo": repo.name}
+
     pull_request = event.get("pull_request")
     if not pull_request:
-        _warn_and_increment_metric(ErrorStatus.MISSING_PULL_REQUEST, extra=extra)
+        logger.warning(Log.MISSING_PULL_REQUEST.value, extra=extra)
+        record_webhook_handler_error(
+            github_event, "unknown", CodeReviewErrorType.MISSING_PULL_REQUEST
+        )
         return
 
     action_value = event.get("action")
     if not action_value or not isinstance(action_value, str):
-        _warn_and_increment_metric(ErrorStatus.MISSING_ACTION, extra=extra)
+        logger.warning(Log.MISSING_ACTION.value, extra=extra)
+        record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
         return
+    extra["action"] = action_value
+
+    record_webhook_received(github_event, action_value)
 
     try:
         action = PullRequestAction(action_value)
     except ValueError:
-        _warn_and_increment_metric(ErrorStatus.UNSUPPORTED_ACTION, action=action_value, extra=extra)
+        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        record_webhook_filtered(
+            github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
+        )
         return
 
     if action not in WHITELISTED_ACTIONS:
+        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        record_webhook_filtered(
+            github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
+        )
         return
 
     if pull_request.get("draft") is True:
-        _warn_and_increment_metric(ErrorStatus.DRAFT_PR, action=action_value, extra=extra)
         return
 
-    github_org = event.get("repository", {}).get("owner", {}).get("login")
-    if github_org in get_direct_to_seer_gh_orgs():
+    if should_forward_to_seer(github_event, event):
         from .task import schedule_task
 
         schedule_task(
             github_event=github_event,
+            github_event_action=action_value,
             event=event,
             organization=organization,
             repo=repo,

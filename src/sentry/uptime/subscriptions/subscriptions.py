@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from datetime import datetime, timezone
 
 from django.db import router, transaction
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
@@ -8,7 +9,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry import quotas
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -39,7 +40,12 @@ from sentry.uptime.types import (
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
-from sentry.uptime.utils import build_fingerprint, build_last_update_key, get_cluster
+from sentry.uptime.utils import (
+    build_fingerprint,
+    build_last_interval_change_timestamp_key,
+    build_last_update_key,
+    get_cluster,
+)
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.outcomes import Outcome
@@ -158,6 +164,7 @@ def create_uptime_subscription(
 
 
 def update_uptime_subscription(
+    detector: Detector,
     subscription: UptimeSubscription,
     url: str | NotSet = NOT_SET,
     interval_seconds: int | NotSet = NOT_SET,
@@ -179,12 +186,15 @@ def update_uptime_subscription(
     if headers is None:
         headers = []
 
+    new_interval_seconds = default_if_not_set(subscription.interval_seconds, interval_seconds)
+    interval_updated = new_interval_seconds != subscription.interval_seconds
+
     subscription.update(
         status=UptimeSubscription.Status.UPDATING.value,
         url=url,
         url_domain=result.domain,
         url_domain_suffix=result.suffix,
-        interval_seconds=default_if_not_set(subscription.interval_seconds, interval_seconds),
+        interval_seconds=new_interval_seconds,
         timeout_ms=default_if_not_set(subscription.timeout_ms, timeout_ms),
         method=default_if_not_set(subscription.method, method),
         headers=headers,
@@ -198,6 +208,11 @@ def update_uptime_subscription(
     def commit_tasks():
         update_remote_uptime_subscription.delay(subscription.id)
         fetch_subscription_rdap_info.delay(subscription.id)
+        if interval_updated:
+            last_interval_change_key = build_last_interval_change_timestamp_key(detector)
+            cluster = get_cluster()
+            change_timestamp_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            cluster.set(last_interval_change_key, change_timestamp_ms, ex=60 * 60 * 24)
 
     transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
 
@@ -366,6 +381,7 @@ def update_uptime_detector(
     ):
         uptime_subscription = get_uptime_subscription(detector)
         update_uptime_subscription(
+            detector,
             uptime_subscription,
             url=url,
             interval_seconds=interval_seconds,
@@ -459,7 +475,7 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         detector.update(enabled=False)
 
         if not skip_quotas:
-            quotas.backend.disable_seat(DataCategory.UPTIME, detector)
+            quotas.backend.disable_seat(seat_object=detector)
 
         # Are there any other detectors associated to the subscription
         # that are still enabled?
@@ -482,9 +498,9 @@ def ensure_uptime_seat(detector: Detector) -> None:
 
     Raises UptimeMonitorNoSeatAvailable if no seats are available.
     """
-    outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
+    outcome = quotas.backend.assign_seat(seat_object=detector)
     if outcome != Outcome.ACCEPTED:
-        result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+        result = quotas.backend.check_assign_seat(seat_object=detector)
         raise UptimeMonitorNoSeatAvailable(result)
 
 
@@ -526,7 +542,7 @@ def enable_uptime_detector(
 
 
 def remove_uptime_seat(detector: Detector):
-    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
+    quotas.backend.remove_seat(seat_object=detector)
 
 
 def delete_uptime_detector(detector: Detector):

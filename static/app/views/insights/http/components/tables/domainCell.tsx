@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -25,19 +25,12 @@ export function DomainCell({projectId, domain}: Props) {
   };
 
   return (
-    <DomainDescription>
+    <Flex align="center" wrap="nowrap" gap="md">
       <OverflowEllipsisTextContainer>
         <Link to={`${moduleURL}/domains/?${qs.stringify(queryString)}`}>
           {domain && domain.length > 0 ? domain : NULL_DOMAIN_DESCRIPTION}
         </Link>
       </OverflowEllipsisTextContainer>
-    </DomainDescription>
+    </Flex>
   );
 }
-
-const DomainDescription = styled('div')`
-  display: flex;
-  flex-wrap: nowrap;
-  gap: ${space(1)};
-  align-items: center;
-`;

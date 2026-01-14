@@ -214,7 +214,8 @@ export const SourceCard = styled(Button)<{isHighlighted?: boolean}>`
   align-items: center;
   gap: ${space(0.5)};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => (p.isHighlighted ? p.theme.button.primary.colorActive : p.theme.subText)};
+  color: ${p =>
+    p.isHighlighted ? p.theme.colors.white : p.theme.tokens.content.secondary};
   white-space: nowrap;
   flex-shrink: 0;
 `;
@@ -268,7 +269,7 @@ const OverlayTitle = styled('div')`
 
 const InsightTitle = styled('div')`
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.family};
 `;
 

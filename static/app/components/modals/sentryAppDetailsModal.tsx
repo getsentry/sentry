@@ -233,7 +233,7 @@ const Description = styled(MarkedText)`
 `;
 
 const Author = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
@@ -246,7 +246,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   align-items: center;
   flex: 1;
   grid-template-columns: max-content 1fr;
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: 0.9em;
 `;
 

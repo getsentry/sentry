@@ -1175,6 +1175,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sentry:preprod_size_status_checks_rules"
             ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
+            "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),
+            "sentry:preprod_distribution_enabled_query": options.get(
+                "sentry:preprod_distribution_enabled_query"
+            ),
         }
 
     def get_value_with_default(self, attrs, key):

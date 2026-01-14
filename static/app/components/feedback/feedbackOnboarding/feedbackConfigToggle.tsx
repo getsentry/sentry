@@ -1,9 +1,6 @@
-import styled from '@emotion/styled';
-
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function FeedbackConfigToggle({
   emailToggle,
@@ -22,15 +19,15 @@ function FeedbackConfigToggle({
 }) {
   return (
     <Flex align="center" paddingTop="xs" gap="xl">
-      <SwitchItem htmlFor="name">
+      <Flex as="label" align="center" gap="md" htmlFor="name">
         {t('Name Required')}
         <Switch id="name" onChange={onNameToggle} size="lg" checked={nameToggle} />
-      </SwitchItem>
-      <SwitchItem htmlFor="email">
+      </Flex>
+      <Flex as="label" align="center" gap="md" htmlFor="email">
         {t('Email Required')}
         <Switch id="email" onChange={onEmailToggle} size="lg" checked={emailToggle} />
-      </SwitchItem>
-      <SwitchItem htmlFor="screenshot">
+      </Flex>
+      <Flex as="label" align="center" gap="md" htmlFor="screenshot">
         {t('Enable Screenshots')}
         <Switch
           id="screenshot"
@@ -38,15 +35,9 @@ function FeedbackConfigToggle({
           size="lg"
           checked={screenshotToggle}
         />
-      </SwitchItem>
+      </Flex>
     </Flex>
   );
 }
-
-const SwitchItem = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 export default FeedbackConfigToggle;

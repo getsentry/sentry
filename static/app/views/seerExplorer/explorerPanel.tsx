@@ -27,7 +27,8 @@ import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
-  RUN_ID_QUERY_PARAM,
+  getExplorerUrl,
+  getLangfuseUrl,
   useCopySessionDataToClipboard,
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
@@ -74,6 +75,7 @@ function ExplorerPanel() {
     deleteFromIndex,
     startNewSession,
     isPolling,
+    isError,
     interruptRun,
     interruptRequested,
     switchToRun,
@@ -295,9 +297,7 @@ function ExplorerPanel() {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-  const langfuseUrl = runId
-    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`
-    : undefined;
+  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -308,6 +308,7 @@ function ExplorerPanel() {
 
   const openFeedbackForm = useFeedbackForm();
 
+  // Generic feedback handler
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
       openFeedbackForm({
@@ -315,11 +316,14 @@ function ExplorerPanel() {
         messagePlaceholder: 'How can we make Seer Explorer better for you?',
         tags: {
           ['feedback.source']: 'seer_explorer',
+          ['feedback.owner']: 'ml-ai',
+          ...(runId === null ? {} : {['seer.run_id']: runId}),
+          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
           ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
         },
       });
     }
-  }, [openFeedbackForm, langfuseUrl]);
+  }, [openFeedbackForm, runId, langfuseUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -541,9 +545,8 @@ function ExplorerPanel() {
     }
 
     try {
-      const url = new URL(window.location.href);
-      url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
-      await navigator.clipboard.writeText(url.toString());
+      const url = getExplorerUrl(runId);
+      await navigator.clipboard.writeText(url);
       addSuccessMessage('Copied link to current chat');
     } catch {
       addErrorMessage('Failed to copy link to current chat');
@@ -587,7 +590,11 @@ function ExplorerPanel() {
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {isEmptyState ? (
-          <EmptyState isLoading={isWaitingForSessionData} />
+          <EmptyState
+            isLoading={isWaitingForSessionData}
+            isError={isError}
+            runId={runId}
+          />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (
@@ -598,6 +605,7 @@ function ExplorerPanel() {
                 }}
                 block={block}
                 blockIndex={index}
+                runId={runId ?? undefined}
                 getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}

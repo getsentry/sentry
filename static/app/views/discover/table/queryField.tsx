@@ -856,7 +856,7 @@ const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
   height: ${p => p.theme.form.md.height};
   min-width: 50px;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
@@ -865,12 +865,12 @@ const BlankSpace = styled('div')`
   &:after {
     font-size: ${p => p.theme.fontSize.md};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const ArithmeticError = styled(Tooltip)`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
 `;

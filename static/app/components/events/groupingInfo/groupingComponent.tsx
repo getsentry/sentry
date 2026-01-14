@@ -74,14 +74,17 @@ const CollapseButton = styled(Button)<{folded: boolean}>`
   transition: opacity 0.2s ease;
   align-self: ${p => (p.folded ? 'center' : 'baseline')};
   color: ${p =>
-    p.folded ? p.theme.tokens.interactive.link.accent.rest : p.theme.subText};
+    p.folded
+      ? p.theme.tokens.interactive.link.accent.rest
+      : p.theme.tokens.content.secondary};
 
   transform: ${p => (p.folded ? 'translateY(1px)' : 'translateY(2px)')};
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
   grid-column: 2;
-  color: ${p => (p.isContributing ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.isContributing ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 `;
 
 export const GroupingHint = styled('small')`

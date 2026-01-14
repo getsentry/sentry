@@ -422,5 +422,5 @@ const StoryPropDescription = styled('div')`
 `;
 
 const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;

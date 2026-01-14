@@ -163,7 +163,9 @@ function TeamMisery({
                     ) : (
                       <TrendText
                         color={
-                          trend >= 0 ? theme.tokens.content.success : theme.errorText
+                          trend >= 0
+                            ? theme.tokens.content.success
+                            : theme.tokens.content.danger
                         }
                       >
                         {`${trendValue}\u0025 `}
@@ -299,7 +301,10 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
 `;
 
 const KeyTransactionTitleWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
 `;
@@ -311,7 +316,11 @@ const StyledIconStar = styled(IconStar)`
 `;
 
 const TransactionWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const RightAligned = styled('span')`
@@ -326,7 +335,7 @@ const ScoreWrapper = styled('div')`
 `;
 
 const SubText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TrendText = styled('div')<{color: string}>`

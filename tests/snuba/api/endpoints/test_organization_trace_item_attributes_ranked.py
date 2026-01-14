@@ -45,9 +45,12 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
             return response
 
-    def _store_span(self, description=None, tags=None, duration=None):
+    def _store_span(self, description=None, tags=None, duration=None, status=None):
         if tags is None:
             tags = {"foo": "bar"}
+
+        if status is not None:
+            tags["status"] = status
 
         self.store_span(
             self.create_span(
@@ -157,9 +160,8 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert "rankedAttributes" in response.data
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
     def test_baseline_distribution_includes_baseline_only_buckets(
-        self, mock_keyed_rrf_score, mock_compare_distributions
+        self, mock_compare_distributions
     ) -> None:
         """Test that buckets existing only in baseline (not in suspect) are included in scoring.
 
@@ -167,19 +169,14 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         in all spans but NOT in the suspect cohort were missing from the baseline
         distribution passed to scoring algorithms.
         """
-        # Capture what's passed to the scoring functions
+        # Capture what's passed to compare_distributions
         captured_baseline = None
 
-        def capture_baseline(*args, **kwargs):
+        def capture_compare(*args, **kwargs):
             nonlocal captured_baseline
             captured_baseline = kwargs.get("baseline")
-            # Return results matching the actual internal attribute names
-            return [("sentry.browser", 1.0), ("sentry.device", 0.8)]
-
-        def capture_compare(*args, **kwargs):
             return {"results": [("sentry.browser", 0.9), ("sentry.device", 0.7)]}
 
-        mock_keyed_rrf_score.side_effect = capture_baseline
         mock_compare_distributions.side_effect = capture_compare
 
         tags = [
@@ -289,12 +286,11 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             ), f"Attribute '{attr_name}' should be filtered (meta attribute)"
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
     @patch(
         "sentry.api.endpoints.organization_trace_item_attributes_ranked.translate_internal_to_public_alias"
     )
     def test_includes_user_defined_attributes_when_translate_returns_none(
-        self, mock_translate, mock_keyed_rrf_score, mock_compare_distributions
+        self, mock_translate, mock_compare_distributions
     ) -> None:
         """Test that user-defined attributes are included when translate_internal_to_public_alias returns None.
 
@@ -313,14 +309,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         mock_translate.side_effect = mock_translate_func
 
-        # Mock primary scoring (keyed_rrf_score) to include our test attributes
-        mock_keyed_rrf_score.return_value = [
-            ("custom_user_attr", 0.9),
-            ("tags[filtered_tag]", 0.8),
-            ("regular_attr", 0.7),
-        ]
-
-        # Mock secondary scoring for RRR ordering
+        # Mock compare_distributions to return our test attributes (now the primary scoring)
         mock_compare_distributions.return_value = {
             "results": [
                 ("custom_user_attr", 0.9),
@@ -352,3 +341,88 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Regular attribute should be included
         assert "regular_attr" in returned_attrs, "Regular attributes should be included"
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_failure_rate_filters_to_failed_spans_only(self, mock_compare_distributions) -> None:
+        """Test that failure_rate() and failure_count() filter the selected cohort to failed spans.
+
+        When failure_rate() or failure_count() is selected, the endpoint should:
+        - Filter the selected cohort (cohort1) to only include failed spans
+        - Keep the baseline (cohort2) as all other spans for meaningful comparison
+        Sentry treats spans with status other than "ok", "cancelled", and "unknown" as failures.
+        """
+        mock_compare_distributions.return_value = {
+            "results": [
+                ("sentry.browser", 0.8),
+            ]
+        }
+
+        # Store spans with various statuses:
+        # - "ok", "cancelled", "unknown" are NOT failures
+        # - "internal_error", "invalid_argument" ARE failures
+        spans_data = [
+            # Failed spans (short duration - will be in selected region)
+            ({"browser": "chrome"}, 100, "internal_error"),
+            ({"browser": "chrome"}, 100, "invalid_argument"),
+            ({"browser": "safari"}, 100, "internal_error"),
+            # Non-failed spans (short duration - would be in selected region if not filtered)
+            ({"browser": "firefox"}, 100, "ok"),
+            ({"browser": "edge"}, 100, "cancelled"),
+            ({"browser": "opera"}, 100, "unknown"),
+            # Failed spans (long duration - baseline only)
+            ({"browser": "chrome"}, 500, "internal_error"),
+            ({"browser": "firefox"}, 500, "invalid_argument"),
+            # Non-failed spans (long duration - should be excluded from baseline too)
+            ({"browser": "edge"}, 500, "ok"),
+        ]
+
+        for tags, duration, status in spans_data:
+            self._store_span(tags=tags, duration=duration, status=status)
+
+        # Request with failure_rate() function
+        response = self.do_request(
+            query={
+                "function": "failure_rate()",
+                "query_1": "span.duration:<=100",
+                "query_2": "",
+            }
+        )
+
+        assert response.status_code == 200, response.data
+
+        # With failure_rate filtering:
+        # - cohort1 (selected): only failed spans with duration <= 100
+        #   = 3 spans (chrome internal_error, chrome invalid_argument, safari internal_error)
+        # - cohort2 (baseline): all other spans (not filtered to failures)
+        #   = 9 total spans - 3 = 6 spans
+        #
+        # Without filtering (old behavior), cohort1 would be 6 spans (all short duration)
+        # and cohort2 would be 3 spans (all long duration)
+
+        # Verify that cohort1 contains only failed spans
+        assert response.data["cohort1Total"] == 3, (
+            f"Expected 3 failed spans in selected region, got {response.data['cohort1Total']}. "
+            "failure_rate() should filter selected cohort to only failed spans."
+        )
+        # Baseline is all other spans (not filtered to failures)
+        assert response.data["cohort2Total"] == 6, (
+            f"Expected 6 spans in baseline (all other spans), got {response.data['cohort2Total']}. "
+            "Baseline should include all spans not in the selected cohort."
+        )
+
+        # Also test with failure_count() - should behave the same way
+        response_count = self.do_request(
+            query={
+                "function": "failure_count()",
+                "query_1": "span.duration:<=100",
+                "query_2": "",
+            }
+        )
+
+        assert response_count.status_code == 200, response_count.data
+        assert (
+            response_count.data["cohort1Total"] == 3
+        ), f"Expected 3 failed spans for failure_count(), got {response_count.data['cohort1Total']}."
+        assert (
+            response_count.data["cohort2Total"] == 6
+        ), f"Expected 6 spans in baseline for failure_count(), got {response_count.data['cohort2Total']}."

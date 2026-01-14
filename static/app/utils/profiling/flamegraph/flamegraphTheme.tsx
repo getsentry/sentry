@@ -197,53 +197,69 @@ export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       // Charts
       CPU_CHART_COLORS: chartColors.map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
-        hexToColorChannels(theme.colors.yellow400, 1),
-        hexToColorChannels(theme.colors.red400, 1),
+        hexToColorChannels(theme.tokens.background.warning.vibrant, 1),
+        hexToColorChannels(theme.tokens.background.danger.vibrant, 1),
       ],
       UI_FRAME_COLOR_SLOW: hexToColorChannels(theme.colors.yellow300, 1),
-      UI_FRAME_COLOR_FROZEN: hexToColorChannels(theme.colors.red400, 1),
-      BATTERY_CHART_COLORS: [hexToColorChannels(theme.colors.blue400, 1)],
+      UI_FRAME_COLOR_FROZEN: hexToColorChannels(
+        theme.tokens.background.danger.vibrant,
+        1
+      ),
+      BATTERY_CHART_COLORS: [
+        hexToColorChannels(theme.tokens.background.accent.vibrant, 1),
+      ],
 
       // Preset colors
-      FRAME_APPLICATION_COLOR: hexToColorChannels(theme.colors.blue400, 0.4),
-      FRAME_SYSTEM_COLOR: hexToColorChannels(theme.colors.red400, 0.3),
-      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.blue400, 0.6),
-      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red400, 0.4),
-      SAMPLE_TICK_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
+      FRAME_APPLICATION_COLOR: hexToColorChannels(
+        theme.tokens.background.accent.vibrant,
+        0.4
+      ),
+      FRAME_SYSTEM_COLOR: hexToColorChannels(theme.tokens.background.danger.vibrant, 0.3),
+      DIFFERENTIAL_DECREASE: hexToColorChannels(
+        theme.tokens.background.accent.vibrant,
+        0.6
+      ),
+      DIFFERENTIAL_INCREASE: hexToColorChannels(
+        theme.tokens.background.danger.vibrant,
+        0.4
+      ),
+      SAMPLE_TICK_COLOR: hexToColorChannels(theme.tokens.background.danger.vibrant, 0.5),
 
       // Cursors and labels
       LABEL_FONT_COLOR: theme.tokens.content.primary,
       BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
-      CHART_CURSOR_INDICATOR: theme.subText,
-      CHART_LABEL_COLOR: theme.subText,
+      CHART_CURSOR_INDICATOR: theme.tokens.content.secondary,
+      CHART_LABEL_COLOR: theme.tokens.content.secondary,
       CURSOR_CROSSHAIR: theme.tokens.border.primary,
 
       // Special states
-      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
+      FOCUSED_FRAME_BORDER_COLOR: theme.tokens.focus.default,
       HIGHLIGHTED_LABEL_COLOR: `rgba(240, 240, 0, 1)`,
-      HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
-      SELECTED_FRAME_BORDER_COLOR: theme.colors.blue500,
+      HOVERED_FRAME_BORDER_COLOR: theme.tokens.border.transparent.neutral.vibrant,
+      SELECTED_FRAME_BORDER_COLOR: theme.tokens.graphics.accent.vibrant,
 
       // Search results
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
       SEARCH_RESULT_SPAN_COLOR: '#fdb359',
 
       // Patterns
-      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.gray100,
-      SPAN_FRAME_LINE_PATTERN: theme.colors.gray200,
+      SPAN_FRAME_LINE_PATTERN_BACKGROUND:
+        theme.tokens.background.transparent.neutral.muted,
+      SPAN_FRAME_LINE_PATTERN: theme.tokens.border.transparent.neutral.moderate,
 
       // Fallbacks
       SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
       FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.6, 0.1],
 
       // Layout colors
-      GRID_LINE_COLOR: theme.colors.surface200,
-      GRID_FRAME_BACKGROUND_COLOR: theme.colors.surface400,
+      GRID_LINE_COLOR: theme.tokens.border.transparent.neutral.muted,
+      GRID_FRAME_BACKGROUND_COLOR: theme.tokens.background.secondary,
 
-      MINIMAP_POSITION_OVERLAY_BORDER_COLOR: theme.colors.gray300,
-      MINIMAP_POSITION_OVERLAY_COLOR: theme.colors.gray200,
+      MINIMAP_POSITION_OVERLAY_BORDER_COLOR:
+        theme.tokens.border.transparent.neutral.moderate,
+      MINIMAP_POSITION_OVERLAY_COLOR: theme.tokens.background.transparent.neutral.muted,
 
-      SPAN_FRAME_BORDER: theme.colors.gray300,
+      SPAN_FRAME_BORDER: theme.tokens.background.transparent.neutral.muted,
       STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
     },
   };
@@ -288,32 +304,46 @@ export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       // Charts
       CPU_CHART_COLORS: chartColors.map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
-        hexToColorChannels(theme.colors.yellow400, 1),
-        hexToColorChannels(theme.colors.red400, 1),
+        hexToColorChannels(theme.tokens.background.warning.vibrant, 1),
+        hexToColorChannels(theme.tokens.background.danger.vibrant, 1),
       ],
       UI_FRAME_COLOR_SLOW: hexToColorChannels(theme.colors.yellow300, 1),
-      UI_FRAME_COLOR_FROZEN: hexToColorChannels(theme.colors.red400, 1),
-      BATTERY_CHART_COLORS: [hexToColorChannels(theme.colors.blue400, 1)],
+      UI_FRAME_COLOR_FROZEN: hexToColorChannels(
+        theme.tokens.background.danger.vibrant,
+        1
+      ),
+      BATTERY_CHART_COLORS: [
+        hexToColorChannels(theme.tokens.background.accent.vibrant, 1),
+      ],
 
       // Preset colors
-      FRAME_APPLICATION_COLOR: hexToColorChannels(theme.colors.blue400, 0.6),
-      FRAME_SYSTEM_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
-      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.blue400, 0.6),
-      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red400, 0.4),
-      SAMPLE_TICK_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
+      FRAME_APPLICATION_COLOR: hexToColorChannels(
+        theme.tokens.background.accent.vibrant,
+        0.6
+      ),
+      FRAME_SYSTEM_COLOR: hexToColorChannels(theme.tokens.background.danger.vibrant, 0.5),
+      DIFFERENTIAL_DECREASE: hexToColorChannels(
+        theme.tokens.background.accent.vibrant,
+        0.6
+      ),
+      DIFFERENTIAL_INCREASE: hexToColorChannels(
+        theme.tokens.background.danger.vibrant,
+        0.4
+      ),
+      SAMPLE_TICK_COLOR: hexToColorChannels(theme.tokens.background.danger.vibrant, 0.5),
 
       // Cursors and labels
       LABEL_FONT_COLOR: theme.tokens.content.primary,
       BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
-      CHART_CURSOR_INDICATOR: theme.subText,
-      CHART_LABEL_COLOR: theme.subText,
+      CHART_CURSOR_INDICATOR: theme.tokens.content.secondary,
+      CHART_LABEL_COLOR: theme.tokens.content.secondary,
       CURSOR_CROSSHAIR: theme.tokens.border.primary,
 
       // Special states
-      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
-      HIGHLIGHTED_LABEL_COLOR: theme.colors.yellow400,
+      FOCUSED_FRAME_BORDER_COLOR: theme.tokens.focus.default,
+      HIGHLIGHTED_LABEL_COLOR: theme.tokens.background.warning.vibrant,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
-      SELECTED_FRAME_BORDER_COLOR: theme.colors.blue500,
+      SELECTED_FRAME_BORDER_COLOR: theme.tokens.graphics.accent.vibrant,
 
       // Search results
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',

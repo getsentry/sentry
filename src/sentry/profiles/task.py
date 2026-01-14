@@ -67,6 +67,7 @@ from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -1725,7 +1726,7 @@ def build_chunk_functions_eap_trace_items(
                 organization_id=chunk.get_organization_id(),
                 project_id=chunk.get_project_id(),
                 trace_id=chunk.get_profiler_id(),  # until we actually get a trace_id from the SDKs
-                item_id=int(chunk.get_profiler_id(), 16).to_bytes(16, "little"),
+                item_id=hex_to_item_id(chunk.get_profiler_id()),
                 item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
                 timestamp=_timestamp(chunk.start_timestamp()),
                 attributes=attributes,
@@ -1801,7 +1802,7 @@ def build_profile_functions_eap_trace_items(
                 organization_id=profile.get_organization_id(),
                 project_id=profile.get_project_id(),
                 trace_id=profile.get_profile_id(),  # until we actually get a trace_id from the SDKs
-                item_id=int(profile.get_profile_id(), 16).to_bytes(16, "little"),
+                item_id=hex_to_item_id(profile.get_profile_id()),
                 item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
                 timestamp=_timestamp(profile.get_timestamp()),
                 attributes=attributes,

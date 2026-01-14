@@ -163,6 +163,8 @@ const patterns: RegExp[] = [
   new RegExp('^api/hooks/mailgun/inbound/'),
   new RegExp('^auth-v2/'),
   new RegExp('^oauth/authorize/$'),
+  new RegExp('^oauth/device/$'),
+  new RegExp('^oauth/device/code/$'),
   new RegExp('^oauth/token/$'),
   new RegExp('^oauth/userinfo/$'),
   new RegExp('^saml/acs/[^/]+/$'),
@@ -195,10 +197,8 @@ const patterns: RegExp[] = [
   new RegExp('^auth/sso/account/settings/social/associate/complete/[^/]+/$'),
   new RegExp('^out/$'),
   new RegExp('^settings/organization/auth/configure/$'),
-  new RegExp('^disabled-member/'),
   new RegExp('^organizations/[^/]+/auth/configure/$'),
   new RegExp('^organizations/[^/]+/integrations/[^/]+/setup/$'),
-  new RegExp('^organizations/[^/]+/disabled-member/$'),
   new RegExp('^avatar/[^/]+/$'),
   new RegExp('^sentry-app-avatar/[^/]+/$'),
   new RegExp('^doc-integration-avatar/[^/]+/$'),
@@ -230,7 +230,6 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/discord/configure/$'),
   new RegExp('^extensions/discord/link-identity/[^/]+/$'),
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
-  new RegExp('^share/(?:group|issue)/[^/]+/$'),
 ];
 
 export default patterns;
