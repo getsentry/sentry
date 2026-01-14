@@ -132,7 +132,7 @@ def execute_table_query(
               total spans, duration, etc.) and ignores the 'fields' parameter.
     """
     # Traces mode uses a different default time range
-    default_stats_period = "24h" if mode == "traces" else None
+    default_stats_period = "24h" if mode == "traces" else "7d"
     stats_period, start, end = validate_date_params(
         stats_period, start, end, default_stats_period=default_stats_period
     )

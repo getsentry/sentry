@@ -148,29 +148,28 @@ class TestExecuteTableQueryMode:
 
     @patch("sentry.seer.explorer.tools.Organization")
     @patch("sentry.seer.explorer.tools.client")
-    def test_non_traces_mode_without_time_range_raises_error(
+    def test_non_traces_mode_uses_7d_default_stats_period(
         self, mock_client: Mock, mock_org_model: Mock
     ) -> None:
-        """Test that non-traces mode without stats_period or start/end raises ValueError."""
+        """Test that non-traces mode defaults to 7d stats_period when none provided."""
         mock_org = Mock()
         mock_org.id = 1
         mock_org.slug = "test-org"
         mock_org_model.objects.get.return_value = mock_org
+        mock_client.get.return_value = Mock(data={"data": []})
 
-        # Should raise ValueError because no time range was provided
-        with pytest.raises(
-            ValueError, match="either stats_period or start and end must be provided"
-        ):
-            execute_table_query(
-                org_id=1,
-                dataset="spans",
-                fields=["id"],
-                query="",
-                per_page=5,
-                # No stats_period, no start/end, no mode="traces"
-            )
+        execute_table_query(
+            org_id=1,
+            dataset="spans",
+            fields=["id"],
+            query="",
+            per_page=5,
+            # No stats_period, no start/end, no mode="traces"
+        )
 
-        mock_client.get.assert_not_called()
+        # Verify 7d default was used
+        call_kwargs = mock_client.get.call_args.kwargs
+        assert call_kwargs["params"]["statsPeriod"] == "7d"
 
     @patch("sentry.seer.explorer.tools.Organization")
     @patch("sentry.seer.explorer.tools.client")
