@@ -793,9 +793,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             [android_artifact, ios_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
         )
 
-        # Build expected URLs
-        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/{self.project.slug}/{android_artifact.id}"
-        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/{self.project.slug}/{ios_artifact.id}"
+        # Build expected URLs with new format: /preprod/size/{artifact_id}?project={project_slug}
+        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.slug}"
+        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}?project={self.project.slug}"
 
         expected = f"""\
 ### Android Builds
