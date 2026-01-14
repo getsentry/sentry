@@ -272,7 +272,7 @@ def test_bind_cache_to_option_store_with_options_cache() -> None:
         bind_cache_to_option_store()
 
         # Should use 'options' cache, not 'default'
-        default_store.cache = caches["options"]
+        assert default_store.cache == caches["options"]
 
 
 def test_bind_cache_to_option_store_without_options_cache() -> None:
@@ -285,4 +285,4 @@ def test_bind_cache_to_option_store_without_options_cache() -> None:
         bind_cache_to_option_store()
 
         # Should use 'default' cache when 'options' doesn't exist
-        default_store.cache = caches["default"]
+        assert default_store.cache == caches["default"]
