@@ -204,3 +204,20 @@ class SeerOperatorTest(TestCase):
                 event_payload=event_payload,
                 cache_payload=self.entrypoint.create_autofix_cache_payload(),
             )
+
+    @patch("sentry.seer.entrypoints.operator.update_autofix")
+    def test_solution_stopping_point_continues_to_code_changes(self, mock_update_autofix):
+        """Verify that SOLUTION stopping point sends payload that continues to CODE_CHANGES."""
+        mock_update_autofix.return_value = Response({"run_id": MOCK_RUN_ID}, status=202)
+
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.SOLUTION,
+            run_id=MOCK_RUN_ID,
+        )
+
+        mock_update_autofix.assert_called_once()
+        payload = mock_update_autofix.call_args.kwargs["payload"]
+        assert payload["type"] == "select_root_cause"
+        assert payload["stopping_point"] == "code_changes"
