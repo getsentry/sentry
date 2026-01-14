@@ -283,8 +283,8 @@ def update_group_resolutions(release, commit_author_by_commit):
 
 
 def create_commit_authors(commit_list, release):
-    authors = {}
-
+    # Step 1: Collect unique emails and their author data
+    author_data_by_email = {}
     for data in commit_list:
         author_email = data.get("author_email")
         if author_email is None and data.get("author_name"):
@@ -293,23 +293,70 @@ def create_commit_authors(commit_list, release):
             )
 
         author_email = truncatechars(author_email, 75)
+        if author_email:
+            # Lowercase to match CommitAuthorManager.get_or_create behavior
+            author_email = author_email.lower()
 
-        if not author_email:
-            author = None
-        elif author_email not in authors:
-            author_data = {"name": data.get("author_name")}
-            author, created = CommitAuthor.objects.get_or_create(
+        # Store normalized email back in data for later lookup
+        data["_normalized_email"] = author_email
+
+        if author_email and author_email not in author_data_by_email:
+            author_data_by_email[author_email] = {"name": data.get("author_name")}
+
+    if not author_data_by_email:
+        # No authors to process, set all to None
+        for data in commit_list:
+            data["author_model"] = None
+        return
+
+    # Step 2: Batch fetch existing authors (1 query instead of N)
+    existing_authors = {
+        author.email: author
+        for author in CommitAuthor.objects.filter(
+            organization_id=release.organization_id,
+            email__in=author_data_by_email.keys(),
+        )
+    }
+
+    # Step 3: Identify authors needing creation
+    emails_to_create = set(author_data_by_email.keys()) - set(existing_authors.keys())
+
+    if emails_to_create:
+        # Step 4: Batch create missing authors (1 query)
+        authors_to_create = [
+            CommitAuthor(
                 organization_id=release.organization_id,
-                email=author_email,
-                defaults=author_data,
+                email=email,
+                name=author_data_by_email[email]["name"],
             )
-            if author.name != author_data["name"]:
-                author.update(name=author_data["name"])
-            authors[author_email] = author
-        else:
-            author = authors[author_email]
+            for email in emails_to_create
+        ]
+        CommitAuthor.objects.bulk_create(authors_to_create, ignore_conflicts=True)
 
-        data["author_model"] = author
+        # Re-fetch to get IDs (needed because bulk_create with ignore_conflicts
+        # doesn't populate IDs on PostgreSQL for conflicting rows)
+        newly_created = CommitAuthor.objects.filter(
+            organization_id=release.organization_id,
+            email__in=emails_to_create,
+        )
+        for author in newly_created:
+            existing_authors[author.email] = author
+
+    # Step 5: Batch update names where needed (1 query)
+    authors_to_update = []
+    for email, author in existing_authors.items():
+        expected_name = author_data_by_email[email]["name"]
+        if author.name != expected_name:
+            author.name = expected_name
+            authors_to_update.append(author)
+
+    if authors_to_update:
+        CommitAuthor.objects.bulk_update(authors_to_update, ["name"])
+
+    # Step 6: Assign author models to commit data
+    for data in commit_list:
+        author_email = data.pop("_normalized_email", None)
+        data["author_model"] = existing_authors.get(author_email) if author_email else None
 
 
 def create_repositories(commit_list, release):
