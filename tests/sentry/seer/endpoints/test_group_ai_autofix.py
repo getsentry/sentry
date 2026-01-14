@@ -863,7 +863,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
     def _get_url(self, group_id: int, mode: str | None = None) -> str:
         url = f"/api/0/issues/{group_id}/autofix/"
-        if mode:
+        if mode is not None:
             url = f"{url}?mode={mode}"
         return url
 
@@ -882,7 +882,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         mock_get_explorer_state.return_value = None
 
         self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id), format="json")
+        response = self.client.get(self._get_url(group.id, mode="explorer"), format="json")
 
         assert response.status_code == 200, response.data
         mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
@@ -896,7 +896,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = None
 
         self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id, mode="legacy"), format="json")
+        response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200, response.data
         mock_get_autofix_state.assert_called_once()
@@ -911,7 +911,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.client.post(
-            self._get_url(group.id),
+            self._get_url(group.id, mode="explorer"),
             data={"step": "root_cause"},
             format="json",
         )
@@ -950,7 +950,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.client.post(
-            self._get_url(group.id, mode="legacy"),
+            self._get_url(group.id),
             data={"instruction": "test"},
             format="json",
         )
