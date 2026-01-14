@@ -30,7 +30,7 @@ import type {
   GenericWidgetQueriesChildrenProps,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
-import GenericWidgetQueries from './genericWidgetQueries';
+import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
@@ -139,33 +139,29 @@ function SpansWidgetQueriesSingleRequestImpl({
     });
   };
 
+  const props = useGenericWidgetQueries<SeriesResult, TableResult>({
+    config,
+    api,
+    queue,
+    organization,
+    selection,
+    widget,
+    cursor,
+    limit,
+    dashboardFilters,
+    onDataFetched,
+    onDataFetchStart,
+    afterFetchSeriesData,
+    samplingMode: SAMPLING_MODE.NORMAL,
+  });
+
   return getDynamicText({
-    value: (
-      <GenericWidgetQueries<SeriesResult, TableResult>
-        config={config}
-        api={api}
-        queue={queue}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        cursor={cursor}
-        limit={limit}
-        dashboardFilters={dashboardFilters}
-        onDataFetched={onDataFetched}
-        onDataFetchStart={onDataFetchStart}
-        afterFetchSeriesData={afterFetchSeriesData}
-        samplingMode={SAMPLING_MODE.NORMAL}
-      >
-        {props =>
-          children({
-            ...props,
-            confidence,
-            sampleCount,
-            isSampled,
-          })
-        }
-      </GenericWidgetQueries>
-    ),
+    value: children({
+      ...props,
+      confidence,
+      sampleCount,
+      isSampled,
+    }),
     fixed: <div />,
   });
 }

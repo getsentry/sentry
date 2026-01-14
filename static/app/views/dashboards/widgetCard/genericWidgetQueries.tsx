@@ -65,9 +65,8 @@ export type GenericWidgetQueriesChildrenProps = {
   totalCount?: string;
 };
 
-export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
+export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => React.ReactNode;
   config: DatasetConfig<SeriesResponse, TableResponse>;
   organization: Organization;
   selection: PageFilters;
@@ -79,8 +78,8 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
   customDidUpdateComparator?: (
-    prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
-    nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
+    prevProps: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>,
+    nextProps: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
   dashboardFilters?: DashboardFilters;
   disabled?: boolean;
@@ -104,12 +103,16 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   skipDashboardFilterParens?: boolean;
 };
 
-function GenericWidgetQueries<SeriesResponse, TableResponse>(
-  props: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
-) {
+export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> =
+  UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> & {
+    children: (props: GenericWidgetQueriesChildrenProps) => React.ReactNode;
+  };
+
+export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
+  props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
+): GenericWidgetQueriesChildrenProps {
   const {
     api,
-    children,
     config,
     organization,
     selection,
@@ -152,7 +155,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
   const isMountedRef = useRef(false);
   const queryFetchIDRef = useRef<symbol | undefined>(undefined);
   const prevPropsRef = useRef<
-    GenericWidgetQueriesProps<SeriesResponse, TableResponse> | undefined
+    UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> | undefined
   >(undefined);
   const rawResultsRef = useRef<SeriesResponse[] | undefined>(undefined);
   const hasInitialFetchRef = useRef(false);
@@ -580,7 +583,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     props,
   ]);
 
-  return children({
+  return {
     loading,
     tableResults,
     timeseriesResults,
@@ -588,7 +591,15 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     pageLinks,
     timeseriesResultsTypes,
     timeseriesResultsUnits,
-  });
+  };
+}
+
+function GenericWidgetQueries<SeriesResponse, TableResponse>(
+  props: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
+) {
+  const {children, ...hookProps} = props;
+  const result = useGenericWidgetQueries(hookProps);
+  return children(result);
 }
 
 export function cleanWidgetForRequest(widget: Widget): Widget {

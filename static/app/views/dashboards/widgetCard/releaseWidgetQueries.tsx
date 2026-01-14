@@ -39,7 +39,7 @@ import type {
   GenericWidgetQueriesChildrenProps,
   GenericWidgetQueriesProps,
 } from './genericWidgetQueries';
-import GenericWidgetQueries from './genericWidgetQueries';
+import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 interface ReleaseWidgetQueriesProps {
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
@@ -377,32 +377,31 @@ function ReleaseWidgetQueries({
     [transformWidget, widget]
   );
 
-  return (
-    <GenericWidgetQueries<SessionApiResponse, SessionApiResponse>
-      queue={queue}
-      config={config}
-      api={api}
-      organization={organization}
-      selection={selection}
-      widget={transformedWidget}
-      dashboardFilters={dashboardFilters}
-      cursor={cursor}
-      limit={getLimit(widget.displayType, limit)}
-      onDataFetched={onDataFetched}
-      onDataFetchStart={onDataFetchStart}
-      loading={requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined}
-      customDidUpdateComparator={customDidUpdateComparator}
-      afterFetchTableData={afterFetchData}
-      afterFetchSeriesData={afterFetchData}
-    >
-      {({errorMessage, ...rest}) =>
-        children({
-          errorMessage: requestErrorMessage ?? errorMessage,
-          ...rest,
-        })
-      }
-    </GenericWidgetQueries>
-  );
+  const {errorMessage, ...rest} = useGenericWidgetQueries<
+    SessionApiResponse,
+    SessionApiResponse
+  >({
+    queue,
+    config,
+    api,
+    organization,
+    selection,
+    widget: transformedWidget,
+    dashboardFilters,
+    cursor,
+    limit: getLimit(widget.displayType, limit),
+    onDataFetched,
+    onDataFetchStart,
+    loading: requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined,
+    customDidUpdateComparator,
+    afterFetchTableData: afterFetchData,
+    afterFetchSeriesData: afterFetchData,
+  });
+
+  return children({
+    errorMessage: requestErrorMessage ?? errorMessage,
+    ...rest,
+  });
 }
 
 export default ReleaseWidgetQueries;

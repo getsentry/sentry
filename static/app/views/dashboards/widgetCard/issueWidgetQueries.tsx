@@ -17,7 +17,7 @@ import type {
   GenericWidgetQueriesChildrenProps,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
-import GenericWidgetQueries from './genericWidgetQueries';
+import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 type Props = {
   api: Client;
@@ -62,31 +62,27 @@ function IssueWidgetQueries({
     return {totalIssuesCount: response?.getResponseHeader('X-Hits') ?? undefined};
   };
 
+  const {loading, ...rest} = useGenericWidgetQueries<IssuesSeriesResponse, Group[]>({
+    queue,
+    config,
+    api,
+    organization,
+    selection,
+    widget,
+    cursor,
+    limit,
+    dashboardFilters,
+    onDataFetched,
+    onDataFetchStart,
+    afterFetchTableData,
+    skipDashboardFilterParens: true, // Issue widgets do not support parens in search
+  });
+
   return getDynamicText({
-    value: (
-      <GenericWidgetQueries<IssuesSeriesResponse, Group[]>
-        queue={queue}
-        config={config}
-        api={api}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        cursor={cursor}
-        limit={limit}
-        dashboardFilters={dashboardFilters}
-        onDataFetched={onDataFetched}
-        onDataFetchStart={onDataFetchStart}
-        afterFetchTableData={afterFetchTableData}
-        skipDashboardFilterParens // Issue widgets do not support parens in search
-      >
-        {({loading, ...rest}) =>
-          children({
-            loading: loading || !memberListStoreLoaded,
-            ...rest,
-          })
-        }
-      </GenericWidgetQueries>
-    ),
+    value: children({
+      loading: loading || !memberListStoreLoaded,
+      ...rest,
+    }),
     fixed: <div />,
   });
 }
