@@ -109,7 +109,7 @@ backend_any_type: &backend_any_type
 migrations_added:
   - added:
       - 'src/sentry/**/migrations/*'
-      - '!src/sentry/**/migrations/__init__.py'
+      - ':!src/sentry/**/migrations/__init__.py'
 
 # These files will trigger our workflow to check if lockfile
 # updates are needed
