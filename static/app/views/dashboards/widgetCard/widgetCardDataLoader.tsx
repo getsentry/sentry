@@ -116,6 +116,7 @@ export function WidgetCardDataLoader({
     return (
       <SpansWidgetQueries
         widget={widget}
+        selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
@@ -130,6 +131,7 @@ export function WidgetCardDataLoader({
     return (
       <TraceMetricsWidgetQueries
         widget={widget}
+        selection={selection}
         limit={tableItemLimit}
         onDataFetchStart={onDataFetchStart}
         onDataFetched={onDataFetched}
