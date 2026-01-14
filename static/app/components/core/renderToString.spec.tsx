@@ -19,7 +19,7 @@ describe('renderToString', () => {
 
     const string = await act(() => result.current(<SimpleComponent />));
 
-    expect(string).toMatchInlineSnapshot("'<div>Hello, World!</div>'");
+    expect(string).toMatchInlineSnapshot('"<div>Hello, World!</div>"');
   });
   it('should render a scraps component to string', async () => {
     function ScrapsComponent() {
