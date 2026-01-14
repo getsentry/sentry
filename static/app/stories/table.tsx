@@ -45,7 +45,7 @@ export const StoryTable = styled('table')`
   }
 
   tr {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.muted};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     vertical-align: baseline;
 
     &:last-child {

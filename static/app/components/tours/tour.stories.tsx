@@ -405,6 +405,6 @@ const Image = styled('img')`
 
 const CustomTourElement = styled(TourElement<MyTour>)`
   &[aria-expanded='true']:after {
-    box-shadow: 0 0 0 2px ${p => p.theme.tokens.border.accent};
+    box-shadow: 0 0 0 2px ${p => p.theme.tokens.border.accent.vibrant};
   }
 `;
