@@ -912,7 +912,7 @@ describe('add to dashboard modal', () => {
       });
 
       // Widget name input should not be present
-      expect(screen.queryByLabelText('Widget Name')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Optional Widget Name')).not.toBeInTheDocument();
     });
 
     it('hides widget preview when multiple widgets are provided', async () => {

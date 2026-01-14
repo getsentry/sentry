@@ -20,7 +20,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Select} from 'sentry/components/core/select';
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -249,10 +249,22 @@ function AddToDashboardModal({
   async function handleAddAndStayOnCurrentPage() {
     try {
       await handleAddWidgetsToExistingDashboard();
-      addSuccessMessage(t('Successfully added widget to dashboard'));
+      addSuccessMessage(
+        tn(
+          'Successfully added widget to dashboard',
+          'Successfully added widgets to dashboard',
+          widgets.length
+        )
+      );
       closeModal();
     } catch (error) {
-      addErrorMessage(t('Failed to add widget to dashboard'));
+      addErrorMessage(
+        tn(
+          'Failed to add widget to dashboard',
+          'Failed to add widgets to dashboard',
+          widgets.length
+        )
+      );
     }
   }
 
@@ -276,14 +288,32 @@ function AddToDashboardModal({
 
     // For existing dashboards, add widgets via API first, then navigate
     try {
-      addLoadingMessage(t('Adding widgets to dashboard...'));
+      addLoadingMessage(
+        tn(
+          'Adding widget to dashboard...',
+          'Adding widgets to dashboard...',
+          widgets.length
+        )
+      );
       await handleAddWidgetsToExistingDashboard();
-      addSuccessMessage(t('Successfully added widgets to dashboard'));
+      addSuccessMessage(
+        tn(
+          'Successfully added widget to dashboard',
+          'Successfully added widgets to dashboard',
+          widgets.length
+        )
+      );
 
       // Navigate to dashboard (widgets already saved, no location state needed)
       goToDashboard('preview');
     } catch (error) {
-      addErrorMessage(t('Failed to add widgets to dashboard'));
+      addErrorMessage(
+        tn(
+          'Failed to add widget to dashboard',
+          'Failed to add widgets to dashboard',
+          widgets.length
+        )
+      );
     }
   }
 
