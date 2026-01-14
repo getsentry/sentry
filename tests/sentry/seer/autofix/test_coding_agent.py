@@ -295,4 +295,6 @@ class TestLaunchAgentsForRepos(TestCase):
 
         assert len(result["failures"]) == 1
         error_message = result["failures"][0]["error_message"]
-        assert error_message == "Failed to make request to coding agent. 500 Error: Some error message"
+        assert (
+            error_message == "Failed to make request to coding agent. 500 Error: Some error message"
+        )
