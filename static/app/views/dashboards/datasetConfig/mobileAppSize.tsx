@@ -50,7 +50,7 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   columns: [],
   fieldAliases: [],
   aggregates: ['max(install_size)'],
-  conditions: 'app_id:* git_head_ref:*',
+  conditions: 'build_configuration_name:* git_head_ref:*',
   orderby: '',
 };
 
