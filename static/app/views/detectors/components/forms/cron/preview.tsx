@@ -9,9 +9,9 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import type {
   CheckInBucket,
+  TickStyle,
   TimeWindowConfig,
 } from 'sentry/components/checkInTimeline/types';
-import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import LoadingError from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
@@ -110,7 +110,10 @@ export function Preview() {
             showCursor
             timeWindowConfig={timeWindowConfig}
             additionalUi={
-              <OpenPeriod bucketedData={sampleBucketsData} timeWindowConfig={timeWindowConfig} />
+              <OpenPeriod
+                bucketedData={sampleBucketsData}
+                timeWindowConfig={timeWindowConfig}
+              />
             }
           />
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
@@ -142,9 +145,7 @@ function OpenPeriod({
   let lastSubRecoveryIdx: number | null = null;
 
   function getBucketStatus(stats?: Record<string, number>) {
-    return stats
-      ? statusPrecedent.find(status => (stats[status] ?? 0) > 0)
-      : undefined;
+    return stats ? statusPrecedent.find(status => (stats[status] ?? 0) > 0) : undefined;
   }
 
   for (let i = bucketedData.length - 1; i >= 0; i--) {
@@ -194,12 +195,10 @@ function OpenPeriod({
         <OpenPeriodLabel>{t('New Open Period')}</OpenPeriodLabel>
       </OpenPeriodBar>
       <OpenPeriodCountLabel style={{left}}>
-        {failureCount}{' '}
-        {tn('failed check-in', 'failed check-ins', failureCount)}
+        {failureCount} {tn('failed check-in', 'failed check-ins', failureCount)}
       </OpenPeriodCountLabel>
       <OpenPeriodCountLabel style={{left: right}}>
-        {successCount}{' '}
-        {tn('success check-in', 'success check-ins', successCount)}
+        {successCount} {tn('success check-in', 'success check-ins', successCount)}
       </OpenPeriodCountLabel>
     </Fragment>
   );
