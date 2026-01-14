@@ -16,7 +16,7 @@ import type {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {AggregationKey, FieldKind} from 'sentry/utils/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -148,15 +148,12 @@ function getGroupByFieldOptions(
   }
 
   const tagOptions: Record<string, FieldValueOption> = {};
-  for (const [key, tag] of Object.entries(tags)) {
-    if (!(tag.kind === FieldKind.TAG || tag.kind === FieldKind.FIELD)) {
-      continue;
-    }
-    tagOptions[`field:${key}`] = {
+  for (const tag of Object.values(tags)) {
+    tagOptions[`${tag.kind}:${tag.key}`] = {
       label: tag.name,
       value: {
-        kind: FieldValueKind.FIELD,
-        meta: {name: key, dataType: 'string'},
+        kind: FieldValueKind.TAG,
+        meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
       },
     };
   }

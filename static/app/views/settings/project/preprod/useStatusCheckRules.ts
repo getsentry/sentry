@@ -131,7 +131,7 @@ export function useStatusCheckRules(project: Project) {
 
   const createEmptyRule = useCallback((): StatusCheckRule => {
     return {
-      id: crypto.randomUUID(),
+      id: `rule-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       metric: DEFAULT_METRIC,
       measurement: DEFAULT_MEASUREMENT,
       value: 0,
