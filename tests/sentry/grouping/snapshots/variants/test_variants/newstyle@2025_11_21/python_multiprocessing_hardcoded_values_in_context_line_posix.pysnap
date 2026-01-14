@@ -1,0 +1,397 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "TimeoutError"
+        value*
+          "timed out"
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            module*
+              "__main__"
+            filename (ignored because module takes precedence)
+              "<string>"
+            function*
+              "<module>"
+            context_line*
+              "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=<int>, pipe_handle=<int>)"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "multiprocessing.spawn"
+            filename (ignored because module takes precedence)
+              "spawn.py"
+            function*
+              "spawn_main"
+            context_line*
+              "exitcode = _main(fd, parent_sentinel)"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "multiprocessing.spawn"
+            filename (ignored because module takes precedence)
+              "spawn.py"
+            function*
+              "_main"
+            context_line*
+              "return self._bootstrap(parent_sentinel)"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "multiprocessing.process"
+            filename (ignored because module takes precedence)
+              "process.py"
+            function*
+              "_bootstrap"
+            context_line*
+              "self.run()"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "multiprocessing.process"
+            filename (ignored because module takes precedence)
+              "process.py"
+            function*
+              "run"
+            context_line*
+              "self._target(*self._args, **self._kwargs)"
+          frame (non app frame)
+            module*
+              "sentry.taskworker.workerchild"
+            filename (ignored because module takes precedence)
+              "workerchild.py"
+            function*
+              "child_process"
+            context_line*
+              "run_worker("
+          frame (non app frame)
+            module*
+              "sentry.taskworker.workerchild"
+            filename (ignored because module takes precedence)
+              "workerchild.py"
+            function*
+              "run_worker"
+            context_line*
+              "_execute_activation(task_func, inflight.activation)"
+          frame (non app frame)
+            module*
+              "sentry.taskworker.workerchild"
+            filename (ignored because module takes precedence)
+              "workerchild.py"
+            function*
+              "_execute_activation"
+            context_line*
+              "task_func(*args, **kwargs)"
+          frame (non app frame)
+            module*
+              "sentry.taskworker.task"
+            filename (ignored because module takes precedence)
+              "task.py"
+            function*
+              "__call__"
+            context_line*
+              "return self._func(*args, **kwargs)"
+          frame (non app frame)
+            module*
+              "sentry.tasks.post_process"
+            filename (ignored because module takes precedence)
+              "post_process.py"
+            function*
+              "post_process_group"
+            context_line*
+              "run_post_process_job("
+          frame (non app frame)
+            module*
+              "sentry.tasks.post_process"
+            filename (ignored because module takes precedence)
+              "post_process.py"
+            function*
+              "run_post_process_job"
+            context_line*
+              "logger.exception("
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "exception"
+            context_line*
+              "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "error"
+            context_line*
+              "self._log(ERROR, msg, args, **kwargs)"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "_log"
+            context_line*
+              "self.handle(record)"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "handle"
+            context_line*
+              "self.callHandlers(record)"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "callHandlers"
+            context_line*
+              "hdlr.handle(record)"
+          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "handle"
+            context_line*
+              "self.emit(record)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "connect"
+            context_line*
+              "sock = self._connect()"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "_connect"
+            context_line*
+              "raise err"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "_connect"
+            context_line*
+              "sock.connect(socket_address)"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    default (ignored because system exception takes precedence)
+      message (ignored because system exception takes precedence)
+        "Failed to process pipeline step %s"
+--------------------------------------------------------------------------
+system:
+  hash: "1bc764ab44acfab9a38f23ae670038bd"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "TimeoutError"
+        value (ignored because stacktrace takes precedence)
+          "timed out"
+        stacktrace*
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            module*
+              "__main__"
+            filename (ignored because module takes precedence)
+              "<string>"
+            function*
+              "<module>"
+            context_line*
+              "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=<int>, pipe_handle=<int>)"
+          frame*
+            module*
+              "multiprocessing.spawn"
+            filename (ignored because module takes precedence)
+              "spawn.py"
+            function*
+              "spawn_main"
+            context_line*
+              "exitcode = _main(fd, parent_sentinel)"
+          frame*
+            module*
+              "multiprocessing.spawn"
+            filename (ignored because module takes precedence)
+              "spawn.py"
+            function*
+              "_main"
+            context_line*
+              "return self._bootstrap(parent_sentinel)"
+          frame*
+            module*
+              "multiprocessing.process"
+            filename (ignored because module takes precedence)
+              "process.py"
+            function*
+              "_bootstrap"
+            context_line*
+              "self.run()"
+          frame*
+            module*
+              "multiprocessing.process"
+            filename (ignored because module takes precedence)
+              "process.py"
+            function*
+              "run"
+            context_line*
+              "self._target(*self._args, **self._kwargs)"
+          frame*
+            module*
+              "sentry.taskworker.workerchild"
+            filename (ignored because module takes precedence)
+              "workerchild.py"
+            function*
+              "child_process"
+            context_line*
+              "run_worker("
+          frame*
+            module*
+              "sentry.taskworker.workerchild"
+            filename (ignored because module takes precedence)
+              "workerchild.py"
+            function*
+              "run_worker"
+            context_line*
+              "_execute_activation(task_func, inflight.activation)"
+          frame*
+            module*
+              "sentry.taskworker.workerchild"
+            filename (ignored because module takes precedence)
+              "workerchild.py"
+            function*
+              "_execute_activation"
+            context_line*
+              "task_func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.taskworker.task"
+            filename (ignored because module takes precedence)
+              "task.py"
+            function*
+              "__call__"
+            context_line*
+              "return self._func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.tasks.post_process"
+            filename (ignored because module takes precedence)
+              "post_process.py"
+            function*
+              "post_process_group"
+            context_line*
+              "run_post_process_job("
+          frame*
+            module*
+              "sentry.tasks.post_process"
+            filename (ignored because module takes precedence)
+              "post_process.py"
+            function*
+              "run_post_process_job"
+            context_line*
+              "logger.exception("
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "exception"
+            context_line*
+              "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "error"
+            context_line*
+              "self._log(ERROR, msg, args, **kwargs)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "_log"
+            context_line*
+              "self.handle(record)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "handle"
+            context_line*
+              "self.callHandlers(record)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "callHandlers"
+            context_line*
+              "hdlr.handle(record)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "handle"
+            context_line*
+              "self.emit(record)"
+          frame*
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "connect"
+            context_line*
+              "sock = self._connect()"
+          frame*
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "_connect"
+            context_line*
+              "raise err"
+          frame (ignored due to recursion)
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "_connect"
+            context_line*
+              "sock.connect(socket_address)"

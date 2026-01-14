@@ -103,8 +103,8 @@ function SuperuserWarning({organization, className}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  color: ${p => p.theme.white};
-  background: ${p => p.theme.colors.chonk.red400};
+  color: ${p => p.theme.tokens.content.onVibrant.light};
+  background: ${p => p.theme.tokens.background.danger.vibrant};
 `;
 
 const TooltipContent = styled('div')`

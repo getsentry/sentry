@@ -1,6 +1,7 @@
 ---
 title: Button
 description: Buttons are clickable elements that trigger an action that does not change the current URL.
+category: buttons
 source: 'sentry/components/core/button'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
@@ -60,11 +61,12 @@ To create a basic button, wrap text in a `<Button>` and pass an `onClick` callba
 
 ## Priorities
 
-Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, `transparent` and `link`.
+Buttons come in a few different styles: `muted`, `primary`, `warning`, `danger`, `transparent` and `link`.
 
 <Storybook.Demo>
-  <Button priority="default">Default (default)</Button>
+  <Button priority="default">Default</Button>
   <Button priority="primary">Primary</Button>
+  <Button priority="warning">Warning</Button>
   <Button priority="danger">Danger</Button>
   <Button priority="transparent">Transparent</Button>
   <div style={{alignSelf: 'center'}}>
@@ -74,6 +76,7 @@ Buttons come in a few different styles: `muted` (default), `primary`, `warning`,
 ```jsx
 <Button priority="default">Default (default)</Button>
 <Button priority="primary">Primary</Button>
+<Button priority="warning">Warning</Button>
 <Button priority="danger">Danger</Button>
 <Button priority="transparent">Transparent</Button>
 <Button priority="link">Link</Button>

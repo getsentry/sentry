@@ -360,7 +360,7 @@ const HeaderCell = styled('div')`
   padding: ${space(2)} ${space(0.75)};
   text-transform: uppercase;
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   white-space: nowrap;
@@ -381,7 +381,7 @@ const PathWrapper = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   user-select: none;
   width: 10px;
@@ -427,7 +427,7 @@ const TreeGrid = styled('div')`
   & > *:nth-child(8n + 2),
   & > *:nth-child(8n + 3),
   & > *:nth-child(8n + 4) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

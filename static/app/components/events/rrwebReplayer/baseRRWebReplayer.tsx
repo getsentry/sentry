@@ -53,7 +53,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     display: inline-block;
     width: 32px;
     height: 32px;
-    background: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
     border-radius: 100%;
     transform: translate(-50%, -50%);
     opacity: 0.3;
@@ -75,7 +75,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
       border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device.touch-active {
-    border-color: ${p => p.theme.colors.blue200};
+    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
     transition:
       left 0.25s linear,
       top 0.25s linear,
@@ -208,7 +208,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     left: 0;
     top: 3px;
     border-radius: 3px;
-    background: ${p => p.theme.colors.blue200};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 
   .rr-progress__handler {
@@ -218,7 +218,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     position: absolute;
     top: 6px;
     transform: translate(-50%, -50%);
-    background: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rr-controller__btns {
@@ -256,7 +256,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
   .rr-controller__btns button.active {
     color: ${p => p.theme.white};
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 
   .rr-controller__btns button:disabled {
@@ -319,7 +319,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   }
 
   .switch input[type='checkbox']:checked + label:after {
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.interactive.link.accent.active};
     transform: translateX(16px);
   }
 `;

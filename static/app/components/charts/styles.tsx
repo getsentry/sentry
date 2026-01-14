@@ -7,13 +7,13 @@ export const SectionHeading = styled('h4')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   margin: ${space(1)} 0;
 `;
 
 export const SectionValue = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(1)};
 `;

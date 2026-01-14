@@ -134,7 +134,11 @@ const CardWithoutMargin = styled(Card)`
 
 const Title = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
@@ -163,8 +167,12 @@ const CardLink = styled(Link)`
 const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.secondary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.5;
 `;
 
@@ -179,14 +187,17 @@ const CardBody = styled('div')`
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  display: grid;
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding-left: ${space(1)};
 `;
 

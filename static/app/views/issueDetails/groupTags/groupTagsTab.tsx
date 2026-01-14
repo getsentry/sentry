@@ -212,7 +212,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 
@@ -220,18 +220,21 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => p.theme.colors.blue400};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
     }
   }
 `;
 
 const TagBarLabel = styled('div')`
-  display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSize.md};
   position: relative;
   flex-grow: 1;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TagBarCount = styled('div')`

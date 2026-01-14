@@ -29,6 +29,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -44,6 +45,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
@@ -83,7 +85,7 @@ class EventsApiResponse(TypedDict):
     meta: EventsMeta
 
 
-@extend_schema(tags=["Discover"])
+@extend_schema(tags=["Explore"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -138,7 +140,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         return all_features
 
     @extend_schema(
-        operation_id="Query Discover Events in Table Format",
+        operation_id="Query Explore Events in Table Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -150,6 +152,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.PER_PAGE,
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
+            VisibilityParams.DATASET,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -162,7 +165,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Retrieves discover (also known as events) data for a given organization.
+        Retrieves explore data for a given organization.
 
         **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
         Sentry.
@@ -547,6 +550,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
+                    )
+                elif scoped_dataset == PreprodSize:
+                    return PreprodSizeSearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                     )

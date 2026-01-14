@@ -219,7 +219,7 @@ const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
   padding: ${space(3)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SupportedSdkContainer = styled('div')`
@@ -227,7 +227,7 @@ const SupportedSdkContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SupportedSdkIconContainer = styled('div')`

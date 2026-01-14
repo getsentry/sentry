@@ -205,7 +205,7 @@ const SourcesWrapper = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
 `;
 
@@ -237,7 +237,7 @@ const SelectionButton = styled('button')<SelectionButtonProps>`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   transition:
     color 0.2s ease,
     background-color 0.2s ease;
@@ -291,6 +291,12 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;

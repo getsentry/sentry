@@ -193,7 +193,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
 const OptionInfo = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 
@@ -217,7 +217,8 @@ const Visualization = styled('div')`
 function MetricVisualization() {
   const theme = useTheme();
   const danger = theme.colors.red400;
-  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.colors.blue500;
+  const defaultChartColor =
+    theme.chart.getColorPalette(0)[0] ?? theme.tokens.graphics.accent.vibrant;
 
   return (
     <svg fill="none" viewBox="0 0 480 56">

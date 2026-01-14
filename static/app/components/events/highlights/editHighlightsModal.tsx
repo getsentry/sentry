@@ -505,7 +505,7 @@ const FooterInfo = styled('div')`
   flex: 1;
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   gap: ${space(1)};
 `;
 
@@ -522,7 +522,7 @@ const EditHighlightPreview = styled('div')<{columnCount: number}>`
 
 const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
   margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
@@ -563,13 +563,13 @@ const EditPreviewContextItem = styled(ContextCardContent)`
   font-size: ${p => p.theme.fontSize.sm};
   grid-column: span 2;
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 const EditPreviewTagItem = styled(EventTagsTreeRow)`
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -600,7 +600,8 @@ const EditButton = styled(Button)`
 
 const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.subText)};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.familyMono};
   margin-bottom: 0;
   word-wrap: break-word;

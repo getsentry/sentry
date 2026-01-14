@@ -100,7 +100,7 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
     !p.disableHover &&
     css`
       &:hover {
-        background-color: ${p.theme.backgroundSecondary};
+        background-color: ${p.theme.tokens.background.secondary};
       }
     `}
 `;
@@ -142,7 +142,11 @@ const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
   text-decoration-color: ${p => p.theme.tokens.border.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 SavedEntityTable.CellName = function CellName({
@@ -271,7 +275,14 @@ SavedEntityTable.CellTimeSince = function CellTimeSince({date}: {date: string | 
   return <TimeSince date={date} unitStyle="short" />;
 };
 
-SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser}) {
+SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser | null}) {
+  if (!user) {
+    return (
+      <SavedEntityTable.CellTextContent>
+        {t('Unknown User')}
+      </SavedEntityTable.CellTextContent>
+    );
+  }
   return <UserAvatar user={user} size={20} hasTooltip />;
 };
 
@@ -297,5 +308,9 @@ const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
 `;
 
 const OverflowEllipsis = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

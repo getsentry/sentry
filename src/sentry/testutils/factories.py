@@ -5,6 +5,7 @@ import copy
 import io
 import os
 import random
+import uuid
 import zipfile
 from base64 import b64encode
 from binascii import hexlify
@@ -19,6 +20,7 @@ from uuid import uuid4
 
 import orjson
 import petname
+import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
@@ -26,6 +28,9 @@ from django.db import router, transaction
 from django.test.utils import override_settings
 from django.utils import timezone
 from django.utils.text import slugify
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
@@ -2534,6 +2539,72 @@ class Factories:
         )
 
     @staticmethod
+    def store_preprod_size_metric(
+        project_id: int,
+        organization_id: int,
+        timestamp: datetime,
+        preprod_artifact_id: int = 1,
+        size_metric_id: int = 1,
+        app_id: str = "com.example.app",
+        artifact_type: PreprodArtifact.ArtifactType = PreprodArtifact.ArtifactType.XCARCHIVE,
+        metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        max_install_size: int = 100000,
+        max_download_size: int = 80000,
+        min_install_size: int = 95000,
+        min_download_size: int = 75000,
+        git_head_ref: str | None = None,
+        build_configuration_name: str | None = None,
+    ) -> None:
+        """Write a preprod size metric to EAP/Snuba for testing."""
+        from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+        from sentry.search.eap.rpc_utils import anyvalue
+        from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
+
+        proto_timestamp = Timestamp()
+        proto_timestamp.FromDatetime(timestamp)
+
+        trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(preprod_artifact_id)).hex
+        item_id_str = f"size_metric_{size_metric_id}"
+        item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
+
+        attributes = {
+            "preprod_artifact_id": anyvalue(preprod_artifact_id),
+            "size_metric_id": anyvalue(size_metric_id),
+            "sub_item_type": anyvalue("size_metric"),
+            "metrics_artifact_type": anyvalue(metrics_artifact_type),
+            "identifier": anyvalue(""),
+            "min_install_size": anyvalue(min_install_size),
+            "max_install_size": anyvalue(max_install_size),
+            "min_download_size": anyvalue(min_download_size),
+            "max_download_size": anyvalue(max_download_size),
+            "artifact_type": anyvalue(artifact_type),
+            "app_id": anyvalue(app_id),
+        }
+
+        if git_head_ref:
+            attributes["git_head_ref"] = anyvalue(git_head_ref)
+        if build_configuration_name:
+            attributes["build_configuration_name"] = anyvalue(build_configuration_name)
+
+        trace_item = TraceItem(
+            organization_id=organization_id,
+            project_id=project_id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+            timestamp=proto_timestamp,
+            trace_id=trace_id,
+            item_id=item_id,
+            received=proto_timestamp,
+            retention_days=90,
+            attributes=attributes,
+        )
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files={"item_0": trace_item.SerializeToString()},
+        )
+        assert response.status_code == 200
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_comparison(
         organization: Organization,
@@ -2572,15 +2643,13 @@ class Factories:
         state: int = PreprodArtifact.ArtifactState.PROCESSED,
         artifact_type: int | None = PreprodArtifact.ArtifactType.APK,
         app_id: str = "com.example.app",
-        app_name: str | None = None,
-        build_version: str | None = None,
-        build_number: int | None = None,
         commit_comparison: CommitComparison | None = None,
         file_id: int | None = None,
         installable_app_file_id: int | None = None,
         date_added: datetime | None = None,
         build_configuration: PreprodBuildConfiguration | None = None,
         extras: dict | None = None,
+        create_mobile_app_info: bool = True,
         **kwargs,
     ) -> PreprodArtifact:
         artifact = PreprodArtifact.objects.create(
@@ -2588,9 +2657,6 @@ class Factories:
             state=state,
             artifact_type=artifact_type,
             app_id=app_id,
-            app_name=app_name,
-            build_version=build_version,
-            build_number=build_number,
             commit_comparison=commit_comparison,
             file_id=file_id,
             installable_app_file_id=installable_app_file_id,
@@ -2601,21 +2667,42 @@ class Factories:
         if date_added is not None:
             artifact.update(date_added=date_added)
 
-        mobile_app_info_fields: dict[str, Any] = {}
-        if build_version is not None:
-            mobile_app_info_fields["build_version"] = build_version
-        if build_number is not None:
-            mobile_app_info_fields["build_number"] = build_number
-        if app_name is not None:
-            mobile_app_info_fields["app_name"] = app_name
-
-        if mobile_app_info_fields:
-            PreprodArtifactMobileAppInfo.objects.create(
+        build_version = kwargs.get("build_version", None)
+        build_number = kwargs.get("build_number", None)
+        app_name = kwargs.get("app_name", None)
+        app_icon_id = kwargs.get("app_icon_id", None)
+        if create_mobile_app_info and (build_version or build_number or app_name or app_icon_id):
+            Factories.create_preprod_artifact_mobile_app_info(
                 preprod_artifact=artifact,
-                **mobile_app_info_fields,
+                build_version=build_version,
+                build_number=build_number,
+                app_name=app_name,
+                app_icon_id=app_icon_id,
             )
 
         return artifact
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact_mobile_app_info(
+        preprod_artifact: PreprodArtifact,
+        build_version: str | None = None,
+        build_number: int | None = None,
+        app_name: str | None = None,
+        app_icon_id: str | None = None,
+        **kwargs,
+    ) -> PreprodArtifactMobileAppInfo:
+        obj, _ = PreprodArtifactMobileAppInfo.objects.update_or_create(
+            preprod_artifact=preprod_artifact,
+            defaults={
+                "build_version": build_version,
+                "build_number": build_number,
+                "app_name": app_name,
+                "app_icon_id": app_icon_id,
+                **kwargs,
+            },
+        )
+        return obj
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

@@ -495,7 +495,7 @@ const StyledIconClose = styled(IconClose)`
 
 const CloseButton = styled(Button)`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 100%;
   border-bottom: 2px solid transparent;
   &:hover {
@@ -638,7 +638,7 @@ const Tab = styled('li')`
   }
 
   &:hover {
-    border-bottom: 2px solid ${p => p.theme.colors.blue200};
+    border-bottom: 2px solid ${p => p.theme.tokens.border.accent.vibrant};
 
     button:last-child {
       transition: all 0.3s ease-in-out 500ms;
@@ -647,7 +647,7 @@ const Tab = styled('li')`
     }
   }
   &[aria-selected='true'] {
-    border-bottom: 2px solid ${p => p.theme.colors.blue500};
+    border-bottom: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 

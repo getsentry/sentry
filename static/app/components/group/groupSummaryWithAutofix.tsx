@@ -356,11 +356,8 @@ const InsightCardButton = styled(motion.div)`
   background-color: ${p => p.theme.tokens.background.primary};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-
-  &:active {
-    opacity: 0.8;
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

@@ -7,7 +7,6 @@ import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {debossedBackground} from 'sentry/components/core/chonk';
 import type {
   GroupedOptionsType,
   OptionsType,
@@ -89,7 +88,7 @@ const getStylesConfig = ({
       color: 'currentcolor',
     },
   });
-  const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.interactive.chonky.debossed.neutral.chonk} inset`;
 
   return {
     control: (_, state) => ({
@@ -97,7 +96,7 @@ const getStylesConfig = ({
       color: state.isDisabled
         ? theme.tokens.content.disabled
         : theme.tokens.content.primary,
-      ...debossedBackground(theme),
+      backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.background,
       border: `1px solid ${theme.tokens.border.primary}`,
       boxShadow,
       borderRadius: theme.form[size].borderRadius,
@@ -167,7 +166,7 @@ const getStylesConfig = ({
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.colors.blue200} ${theme.tokens.background.primary}`,
+        scrollbarColor: `${theme.tokens.graphics.accent.moderate} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({
@@ -188,7 +187,9 @@ const getStylesConfig = ({
     }),
     placeholder: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.tokens.content.disabled : theme.subText,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.secondary,
     }),
     multiValue: provided => ({
       ...provided,
@@ -240,7 +241,7 @@ const getStylesConfig = ({
       ...provided,
       lineHeight: '1.5',
       fontWeight: 600,
-      color: theme.subText,
+      color: theme.tokens.content.secondary,
       marginBottom: 0,
       padding: `${space(0.5)} ${space(1.5)}`,
       ':empty': {
@@ -321,8 +322,8 @@ export const CheckWrap = styled('div')<{
           margin-top: 2px;
           ${p.isSelected &&
           css`
-            background: ${p.theme.colors.blue400};
-            border-color: ${p.theme.colors.blue400};
+            background: ${p.theme.tokens.background.accent.vibrant};
+            border-color: ${p.theme.tokens.background.accent.vibrant};
           `}
         `
       : css`
@@ -383,7 +384,11 @@ const SingleValueWrap = styled('div')`
 `;
 
 const SingleValueLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {

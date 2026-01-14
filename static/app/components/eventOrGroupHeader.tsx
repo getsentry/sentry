@@ -161,7 +161,7 @@ const Title = styled('div')`
     font-size: ${p => p.theme.fontSize.md};
     font-style: normal;
     font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -176,7 +176,11 @@ const IconWrapper = styled('span')`
 `;
 
 const TitleWithLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
@@ -185,7 +189,11 @@ const TitleWithLink = styled(Link)`
 `;
 
 const TitleWithoutLink = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default EventOrGroupHeader;

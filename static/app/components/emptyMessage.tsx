@@ -5,7 +5,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
-interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'color'> {
   action?: React.ReactNode;
   icon?: React.ReactNode;
   size?: 'lg' | 'md';

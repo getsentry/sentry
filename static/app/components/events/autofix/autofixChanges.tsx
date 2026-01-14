@@ -155,7 +155,7 @@ const CopyContainer = styled('div')`
   align-items: stretch;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   max-width: 25rem;
   min-width: 0;
   flex: 1;
@@ -441,13 +441,13 @@ const Title = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   text-decoration: underline dashed;
-  text-decoration-color: ${p => p.theme.colors.blue400};
+  text-decoration-color: ${p => p.theme.tokens.border.accent.vibrant};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 `;
 
 const PullRequestTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoChangesHeader = styled('div')`
@@ -505,7 +505,7 @@ const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
 `;
 
 const TerminationReasonText = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: ${p => p.theme.fontSize.sm};
   flex: 1;
   min-width: 0;

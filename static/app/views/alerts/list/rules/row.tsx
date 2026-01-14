@@ -355,7 +355,10 @@ function RuleListRow({
 }
 
 const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
-  ${p => p.theme.overflowEllipsis}
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   gap: ${space(2)};
@@ -363,17 +366,25 @@ const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
 `;
 
 const AlertNameAndStatus = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.35;
 `;
 
 const AlertName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const AlertIncidentDate = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ProjectBadgeContainer = styled('div')`

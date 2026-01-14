@@ -10,6 +10,8 @@ import type {VisualMapComponentOption} from 'echarts';
 import type {Location, LocationDescriptor} from 'history';
 import memoize from 'lodash/memoize';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import HeatMapChart from 'sentry/components/charts/heatMapChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
@@ -334,9 +336,9 @@ function TagsHeatMap(
               {({isLoading: isTransactionsLoading, tableData: transactionTableData}) => {
                 if (isTransactionsLoading) {
                   return (
-                    <LoadingContainer>
+                    <Flex justify="center" align="center" width="200px" height="100px">
                       <LoadingIndicator size={40} />
-                    </LoadingContainer>
+                    </Flex>
                   );
                 }
 
@@ -372,7 +374,7 @@ function TagsHeatMap(
 
                       return (
                         <DropdownItem width="small" key={row.id} to={target}>
-                          <DropdownItemContainer>
+                          <Flex justify="between" width="100%">
                             <Truncate value={row.id} maxLength={12} />
                             <SectionSubtext>
                               <PerformanceDuration
@@ -380,7 +382,7 @@ function TagsHeatMap(
                                 abbreviation
                               />
                             </SectionSubtext>
-                          </DropdownItemContainer>
+                          </Flex>
                         </DropdownItem>
                       );
                     })}
@@ -388,9 +390,9 @@ function TagsHeatMap(
                     transactionTableData &&
                     transactionTableData.data.length > 3 ? (
                       <DropdownItem width="small" to={moreEventsTarget}>
-                        <DropdownItemContainer>
+                        <Flex justify="between" width="100%">
                           {t('View all events')}
-                        </DropdownItemContainer>
+                        </Flex>
                       </DropdownItem>
                     ) : null}
                   </div>
@@ -440,23 +442,6 @@ function TagsHeatMap(
   );
 }
 
-const LoadingContainer = styled('div')`
-  width: 200px;
-  height: 100px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const DropdownItemContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-
-  justify-content: space-between;
-`;
-
 const StyledPanel = styled(Panel)`
   padding: ${space(3)} ${space(3)} 0 ${space(3)};
   margin-bottom: 0;
@@ -468,7 +453,7 @@ const StyledPanel = styled(Panel)`
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)``;
 
 const SectionSubtext = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 
@@ -478,12 +463,6 @@ const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const MenuItemContent = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
 `;
 
 type DropdownItemProps = {
@@ -509,7 +488,9 @@ function DropdownItem({
       width={width}
       allowDefaultEvent={allowDefaultEvent}
     >
-      <MenuItemContent>{children}</MenuItemContent>
+      <Flex justify="between" width="100%">
+        {children}
+      </Flex>
     </StyledMenuItem>
   );
 }

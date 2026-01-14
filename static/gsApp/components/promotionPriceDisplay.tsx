@@ -29,7 +29,7 @@ export default function PromotionPriceDisplay({
 const PriceHeader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.md};
 `;
 
@@ -46,7 +46,8 @@ const Amount = styled('div')<{promo?: boolean}>`
   font-size: 30px;
   font-weight: ${p => (p.promo ? 'bold' : 'none')};
   text-decoration: ${p => (p.promo ? 'none' : 'line-through')};
-  color: ${p => (p.promo ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.promo ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 `;
 
 const BillingInterval = styled('div')`

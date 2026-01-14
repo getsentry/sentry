@@ -10,6 +10,7 @@ from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.utils import ClientError
 from sentry.seer.code_review.webhooks.issue_comment import (
+    GitHubIssueCommentAction,
     _add_eyes_reaction_to_comment,
     is_pr_review_command,
 )
@@ -417,10 +418,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         ), f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    @patch("sentry.seer.code_review.webhooks.task.metrics")
-    def test_check_run_and_pr_events_processed_separately(
-        self, mock_metrics: MagicMock, mock_request: MagicMock
-    ) -> None:
+    def test_check_run_and_pr_events_processed_separately(self, mock_request: MagicMock) -> None:
         """Test that CHECK_RUN events use rerun endpoint while PR events use overwatch-request."""
         mock_request.return_value = self._mock_response(200, b"{}")
 
@@ -463,7 +461,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
             enqueued_at_str=self.enqueued_at_str,
         )
 
-        assert not mock_request.called
+        assert mock_request.call_count == 1
+        pr_call = mock_request.call_args
+        assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
 
 
 class TestIsPrReviewCommand:
@@ -494,6 +494,8 @@ class AddEyesReactionTest(TestCase):
     @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
     def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
         _add_eyes_reaction_to_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            github_event_action=GitHubIssueCommentAction.CREATED,
             integration=None,
             organization=self.organization,
             repo=self.repo,
@@ -503,8 +505,7 @@ class AddEyesReactionTest(TestCase):
         mock_logger.warning.assert_called_once()
         assert "missing-integration" in mock_logger.warning.call_args[0][0]
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment.metrics")
-    def test_calls_github_api_with_eyes_reaction(self, mock_metrics: MagicMock) -> None:
+    def test_calls_github_api_with_eyes_reaction(self) -> None:
         mock_client = MagicMock()
         mock_installation = MagicMock()
         mock_installation.get_client.return_value = mock_client
@@ -512,6 +513,8 @@ class AddEyesReactionTest(TestCase):
         mock_integration.get_installation.return_value = mock_installation
 
         _add_eyes_reaction_to_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            github_event_action=GitHubIssueCommentAction.CREATED,
             integration=mock_integration,
             organization=self.organization,
             repo=self.repo,
@@ -519,12 +522,8 @@ class AddEyesReactionTest(TestCase):
         )
 
         mock_client.create_comment_reaction.assert_called_once_with(
-            "owner/repo", "123456", GitHubReaction.EYES
+            self.repo.name, "123456", GitHubReaction.EYES
         )
-        mock_metrics.incr.assert_called_once()
-        call_args = mock_metrics.incr.call_args
-        assert call_args[0][0] == "seer.code_review.webhook.issue_comment.outcome"
-        assert call_args[1]["tags"]["status"] == "reaction_added"
 
     @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
     def test_logs_exception_on_api_error(self, mock_logger: MagicMock) -> None:
@@ -536,6 +535,8 @@ class AddEyesReactionTest(TestCase):
         mock_integration.get_installation.return_value = mock_installation
 
         _add_eyes_reaction_to_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            github_event_action=GitHubIssueCommentAction.CREATED,
             integration=mock_integration,
             organization=self.organization,
             repo=self.repo,

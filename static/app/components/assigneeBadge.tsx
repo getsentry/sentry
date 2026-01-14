@@ -144,7 +144,11 @@ const TooltipWrapper = styled('div')`
 const StyledText = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   max-width: 114px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledTag = styled(Tag)`
@@ -152,7 +156,7 @@ const StyledTag = styled(Tag)`
   height: 24px;
   padding: ${space(0.5)};
   padding-right: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const UnassignedTag = styled(StyledTag)`
@@ -161,14 +165,14 @@ const UnassignedTag = styled(StyledTag)`
 `;
 
 const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

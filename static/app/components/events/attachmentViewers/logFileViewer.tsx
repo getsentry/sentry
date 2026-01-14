@@ -54,13 +54,13 @@ const SentryStyleAnsi = styled(Ansi)`
     Object.entries(COLOR_MAP).map(
       ([ansiColor, themeColor]) => `
       .ansi-${ansiColor}-bg {
-        background-color: ${p.theme[`${themeColor}400`]};
+        background-color: ${themeColor === 'pink' ? p.theme.colors.pink500 : themeColor === 'yellow' ? p.theme.colors.yellow500 : p.theme[`${themeColor}400`]};
       }
       .ansi-${ansiColor}-fg {
-        color: ${p.theme[`${themeColor}400`]};
+        color: ${themeColor === 'pink' ? p.theme.colors.pink500 : themeColor === 'yellow' ? p.theme.colors.yellow500 : p.theme[`${themeColor}400`]};
       }
       .ansi-bright-${ansiColor}-fg {
-        color: ${p.theme[`${themeColor}200`]};
+        color: ${themeColor === 'pink' ? p.theme.colors.pink200 : themeColor === 'yellow' ? p.theme.colors.yellow200 : p.theme[`${themeColor}200`]};
       }`
     )}
 

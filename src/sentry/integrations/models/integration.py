@@ -14,6 +14,7 @@ from sentry.db.models import (
     DefaultFieldsModelExisting,
     control_silo_model,
 )
+from sentry.db.models.fields.encryption import EncryptedJSONField
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -49,7 +50,7 @@ class Integration(DefaultFieldsModelExisting):
     # metadata might be used to store things like credentials, but it should NOT
     # be used to store organization-specific information, as an Integration
     # instance can be shared by multiple organizations
-    metadata = models.JSONField(default=dict)
+    metadata = EncryptedJSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )

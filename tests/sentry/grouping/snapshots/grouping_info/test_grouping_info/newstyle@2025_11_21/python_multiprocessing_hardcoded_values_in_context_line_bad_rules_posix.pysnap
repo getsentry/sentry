@@ -1,0 +1,1893 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "TimeoutError"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "timed out"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app) and un-ignored by custom stack trace rule (function:post_process_group +group v+group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "__main__"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "<string>"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "<module>"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=<int>, pipe_handle=<int>)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "multiprocessing.spawn"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "spawn.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "spawn_main"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "exitcode = _main(fd, parent_sentinel)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "multiprocessing.spawn"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "spawn.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_main"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return self._bootstrap(parent_sentinel)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "multiprocessing.process"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "process.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_bootstrap"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.run()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "multiprocessing.process"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "process.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._target(*self._args, **self._kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.taskworker.workerchild"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "workerchild.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "child_process"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "run_worker("
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.taskworker.workerchild"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "workerchild.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_worker"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "_execute_activation(task_func, inflight.activation)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.taskworker.workerchild"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "workerchild.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_execute_activation"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "task_func(*args, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.taskworker.task"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "task.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return self._func(*args, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by custom stack trace rule (function:post_process_group +app v+app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.post_process"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "post_process.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "post_process_group"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "run_post_process_job("
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.post_process"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "post_process.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_post_process_job"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "logger.exception("
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "exception"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "error"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._log(ERROR, msg, args, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_log"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.handle(record)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "handle"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.callHandlers(record)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "callHandlers"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "hdlr.handle(record)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "handle"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.emit(record)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "redis.connection"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "connection.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "connect"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "sock = self._connect()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "redis.connection"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "connection.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_connect"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "raise err"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "redis.connection"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "connection.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_connect"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "sock.connect(socket_address)"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — in-app frames",
+      "hash": "4f60cfec2087a65190b283cb848bea62",
+      "hint": null,
+      "key": "app_exception_stacktrace",
+      "type": "component"
+    },
+    "message": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because app/system exception takes precedence",
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because app/system exception takes precedence",
+            "id": "message",
+            "name": "message",
+            "values": [
+              "Failed to process pipeline step %s"
+            ]
+          }
+        ]
+      },
+      "contributes": false,
+      "description": "message",
+      "hash": null,
+      "hint": "ignored because app/system exception takes precedence",
+      "key": "message",
+      "type": "component"
+    },
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "TimeoutError"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "timed out"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": "un-ignored by custom stack trace rule (function:post_process_group +group v+group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "__main__"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "<string>"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "<module>"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=<int>, pipe_handle=<int>)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "multiprocessing.spawn"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "spawn.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "spawn_main"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "exitcode = _main(fd, parent_sentinel)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "multiprocessing.spawn"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "spawn.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_main"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return self._bootstrap(parent_sentinel)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "multiprocessing.process"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "process.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_bootstrap"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.run()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "multiprocessing.process"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "process.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._target(*self._args, **self._kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.taskworker.workerchild"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "workerchild.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "child_process"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "run_worker("
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.taskworker.workerchild"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "workerchild.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_worker"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "_execute_activation(task_func, inflight.activation)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.taskworker.workerchild"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "workerchild.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_execute_activation"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "task_func(*args, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.taskworker.task"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "task.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return self._func(*args, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.post_process"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "post_process.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "post_process_group"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "run_post_process_job("
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.post_process"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "post_process.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_post_process_job"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "logger.exception("
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "exception"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "error"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._log(ERROR, msg, args, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_log"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.handle(record)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "handle"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.callHandlers(record)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "callHandlers"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "hdlr.handle(record)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "logging"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "__init__.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "handle"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.emit(record)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "redis.connection"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "connection.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "connect"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "sock = self._connect()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "redis.connection"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "connection.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_connect"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "raise err"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "redis.connection"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "connection.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_connect"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "sock.connect(socket_address)"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — all frames",
+      "hash": "e5ae333037d1ba0ea9379b6d9693aca4",
+      "hint": null,
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
+  }
+}

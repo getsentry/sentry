@@ -200,10 +200,10 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return css`
       ${common}
       color: ${props.theme.white};
-      background: ${props.theme.active};
+      background: ${props.theme.tokens.interactive.link.accent.active};
 
       &:hover {
-        background: ${props.theme.activeHover};
+        background: ${props.theme.tokens.interactive.link.accent.hover};
       }
     `;
   }
@@ -262,7 +262,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
       padding: ${space(0.25)} ${space(0.5)};
       font-size: ${p.theme.fontSize.sm};
       line-height: 1.4;
-      color: ${p.theme.subText};
+      color: ${p.theme.tokens.content.secondary};
     `}
 
   ${getChildStyles}
