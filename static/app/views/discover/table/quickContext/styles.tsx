@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import type {FlexProps} from 'sentry/components/core/layout';
 import {Flex, Stack, type FlexProps} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
