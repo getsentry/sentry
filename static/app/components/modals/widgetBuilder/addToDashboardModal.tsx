@@ -227,7 +227,7 @@ function AddToDashboardModal({
   function normalizeWidgets(widgetsToNormalize: Widget[]): Widget[] {
     return widgetsToNormalize.map(w => {
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
-      if (!(isChartDisplayType(w.displayType) && w.queries[0]!.columns.length)) {
+      if (isChartDisplayType(w.displayType) && w.queries[0]!.columns.length === 0) {
         newOrderBy = ''; // Clear orderby if its not a top n visualization.
       }
       const queries = w.queries.map(query => ({
