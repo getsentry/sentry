@@ -13,6 +13,7 @@ interface RowProps {
   onDelete: () => void;
   errorMessage?: string;
   hasError?: boolean;
+  warningMessage?: React.ReactNode;
 }
 
 export default function AutomationBuilderRow({
@@ -20,6 +21,7 @@ export default function AutomationBuilderRow({
   children,
   hasError,
   errorMessage,
+  warningMessage,
 }: RowProps) {
   return (
     <Flex direction="column" gap="xs">
@@ -35,6 +37,7 @@ export default function AutomationBuilderRow({
         />
       </RowContainer>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
+      {warningMessage && <Alert variant="warning">{warningMessage}</Alert>}
     </Flex>
   );
 }
