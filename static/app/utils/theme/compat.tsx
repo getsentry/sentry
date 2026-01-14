@@ -59,23 +59,6 @@ export interface LegacyTokens {
      */
     warning: string;
   };
-  component: {
-    link: {
-      accent: {
-        active: string;
-        default: string;
-        hover: string;
-      };
-      /**
-       * @deprecated Use `interactive.link.neutral` instead (with `.rest`, `.hover`, `.active` properties)
-       */
-      muted: {
-        active: string;
-        default: string;
-        hover: string;
-      };
-    };
-  };
   content: {
     accent: string;
     danger: string;
@@ -148,26 +131,11 @@ export function withLegacyTokens<T extends Record<string, any>>(
     warning: createBackwardsCompatibleToken(tokens.graphics.warning),
     success: createBackwardsCompatibleToken(tokens.graphics.success),
   };
-  const component = {
-    link: {
-      muted: {
-        default: tokens.interactive.link.neutral.rest,
-        hover: tokens.interactive.link.neutral.hover,
-        active: tokens.interactive.link.neutral.active,
-      },
-      accent: {
-        default: tokens.interactive.link.accent.rest,
-        hover: tokens.interactive.link.accent.hover,
-        active: tokens.interactive.link.accent.active,
-      },
-    },
-  } satisfies LegacyTokens['component'];
   return {
     ...tokens,
     background,
     border,
     content,
     graphics,
-    component,
   };
 }
