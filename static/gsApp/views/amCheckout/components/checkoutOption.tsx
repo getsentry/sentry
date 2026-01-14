@@ -53,7 +53,6 @@ function CheckoutOption({
                 aria-label={ariaLabel}
                 aria-checked={isSelected}
                 checked={isSelected}
-                onChange={onClick}
               />
             )}
           </Container>
