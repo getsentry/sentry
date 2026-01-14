@@ -171,7 +171,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
     <IfThenWrapper>
       <Step>
         <Flex direction="column" gap="md">
-          <StepLead>
+          <StepLead data-test-id="action-filter-logic-type">
             {tct('[if: If] [selector] of these filters match', {
               if: <ConditionBadge />,
               selector: (
