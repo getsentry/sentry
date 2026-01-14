@@ -5,6 +5,7 @@ This guide shows you how to generate a test weekly report email to preview the l
 ## Prerequisites
 
 1. Make sure devservices are running:
+
    ```bash
    devservices up
    ```
@@ -20,6 +21,7 @@ sentry exec scripts/test_weekly_report.py --org <YOUR_ORG_SLUG> --user <YOUR_EMA
 ```
 
 Example:
+
 ```bash
 sentry exec scripts/test_weekly_report.py --org sentry --user admin@localhost
 ```
@@ -42,16 +44,19 @@ python scripts/test_weekly_report.py --org <YOUR_ORG_SLUG> --user <YOUR_EMAIL>
 ## Examples
 
 ### Generate and send email
+
 ```bash
 sentry exec scripts/test_weekly_report.py --org sentry --user admin@localhost
 ```
 
 ### Test without sending (dry run)
+
 ```bash
 sentry exec scripts/test_weekly_report.py --org sentry --user admin@localhost --dry-run
 ```
 
 ### Use a custom time period (14 days)
+
 ```bash
 sentry exec scripts/test_weekly_report.py --org sentry --user admin@localhost --days 14
 ```
@@ -59,12 +64,15 @@ sentry exec scripts/test_weekly_report.py --org sentry --user admin@localhost --
 ## Where to Find the Email
 
 ### If you're using the console email backend (default in dev):
+
 The email HTML will be printed to your console/terminal.
 
 ### If you're using a real email backend:
+
 Check your email at the address you specified.
 
 ### Save HTML to file for browser preview:
+
 If the email is printed to console, you can:
 
 1. Copy the HTML output
@@ -74,6 +82,7 @@ If the email is printed to console, you can:
 ## Viewing Logs in the Email
 
 The email will show logs data if:
+
 1. Your projects have log data in the time period
 2. The OurLogs dataset is available and working
 
@@ -82,17 +91,21 @@ If you don't have log data yet, the logs sections will simply not appear (empty 
 ## Troubleshooting
 
 ### "Organization not found"
+
 - List available organizations: `sentry django shell` then `Organization.objects.values_list('slug', flat=True)`
 
 ### "User not found"
+
 - List available users: `sentry django shell` then `User.objects.values_list('email', flat=True)`
 
 ### No email received
+
 - Check if you're using console email backend (default in dev)
 - Check your `config.yml` or environment variables for email settings
 - Look for the email HTML in your terminal output
 
 ### Logs sections not appearing
+
 - This is expected if you don't have log data
 - The email gracefully handles empty log data
 - To test with logs, you need to send logs to your local Sentry instance first
@@ -100,6 +113,7 @@ If you don't have log data yet, the logs sections will simply not appear (empty 
 ## Next Steps
 
 After previewing the email:
+
 1. Take screenshots of the different sections
 2. Test with real log data if available
 3. Share feedback on the design/layout

@@ -193,9 +193,7 @@ class OrganizationReportContextFactory:
             # Query top error logs for each project
             for project in ctx.organization.project_set.all():
                 if project.id in ctx.projects_context_map:
-                    key_logs = project_key_error_logs(
-                        ctx, project, Referrer.REPORTS_KEY_LOGS.value
-                    )
+                    key_logs = project_key_error_logs(ctx, project, Referrer.REPORTS_KEY_LOGS.value)
                     project_ctx = ctx.projects_context_map[project.id]
                     if isinstance(project_ctx, ProjectContext) and key_logs:
                         project_ctx.key_error_logs = key_logs
