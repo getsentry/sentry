@@ -15,11 +15,11 @@ import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+
 import {
   SORT_BY_OPTIONS,
   type ReleasesSortByOption,
-} from 'sentry/views/insights/common/components/releasesSort';
-
+} from './components/releasesSortSelect';
 import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';
 import {DashboardFilterKeys} from './types';

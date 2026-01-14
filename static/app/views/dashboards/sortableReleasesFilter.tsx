@@ -2,11 +2,11 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  ReleasesSort,
-  type ReleasesSortByOption,
-} from 'sentry/views/insights/common/components/releasesSort';
 
+import {
+  ReleasesSortSelect,
+  type ReleasesSortByOption,
+} from './components/releasesSortSelect';
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters} from './types';
 import {DashboardFilterKeys} from './types';
@@ -46,7 +46,7 @@ export default function SortableReleasesFilter({
         selectedReleases={selectedReleases}
         isDisabled={isDisabled}
       />
-      <ReleasesSort
+      <ReleasesSortSelect
         sortBy={sortBy}
         environments={selection.environments}
         onChange={value => {

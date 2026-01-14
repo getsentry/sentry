@@ -30,8 +30,8 @@ import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
+import type {ReleasesSortByOption} from './components/releasesSortSelect';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import SortableReleasesFilter from './sortableReleasesFilter';
 import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';

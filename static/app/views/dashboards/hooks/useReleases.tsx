@@ -14,7 +14,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
+import type {ReleasesSortByOption} from 'sentry/views/dashboards/components/releasesSortSelect';
 
 export type ReleaseWithCount = Release & {
   count?: number;
