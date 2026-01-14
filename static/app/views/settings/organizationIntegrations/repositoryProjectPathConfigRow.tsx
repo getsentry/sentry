@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 
