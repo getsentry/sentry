@@ -229,6 +229,7 @@ function KeyToken({
     | Token.KEY_SIMPLE
     | Token.KEY_AGGREGATE
     | Token.KEY_EXPLICIT_TAG
+    | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
     | Token.KEY_EXPLICIT_FLAG

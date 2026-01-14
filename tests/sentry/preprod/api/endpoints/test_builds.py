@@ -82,7 +82,6 @@ class BuildsEndpointTest(APITestCase):
                     "date_built": None,
                     "artifact_type": 2,
                     "platform": "android",
-                    "is_installable": False,
                     "build_configuration": None,
                     "app_icon_id": None,
                     "apple_app_info": None,
@@ -715,6 +714,166 @@ class BuildsEndpointTest(APITestCase):
         self._assert_is_successful(response)
         data = response.json()
         assert data[0]["app_info"]["app_id"] == "crash.app"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_app_id(self) -> None:
+        self.create_preprod_artifact(app_id="com.example.myapp")
+        self.create_preprod_artifact(app_id="com.other.app")
+        self.create_preprod_artifact(app_id="com.different.package")
+
+        response = self._request({"query": "myapp"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "com.example.myapp"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_app_name(self) -> None:
+        self.create_preprod_artifact(app_id="com.example.one", app_name="MyAwesomeApp")
+        self.create_preprod_artifact(app_id="com.example.two", app_name="OtherApp")
+
+        response = self._request({"query": "Awesome"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "com.example.one"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_build_version(self) -> None:
+        self.create_preprod_artifact(app_id="app1", build_version="1.2.3-beta")
+        self.create_preprod_artifact(app_id="app2", build_version="2.0.0-release")
+
+        response = self._request({"query": "beta"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "app1"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_commit_sha(self) -> None:
+        cc1 = self.create_commit_comparison(
+            organization=self.organization, head_sha="abc123def456" + "0" * 28
+        )
+        cc2 = self.create_commit_comparison(
+            organization=self.organization, head_sha="xyz789uvw012" + "1" * 28
+        )
+
+        self.create_preprod_artifact(app_id="app1", commit_comparison=cc1)
+        self.create_preprod_artifact(app_id="app2", commit_comparison=cc2)
+
+        response = self._request({"query": "abc123"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "app1"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_branch(self) -> None:
+        cc1 = self.create_commit_comparison(
+            organization=self.organization, head_ref="feature/new-login"
+        )
+        cc2 = self.create_commit_comparison(
+            organization=self.organization, head_ref="bugfix/crash-fix"
+        )
+
+        self.create_preprod_artifact(app_id="app1", commit_comparison=cc1)
+        self.create_preprod_artifact(app_id="app2", commit_comparison=cc2)
+
+        response = self._request({"query": "login"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "app1"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_pr_number(self) -> None:
+        cc1 = self.create_commit_comparison(organization=self.organization, pr_number=12345)
+        cc2 = self.create_commit_comparison(organization=self.organization, pr_number=67890)
+
+        self.create_preprod_artifact(app_id="app1", commit_comparison=cc1)
+        self.create_preprod_artifact(app_id="app2", commit_comparison=cc2)
+
+        response = self._request({"query": "12345"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "app1"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_no_matches(self) -> None:
+        self.create_preprod_artifact(app_id="com.example.app")
+        self.create_preprod_artifact(app_id="com.other.app")
+
+        response = self._request({"query": "nonexistent"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 0
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_empty_query(self) -> None:
+        self.create_preprod_artifact(app_id="app1")
+        self.create_preprod_artifact(app_id="app2")
+
+        response = self._request({"query": ""})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 2
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_whitespace_only(self) -> None:
+        self.create_preprod_artifact(app_id="app1")
+        self.create_preprod_artifact(app_id="app2")
+
+        response = self._request({"query": "   "})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 2
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_case_insensitive(self) -> None:
+        self.create_preprod_artifact(app_id="com.Example.MyApp")
+
+        response = self._request({"query": "example"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "com.Example.MyApp"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_multiple_matches(self) -> None:
+        self.create_preprod_artifact(app_id="com.test.one", app_name="TestApp")
+        self.create_preprod_artifact(app_id="com.test.two", build_version="1.0-test")
+
+        response = self._request({"query": "test"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 2
+        app_ids = {d["app_info"]["app_id"] for d in data}
+        assert app_ids == {"com.test.one", "com.test.two"}
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_with_structured_filter(self) -> None:
+        from sentry.preprod.models import PreprodArtifact
+
+        cc = self.create_commit_comparison(
+            organization=self.organization, head_ref="feature/awesome"
+        )
+        self.create_preprod_artifact(
+            app_id="com.example.ios",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=cc,
+        )
+        self.create_preprod_artifact(
+            app_id="com.example.android",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=cc,
+        )
+
+        response = self._request({"query": "awesome platform:android"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "com.example.android"
 
 
 class BuildTagKeyValuesEndpointTest(APITestCase):

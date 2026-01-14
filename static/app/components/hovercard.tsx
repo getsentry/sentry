@@ -196,7 +196,7 @@ const StyledHovercard = styled(Overlay)`
 
 const Header = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
   word-wrap: break-word;

@@ -111,7 +111,7 @@ function AllocationRow({
             onClick={openForm}
             style={
               editHovered
-                ? {color: theme.gray300, marginRight: theme.space.md}
+                ? {color: theme.colors.gray300, marginRight: theme.space.md}
                 : {marginRight: theme.space.md}
             }
             onMouseEnter={() => setEditHovered(true)}

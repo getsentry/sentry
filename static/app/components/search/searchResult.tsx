@@ -115,7 +115,7 @@ const ExtraDetail = styled('div')`
 
 const BadgeDetail = styled('div')<{highlighted: boolean}>`
   line-height: 1.3;
-  color: ${p => (p.highlighted ? p.theme.activeText : null)};
+  color: ${p => (p.highlighted ? p.theme.tokens.interactive.link.accent.rest : null)};
 `;
 
 const Wrapper = styled('div')`
@@ -138,5 +138,5 @@ const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.active};
+  color: ${p => p.theme.tokens.interactive.link.accent.active};
 `;

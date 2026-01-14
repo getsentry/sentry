@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -95,13 +95,16 @@ class GetTargetCommitShaTest(TestCase):
         with pytest.raises(ValueError, match="missing-pr-head-sha"):
             _get_target_commit_sha(GithubWebhookType.PULL_REQUEST, event, self.repo, None)
 
-    @patch("sentry.seer.code_review.utils.GitHubApiClient")
-    def test_issue_comment_fetches_sha_from_api(self, mock_client_class: MagicMock) -> None:
+    def test_issue_comment_fetches_sha_from_api(self) -> None:
         mock_client = MagicMock()
         mock_client.get_pull_request.return_value = {"head": {"sha": "def456"}}
-        mock_client_class.return_value = mock_client
+
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
 
         mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
         event = {"issue": {"number": 42}}
 
         result = _get_target_commit_sha(
@@ -109,6 +112,9 @@ class GetTargetCommitShaTest(TestCase):
         )
 
         assert result == "def456"
+        mock_integration.get_installation.assert_called_once_with(
+            organization_id=self.repo.organization_id
+        )
         mock_client.get_pull_request.assert_called_once_with("test-owner/test-repo", 42)
 
     def test_issue_comment_raises_without_integration(self) -> None:
@@ -124,13 +130,16 @@ class GetTargetCommitShaTest(TestCase):
                 GithubWebhookType.ISSUE_COMMENT, event, self.repo, mock_integration
             )
 
-    @patch("sentry.seer.code_review.utils.GitHubApiClient")
-    def test_issue_comment_raises_on_api_error(self, mock_client_class: MagicMock) -> None:
+    def test_issue_comment_raises_on_api_error(self) -> None:
         mock_client = MagicMock()
         mock_client.get_pull_request.side_effect = Exception("API error")
-        mock_client_class.return_value = mock_client
+
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
 
         mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
         event = {"issue": {"number": 42}}
 
         with pytest.raises(Exception, match="API error"):

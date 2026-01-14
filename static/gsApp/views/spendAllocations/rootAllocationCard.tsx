@@ -201,14 +201,6 @@ function RootAllocationCard({
   );
 }
 
-export default RootAllocationCard;
-
-const Table = styled('table')`
-  tr:nth-child(even) {
-    background-color: ${p => p.theme.tokens.background.secondary};
-  }
-`;
-
 function THead({children}: {children?: React.ReactNode}) {
   const theme = useTheme();
   return <th style={{padding: theme.space.md}}>{children}</th>;
@@ -218,3 +210,11 @@ function Cell({children}: {children?: React.ReactNode}) {
   const theme = useTheme();
   return <td style={{padding: theme.space.md}}>{children}</td>;
 }
+
+export default RootAllocationCard;
+
+const Table = styled('table')`
+  tr:nth-child(even) {
+    background-color: ${p => p.theme.tokens.background.secondary};
+  }
+`;
