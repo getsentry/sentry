@@ -852,10 +852,12 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
           <Container padding="2xl" borderBottom="muted">
             <Flex direction="column" gap="xs" style={{marginBottom: theme.space.lg}}>
               <Heading as="h2" size="lg">
-                {renderWithInlineCode(cluster.title)}
+                {renderWithInlineCode(cluster.impact ?? cluster.title)}
               </Heading>
               <Text size="sm" variant="muted">
-                {cluster.impact ? `${cluster.impact} ` : ''}
+                {cluster.impact ? (
+                  <Fragment>{renderWithInlineCode(cluster.title)} </Fragment>
+                ) : null}
                 [CLUSTER-{cluster.cluster_id}]
               </Text>
             </Flex>
