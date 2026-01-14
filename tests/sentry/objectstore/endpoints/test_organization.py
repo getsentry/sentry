@@ -2,6 +2,7 @@ from dataclasses import asdict
 
 import pytest
 import requests
+from django.db import connections
 from django.urls import reverse
 from objectstore_client import Client, RequestError, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
@@ -129,6 +130,11 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
             organization=self.organization,
             scope_list=["org:admin"],
         )
+
+    def tearDown(self) -> None:
+        for conn in connections.all():
+            conn.close()
+        super().tearDown()
 
     def get_endpoint_url(self) -> str:
         path = reverse(
