@@ -2692,14 +2692,17 @@ class Factories:
         app_icon_id: str | None = None,
         **kwargs,
     ) -> PreprodArtifactMobileAppInfo:
-        return PreprodArtifactMobileAppInfo.objects.create(
+        obj, _ = PreprodArtifactMobileAppInfo.objects.update_or_create(
             preprod_artifact=preprod_artifact,
-            build_version=build_version,
-            build_number=build_number,
-            app_name=app_name,
-            app_icon_id=app_icon_id,
-            **kwargs,
+            defaults={
+                "build_version": build_version,
+                "build_number": build_number,
+                "app_name": app_name,
+                "app_icon_id": app_icon_id,
+                **kwargs,
+            },
         )
+        return obj
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
