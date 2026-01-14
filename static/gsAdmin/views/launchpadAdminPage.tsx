@@ -11,6 +11,7 @@ import {Link} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
+import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -158,35 +159,13 @@ function LaunchpadAdminPage() {
         return;
       }
 
-      const downloadUrl = `${region.url}/api/0/internal/${orgSlug}/${projectSlug}/files/preprodartifacts/${artifactId}/`;
-
-      const response = await fetch(downloadUrl, {
-        method: 'HEAD',
-        credentials: 'include',
+      await downloadPreprodArtifact({
+        organizationSlug: orgSlug,
+        projectSlug,
+        artifactId,
+        regionUrl: region.url,
       });
 
-      if (!response.ok) {
-        if (response.status === 403) {
-          addErrorMessage('Permission denied. Staff access may be required.');
-        } else if (response.status === 404) {
-          addErrorMessage('Build file not found.');
-        } else if (response.status === 401) {
-          addErrorMessage('Unauthorized.');
-        } else {
-          addErrorMessage(`Download failed (status: ${response.status})`);
-        }
-        return;
-      }
-
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `preprod_artifact_${artifactId}.zip`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      addSuccessMessage(`Build download started for artifact: ${downloadArtifactId}`);
       setDownloadArtifactId('');
     } catch (error) {
       addErrorMessage(`Failed to download artifact: ${downloadArtifactId}`);
