@@ -42,6 +42,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
+from sentry.tagstore.types import GroupTagKey, TagKey
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -479,18 +480,24 @@ def _call_autofix(
     return response.json().get("run_id")
 
 
-def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
+def get_all_tags_overview(
+    group: Group, tag_keys: list[TagKey | GroupTagKey] | None = None
+) -> dict[str, Any] | None:
     """
     Get high-level overview of all tags for an issue.
     Returns aggregated tag data with percentages for all tags.
+    Optionally pass a list of prefetched TagKey objects - otherwise this queries TagStore.
     """
-    tag_keys = tagstore.backend.get_group_tag_keys_and_top_values(
-        group,
-        [],  # all environments
-        keys=None,  # Get all tags
-        value_limit=3,  # Get top 3 values per tag
-        tenant_ids={"organization_id": group.project.organization_id},
-    )
+    if tag_keys is None:
+        tag_keys = tagstore.backend.get_group_tag_keys_and_top_values(
+            group,
+            [],  # all environments
+            keys=None,  # Get all tags
+            value_limit=3,  # Get top 3 values per tag
+            tenant_ids={"organization_id": group.project.organization_id},
+        )
+
+    assert tag_keys is not None
 
     all_tags: list[dict] = []
 

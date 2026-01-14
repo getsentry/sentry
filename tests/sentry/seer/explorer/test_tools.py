@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any, Literal
 from unittest.mock import Mock, patch
 
@@ -9,7 +10,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
@@ -22,6 +23,7 @@ from sentry.seer.explorer.tools import (
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
+    get_group_tags_overview,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
     get_log_attributes_for_trace,
@@ -33,6 +35,7 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.tagstore.types import GroupTagKey, GroupTagValue
 from sentry.testutils.cases import (
     APITestCase,
     APITransactionTestCase,
@@ -1044,12 +1047,222 @@ def _validate_event_timeseries(timeseries: dict, expected_total: int | None = No
         ), f"Expected total count {expected_total}, got {total_count}"
 
 
+class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_builds_group_tag_keys_from_facets(self, mock_client_get, mock_get_overview):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group = self.create_group(project=project)
+
+        start = _get_utc_iso_without_timezone(datetime.now(UTC) - timedelta(days=1))
+        end = _get_utc_iso_without_timezone(datetime.now(UTC))
+
+        facets_response = [
+            {
+                "key": "browser",
+                "topValues": [
+                    {"value": "chrome", "name": "Chrome", "count": 3},
+                    {"value": "firefox", "name": "Firefox", "count": 1},
+                ],
+            },
+            {
+                "key": "environment",
+                "topValues": [
+                    {"value": "prod", "name": "Production", "count": 2},
+                    {"value": "staging", "name": "Staging", "count": 1},
+                ],
+            },
+        ]
+        mock_client_get.return_value = SimpleNamespace(data=facets_response)
+        mock_get_overview.return_value = {"tags_overview": [{"hello": "world"}]}
+
+        total_events = 51
+        result = get_group_tags_overview(group, organization, total_events, start=start, end=end)
+
+        assert result == mock_get_overview.return_value
+        mock_client_get.assert_called_once()
+        call_kwargs = mock_client_get.call_args.kwargs
+        assert call_kwargs["path"] == f"/organizations/{organization.slug}/events-facets/"
+        assert call_kwargs["params"]["query"] == f"issue:{group.qualified_short_id}"
+        assert call_kwargs["params"]["dataset"] == "errors"
+        assert call_kwargs["params"]["project"] == [project.id]
+        assert call_kwargs["params"]["start"] == start
+        assert call_kwargs["params"]["end"] == end
+
+        tag_keys = mock_get_overview.call_args.kwargs["tag_keys"]
+        assert len(tag_keys) == 2
+
+        key_map = {tk.key: tk for tk in tag_keys}
+
+        browser_key = key_map["browser"]
+        assert isinstance(browser_key, GroupTagKey)
+        assert browser_key.values_seen == 2
+        assert browser_key.count == total_events
+        assert len(browser_key.top_values) == 2
+        assert all(isinstance(tv, GroupTagValue) for tv in browser_key.top_values)
+        browser_values = {tv.value: tv.times_seen for tv in browser_key.top_values}
+        assert browser_values == {"chrome": 3, "firefox": 1}
+
+        env_key = key_map["environment"]
+        assert isinstance(env_key, GroupTagKey)
+        assert env_key.values_seen == 2
+        assert env_key.count == total_events
+        assert len(env_key.top_values) == 2
+        env_values = {tv.value: tv.times_seen for tv in env_key.top_values}
+        assert env_values == {"prod": 2, "staging": 1}
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_calls_facets_endpoint_without_dates(self, mock_client_get, mock_get_overview):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group = self.create_group(project=project)
+
+        facets_response = [
+            {
+                "key": "browser",
+                "topValues": [
+                    {"value": "chrome", "name": "Chrome", "count": 3},
+                ],
+            },
+        ]
+        mock_client_get.return_value = SimpleNamespace(data=facets_response)
+        mock_get_overview.return_value = {"tags_overview": []}
+
+        get_group_tags_overview(group, organization, 10)
+
+        mock_client_get.assert_called_once()
+        call_kwargs = mock_client_get.call_args.kwargs
+        assert call_kwargs["path"] == f"/organizations/{organization.slug}/events-facets/"
+        assert call_kwargs["params"]["query"] == f"issue:{group.qualified_short_id}"
+        assert call_kwargs["params"]["dataset"] == "errors"
+        assert call_kwargs["params"]["project"] == [project.id]
+        assert "start" not in call_kwargs["params"]
+        assert "end" not in call_kwargs["params"]
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_issue_platform_dataset(self, mock_client_get, mock_get_overview):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group = self.create_group(project=project)
+        group.update(type=PerformanceNPlusOneGroupType.type_id)
+
+        facets_response = [
+            {
+                "key": "browser",
+                "topValues": [
+                    {"value": "chrome", "name": "Chrome", "count": 3},
+                ],
+            },
+        ]
+        mock_client_get.return_value = SimpleNamespace(data=facets_response)
+        mock_get_overview.return_value = {"tags_overview": []}
+
+        get_group_tags_overview(group, organization, 10)
+
+        mock_client_get.assert_called_once()
+        call_kwargs = mock_client_get.call_args.kwargs
+        assert call_kwargs["path"] == f"/organizations/{organization.slug}/events-facets/"
+        assert call_kwargs["params"]["dataset"] == "issuePlatform"
+        assert call_kwargs["params"]["query"] == f"issue:{group.qualified_short_id}"
+        assert call_kwargs["params"]["project"] == [project.id]
+
+    def test_integration_filters_by_group_and_time(self):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        self.login_as(self.user)
+
+        now = datetime.now(UTC)
+        in_range_1 = now - timedelta(minutes=2)
+        in_range_2 = now - timedelta(minutes=1)
+        out_of_range = now - timedelta(days=2)
+
+        # Events for the target group within the window
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["group-a"],
+                "environment": "production",
+                "tags": {"user_role": "admin"},
+                "timestamp": in_range_1.isoformat(),
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-a"],
+                "environment": "staging",
+                "tags": {"user_role": "admin"},
+                "timestamp": in_range_2.isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        # Out-of-range event for same group (should not count)
+        self.store_event(
+            data={
+                "fingerprint": ["group-a"],
+                "environment": "production",
+                "tags": {"user_role": "user"},
+                "timestamp": out_of_range.isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        # Different group event (should not count)
+        self.store_event(
+            data={
+                "fingerprint": ["group-b"],
+                "environment": "production",
+                "tags": {"user_role": "user"},
+                "timestamp": in_range_1.isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        group = event1.group
+        assert group is not None
+
+        start = (now - timedelta(minutes=5)).isoformat()
+        end = now.isoformat()
+        event_count = 4  # Mock "other" tags
+
+        with self.feature({"organizations:discover-basic": True}):
+            result = get_group_tags_overview(group, organization, event_count, start=start, end=end)
+
+        assert result is not None
+        overview = result["tags_overview"]
+        env_tag = next(tag for tag in overview if tag["key"] == "environment")
+        role_tag = next(tag for tag in overview if tag["key"] == "user_role")
+
+        assert env_tag["total_values"] == event_count
+        env_values = {v["value"]: v["percentage"] for v in env_tag["top_values"]}
+        assert env_values == {"production": "25%", "staging": "25%", "other": "50%"}
+
+        assert role_tag["total_values"] == event_count
+        role_values = {v["value"]: v["percentage"] for v in role_tag["top_values"]}
+        assert role_values == {"admin": "50%", "other": "50%"}
+
+    def test_integration_empty_response(self):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        self.login_as(self.user)
+        group = self.create_group(project=project)
+
+        with self.feature({"organizations:discover-basic": True}):
+            result = get_group_tags_overview(group, organization, 0)
+
+        assert result is not None
+        assert result["tags_overview"] == []
+
+
 class TestGetIssueAndEventDetailsV2(
     APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin, SpanTestCase
 ):
     """Integration tests for the get_issue_and_event_details RPC."""
 
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
     def _test_get_ie_details_from_issue_id(
         self,
         mock_get_tags,
@@ -1177,7 +1390,7 @@ class TestGetIssueAndEventDetailsV2(
             end=before_now(days=0).isoformat(),
         )
 
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
     def test_get_ie_details_from_issue_id_no_valid_events(
         self,
         mock_get_tags,
@@ -1220,7 +1433,7 @@ class TestGetIssueAndEventDetailsV2(
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
     def test_get_ie_details_from_issue_id_single_event(
         self,
         mock_get_tags,
@@ -1278,7 +1491,7 @@ class TestGetIssueAndEventDetailsV2(
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
     def _test_get_ie_details_from_event_id(
         self,
         mock_get_tags,
@@ -1345,7 +1558,7 @@ class TestGetIssueAndEventDetailsV2(
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
     """Unit tests for the util that derives a response from an event and group."""
 
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
     def test_get_ie_response_tags_exception(self, mock_get_tags):
         mock_get_tags.side_effect = Exception("Test exception")
         """Test other fields are returned with null tags_overview when tag util fails."""
@@ -1368,7 +1581,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         assert isinstance(result.get("issue"), dict)
         _IssueMetadata.parse_obj(result.get("issue", {}))
 
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
     def test_get_ie_response_with_assigned_user(
         self,
         mock_get_tags,
@@ -1395,7 +1608,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         assert md.assignedTo.email == self.user.email
         assert md.assignedTo.name == self.user.get_display_name()
 
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
     def test_get_ie_response_with_assigned_team(self, mock_get_tags):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -1421,7 +1634,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         assert md.assignedTo.email is None
 
     @patch("sentry.seer.explorer.tools.client")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
     def test_get_ie_response_timeseries_resolution(
         self,
         mock_get_tags,

@@ -44,6 +44,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
+from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey
 from sentry.types.activity import ActivityType
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
@@ -883,6 +884,71 @@ def _get_recommended_event(
     return fallback_event
 
 
+def get_group_tags_overview(
+    group: Group,
+    organization: Organization,
+    event_count: int,
+    start: str | None = None,
+    end: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Get tag data for a group and time range from the events-facets endpoint.
+    Then compute the percentages for each tag key.
+    """
+    dataset = "errors" if group.issue_category == GroupCategory.ERROR else "issuePlatform"
+
+    params = {
+        "query": f"issue:{group.qualified_short_id}",
+        "dataset": dataset,
+        "project": [group.project_id],
+    }
+    if start:
+        params["start"] = start
+    if end:
+        params["end"] = end
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/events-facets/",
+        params=params,
+    )
+
+    tag_keys: list[TagKey | GroupTagKey] = []
+    for item in resp.data:
+        key = item.get("key")
+        top_values_raw = item.get("topValues") or []
+        if not key or not top_values_raw:
+            continue
+
+        top_values: list[GroupTagValue] = []
+        for value_item in top_values_raw:
+            count = int(value_item.get("count", 0) or 0)
+            value = value_item.get("value")
+            top_values.append(
+                GroupTagValue(
+                    group_id=group.id,
+                    key=key,
+                    value=str(value) if value is not None else None,
+                    times_seen=count,
+                    first_seen=None,
+                    last_seen=None,
+                )
+            )
+
+        tag_keys.append(
+            GroupTagKey(
+                group_id=group.id,
+                key=key,
+                values_seen=len(top_values),
+                count=event_count,
+                top_values=top_values,
+            )
+        )
+
+    return get_all_tags_overview(group, tag_keys=tag_keys)
+
+
 # Activity types to include in issue details for Seer Explorer (manual actions only)
 _SEER_EXPLORER_ACTIVITY_TYPES = [
     ActivityType.NOTE.value,
@@ -896,7 +962,11 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 
 
 def get_issue_and_event_response(
-    event: Event | GroupEvent, group: Group | None, organization: Organization
+    event: Event | GroupEvent,
+    group: Group | None,
+    organization: Organization,
+    start: str | None = None,
+    end: str | None = None,
 ) -> dict[str, Any]:
     serialized_event = serialize(event, user=None, serializer=EventSerializer())
 
@@ -915,7 +985,7 @@ def get_issue_and_event_response(
         serialized_group["issueTypeDescription"] = group.issue_type.description
 
         try:
-            tags_overview = get_all_tags_overview(group)
+            tags_overview = get_group_tags_overview(group, organization, 1000, start, end)
         except Exception:
             logger.exception(
                 "Failed to get tags overview for issue",
@@ -1057,9 +1127,9 @@ def get_issue_and_event_details_v2(
         return None
 
     if include_issue:
-        return get_issue_and_event_response(event, group, organization)
+        return get_issue_and_event_response(event, group, organization, start, end)
 
-    return get_issue_and_event_response(event, None, organization)
+    return get_issue_and_event_response(event, None, organization, start, end)
 
 
 def get_replay_metadata(
