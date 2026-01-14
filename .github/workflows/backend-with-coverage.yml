@@ -91,6 +91,10 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     name: combine coverage
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      actions: read # used for DIM metadata
     needs: [backend-test-with-cov-context, calculate-shards, files-changed]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
