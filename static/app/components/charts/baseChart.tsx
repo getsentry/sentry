@@ -706,7 +706,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
-    color: ${p.theme.subText};
+    color: ${p.theme.tokens.content.secondary};
     font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
@@ -734,7 +734,11 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
   .tooltip-label {
     margin-right: ${space(1)};
-    ${p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .tooltip-label strong {
     font-weight: ${p.theme.fontWeight.normal};
@@ -759,7 +763,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   .tooltip-code-no-margin {
     padding-left: 0;
     margin-left: 0;
-    color: ${p.theme.subText};
+    color: ${p.theme.tokens.content.secondary};
   }
   .tooltip-footer {
     border-top: solid 1px ${p.theme.tokens.border.secondary};

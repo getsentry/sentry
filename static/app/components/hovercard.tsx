@@ -187,7 +187,7 @@ const StyledHovercard = styled(Overlay)`
   width: 295px;
   line-height: 1.2;
   h6 {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.xs};
     margin-bottom: ${space(1)};
     text-transform: uppercase;
@@ -196,7 +196,7 @@ const StyledHovercard = styled(Overlay)`
 
 const Header = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
   word-wrap: break-word;

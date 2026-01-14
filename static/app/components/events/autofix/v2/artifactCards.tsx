@@ -41,6 +41,7 @@ import {
   IconFix,
   IconFocus,
   IconGroup,
+  IconOpen,
   IconUser,
   IconWarning,
 } from 'sentry/icons';
@@ -51,7 +52,11 @@ import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
-import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
+import type {
+  ExplorerCodingAgentState,
+  ExplorerFilePatch,
+  RepoPRState,
+} from 'sentry/views/seerExplorer/types';
 
 export type ArtifactData = Record<string, unknown>;
 
@@ -764,6 +769,157 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
   );
 }
 
+interface CodingAgentHandoffCardProps {
+  codingAgents: Record<string, ExplorerCodingAgentState>;
+}
+
+/**
+ * Card showing the status of coding agents launched from an Explorer run.
+ */
+export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardProps) {
+  const agents = Object.values(codingAgents);
+
+  if (agents.length === 0) {
+    return null;
+  }
+
+  const getStatusText = (status: ExplorerCodingAgentState['status']) => {
+    switch (status) {
+      case 'pending':
+        return t('Pending...');
+      case 'running':
+        return t('Running...');
+      case 'completed':
+        return t('Completed');
+      case 'failed':
+        return t('Failed');
+      default:
+        return status;
+    }
+  };
+
+  const getProviderDisplayName = (provider: string) => {
+    if (provider === 'cursor_background_agent') {
+      return t('Cursor Cloud Agent');
+    }
+    return t('Coding Agent');
+  };
+
+  return (
+    <ArtifactCard
+      title={t('Coding Agent')}
+      icon={<IconCode size="md" variant="accent" />}
+    >
+      <Flex direction="column" gap="xl">
+        {agents.map(agent => (
+          <CodingAgentSection key={agent.id}>
+            <Flex justify="between" align="center">
+              <Flex direction="column" gap="xs">
+                <Text size="lg">{agent.name}</Text>
+                <Text variant="muted" size="sm">
+                  {getProviderDisplayName(agent.provider)}
+                </Text>
+              </Flex>
+              <CodingAgentStatusTag $status={agent.status}>
+                {getStatusText(agent.status)}
+              </CodingAgentStatusTag>
+            </Flex>
+
+            {agent.results && agent.results.length > 0 && (
+              <Flex direction="column" gap="md">
+                {agent.results.map((result, index) => (
+                  <CodingAgentResultItem key={index}>
+                    <Text size="sm" as="div">
+                      <StyledMarkedText text={result.description} inline as="span" />
+                    </Text>
+                    {result.branch_name && (
+                      <Text variant="muted" size="sm">
+                        {t('Branch')}: {result.branch_name}
+                      </Text>
+                    )}
+                  </CodingAgentResultItem>
+                ))}
+              </Flex>
+            )}
+
+            <Flex gap="md" justify="end">
+              {agent.agent_url && (
+                <Button
+                  size="sm"
+                  icon={<IconOpen />}
+                  onClick={() => {
+                    window.open(agent.agent_url, '_blank', 'noopener,noreferrer');
+                  }}
+                >
+                  {t('Open in Cursor')}
+                </Button>
+              )}
+              {agent.results
+                ?.filter(result => result.pr_url)
+                .map(result => (
+                  <Button
+                    key={result.pr_url}
+                    size="sm"
+                    icon={<IconOpen />}
+                    onClick={() => {
+                      window.open(result.pr_url, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    {t('View Pull Request')}
+                  </Button>
+                ))}
+            </Flex>
+          </CodingAgentSection>
+        ))}
+      </Flex>
+    </ArtifactCard>
+  );
+}
+
+const CodingAgentSection = styled('div')`
+  &:not(:last-child) {
+    margin-bottom: ${p => p.theme.space.xl};
+    padding-bottom: ${p => p.theme.space.xl};
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+`;
+
+const CodingAgentStatusTag = styled('span')<{
+  $status: ExplorerCodingAgentState['status'];
+}>`
+  display: inline-flex;
+  align-items: center;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  border-radius: ${p => p.theme.radius.sm};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  background-color: ${p => {
+    switch (p.$status) {
+      case 'completed':
+        return p.theme.alert.success.backgroundLight;
+      case 'failed':
+        return p.theme.alert.danger.backgroundLight;
+      default:
+        return p.theme.blue100;
+    }
+  }};
+  color: ${p => {
+    switch (p.$status) {
+      case 'completed':
+        return p.theme.tokens.content.success;
+      case 'failed':
+        return p.theme.tokens.content.danger;
+      default:
+        return p.theme.blue400;
+    }
+  }};
+`;
+
+const CodingAgentResultItem = styled('div')`
+  padding: ${p => p.theme.space.md};
+  border-radius: ${p => p.theme.radius.sm};
+`;
+
 const TreeContainer = styled('div')<{columnCount: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
@@ -781,10 +937,10 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
   column-gap: ${p => p.theme.space.lg};
   grid-template-columns: subgrid;
   :nth-child(odd) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
-  color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.background};
+  color: ${p => p.theme.tokens.content.secondary};
+  background-color: ${p => p.theme.tokens.background.primary};
   ${p =>
     p.$isClickable &&
     `
@@ -848,15 +1004,15 @@ const ImpactTreeKeyContainer = styled('div')`
 `;
 
 const TreeSubValue = styled(TreeValue)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SolutionTreeValue = styled(TreeValue)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoName = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoSection = styled('div')`

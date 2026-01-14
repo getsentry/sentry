@@ -193,7 +193,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
@@ -222,7 +222,7 @@ const FinishedWell = styled('div')`
   padding: ${space(2)} ${space(3)};
   border-radius: 3px;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const UploadWell = styled('div')<{draggedOver: boolean}>`
@@ -237,7 +237,9 @@ const UploadWell = styled('div')<{draggedOver: boolean}>`
   border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')}
     ${p => p.theme.tokens.border.primary};
   background: ${props =>
-    props.draggedOver ? p => p.theme.colors.blue100 : p => p.theme.colors.surface500};
+    props.draggedOver
+      ? p => p.theme.tokens.background.transparent.accent.muted
+      : p => p.theme.tokens.background.primary};
 
   .upload-icon {
     color: ${p => p.theme.colors.gray800};

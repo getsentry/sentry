@@ -663,7 +663,7 @@ const ReceiptSlot = styled('div')`
   width: 445px;
   height: 7px;
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.colors.gray200};
   box-shadow: 0px 2px 4px 0px
     ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;
 `;
@@ -692,7 +692,7 @@ const ReceiptPaper = styled(Container)`
 `;
 
 const DateSeparator = styled('div')`
-  border-top: 1px dashed ${p => p.theme.gray500};
+  border-top: 1px dashed ${p => p.theme.colors.gray800};
   width: 100%;
 `;
 

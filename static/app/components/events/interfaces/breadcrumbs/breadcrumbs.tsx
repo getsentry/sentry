@@ -302,7 +302,7 @@ const Time = styled('div')`
 const StyledIconSort = styled(IconSort)`
   transition: 0.15s color;
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -326,7 +326,7 @@ const PanelDragHandle = styled('div')`
 
   &:hover::after,
   &.is-held:after {
-    background: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 

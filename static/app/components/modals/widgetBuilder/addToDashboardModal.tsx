@@ -15,6 +15,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Select} from 'sentry/components/core/select';
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -66,7 +67,8 @@ export type AddToDashboardModalProps = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
-  widget: Widget;
+  // There must always be at least one widget for this component
+  widgets: [Widget, ...Widget[]];
   actions?: AddToDashboardModalActions[];
   source?: DashboardWidgetSource;
 };
@@ -97,7 +99,7 @@ function AddToDashboardModal({
   location,
   organization,
   selection,
-  widget,
+  widgets,
   actions = DEFAULT_ACTIONS,
   source,
 }: Props) {
@@ -108,6 +110,8 @@ function AddToDashboardModal({
     null
   );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
+  // Use first widget for current add to dashboard previews
+  const widget = widgets[0];
   const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
     getFallbackWidgetTitle(widget)
   );
@@ -187,7 +191,6 @@ function AddToDashboardModal({
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
-
     navigate(
       normalizeUrl({
         pathname,
@@ -196,7 +199,9 @@ function AddToDashboardModal({
           title: newWidgetTitle,
           sort: orderBy ?? widgetAsQueryParams.sort,
           source,
-          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+          ...(selectedDashboard
+            ? getSavedPageFilters(selectedDashboard)
+            : pageFiltersToQueryParams(selection)),
         },
       })
     );

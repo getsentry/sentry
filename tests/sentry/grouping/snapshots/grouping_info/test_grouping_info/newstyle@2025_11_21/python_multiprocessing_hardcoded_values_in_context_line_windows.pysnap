@@ -80,7 +80,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
+                          "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
                         ]
                       }
                     ]
@@ -1035,7 +1035,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
+                          "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
                         ]
                       }
                     ]

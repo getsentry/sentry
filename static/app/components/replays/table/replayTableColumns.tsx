@@ -642,7 +642,7 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   border-radius: 50%;
 
-  background-color: ${p => p.theme.colors.blue500};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   &[data-has-viewed='true'] {
     background-color: transparent;
   }

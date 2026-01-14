@@ -351,7 +351,10 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.chart.getColorPalette(0)[0], theme.colors.blue200]}
+                  colors={[
+                    theme.chart.getColorPalette(0)[0],
+                    theme.tokens.border.accent.moderate,
+                  ]}
                 />
               )}
               {displayMode === DisplayModes.FAILURE_RATE && (
@@ -368,7 +371,10 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.colors.red400, theme.colors.blue200]}
+                  colors={[
+                    theme.tokens.dataviz.semantic.bad,
+                    theme.tokens.border.accent.moderate,
+                  ]}
                 />
               )}
               {displayMode === DisplayModes.TPM && (
@@ -385,7 +391,10 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.colors.yellow400, theme.colors.blue200]}
+                  colors={[
+                    theme.tokens.dataviz.semantic.meh,
+                    theme.tokens.border.accent.moderate,
+                  ]}
                   disablePrevious
                 />
               )}
@@ -403,7 +412,10 @@ class ProjectCharts extends Component<Props, State> {
                     location={location}
                     organization={organization}
                     onTotalValuesChange={this.handleTotalValuesChange}
-                    colors={[theme.colors.blue400, theme.colors.blue200]}
+                    colors={[
+                      theme.tokens.dataviz.semantic.accent,
+                      theme.tokens.dataviz.semantic.neutral,
+                    ]}
                     interval={this.barChartInterval}
                     chartComponent={BarChart}
                     disableReleases
@@ -428,7 +440,10 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.colors.gray200, theme.colors.blue200]}
+                  colors={[
+                    theme.tokens.dataviz.semantic.neutral,
+                    theme.tokens.border.accent.moderate,
+                  ]}
                   interval={this.barChartInterval}
                   chartComponent={BarChart}
                   disableReleases

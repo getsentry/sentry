@@ -87,7 +87,7 @@ export function SecondarySidebar() {
 }
 
 const SecondarySidebarWrapper = styled(NavTourElement)`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
@@ -122,7 +122,7 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.colors.blue500};
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
     }
   }
 

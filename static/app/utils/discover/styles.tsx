@@ -9,7 +9,11 @@ import {IconUser} from 'sentry/icons/iconUser';
 // Styled components used to render discover result sets.
 
 export const Container = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   span {
     vertical-align: middle;
   }
@@ -17,26 +21,42 @@ export const Container = styled('div')`
 
 export const VersionContainer = styled('div')`
   display: flex;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const NumberContainer = styled('div')`
   text-align: right;
   font-variant-numeric: tabular-nums;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   span {
     vertical-align: middle;
   }
 `;
 
 export const FieldDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const OverflowLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const FieldShortId = styled(ShortId)`
@@ -48,7 +68,11 @@ export const OverflowFieldShortId = styled(FieldShortId)`
   max-width: 100%;
 
   ${StyledAutoSelectText} {
-    ${p => p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 

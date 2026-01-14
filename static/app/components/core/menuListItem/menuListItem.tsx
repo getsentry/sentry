@@ -28,13 +28,13 @@ function getTextColor({
   theme: Theme;
 }) {
   if (disabled) {
-    return theme.subText;
+    return theme.tokens.content.secondary;
   }
   switch (priority) {
     case 'primary':
       return theme.tokens.content.accent;
     case 'danger':
-      return theme.errorText;
+      return theme.tokens.content.danger;
     case 'default':
     default:
       return theme.tokens.content.primary;
@@ -138,9 +138,12 @@ const StyledLeadingItems = styled('div')<{
 const StyledLabel = styled('div')`
   margin-bottom: 0;
   line-height: 1.4;
-  white-space: nowrap;
 
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledLabelWrap = styled('div')`
@@ -151,7 +154,7 @@ const StyledLabelWrap = styled('div')`
 
 const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.4;
   margin-bottom: 0;
 

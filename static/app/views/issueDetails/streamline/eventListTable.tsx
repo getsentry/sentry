@@ -151,7 +151,7 @@ export const Title = styled('div')`
 `;
 
 export const HeaderItem = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
 `;
@@ -224,7 +224,7 @@ const StreamlineGridEditable = styled('div')`
 `;
 
 export const PaginationButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
 

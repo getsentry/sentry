@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
+import * as qs from 'query-string';
 
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -11,7 +13,7 @@ import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
 
 export type TitleCellProps = {
-  link: string | null;
+  link: LocationDescriptor | null;
   name: string;
   className?: string;
   details?: React.ReactNode;
@@ -66,9 +68,18 @@ export function TitleCell({
   }
 
   if (openInNewTab) {
+    let href: string;
+    if (typeof link === 'string') {
+      href = link;
+    } else {
+      const pathname = link.pathname ?? '';
+      const search = link.search ?? (link.query ? `?${qs.stringify(link.query)}` : '');
+      const hash = link.hash ?? '';
+      href = `${pathname}${search}${hash}`;
+    }
     return (
       <TitleWrapperAnchor
-        href={link}
+        href={href}
         className={className}
         target="_blank"
         rel="noreferrer noopener"
@@ -94,7 +105,10 @@ const Name = styled('div')`
 
 const NameText = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: fit-content;
 `;
 
@@ -134,6 +148,6 @@ const DetailsWrapper = styled('div')`
   gap: ${space(0.75)};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;

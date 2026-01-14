@@ -519,7 +519,7 @@ const BlockRow = styled('div')`
 `;
 
 const BlockChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: 18px;
   margin-left: ${space(2)};
   margin-right: ${space(1)};
@@ -539,19 +539,19 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
-        return p.theme.colors.pink500;
+        return p.theme.tokens.content.promotion;
       case 'pending':
-        return p.theme.colors.pink500;
+        return p.theme.tokens.content.promotion;
       case 'content':
-        return p.theme.colors.blue500;
+        return p.theme.tokens.content.accent;
       case 'success':
-        return p.theme.colors.green500;
+        return p.theme.tokens.content.success;
       case 'failure':
-        return p.theme.colors.red500;
+        return p.theme.tokens.content.danger;
       case 'mixed':
-        return p.theme.colors.yellow500;
+        return p.theme.tokens.content.warning;
       default:
-        return p.theme.colors.blue500;
+        return p.theme.tokens.content.accent;
     }
   }};
 
@@ -622,7 +622,7 @@ const UserBlockContent = styled('div')`
   padding: ${space(2)} ${space(2)} ${space(2)} 0;
   white-space: pre-wrap;
   word-wrap: break-word;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ToolCallStack = styled(Stack)`
@@ -690,7 +690,9 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
   color: ${p =>
-    p.isHighlighted ? p.theme.tokens.interactive.link.accent.hover : p.theme.subText};
+    p.isHighlighted
+      ? p.theme.tokens.interactive.link.accent.hover
+      : p.theme.tokens.content.secondary};
   flex-shrink: 0;
 `;
 
@@ -708,5 +710,5 @@ const TodoListContent = styled(MarkedText)`
   margin-bottom: -${p => p.theme.space.xl};
   font-size: ${p => p.theme.fontSize.xs};
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

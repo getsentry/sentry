@@ -706,7 +706,7 @@ const FileHeader = styled('div')`
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr auto;
   gap: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 `;
@@ -722,7 +722,7 @@ const FileAdded = styled('div')`
 `;
 
 const FileRemoved = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const FileName = styled('div')`
@@ -743,13 +743,13 @@ const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
 
 const HunkHeaderEmptySpace = styled('div')`
   grid-column: 1 / 3;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
   white-space: pre-wrap;
 `;
@@ -759,8 +759,8 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
   padding: ${space(0.25)} ${space(1)};
   user-select: none;
 
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -921,7 +921,7 @@ const SectionTitle = styled('p')`
 
 const NoChangesMessage = styled('p')`
   margin: ${space(1)} 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.family};
 `;
 

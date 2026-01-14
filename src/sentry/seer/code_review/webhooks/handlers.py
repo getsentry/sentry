@@ -10,6 +10,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
+from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
@@ -65,8 +66,14 @@ def handle_webhook_event(
         integration_id=integration.id if integration else None,
         pr_author_external_id=get_pr_author_id(event),
     ).check()
+
     if not preflight.allowed:
-        # TODO: add metric
+        if preflight.denial_reason:
+            record_webhook_filtered(
+                github_event=github_event,
+                github_event_action=event.get("action", "unknown"),
+                reason=preflight.denial_reason,
+            )
         return
 
     repository = event.get("repository", {})

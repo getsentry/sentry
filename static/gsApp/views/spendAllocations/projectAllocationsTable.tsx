@@ -132,12 +132,12 @@ const Table = styled('table')`
 `;
 
 const HeaderCell = styled('th')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} ${space(2)};
 `;
 

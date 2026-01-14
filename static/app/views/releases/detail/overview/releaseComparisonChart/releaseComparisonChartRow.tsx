@@ -114,8 +114,12 @@ function ReleaseComparisonChartRow({
 
 const Cell = styled('div')`
   text-align: right;
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis}
+  color: ${p => p.theme.tokens.content.secondary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: ${p => p.theme.fontSize.md};
 `;
 

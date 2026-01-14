@@ -313,7 +313,13 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -343,10 +349,12 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
   margin: 0;
   flex: 1;
   word-break: break-word;
-  color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.expanded ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   code {
-    color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
+    color: ${p =>
+      p.expanded ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   }
 `;
 
@@ -366,7 +374,7 @@ const ContextBody = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RightSection = styled('div')`
@@ -393,7 +401,7 @@ const EditInput = styled(TextArea)`
 `;
 
 const EditButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DiffContainer = styled('div')`

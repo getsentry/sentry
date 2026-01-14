@@ -30,6 +30,6 @@ export function InviteMessage() {
 }
 
 const Subtext = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: ${space(3)};
 `;
