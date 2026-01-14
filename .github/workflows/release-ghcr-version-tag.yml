@@ -4,11 +4,6 @@ on:
   release:
     types: [prereleased, released]
 
-permissions:
-  packages: write
-  contents: write
-  pull-requests: write
-
 jobs:
   release-ghcr-version-tag:
     runs-on: ubuntu-latest
