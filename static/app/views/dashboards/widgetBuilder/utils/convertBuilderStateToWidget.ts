@@ -98,8 +98,12 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       name: legendAlias[index] ?? '',
       selectedAggregate: state.selectedAggregate,
       linkedDashboards: state.linkedDashboards ?? [],
-      // Big number widgets don't support sorting, so always ignore the sort state
-      orderby: state.displayType === DisplayType.BIG_NUMBER ? '' : sort,
+      // Orderby is only applicable for tables or charts with columns (TOP-N queries)
+      orderby:
+        state.displayType === DisplayType.TABLE ||
+        (isChartDisplayType(state.displayType) && (columns?.length ?? 0) > 0)
+          ? sort
+          : '',
     };
   });
 

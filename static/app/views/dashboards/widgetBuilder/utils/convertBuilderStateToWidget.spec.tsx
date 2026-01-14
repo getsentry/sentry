@@ -41,9 +41,11 @@ describe('convertBuilderStateToWidget', () => {
     });
   });
 
-  it('injects the orderby from the sort state into the widget queries', () => {
+  it('injects the orderby from the sort state into the widget queries for charts with columns', () => {
     const mockState: WidgetBuilderState = {
       query: ['transaction.duration:>100', 'transaction.duration:>50'],
+      displayType: DisplayType.LINE,
+      fields: [{field: 'geo.country', kind: FieldValueKind.FIELD}],
       sort: [{field: 'geo.country', kind: 'desc'}],
     };
 
@@ -56,6 +58,8 @@ describe('convertBuilderStateToWidget', () => {
   it('does not convert aggregates to aliased format', () => {
     const mockState: WidgetBuilderState = {
       query: ['transaction.duration:>100', 'transaction.duration:>50'],
+      displayType: DisplayType.LINE,
+      fields: [{field: 'geo.country', kind: FieldValueKind.FIELD}],
       sort: [{field: 'count()', kind: 'desc'}],
     };
 
@@ -227,5 +231,16 @@ describe('convertBuilderStateToWidget', () => {
     const widget = convertBuilderStateToWidget(mockState);
 
     expect(widget.limit).toBeUndefined();
+  });
+
+  it('supports the sort field for tables', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TABLE,
+      sort: [{field: 'count()', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.orderby).toBe('-count()');
   });
 });
