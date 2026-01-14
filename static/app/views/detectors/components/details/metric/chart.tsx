@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
+import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,7 +53,8 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
   const endTime = ctx.period.end
     ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
     : '-';
-  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
   const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
 
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
@@ -69,7 +71,8 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
 
 function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
   const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
   const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
   return [
@@ -191,9 +194,9 @@ export function useMetricDetectorChart({
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
+      aggregate,
       conditions: detector.conditionGroup?.conditions,
       detectionType,
-      aggregate,
       comparisonSeries,
     });
 
@@ -247,7 +250,11 @@ export function useMetricDetectorChart({
     usePageDate: true,
   });
 
-  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
+  const {maxValue, minValue} = useDetectorChartAxisBounds({
+    series,
+    thresholdMaxValue,
+    aggregate,
+  });
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
@@ -269,19 +276,33 @@ export function useMetricDetectorChart({
     });
 
     const isPercentage = outputType === 'percentage';
-    // For percentage aggregates, use fixed max of 1 (100%) and calculated min
-    const yAxisMax = isPercentage ? 1 : maxValue > 0 ? maxValue : undefined;
-    // Start charts at 0 for non-percentage aggregates
-    const yAxisMin = isPercentage ? minValue : 0;
+    // Use calculated max/min values from data and thresholds for appropriate scaling
+    const yAxisMax = maxValue > 0 ? maxValue : undefined;
+    const yAxisMin = minValue;
+
+    // For percentages, use 2 decimal places
+    const customFormatter = (value: number): string => {
+      if (isPercentage) {
+        return axisLabelFormatterUsingAggregateOutputType(
+          value,
+          outputType,
+          true,
+          undefined,
+          undefined,
+          2
+        );
+      }
+      return formatYAxisLabel(value);
+    };
 
     const mainYAxis: YAXisComponentOption = {
       max: yAxisMax,
       min: yAxisMin,
       axisLabel: {
-        // Show max label for percentage (100%) but hide for other types to avoid arbitrary values
+        // Show max label for percentage but hide for other types to avoid arbitrary values
         showMaxLabel: isPercentage,
         // Format the axis labels with units
-        formatter: formatYAxisLabel,
+        formatter: customFormatter,
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -485,14 +506,14 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     return (
       <ChartContainer overflow="hidden">
         {errorMessage && (
-          <Alert system type="error">
+          <Alert system variant="danger">
             {errorMessage}
           </Alert>
         )}
         <ChartBody>
           <Flex justify="center" align="center">
             <ErrorPanel height={`${CHART_HEIGHT - 45}px`}>
-              <IconWarning color="gray300" size="lg" />
+              <IconWarning variant="muted" size="lg" />
               <div>{t('Error loading chart data')}</div>
             </ErrorPanel>
           </Flex>

@@ -42,6 +42,7 @@ export type Props = {
   headerTitle?: React.ReactNode;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  unified?: boolean;
 };
 
 export function DomainViewHeader({
@@ -55,6 +56,7 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
+  unified,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -124,7 +126,7 @@ export function DomainViewHeader({
       : undefined;
   return (
     <Fragment>
-      <Layout.Header>
+      <Layout.Header unified={unified}>
         <Layout.HeaderContent>
           {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
@@ -137,7 +139,7 @@ export function DomainViewHeader({
         </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
-            <TabList hideBorder>
+            <TabList>
               {tabList.map(tab => (
                 <TabList.Item {...tab} key={tab.key} />
               ))}

@@ -44,7 +44,6 @@ function buildRoutes() {
   const routes: SentryRouteObject = {
     path: '/_admin/',
     component: Layout,
-    deprecatedRouteProps: true,
     children: [
       {
         index: true,
@@ -57,12 +56,10 @@ function buildRoutes() {
           {
             index: true,
             component: Beacons,
-            deprecatedRouteProps: true,
           },
           {
             path: ':beaconId/',
             component: BeaconDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },
@@ -72,12 +69,10 @@ function buildRoutes() {
           {
             index: true,
             component: Broadcasts,
-            deprecatedRouteProps: true,
           },
           {
             path: ':broadcastId/',
             component: BroadcastDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },

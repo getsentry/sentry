@@ -5,7 +5,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 export function redirectToManage(organization: Organization) {
   browserHistory.replace(
     normalizeUrl({
-      pathname: `/settings/${organization.slug}/billing/checkout/`,
+      pathname: `/checkout/${organization.slug}/`,
       query: {
         referrer: 'replay_onboard-error-redirect',
       },

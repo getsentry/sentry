@@ -53,36 +53,39 @@ export default function AutomationBuilder() {
       <Flex direction="column" gap="md">
         <Step>
           <StepLead>
-            {tct('[when:When] [selector] of the following occur', {
-              when: <ConditionBadge />,
-              selector: showTriggerLogicTypeSelector ? (
-                <EmbeddedWrapper>
-                  <EmbeddedSelectField
-                    styles={{
-                      control: (provided: any) => ({
-                        ...provided,
-                        minHeight: '21px',
-                        height: '21px',
-                      }),
-                    }}
-                    inline={false}
-                    isSearchable={false}
-                    isClearable={false}
-                    name={`${state.triggers.id}.logicType`}
-                    value={state.triggers.logicType}
-                    onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
-                      actions.updateWhenLogicType(option.value)
-                    }
-                    required
-                    flexibleControlStateSize
-                    options={TRIGGER_MATCH_OPTIONS}
-                    size="xs"
-                  />
-                </EmbeddedWrapper>
-              ) : (
-                t('any')
-              ),
-            })}
+            {tct(
+              '[when:When] an issue event is captured and [selector] of the following occur',
+              {
+                when: <ConditionBadge />,
+                selector: showTriggerLogicTypeSelector ? (
+                  <EmbeddedWrapper>
+                    <EmbeddedSelectField
+                      styles={{
+                        control: (provided: any) => ({
+                          ...provided,
+                          minHeight: '21px',
+                          height: '21px',
+                        }),
+                      }}
+                      inline={false}
+                      isSearchable={false}
+                      isClearable={false}
+                      name={`${state.triggers.id}.logicType`}
+                      value={state.triggers.logicType}
+                      onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                        actions.updateWhenLogicType(option.value)
+                      }
+                      required
+                      flexibleControlStateSize
+                      options={TRIGGER_MATCH_OPTIONS}
+                      size="xs"
+                    />
+                  </EmbeddedWrapper>
+                ) : (
+                  <strong>{t('any')}</strong>
+                ),
+              }
+            )}
           </StepLead>
         </Step>
         <DataConditionNodeList
@@ -98,7 +101,7 @@ export default function AutomationBuilder() {
           }
         />
         {(mutationErrors as any)?.actionFilters?.all && (
-          <StyledAlert type="error">
+          <StyledAlert variant="danger">
             {(mutationErrors as any).actionFilters.all}
           </StyledAlert>
         )}
@@ -270,7 +273,7 @@ const IfThenWrapper = styled(Flex)`
   position: relative;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};

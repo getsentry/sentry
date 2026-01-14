@@ -1,17 +1,16 @@
-import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
-interface Props extends ComponentProps<typeof FluidHeight> {
+type Props = React.ComponentProps<typeof FluidHeight> & {
   error: string;
-}
+};
 
 const FeedbackErrorDetails = styled(({error, ...props}: Props) => (
   <FluidHeight {...props}>
     <Alert.Container>
-      <Alert type="error">{error}</Alert>
+      <Alert variant="danger">{error}</Alert>
     </Alert.Container>
   </FluidHeight>
 ))`

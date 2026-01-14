@@ -60,7 +60,10 @@ function InviteRequestRow({
             </Description>
           )
         ) : (
-          <Tag title={t('This user has asked to join your organization.')}>
+          <Tag
+            variant="muted"
+            title={t('This user has asked to join your organization.')}
+          >
             {t('Join request')}
           </Tag>
         )}
@@ -170,7 +173,7 @@ const UserName = styled('div')`
 
 const Description = styled('div')`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;

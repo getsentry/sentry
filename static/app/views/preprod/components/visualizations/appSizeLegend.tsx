@@ -249,12 +249,14 @@ const MeasurementContainer = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
+  right: 0;
   visibility: hidden;
   pointer-events: none;
   display: flex;
   gap: ${p => p.theme.space.xs};
   flex-wrap: nowrap;
   white-space: nowrap;
+  overflow: hidden;
 `;
 
 const LegendItem = styled('div')<{isActive: boolean}>`
@@ -271,7 +273,7 @@ const LegendItem = styled('div')<{isActive: boolean}>`
     background-color 0.2s ease;
 
   &:hover {
-    background-color: ${p => p.theme.surface100};
+    background-color: ${p => p.theme.colors.surface200};
     opacity: ${p => (p.isActive ? 1 : 0.6)};
   }
 `;
@@ -309,7 +311,7 @@ const MoreDropdown = styled('div')`
   right: 0;
   margin-top: 2px;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   padding: ${p => p.theme.space.xs};

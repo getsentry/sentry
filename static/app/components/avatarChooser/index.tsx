@@ -378,14 +378,26 @@ const AvatarPreview = styled('div')`
     -10px 0px;
   background-color: ${p => p.theme.tokens.background.primary};
   background-image:
-    linear-gradient(45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(
-      -45deg,
-      ${p => p.theme.backgroundSecondary} 25%,
+      45deg,
+      ${p => p.theme.tokens.background.secondary} 25%,
       rgba(0, 0, 0, 0) 25%
     ),
-    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%),
-    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%);
+    linear-gradient(
+      -45deg,
+      ${p => p.theme.tokens.background.secondary} 25%,
+      rgba(0, 0, 0, 0) 25%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0) 75%,
+      ${p => p.theme.tokens.background.secondary} 75%
+    ),
+    linear-gradient(
+      -45deg,
+      rgba(0, 0, 0, 0) 75%,
+      ${p => p.theme.tokens.background.secondary} 75%
+    );
 `;
 
 const AvatarChooserBody = styled('div')`
@@ -402,7 +414,7 @@ const CropperHovercard = styled(Hovercard)`
 
 const AvatarHelp = styled('p')`
   margin-right: auto;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   width: 50%;
 `;
@@ -412,8 +424,8 @@ const BlankAvatar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.gray200};
-  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.colors.gray200};
+  background: ${p => p.theme.tokens.background.secondary};
   height: 90px;
   width: 90px;
 `;
@@ -430,7 +442,7 @@ const AvatarActions = styled('div')`
   top: ${space(0.25)};
   right: ${space(0.25)};
   display: flex;
-  background: ${p => p.theme.translucentSurface200};
+  background: ${p => p.theme.colors.surface200};
   padding: ${space(0.25)};
   border-radius: 3px;
 `;

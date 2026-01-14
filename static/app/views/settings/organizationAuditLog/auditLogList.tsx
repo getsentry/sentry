@@ -13,9 +13,15 @@ import {DateTime} from 'sentry/components/dateTime';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
-import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
+import {
+  getAbsoluteSummary,
+  getArbitraryRelativePeriod,
+} from 'sentry/components/timeRangeSelector/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
@@ -59,7 +65,7 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
       <Name data-test-id="actor-name">
         <Flex align="center" gap="md">
           {logEntryUser.name}
-          <Tag>{t('Sentry Staff')}</Tag>
+          <Tag variant="muted">{t('Sentry Staff')}</Tag>
         </Flex>
       </Name>
     );
@@ -297,6 +303,7 @@ function AuditLogList({
   const {displayStart, displayEnd} = getDisplayValues();
 
   const currentValue = statsPeriod || allTime;
+  const arbitraryRelativePeriods = getArbitraryRelativePeriod(currentValue);
   let displayLabel: React.ReactNode;
 
   if (displayStart && displayEnd) {
@@ -307,6 +314,8 @@ function AuditLogList({
     displayLabel = getAbsoluteSummary(start, end, utc);
   } else if (currentValue === allTime) {
     displayLabel = allTime;
+  } else {
+    displayLabel = arbitraryRelativePeriods[currentValue];
   }
 
   const headerActions = (
@@ -318,12 +327,15 @@ function AuditLogList({
         onChange={onDateSelect}
         relativeOptions={{
           allTime,
+          ...arbitraryRelativePeriods,
         }}
         utc={utc}
         maxPickableDays={getDaysSinceDate(organization.dateCreated)}
-        triggerProps={{
-          children: displayLabel,
-        }}
+        trigger={triggerProps => (
+          <TimeRangeSelectTrigger {...triggerProps}>
+            {displayLabel ?? triggerProps.children}
+          </TimeRangeSelectTrigger>
+        )}
       />
       <EventSelector
         clearable
@@ -426,7 +438,11 @@ const Note = styled('div')`
 `;
 
 const IpAddressOverflow = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 90px;
 `;
 

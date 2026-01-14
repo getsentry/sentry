@@ -1,6 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
@@ -82,7 +84,11 @@ export default function SentryAppDetailsModal(props: Props) {
   const featureTags = (features: Array<Pick<IntegrationFeature, 'featureGate'>>) => {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
-      return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
+      return (
+        <StyledTag key={feat} variant="muted">
+          {feat.replace(/-/g, ' ')}
+        </StyledTag>
+      );
     });
   };
 
@@ -100,7 +106,7 @@ export default function SentryAppDetailsModal(props: Props) {
       <Fragment>
         <Title>Permissions</Title>
         {permissions.read.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="read">
               {tct('[read] access to [resources] resources', {
@@ -108,10 +114,10 @@ export default function SentryAppDetailsModal(props: Props) {
                 resources: permissions.read.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
         {permissions.write.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="write">
               {tct('[read] and [write] access to [resources] resources', {
@@ -120,10 +126,10 @@ export default function SentryAppDetailsModal(props: Props) {
                 resources: permissions.write.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
         {permissions.admin.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="admin">
               {tct('[admin] access to [resources] resources', {
@@ -131,7 +137,7 @@ export default function SentryAppDetailsModal(props: Props) {
                 resources: permissions.admin.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
       </Fragment>
     );
@@ -227,12 +233,12 @@ const Description = styled(MarkedText)`
 `;
 
 const Author = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <IconFlag color="errorText" size="md" />
+    <IconFlag variant="danger" size="md" />
     {reason}
   </div>
 ))`
@@ -240,16 +246,12 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   align-items: center;
   flex: 1;
   grid-template-columns: max-content 1fr;
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: 0.9em;
 `;
 
 const Text = styled('p')`
   margin: 0px 6px;
-`;
-
-const Permission = styled('div')`
-  display: flex;
 `;
 
 const Footer = styled('div')`
@@ -268,7 +270,7 @@ const Title = styled('p')`
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
-  color: ${p => p.theme.success};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const Features = styled('div')`

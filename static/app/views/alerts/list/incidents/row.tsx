@@ -63,7 +63,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
         {incident.status === IncidentStatus.CLOSED ? (
           <Duration seconds={duration} />
         ) : (
-          <Tag type="warning">{t('Still Active')}</Tag>
+          <Tag variant="warning">{t('Still Active')}</Tag>
         )}
       </NoWrapNumeric>
 
@@ -87,7 +87,11 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
 }
 
 const Title = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 130px;
 `;
 
@@ -96,7 +100,10 @@ const ProjectBadge = styled(IdBadge)`
 `;
 
 const FlexCenter = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   line-height: 1.6;
@@ -108,7 +115,11 @@ const NoWrapNumeric = styled(FlexCenter)`
 `;
 
 const TeamWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledActorAvatar = styled(ActorAvatar)`

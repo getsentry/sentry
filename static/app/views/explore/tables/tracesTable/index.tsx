@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -69,27 +71,33 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
     <Fragment>
       <StyledPanel>
         <TracePanelContent>
-          <StyledPanelHeader align="left" lightText>
+          <StyledPanelHeader justify="start" lightText radius="md 0 0 0">
             {t('Trace ID')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="left" lightText>
+
+          <StyledPanelHeader justify="start" lightText>
             {t('Trace Root')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
+
+          <StyledPanelHeader justify="end" lightText>
             {query ? t('Matching Spans') : t('Total Spans')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="left" lightText>
+
+          <StyledPanelHeader justify="start" lightText>
             {t('Timeline')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
+
+          <StyledPanelHeader justify="end" lightText>
             {t('Root Duration')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
-            <Header>
+
+          <StyledPanelHeader justify="end" lightText radius="0 md 0 0">
+            <Flex gap="xs">
               {t('Timestamp')}
               <IconArrow size="xs" direction="down" />
-            </Header>
+            </Flex>
           </StyledPanelHeader>
+
           {isPending && (
             <StyledPanelItem span={6} overflow>
               <LoadingIndicator />
@@ -98,7 +106,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
           {showErrorState && (
             <StyledPanelItem span={6} overflow>
               <WarningStreamWrapper>
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
               </WarningStreamWrapper>
             </StyledPanelItem>
           )}
@@ -188,6 +196,9 @@ function TraceRow({
     return [...leadingProjects, ...trailingProjects];
   }, [selectedProjects, trace]);
 
+  const projectSlugs =
+    traceProjects.length > 0 ? traceProjects : trace.project ? [trace.project] : [];
+
   return (
     <Fragment>
       <StyledPanelItem align="center" center onClick={onClickExpand}>
@@ -206,7 +217,9 @@ function TraceRow({
           }
         />
         <TraceIdRenderer
+          projectSlugs={projectSlugs}
           traceId={trace.trace}
+          traceName={trace.name}
           timestamp={trace.end}
           onClick={event => {
             event.stopPropagation();
@@ -222,15 +235,7 @@ function TraceRow({
         <Tooltip title={trace.name} containerDisplayMode="block" showOnlyOnOverflow>
           <Description>
             <ProjectBadgeWrapper>
-              <ProjectsRenderer
-                projectSlugs={
-                  traceProjects.length > 0
-                    ? traceProjects
-                    : trace.project
-                      ? [trace.project]
-                      : []
-                }
-              />
+              <ProjectsRenderer projectSlugs={projectSlugs} />
             </ProjectBadgeWrapper>
             {trace.name ? (
               <WrappingText>{trace.name}</WrappingText>
@@ -291,17 +296,12 @@ function Breakdown({trace}: {trace: TraceResult}) {
   );
 }
 
-const Header = styled('span')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
-
 const StyledButton = styled(Button)`
   margin-right: ${space(0.5)};
 `;
 
 const WarningStreamWrapper = styled(EmptyStreamWrapper)`
   > svg {
-    fill: ${p => p.theme.gray300};
+    fill: ${p => p.theme.colors.gray400};
   }
 `;

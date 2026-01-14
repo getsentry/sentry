@@ -241,6 +241,25 @@ class TestSpansTask(TestCase):
 
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_http"]
+        assert "has_insights_agent_monitoring" not in signals
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
+    def test_record_signals_agents_via_gen_ai_op_name(self, mock_track):
+        """Test that spans with gen_ai.operation.name attribute trigger agents insight."""
+        span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            span_op="http.client",
+            attributes={
+                "sentry.op": {"value": "http.client"},
+                "gen_ai.operation.name": {"value": "chat"},
+            },
+        )
+        spans = process_segment([span])
+        assert len(spans) == 1
+
+        signals = [args[0][1] for args in mock_track.call_args_list]
+        assert signals == ["has_transactions", "has_insights_agent_monitoring"]
 
     def test_segment_name_propagation(self):
         child_span, segment_span = self.generate_basic_spans()
@@ -334,3 +353,30 @@ def test_verify_compatibility():
     result = _verify_compatibility(spans)
     assert len(result) == len(spans)
     assert [v is None for v in result] == [True, True, False, False, False, False, False]
+
+
+@exclude_experimental_detectors
+class TestSegmentDropKillswitch(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project()
+
+    def test_drop_segment_by_org_id(self) -> None:
+        """Test that segments are dropped when org_id matches killswitch."""
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        with override_options(
+            {
+                "spans.process-segments.drop-segments": [
+                    {"org_id": str(self.project.organization_id)}
+                ]
+            }
+        ):
+            processed_spans = process_segment([child_span, segment_span])
+            assert len(processed_spans) == 0

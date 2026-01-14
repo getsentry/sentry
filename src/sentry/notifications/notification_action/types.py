@@ -1,5 +1,4 @@
 import logging
-import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
@@ -7,7 +6,6 @@ from typing import Any, NotRequired, Protocol, TypedDict
 
 from django.core.exceptions import ValidationError
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -38,7 +36,7 @@ from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
-from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -63,9 +61,7 @@ class LegacyRegistryHandler(ABC):
 
     @staticmethod
     @abstractmethod
-    def handle_workflow_action(
-        event_data: WorkflowEventData, action: Action, detector: Detector
-    ) -> None:
+    def handle_workflow_action(invocation: ActionInvocation) -> None:
         """
         Implement this method to handle the specific notification logic for your handler.
         """
@@ -194,50 +190,37 @@ class BaseIssueAlertHandler(ABC):
         }
 
         workflow_id = getattr(action, "workflow_id", None)
+        rule_id = None
 
         label = detector.name
-        # We need to pass the legacy rule id when the workflow-engine-ui-links feature flag is disabled
-        # This is so we can build the old link to the rule
-        if not features.has(
-            "organizations:workflow-engine-ui-links", detector.project.organization
-        ):
-            if workflow_id is None:
-                raise ValueError("Workflow ID is required when triggering an action")
+        # Build link to the rule if it exists, otherwise build link to the workflow.
+        # FE will handle redirection if necessary from rule -> workflow
 
-            # If test event, just set the legacy rule id to -1
-            if workflow_id == TEST_NOTIFICATION_ID:
-                data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
+        # If test event, just set the legacy rule id to -1
+        if workflow_id == TEST_NOTIFICATION_ID:
+            data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
+        elif workflow_id is not None:
+            data["actions"][0]["workflow_id"] = workflow_id
 
-            else:
+            # attempt to find legacy_rule_id from the alert rule workflow
+            alert_rule_workflow = AlertRuleWorkflow.objects.filter(
+                workflow_id=workflow_id,
+            ).first()
+            if alert_rule_workflow:
                 try:
-                    alert_rule_workflow = AlertRuleWorkflow.objects.get(
-                        workflow_id=workflow_id,
-                    )
-                except AlertRuleWorkflow.DoesNotExist:
-                    raise ValueError(
-                        "AlertRuleWorkflow not found when querying for AlertRuleWorkflow"
-                    )
-
-                if alert_rule_workflow.rule_id is None:
-                    raise ValueError("Rule not found when querying for AlertRuleWorkflow")
-
-                data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
-
-                # Get the legacy rule label
-                try:
-                    rule = Rule.objects.get(id=alert_rule_workflow.rule_id)
-                    label = rule.label
+                    label = Rule.objects.get(id=alert_rule_workflow.rule_id).label
+                    rule_id = alert_rule_workflow.rule_id
                 except Rule.DoesNotExist:
                     logger.exception(
                         "Rule not found when querying for AlertRuleWorkflow",
                         extra={"rule_id": alert_rule_workflow.rule_id},
                     )
-                    # We shouldn't fail badly here since we can still send the notification, so just set it to the rule id
-                    label = f"Rule {alert_rule_workflow.rule_id}"
 
-        # In the new UI, we need this for to build the link to the new rule in the notification action
-        else:
-            data["actions"][0]["workflow_id"] = workflow_id
+            if rule_id:
+                data["actions"][0]["legacy_rule_id"] = rule_id
+
+        if workflow_id is None and rule_id is None:
+            raise ValueError("Workflow ID or rule ID is required to fire notification")
 
         if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
             # mail action needs to have skipDigests set to True
@@ -310,12 +293,7 @@ class BaseIssueAlertHandler(ABC):
             callback(event_data.event, future)
 
     @classmethod
-    def invoke_legacy_registry(
-        cls,
-        event_data: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
+    def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
         """
         This method will create a rule instance from the Action model, and then invoke the legacy registry.
         This method encompasses the following logic in our legacy system:
@@ -323,18 +301,17 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
-        # Create a notification uuid
-        notification_uuid = str(uuid.uuid4())
-
         # Create a rule
-        rule = cls.create_rule_instance_from_action(action, detector, event_data)
+        rule = cls.create_rule_instance_from_action(
+            invocation.action, invocation.detector, invocation.event_data
+        )
 
         logger.info(
             "notification_action.execute_via_issue_alert_handler",
             extra={
-                "action_id": action.id,
-                "detector_id": detector.id,
-                "event_data": asdict(event_data),
+                "action_id": invocation.action.id,
+                "detector_id": invocation.detector.id,
+                "event_data": asdict(invocation.event_data),
                 "rule_id": rule.id,
                 "rule_project_id": rule.project.id,
                 "rule_environment_id": rule.environment_id,
@@ -343,14 +320,14 @@ class BaseIssueAlertHandler(ABC):
             },
         )
         # Get the futures
-        futures = cls.get_rule_futures(event_data, rule, notification_uuid)
+        futures = cls.get_rule_futures(invocation.event_data, rule, invocation.notification_uuid)
 
         # Execute the futures
         # If the rule id is -1, we are sending a test notification
         if rule.id == TEST_NOTIFICATION_ID:
-            cls.send_test_notification(event_data, futures)
+            cls.send_test_notification(invocation.event_data, futures)
         else:
-            cls.execute_futures(event_data, futures)
+            cls.execute_futures(invocation.event_data, futures)
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
@@ -473,14 +450,9 @@ class BaseMetricAlertHandler(ABC):
         return evidence_data, priority
 
     @classmethod
-    def invoke_legacy_registry(
-        cls,
-        event_data: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
+    def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
 
-        event = event_data.event
+        event = invocation.event_data.event
 
         # Extract evidence data and priority based on event type
         if isinstance(event, GroupEvent):
@@ -492,26 +464,24 @@ class BaseMetricAlertHandler(ABC):
                 "WorkflowEventData.event must be a GroupEvent or Activity to invoke metric alert legacy registry"
             )
 
-        notification_context = cls.build_notification_context(action)
+        notification_context = cls.build_notification_context(invocation.action)
         alert_context = cls.build_alert_context(
-            detector, evidence_data, event_data.group.status, priority
+            invocation.detector, evidence_data, invocation.event_data.group.status, priority
         )
 
         metric_issue_context = cls.build_metric_issue_context(
-            event_data.group, evidence_data, priority
+            invocation.event_data.group, evidence_data, priority
         )
-        open_period_context = cls.build_open_period_context(event_data.group)
+        open_period_context = cls.build_open_period_context(invocation.event_data.group)
 
-        trigger_status = cls.get_trigger_status(event_data.group)
-
-        notification_uuid = str(uuid.uuid4())
+        trigger_status = cls.get_trigger_status(invocation.event_data.group)
 
         logger.info(
             "notification_action.execute_via_metric_alert_handler",
             extra={
-                "action_id": action.id,
-                "detector_id": detector.id,
-                "event_data": asdict(event_data),
+                "action_id": invocation.action.id,
+                "detector_id": invocation.detector.id,
+                "event_data": asdict(invocation.event_data),
                 "notification_context": asdict(notification_context),
                 "alert_context": asdict(alert_context),
                 "metric_issue_context": asdict(metric_issue_context),
@@ -525,9 +495,9 @@ class BaseMetricAlertHandler(ABC):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=trigger_status,
-            notification_uuid=notification_uuid,
-            organization=detector.project.organization,
-            project=detector.project,
+            notification_uuid=invocation.notification_uuid,
+            organization=invocation.detector.project.organization,
+            project=invocation.detector.project,
         )
 
 

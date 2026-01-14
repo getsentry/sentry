@@ -15,6 +15,8 @@ import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insig
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
@@ -105,7 +107,7 @@ export function ModulesOnboardingPanel({
   return (
     <Panel>
       <Container>
-        <SplitMainContent>
+        <Flex align="stretch" wrap="wrap-reverse" gap="3xl">
           <ModuleInfo>
             <Fragment>
               <Header>{emptyStateContent.heading}</Header>
@@ -126,7 +128,7 @@ export function ModulesOnboardingPanel({
           <Sidebar>
             <PerfImage src={emptyStateImg} />
           </Sidebar>
-        </SplitMainContent>
+        </Flex>
         <LinkButton priority="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
@@ -152,7 +154,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>
           <div>{t('Supported Today: ')}</div>
-          <SupportedSdkList>
+          <Flex justify="center" wrap="wrap" gap="xs">
             {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
               <Tooltip title={getSDKName(sdk) ?? startCase(sdk)} key={sdk} position="top">
                 <SupportedSdkIconContainer
@@ -166,7 +168,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
                 </SupportedSdkIconContainer>
               </Tooltip>
             ))}
-          </SupportedSdkList>
+          </Flex>
         </SupportedSdkContainer>
       )}
     </ModulePreviewContainer>
@@ -188,13 +190,6 @@ const Container = styled('div')`
   overflow: hidden;
   min-height: 160px;
   padding: ${space(4)};
-`;
-
-const SplitMainContent = styled('div')`
-  display: flex;
-  align-items: stretch;
-  flex-wrap: wrap-reverse;
-  gap: ${space(4)};
 `;
 
 const Header = styled('h3')`
@@ -224,7 +219,7 @@ const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
   padding: ${space(3)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SupportedSdkContainer = styled('div')`
@@ -232,26 +227,19 @@ const SupportedSdkContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const SupportedSdkList = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-  justify-content: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SupportedSdkIconContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   width: 42px;
   height: 42px;
   border-radius: 3px;
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.gray200};
+    box-shadow: 0 0 0 1px ${p => p.theme.colors.gray200};
   }
 `;
 

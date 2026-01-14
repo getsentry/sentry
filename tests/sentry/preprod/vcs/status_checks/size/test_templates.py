@@ -6,6 +6,7 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
     PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
@@ -41,6 +42,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                     project=self.project,
                     state=state,
                     app_id="com.example.app",
+                )
+                PreprodArtifactMobileAppInfo.objects.create(
+                    preprod_artifact=artifact,
                     build_version="1.0.0",
                     build_number=1,
                 )
@@ -61,6 +65,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -74,6 +81,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -116,9 +126,13 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                     project=self.project,
                     state=PreprodArtifact.ArtifactState.UPLOADING,
                     app_id="com.example.app",
-                    build_version=version,
-                    build_number=build_number,
                 )
+                if version is not None or build_number is not None:
+                    PreprodArtifactMobileAppInfo.objects.create(
+                        preprod_artifact=artifact,
+                        build_version=version,
+                        build_number=build_number,
+                    )
 
                 title, subtitle, summary = format_status_check_messages(
                     [artifact], {}, StatusCheckStatus.IN_PROGRESS
@@ -135,15 +149,17 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 PreprodArtifact.ArtifactState.UPLOADED,
             ]
         ):
-            artifacts.append(
-                PreprodArtifact.objects.create(
-                    project=self.project,
-                    state=state,
-                    app_id=f"com.example.app{i}",
-                    build_version="1.0.0",
-                    build_number=i + 1,
-                )
+            artifact = PreprodArtifact.objects.create(
+                project=self.project,
+                state=state,
+                app_id=f"com.example.app{i}",
             )
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=artifact,
+                build_version="1.0.0",
+                build_number=i + 1,
+            )
+            artifacts.append(artifact)
 
         title, subtitle, summary = format_status_check_messages(
             artifacts, {}, StatusCheckStatus.IN_PROGRESS
@@ -161,6 +177,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -207,6 +226,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.processing",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="2.1.0",
             build_number=15,
         )
@@ -252,9 +274,12 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,
             app_id="com.example.app",
+            error_message="Build timeout",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
-            error_message="Build timeout",
         )
 
         title, subtitle, summary = format_status_check_messages(
@@ -300,6 +325,9 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.processed",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=processed_artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -320,6 +348,9 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,
             app_id="com.example.uploading",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=uploading_artifact,
             build_version="1.0.0",
             build_number=2,
         )
@@ -329,9 +360,12 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,
             app_id="com.example.failed",
+            error_message="Upload timeout",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=failed_artifact,
             build_version="1.0.0",
             build_number=3,
-            error_message="Upload timeout",
         )
         artifacts.append(failed_artifact)
 
@@ -362,6 +396,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
                 project=self.project,
                 state=PreprodArtifact.ArtifactState.PROCESSED,
                 app_id=f"com.example.app{i}",
+            )
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=artifact,
                 build_version="1.0.0",
                 build_number=i + 1,
             )
@@ -395,6 +432,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -452,6 +492,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -514,6 +557,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
             build_version="1.0.2",
             build_number=41,
         )
@@ -533,6 +579,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_artifact,
             build_version="1.0.3",
             build_number=42,
         )
@@ -570,6 +619,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -623,6 +675,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
             build_version="1.0.1",
             build_number=10,
         )
@@ -643,6 +698,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_artifact,
             build_version="1.0.2",
             build_number=11,
         )
@@ -691,9 +749,12 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=android_artifact,
             build_version="1.0.0",
             build_number=1,
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
         )
 
         android_size_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -721,9 +782,12 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=ios_artifact,
             build_version="1.0.0",
             build_number=1,
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
         )
 
         ios_size_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -752,17 +816,23 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=android_artifact,
             build_version="1.0.0",
             build_number=1,
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
         )
         ios_artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=ios_artifact,
             build_version="2.0.0",
             build_number=2,
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
         )
 
         android_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -844,9 +914,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
+            build_configuration=release_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_release_artifact,
             build_version="1.0.0",
             build_number=100,
-            build_configuration=release_config,
         )
 
         PreprodArtifactSizeMetrics.objects.create(
@@ -864,9 +937,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
+            build_configuration=debug_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_debug_artifact,
             build_version="1.0.0",
             build_number=100,
-            build_configuration=debug_config,
         )
 
         PreprodArtifactSizeMetrics.objects.create(
@@ -884,9 +960,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
+            build_configuration=debug_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_debug_artifact,
             build_version="1.0.1",
             build_number=101,
-            build_configuration=debug_config,
         )
 
         head_debug_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -945,9 +1024,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.release",
+            build_configuration=release_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
             build_version="1.0.0",
             build_number=50,
-            build_configuration=release_config,
         )
 
         PreprodArtifactSizeMetrics.objects.create(
@@ -965,9 +1047,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.release",
+            build_configuration=release_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_artifact,
             build_version="1.0.1",
             build_number=51,
-            build_configuration=release_config,
         )
 
         head_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -1018,9 +1103,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.nomatch",
+            build_configuration=release_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
             build_version="1.0.0",
             build_number=25,
-            build_configuration=release_config,
         )
 
         PreprodArtifactSizeMetrics.objects.create(
@@ -1038,9 +1126,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.nomatch",
+            build_configuration=debug_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_artifact,
             build_version="1.0.1",
             build_number=26,
-            build_configuration=debug_config,
         )
 
         head_metrics = PreprodArtifactSizeMetrics.objects.create(

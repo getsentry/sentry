@@ -204,12 +204,13 @@ const Subtitle = styled('p')`
 
 const Timestamp = styled('div')`
   margin-right: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   min-width: 50px;
   text-align: right;
   span {
-    text-decoration: underline dashed ${p => p.theme.translucentBorder};
+    text-decoration: underline dashed
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
@@ -223,7 +224,7 @@ const BreadcrumbItem = styled(Timeline.Item)`
     border-image: linear-gradient(
         to right,
         transparent 20px,
-        ${p => p.theme.translucentInnerBorder} 20px
+        ${p => p.theme.tokens.border.secondary} 20px
       )
       100% 1;
   }

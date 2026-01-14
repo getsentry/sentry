@@ -13,6 +13,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -68,6 +69,7 @@ export function ToolbarSaveAs() {
     () => dedupeArray(visualizes.filter(isVisualizeFunction).map(v => v.yAxis)),
     [visualizes]
   );
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
@@ -314,6 +316,7 @@ export function ToolbarSaveAs() {
                 sortBys,
                 yAxes: [visualizeYAxes[0]!],
                 chartType: visualizes[0]!.chartType,
+                caseInsensitive: caseInsensitive ? '1' : undefined,
               },
             ],
           })}
@@ -326,11 +329,11 @@ export function ToolbarSaveAs() {
 }
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;
 
 const StyledToolbarSection = styled(ToolbarSection)`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${space(3)};
 `;
 

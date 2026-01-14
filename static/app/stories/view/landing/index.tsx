@@ -4,8 +4,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
 import heroImg from 'sentry-images/stories/landing/robopigeon.png';
+
+import {Text} from '@sentry/scraps/text';
 
 import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -32,7 +33,7 @@ const frontmatter = {
     actions: [
       {
         children: 'Get Started',
-        to: '/stories/foundations/colors/',
+        to: '/stories/principles/tokens/',
         priority: 'primary',
       },
       {
@@ -99,10 +100,10 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/foundations/colors/`
+                  `/organizations/${organization.slug}/stories/principles/tokens/`
                 ),
               }}
-              title="Color"
+              title="Tokens"
             >
               <CardFigure>
                 <Colors />
@@ -111,7 +112,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/foundations/icons/`
+                  `/organizations/${organization.slug}/stories/principles/icons/`
                 ),
               }}
               title="Icons"
@@ -123,7 +124,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/foundations/typography/`
+                  `/organizations/${organization.slug}/stories/core/text/`
                 ),
               }}
               title="Typography"
@@ -135,13 +136,13 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/foundations/images/`
+                  `/organizations/${organization.slug}/stories/core/flex/`
                 ),
               }}
-              title="Images"
+              title="Layout"
             >
               <CardFigure>
-                <img src={performanceWaitingForSpan} />
+                <Text>Layout</Text>
               </CardFigure>
             </Card>
           </CardGrid>
@@ -247,7 +248,7 @@ const CardLink = styled(Link)`
   width: calc(100% * 3 / 5);
   aspect-ratio: 2/1;
   padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.tokens.border.muted};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;

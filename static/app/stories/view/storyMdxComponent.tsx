@@ -6,9 +6,10 @@ import {Alert, type AlertProps} from '@sentry/scraps/alert';
 import {Quote, type QuoteProps} from '@sentry/scraps/quote/quote';
 
 import {InlineCode} from 'sentry/components/core/code';
-import {Stack} from 'sentry/components/core/layout';
+import {Stack, type StackProps} from 'sentry/components/core/layout';
 import type {TextProps} from 'sentry/components/core/text/text';
 import {Text} from 'sentry/components/core/text/text';
+import * as Stories from 'sentry/stories';
 
 import {StoryHeading} from './storyHeading';
 
@@ -16,12 +17,12 @@ type HeadingProps = {
   children: React.ReactNode;
 };
 
-const calloutToAlertType: Record<string, AlertProps['type']> = {
+const calloutToAlertType: Record<string, AlertProps['variant']> = {
   tip: 'muted',
   note: 'info',
   important: 'success',
   warning: 'warning',
-  caution: 'error',
+  caution: 'danger',
 };
 
 // Heading levels shifted N+1 for proper semantics on /stories pages
@@ -47,7 +48,7 @@ export const storyMdxComponents = {
     const expand = props.isFoldable ? children : undefined;
     return (
       <Alert
-        type={calloutToAlertType[props.type.toLowerCase()] ?? 'muted'}
+        variant={calloutToAlertType[props.type.toLowerCase()] ?? 'muted'}
         expand={expand}
         defaultExpanded={!props.defaultFolded}
       >
@@ -59,8 +60,9 @@ export const storyMdxComponents = {
   p: (props: TextProps<'p'>) => (
     <Text as="p" size="md" density="comfortable" {...props} />
   ),
-  ul: (props: Omit<HTMLProps<HTMLUListElement>, 'wrap'>) => (
-    <Stack {...props} as="ul" gap="lg" />
+  ul: (props: Pick<StackProps<'ul'>, 'as'>) => (
+    <Stack margin="0" {...props} as="ul" gap="lg" />
   ),
   blockquote: (props: QuoteProps) => <Quote {...props} />,
+  table: Stories.Table,
 };

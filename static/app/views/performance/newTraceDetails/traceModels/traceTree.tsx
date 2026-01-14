@@ -521,7 +521,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           collectTraceMeasurements(
             tree,
             c,
-            c.space[0],
+            traceNode.traceOrigin || c.space[0],
             c.measurements,
             tree.vitals,
             tree.vital_types
@@ -676,7 +676,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           collectTraceMeasurements(
             tree,
             node,
-            baseTraceNode.space[0],
+            baseTraceNode.traceOrigin || baseTraceNode.space[0],
             node.measurements,
             this.vitals,
             this.vital_types
@@ -808,6 +808,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         tail.children[0]!.canAutogroup &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0]!.op !== 'default' &&
+        // skip gen_ai spans from autogrouping
+        !tail.children[0]!.op?.startsWith('gen_ai') &&
         tail.children[0]!.op === head.op
       ) {
         start = Math.min(start, tail.space[0]);
@@ -947,6 +949,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
           current.children.length === 0 &&
           // skip `op: default` spans as `default` is added to op-less spans
           next.op !== 'default' &&
+          // skip gen_ai spans from autogrouping
+          !next.op?.startsWith('gen_ai') &&
           next.op === current.op &&
           next.description === current.description
           // next.value.description === current.value.description

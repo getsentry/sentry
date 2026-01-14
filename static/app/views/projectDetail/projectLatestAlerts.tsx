@@ -61,7 +61,9 @@ function AlertRow({alert}: AlertRowProps) {
           ) : (
             <TimeSince
               date={dateStarted}
-              tooltipUnderlineColor={getStatusColor(statusProps)}
+              tooltipUnderlineColor={
+                isResolved ? 'success' : isWarning ? 'warning' : 'danger'
+              }
             />
           )}
         </AlertDate>
@@ -211,9 +213,6 @@ type StatusColorProps = {
   isWarning: boolean;
 };
 
-const getStatusColor = ({isResolved, isWarning}: StatusColorProps) =>
-  isResolved ? 'successText' : isWarning ? 'warningText' : 'errorText';
-
 const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
   display: flex;
   align-items: center;
@@ -226,7 +225,11 @@ const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
 const AlertDetails = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   margin-left: ${space(1.5)};
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.35;
 `;
 
@@ -237,7 +240,12 @@ const AlertTitle = styled('div')`
 `;
 
 const AlertDate = styled('span')<StatusColorProps>`
-  color: ${p => p.theme[getStatusColor(p)]};
+  color: ${p =>
+    p.isResolved
+      ? p.theme.tokens.content.success
+      : p.isWarning
+        ? p.theme.tokens.content.warning
+        : p.theme.tokens.content.danger};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

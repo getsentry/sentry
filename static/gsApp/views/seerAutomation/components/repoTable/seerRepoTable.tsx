@@ -11,7 +11,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
@@ -156,14 +156,24 @@ export default function SeerRepoTable() {
         setSearchTerm={setSearchTerm}
         sort={sort}
       >
-        {filteredRepositories.map(repository => (
-          <SeerRepoTableRow
-            key={repository.id}
-            mutateRepositorySettings={mutateRepositorySettings}
-            mutationData={mutationData}
-            repository={repository}
-          />
-        ))}
+        {filteredRepositories.length === 0 ? (
+          <SimpleTable.Empty>
+            {searchTerm
+              ? tct('No repositories found matching [searchTerm]', {
+                  searchTerm: <code>{searchTerm}</code>,
+                })
+              : t('No repositories found')}
+          </SimpleTable.Empty>
+        ) : (
+          filteredRepositories.map(repository => (
+            <SeerRepoTableRow
+              key={repository.id}
+              mutateRepositorySettings={mutateRepositorySettings}
+              mutationData={mutationData}
+              repository={repository}
+            />
+          ))
+        )}
       </RepoTable>
     </ListItemCheckboxProvider>
   );

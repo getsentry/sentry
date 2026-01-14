@@ -18,7 +18,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
-import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
@@ -33,17 +32,12 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
-import {
-  getCurrentLandingDisplay,
-  LandingDisplayField,
-} from 'sentry/views/performance/landing/utils';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
 import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
-import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
@@ -52,10 +46,9 @@ import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
-export type Props = {
+type Props = {
   currentTab: Tab;
   eventView: EventView;
-  hasWebVitals: 'maybe' | 'yes' | 'no';
   location: Location;
   organization: Organization;
   projectId: string;
@@ -75,7 +68,6 @@ function TransactionHeader({
   transactionName,
   onChangeThreshold,
   currentTab,
-  hasWebVitals,
 }: Props) {
   const {isInDomainView, view} = useDomainViewFilters();
   const navigate = useNavigate();
@@ -103,9 +95,6 @@ function TransactionHeader({
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
-        }
-        case Tab.WEB_VITALS: {
-          return vitalsRouteWithQuery(routeQuery);
         }
         case Tab.TRANSACTION_SUMMARY:
         default:
@@ -154,35 +143,6 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
-  const getWebVitals = useCallback(
-    (hasMeasurements: boolean) => {
-      switch (hasWebVitals) {
-        case 'maybe':
-          // need to check if the web vitals tab should be shown
-
-          // frontend projects should always show the web vitals tab
-          if (
-            getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_OTHER
-          ) {
-            return true;
-          }
-
-          // if it is not a frontend project, then we check to see if there
-          // are any web vitals associated with the transaction recently
-          return hasMeasurements;
-        case 'yes':
-          // always show the web vitals tab
-          return true;
-        case 'no':
-        default:
-          // never show the web vitals tab
-          return false;
-      }
-    },
-    [hasWebVitals, location, projects, eventView]
-  );
-
   // Hard-code 90d for the replay tab to surface more interesting data.
   const {getReplayCountForTransaction} = useReplayCountForTransactions({
     statsPeriod: '90d',
@@ -190,52 +150,22 @@ function TransactionHeader({
   const replaysCount = getReplayCountForTransaction(transactionName);
 
   const tabList = (
-    <HasMeasurementsQuery
-      location={location}
-      orgSlug={organization.slug}
-      eventView={eventView}
-      transaction={transactionName}
-      type="web"
-    >
-      {({hasMeasurements}) => {
-        const renderWebVitals = getWebVitals(!!hasMeasurements);
-
-        return (
-          <TabList
-            hideBorder
-            outerWrapStyles={{
-              gridColumn: '1 / -1',
-            }}
-          >
-            <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
-            <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-            <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-            <TabList.Item
-              key={Tab.WEB_VITALS}
-              textValue={t('Web Vitals')}
-              hidden={!renderWebVitals}
-            >
-              {t('Web Vitals')}
-            </TabList.Item>
-            <TabList.Item
-              key={Tab.REPLAYS}
-              textValue={t('Replays')}
-              hidden={!hasSessionReplay}
-            >
-              {t('Replays')}
-              <ReplayCountBadge count={replaysCount} />
-            </TabList.Item>
-            <TabList.Item
-              key={Tab.PROFILING}
-              textValue={t('Profiling')}
-              hidden={!hasProfiling}
-            >
-              {t('Profiles')}
-            </TabList.Item>
-          </TabList>
-        );
+    <TabList
+      outerWrapStyles={{
+        gridColumn: '1 / -1',
       }}
-    </HasMeasurementsQuery>
+    >
+      <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
+      <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
+      <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+      <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
+        {t('Replays')}
+        <ReplayCountBadge count={replaysCount} />
+      </TabList.Item>
+      <TabList.Item key={Tab.PROFILING} textValue={t('Profiling')} hidden={!hasProfiling}>
+        {t('Profiles')}
+      </TabList.Item>
+    </TabList>
   );
 
   const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
@@ -385,58 +315,40 @@ function TransactionHeader({
           <FeedbackButton />
         </ButtonBar>
       </Layout.HeaderActions>
-      <HasMeasurementsQuery
-        location={location}
-        orgSlug={organization.slug}
-        eventView={eventView}
-        transaction={transactionName}
-        type="web"
-      >
-        {({hasMeasurements}) => {
-          const renderWebVitals = getWebVitals(!!hasMeasurements);
-
-          return (
-            <TabList
-              hideBorder
-              outerWrapStyles={{
-                gridColumn: '1 / -1',
-              }}
-            >
-              <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
-              <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-              <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item
-                key={Tab.WEB_VITALS}
-                textValue={t('Web Vitals')}
-                hidden={!renderWebVitals}
-              >
-                {t('Web Vitals')}
-              </TabList.Item>
-              <TabList.Item
-                key={Tab.REPLAYS}
-                textValue={t('Replays')}
-                hidden={!hasSessionReplay}
-              >
-                {t('Replays')}
-                <ReplayCountBadge count={replaysCount} />
-              </TabList.Item>
-              <TabList.Item
-                key={Tab.PROFILING}
-                textValue={t('Profiling')}
-                hidden={!hasProfiling}
-              >
-                {t('Profiles')}
-              </TabList.Item>
-            </TabList>
-          );
+      <TabList
+        outerWrapStyles={{
+          gridColumn: '1 / -1',
         }}
-      </HasMeasurementsQuery>
+      >
+        <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
+        <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
+        <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+        <TabList.Item
+          key={Tab.REPLAYS}
+          textValue={t('Replays')}
+          hidden={!hasSessionReplay}
+        >
+          {t('Replays')}
+          <ReplayCountBadge count={replaysCount} />
+        </TabList.Item>
+        <TabList.Item
+          key={Tab.PROFILING}
+          textValue={t('Profiling')}
+          hidden={!hasProfiling}
+        >
+          {t('Profiles')}
+        </TabList.Item>
+      </TabList>
     </Layout.Header>
   );
 }
 
 const TransactionName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default TransactionHeader;

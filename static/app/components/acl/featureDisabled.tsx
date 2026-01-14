@@ -123,7 +123,7 @@ function FeatureDisabled({
   const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
   return (
     <Alert.Container>
-      <AlertComponent type="warning" expand={renderHelp()}>
+      <AlertComponent variant="warning" expand={renderHelp()}>
         {message}
       </AlertComponent>
     </Alert.Container>
@@ -159,12 +159,12 @@ const StyledIconChevron = styled(IconChevron)`
 `;
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.active};
+  color: ${p => p.theme.tokens.interactive.link.accent.active};
   height: ${p => p.theme.text.lineHeightBody}em;
   min-height: ${p => p.theme.text.lineHeightBody}em;
 
   &:hover {
-    color: ${p => p.theme.activeHover};
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 `;
 

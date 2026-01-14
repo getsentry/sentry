@@ -185,7 +185,7 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.gray400,
+          color: theme.colors.gray500,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -200,7 +200,7 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.purple400,
+          color: theme.tokens.content.accent,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -215,7 +215,7 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.red300,
+          color: theme.colors.red400,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}

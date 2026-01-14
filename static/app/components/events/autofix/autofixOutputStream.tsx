@@ -372,7 +372,7 @@ const Container = styled(motion.div)<{required: boolean}>`
   width: 100%;
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
 
   &:before {
     content: '';
@@ -381,7 +381,15 @@ const Container = styled(motion.div)<{required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => (p.required ? p.theme.pink400 : p.theme.active)}20,
+      color-mix(
+        in srgb,
+        ${p =>
+            p.required
+              ? p.theme.colors.pink500
+              : p.theme.tokens.interactive.link.accent.active}
+          12.5%,
+        transparent
+      ),
       transparent
     );
     background-size: 2000px 100%;
@@ -396,7 +404,7 @@ const StreamContent = styled('div')`
   padding: ${space(2)};
   white-space: pre-wrap;
   word-break: break-word;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   max-height: 35vh;
   overflow-y: auto;
   display: flex;
@@ -408,7 +416,7 @@ const ActiveLogWrapper = styled('div')`
   align-items: flex-start;
   justify-content: space-between;
   padding: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   gap: ${space(1)};
   overflow: visible;
 `;
@@ -422,7 +430,7 @@ const ActiveLog = styled('div')`
 const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
-  border-left: 1px dashed ${p => p.theme.border};
+  border-left: 1px dashed ${p => p.theme.tokens.border.primary};
   margin-left: 33px;
   margin-bottom: -1px;
 `;
@@ -435,12 +443,12 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   padding-right: ${space(4)};
   resize: none;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -452,7 +460,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SeerIconContainer = styled('div')`

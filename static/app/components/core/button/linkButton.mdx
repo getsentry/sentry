@@ -1,6 +1,7 @@
 ---
 title: LinkButton
 description: LinkButtons are clickable elements that navigate to a different URL or route while maintaining button styling and behavior.
+category: buttons
 source: 'sentry/components/core/button/linkButton'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
@@ -124,11 +125,10 @@ LinkButtons are available in the same sizes as regular buttons.
 
 LinkButtons support an optional leading icon, following the same patterns as regular buttons.
 
-<Alert type="info">
-  You do not typically need to set the `size` prop for the icon, the LinkButton wraps the
-  rendered Icon in a `IcconDefaultsProvider` to provide an icon size proportional to the
-  button size.
-</Alert>
+> [!TIP]
+> You do not typically need to set the `size` prop for the icon, the LinkButton wraps the
+> rendered Icon in a `IcconDefaultsProvider` to provide an icon size proportional to the
+> button size.
 
 <Storybook.Demo>
   <LinkButton icon={<IconOpen />} priority="primary" to="/dashboard">

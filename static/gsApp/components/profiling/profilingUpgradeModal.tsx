@@ -128,7 +128,7 @@ const Subheader = styled('h2')`
 `;
 
 const SubheaderPrimary = styled(Subheader)`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 const Header = styled('h1')`
@@ -155,7 +155,7 @@ const UpsellContent = styled('div')`
 `;
 
 const Note = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
 `;
 
@@ -249,7 +249,7 @@ function ActionButtons({
         {t('Update Now')}
       </Button>
       <LinkButton
-        to={`/settings/${organization.slug}/billing/checkout/?referrer=profiling_onboard_modal-owner-modal`}
+        to={`/checkout/${organization.slug}/?referrer=profiling_onboard_modal-owner-modal`}
         onClick={onClickManageSubscription}
       >
         {t('Manage Subscription')}

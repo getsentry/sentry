@@ -66,13 +66,15 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
       <InternalContainer>
         <TagWrapper>
           {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
-            <Tag type="default">{t('Legacy')}</Tag>
+            <Tag variant="muted">{t('Legacy')}</Tag>
           )}
           {identity.category !== UserIdentityCategory.ORG_IDENTITY && (
-            <Tag type="default">{identity.isLogin ? t('Sign In') : t('Integration')}</Tag>
+            <Tag variant="muted">
+              {identity.isLogin ? t('Sign In') : t('Integration')}
+            </Tag>
           )}
           {identity.organization && (
-            <Tag type="highlight">{identity.organization.slug}</Tag>
+            <Tag variant="info">{identity.organization.slug}</Tag>
           )}
         </TagWrapper>
 
@@ -84,7 +86,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             message={
               <Fragment>
                 <Alert.Container>
-                  <Alert type="error">
+                  <Alert variant="danger">
                     {tct('Disconnect Your [provider] Identity?', {
                       provider: identity.provider.name,
                     })}
@@ -251,7 +253,7 @@ const IdentityName = styled('div')`
 `;
 const IdentityDateTime = styled(DateTime)`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TagWrapper = styled('div')`

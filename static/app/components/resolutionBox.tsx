@@ -130,7 +130,7 @@ function ResolutionBox(props: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <StyledIconCheckmark color="successText" />
+        <StyledIconCheckmark variant="success" />
         <span>{renderResolutionReason(props)}</span>
       </BannerSummary>
     </BannerContainer>
@@ -138,16 +138,16 @@ function ResolutionBox(props: Props) {
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StreamlinedTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   font-size: inherit;
   text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.green400};
+  text-decoration-color: ${p => p.theme.colors.green500};
 `;
 
 const StyledIconCheckmark = styled(IconCheckmark)`
@@ -162,24 +162,24 @@ const StyledIconCheckmark = styled(IconCheckmark)`
 `;
 
 const StreamlinedVersion = styled(Version)`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   &:hover {
-    color: ${p => p.theme.green400};
+    color: ${p => p.theme.colors.green500};
     text-decoration: none;
   }
 `;
 
 const StreamlinedCommitLink = styled(CommitLink)`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   margin-right: ${space(0.5)};
   &:hover {
-    color: ${p => p.theme.green400};
+    color: ${p => p.theme.colors.green500};
     text-decoration: none;
   }
 `;

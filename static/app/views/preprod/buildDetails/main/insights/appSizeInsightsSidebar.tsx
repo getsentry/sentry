@@ -170,7 +170,7 @@ const Backdrop = styled(motion.div)`
 `;
 
 const Header = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ResizeHandle = styled(Flex)`
@@ -185,17 +185,16 @@ const ResizeHandle = styled(Flex)`
   cursor: ew-resize;
   background: transparent;
 
-  &:hover,
-  &[data-is-held='true'] {
-    background: ${p => p.theme.hover};
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
-
   &[data-is-held='true'] {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
     user-select: none;
   }
 
   svg {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     transform: rotate(90deg);
   }
 `;

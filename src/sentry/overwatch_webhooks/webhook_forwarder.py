@@ -16,16 +16,17 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
+from sentry.seer.code_review.utils import is_github_org_direct_to_seer
+from sentry.seer.code_review.utils import (
+    should_forward_to_overwatch as should_forward_to_overwatch_for_event,
+)
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
-GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
+# Installation webhooks are always forwarded (not configurable)
+_INSTALLATION_EVENTS = {
     GithubWebhookType.INSTALLATION,
     GithubWebhookType.INSTALLATION_REPOSITORIES,
-    GithubWebhookType.ISSUE_COMMENT,
-    GithubWebhookType.PULL_REQUEST,
-    GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
-    GithubWebhookType.PULL_REQUEST_REVIEW,
 }
 
 
@@ -51,14 +52,25 @@ class OverwatchGithubWebhookForwarder:
 
     def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
         event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
+        if event_type is None:
+            return False
+        try:
+            event_type_enum = GithubWebhookType(event_type)
+        except ValueError:
+            return False
+        # Installation events are always forwarded
+        is_installation = event_type_enum in _INSTALLATION_EVENTS
+        # Other events are controlled by options
+        should_forward = is_installation or should_forward_to_overwatch_for_event(event_type_enum)
         verbose_log(
             "overwatch.debug.should_forward_to_overwatch.checked",
             extra={
                 "event_type": event_type,
-                "should_forward": event_type in GITHUB_EVENTS_TO_FORWARD_OVERWATCH,
+                "should_forward": should_forward,
+                "is_installation": is_installation,
             },
         )
-        return event_type in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
+        return should_forward
 
     def _get_org_summaries_by_region_for_integration(
         self, integration: Integration
@@ -117,6 +129,7 @@ class OverwatchGithubWebhookForwarder:
 
         return org_contexts_by_region
 
+    # This is called from the middleware after the webhook has been processed by the integration webhook handler
     def forward_if_applicable(self, event: Mapping[str, Any], headers: Mapping[str, str]):
         region_name = None
         try:
@@ -143,6 +156,14 @@ class OverwatchGithubWebhookForwarder:
                         "orgs_by_region_empty": not orgs_by_region,
                         "event_in_forward_list": self.should_forward_to_overwatch(headers),
                     },
+                )
+                return
+
+            if is_github_org_direct_to_seer(event):
+                github_org = event.get("repository", {}).get("owner", {}).get("login")
+                verbose_log(
+                    "overwatch.debug.github_org_whitelisted_for_direct_to_seer",
+                    extra={"github_org": github_org},
                 )
                 return
 

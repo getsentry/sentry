@@ -15,6 +15,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
+    INGESTION_DELAY,
+    INGESTION_DELAY_MESSAGE,
     Row,
     SeriesMeta,
     StatsMeta,
@@ -24,6 +26,8 @@ from sentry.api.endpoints.timeseries import (
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -40,11 +44,13 @@ from sentry.snuba import (
     transactions,
 )
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -55,14 +61,11 @@ TOP_EVENTS_DATASETS = {
     spans_metrics,
     Spans,
     OurLogs,
+    PreprodSize,
     TraceMetrics,
     errors,
     transactions,
 }
-
-# Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
-INGESTION_DELAY = 90
-INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 
 def null_zero(value: float) -> float | None:
@@ -77,6 +80,18 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+
+    enforce_rate_limit = True
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=30, window=1, concurrent_limit=15),
+                RateLimitCategory.USER: RateLimit(limit=30, window=1, concurrent_limit=15),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=30, window=1, concurrent_limit=15),
+            }
+        }
+    )
 
     def get_features(
         self, organization: Organization, request: Request
@@ -236,6 +251,17 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
 
                 return TraceMetricsSearchResolverConfig(
                     metric=metric,
+                    auto_fields=False,
+                    use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation=request.GET.get(
+                        "disableAggregateExtrapolation", "0"
+                    )
+                    == "1",
+                    extrapolation_mode=extrapolation_mode,
+                )
+
+            if dataset == PreprodSize:
+                return PreprodSizeSearchResolverConfig(
                     auto_fields=False,
                     use_aggregate_conditions=True,
                     disable_aggregate_extrapolation=request.GET.get(

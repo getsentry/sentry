@@ -41,7 +41,7 @@ export function TimezoneOverride({
   );
 
   return (
-    <CompactSelect<Mode>
+    <CompactSelect
       size="xs"
       value={mode}
       position="bottom-end"
@@ -73,7 +73,7 @@ function TimezoneLabel({timezone}: {timezone: string}) {
 }
 
 const TimezoneName = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   display: flex;
   align-items: center;

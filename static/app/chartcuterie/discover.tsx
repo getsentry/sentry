@@ -364,8 +364,8 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
             current[i]![0] * 1000,
             countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
           ]),
-          lineStyle: {color: theme.gray200, type: 'dotted'},
-          itemStyle: {color: theme.gray200},
+          lineStyle: {color: theme.colors.gray200, type: 'dotted'},
+          itemStyle: {color: theme.colors.gray200},
         });
 
         return {

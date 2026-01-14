@@ -466,7 +466,7 @@ const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
 
   .react-grid-item.react-grid-placeholder {
-    background: ${p => p.theme.purple200};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-radius: ${p => p.theme.radius.md};
   }
 `;
@@ -476,7 +476,7 @@ const ResizeHandle = styled(Button)`
   z-index: 2;
   bottom: ${space(0.5)};
   right: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: nwse-resize;
 
   .react-resizable-hide & {

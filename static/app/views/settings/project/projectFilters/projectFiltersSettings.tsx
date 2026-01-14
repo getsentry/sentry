@@ -386,7 +386,7 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
             ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
-            <PanelAlert type="warning" data-test-id="error-message-disclaimer">
+            <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
               {t(
                 "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
@@ -653,7 +653,7 @@ const FilterGridItem = styled('div')`
   grid-template-columns: max-content 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1.5)};
 `;
@@ -670,7 +670,7 @@ const FilterTitle = styled('div')`
 `;
 
 const FilterDescription = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;

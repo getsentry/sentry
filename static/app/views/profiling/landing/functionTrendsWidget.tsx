@@ -153,7 +153,7 @@ export function FunctionTrendsWidget({
         )}
         {isError && (
           <StatusContainer>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </StatusContainer>
         )}
         {!isError && !isLoading && !hasTrends && (
@@ -516,9 +516,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 function getTrendLineColor(trend: TrendType, theme: Theme) {
   switch (trend) {
     case 'improvement':
-      return theme.green300;
+      return theme.colors.green400;
     case 'regression':
-      return theme.red300;
+      return theme.colors.red400;
     default:
       throw new Error('Unknown trend type');
   }
@@ -549,7 +549,7 @@ const FunctionTrendsChartContainer = styled('div')`
 `;
 
 const DurationChange = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   align-items: center;
   gap: ${space(1)};

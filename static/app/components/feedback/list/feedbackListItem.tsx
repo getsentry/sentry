@@ -137,25 +137,25 @@ export default function FeedbackListItem({
 
             {hasComments && (
               <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
-                <IconChat color="subText" size="xs" />
+                <IconChat variant="muted" size="xs" />
               </Tooltip>
             )}
 
             {hasLinkedError && (
               <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
-                <IconFatal color="dangerText" size="xs" />
+                <IconFatal variant="danger" size="xs" />
               </Tooltip>
             )}
 
             {hasReplayId && (
               <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-                <IconPlay size="xs" color="subText" />
+                <IconPlay size="xs" variant="muted" />
               </Tooltip>
             )}
 
             {hasAttachments && (
               <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
-                <IconImage size="xs" color="subText" />
+                <IconImage size="xs" variant="muted" />
               </Tooltip>
             )}
 
@@ -184,10 +184,11 @@ const LinkedFeedbackCard = styled(Link)`
     color: ${p => p.theme.tokens.content.primary};
   }
   &[data-selected='true'] {
-    background: ${p => p.theme.purple100};
-    border: 1px solid ${p => p.theme.purple200};
+    background: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border: 1px solid ${p => p.theme.tokens.border.transparent.accent.muted};
     border-radius: ${space(0.75)};
-    color: ${p => p.theme.purple300};
+    color: ${p => p.theme.tokens.interactive.transparent.accent.content.primary};
   }
 
   display: grid;
@@ -235,7 +236,7 @@ const DotRow = styled(Row)`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   border-radius: 50%;
 `;
 
@@ -256,7 +257,7 @@ const ContactRow = styled(TextOverflow)`
 
 const ShortId = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTimeSince = styled(TimeSince)`

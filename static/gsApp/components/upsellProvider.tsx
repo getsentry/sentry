@@ -211,7 +211,7 @@ function UpsellProvider({
               } else {
                 // for self-serve can send them to checkout
                 const baseUrl = subscription.canSelfServe
-                  ? `/settings/${organization.slug}/billing/checkout/`
+                  ? `/checkout/${organization.slug}/`
                   : `/settings/${organization.slug}/billing/overview/`;
                 browserHistory.push(`${normalizeUrl(baseUrl)}?referrer=upsell-${source}`);
               }

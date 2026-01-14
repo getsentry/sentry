@@ -159,7 +159,7 @@ function NoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <Tabs>
-        <TabList variant="floating" hideBorder>
+        <TabList variant="floating">
           <TabList.Item key="edit">{existingItem ? t('Edit') : t('Write')}</TabList.Item>
           <TabList.Item key="preview">{t('Preview')}</TabList.Item>
         </TabList>
@@ -254,9 +254,9 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   }
 
   return `
-  color: ${p.theme.error};
+  color: ${p.theme.tokens.content.danger};
   margin: -1px;
-  border: 1px solid ${p.theme.error};
+  border: 1px solid ${p.theme.tokens.content.danger};
   border-radius: ${p.theme.radius.md};
 
     &:before {
@@ -266,7 +266,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
       height: 0;
       border-top: 7px solid transparent;
       border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.red300};
+      border-right: 7px solid ${p.theme.colors.red400};
       position: absolute;
       left: -7px;
       top: 12px;
@@ -295,13 +295,13 @@ const NoteInputForm = styled('form')<{error?: string}>`
 
 const NoteInputPanel = styled(TabPanels)`
   ${textStyles}
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 `;
 
 const Footer = styled('div')`
   display: flex;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   justify-content: space-between;
   padding-left: ${space(1.5)};
 `;
@@ -317,8 +317,8 @@ const FooterButton = styled(Button)<{error?: boolean}>`
       &:active,
       &:focus,
       &:hover {
-        border-bottom-color: ${p.theme.error};
-        border-right-color: ${p.theme.error};
+        border-bottom-color: ${p.theme.tokens.content.danger};
+        border-right-color: ${p.theme.tokens.content.danger};
       }
     `}
 `;
@@ -327,7 +327,7 @@ const ErrorMessage = styled('span')`
   display: flex;
   align-items: center;
   height: 100%;
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: 0.9em;
 `;
 
@@ -335,7 +335,7 @@ const MarkdownIndicator = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const NotePreview = styled(MarkedText, {

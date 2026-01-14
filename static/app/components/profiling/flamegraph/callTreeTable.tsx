@@ -46,7 +46,7 @@ export const CallTreeTable = styled('div')`
     }
 
     &[tabindex='0'] {
-      background: ${p => p.theme.blue300};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
       color: #fff;
 
       .${CallTreeTableClassNames.WEIGHT} {
@@ -55,8 +55,8 @@ export const CallTreeTable = styled('div')`
       }
 
       .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
-        background-color: ${props => props.theme.yellow100};
-        border-bottom: 1px solid ${props => props.theme.yellow200};
+        background-color: ${props => props.theme.colors.yellow100};
+        border-bottom: 1px solid ${props => props.theme.colors.yellow200};
       }
 
       .${CallTreeTableClassNames.FRAME_TYPE} {
@@ -66,14 +66,14 @@ export const CallTreeTable = styled('div')`
     }
 
     &[data-hovered='true']:not([tabindex='0']) {
-      background: ${p => p.theme.surface200};
+      background: ${p => p.theme.colors.surface300};
     }
   }
 
   .${CallTreeTableClassNames.CELL} {
     position: relative;
     width: 164px;
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     display: flex;
     align-items: center;
     padding-right: ${space(1)};
@@ -98,7 +98,7 @@ export const CallTreeTable = styled('div')`
     display: inline-block;
     min-width: 7ch;
     padding-right: 0px;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     opacity: 1;
   }
   .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
@@ -106,8 +106,8 @@ export const CallTreeTable = styled('div')`
     position: absolute;
     right: 0;
     top: 0;
-    background-color: ${props => props.theme.yellow100};
-    border-bottom: 1px solid ${props => props.theme.yellow200};
+    background-color: ${props => props.theme.colors.yellow100};
+    border-bottom: 1px solid ${props => props.theme.colors.yellow200};
     transform-origin: center right;
     height: 100%;
     width: 100%;
@@ -120,7 +120,7 @@ export const CallTreeTable = styled('div')`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     opacity: ${_p => 1};
   }
 
@@ -151,7 +151,7 @@ export const CallTreeTable = styled('div')`
   .${CallTreeTableClassNames.GHOST_ROW_CELL} {
     width: 164px;
     height: 100%;
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     position: absolute;
     left: 0;
     top: 0;
@@ -210,7 +210,7 @@ export const CallTreeTableHeader = styled('div')`
 
   > div {
     position: relative;
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     background-color: ${p => p.theme.tokens.background.primary};
     white-space: nowrap;
 
@@ -219,7 +219,7 @@ export const CallTreeTableHeader = styled('div')`
     }
 
     &:not(:last-child) {
-      border-right: 1px solid ${p => p.theme.border};
+      border-right: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;
@@ -231,7 +231,7 @@ export const CallTreeTableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${space(1)};
   border: none;
-  background-color: ${props => props.theme.surface200};
+  background-color: ${props => props.theme.colors.surface300};
   transition: background-color 100ms ease-in-out;
   line-height: 29px;
 

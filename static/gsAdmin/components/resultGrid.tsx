@@ -376,7 +376,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
     return (
       <tr>
         <td colSpan={this.props.columns.length}>
-          <ErrorAlert type="error" showIcon>
+          <ErrorAlert variant="danger" showIcon>
             Something bad happened :/
           </ErrorAlert>
         </td>
@@ -579,7 +579,7 @@ export const SearchInput = styled(Input)`
   height: 100%;
 
   &:focus-visible {
-    box-shadow: inset 0 0 0 1px ${p => p.theme.focusBorder};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 

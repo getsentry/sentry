@@ -151,7 +151,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
-from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
@@ -719,8 +719,9 @@ class TwoFactorAPITestCase(APITestCase):
         return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
-        organization.flags.require_2fa = True
-        organization.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization.flags.require_2fa = True
+            organization.save()
 
     def api_enable_org_2fa(self, organization, user):
         self.login_as(user)
@@ -1186,6 +1187,14 @@ class SnubaTestCase(BaseTestCase):
             f"profile_functions_{i}": profile_function.SerializeToString()
             for i, profile_function in enumerate(profile_functions)
         }
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files=files,
+        )
+        assert response.status_code == 200
+
+    def store_eap_items(self, items: Sequence[TraceItem]) -> None:
+        files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
             settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files=files,
@@ -3404,11 +3413,7 @@ def span_to_trace_item(span) -> TraceItem:
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         timestamp=timestamp,
         trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(
-            16,
-            byteorder="little",
-            signed=False,
-        ),
+        item_id=hex_to_item_id(span["span_id"]),
         received=timestamp,
         retention_days=90,
         attributes=attributes,
@@ -3605,6 +3610,51 @@ class ProfileFunctionsTestCase(BaseTestCase, TraceItemTestCase):
             organization_id=organization.id,
             project_id=project.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+            timestamp=timestamp_proto,
+            trace_id=trace_id or uuid4().hex,
+            item_id=item_id.bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class TraceAttachmentTestCase(BaseTestCase, TraceItemTestCase):
+    def create_trace_attachment(
+        self,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+            assert organization is not None
+
+        if project is None:
+            project = self.project
+            assert project is not None
+
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+            assert timestamp is not None
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        item_id = self.random_item_id()
+
+        attributes_proto = {}
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
             timestamp=timestamp_proto,
             trace_id=trace_id or uuid4().hex,
             item_id=item_id.bytes,

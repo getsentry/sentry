@@ -7,7 +7,7 @@ import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -196,14 +196,14 @@ export default function Ai() {
     <Wrapper data-test-id="replay-details-ai-summary-tab">
       <Summary>
         <SummaryLeft>
-          <SummaryLeftTitle>
+          <Flex align="center" gap="md">
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
             </Flex>
-          </SummaryLeftTitle>
+          </Flex>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
-        <SummaryRight>
+        <Stack align="end" gap="md">
           <Flex gap="xs">
             <ThumbsUpDownButton type="positive" />
             <ThumbsUpDownButton type="negative" />
@@ -223,7 +223,7 @@ export default function Ai() {
           >
             {t('Regenerate')}
           </Button>
-        </SummaryRight>
+        </Stack>
       </Summary>
       <StyledTabItemContainer>
         <OverflowBody>
@@ -308,7 +308,7 @@ const Wrapper = styled('div')`
   flex-direction: column;
   flex-wrap: nowrap;
   min-height: 0;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -325,7 +325,7 @@ const Summary = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   gap: ${space(4)};
   justify-content: space-between;
 `;
@@ -339,25 +339,12 @@ const SummaryLeft = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const SummaryRight = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: flex-end;
-`;
-
-const SummaryLeftTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 const SummaryText = styled('p')`
   line-height: 1.6;
   white-space: pre-wrap;
   margin: 0;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
@@ -393,7 +380,7 @@ const EndStateContainer = styled('div')`
 
 const Subtext = styled(Text)`
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   display: flex;
   justify-content: center;

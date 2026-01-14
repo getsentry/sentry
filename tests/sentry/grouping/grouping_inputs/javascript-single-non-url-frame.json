@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "/Users/Maisey/dogs/are/great.js",
+        "filename": "great.js"
+      }
+    ]
+  },
+  "platform": "javascript"
+}

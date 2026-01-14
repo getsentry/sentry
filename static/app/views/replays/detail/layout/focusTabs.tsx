@@ -1,11 +1,10 @@
 import {useEffect, type ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {ExternalLink} from '@sentry/scraps/link/link';
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
@@ -113,7 +112,7 @@ export default function FocusTabs({isVideoReplay}: Props) {
   }, [organization, areAiFeaturesAllowed, isVideoReplay]);
 
   return (
-    <TabContainer>
+    <Stack wrap="nowrap" minWidth="0">
       <Tabs
         size="xs"
         value={activeTab}
@@ -127,7 +126,7 @@ export default function FocusTabs({isVideoReplay}: Props) {
           });
         }}
       >
-        <TabList hideBorder>
+        <TabList>
           {tabs.map(([tab, label]) => (
             <TabList.Item
               key={tab}
@@ -139,13 +138,6 @@ export default function FocusTabs({isVideoReplay}: Props) {
           ))}
         </TabList>
       </Tabs>
-    </TabContainer>
+    </Stack>
   );
 }
-
-const TabContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  min-width: 0;
-`;

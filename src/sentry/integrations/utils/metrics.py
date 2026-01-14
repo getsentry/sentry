@@ -422,10 +422,25 @@ class IntegrationPipelineViewEvent(IntegrationEventLifecycleMetric):
 
 
 class IntegrationWebhookEventType(StrEnum):
-    INSTALLATION = "installation"
-    PUSH = "push"
-    PULL_REQUEST = "pull_request"
+    """
+    Provider-agnostic event types for integration webhooks used for metrics tracking.
+
+    Enum names use generic SCM terminology:
+    - "merge request" instead of "pull request" (GitHub) or "merge request" (GitLab)
+    - "CI check" for continuous integration checks (GitHub Check Runs, GitLab Pipelines, etc.)
+
+    String values preserve original GitHub naming for backward compatibility with existing metrics.
+    """
+
+    CI_CHECK = "ci_check"  # e.g. GitHub Check Runs
+    # This represents a webhook event for an inbound sync operation, such as syncing external resources or data into Sentry.
     INBOUND_SYNC = "inbound_sync"
+    INSTALLATION = "installation"
+    ISSUE_COMMENT = "issue_comment"
+    MERGE_REQUEST = "pull_request"
+    MERGE_REQUEST_REVIEW = "pull_request_review"
+    MERGE_REQUEST_REVIEW_COMMENT = "pull_request_review_comment"
+    PUSH = "push"
 
 
 @dataclass

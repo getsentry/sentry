@@ -344,7 +344,7 @@ function stripNodeModulesPrefix(str: string): string {
 
 const StoryTableContainer = styled('div')`
   overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -361,11 +361,11 @@ const StoryTypesTable = styled('table')`
   table-layout: fixed;
 
   th {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.colors.surface300};
   }
 
   tr:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   td:first-child {
@@ -374,19 +374,19 @@ const StoryTypesTable = styled('table')`
 
   td:not(:last-child),
   th:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StoryTypesTableHeader = styled('thead')`
   tr {
-    background-color: ${p => p.theme.surface200};
-    border-bottom: 1px solid ${p => p.theme.border};
+    background-color: ${p => p.theme.colors.surface300};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StoryTypesTableHeaderCell = styled('th')`
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
   padding: ${p => p.theme.space.md};
 `;
 
@@ -398,7 +398,7 @@ const StoryTypesTableCell = styled('td')`
 const StoryTypesTableDefinitionCell = styled('td')`
   padding: ${p => p.theme.space.md};
   padding-left: 0;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
 
   button {
     margin-left: ${p => p.theme.space['2xs']};
@@ -422,5 +422,5 @@ const StoryPropDescription = styled('div')`
 `;
 
 const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;

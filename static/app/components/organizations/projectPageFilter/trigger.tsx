@@ -91,7 +91,7 @@ export function ProjectPageFilterTrigger({
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
       {remainingCount > 0 && (
-        <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+        <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
       )}
     </SelectTrigger.Button>
   );
@@ -103,7 +103,10 @@ const TriggerLabelWrap = styled('span')`
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   position: relative;
   width: auto;
 `;

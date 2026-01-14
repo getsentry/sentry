@@ -1,5 +1,7 @@
 import {useEffect, useState} from 'react';
 
+import type {Client} from 'sentry/api';
+import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -20,6 +22,84 @@ interface UseAITraceResult {
   nodes: AITraceSpanNode[];
 }
 
+/**
+ * Base attributes needed for AI trace display
+ */
+export const AI_TRACE_BASE_ATTRIBUTES = [
+  SpanFields.GEN_AI_AGENT_NAME,
+  SpanFields.GEN_AI_FUNCTION_ID,
+  SpanFields.GEN_AI_REQUEST_MODEL,
+  SpanFields.GEN_AI_RESPONSE_MODEL,
+  SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
+  SpanFields.GEN_AI_COST_TOTAL_TOKENS,
+  SpanFields.GEN_AI_TOOL_NAME,
+  SpanFields.GEN_AI_OPERATION_TYPE,
+  SpanFields.GEN_AI_OPERATION_NAME,
+  SpanFields.SPAN_STATUS,
+  'status',
+];
+
+/**
+ * Additional attributes needed for conversation messages display
+ */
+export const AI_CONVERSATION_ATTRIBUTES = [
+  SpanFields.GEN_AI_CONVERSATION_ID,
+  SpanFields.GEN_AI_REQUEST_MESSAGES,
+  SpanFields.GEN_AI_RESPONSE_TEXT,
+  SpanFields.GEN_AI_RESPONSE_OBJECT,
+  SpanFields.GEN_AI_RESPONSE_TOOL_CALLS,
+  SpanFields.USER_ID,
+  SpanFields.USER_EMAIL,
+  SpanFields.USER_USERNAME,
+  SpanFields.USER_IP,
+];
+
+/**
+ * Processes trace data to extract AI-related nodes.
+ * Builds a TraceTree, fetches children for fetchable nodes, then filters for AI nodes.
+ */
+export async function processTraceForAINodes(
+  traceData: TraceTree.Trace,
+  api: Client,
+  organization: Organization
+): Promise<AITraceSpanNode[]> {
+  const tree = TraceTree.FromTrace(traceData, {
+    meta: null,
+    replay: null,
+    preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+    organization,
+  });
+
+  tree.build();
+
+  const fetchableNodes = tree.root.findAllChildren(node => node.canFetchChildren);
+
+  const uniqueNodes = fetchableNodes.filter(
+    (node, index, array) => index === array.findIndex(n => n.id === node.id)
+  );
+
+  const fetchPromises = uniqueNodes.map(node =>
+    tree.fetchNodeSubTree(true, node, {
+      api,
+      organization,
+      preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+    })
+  );
+
+  await Promise.all(fetchPromises);
+
+  // Keep only transactions that include AI spans and the AI spans themselves
+  const flattenedNodes = tree.root.findAllChildren<AITraceSpanNode>(node => {
+    if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+      return false;
+    }
+
+    return getIsAiNode(node);
+  });
+
+  return flattenedNodes;
+}
+
 export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceResult {
   const [nodes, setNodes] = useState<AITraceSpanNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,19 +111,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
   const trace = useTrace({
     traceSlug,
     timestamp,
-    additionalAttributes: [
-      SpanFields.GEN_AI_AGENT_NAME,
-      SpanFields.GEN_AI_FUNCTION_ID,
-      SpanFields.GEN_AI_REQUEST_MODEL,
-      SpanFields.GEN_AI_RESPONSE_MODEL,
-      SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
-      SpanFields.GEN_AI_COST_TOTAL_TOKENS,
-      SpanFields.GEN_AI_TOOL_NAME,
-      SpanFields.GEN_AI_OPERATION_TYPE,
-      SpanFields.GEN_AI_OPERATION_NAME,
-      SpanFields.SPAN_STATUS,
-      'status',
-    ],
+    additionalAttributes: AI_TRACE_BASE_ATTRIBUTES,
   });
 
   useEffect(() => {

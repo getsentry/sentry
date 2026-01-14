@@ -17,7 +17,7 @@ type Props = React.PropsWithChildren<{
 function PerformanceNewProjectPrompt({organization}: Props) {
   return (
     <Alert.Container>
-      <StyledAlert type="info">
+      <StyledAlert variant="info">
         <Container>
           {t(
             `Performance is available for your platform, but your organization's plan does not include performance monitoring.`
@@ -67,7 +67,7 @@ const StyledAlert = styled(Alert)`
   margin-top: ${space(3)};
 
   ${StyledButton} svg {
-    color: ${p => p.theme.button.primary.color};
+    color: ${p => p.theme.colors.white};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {

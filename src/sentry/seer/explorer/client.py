@@ -18,6 +18,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     poll_until_done,
 )
+from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
 from sentry.seer.explorer.custom_tool_utils import ExplorerTool, extract_tool_schema
 from sentry.seer.explorer.on_completion_hook import (
     ExplorerOnCompletionHook,
@@ -140,6 +141,23 @@ class SeerExplorerClient:
                 pr_state = state.get_pr_state(repo_name)
                 if pr_state and pr_state.pr_url:
                     print(f"PR created: {pr_state.pr_url}")
+
+        # WITH EXTERNAL CODING AGENTS (e.g., Cursor)
+        client = SeerExplorerClient(organization, user)
+        run_id = client.start_run("Analyze the authentication bug")
+        state = client.get_run(run_id, blocking=True)
+
+        result = client.launch_coding_agents(
+            run_id=run_id,
+            integration_id=cursor_integration_id,
+            prompt="Fix the null pointer exception in auth.py. Focus on error handling.",
+            repos=["getsentry/sentry"],
+            branch_name_base="fix-auth-bug",
+        )
+
+        for success in result["successes"]:
+            agent_url = success["coding_agent_state"].get("agent_url")
+            print(f"Coding agent launched: {agent_url}")
     ```
 
         Args:
@@ -194,6 +212,8 @@ class SeerExplorerClient:
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
+        conduit_channel_id: str | None = None,
+        conduit_url: str | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -204,6 +224,8 @@ class SeerExplorerClient:
             artifact_key: Optional key to identify this artifact (required if artifact_schema is provided)
             artifact_schema: Optional Pydantic model to generate a structured artifact
             metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
+            conduit_channel_id: Optional Conduit channel ID for streaming
+            conduit_url: Optional Conduit URL for streaming
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -251,6 +273,11 @@ class SeerExplorerClient:
         if metadata:
             payload["metadata"] = metadata
 
+        # Add conduit params for streaming if provided
+        if conduit_channel_id and conduit_url:
+            payload["conduit_channel_id"] = conduit_channel_id
+            payload["conduit_url"] = conduit_url
+
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
         response = requests.post(
@@ -274,6 +301,8 @@ class SeerExplorerClient:
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        conduit_channel_id: str | None = None,
+        conduit_url: str | None = None,
     ) -> int:
         """
         Continue an existing Seer Explorer session. This allows you to add follow-up queries to an ongoing conversation.
@@ -285,6 +314,8 @@ class SeerExplorerClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key for a new artifact to generate in this step
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
+            conduit_channel_id: Optional Conduit channel ID for streaming
+            conduit_url: Optional Conduit URL for streaming
 
         Returns:
             int: The run ID (same as input)
@@ -312,6 +343,11 @@ class SeerExplorerClient:
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        # Add conduit params for streaming if provided
+        if conduit_channel_id and conduit_url:
+            payload["conduit_channel_id"] = conduit_channel_id
+            payload["conduit_url"] = conduit_url
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
@@ -482,3 +518,39 @@ class SeerExplorerClient:
                 raise TimeoutError(f"PR creation timed out after {poll_timeout}s")
 
             time.sleep(poll_interval)
+
+    def launch_coding_agents(
+        self,
+        run_id: int,
+        integration_id: int,
+        prompt: str,
+        repos: list[str],
+        branch_name_base: str = "seer",
+        auto_create_pr: bool = False,
+    ) -> dict[str, list]:
+        """
+        Launch coding agents for an Explorer run.
+
+        This triggers coding agents (e.g., Cursor) to work on code changes.
+        The caller provides the prompt and target repos.
+
+        Args:
+            run_id: The Explorer run ID (used to store coding agent state)
+            integration_id: The coding agent integration ID
+            prompt: The instruction/prompt for the coding agent
+            repos: List of repo names to target (format: "owner/name")
+            branch_name_base: Base name for the branch (random suffix will be added)
+            auto_create_pr: Whether to automatically create a PR when agent finishes
+
+        Returns:
+            Dictionary with 'successes' and 'failures' lists
+        """
+        return launch_coding_agents(
+            organization=self.organization,
+            integration_id=integration_id,
+            run_id=run_id,
+            prompt=prompt,
+            repos=repos,
+            branch_name_base=branch_name_base,
+            auto_create_pr=auto_create_pr,
+        )

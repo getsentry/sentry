@@ -75,19 +75,6 @@ class PostProcessJob(TypedDict, total=False):
     has_escalated: bool
 
 
-def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
-    from sentry.sentry_apps.models.servicehook import ServiceHook
-
-    cache_key = f"servicehooks:1:{project_id}"
-    result = cache.get(cache_key)
-
-    if result is None:
-        hooks = ServiceHook.objects.filter(servicehookproject__project_id=project_id)
-        result = [(h.id, h.events) for h in hooks]
-        cache.set(cache_key, result, 60)
-    return result
-
-
 def _should_send_error_created_hooks(project):
     from sentry.models.organization import Organization
     from sentry.sentry_apps.models.servicehook import ServiceHook
@@ -242,6 +229,7 @@ def handle_owner_assignment(job):
         ASSIGNEE_EXISTS_KEY,
         ISSUE_OWNERS_DEBOUNCE_DURATION,
         ISSUE_OWNERS_DEBOUNCE_KEY,
+        GroupOwner,
     )
     from sentry.models.projectownership import ProjectOwnership
 
@@ -263,11 +251,25 @@ def handle_owner_assignment(job):
         return
 
     issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
-    debounce_issue_owners = cache.get(issue_owners_key)
+    issue_owners_debounce_time = cache.get(issue_owners_key)
 
-    if debounce_issue_owners:
-        metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
-        return
+    # Debounce check with timestamp-based invalidation:
+    # - issue_owners_debounce_time is None: no debounce, process ownership
+    # - issue_owners_debounce_time is True: legacy format, debounce (backwards compatibility)
+    # - issue_owners_debounce_time is float: compare timestamps
+    #   - If ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time: debounce
+    #   - If ownership_changed_at >= issue_owners_debounce_time: ownership rules changed, re-evaluate
+    if issue_owners_debounce_time is not None:
+        # TODO(shashank): once rolled out for 24hrs, remove this legacy cache format check and the comment line above. prob will need to remove some tests in test_post_process.py as well.
+        if issue_owners_debounce_time is True:
+            # Backwards compatibility: old cache format, debounce
+            metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
+            return
+
+        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+        if ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time:
+            metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
+            return
 
     if should_issue_owners_ratelimit(
         project_id=project.id,
@@ -299,7 +301,7 @@ def handle_owner_assignment(job):
         issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
         cache.set(
             issue_owners_key,
-            True,
+            timezone.now().timestamp(),
             ISSUE_OWNERS_DEBOUNCE_DURATION,
         )
 
@@ -1211,23 +1213,13 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
+    if _should_single_process_event(job):
+        # we will kick off service hooks in the workflow engine task
+        return
 
-    event, has_alert = job["event"], job["has_alert"]
+    from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 
-    if features.has("projects:servicehooks", project=event.project):
-        allowed_events = {"event.created"}
-        if has_alert:
-            allowed_events.add("event.alert")
-
-        for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-            if any(e in allowed_events for e in events):
-                process_service_hook.delay(
-                    servicehook_id=servicehook_id,
-                    project_id=event.project_id,
-                    group_id=event.group_id,
-                    event_id=event.event_id,
-                )
+    kick_off_service_hooks(job["event"], job["has_alert"])
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:

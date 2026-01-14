@@ -41,21 +41,21 @@ export function FilterWrapper({children, ...props}: FilterWrapperProps) {
 const StyledFilterWrapper = styled(Container)<{state: 'invalid' | 'warning' | 'valid'}>`
   :focus,
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
-    border-color: ${p => p.theme.tokens.border.accent};
+    background-color: ${p => p.theme.colors.gray100};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
     outline: none;
   }
 
   ${p =>
     p.state === 'invalid'
       ? css`
-          border-color: ${p.theme.red200};
-          background-color: ${p.theme.red100};
+          border-color: ${p.theme.colors.red200};
+          background-color: ${p.theme.colors.red100};
         `
       : p.state === 'warning'
         ? css`
-            border-color: ${p.theme.gray300};
-            background-color: ${p.theme.gray100};
+            border-color: ${p.theme.colors.gray400};
+            background-color: ${p.theme.colors.gray100};
           `
         : ''}
 `;

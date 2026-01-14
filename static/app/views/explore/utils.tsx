@@ -6,6 +6,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -53,6 +54,24 @@ import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
+export interface GetExploreUrlArgs {
+  organization: Organization;
+  aggregateField?: Array<GroupBy | BaseVisualize>;
+  caseInsensitive?: CaseInsensitive;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sort?: string;
+  table?: 'trace' | 'attribute_breakdowns';
+  title?: string;
+  visualize?: BaseVisualize[];
+}
+
 export function getExploreUrl({
   organization,
   selection,
@@ -68,22 +87,8 @@ export function getExploreUrl({
   table,
   title,
   referrer,
-}: {
-  organization: Organization;
-  aggregateField?: Array<GroupBy | BaseVisualize>;
-  field?: string[];
-  groupBy?: string[];
-  id?: number;
-  interval?: string;
-  mode?: Mode;
-  query?: string;
-  referrer?: string;
-  selection?: PageFilters;
-  sort?: string;
-  table?: string;
-  title?: string;
-  visualize?: BaseVisualize[];
-}) {
+  caseInsensitive,
+}: GetExploreUrlArgs) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
@@ -105,6 +110,7 @@ export function getExploreUrl({
     table,
     title,
     referrer,
+    caseInsensitive: caseInsensitive ? '1' : undefined,
   };
 
   return (
@@ -143,6 +149,7 @@ function getExploreUrlFromSavedQueryUrl({
           yAxes: (visualize?.yAxes ?? []).slice(),
           groupBys: groupBys ?? [],
           sortBys: decodeSorts(q.orderby),
+          caseInsensitive: q.caseInsensitive ? '1' : null,
         };
       }),
       title: savedQuery.name,
@@ -158,6 +165,7 @@ function getExploreUrlFromSavedQueryUrl({
       },
     });
   }
+
   return getExploreUrl({
     organization,
     ...savedQuery,
@@ -210,15 +218,17 @@ export function getExploreMultiQueryUrl({
     start,
     end,
     interval,
-    queries: queries.map(({chartType, fields, groupBys, query, sortBys, yAxes}) =>
-      JSON.stringify({
-        chartType,
-        fields,
-        groupBys,
-        query,
-        sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
-        yAxes,
-      })
+    queries: queries.map(
+      ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>
+        JSON.stringify({
+          chartType,
+          fields,
+          groupBys,
+          query,
+          sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
+          yAxes,
+          caseInsensitive: caseInsensitive ? '1' : undefined,
+        })
     ),
     title,
     id,

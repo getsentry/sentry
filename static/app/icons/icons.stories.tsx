@@ -1,5 +1,4 @@
 import React, {Fragment, isValidElement} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import lowerFirst from 'lodash/lowerFirst';
 import {parseAsString, useQueryState} from 'nuqs';
@@ -14,6 +13,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
+import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -90,13 +90,6 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['stack', 'versions', 'deploy', 'deployment'],
         name: 'Releases',
-        defaultProps: {},
-      },
-      {
-        id: 'archive',
-        groups: ['product'],
-        keywords: ['box', 'storage', 'old', 'save'],
-        name: 'Archive',
         defaultProps: {},
       },
       {
@@ -309,7 +302,7 @@ const SECTIONS: TSection[] = [
         id: 'github',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'microsoft'],
-        name: 'Github',
+        name: 'GitHub',
         defaultProps: {},
       },
       {
@@ -366,13 +359,6 @@ const SECTIONS: TSection[] = [
         groups: ['logo'],
         keywords: ['deploy', 'hosting', 'frontend'],
         name: 'Vercel',
-        defaultProps: {},
-      },
-      {
-        id: 'teamwork',
-        groups: ['logo'],
-        keywords: ['project', 'collaboration', 'management'],
-        name: 'Teamwork',
         defaultProps: {},
       },
       {
@@ -946,13 +932,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'archive',
-        groups: ['product'],
-        keywords: [],
-        name: 'Archive',
-        defaultProps: {},
-      },
-      {
         id: 'play',
         groups: ['action'],
         keywords: ['video', 'audio', 'unpause'],
@@ -1449,13 +1428,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'laptop',
-        groups: ['device'],
-        keywords: ['computer', 'macbook', 'notebook', 'portable'],
-        name: 'Laptop',
-        defaultProps: {},
-      },
-      {
         id: 'mobile',
         groups: ['device'],
         keywords: ['phone', 'iphone', 'smartphone', 'cell'],
@@ -1523,7 +1495,6 @@ const SECTIONS: TSection[] = [
 ];
 
 export default function IconsStories() {
-  const theme = useTheme();
   const [searchTerm, setSearchTerm] = useQueryState(
     'search',
     parseAsString.withDefault('')
@@ -1543,11 +1514,15 @@ export default function IconsStories() {
       .map((name): TIcon => ({id: name, name})),
   };
 
-  const allIcons: TIcon[] = SECTIONS.flatMap(section => section.icons);
-
-  const variants = Object.keys(theme.tokens.content);
-  const shuffled = [...allIcons].sort(() => Math.random() - 0.5);
-  const picked = shuffled.slice(0, variants.length);
+  const variants: Array<SVGIconProps['variant']> = [
+    'primary',
+    'muted',
+    'accent',
+    'success',
+    'warning',
+    'danger',
+    'promotion',
+  ];
 
   return (
     <Fragment>
@@ -1578,6 +1553,7 @@ export default function IconsStories() {
       <Heading as="h5" size="xl" variant="primary">
         Icon Variants
       </Heading>
+
       <Text as="p" density="comfortable" size="md" variant="primary">
         Just like other Core components, Icons support a set of variants that control the
         color of the icon. The full list of variants is{' '}
@@ -1590,20 +1566,16 @@ export default function IconsStories() {
         .
       </Text>
       <Flex direction="row" gap="md" justify="between" width="100%">
-        {picked
-          .map((icon, idx) => {
-            const variant = variants[idx % variants.length]!;
-            const IconComponent = (Icons as any)[`Icon${icon.name}`];
-            return (
-              <Stack key={idx} align="center" gap="xs">
-                <IconComponent size="md" variant={variant} />
-                <Text as="span" size="xs" align="center">
-                  {variant}
-                </Text>
-              </Stack>
-            );
-          })
-          .filter(Boolean)}
+        {variants.map(v => (
+          <Stack key={v} align="center" gap="md">
+            <Icons.IconSentry size="md" variant={v} />
+            <InlineCode>
+              <Text size="xs" monospace>
+                {v}
+              </Text>
+            </InlineCode>
+          </Stack>
+        ))}
       </Flex>
       {SECTIONS.map(section => (
         <CoreSection searchTerm={searchTerm} key={section.id} section={section} />
@@ -1877,7 +1849,7 @@ function IconCard(props: IconCardProps) {
           <Flex gap="lg">
             <Flex align="center" gap="sm">
               <Tag
-                type={action === 'element' ? 'info' : 'default'}
+                variant={action === 'element' ? 'info' : 'muted'}
                 style={{width: 'max-content'}}
               >
                 click
@@ -1891,7 +1863,7 @@ function IconCard(props: IconCardProps) {
               </Text>
             </Flex>
             <Flex align="center" gap="sm">
-              <Tag type={action === 'import' ? 'info' : 'default'}>shift+click</Tag>
+              <Tag variant={action === 'import' ? 'info' : 'muted'}>shift+click</Tag>
               <Text
                 monospace
                 size="sm"

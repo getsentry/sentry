@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconGrabbable} from 'sentry/icons';
@@ -128,7 +130,7 @@ export function IssueViewItem({
               }}
             >
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
-              <IconGrabbable color="gray300" />
+              <IconGrabbable variant="muted" />
             </GrabHandleWrapper>
             <ProjectIcon
               projectPlatforms={projectPlatforms}
@@ -137,9 +139,9 @@ export function IssueViewItem({
           </LeadingItemsWrapper>
         }
         trailingItems={
-          <TrailingItemsWrapper>
+          <Flex align="center">
             <IssueViewQueryCount view={view} isActive={isActive} />
-          </TrailingItemsWrapper>
+          </Flex>
         }
         onPointerDown={e => {
           e.preventDefault();
@@ -212,18 +214,13 @@ const StyledReorderItem = styled(Reorder.Item, {
   shouldForwardProp: prop => prop !== 'grabbing',
 })<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
+  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
   border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   height: 120%;
   border-radius: 4px;
-`;
-
-const TrailingItemsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
@@ -256,8 +253,8 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   }
 
   border-radius: 50%;
-  background: ${p => p.theme.purple400};
-  border: solid 2px ${p => p.theme.surface200};
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
+  border: solid 2px ${p => p.theme.colors.surface300};
   position: absolute;
   width: 10px;
   height: 10px;
@@ -287,5 +284,9 @@ const GrabHandleWrapper = styled(motion.div)`
 `;
 
 const TruncatedTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

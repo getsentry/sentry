@@ -275,7 +275,7 @@ function MiniBarChart({
   ...props
 }: Props) {
   const theme = useTheme();
-  const xAxisLineColor: string = theme.tokens.graphics.muted;
+  const xAxisLineColor: string = theme.tokens.border.transparent.neutral.muted;
 
   const updatedSeries: BarChartSeries[] = useMemo(() => {
     if (!series?.length) {
@@ -288,7 +288,11 @@ function MiniBarChart({
 
     const colorList = Array.isArray(colors)
       ? colors
-      : [theme.gray300, theme.purple300, theme.purple300];
+      : [
+          theme.tokens.dataviz.semantic.neutral,
+          theme.tokens.dataviz.semantic.accent,
+          theme.tokens.dataviz.semantic.accent,
+        ];
 
     for (let i = 0; i < series.length; i++) {
       const original = series[i]!;
@@ -319,7 +323,14 @@ function MiniBarChart({
       chartSeries.push(updated);
     }
     return chartSeries;
-  }, [series, emphasisColors, stacked, colors, theme.gray300, theme.purple300]);
+  }, [
+    series,
+    emphasisColors,
+    stacked,
+    colors,
+    theme.tokens.dataviz.semantic.neutral,
+    theme.tokens.dataviz.semantic.accent,
+  ]);
 
   const chartOptions = useMemo(() => {
     const yAxisOptions = labelYAxisExtents

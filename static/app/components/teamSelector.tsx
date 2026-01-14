@@ -1,7 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
@@ -25,25 +28,20 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
-const UnassignedWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledIconUser = styled(IconUser)`
   margin-left: ${space(0.25)};
   margin-right: ${space(1)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 // An option to be unassigned on the team dropdown
 const unassignedOption = {
   value: null,
   label: (
-    <UnassignedWrapper>
+    <Flex align="center">
       <StyledIconUser size="md" />
       {t('Unassigned')}
-    </UnassignedWrapper>
+    </Flex>
   ),
   searchKey: 'unassigned',
   actor: null,
@@ -63,43 +61,34 @@ const filterOption = (canditate: any, input: any) =>
 const getOptionValue = (option: TeamOption) => option.value;
 
 // Ensures that the svg icon is white when selected
-const unassignedSelectStyles: StylesConfig = {
-  option: (provided, state) => {
-    // XXX: The `state.theme` is an emotion theme object, but it is not typed
-    // as the emotion theme object in react-select
-    const theme = state.theme as unknown as Theme;
+const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
+  option: (provided, state) => ({
+    ...provided,
+    svg: {color: state.isSelected ? theme.white : undefined},
+  }),
+});
 
-    return {...provided, svg: {color: state.isSelected ? theme.white : undefined}};
-  },
-};
-
-const placeholderSelectStyles: StylesConfig = {
-  input: (provided, state) => {
-    // XXX: The `state.theme` is an emotion theme object, but it is not typed
-    // as the emotion theme object in react-select
-    const theme = state.theme as unknown as Theme;
-
-    return {
-      ...provided,
-      display: 'grid',
-      gridTemplateColumns: 'max-content 1fr',
-      alignItems: 'center',
-      gridGap: space(1),
-      ':before': {
-        backgroundColor: theme.backgroundSecondary,
-        height: 24,
-        width: 24,
-        borderRadius: 3,
-        content: '""',
-        display: 'block',
-      },
-    };
-  },
+const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
+  input: provided => ({
+    ...provided,
+    display: 'grid',
+    gridTemplateColumns: 'max-content 1fr',
+    alignItems: 'center',
+    gridGap: space(1),
+    ':before': {
+      backgroundColor: theme.tokens.background.secondary,
+      height: 24,
+      width: 24,
+      borderRadius: 3,
+      content: '""',
+      display: 'block',
+    },
+  }),
   placeholder: provided => ({
     ...provided,
     paddingLeft: 32,
   }),
-};
+});
 
 interface Props extends ControlProps {
   onChange: (value: any) => any;
@@ -142,6 +131,7 @@ export interface TeamOption extends GeneralSelectValue {
 }
 
 export function TeamSelector(props: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {
     allowCreate,
@@ -364,11 +354,11 @@ export function TeamSelector(props: Props) {
 
   const styles = useMemo(
     () => ({
-      ...(includeUnassigned ? unassignedSelectStyles : {}),
-      ...(multiple ? {} : placeholderSelectStyles),
+      ...(includeUnassigned ? getUnassignedSelectStyles(theme) : {}),
+      ...(multiple ? {} : getPlaceholderSelectStyles(theme)),
       ...stylesProp,
     }),
-    [includeUnassigned, multiple, stylesProp]
+    [includeUnassigned, multiple, stylesProp, theme]
   );
 
   useEffect(() => {

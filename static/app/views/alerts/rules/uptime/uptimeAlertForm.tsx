@@ -357,7 +357,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             />
           </ConfigurationPanel>
           <Alert.Container>
-            <Alert type="muted">
+            <Alert variant="muted">
               {tct(
                 'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
                 {
@@ -480,7 +480,7 @@ const AlertListItem = styled(ListItem)`
 
 const ListItemSubText = styled(Text)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FormRow = styled('div')`

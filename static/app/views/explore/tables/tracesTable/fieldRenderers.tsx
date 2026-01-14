@@ -3,7 +3,10 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -11,11 +14,13 @@ import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import TimeSince from 'sentry/components/timeSince';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -28,7 +33,12 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import type {Field} from './data';
-import {getShortenedSdkName, getStylingSliceName} from './utils';
+import {
+  getShortenedSdkName,
+  getSimilarEventsUrl,
+  getStylingSliceName,
+  isPartialSpanOrTraceData,
+} from './utils';
 
 export const ProjectBadgeWrapper = styled('span')`
   /**
@@ -86,7 +96,7 @@ export function ProjectsRenderer({
         <Tooltip
           skipWrapper
           title={
-            <CollapsedProjects>
+            <Stack gap="xs" width="200px">
               {tn(
                 'This trace contains %s more project.',
                 'This trace contains %s more projects.',
@@ -95,7 +105,7 @@ export function ProjectsRenderer({
               {collapsedProjectAvatars.map(project => (
                 <ProjectBadge key={project.slug} project={project} avatarSize={16} />
               ))}
-            </CollapsedProjects>
+            </Stack>
           }
         >
           <CollapsedBadge size={20} fontSize={10} data-test-id="collapsed-projects-badge">
@@ -126,13 +136,6 @@ const ProjectList = styled('div')`
   padding-right: 8px;
 `;
 
-const CollapsedProjects = styled('div')`
-  width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const AvatarStyle = (p: any) => css`
   border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
@@ -156,8 +159,8 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   position: relative;
   text-align: center;
   font-weight: ${p => p.theme.fontWeight.bold};
-  background-color: ${p => p.theme.gray200};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.colors.gray200};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.fontSize}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
@@ -191,7 +194,10 @@ function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
 }
 
 const WrappingText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 
@@ -200,7 +206,7 @@ export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   display: flex;
   min-width: 200px;
   height: 15px;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   ${p => `--hoveredSlice-${p.hoveredIndex ?? -1}-translateY: translateY(-3px)`};
 `;
 
@@ -321,7 +327,7 @@ export function SpanBreakdownSliceRenderer({
   const stylingSliceName = getStylingSliceName(sliceName, sliceSecondaryName);
   const sliceColor = stylingSliceName
     ? pickBarColor(stylingSliceName, theme)
-    : theme.gray100;
+    : theme.colors.gray100;
 
   const sliceWidth =
     sliceNumberWidth === undefined
@@ -370,7 +376,7 @@ export function SpanBreakdownSliceRenderer({
 
 const Subtext = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 const FlexContainer = styled('div')`
   display: flex;
@@ -392,7 +398,10 @@ const BreakdownSlice = styled('div')<{
 `;
 
 interface SpanIdRendererProps {
+  spanDescription: string | null;
   spanId: string;
+  spanOp: string;
+  spanProject: string;
   timestamp: string;
   traceId: string;
   transactionId: string;
@@ -405,9 +414,62 @@ export function SpanIdRenderer({
   traceId,
   transactionId,
   onClick,
+  spanDescription,
+  spanOp,
+  spanProject,
 }: SpanIdRendererProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const shortSpanId = getShortEventId(spanId);
+
+  const {projects} = useProjects({slugs: [spanProject]});
+  const projectIds = projects
+    .filter(project => defined(project.id))
+    .map(project => parseInt(project.id, 10));
+
+  if (isPartialSpanOrTraceData(timestamp)) {
+    const search = new MutableSearch('');
+    if (spanOp) {
+      search.addFilterValue('span.op', spanOp);
+    }
+
+    if (spanDescription) {
+      search.addFilterValue('span.description', spanDescription);
+    }
+
+    return (
+      <Tooltip
+        showUnderline
+        isHoverable
+        title={
+          <Text>
+            {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
+              similarSpans: (
+                <Link
+                  to={getSimilarEventsUrl({
+                    queryString: search.formatString(),
+                    organization,
+                    projectIds,
+                    selection: {
+                      ...selection,
+                      projects: projectIds,
+                      datetime: {start: null, end: null, utc: null, period: '24h'},
+                    },
+                  })}
+                >
+                  {t('View similar spans')}
+                </Link>
+              ),
+            })}
+          </Text>
+        }
+      >
+        <Text variant="muted">{shortSpanId}</Text>
+      </Tooltip>
+    );
+  }
 
   const target = generateLinkToEventInTraceView({
     traceSlug: traceId,
@@ -421,15 +483,17 @@ export function SpanIdRenderer({
 
   return (
     <Link to={target} onClick={onClick}>
-      {getShortEventId(spanId)}
+      {shortSpanId}
     </Link>
   );
 }
 
 interface TraceIdRendererProps {
   location: Location;
+  projectSlugs: string[];
   timestamp: number; // in milliseconds
   traceId: string;
+  traceName: string | null;
   onClick?: React.ComponentProps<typeof Link>['onClick'];
   transactionId?: string;
 }
@@ -440,9 +504,65 @@ export function TraceIdRenderer({
   transactionId,
   location,
   onClick,
+  traceName,
+  projectSlugs,
 }: TraceIdRendererProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  const shortId = getShortEventId(traceId);
+
+  const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
+  const projectIds = projects
+    .filter(project => defined(project.id))
+    .map(project => parseInt(project.id, 10));
+
+  if (isPartialSpanOrTraceData(timestamp)) {
+    const search = new MutableSearch('');
+    if (traceName) {
+      search.addOp('(');
+      search.addFilterValue('transaction', traceName);
+      search.addOp('OR');
+      search.addFilterValue('span.name', traceName);
+      search.addOp('OR');
+      search.addFilterValue('span.description', traceName);
+      search.addOp(')');
+    }
+
+    return (
+      <Tooltip
+        showUnderline
+        isHoverable
+        title={
+          <Text>
+            {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
+              similarTraces: (
+                <Link
+                  to={getSimilarEventsUrl({
+                    queryString: search.formatString(),
+                    table: 'trace',
+                    organization,
+                    projectIds,
+                    selection,
+                  })}
+                >
+                  {t('View similar traces')}
+                </Link>
+              ),
+            })}
+          </Text>
+        }
+      >
+        <Container minWidth="66px">
+          {props => (
+            <Text variant="muted" aria-disabled="true" role="link" {...props}>
+              {shortId}
+            </Text>
+          )}
+        </Container>
+      </Tooltip>
+    );
+  }
 
   const target = getTraceDetailsUrl({
     organization,
@@ -459,9 +579,13 @@ export function TraceIdRenderer({
   });
 
   return (
-    <Link to={target} style={{minWidth: '66px', textAlign: 'right'}} onClick={onClick}>
-      {getShortEventId(traceId)}
-    </Link>
+    <Container minWidth="66px">
+      {props => (
+        <Link to={target} style={{textAlign: 'right'}} onClick={onClick} {...props}>
+          {shortId}
+        </Link>
+      )}
+    </Container>
   );
 }
 
@@ -484,12 +608,12 @@ export function SpanTimeRenderer({
 
 type SpanStatus = SpanResponse[SpanFields.SPAN_STATUS];
 
-const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
+const STATUS_TO_TAG_TYPE: Record<SpanStatus, TagProps['variant']> = {
   ok: 'success',
   cancelled: 'warning',
   unknown: 'info',
   invalid_argument: 'warning',
-  deadline_exceeded: 'error',
+  deadline_exceeded: 'danger',
   not_found: 'warning',
   already_exists: 'warning',
   permission_denied: 'warning',
@@ -497,10 +621,10 @@ const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
   failed_precondition: 'warning',
   aborted: 'warning',
   out_of_range: 'warning',
-  unimplemented: 'error',
-  internal_error: 'error',
-  unavailable: 'error',
-  data_loss: 'error',
+  unimplemented: 'danger',
+  internal_error: 'danger',
+  unavailable: 'danger',
+  data_loss: 'danger',
   unauthenticated: 'warning',
 };
 
@@ -525,7 +649,7 @@ function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
     return null;
   }
   return (
-    <StyledTag type={tagType} onClick={onClick}>
+    <StyledTag variant={tagType} onClick={onClick}>
       {status}
     </StyledTag>
   );
@@ -536,7 +660,10 @@ const StyledTag = styled(Tag)`
 `;
 
 export const Description = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   flex-direction: row;
   align-items: center;

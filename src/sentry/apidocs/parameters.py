@@ -446,6 +446,8 @@ Available fields are:
 - `id`
 - `type`
 - `connectedWorkflows`
+- `latestGroup`
+- `openIssues`
 
 Prefix with `-` to sort in descending order.
         """,
@@ -740,7 +742,11 @@ class EventParams:
         name="query",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
-        description="An optional search query for filtering events.",
+        description=(
+            "An optional search query for filtering events. "
+            "See [search syntax](https://docs.sentry.io/concepts/search/) and queryable event properties at "
+            "[Sentry Search Documentation](https://docs.sentry.io/concepts/search/searchable-properties/events/) for more information. An example query might be `query=transaction:foo AND release:abc`"
+        ),
         required=False,
     )
 

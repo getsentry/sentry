@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
-import {ClassNames, css} from '@emotion/react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ChonkCheckWrap} from '@sentry/scraps/select/select.chonk';
+import {CheckWrap} from '@sentry/scraps/select';
 
-import {MenuListItem, type MenuListItemProps} from 'sentry/components/core/menuListItem';
+import {MenuListItem} from 'sentry/components/core/menuListItem';
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
@@ -67,9 +66,9 @@ export function SelectOption(props: Props) {
               <Fragment>
                 <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
                   {isSelected && (
-                    <IconCheckmark
+                    <StyledIconCheckmark
                       size={isMultiple ? 'xs' : 'sm'}
-                      color={isMultiple ? 'white' : undefined}
+                      isMultiple={isMultiple}
                     />
                   )}
                 </CheckWrap>
@@ -83,37 +82,8 @@ export function SelectOption(props: Props) {
   );
 }
 
-const CheckWrap = withChonk(
-  styled('div')<{
-    isMultiple: boolean;
-    isSelected: boolean;
-    size: MenuListItemProps['size'];
-  }>`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    ${p =>
-      p.isMultiple
-        ? css`
-            width: 1em;
-            height: 1em;
-            padding: 1px;
-            border: solid 1px ${p.theme.border};
-            background: ${p.theme.tokens.background.primary};
-            border-radius: 2px;
-            box-shadow: inset ${p.theme.dropShadowMedium};
-            ${p.isSelected &&
-            css`
-              background: ${p.theme.purple300};
-              border-color: ${p.theme.purple300};
-            `}
-          `
-        : css`
-            width: 1em;
-            height: 1.4em;
-            padding-bottom: 1px;
-          `}
-  `,
-  ChonkCheckWrap
-);
+const StyledIconCheckmark = styled(IconCheckmark, {
+  shouldForwardProp: prop => prop !== 'isMultiple',
+})<{isMultiple: boolean}>`
+  color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
+`;

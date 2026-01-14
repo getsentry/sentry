@@ -31,7 +31,6 @@ import {
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
-import {monitorName} from 'sentry/views/insights/uptime/utils/monitorName';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
 interface Props {
@@ -76,7 +75,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
 
   const ruleDetails = single ? null : (
     <DetailsLink to={{pathname: detailsPath, query}}>
-      <Name>{monitorName(uptimeDetector)}</Name>
+      <Name>{uptimeDetector.name}</Name>
       <Details>
         <DetailsLine>
           {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
@@ -118,7 +117,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
             </Fragment>
           )}
         </DetailsLine>
-        <div>{!uptimeDetector.enabled && <Tag>{t('Disabled')}</Tag>}</div>
+        <div>{!uptimeDetector.enabled && <Tag variant="muted">{t('Disabled')}</Tag>}</div>
       </Details>
     </DetailsLink>
   );
@@ -202,13 +201,13 @@ const TimelineRow = styled('li')<TimelineRowProps>`
       transition: background 50ms ease-in-out;
 
       &:nth-child(odd) {
-        background: ${p.theme.backgroundSecondary};
+        background: ${p.theme.tokens.background.secondary};
       }
       &:hover {
-        background: ${p.theme.backgroundTertiary};
+        background: ${p.theme.tokens.background.tertiary};
       }
       &:has(*:focus-visible) {
-        background: ${p.theme.backgroundTertiary};
+        background: ${p.theme.tokens.background.tertiary};
       }
     `}
 

@@ -967,23 +967,25 @@ describe('handleAddQueryToDashboard', () => {
     });
     expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
-        widget: {
-          title: 'best query',
-          displayType: DisplayType.AREA,
-          queries: [
-            {
-              name: '',
-              fields: [],
-              aggregates: ['count()'],
-              columns: [],
-              orderby: '',
-              conditions: '',
-            },
-          ],
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.TRANSACTIONS,
-        },
+        widgets: [
+          {
+            title: 'best query',
+            displayType: DisplayType.AREA,
+            queries: [
+              {
+                name: '',
+                fields: [],
+                aggregates: ['count()'],
+                columns: [],
+                orderby: '',
+                conditions: '',
+              },
+            ],
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.TRANSACTIONS,
+          },
+        ],
       })
     );
   });
@@ -1005,23 +1007,25 @@ describe('handleAddQueryToDashboard', () => {
     });
     expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
-        widget: {
-          title: 'best query',
-          displayType: DisplayType.AREA,
-          queries: [
-            {
-              name: '',
-              aggregates: ['count()'],
-              columns: ['transaction'],
-              fields: ['transaction'],
-              orderby: '',
-              conditions: '',
-            },
-          ],
-          interval: undefined,
-          limit: 5,
-          widgetType: WidgetType.TRANSACTIONS,
-        },
+        widgets: [
+          {
+            title: 'best query',
+            displayType: DisplayType.AREA,
+            queries: [
+              {
+                name: '',
+                aggregates: ['count()'],
+                columns: ['transaction'],
+                fields: ['transaction'],
+                orderby: '',
+                conditions: '',
+              },
+            ],
+            interval: undefined,
+            limit: 5,
+            widgetType: WidgetType.TRANSACTIONS,
+          },
+        ],
       })
     );
   });
@@ -1042,23 +1046,25 @@ describe('handleAddQueryToDashboard', () => {
     });
     expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
-        widget: {
-          title: 'best query',
-          displayType: DisplayType.AREA,
-          queries: [
-            {
-              name: '',
-              aggregates: ['count()', 'count_unique(user)'],
-              columns: [],
-              fields: [],
-              orderby: '',
-              conditions: '',
-            },
-          ],
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.TRANSACTIONS,
-        },
+        widgets: [
+          {
+            title: 'best query',
+            displayType: DisplayType.AREA,
+            queries: [
+              {
+                name: '',
+                aggregates: ['count()', 'count_unique(user)'],
+                columns: [],
+                fields: [],
+                orderby: '',
+                conditions: '',
+              },
+            ],
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.TRANSACTIONS,
+          },
+        ],
       })
     );
   });
@@ -1086,23 +1092,25 @@ describe('handleAddQueryToDashboard', () => {
       });
       expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
-          widget: {
-            title: 'best query',
-            displayType: DisplayType.AREA,
-            queries: [
-              {
-                name: '',
-                aggregates: ['count()'],
-                columns: [],
-                fields: [],
-                orderby: '',
-                conditions: '',
-              },
-            ],
-            interval: undefined,
-            limit: undefined,
-            widgetType: WidgetType.TRANSACTIONS,
-          },
+          widgets: [
+            {
+              title: 'best query',
+              displayType: DisplayType.AREA,
+              queries: [
+                {
+                  name: '',
+                  aggregates: ['count()'],
+                  columns: [],
+                  fields: [],
+                  orderby: '',
+                  conditions: '',
+                },
+              ],
+              interval: undefined,
+              limit: undefined,
+              widgetType: WidgetType.TRANSACTIONS,
+            },
+          ],
           source: DashboardWidgetSource.DISCOVERV2,
         })
       );
@@ -1125,23 +1133,25 @@ describe('handleAddQueryToDashboard', () => {
       });
       expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
-          widget: {
-            title: 'best query',
-            displayType: DisplayType.AREA,
-            queries: [
-              {
-                name: '',
-                aggregates: ['count()'],
-                columns: ['transaction'],
-                fields: ['transaction'],
-                orderby: '',
-                conditions: '',
-              },
-            ],
-            interval: undefined,
-            limit: 5,
-            widgetType: WidgetType.TRANSACTIONS,
-          },
+          widgets: [
+            {
+              title: 'best query',
+              displayType: DisplayType.AREA,
+              queries: [
+                {
+                  name: '',
+                  aggregates: ['count()'],
+                  columns: ['transaction'],
+                  fields: ['transaction'],
+                  orderby: '',
+                  conditions: '',
+                },
+              ],
+              interval: undefined,
+              limit: 5,
+              widgetType: WidgetType.TRANSACTIONS,
+            },
+          ],
           source: DashboardWidgetSource.DISCOVERV2,
         })
       );
@@ -1163,23 +1173,25 @@ describe('handleAddQueryToDashboard', () => {
       });
       expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
-          widget: {
-            title: 'best query',
-            displayType: DisplayType.AREA,
-            queries: [
-              {
-                name: '',
-                aggregates: ['count()', 'count_unique(user)'],
-                columns: [],
-                fields: [],
-                orderby: '',
-                conditions: '',
-              },
-            ],
-            interval: undefined,
-            limit: undefined,
-            widgetType: WidgetType.TRANSACTIONS,
-          },
+          widgets: [
+            {
+              title: 'best query',
+              displayType: DisplayType.AREA,
+              queries: [
+                {
+                  name: '',
+                  aggregates: ['count()', 'count_unique(user)'],
+                  columns: [],
+                  fields: [],
+                  orderby: '',
+                  conditions: '',
+                },
+              ],
+              interval: undefined,
+              limit: undefined,
+              widgetType: WidgetType.TRANSACTIONS,
+            },
+          ],
           source: DashboardWidgetSource.DISCOVERV2,
         })
       );

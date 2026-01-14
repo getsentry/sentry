@@ -11,10 +11,7 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
-import type {
-  CaseInsensitive,
-  SetCaseInsensitive,
-} from 'sentry/components/searchQueryBuilder/hooks';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
@@ -28,11 +25,16 @@ import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SavedSearchType, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import type {FieldKind} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
+
+export type GetTagValues = (
+  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
+  searchQuery: string
+) => Promise<string[]>;
 
 export interface SearchQueryBuilderProps {
   /**
@@ -47,10 +49,15 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  /**
+   * The badge type to display for the AI search option.
+   * Defaults to 'beta'.
+   */
+  aiSearchBadgeType?: 'alpha' | 'beta';
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
-   * - `1` = case insensitive
+   * - `true` = case insensitive
    * - `null` = case sensitive
    */
   caseInsensitive?: CaseInsensitive;
@@ -141,7 +148,7 @@ export interface SearchQueryBuilderProps {
    * When passed, this will display the case sensitivity toggle, and will be called when
    * the user clicks on the case sensitivity button.
    */
-  onCaseInsensitiveClick?: SetCaseInsensitive;
+  onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
   /**
    * Called when the query value changes
    */
@@ -202,7 +209,7 @@ function ActionButtons({
     return null;
   }
 
-  const isCaseInsensitive = caseInsensitive === 1;
+  const isCaseInsensitive = caseInsensitive === true;
   const caseInsensitiveLabel = isCaseInsensitive ? t('Match case') : t('Ignore case');
 
   return (
@@ -214,11 +221,11 @@ function ActionButtons({
             aria-label={caseInsensitiveLabel}
             aria-pressed={isCaseInsensitive}
             size="zero"
-            icon={<IconCase color={isCaseInsensitive ? 'subText' : 'active'} />}
+            icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
             borderless
             active={!isCaseInsensitive}
             onClick={() => {
-              onCaseInsensitiveClick?.(isCaseInsensitive ? null : 1);
+              onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
             }}
           />
         </Tooltip>
@@ -326,11 +333,11 @@ const ButtonsWrapper = styled('div')`
 `;
 
 const ActionButton = styled(Button)<{active?: boolean}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p =>
     p.active &&
     css`
-      background-color: ${p.theme.purple200};
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
     `}
 `;
 
@@ -341,6 +348,6 @@ const PositionedSearchIconContainer = styled('div')`
 `;
 
 const SearchIcon = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
 `;

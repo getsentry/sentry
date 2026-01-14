@@ -716,7 +716,7 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   display: flex;
   align-items: flex-start;
   position: relative;
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: fit-content;
   /* Ensures that filters do not grow outside of the container */
@@ -724,25 +724,25 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   max-width: 100%;
 
   :focus {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.colors.gray100};
     outline: none;
   }
 
   ${p =>
     p.state === 'invalid'
       ? css`
-          border-color: ${p.theme.red200};
-          background-color: ${p.theme.red100};
+          border-color: ${p.theme.colors.red200};
+          background-color: ${p.theme.colors.red100};
         `
       : p.state === 'warning'
         ? css`
-            border-color: ${p.theme.gray300};
-            background-color: ${p.theme.gray100};
+            border-color: ${p.theme.colors.gray400};
+            background-color: ${p.theme.colors.gray100};
           `
         : ''}
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.colors.gray100};
   }
 `;
 
@@ -765,7 +765,7 @@ const ArgumentGridCell = styled('div')`
   max-width: fit-content;
 
   > div input {
-    max-width: fit-content !important;
+    max-width: 130px !important;
     min-width: 0 !important;
     white-space: nowrap !important;
   }
@@ -779,21 +779,21 @@ const BaseGridCell = styled('div')`
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   padding-left: ${p => p.theme.space.xs};
 `;
 
 const DeleteButton = styled('button')`
   background: none;
   border: none;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   outline: none;
   user-select: none;
   padding-right: ${p => p.theme.space.xs};
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     outline: none;
   }
 `;

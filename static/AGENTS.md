@@ -24,6 +24,37 @@ pnpm run dev
 pnpm run dev-ui
 ```
 
+### Typechecking
+
+Typechecking only works on the entire project. Individual files cannot be checked.
+
+```bash
+pnpm run typecheck
+```
+
+### Linting
+
+```bash
+# JavaScript/TypeScript linting
+pnpm run lint:js
+
+# Linting for specific file(s)
+pnpm run lint:js components/avatar.tsx [...other files]
+
+# Fix linting issues
+pnpm run fix
+```
+
+### Testing
+
+```bash
+# Run JavaScript tests (always use CI flag)
+CI=true pnpm test <file_path>
+
+# Run specific test file(s)
+CI=true pnpm test components/avatar.spec.tsx
+```
+
 ### Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
@@ -58,6 +89,15 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
   }
 );
 ```
+
+## General Frontend Rules
+
+1. NO new Reflux stores
+2. NO class components
+3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
+4. ALWAYS use TypeScript
+5. ALWAYS colocate tests
+6. Lazy load routes: `React.lazy(() => import('...'))`
 
 ## Design system
 
@@ -192,7 +232,7 @@ import {Heading} from '@sentry/scraps/text';
 
 // ❌ Do not use styled and create a new styled component
 const Title = styled('h4')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSizes.small};
 `;
 
@@ -219,7 +259,7 @@ import {Text} from '@sentry/scraps/text';
 
 // ❌ Do not use styled and create a new styled component
 const Label = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSizes.small};
 `;
 
@@ -236,7 +276,7 @@ import {Text} from '@sentry/scraps/text';
 
 // ❌ Do not style intrinsic elements directly
 const Paragraph = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
 `;
 
@@ -281,7 +321,7 @@ function Content() {
 const Component = styled('div')`
   display: flex;
   flex-directon: column;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
@@ -434,6 +474,20 @@ function Component() {
 - **Avoid implementation details**: Focus on behavior, not internal component structure.
 - **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
 
+### Imports
+
+**Always** import from `sentry-test/reactTestingLibrary`, not directly from `@testing-library/react`:
+
+```tsx
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+```
+
 ### Query Priority (in order of preference)
 
 1. **`getByRole`** - Primary selector for most elements
@@ -560,6 +614,23 @@ expect(await screen.findByRole('alert')).toBeInTheDocument();
 
 // ✅ Use waitForElementToBeRemoved for disappearance
 await waitForElementToBeRemoved(() => screen.getByRole('alert'));
+```
+
+#### Avoid waiting for loading indicators
+
+Do not use `findBy` with `.not.toBeInTheDocument()` for loading indicators. `findBy` will error if the element is not found, but we're asserting it should NOT exist. Loading indicators are also flakey since they appear on screen for only a few ticks.
+
+```tsx
+// ❌ Wrong - findBy errors if element not found, and loading indicators are flakey
+expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+// ✅ Correct - wait for the actual content you care about
+await waitFor(() => {
+  expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
+});
+
+// ✅ Also correct - use findBy on the content that appears after loading
+expect(await screen.findByRole('button', {name: 'Submit'})).toBeInTheDocument();
 ```
 
 #### User interactions

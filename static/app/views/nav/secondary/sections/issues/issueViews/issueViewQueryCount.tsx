@@ -73,7 +73,7 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     <QueryCountBubble
       animate={{
         backgroundColor: isFetching
-          ? [theme.surface400, theme.surface100, theme.surface400]
+          ? [theme.colors.surface500, theme.colors.surface200, theme.colors.surface500]
           : `#00000000`,
       }}
       transition={{
@@ -107,8 +107,8 @@ const QueryCountBubble = styled(motion.span)`
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid ${p => p.theme.border};
-  color: ${p => p.theme.subText};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: 0;
   font-weight: ${p => p.theme.fontWeight.bold};
 `;

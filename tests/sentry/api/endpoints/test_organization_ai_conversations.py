@@ -3,66 +3,18 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils import json
 
-LLM_TOKENS = 100
-LLM_COST = 0.001
+from .test_organization_ai_conversations_base import (
+    LLM_COST,
+    LLM_TOKENS,
+    BaseAIConversationsTestCase,
+)
 
 
-class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, APITestCase):
+class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(user=self.user)
-
-    def store_ai_span(
-        self,
-        conversation_id,
-        timestamp,
-        op="gen_ai.chat",
-        description=None,
-        status="ok",
-        operation_type=None,
-        tokens=None,
-        cost=None,
-        trace_id=None,
-        agent_name=None,
-        messages=None,
-        response_text=None,
-    ):
-        span_data = {"gen_ai.conversation.id": conversation_id}
-        if operation_type:
-            span_data["gen_ai.operation.type"] = operation_type
-        if tokens is not None:
-            span_data["gen_ai.usage.total_tokens"] = tokens
-        if cost is not None:
-            span_data["gen_ai.usage.total_cost"] = cost
-        if agent_name is not None:
-            span_data["gen_ai.agent.name"] = agent_name
-        if messages is not None:
-            # Serialize as JSON string since test infrastructure doesn't support list attributes
-            span_data["gen_ai.request.messages"] = json.dumps(messages)
-        if response_text is not None:
-            span_data["gen_ai.response.text"] = response_text
-
-        extra_data = {
-            "description": description or "default",
-            "sentry_tags": {"status": status, "op": op},
-            "data": span_data,
-        }
-        if trace_id:
-            extra_data["trace_id"] = trace_id
-
-        span = self.create_span(
-            extra_data,
-            start_ts=timestamp,
-        )
-        self.store_spans([span], is_eap=True)
-        return span
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
@@ -144,7 +96,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.execute_tool",
-            operation_type="execute_tool",
+            operation_type="tool",
             trace_id=trace_id,
         )
 
@@ -382,6 +334,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert len(conversation["traceIds"]) == 1
         assert conversation["firstInput"] is None
         assert conversation["lastOutput"] is None
+        assert conversation["user"] is None
 
     def test_mixed_error_statuses(self) -> None:
         """Test that various error statuses are counted correctly"""
@@ -582,6 +535,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.execute_tool",
+            operation_type="tool",
             trace_id=trace_id,
         )
 
@@ -668,7 +622,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.execute_tool",
-            operation_type="execute_tool",
+            operation_type="tool",
             trace_id=trace_id,
         )
 
@@ -721,3 +675,86 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert optimized_conv["timestamp"] == default_conv["timestamp"]
         # traceIds may be in different order, compare as sets
         assert set(optimized_conv["traceIds"]) == set(default_conv["traceIds"])
+        # user should be identical
+        assert optimized_conv["user"] == default_conv["user"]
+
+    def test_conversation_with_user_data(self) -> None:
+        """Test that user data is extracted from spans and returned in the response"""
+        now = before_now(days=100).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        # First span with user data (earliest timestamp)
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            user_id="user-123",
+            user_email="test@example.com",
+            user_username="testuser",
+            user_ip="192.168.1.1",
+        )
+
+        # Second span with different user data (should not override first)
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            user_id="user-456",
+            user_email="other@example.com",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        conversation = response.data[0]
+        # User should be from the first span (earliest timestamp)
+        assert conversation["user"] is not None
+        assert conversation["user"]["id"] == "user-123"
+        assert conversation["user"]["email"] == "test@example.com"
+        assert conversation["user"]["username"] == "testuser"
+        assert conversation["user"]["ip_address"] == "192.168.1.1"
+
+    def test_conversation_with_partial_user_data(self) -> None:
+        """Test that user is returned even with partial user data"""
+        now = before_now(days=101).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        # Span with only email
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            user_email="partial@example.com",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        conversation = response.data[0]
+        assert conversation["user"] is not None
+        assert conversation["user"]["id"] is None
+        assert conversation["user"]["email"] == "partial@example.com"
+        assert conversation["user"]["username"] is None
+        assert conversation["user"]["ip_address"] is None

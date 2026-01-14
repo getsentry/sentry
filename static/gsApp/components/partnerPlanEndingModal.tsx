@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import partnerMigrationHero from 'getsentry-images/partnership/plan-ending.svg';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -86,7 +88,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
     ? [
         t('Unlimited users'),
         t('Event volume controls'),
-        t('SSO via Google and Github'),
+        t('SSO via Google and GitHub'),
         t('Third party integrations'),
         t('Extended data retention'),
         t('Custom alerts'),
@@ -108,7 +110,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
       <ImageHeader />
       <div>
         <PartnerPlanHeading>
-          <Tag icon={<IconClock />} type="promotion">
+          <Tag icon={<IconClock />} variant="promotion">
             {tn('%s day left', '%s days left', daysLeft)}
           </Tag>
           <h2 data-test-id="partner-plan-ending-header">
@@ -132,7 +134,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             )}
           </p>
         </PartnerPlanHeading>
-        <PathWrapper>
+        <Flex justify="between">
           <PathContainer>
             <SubHeading>{tct(`New Plan on [endDate]`, {endDate})}</SubHeading>
             <PathHeading>{t('Developer')}</PathHeading>
@@ -148,7 +150,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               {rightColumnItems.map(UpgradeItem)}
             </Bullets>
           </PathContainer>
-        </PathWrapper>
+        </Flex>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
             <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
@@ -157,7 +159,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             {hasBillingAccess ? (
               <LinkButton
                 size="md"
-                to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_modal`}
+                to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
                 priority="primary"
                 onClick={() =>
@@ -201,22 +203,17 @@ const PartnerPlanHeading = styled('div')`
   }
 `;
 
-const PathWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
 const PathContainer = styled('div')`
   padding: ${space(3)};
   grid-auto-rows: max-content;
-  border: 1px solid ${p => p.theme.gray300};
+  border: 1px solid ${p => p.theme.colors.gray400};
   margin-left: auto;
   margin-right: auto;
   border-radius: 5px;
   width: 250px;
 
   &:first-of-type {
-    border: 1px solid ${p => p.theme.gray100};
+    border: 1px solid ${p => p.theme.colors.gray100};
   }
 `;
 
@@ -261,7 +258,7 @@ const PathHeading = styled('h5')`
 const SubHeading = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
 `;
 

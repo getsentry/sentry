@@ -113,7 +113,8 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
       const overlay = overlayRef?.getContext('2d');
       if (overlay) {
         setupCanvasContext(overlay, modelToView);
-        overlay.fillStyle = theme.blue200;
+        overlay.fillStyle =
+          theme.tokens.interactive.transparent.accent.selected.background.rest;
 
         if (selectedRect) {
           overlay.fillRect(
@@ -125,12 +126,18 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
         }
 
         if (hoverRect) {
-          overlay.fillStyle = theme.blue100;
+          overlay.fillStyle =
+            theme.tokens.interactive.transparent.accent.selected.background.hover;
           overlay.fillRect(hoverRect.x, hoverRect.y, hoverRect.width, hoverRect.height);
         }
       }
     },
-    [overlayRef, setupCanvasContext, theme.blue100, theme.blue200]
+    [
+      overlayRef,
+      setupCanvasContext,
+      theme.tokens.interactive.transparent.accent.selected.background.rest,
+      theme.tokens.interactive.transparent.accent.selected.background.hover,
+    ]
   );
 
   const drawViewHierarchy = useCallback(
@@ -138,8 +145,8 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
       const canvas = canvasRef?.getContext('2d');
       if (canvas) {
         setupCanvasContext(canvas, modelToView);
-        canvas.fillStyle = theme.gray100;
-        canvas.strokeStyle = theme.gray300;
+        canvas.fillStyle = theme.colors.gray100;
+        canvas.strokeStyle = theme.colors.gray400;
 
         for (const node of hierarchyData.nodes) {
           canvas.strokeRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
@@ -147,7 +154,13 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
         }
       }
     },
-    [canvasRef, setupCanvasContext, theme.gray100, theme.gray300, hierarchyData.nodes]
+    [
+      canvasRef,
+      setupCanvasContext,
+      theme.colors.gray100,
+      theme.colors.gray400,
+      hierarchyData.nodes,
+    ]
   );
 
   useEffect(() => {
@@ -362,7 +375,7 @@ const InteractionOverlayCanvas = styled('canvas')`
 `;
 
 const WireframeCanvas = styled('canvas')`
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.colors.surface200};
   width: 100%;
   height: 100%;
 `;

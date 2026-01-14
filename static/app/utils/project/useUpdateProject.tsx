@@ -32,16 +32,34 @@ export function useUpdateProject(project: Project) {
 
   return useMutation<Project, Error, Variables, Context>({
     onMutate: (data: Variables) => {
+      const fromCache = queryClient.getQueryData<Project>(queryKey);
+      const fromStore = ProjectsStore.getById(project.id);
+      const fromProp = project;
+
+      const isValidProjectWithOptions = (obj: unknown): obj is Project =>
+        obj !== null &&
+        typeof obj === 'object' &&
+        typeof (obj as Project).options === 'object' &&
+        (obj as Project).options !== null;
+
       const previousProject =
-        queryClient.getQueryData<Project>(queryKey) ||
-        ProjectsStore.getById(project.id) ||
-        project;
+        (isValidProjectWithOptions(fromCache) ? fromCache : null) ||
+        (isValidProjectWithOptions(fromStore) ? fromStore : null) ||
+        fromProp;
+
       if (!previousProject) {
         return {error: new Error('Previous project not found')};
       }
+
       const updatedProject = {
         ...previousProject,
         ...data,
+        options: data.options
+          ? {
+              ...previousProject.options,
+              ...data.options,
+            }
+          : previousProject.options,
       };
 
       // Update caches optimistically

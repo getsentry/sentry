@@ -1,20 +1,44 @@
-import type {CSSProperties} from 'react';
+import type {ComponentProps, CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {space} from 'sentry/styles/space';
 
 export const StyledPanel = styled(Panel)`
   margin-bottom: 0px;
 `;
 
-export const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
-  white-space: nowrap;
-  justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
-`;
+interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
+  justify: ComponentProps<typeof Flex>['justify'];
+  children?: React.ReactNode;
+  lightText?: boolean;
+  radius?: ComponentProps<typeof Flex>['radius'];
+}
+
+export function StyledPanelHeader({
+  children,
+  justify,
+  radius = '0',
+  lightText = false,
+  ...props
+}: StyledPanelHeaderProps) {
+  return (
+    <Flex justify={justify} radius={radius} height="100%">
+      {flexProps => (
+        <Text as="div" wrap="nowrap">
+          <PanelHeader lightText={lightText} {...flexProps} {...props}>
+            {children}
+          </PanelHeader>
+        </Text>
+      )}
+    </Flex>
+  );
+}
 
 export const TracePanelContent = styled('div')`
   width: 100%;
@@ -28,10 +52,19 @@ export const StyledPanelItem = styled(PanelItem)<{
   span?: number;
 }>`
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
   ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
-  ${p => (p.overflow ? p.theme.overflowEllipsis : null)};
+  ${p =>
+    p.overflow
+      ? css`
+          display: block;
+          width: 100%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        `
+      : null};
   ${p =>
     p.align === 'center'
       ? `
@@ -44,12 +77,15 @@ export const StyledPanelItem = styled(PanelItem)<{
 `;
 
 export const MoreMatchingSpans = styled(StyledPanelItem)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export const WrappingText = styled('div')`
   width: 100%;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const StyledSpanPanelItem = styled(StyledPanelItem)`
@@ -58,12 +94,12 @@ export const StyledSpanPanelItem = styled(StyledPanelItem)`
   &:nth-child(10n + 3),
   &:nth-child(10n + 4),
   &:nth-child(10n + 5) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 export const SpanTablePanelItem = styled(StyledPanelItem)`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
 `;
 
 export const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string}>`
@@ -92,14 +128,14 @@ export const EmptyStateText = styled('div')<{
   size: 'xl' | 'md';
   textAlign?: CSSProperties['textAlign'];
 }>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize[p.size]};
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
   ${p => p.textAlign && `text-align: ${p.textAlign}`};
 `;
 
 export const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export const SpanPanelContent = styled('div')`

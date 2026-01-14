@@ -101,8 +101,8 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelHeader = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
     calc(${p => p.theme.radius.md} + 1px) 0 0;
   justify-content: left;
@@ -125,7 +125,7 @@ const StyledRow = styled('div', {
   align-items: center;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   ${p =>
@@ -140,7 +140,7 @@ const StyledRow = styled('div', {
 const HeaderDivider = styled('div')`
   position: absolute;
   left: 0;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   width: 1px;
   border-radius: ${p => p.theme.radius.md};
   height: 14px;
@@ -155,7 +155,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   position: relative;
   display: flex;
@@ -211,7 +211,7 @@ const StyledEmptyMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 

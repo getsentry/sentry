@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -11,8 +11,8 @@ import Feature from 'sentry/components/acl/feature';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
-import useOrganization from 'sentry/utils/useOrganization';
-import {openInstallModal} from 'sentry/views/preprod/components/installModal';
+import {AppIcon} from 'sentry/views/preprod/components/appIcon';
+import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {type BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   getLabels,
@@ -29,36 +29,26 @@ interface BuildDetailsSidebarAppInfoProps {
 }
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
-  const organization = useOrganization();
   const labels = getLabels(props.appInfo.platform ?? undefined);
-  const [imageError, setImageError] = useState(false);
 
   const datetimeFormat = getFormat({
     seconds: true,
     timeZone: true,
   });
 
-  let iconUrl = null;
-  if (props.appInfo.app_icon_id) {
-    iconUrl = `/api/0/projects/${organization.slug}/${props.projectId}/files/images/${props.appInfo.app_icon_id}/`;
-  }
-
   return (
     <Flex direction="column" gap="xl">
       <Flex align="center" gap="sm">
-        {iconUrl && !imageError && (
-          <AppIcon
-            src={iconUrl}
-            alt="App Icon"
-            width={24}
-            height={24}
-            onError={() => setImageError(true)}
-          />
+        {props.appInfo.name && (
+          <Fragment>
+            <AppIcon
+              appName={props.appInfo.name}
+              appIconId={props.appInfo.app_icon_id}
+              projectId={props.projectId}
+            />
+            <Heading as="h3">{props.appInfo.name}</Heading>
+          </Fragment>
         )}
-        {(!iconUrl || imageError) && (
-          <AppIconPlaceholder>{props.appInfo.name?.charAt(0) || ''}</AppIconPlaceholder>
-        )}
-        {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
       </Flex>
 
       <Flex wrap="wrap" gap="md">
@@ -123,13 +113,12 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </InfoIcon>
             <Text>
               {props.projectId ? (
-                <InstallableLink
-                  onClick={() => {
-                    openInstallModal(props.projectId!, props.artifactId);
-                  }}
-                >
-                  Install
-                </InstallableLink>
+                <InstallAppButton
+                  projectId={props.projectId}
+                  artifactId={props.artifactId}
+                  platform={props.appInfo.platform ?? null}
+                  source="build_details_sidebar"
+                />
               ) : null}
             </Text>
           </Flex>
@@ -151,46 +140,12 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
   );
 }
 
-const AppIcon = styled('img')`
-  border-radius: 4px;
-`;
-
-const AppIconPlaceholder = styled('div')`
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: ${p => p.theme.purple400};
-  color: ${p => p.theme.white};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
 const InfoIcon = styled('div')`
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const InstallableLink = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font-size: inherit;
-  color: ${p => p.theme.linkColor};
-  text-decoration: underline;
-  cursor: pointer;
-  font-family: inherit;
-
-  &:hover {
-    color: ${p => p.theme.linkHoverColor};
-  }
 `;
 
 const InlineCodeSnippet = styled(CodeBlock)`

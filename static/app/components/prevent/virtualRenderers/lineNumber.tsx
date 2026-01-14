@@ -105,38 +105,47 @@ const LineNumberWrapper = styled('div')<{
     if (!p.hasLineNumber) {
       return css`
         background-color: var(--prism-block-background);
-        border-right: ${space(0.25)} solid ${p.theme.gray200};
+        border-right: ${space(0.25)} solid ${p.theme.colors.gray200};
       `;
     }
 
     if (p.isHighlighted) {
       return css`
-        ${generatePseudoElement({background: p.theme.blue100})}
-        border-right: ${space(0.25)} solid ${p.theme.blue300};
+        ${generatePseudoElement({
+          background: p.theme.tokens.background.transparent.accent.muted,
+        })}
+        border-right: ${space(0.25)} solid ${p.theme.tokens.border.accent.vibrant};
       `;
     }
     if (p.coverage === 'H') {
       return css`
-        ${generatePseudoElement({background: p.theme.green100})}
-        border-right: ${space(0.25)} solid ${p.theme.green300};
+        ${generatePseudoElement({
+          background: p.theme.tokens.background.transparent.success.muted,
+        })}
+        border-right: ${space(0.25)} solid ${p.theme.tokens.border.success.vibrant};
       `;
     }
     if (p.coverage === 'M') {
       return css`
-        ${generatePseudoElement({background: p.theme.red100})}
-        border-right: ${space(0.25)} solid ${p.theme.red300};
+        ${generatePseudoElement({
+          background: p.theme.tokens.background.transparent.danger.muted,
+        })}
+        border-right: ${space(0.25)} solid ${p.theme.tokens.border.danger.vibrant};
       `;
     }
     if (p.coverage === 'P') {
       return css`
-        ${generatePseudoElement({background: p.theme.yellow100})}
-        border-right: ${space(0.25)} solid ${p.theme.yellow300};
+        ${generatePseudoElement({
+          background: p.theme.tokens.background.transparent.warning.muted,
+        })}
+        border-right: ${space(0.25)} solid ${p.theme.tokens.border.warning.vibrant};
       `;
     }
 
     return css`
       background-color: var(--prism-block-background);
-      border-right: ${space(0.25)} solid ${p.theme.gray200};
+      border-right: ${space(0.25)} solid
+        ${p.theme.tokens.border.transparent.neutral.muted};
     `;
   }}
 `;

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {formatDateRange} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -11,6 +12,8 @@ function QueryTokens({
   query,
   sort,
   statsPeriod,
+  start,
+  end,
   visualizations,
 }: QueryTokensProps) {
   const tokens = [];
@@ -55,7 +58,15 @@ function QueryTokens({
     );
   }
 
-  if (statsPeriod && statsPeriod.length > 0) {
+  // Display absolute date range if start and end are provided
+  if (start && end) {
+    tokens.push(
+      <Token key="timeRange">
+        <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
+        <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
+      </Token>
+    );
+  } else if (statsPeriod && statsPeriod.length > 0) {
     tokens.push(
       <Token key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
@@ -97,7 +108,7 @@ const Token = styled('span')`
 
 const ExploreParamTitle = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -108,7 +119,7 @@ const ExploreVisualizes = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: 24px;
   overflow: hidden;

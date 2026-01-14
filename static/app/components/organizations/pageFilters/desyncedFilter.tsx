@@ -39,7 +39,7 @@ export const DesyncedFilterIndicator = styled('div')`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${p => p.theme.active};
+  background: ${p => p.theme.tokens.interactive.link.accent.active};
   border: solid 1px ${p => p.theme.tokens.background.primary};
   position: absolute;
   top: 0;
@@ -47,8 +47,8 @@ export const DesyncedFilterIndicator = styled('div')`
 `;
 
 const DesyncedFilterMessageWrap = styled('div')`
-  border: solid 1px ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
+  border: solid 1px ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   margin: ${space(0.25)} ${space(0.5)} ${space(0.5)};
   padding: ${space(0.75)};

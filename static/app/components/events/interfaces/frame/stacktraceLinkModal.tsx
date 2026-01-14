@@ -202,7 +202,7 @@ function StacktraceLinkModal({
       <Body>
         <ModalContainer>
           {error && (
-            <Alert type="error">
+            <Alert variant="danger">
               {error === 'Could not find repo'
                 ? tct(
                     'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',
@@ -323,13 +323,17 @@ const StyledList = styled(List)`
 `;
 
 const Suggestions = styled('div')`
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.colors.surface200};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
 `;
 
 const SuggestionOverflow = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   direction: rtl;
 `;
 

@@ -69,7 +69,11 @@ function GroupChart({
           showMarkLine && max > 0
             ? MarkLine({
                 silent: true,
-                lineStyle: {color: theme.gray200, type: 'dotted', width: 1},
+                lineStyle: {
+                  color: theme.tokens.border.transparent.neutral.muted,
+                  type: 'dotted',
+                  width: 1,
+                },
                 data: [
                   {
                     type: 'max',
@@ -78,7 +82,7 @@ function GroupChart({
                 label: {
                   show: true,
                   position: 'start',
-                  color: `${theme.gray200}`,
+                  color: `${theme.tokens.content.secondary}`,
                   fontFamily: 'Rubik',
                   fontSize: 10,
                   formatter: `${formattedMarkLine}`,
@@ -87,7 +91,11 @@ function GroupChart({
             : undefined,
       },
     ];
-    return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
+    return {
+      colors: [theme.tokens.dataviz.semantic.neutral],
+      emphasisColors: [theme.tokens.dataviz.semantic.accent],
+      series,
+    };
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (

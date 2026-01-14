@@ -41,6 +41,8 @@ function FilterSelectorTrigger({
   const filterValue = activeFilterValues[0] ?? '';
   const isDefaultOperator = operator === TermOperator.DEFAULT;
   const opLabel = isDefaultOperator ? ':' : OP_LABELS[operator];
+  const label =
+    options.find(option => option.value === filterValue)?.label || filterValue;
 
   return (
     <ButtonLabelWrapper gap="xs">
@@ -53,13 +55,13 @@ function FilterSelectorTrigger({
           {isAllSelected ? (
             t('All')
           ) : (
-            <FilterValueTruncated>{filterValue}</FilterValueTruncated>
+            <FilterValueTruncated>{label}</FilterValueTruncated>
           )}
         </span>
       )}
       {isFetching && <StyledLoadingIndicator size={14} />}
       {shouldShowBadge && (
-        <StyledBadge type="default">{`+${activeFilterValues.length - 1}`}</StyledBadge>
+        <StyledBadge variant="muted">{`+${activeFilterValues.length - 1}`}</StyledBadge>
       )}
     </ButtonLabelWrapper>
   );
@@ -89,12 +91,15 @@ const ButtonLabelWrapper = styled(Flex)`
 `;
 
 export const FilterValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 300px;
   width: min-content;
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;

@@ -34,13 +34,13 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
 
 const Blockquote = styled('blockquote')`
   margin: 0;
-  background: ${p => p.theme.purple100};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
 
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
 
-  border-left: 2px solid ${p => p.theme.purple300};
+  border-left: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
   padding: ${space(2)};
 
   & > pre {

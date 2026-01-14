@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0019_add_tooling_version_fields
+preprod: 0022_backfill_preprod_artifact_mobile_app_info
 
 prevent: 0002_alter_integration_id_not_null
 
@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1013_add_repositorysettings_table
+sentry: 1018_encrypt_integration_metadata
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0049_cleanup_failed_safe_deletes
 
-workflow_engine: 0104_action_data_fallthrough_type
+workflow_engine: 0105_add_incident_identifer_index

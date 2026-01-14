@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -118,7 +120,7 @@ export default class TableField extends Component<InputFieldProps> {
       return (
         <Fragment>
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <span
                 dangerouslySetInnerHTML={{
                   __html: singleLineRenderer(
@@ -135,14 +137,14 @@ export default class TableField extends Component<InputFieldProps> {
 
     return (
       <Fragment>
-        <HeaderContainer>
+        <Flex align="center">
           {mappedKeys.map((fieldKey, i) => (
             <Header key={fieldKey}>
               <HeaderLabel>{columnLabels?.[fieldKey]}</HeaderLabel>
               {i === mappedKeys.length - 1 && button}
             </Header>
           ))}
-        </HeaderContainer>
+        </Flex>
         {value.map((row, rowIndex) => (
           <RowContainer data-test-id="field-row" key={rowIndex}>
             {mappedKeys.map((fieldKey: string, i: number) => (
@@ -200,12 +202,7 @@ export default class TableField extends Component<InputFieldProps> {
 const HeaderLabel = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.subText};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Header = styled('div')`

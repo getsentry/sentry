@@ -279,7 +279,7 @@ const IntegrationFeatureGroup = styled((p: GroupProps) => {
 })`
   overflow: hidden;
   border-radius: 4px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(2)};
 `;
 
@@ -287,8 +287,8 @@ const FeatureGroupHeading = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.gray200};
-  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.colors.gray200};
+  background: ${p => p.theme.tokens.background.secondary};
   font-size: 0.9em;
   padding: 8px 8px 8px 12px;
 `;
@@ -312,7 +312,7 @@ const FeatureDescription = styled('li')`
   padding: 8px 12px;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.gray200};
+    border-bottom: 1px solid ${p => p.theme.colors.gray200};
   }
 `;
 

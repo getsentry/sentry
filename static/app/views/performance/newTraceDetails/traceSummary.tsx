@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
@@ -81,7 +83,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
 
   if (traceContent.isError) {
     return (
-      <ErrorContainer>
+      <Flex align="center" padding="xl" gap="md">
         <div>{t('Error loading Trace Summary')}</div>
         <FeedbackButton
           size="xs"
@@ -93,7 +95,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
             },
           }}
         />
-      </ErrorContainer>
+      </Flex>
     );
   }
 
@@ -156,7 +158,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
       )}
 
       {feedback && (
-        <FeedbackButtonContainer>
+        <Flex justify="end" marginTop="xl">
           <FeedbackButton
             size="xs"
             feedbackOptions={{
@@ -167,7 +169,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
               },
             }}
           />
-        </FeedbackButtonContainer>
+        </Flex>
       )}
     </SummaryContainer>
   );
@@ -185,13 +187,13 @@ const SectionTitleWrapper = styled('div')`
 `;
 
 const StyledIcon = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
   display: flex;
   align-items: center;
 `;
 
 const SectionTitle = styled('h6')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   text-transform: uppercase;
@@ -207,7 +209,7 @@ const SectionContent = styled(MarkedText)`
   code {
     font-family: ${p => p.theme.text.familyMono};
     padding: ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     border-radius: ${p => p.theme.radius.md};
     font-size: 0.9em;
   }
@@ -215,19 +217,6 @@ const SectionContent = styled(MarkedText)`
   strong {
     font-weight: 600;
   }
-`;
-
-const ErrorContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  padding: ${space(2)};
-`;
-
-const FeedbackButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(2)};
 `;
 
 const StyledList = styled('ul')`

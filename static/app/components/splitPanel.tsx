@@ -24,12 +24,12 @@ const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   user-select: inherit;
   background: inherit;
 
-  &:hover,
-  &[data-is-held='true'] {
-    background: ${p => p.theme.hover};
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
   &[data-is-held='true'] {
     user-select: none;
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   &[data-slide-direction='leftright'] {

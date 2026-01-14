@@ -3,11 +3,11 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
-import type {Space} from 'sentry/utils/theme/theme';
+import type {SpaceSize} from 'sentry/utils/theme';
 
 interface ModelNameProps {
   modelId: string;
-  gap?: Space;
+  gap?: SpaceSize;
   provider?: string;
   size?: number;
 }
@@ -30,7 +30,11 @@ const IconWrapper = styled('div')`
 `;
 
 const NameWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
 `;
 

@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import TimeSince from 'sentry/components/timeSince';
@@ -36,7 +38,7 @@ function SeenInfo({
   projectId,
 }: Props) {
   return (
-    <HovercardWrapper>
+    <Flex align="baseline">
       <StyledHovercard
         showUnderline
         header={
@@ -97,25 +99,24 @@ function SeenInfo({
           </Fragment>
         )}
       </DateWrapper>
-    </HovercardWrapper>
+    </Flex>
   );
 }
 
 const dateTimeCss = (p: any) => css`
-  color: ${p.theme.subText};
+  color: ${p.theme.tokens.content.secondary};
   font-size: ${p.theme.fontSize.md};
   display: flex;
   justify-content: center;
 `;
 
-const HovercardWrapper = styled('div')`
-  display: flex;
-  align-items: baseline;
-`;
-
 const DateWrapper = styled('div')`
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledDateTime = styled(DateTime)`
@@ -154,7 +155,7 @@ const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
     font-weight: ${p => p.theme.fontWeight.normal};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
   ${Body} {
     padding: ${space(1.5)};

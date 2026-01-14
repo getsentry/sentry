@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
+from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -14,10 +15,14 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
-from sentry.models.apigrant import ApiGrant
+from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
+from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
+from sentry.ratelimits import backend as ratelimiter
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
@@ -85,7 +90,7 @@ class OAuthTokenView(View):
 
         Purpose
         - Exchanges an authorization code for tokens, or uses a refresh token to
-          obtain a new access token.
+          obtain a new access token, or exchanges a device code for tokens.
 
         Supported grant types
         - `authorization_code` (RFC 6749 §4.1): requires `code` and, if bound,
@@ -93,10 +98,14 @@ class OAuthTokenView(View):
           signing is configured, an `id_token` (OIDC Core 1.0) is included.
         - `refresh_token` (RFC 6749 §6): requires `refresh_token`. Supplying `scope`
           is not supported here and returns `invalid_request`.
+        - `urn:ietf:params:oauth:grant-type:device_code` (RFC 8628 §3.4): requires
+          `device_code`. Used by headless clients to poll for authorization.
 
         Client authentication
         - Either Authorization header (Basic) or form fields `client_id`/`client_secret`
           (RFC 6749 §2.3.1). Only one method may be used per request.
+        - For device_code grant: supports public clients per RFC 8628 §5.6, which only
+          require `client_id`. If `client_secret` is provided, it will be validated.
 
         Request format
         - Requests are `application/x-www-form-urlencoded` as defined in RFC 6749 §3.2.
@@ -108,8 +117,20 @@ class OAuthTokenView(View):
         - Errors (RFC 6749 §5.2): 400 JSON for `invalid_request`, `invalid_grant`,
           `unsupported_grant_type`; 401 JSON for `invalid_client` (with
           `WWW-Authenticate: Basic realm="oauth"`).
+        - Device flow errors (RFC 8628 §3.5): `authorization_pending`, `slow_down`,
+          `expired_token`, `access_denied`.
         """
         grant_type = request.POST.get("grant_type")
+
+        # Validate grant_type first (needed to determine auth requirements)
+        if not grant_type:
+            return self.error(request=request, name="invalid_request", reason="missing grant_type")
+        if grant_type not in [
+            GrantTypes.AUTHORIZATION,
+            GrantTypes.REFRESH,
+            GrantTypes.DEVICE_CODE,
+        ]:
+            return self.error(request=request, name="unsupported_grant_type")
 
         # Determine client credentials from header or body (mutually exclusive).
         (client_id, client_secret), cred_error = self._extract_basic_auth_credentials(request)
@@ -122,37 +143,110 @@ class OAuthTokenView(View):
             tags={
                 "client_id_exists": bool(client_id),
                 "client_secret_exists": bool(client_secret),
+                "grant_type": grant_type,
             },
         )
 
-        if not client_id or not client_secret:
-            return self.error(
-                request=request,
-                name="invalid_client",
-                reason="missing client credentials",
-                status=401,
-            )
+        # Device flow supports public clients per RFC 8628 §5.6.
+        # Public clients only provide client_id to identify themselves.
+        # If client_secret is provided, we still validate it for confidential clients.
+        if grant_type == GrantTypes.DEVICE_CODE:
+            if not client_id:
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="missing client_id",
+                    status=401,
+                )
 
-        if not grant_type:
-            return self.error(request=request, name="invalid_request", reason="missing grant_type")
-        if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
-            return self.error(request=request, name="unsupported_grant_type")
+            # Build query - validate secret only if provided (confidential client)
+            query = {"client_id": client_id}
+            if client_secret:
+                query["client_secret"] = client_secret
 
-        try:
-            application = ApiApplication.objects.get(
-                client_id=client_id, client_secret=client_secret, status=ApiApplicationStatus.active
-            )
-        except ApiApplication.DoesNotExist:
+            try:
+                application = ApiApplication.objects.get(**query)
+            except ApiApplication.DoesNotExist:
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                if client_secret:
+                    logger.warning(
+                        "Invalid client_id / secret pair",
+                        extra={"client_id": client_id},
+                    )
+                    reason = "invalid client_id or client_secret"
+                else:
+                    logger.warning("Invalid client_id", extra={"client_id": client_id})
+                    reason = "invalid client_id"
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason=reason,
+                    status=401,
+                )
+        else:
+            # Other grant types require confidential client authentication
+            if not client_id or not client_secret:
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="missing client credentials",
+                    status=401,
+                )
+
+            try:
+                # Note: We don't filter by status here to distinguish between invalid
+                # credentials (unknown client) and inactive applications. This allows
+                # proper grant cleanup per RFC 6749 §10.5 and clearer metrics.
+                application = ApiApplication.objects.get(
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
+            except ApiApplication.DoesNotExist:
+                metrics.incr(
+                    "oauth_token.post.invalid",
+                    sample_rate=1.0,
+                )
+                logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="invalid client_id or client_secret",
+                    status=401,
+                )
+
+        # Check application status separately from credential validation.
+        # This preserves metric clarity and provides consistent error handling.
+        if application.status != ApiApplicationStatus.active:
             metrics.incr(
-                "oauth_token.post.invalid",
+                "oauth_token.post.inactive_application",
                 sample_rate=1.0,
             )
-            logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
+            logger.warning(
+                "Token request for inactive application",
+                extra={"client_id": client_id, "application_id": application.id},
+            )
+            # For authorization_code, invalidate the grant per RFC 6749 §10.5
+            if grant_type == GrantTypes.AUTHORIZATION:
+                code = request.POST.get("code")
+                if code:
+                    # Use unguarded_write because deleting the grant triggers SET_NULL on
+                    # SentryAppInstallation.api_grant, which is a cross-model write
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        ApiGrant.objects.filter(application=application, code=code).delete()
+            # For device_code, invalidate the device code
+            elif grant_type == GrantTypes.DEVICE_CODE:
+                device_code_value = request.POST.get("device_code")
+                if device_code_value:
+                    ApiDeviceCode.objects.filter(
+                        application=application, device_code=device_code_value
+                    ).delete()
+            # Use invalid_grant per RFC 6749 §5.2: grants/tokens are effectively "revoked"
+            # when the application is deactivated. invalid_client would be incorrect here
+            # since client authentication succeeded (we verified the credentials).
             return self.error(
                 request=request,
-                name="invalid_client",
-                reason="invalid client_id or client_secret",
-                status=401,
+                name="invalid_grant",
+                reason="application not active",
             )
 
         # Defense-in-depth: verify the application's client_id matches the request.
@@ -176,6 +270,8 @@ class OAuthTokenView(View):
 
         if grant_type == GrantTypes.AUTHORIZATION:
             token_data = self.get_access_tokens(request=request, application=application)
+        elif grant_type == GrantTypes.DEVICE_CODE:
+            return self.handle_device_code_grant(request=request, application=application)
         else:
             token_data = self.get_refresh_token(request=request, application=application)
         if "error" in token_data:
@@ -275,34 +371,50 @@ class OAuthTokenView(View):
     def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
         code = request.POST.get("code")
         try:
-            grant = ApiGrant.objects.get(
-                application=application, application__status=ApiApplicationStatus.active, code=code
-            )
+            grant = ApiGrant.objects.get(application=application, code=code)
         except ApiGrant.DoesNotExist:
             return {"error": "invalid_grant", "reason": "invalid grant"}
 
-        if grant.is_expired():
-            return {"error": "invalid_grant", "reason": "grant expired"}
-
-        # Enforce redirect_uri binding (RFC 6749 §4.1.3)
-        redirect_uri = request.POST.get("redirect_uri")
-        if grant.redirect_uri and grant.redirect_uri != redirect_uri:
-            return {"error": "invalid_grant", "reason": "invalid redirect URI"}
+        # Save data needed for OpenID before from_grant deletes the grant
+        grant_has_openid = grant.has_scope("openid")
+        grant_user_id = grant.user_id
 
         try:
-            token_data = {"token": ApiToken.from_grant(grant=grant)}
-        except UnableToAcquireLock:
-            # TODO(mdtro): we should return a 409 status code here
-            return {"error": "invalid_grant", "reason": "invalid grant"}
+            api_token = ApiToken.from_grant(
+                grant=grant,
+                redirect_uri=request.POST.get("redirect_uri", ""),
+                code_verifier=request.POST.get("code_verifier"),
+            )
+        except InvalidGrantError as e:
+            return {
+                "error": "invalid_grant",
+                "reason": str(e) if str(e) else "invalid grant",
+            }
+        except ExpiredGrantError as e:
+            return {
+                "error": "invalid_grant",
+                "reason": str(e) if str(e) else "grant expired",
+            }
 
-        if grant.has_scope("openid") and options.get("codecov.signing_secret"):
+        token_data = {"token": api_token}
+
+        # OpenID token generation (stays in endpoint)
+        if grant_has_openid and options.get("codecov.signing_secret"):
             open_id_token = OpenIDToken(
                 application.client_id,
-                grant.user_id,
+                grant_user_id,
                 options.get("codecov.signing_secret"),
                 nonce=request.POST.get("nonce"),
             )
-            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant)
+            # Use api_token.user instead of grant since grant is deleted
+            from types import SimpleNamespace
+
+            grant_data = SimpleNamespace(
+                user_id=grant_user_id,
+                has_scope=lambda s: s in api_token.get_scopes(),
+                user=api_token.user,
+            )
+            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant_data)
 
         return token_data
 
@@ -326,6 +438,187 @@ class OAuthTokenView(View):
         refresh_token.refresh()
 
         return {"token": refresh_token}
+
+    def handle_device_code_grant(
+        self, request: Request, application: ApiApplication
+    ) -> HttpResponse:
+        """
+        Handle device code grant type (RFC 8628 §3.4).
+
+        This is used by headless clients to poll for authorization status after
+        initiating a device authorization flow.
+
+        Returns:
+        - On success (approved): Access token response
+        - authorization_pending: User hasn't completed authorization yet
+        - slow_down: Client is polling too fast
+        - expired_token: Device code has expired
+        - access_denied: User denied the authorization
+        """
+        device_code_value = request.POST.get("device_code")
+
+        if not device_code_value:
+            return self.error(
+                request=request,
+                name="invalid_request",
+                reason="missing device_code",
+            )
+
+        # Rate limit polling per device_code (RFC 8628 §3.5)
+        # Allow 1 request per interval (default 5 seconds) = 12 requests/minute
+        rate_limit_key = f"oauth:device_poll:{device_code_value}"
+        if ratelimiter.is_limited(rate_limit_key, limit=1, window=DEFAULT_INTERVAL):
+            return self.error(
+                request=request,
+                name="slow_down",
+                reason="polling too fast",
+            )
+
+        # Look up the device code
+        try:
+            device_code = ApiDeviceCode.objects.get(
+                device_code=device_code_value,
+                application=application,
+            )
+        except ApiDeviceCode.DoesNotExist:
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="invalid device_code",
+            )
+
+        # Check if expired (RFC 8628 §3.5)
+        if device_code.is_expired():
+            device_code.delete()
+            return self.error(
+                request=request,
+                name="expired_token",
+                reason="device code expired",
+            )
+
+        # Check authorization status (RFC 8628 §3.5)
+        if device_code.status == DeviceCodeStatus.PENDING:
+            # User hasn't completed authorization yet
+            return self.error(
+                request=request,
+                name="authorization_pending",
+                reason="user authorization pending",
+            )
+        elif device_code.status == DeviceCodeStatus.DENIED:
+            # User denied the authorization
+            device_code.delete()
+            return self.error(
+                request=request,
+                name="access_denied",
+                reason="user denied authorization",
+            )
+        elif device_code.status == DeviceCodeStatus.APPROVED:
+            # Use locking to prevent race condition where multiple requests
+            # could create tokens for the same device code (TOCTOU)
+            lock = locks.get(
+                ApiDeviceCode.get_lock_key(device_code.id),
+                duration=10,
+                name="api_device_code",
+            )
+
+            try:
+                lock_context = lock.acquire()
+            except UnableToAcquireLock:
+                # Another request is currently processing this device code
+                return self.error(
+                    request=request,
+                    name="invalid_grant",
+                    reason="device code already in use",
+                )
+
+            with lock_context:
+                # Re-fetch inside lock to prevent TOCTOU race condition
+                try:
+                    device_code = ApiDeviceCode.objects.get(id=device_code.id)
+                except ApiDeviceCode.DoesNotExist:
+                    # Another request already processed this device code
+                    return self.error(
+                        request=request,
+                        name="invalid_grant",
+                        reason="invalid device_code",
+                    )
+
+                # Re-check status inside lock
+                if device_code.status != DeviceCodeStatus.APPROVED:
+                    return self.error(
+                        request=request,
+                        name="invalid_grant",
+                        reason="device code in invalid state",
+                    )
+
+                # Re-check expiration inside lock (could have expired during lock wait)
+                if device_code.is_expired():
+                    device_code.delete()
+                    return self.error(
+                        request=request,
+                        name="expired_token",
+                        reason="device code expired",
+                    )
+
+                # User approved - issue tokens
+                if device_code.user is None:
+                    # This shouldn't happen, but handle it gracefully
+                    logger.error(
+                        "Device code approved but no user set",
+                        extra={
+                            "device_code_id": device_code.id,
+                            "application_id": application.id,
+                        },
+                    )
+                    device_code.delete()
+                    return self.error(
+                        request=request,
+                        name="invalid_grant",
+                        reason="device code in invalid state",
+                    )
+
+                # Use a transaction to ensure token creation and device code deletion
+                # are atomic. This prevents duplicate tokens if delete fails after
+                # token creation succeeds.
+                with transaction.atomic(router.db_for_write(ApiToken)):
+                    # Create the access token
+                    token = ApiToken.objects.create(
+                        application=application,
+                        user_id=device_code.user.id,
+                        scope_list=device_code.scope_list,
+                        scoping_organization_id=device_code.organization_id,
+                    )
+
+                    # Delete the device code (one-time use)
+                    device_code.delete()
+
+                metrics.incr("oauth_device.token_exchange", sample_rate=1.0)
+                logger.info(
+                    "oauth.device-code-exchanged",
+                    extra={
+                        "device_code_id": device_code.id,
+                        "application_id": application.id,
+                        "user_id": device_code.user.id,
+                        "token_id": token.id,
+                    },
+                )
+
+            return self.process_token_details(token=token)
+
+        # Unknown status - shouldn't happen
+        logger.error(
+            "Device code has unknown status",
+            extra={
+                "device_code_id": device_code.id,
+                "status": device_code.status,
+            },
+        )
+        device_code.delete()
+        return self.error(
+            request=request,
+            name="invalid_grant",
+            reason="device code in invalid state",
+        )
 
     def process_token_details(
         self, token: ApiToken, id_token: OpenIDToken | None = None

@@ -23,8 +23,10 @@ import type {DataForwarder} from 'sentry/views/settings/organizationDataForwardi
 export function ProjectOverrideForm({
   project,
   dataForwarder,
+  disabled,
 }: {
   dataForwarder: DataForwarder;
+  disabled: boolean;
   project: AvatarProject;
 }) {
   const organization = useOrganization();
@@ -65,11 +67,12 @@ export function ProjectOverrideForm({
       hideFooter
     >
       <OverrideForm
-        forms={[getProjectOverrideForm({dataForwarder, project})]}
+        disabled={disabled}
+        forms={[getProjectOverrideForm({dataForwarder, project, omitTag: disabled})]}
         collapsible
         renderHeader={() => (
           <Flex padding="sm lg" borderBottom="primary" gap="md" align="center">
-            <IconInfo size="sm" color="subText" />
+            <IconInfo size="sm" variant="muted" />
             <Text variant="muted" size="sm" bold>
               {t('Overrides set here will only affect this project')}
             </Text>
@@ -79,7 +82,8 @@ export function ProjectOverrideForm({
           <Flex justify="between" padding="lg xl">
             <Button
               size="sm"
-              icon={<IconRefresh color="danger" transform="scale(-1, 1)" />}
+              icon={<IconRefresh variant="danger" transform="scale(-1, 1)" />}
+              disabled={disabled}
               onClick={() => {
                 updateDataForwarder({
                   project_id: `${project.id}`,
@@ -90,7 +94,7 @@ export function ProjectOverrideForm({
             >
               {t('Clear Override')}
             </Button>
-            <Button priority="primary" size="sm" type="submit">
+            <Button priority="primary" size="sm" type="submit" disabled={disabled}>
               {t('Save Override')}
             </Button>
           </Flex>
@@ -106,7 +110,7 @@ const OverrideForm = styled(JsonForm)`
   }
   ${PanelHeader} {
     text-transform: none;
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   }
   margin: 0;

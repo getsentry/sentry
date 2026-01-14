@@ -131,7 +131,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
         ))}
         {hasOther && (
           <Fragment>
-            <LegendColor style={{backgroundColor: theme.gray200}} />
+            <LegendColor style={{backgroundColor: theme.colors.gray200}} />
             <LegendText>{t('Other')}</LegendText>
             <LegendPercentage>{otherPercentageString}</LegendPercentage>
           </Fragment>
@@ -356,8 +356,8 @@ const TagBarPlaceholder = styled('div')`
   height: 8px;
   width: 100%;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
-  background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 
@@ -366,7 +366,7 @@ const TagBarSegment = styled('div')`
   position: absolute;
   top: 0;
   min-width: ${p => p.theme.space['2xs']};
-  border-right: 1px solid ${p => p.theme.translucentBorder};
+  border-right: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &:last-child {
     border-right: none;
@@ -409,7 +409,7 @@ const TagPreviewGrid = styled(Link)`
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
-    background: ${p => p.theme.backgroundTertiary};
+    background: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -432,11 +432,11 @@ const LegendTitle = styled('div')`
 `;
 
 const DistributionsDrawerLink = styled(Link)`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
   align-self: flex-start;
 
   &:hover {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.tokens.content.accent};
   }
 `;
 

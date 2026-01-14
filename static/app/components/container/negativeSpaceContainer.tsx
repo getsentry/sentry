@@ -9,21 +9,21 @@ const NegativeSpaceContainer = styled('div')`
   position: relative;
   overflow: hidden;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   background-image:
     repeating-linear-gradient(
       -145deg,
       transparent,
       transparent 8px,
-      ${p => p.theme.backgroundSecondary} 8px,
-      ${p => p.theme.backgroundSecondary} 11px
+      ${p => p.theme.tokens.background.secondary} 8px,
+      ${p => p.theme.tokens.background.secondary} 11px
     ),
     repeating-linear-gradient(
       -45deg,
       transparent,
       transparent 15px,
-      ${p => p.theme.gray100} 15px,
-      ${p => p.theme.gray100} 16px
+      ${p => p.theme.colors.gray100} 15px,
+      ${p => p.theme.colors.gray100} 16px
     );
 `;
 

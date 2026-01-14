@@ -48,9 +48,9 @@ export const ListWrap = styled('ul')`
 
 export const ListLabel = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   white-space: nowrap;
   margin: ${space(0.5)} ${space(1.5)};
@@ -58,7 +58,7 @@ export const ListLabel = styled('p')`
 `;
 
 export const ListSeparator = styled('div')`
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)};
 
   :first-child {
@@ -94,9 +94,9 @@ export const SectionHeader = styled('div')`
 
 export const SectionTitle = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.font.weight.medium};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   white-space: nowrap;
 
@@ -107,9 +107,9 @@ export const SectionTitle = styled('p')`
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${space(0.5)};
   margin: 0 -${space(0.5)} 0 ${space(2)};
-  font-weight: ${p => p.theme.font.weight.regular};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   transition: opacity 0.1s;
 
   &:focus-visible {
@@ -137,7 +137,7 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
 
 export const SectionSeparator = styled('li')`
   list-style-type: none;
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)};
 
   &:first-of-type {
@@ -162,7 +162,7 @@ export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>
 
 export const EmptyMessage = styled('p')`
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(1)} ${space(1.5)} ${space(1.5)};
   margin: 0;
 
@@ -175,12 +175,12 @@ export const EmptyMessage = styled('p')`
 `;
 
 export const SizeLimitMessage = styled('li')`
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)} ${space(0.5)};
   padding: ${space(0.75)} ${space(1)} 0;
 
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   list-style-type: none;
   white-space: nowrap;
   text-align: center;

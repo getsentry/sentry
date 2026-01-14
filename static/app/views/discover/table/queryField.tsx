@@ -3,7 +3,7 @@ import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
 import type {ControlProps} from 'sentry/components/core/select';
@@ -595,37 +595,40 @@ class _QueryField extends Component<Props> {
       return renderTagOverride(kind, label, meta);
     }
     let text: string;
-    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
+    let tagVariant:
+      | Extract<TagProps['variant'], 'success' | 'info' | 'warning'>
+      | undefined;
+
     switch (kind) {
       case FieldValueKind.FUNCTION:
         text = 'f(x)';
-        tagType = 'success';
+        tagVariant = 'success';
         break;
       case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.MEASUREMENT:
         text = 'field';
-        tagType = 'highlight';
+        tagVariant = 'info';
         break;
       case FieldValueKind.BREAKDOWN:
         text = 'field';
-        tagType = 'highlight';
+        tagVariant = 'info';
         break;
       case FieldValueKind.TAG:
         text = kind;
-        tagType = 'warning';
+        tagVariant = 'warning';
         break;
       case FieldValueKind.NUMERIC_METRICS:
         text = 'f(x)';
-        tagType = 'success';
+        tagVariant = 'success';
         break;
       case FieldValueKind.FIELD:
         text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-        tagType = 'highlight';
+        tagVariant = 'info';
         break;
       default:
         text = kind;
     }
-    return <Tag type={tagType}>{text}</Tag>;
+    return <Tag variant={tagVariant ?? 'muted'}>{text}</Tag>;
   }
 
   render() {
@@ -695,7 +698,7 @@ class _QueryField extends Component<Props> {
           />
           {error ? (
             <ArithmeticError title={error}>
-              <IconWarning color="errorText" data-test-id="arithmeticErrorWarning" />
+              <IconWarning variant="danger" data-test-id="arithmeticErrorWarning" />
             </ArithmeticError>
           ) : null}
         </Container>
@@ -853,7 +856,7 @@ const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
   height: ${p => p.theme.form.md.height};
   min-width: 50px;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
@@ -862,12 +865,12 @@ const BlankSpace = styled('div')`
   &:after {
     font-size: ${p => p.theme.fontSize.md};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const ArithmeticError = styled(Tooltip)`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
 `;

@@ -425,6 +425,27 @@ class IntegrationInstallation(abc.ABC):
     def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         return None
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        """
+        Override this method in integration subclasses to expose additional
+        non-sensitive metadata fields via admin endpoints and logging.
+
+        Returns:
+            A list of keys that are safe to expose for debugging purposes.
+        """
+        return []
+
+    def get_debug_metadata(self) -> dict[str, Any]:
+        """
+        Returns a dictionary containing key value pairs of metadata useful for
+        debugging. These fields should be safe to log.
+
+        Returns:
+            A dictionary containing only the allowlisted metadata fields.
+        """
+        allowed_keys = self._get_debug_metadata_keys()
+        return {key: self.model.metadata.get(key) for key in allowed_keys}
+
     @abc.abstractmethod
     def get_client(self) -> Any:
         """

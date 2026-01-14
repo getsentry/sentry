@@ -126,12 +126,15 @@ const TagValueRow = styled('li')`
   font-variant-numeric: tabular-nums;
 
   &:nth-child(2n) {
-    background-color: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+    background-color: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   }
 `;
 
 const StyledLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 
   &:hover [data-underline-on-hover='true'] {

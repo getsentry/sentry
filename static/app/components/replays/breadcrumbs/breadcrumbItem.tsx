@@ -155,9 +155,9 @@ const StyledTimelineItem = styled(Timeline.Item)`
   padding: ${space(0.5)} ${space(0.75)};
   margin: 0;
   &:hover {
-    background: ${p => p.theme.translucentSurface200};
+    background: ${p => p.theme.colors.surface200};
     .timeline-icon-wrapper {
-      background: ${p => p.theme.translucentSurface200};
+      background: ${p => p.theme.colors.surface200};
     }
   }
   cursor: pointer;
@@ -169,7 +169,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
     width: 1px;
     top: -2px;
     bottom: -9px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }
   &:first-child::before {

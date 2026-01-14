@@ -60,7 +60,7 @@ function Content({
   if (errored) {
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </ErrorPanel>
     );
   }
@@ -70,7 +70,7 @@ function Content({
         .map(values => {
           return {
             ...values,
-            color: theme.purple300,
+            color: theme.tokens.background.accent.vibrant,
             lineStyle: {
               opacity: 0.75,
               width: 1,
@@ -123,7 +123,7 @@ function Content({
     ? smoothedResults.map(values => {
         return {
           ...values,
-          color: theme.purple300,
+          color: theme.tokens.background.accent.vibrant,
           lineStyle: {
             opacity: 1,
           },

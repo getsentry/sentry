@@ -369,7 +369,7 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <Alert system type="warning" showIcon={false}>
+        <Alert system variant="warning" showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
@@ -479,7 +479,7 @@ const StickyActions = styled(Sticky)`
     border-radius: 0;
   }
 
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-top: none;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 `;
@@ -493,7 +493,7 @@ const ActionsBarContainer = styled('div')`
   padding-bottom: ${space(0.5)};
   padding-left: ${space(2)};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: 6px 6px 0 0;
 `;
 

@@ -199,7 +199,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
         )}
         {isError && (
           <StatusContainer>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </StatusContainer>
         )}
         {!isError && !isLoading && !hasFunctions && (
@@ -315,10 +315,10 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           return {
             key: targetId,
             label: (
-              <DropdownItem>
+              <Flex justify="between" width="150px">
                 {getShortEventId(targetId)}
                 {timestamp}
-              </DropdownItem>
+              </Flex>
             ),
             textValue: targetId,
             to: generateProfileRouteFromProfileReference({
@@ -470,7 +470,7 @@ function FunctionChart<F extends BreakdownFunction>({
   if (stats?.isError) {
     return (
       <StatusContainer>
-        <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+        <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
       </StatusContainer>
     );
   }
@@ -510,10 +510,4 @@ const StyledPagination = styled(Pagination)`
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
-`;
-
-const DropdownItem = styled('div')`
-  width: 150px;
-  display: flex;
-  justify-content: space-between;
 `;

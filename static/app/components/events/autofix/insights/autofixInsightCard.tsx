@@ -313,7 +313,13 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -329,8 +335,8 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
   overflow: hidden;
   margin-bottom: 0;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px dashed ${p => p.theme.border};
-  border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-color: ${p => (p.expanded ? p.theme.tokens.border.primary : 'transparent')};
 
   box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 `;
@@ -343,10 +349,12 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
   margin: 0;
   flex: 1;
   word-break: break-word;
-  color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.expanded ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   code {
-    color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
+    color: ${p =>
+      p.expanded ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   }
 `;
 
@@ -356,7 +364,7 @@ const ContextBody = styled('div')`
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   position: relative;
-  border-top: 1px dashed ${p => p.theme.innerBorder};
+  border-top: 1px dashed ${p => p.theme.tokens.border.secondary};
 
   code {
     white-space: pre-wrap;
@@ -366,7 +374,7 @@ const ContextBody = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RightSection = styled('div')`
@@ -393,7 +401,7 @@ const EditInput = styled(TextArea)`
 `;
 
 const EditButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DiffContainer = styled('div')`

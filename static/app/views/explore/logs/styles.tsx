@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HighlightComponent} from 'sentry/components/highlight';
@@ -11,7 +11,6 @@ import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
   TableBody,
@@ -36,8 +35,17 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
-      background-color: ${p => p.theme.backgroundSecondary};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
+
+    ${p =>
+      p.isClickable &&
+      `
+      &:active {
+        background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      }
+    `}
 
     &:not(:last-child) {
       border-bottom: 0;
@@ -50,16 +58,16 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.yellow100};
-    color: ${p => p.theme.red300};
+    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+    color: ${p => p.theme.tokens.content.danger};
 
     &:hover {
-      background-color: ${p => p.theme.yellow200};
+      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
     }
   }
 
   &.beforeHoverTime + &.afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.purple200};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     left: 0;
     position: absolute;
@@ -68,7 +76,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple200};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     right: 0;
     position: absolute;
@@ -77,7 +85,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime + &.afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.purple300};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     left: 0;
     position: absolute;
@@ -86,7 +94,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &.beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple300};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     right: 0;
     position: absolute;
@@ -163,14 +171,14 @@ export const LogDetailTableActionsButtonBar = styled('div')`
 
 export const DetailsWrapper = styled('tr')`
   align-items: center;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   padding: ${space(1)} ${space(1)};
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
   display: grid;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${1 /* place above the grid resizing lines */};
 `;
 
@@ -181,10 +189,9 @@ export const DetailsContent = styled(StyledPanel)`
   padding: ${space(1)} ${space(2)};
 `;
 
-export const LogFirstCellContent = styled('div')`
-  display: flex;
-  align-items: center;
-`;
+export function LogFirstCellContent(props: FlexProps<'div'>) {
+  return <Flex align="center" {...props} />;
+}
 
 export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
   ${NumberContainer} {
@@ -194,7 +201,7 @@ export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right
 
 export const DetailsBody = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding: ${space(1)} 0;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
@@ -235,13 +242,13 @@ export const ColoredLogText = styled('span')<{
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: ${p => p.align || 'left'};
 `;
 
 export const LogsHighlight = styled(HighlightComponent)`
   font-weight: ${p => p.theme.fontWeight.bold};
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   margin-right: 2px;
   margin-left: 2px;
 `;
@@ -249,8 +256,8 @@ export const LogsHighlight = styled(HighlightComponent)`
 export const LogsFilteredHelperText = styled('span')`
   margin-left: 4px;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.gray200};
+  color: ${p => p.theme.tokens.content.secondary};
+  background-color: ${p => p.theme.colors.gray200};
 `;
 
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
@@ -280,12 +287,9 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${space(1)};
 `;
 
-export const TableActionsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-end;
-  align-items: center;
-`;
+export function TableActionsContainer(props: FlexProps<'div'>) {
+  return <Flex justify="end" align="center" gap="md" {...props} />;
+}
 
 export const LogsItemContainer = styled('div')`
   flex: 1 1 auto;
@@ -322,68 +326,67 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   switch (level) {
     case SeverityLevel.DEFAULT:
       return {
-        background: theme.gray200,
-        backgroundLight: theme.backgroundSecondary,
-        border: theme.border,
-        borderHover: theme.border,
-        color: theme.gray200,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.secondary,
       };
     case SeverityLevel.TRACE:
       return {
-        background: theme.blue300,
-        backgroundLight: theme.blue100,
-        border: theme.blue200,
-        borderHover: theme.blue300,
-        color: theme.blue400,
+        background: theme.tokens.graphics.accent.vibrant,
+        backgroundLight: theme.tokens.background.transparent.accent.muted,
+        border: theme.tokens.border.accent.moderate,
+        borderHover: theme.tokens.border.accent.vibrant,
+        color: theme.tokens.content.accent,
       };
     case SeverityLevel.WARN:
       return {
-        background: theme.yellow300,
-        backgroundLight: theme.yellow100,
-        border: theme.yellow200,
-        borderHover: theme.yellow300,
-        color: theme.yellow400,
+        background: theme.tokens.graphics.warning.vibrant,
+        backgroundLight: theme.tokens.background.transparent.warning.muted,
+        border: theme.tokens.border.warning.moderate,
+        borderHover: theme.tokens.border.warning.vibrant,
+        color: theme.tokens.content.warning,
       };
     case SeverityLevel.ERROR:
-      // All these colours are likely changing, so we'll hold off moving them into theme for now.
       return {
-        background: '#FF7738', // Matches the legacy error level color
-        backgroundLight: 'rgba(245, 113, 54, 0.11)',
-        border: 'rgba(245, 113, 54, 0.55)',
-        borderHover: '#FF7738',
-        color: '#b34814',
+        background: theme.tokens.graphics.danger.vibrant,
+        backgroundLight: theme.tokens.background.transparent.danger.muted,
+        border: theme.tokens.border.danger.moderate,
+        borderHover: theme.tokens.border.danger.vibrant,
+        color: theme.tokens.content.danger,
       };
     case SeverityLevel.FATAL:
       return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
+        background: theme.tokens.graphics.danger.vibrant,
+        backgroundLight: theme.tokens.background.transparent.danger.muted,
+        border: theme.tokens.border.danger.moderate,
+        borderHover: theme.tokens.border.danger.vibrant,
+        color: theme.tokens.content.danger,
       };
     case SeverityLevel.DEBUG:
       return {
-        background: theme.gray300,
-        backgroundLight: theme.gray100,
-        border: theme.gray200,
-        borderHover: theme.gray300,
-        color: theme.gray300,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.primary,
       };
     case SeverityLevel.INFO:
       return {
-        background: theme.blue300,
-        backgroundLight: theme.blue100,
-        border: theme.blue200,
-        borderHover: theme.blue300,
-        color: theme.blue400,
+        background: theme.tokens.graphics.accent.vibrant,
+        backgroundLight: theme.tokens.background.transparent.accent.muted,
+        border: theme.tokens.border.transparent.accent.moderate,
+        borderHover: theme.tokens.border.transparent.accent.vibrant,
+        color: theme.tokens.content.accent,
       };
     case SeverityLevel.UNKNOWN:
       return {
-        background: theme.gray300,
-        backgroundLight: theme.gray100,
-        border: theme.gray200,
-        borderHover: theme.gray300,
-        color: theme.gray200,
+        background: theme.tokens.graphics.neutral.vibrant,
+        backgroundLight: theme.tokens.background.transparent.neutral.muted,
+        border: theme.tokens.border.neutral.moderate,
+        borderHover: theme.tokens.border.neutral.vibrant,
+        color: theme.tokens.content.secondary,
       };
     default:
       unreachable(level);
@@ -391,43 +394,25 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   }
 }
 
-export const LogsSidebarCollapseButton = withChonk(
-  styled(Button)<{sidebarOpen: boolean}>`
-    display: none;
+export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
+  display: none;
 
-    ${p =>
-      p.sidebarOpen &&
-      css`
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    display: inline-flex;
+  }
+
+  ${p =>
+    p.sidebarOpen &&
+    css`
+      margin-left: -13px;
+
+      &::after {
         border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
-        margin-left: -13px;
-      `}
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) {
-      display: block;
-    }
-  `,
-  styled(Button)<{sidebarOpen: boolean}>`
-    display: none;
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) {
-      display: inline-flex;
-    }
-
-    ${p =>
-      p.sidebarOpen &&
-      css`
-        margin-left: -13px;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.background.primary};
-          border-top-left-radius: 0px;
-          border-bottom-left-radius: 0px;
-        }
-      `}
-  `
-);
+      }
+    `}
+`;
 
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
@@ -474,8 +459,8 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   display: flex;
   background: linear-gradient(
     to ${p => (p.position === 'top' ? 'bottom' : 'top')},
-    rgb(from ${p => p.theme.backgroundTertiary} r g b / 75%),
-    rgb(from ${p => p.theme.backgroundSecondary} r g b / 0%)
+    rgb(from ${p => p.theme.tokens.background.tertiary} r g b / 75%),
+    rgb(from ${p => p.theme.tokens.background.secondary} r g b / 0%)
   );
   align-items: center;
   justify-content: center;
@@ -501,7 +486,7 @@ export const TraceIconStyleWrapper = styled(Flex)`
   height: 18px;
 
   .TraceIcon {
-    background-color: ${p => p.theme.red300};
+    background-color: ${p => p.theme.colors.red400};
     position: absolute;
     transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
     width: 18px;

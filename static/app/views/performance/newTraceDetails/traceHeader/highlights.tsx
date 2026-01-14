@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -216,7 +218,7 @@ function AttributesHighlights({
         }
 
         return {
-          icon: <IconReleases size="sm" color="subText" />,
+          icon: <IconReleases size="sm" variant="muted" />,
           description: (
             <VersionHoverCard
               organization={organization}
@@ -239,7 +241,7 @@ function AttributesHighlights({
         }
 
         return {
-          icon: <IconGlobe size="sm" color="subText" />,
+          icon: <IconGlobe size="sm" variant="muted" />,
           description: t('Check from %s', region),
         };
       },
@@ -252,7 +254,7 @@ function AttributesHighlights({
           return null;
         }
         return {
-          icon: <IconWindow size="sm" color="subText" />,
+          icon: <IconWindow size="sm" variant="muted" />,
           description: <Tooltip title={t('Environment')}>{environment}</Tooltip>,
         };
       },
@@ -269,21 +271,15 @@ function AttributesHighlights({
         }
 
         return (
-          <HighlightsContainer key={highlight.key}>
+          <Flex align="center" gap="md" key={highlight.key}>
             <HighlightsIconWrapper>{summary.icon}</HighlightsIconWrapper>
             <HighlightsDescription>{summary.description}</HighlightsDescription>
-          </HighlightsContainer>
+          </Flex>
         );
       })}
     </ScrollCarousel>
   );
 }
-
-const HighlightsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const HighlightsDescription = styled('div')`
   display: flex;
@@ -300,7 +296,7 @@ const HighlightsIconWrapper = styled('div')`
 
 const HighlightsSubtitle = styled(Tooltip)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledVersion = styled(Version)`

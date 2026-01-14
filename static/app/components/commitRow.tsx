@@ -281,7 +281,7 @@ const EmailWarningIcon = styled('span')`
   line-height: 12px;
   border-radius: 50%;
   border: 1px solid ${p => p.theme.tokens.background.primary};
-  background: ${p => p.theme.yellow200};
+  background: ${p => p.theme.colors.yellow200};
   padding: 1px 2px 3px 2px;
 `;
 
@@ -301,10 +301,10 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
   font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSize.md : '13px')};
   line-height: 1.5;
   margin: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   a {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-decoration: underline;
     text-decoration-style: dotted;
   }
@@ -324,7 +324,7 @@ const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   padding-top: ${space(0.25)};
 `;
@@ -332,7 +332,7 @@ const MetaWrapper = styled('div')`
 const StyledExternalLink = styled(ExternalLink)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.translucentGray200};
+  text-decoration-color: ${p => p.theme.colors.gray200};
 
   :hover {
     color: ${p => p.theme.tokens.content.primary};
@@ -343,7 +343,7 @@ const AuthorWrapper = styled('span')`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   & svg {
     transition: 120ms opacity;

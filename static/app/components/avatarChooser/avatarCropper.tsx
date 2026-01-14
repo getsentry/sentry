@@ -396,14 +396,26 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
     -10px 0px;
   background-color: ${p => p.theme.tokens.background.primary};
   background-image:
-    linear-gradient(45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(
-      -45deg,
-      ${p => p.theme.backgroundSecondary} 25%,
+      45deg,
+      ${p => p.theme.tokens.background.secondary} 25%,
       rgba(0, 0, 0, 0) 25%
     ),
-    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%),
-    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%);
+    linear-gradient(
+      -45deg,
+      ${p => p.theme.tokens.background.secondary} 25%,
+      rgba(0, 0, 0, 0) 25%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0) 75%,
+      ${p => p.theme.tokens.background.secondary} 75%
+    ),
+    linear-gradient(
+      -45deg,
+      rgba(0, 0, 0, 0) 75%,
+      ${p => p.theme.tokens.background.secondary} 75%
+    );
 
   cursor: ${p => (p.resizeDirection ? `${p.resizeDirection}-resize` : 'default')};
 `;
@@ -423,7 +435,7 @@ const Mask = styled('div')`
 
 const Cropper = styled('div')`
   position: absolute;
-  border: 1px dashed ${p => p.theme.gray300};
+  border: 1px dashed ${p => p.theme.colors.gray400};
   display: grid;
 
   /* Cropper cross-hair */
@@ -451,7 +463,7 @@ const ResizeHandle = styled('div')<{position: Position}>`
   width: 10px;
   height: 10px;
   position: absolute;
-  background-color: ${p => p.theme.gray300};
+  background-color: ${p => p.theme.colors.gray400};
   cursor: ${p => `${p.position}-resize`};
   ${p => RESIZER_POSITIONS[p.position].map(pos => `${pos}: -5px;`)}
 `;

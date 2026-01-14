@@ -55,9 +55,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       <SecondaryCTAWrapper>{cta}</SecondaryCTAWrapper>
       <LinkButton
         onClick={trackClickUpgrade}
-        href={normalizeUrl(
-          `/settings/${organization.slug}/billing/checkout/?referrer=upgrade-${source}`
-        )}
+        href={normalizeUrl(`/checkout/${organization.slug}/?referrer=upgrade-${source}`)}
         external
         size="sm"
         icon={<IconBusiness />}
@@ -90,7 +88,7 @@ const NeedHelpLink = styled(ExternalLink)`
 const ActiveTrialHeader = styled('div')`
   font-size: 14px;
   text-transform: uppercase;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 const ActiveTrialWrapper = styled('div')`

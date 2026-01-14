@@ -41,10 +41,10 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
                 disabled={!crashedInfo}
                 position="top"
               >
-                <IconFire color="errorText" />
+                <IconFire variant="danger" />
               </Tooltip>
             ) : (
-              <IconFire color="errorText" />
+              <IconFire variant="danger" />
             )}
           </InnerCell>
         )}
@@ -81,7 +81,10 @@ const InnerCell = styled('div')<{
   isBold?: boolean;
   isCentered?: boolean;
 }>`
-  ${p => p.theme.overflowEllipsis}
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};

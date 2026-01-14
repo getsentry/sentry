@@ -45,10 +45,10 @@ export function PerformanceScoreChart({
   if (webVital) {
     const index = ORDER.indexOf(webVital);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
-      return i === index ? color : theme.gray200;
+      return i === index ? color : theme.colors.gray200;
     });
     ringBackgroundColors = ringBackgroundColors.map((color, i) => {
-      return i === index ? color : `${theme.gray200}33`;
+      return i === index ? color : `${theme.colors.gray200}33`;
     });
   }
 
@@ -117,7 +117,7 @@ const Flex = styled('div')`
 const PerformanceScoreLabelContainer = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   min-width: 320px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
@@ -137,7 +137,7 @@ const PerformanceScoreLabel = styled('div')`
 export const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: ${space(1)};
 `;
 

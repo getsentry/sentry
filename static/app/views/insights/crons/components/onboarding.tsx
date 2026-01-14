@@ -37,13 +37,13 @@ const WaitingNotice = styled('div')`
   align-items: center;
   gap: ${space(0.25)} ${space(0.5)};
   margin-top: ${space(2)};
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const WaitingHelpText = styled('small')`
   grid-column: 2;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const WaitingIndicator = styled('div')`
