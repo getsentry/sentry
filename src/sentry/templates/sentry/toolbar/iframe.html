@@ -172,7 +172,7 @@ Required context variables:
             // tokens be destroyed and reload the iframe in an unauth state.
             log('Has access info', {
               cookie: Boolean(document.cookie),
-              csrfToken: sessionStorage.getItem('csrfToken'),
+              csrfToken: Boolean(sessionStorage.getItem('csrfToken')),
               accessToken: Boolean(accessToken),
             });
 
