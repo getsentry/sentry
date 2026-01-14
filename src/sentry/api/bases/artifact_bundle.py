@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ErrorDetail
 from rest_framework.request import Request
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -24,7 +24,7 @@ class ArtifactBundleError(APIException):
     def __init__(self, message: str):
         # Set detail directly to produce {"error": "..."} format
         # instead of DRF's default {"detail": "..."} format
-        self.detail = {"error": message}
+        self.detail = {"error": ErrorDetail(message)}
 
 
 class ProjectArtifactBundleEndpoint(ProjectEndpoint):
