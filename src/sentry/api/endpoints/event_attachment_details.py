@@ -11,7 +11,8 @@ from sentry import features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.event import EventEndpoint
+from sentry.api.bases.project import ProjectPermission
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -19,7 +20,6 @@ from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.organizationmember import OrganizationMember
-from sentry.services import eventstore
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -53,7 +53,7 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 
 
 @region_silo_endpoint
-class EventAttachmentDetailsEndpoint(ProjectEndpoint):
+class EventAttachmentDetailsEndpoint(EventEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
@@ -107,7 +107,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         return response
 
-    def get(self, request: Request, project, event_id, attachment_id) -> Response:
+    def get(self, request: Request, project, event, attachment_id) -> Response:
         """
         Retrieve an Attachment
         ``````````````````````
@@ -125,10 +125,6 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        event = eventstore.backend.get_event_by_id(project.id, event_id)
-        if event is None:
-            return self.respond({"detail": "Event not found"}, status=404)
-
         try:
             attachment = EventAttachment.objects.filter(
                 project_id=project.id, event_id=event.event_id, id=attachment_id
@@ -141,7 +137,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(attachment, request.user))
 
-    def delete(self, request: Request, project, event_id, attachment_id) -> Response:
+    def delete(self, request: Request, project, event, attachment_id) -> Response:
         """
         Delete an Event Attachment by ID
         ````````````````````````````````
@@ -159,7 +155,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         try:
             attachment = EventAttachment.objects.filter(
-                project_id=project.id, event_id=event_id, id=attachment_id
+                project_id=project.id, event_id=event.event_id, id=attachment_id
             ).get()
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)

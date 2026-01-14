@@ -4,14 +4,13 @@ import sentry_sdk
 from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
-from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.event import EventEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -32,7 +31,6 @@ from sentry.models.releasefile import (
     ReleaseFile,
 )
 from sentry.sdk_updates import get_sdk_index
-from sentry.services import eventstore
 from sentry.utils import json
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
@@ -124,7 +122,7 @@ class SourceMapDebugResponse(TypedDict):
 
 @region_silo_endpoint
 @extend_schema(tags=["Events"])
-class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
+class SourceMapDebugBlueThunderEditionEndpoint(EventEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -146,15 +144,10 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, event_id: str) -> Response:
+    def get(self, request: Request, project: Project, event) -> Response:
         """
         Return a list of source map errors for a given event.
         """
-
-        event = eventstore.backend.get_event_by_id(project.id, event_id)
-        if event is None:
-            raise NotFound(detail="Event not found")
-
         event_data = event.data
 
         release = None

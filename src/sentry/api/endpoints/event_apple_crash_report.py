@@ -5,21 +5,19 @@ from rest_framework.request import Request
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.event import EventEndpoint
 from sentry.lang.native.applecrashreport import AppleCrashReport
-from sentry.services import eventstore
 from sentry.utils.safe import get_path
 
 
 @region_silo_endpoint
-class EventAppleCrashReportEndpoint(ProjectEndpoint):
+class EventAppleCrashReportEndpoint(EventEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event_id) -> HttpResponseBase:
+    def get(self, request: Request, project, event) -> HttpResponseBase:
         """
         Retrieve an Apple Crash Report from an event
         `````````````````````````````````````````````
@@ -27,10 +25,6 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         This endpoint returns the an apple crash report for a specific event.
         This works only if the event.platform == cocoa
         """
-        event = eventstore.backend.get_event_by_id(project.id, event_id)
-        if event is None:
-            raise ResourceDoesNotExist
-
         if event.platform not in ("cocoa", "native"):
             return HttpResponse(
                 {"message": "Only cocoa events can return an apple crash report"}, status=403

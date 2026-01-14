@@ -5,22 +5,21 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.event import EventEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.search.utils import tokenize_query
-from sentry.services import eventstore
 
 
 @region_silo_endpoint
-class EventAttachmentsEndpoint(ProjectEndpoint):
+class EventAttachmentsEndpoint(EventEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event) -> Response:
         """
         Retrieve attachments for an event
         `````````````````````````````````
@@ -36,10 +35,6 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
             "organizations:event-attachments", project.organization, actor=request.user
         ):
             return self.respond(status=404)
-
-        event = eventstore.backend.get_event_by_id(project.id, event_id)
-        if event is None:
-            return self.respond({"detail": "Event not found"}, status=404)
 
         queryset = EventAttachment.objects.filter(project_id=project.id, event_id=event.event_id)
 
