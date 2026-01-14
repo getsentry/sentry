@@ -49,7 +49,6 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {
   DEFAULT_WIDGET_NAME,
-  DisplayType,
   MAX_WIDGETS,
   WidgetType,
 } from 'sentry/views/dashboards/types';
@@ -58,6 +57,7 @@ import {
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
+  isChartDisplayType,
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -225,12 +225,7 @@ function AddToDashboardModal({
   function normalizeWidgets(widgetsToNormalize: Widget[]): Widget[] {
     return widgetsToNormalize.map(w => {
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
-      if (
-        !(
-          [DisplayType.AREA, DisplayType.TOP_N].includes(w.displayType) &&
-          w.queries[0]!.columns.length
-        )
-      ) {
+      if (!(isChartDisplayType(w.displayType) && w.queries[0]!.columns.length)) {
         newOrderBy = ''; // Clear orderby if its not a top n visualization.
       }
       const queries = w.queries.map(query => ({
