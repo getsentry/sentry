@@ -31,7 +31,10 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  useTraceItemAttributes,
+  useTraceItemAttributesWithConfig,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -166,17 +169,11 @@ function MobileAppSizeSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const organization = useOrganization();
-
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.PREPROD,
-    enabled: organization.features.includes('preprod-app-size-dashboard'),
-  };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useTraceItemAttributes('string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useTraceItemAttributes('number');
 
   return (
     <TraceItemSearchQueryBuilder

@@ -94,6 +94,11 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
     query = createTraceMetricFilter(state.traceMetric);
   }
 
+  if (state.dataset === WidgetType.MOBILE_APP_SIZE) {
+    enabled = organization.features.includes('preprod-app-size-dashboard');
+    traceItemType = TraceItemDataset.PREPROD;
+  }
+
   return (
     <TraceItemAttributeProvider
       traceItemType={traceItemType}
