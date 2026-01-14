@@ -21,10 +21,9 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 export default function BuildComparison() {
   const organization = useOrganization();
   const theme = useTheme();
-  const params = useParams() as {headId: string; baseId?: string};
-
-  const headArtifactId = params.headId;
-  const baseArtifactId = params.baseId;
+  const params = useParams() as {baseArtifactId?: string; headArtifactId?: string};
+  const headArtifactId = params.headArtifactId;
+  const baseArtifactId = params.baseArtifactId;
   const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
 
   const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =

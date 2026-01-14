@@ -37,12 +37,11 @@ export function getCompareBuildPath(params: {
 }): string {
   const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
 
-  let path = `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/`;
   if (baseArtifactId) {
-    path = `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/${baseArtifactId}/`;
+    return `/organizations/${organizationSlug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
   }
 
-  return `${path}?project=${projectId}`;
+  return `/organizations/${organizationSlug}/preprod/${projectId}/compare/${headArtifactId}/?project=${projectId}`;
 }
 
 export function getListBuildPath(params: {
