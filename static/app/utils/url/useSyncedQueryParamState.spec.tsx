@@ -1,44 +1,21 @@
+import {withNuqsTestingAdapter} from 'nuqs/adapters/testing';
+
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
 import {useSyncedQueryParamState} from 'sentry/utils/url/useSyncedQueryParamState';
 
-// Mock Nuqs
-jest.mock('nuqs', () => {
-  const actualNuqs = jest.requireActual('nuqs');
-  let mockQueryStates: Record<string, string | null> = {};
-
-  return {
-    ...actualNuqs,
-    parseAsString: actualNuqs.parseAsString,
-    useQueryState: jest.fn((paramName: string) => {
-      const value = mockQueryStates[paramName] || null;
-      const setValue = jest.fn((newValue: string) => {
-        mockQueryStates[paramName] = newValue;
-      });
-      return [value, setValue];
-    }),
-    __setMockQueryState: (paramName: string, value: string | null) => {
-      mockQueryStates[paramName] = value;
-    },
-    __clearMockQueryStates: () => {
-      mockQueryStates = {};
-    },
-  };
-});
-
-const {useQueryState, __setMockQueryState, __clearMockQueryStates} = require('nuqs');
-
 describe('useSyncedQueryParamState', () => {
   beforeEach(() => {
     localStorageWrapper.clear();
-    __clearMockQueryStates();
-    jest.clearAllMocks();
   });
 
   it('returns default value when neither URL nor localStorage has value', () => {
-    const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
+    const {result} = renderHook(
+      () => useSyncedQueryParamState('testParam', 'testNamespace', 'default'),
+      {
+        wrapper: withNuqsTestingAdapter(),
+      }
     );
 
     expect(result.current[0]).toBe('default');
@@ -47,8 +24,11 @@ describe('useSyncedQueryParamState', () => {
   it('returns localStorage value when URL is empty', () => {
     localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('fromStorage'));
 
-    const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
+    const {result} = renderHook(
+      () => useSyncedQueryParamState('testParam', 'testNamespace', 'default'),
+      {
+        wrapper: withNuqsTestingAdapter(),
+      }
     );
 
     expect(result.current[0]).toBe('fromStorage');
@@ -56,19 +36,25 @@ describe('useSyncedQueryParamState', () => {
 
   it('returns URL value when URL has value (URL takes precedence)', () => {
     localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('fromStorage'));
-    __setMockQueryState('testParam', 'fromURL');
 
-    const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
+    const {result} = renderHook(
+      () => useSyncedQueryParamState('testParam', 'testNamespace', 'default'),
+      {
+        wrapper: withNuqsTestingAdapter({
+          searchParams: {testParam: 'fromURL'},
+        }),
+      }
     );
 
     expect(result.current[0]).toBe('fromURL');
   });
 
   it('syncs localStorage when URL changes', async () => {
-    __setMockQueryState('testParam', 'newURLValue');
-
-    renderHook(() => useSyncedQueryParamState('testParam', 'testNamespace', 'default'));
+    renderHook(() => useSyncedQueryParamState('testParam', 'testNamespace', 'default'), {
+      wrapper: withNuqsTestingAdapter({
+        searchParams: {testParam: 'newURLValue'},
+      }),
+    });
 
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
@@ -77,17 +63,26 @@ describe('useSyncedQueryParamState', () => {
   });
 
   it('setValue updates both URL and localStorage', async () => {
-    const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
-    );
+    const onUrlUpdate = jest.fn();
 
-    const mockSetUrlValue = useQueryState.mock.results[0].value[1];
+    const {result} = renderHook(
+      () => useSyncedQueryParamState('testParam', 'testNamespace', 'default'),
+      {
+        wrapper: withNuqsTestingAdapter({onUrlUpdate}),
+      }
+    );
 
     act(() => {
       result.current[1]('newValue');
     });
 
-    expect(mockSetUrlValue).toHaveBeenCalledWith('newValue');
+    await waitFor(() => {
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringContaining('testParam=newValue'),
+        })
+      );
+    });
 
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
@@ -100,19 +95,28 @@ describe('useSyncedQueryParamState', () => {
 
     localStorageWrapper.setItem('myNamespace:sort', JSON.stringify('name'));
 
-    const {result} = renderHook(() =>
-      useSyncedQueryParamState<SortOption>('sort', 'myNamespace', 'date')
+    const onUrlUpdate = jest.fn();
+
+    const {result} = renderHook(
+      () => useSyncedQueryParamState<SortOption>('sort', 'myNamespace', 'date'),
+      {
+        wrapper: withNuqsTestingAdapter({onUrlUpdate}),
+      }
     );
 
     expect(result.current[0]).toBe('name');
-
-    const mockSetUrlValue = useQueryState.mock.results[0].value[1];
 
     act(() => {
       result.current[1]('size');
     });
 
-    expect(mockSetUrlValue).toHaveBeenCalledWith('size');
+    await waitFor(() => {
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringContaining('sort=size'),
+        })
+      );
+    });
 
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('myNamespace:sort');
@@ -122,10 +126,14 @@ describe('useSyncedQueryParamState', () => {
 
   it('does not sync localStorage if URL value matches localStorage', () => {
     localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('sameValue'));
-    __setMockQueryState('testParam', 'sameValue');
 
-    const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
+    const {result} = renderHook(
+      () => useSyncedQueryParamState('testParam', 'testNamespace', 'default'),
+      {
+        wrapper: withNuqsTestingAdapter({
+          searchParams: {testParam: 'sameValue'},
+        }),
+      }
     );
 
     expect(result.current[0]).toBe('sameValue');

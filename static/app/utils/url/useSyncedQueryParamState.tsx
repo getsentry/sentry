@@ -32,12 +32,9 @@ export function useSyncedQueryParamState<T extends string>(
     defaultValue
   );
 
-  const [urlValue, setUrlValue] = useQueryState(
-    key,
-    parseAsString.withDefault(defaultValue)
-  );
+  const [urlValue, setUrlValue] = useQueryState(key, parseAsString);
 
-  const effectiveValue = (urlValue ?? localStorageValue) as T;
+  const effectiveValue = (urlValue ?? localStorageValue ?? defaultValue) as T;
 
   useEffect(() => {
     if (urlValue && urlValue !== localStorageValue) {
