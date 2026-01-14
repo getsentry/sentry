@@ -108,7 +108,9 @@ PLATFORM_TO_ARTIFACT_TYPES: dict[str, list[int]] = {
 
 
 def apply_filters(
-    queryset: BaseQuerySet[PreprodArtifact], filters: Sequence[QueryToken]
+    queryset: BaseQuerySet[PreprodArtifact],
+    filters: Sequence[QueryToken],
+    organization: Organization,
 ) -> BaseQuerySet[PreprodArtifact]:
     for token in filters:
         # Skip operators and other non-filter types
@@ -123,8 +125,32 @@ def apply_filters(
 
         name = token.key.name
 
-        # We don't currently support free text:
+        # Handle free text search
         if name == "text":
+            search_term = str(token.value.value).strip()
+            if not search_term:
+                continue
+
+            search_query = (
+                Q(app_name__icontains=search_term)
+                | Q(app_id__icontains=search_term)
+                | Q(build_version__icontains=search_term)
+                | Q(
+                    commit_comparison__head_sha__icontains=search_term,
+                    commit_comparison__organization_id=organization.id,
+                )
+                | Q(
+                    commit_comparison__head_ref__icontains=search_term,
+                    commit_comparison__organization_id=organization.id,
+                )
+            )
+
+            if search_term.isdigit():
+                search_query |= Q(
+                    commit_comparison__pr_number=int(search_term),
+                    commit_comparison__organization_id=organization.id,
+                )
+            queryset = queryset.filter(search_query)
             continue
 
         if name == "platform":
@@ -251,7 +277,7 @@ class BuildsEndpoint(OrganizationEndpoint):
             search_filters = parse_search_query(
                 query, config=search_config, get_field_type=get_field_type
             )
-            queryset = apply_filters(queryset, search_filters)
+            queryset = apply_filters(queryset, search_filters, organization)
         except InvalidSearchQuery as e:
             # CodeQL complains about str(e) below but ~all handlers
             # of InvalidSearchQuery do the same as this.
