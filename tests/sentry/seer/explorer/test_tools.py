@@ -1117,6 +1117,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     @patch("sentry.seer.explorer.tools.client.get")
     def test_tags_overview_no_date_filter_uses_tagstore(self, mock_client_get, mock_get_overview):
+        """Falls back to autofix util if no time range is provided (doesn't hit events-facets)."""
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
