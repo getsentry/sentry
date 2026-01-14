@@ -106,11 +106,9 @@ def store_coding_agent_states_to_seer(
 
 def _validate_and_get_integration(organization, integration_id: int):
     """Validate request and get the coding agent integration."""
-    integration_id_int = integration_id
-
     org_integration = integration_service.get_organization_integration(
         organization_id=organization.id,
-        integration_id=integration_id_int,
+        integration_id=integration_id,
     )
 
     if not org_integration or org_integration.status != ObjectStatus.ACTIVE:
@@ -163,28 +161,25 @@ def _extract_repos_from_root_cause(autofix_state: AutofixState) -> list[str]:
         return []
 
     cause = root_cause_step["causes"][0]
-
-    if "relevant_repos" not in cause:
+    relevant_repos = cause.get("relevant_repos")
+    if not relevant_repos:
         return []
 
-    return list(set(cause["relevant_repos"])) or []
+    return list(set(relevant_repos))
 
 
 def _extract_repos_from_solution(autofix_state: AutofixState) -> list[str]:
     """Extract repository names from autofix state solution."""
-    repos = set()
     solution_step = next((step for step in autofix_state.steps if step["key"] == "solution"), None)
 
     if not solution_step:
         return []
 
+    repos = set()
     for solution_item in solution_step["solution"]:
-        if (
-            solution_item["relevant_code_file"]
-            and "repo_name" in solution_item["relevant_code_file"]
-            and solution_item["relevant_code_file"]["repo_name"]
-        ):
-            repos.add(solution_item["relevant_code_file"]["repo_name"])
+        code_file = solution_item.get("relevant_code_file")
+        if code_file and code_file.get("repo_name"):
+            repos.add(code_file["repo_name"])
 
     return list(repos)
 
@@ -520,12 +515,10 @@ def poll_github_copilot_agents(
             client = GithubCopilotAgentClient(user_access_token)
             task_status = client.get_task_status(owner, repo, task_id)
 
-            pr_artifact = None
-            if task_status.artifacts:
-                for artifact in task_status.artifacts:
-                    if artifact.data.type == "pull":
-                        pr_artifact = artifact
-                        break
+            pr_artifact = next(
+                (a for a in (task_status.artifacts or []) if a.data.type == "pull"),
+                None,
+            )
 
             if pr_artifact:
                 pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)

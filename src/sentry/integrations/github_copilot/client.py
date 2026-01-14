@@ -38,7 +38,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
         parts = agent_id.split(":", 2)
         if len(parts) != 3:
             return None
-        return parts[0], parts[1], parts[2]
+        return (parts[0], parts[1], parts[2])
 
     def launch(self, *, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         owner = request.repository.owner
