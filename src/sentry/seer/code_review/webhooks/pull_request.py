@@ -18,13 +18,11 @@ from sentry.models.repository import Repository
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
-    record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha
-from .config import get_direct_to_seer_gh_orgs
+from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha, should_forward_to_seer
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +86,6 @@ def handle_pull_request_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
-    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -136,7 +133,7 @@ def handle_pull_request_event(
     if pull_request.get("draft") is True:
         return
 
-    if github_org in get_direct_to_seer_gh_orgs():
+    if should_forward_to_seer(github_event, event):
         from .task import schedule_task
 
         schedule_task(
@@ -148,4 +145,3 @@ def handle_pull_request_event(
             target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
             trigger=_get_trigger_for_action(action),
         )
-        record_webhook_enqueued(github_event, action_value)

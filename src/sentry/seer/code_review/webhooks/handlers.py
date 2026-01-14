@@ -76,23 +76,10 @@ def handle_webhook_event(
             )
         return
 
-    repository = event.get("repository", {})
-    if repository:
-        logger.info("repository: %s", repository)
-    github_org = event.get("repository", {}).get("owner", {}).get("login")
-    if github_org:
-        logger.info("github_org: %s", github_org)
-    else:
-        logger.info("github_org not found")
-    from .config import get_direct_to_seer_gh_orgs
-
-    gh_orgs_to_only_send_to_seer = get_direct_to_seer_gh_orgs()
-    logger.info("gh_orgs_to_only_send_to_seer: %s", gh_orgs_to_only_send_to_seer)
     handler(
         github_event=github_event,
         event=event,
         organization=organization,
-        github_org=github_org,
         repo=repo,
         integration=integration,
     )
