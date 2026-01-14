@@ -73,7 +73,11 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     <QueryCountBubble
       animate={{
         backgroundColor: isFetching
-          ? [theme.colors.surface500, theme.colors.surface200, theme.colors.surface500]
+          ? [
+              theme.tokens.background.primary,
+              theme.colors.surface200,
+              theme.colors.surface500,
+            ]
           : `#00000000`,
       }}
       transition={{
