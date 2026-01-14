@@ -18,8 +18,7 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 import OldProjectDetails from 'sentry/views/settings/projectSeer/index';
 
 import AutofixRepositories from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';
-import BackgroundAgentForm from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentForm';
-import ProjectDetailsForm from 'getsentry/views/seerAutomation/components/projectDetails/projectDetailsForm';
+import SeerSettingsContainer from 'getsentry/views/seerAutomation/components/projectDetails/seerSettingsContainer';
 
 export default function SeerProjectDetailsPage() {
   const organization = useOrganization();
@@ -84,16 +83,11 @@ function SeerProjectDetails() {
       {isPending ? (
         <LoadingIndicator />
       ) : (
-        <Fragment>
-          <ProjectDetailsForm
+        <Stack gap="2xl">
+          <SeerSettingsContainer
             canWrite={canWrite}
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
-          />
-          <BackgroundAgentForm
-            canWrite={canWrite}
-            project={project}
-            preference={preference ?? DEFAULT_PREFERENCE}
           />
           <AutofixRepositories
             canWrite={canWrite}
@@ -101,7 +95,7 @@ function SeerProjectDetails() {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
-        </Fragment>
+        </Stack>
       )}
     </Fragment>
   );
