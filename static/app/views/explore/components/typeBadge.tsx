@@ -17,7 +17,7 @@ export function TypeBadge({func, kind, valueType, isLogicFilter}: TypeBadgeProps
     return <Text variant="success">{t('f(x)')}</Text>;
   }
 
-  if (valueType === FieldValueType.BOOLEAN) {
+  if (valueType === FieldValueType.BOOLEAN || kind === FieldKind.BOOLEAN) {
     return <Text variant="promotion">{t('boolean')}</Text>;
   }
 
