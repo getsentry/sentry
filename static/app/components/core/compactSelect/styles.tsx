@@ -154,7 +154,14 @@ export const SectionGroup = styled('ul')`
 
 export function LeadWrap(props: FlexProps) {
   return (
-    <Flex justify="center" align="center" minWidth="1em" height="1.4em" {...props} />
+    <Flex
+      justify="center"
+      align="center"
+      minWidth="1em"
+      height="1.4em"
+      pointerEvents="none"
+      {...props}
+    />
   );
 }
 
