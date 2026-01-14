@@ -53,7 +53,7 @@ export function ReleasesSortSelect({environments, sortBy, onChange}: Props) {
           {...triggerProps}
           icon={<IconSort />}
           aria-label={t('Sort Releases')}
-          hideChevron
+          showChevron={false}
         />
       )}
     />
