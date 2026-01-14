@@ -116,7 +116,11 @@ const Title = styled(FlexBox)`
 `;
 
 const LegacyTitleText = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TitleText = styled('div')`
@@ -152,7 +156,11 @@ function SubtitleWithCopyButton({
 }
 
 const SubTitleWrapper = styled(FlexBox)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSubTitleText = styled('span')`
@@ -190,7 +198,11 @@ const Type = styled('div')`
 const TitleOpText = styled('div')`
   font-size: 15px;
   font-weight: ${p => p.theme.fontWeight.bold};
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Table = styled('table')`
@@ -1283,7 +1295,7 @@ const MarkdownContainer = styled('div')`
 const MultilineTextWrapper = styled('div')`
   position: relative;
   white-space: pre-wrap;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   word-break: break-word;

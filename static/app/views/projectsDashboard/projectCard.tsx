@@ -235,7 +235,7 @@ const CardFooter = styled('div')`
 const ChartContainer = styled('div')`
   position: relative;
   margin: 0 -${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HeaderRow = styled('div')`

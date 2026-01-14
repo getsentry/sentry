@@ -190,7 +190,7 @@ export function IssueDiff({
 }
 
 const StyledIssueDiff = styled('div')<{isLoading: boolean}>`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   overflow: auto;
   padding: ${p => p.theme.space.md};
   flex: 1;

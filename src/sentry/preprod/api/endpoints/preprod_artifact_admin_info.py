@@ -60,6 +60,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                 "project__organization",
                 "commit_comparison",
                 "build_configuration",
+                "mobile_app_info",
             ).get(id=head_artifact_id_int)
         except PreprodArtifact.DoesNotExist:
             return Response(
@@ -82,6 +83,8 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
         installable_artifacts = list(
             InstallablePreprodArtifact.objects.filter(preprod_artifact_id=head_artifact_id_int)
         )
+
+        mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
 
         artifact_info = {
             "id": preprod_artifact.id,
@@ -106,9 +109,9 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
             # App information
             "app_info": {
                 "app_id": preprod_artifact.app_id,
-                "app_name": preprod_artifact.app_name,
-                "build_version": preprod_artifact.build_version,
-                "build_number": preprod_artifact.build_number,
+                "app_name": mobile_app_info.app_name if mobile_app_info else None,
+                "build_version": mobile_app_info.build_version if mobile_app_info else None,
+                "build_number": mobile_app_info.build_number if mobile_app_info else None,
                 "main_binary_identifier": preprod_artifact.main_binary_identifier,
             },
             # File information
