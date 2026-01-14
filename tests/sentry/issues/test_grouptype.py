@@ -9,7 +9,6 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    InstrumentationIssueExperimentalGroupType,
     NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -225,26 +224,3 @@ class GroupRegistryTest(BaseGroupTypeTest):
             PerformanceSlowDBQueryGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
         }
-
-
-class InstrumentationIssueExperimentalGroupTypeTest(TestCase):
-    """Tests for the InstrumentationIssueExperimentalGroupType."""
-
-    def test_group_type_registered(self) -> None:
-        """Verify the group type is registered and can be retrieved by slug."""
-        group_type = get_group_type_by_slug(InstrumentationIssueExperimentalGroupType.slug)
-        assert group_type == InstrumentationIssueExperimentalGroupType
-
-    def test_requires_feature_flag_for_ingest(self) -> None:
-        """Verify the group type requires feature flag for ingest."""
-        assert not InstrumentationIssueExperimentalGroupType.allow_ingest(self.organization)
-
-        with self.feature(InstrumentationIssueExperimentalGroupType.build_ingest_feature_name()):
-            assert InstrumentationIssueExperimentalGroupType.allow_ingest(self.organization)
-
-    def test_category_in_registry(self) -> None:
-        """Verify the instrumentation category can be queried from registry."""
-        from sentry.issues.grouptype import registry
-
-        instrumentation_types = registry.get_by_category(GroupCategory.INSTRUMENTATION.value)
-        assert InstrumentationIssueExperimentalGroupType.type_id in instrumentation_types
