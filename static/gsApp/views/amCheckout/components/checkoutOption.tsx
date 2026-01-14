@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -20,8 +21,8 @@ function CheckoutOption({
   dataTestId: string;
   isSelected: boolean;
   onClick: () => void;
-  optionDescription: React.ReactNode;
   optionHeader: React.ReactNode;
+  optionDescription?: React.ReactNode;
   topDecoration?: React.ReactNode;
   withDivider?: boolean;
 }) {
@@ -56,10 +57,19 @@ function CheckoutOption({
               />
             )}
           </Container>
-          {optionHeader}
+          <Flex direction="column" gap="sm" flexGrow={1}>
+            {optionHeader}
+            {/* If there is no divider, line the description up with the header */}
+            {!withDivider && !!optionDescription && optionDescription}
+          </Flex>
         </Flex>
-        {withDivider && <Separator orientation="horizontal" border="primary" />}
-        {optionDescription}
+        {withDivider && (
+          <Fragment>
+            <Separator orientation="horizontal" border="primary" />
+            {/* If there is a divider, line the description up with the radio/checkbox */}
+            {!!optionDescription && optionDescription}
+          </Fragment>
+        )}
       </Flex>
     </Option>
   );
