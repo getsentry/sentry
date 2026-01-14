@@ -125,14 +125,14 @@ export function CohortComparison({
           <Fragment>
             {selectedRangeToDates && (
               <Stack gap="xs">
-                <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
+                <SelectionHint backgroundColor={theme.chart.getColorPalette(0)?.[0]}>
                   {t(
                     'Selection is data between %s - %s',
                     selectedRangeToDates.start,
                     selectedRangeToDates.end
                   )}
                 </SelectionHint>
-                <SelectionHint color="#A29FAA">
+                <SelectionHint backgroundColor="#A29FAA">
                   {t('Baseline is all other spans from your query')}
                 </SelectionHint>
               </Stack>
@@ -176,7 +176,7 @@ export function CohortComparison({
   );
 }
 
-const SelectionHint = styled(Text)<{color?: string}>`
+const SelectionHint = styled(Text)<{backgroundColor?: string}>`
   display: flex;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
@@ -187,7 +187,7 @@ const SelectionHint = styled(Text)<{color?: string}>`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: ${p => p.color || p.theme.colors.gray500};
+    background-color: ${p => p.backgroundColor || p.theme.colors.gray500};
     margin-right: ${space(0.5)};
     flex-shrink: 0;
   }
