@@ -4,6 +4,7 @@ import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -221,17 +222,16 @@ function ReleasesSelectControl({
         }
       }}
       value={activeReleases}
-      triggerProps={{
-        icon: <IconReleases />,
-        children: (
+      trigger={triggerProps => (
+        <SelectTrigger.Button {...triggerProps} icon={<IconReleases />}>
           <ButtonLabelWrapper>
             {triggerLabel}{' '}
             {activeReleases.length > 1 && (
               <StyledBadge variant="muted">{`+${activeReleases.length - 1}`}</StyledBadge>
             )}
           </ButtonLabelWrapper>
-        ),
-      }}
+        </SelectTrigger.Button>
+      )}
     />
   );
 }

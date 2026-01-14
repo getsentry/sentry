@@ -1,7 +1,6 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -16,7 +15,7 @@ import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useSyncedQueryParamState} from 'sentry/utils/url/useSyncedQueryParamState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -75,27 +74,12 @@ export default function FiltersBar({
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
     : [];
 
-  // Release sort state management with Nuqs
-  const [localStoragedReleaseBy, setLocalStoragedReleaseBy] =
-    useLocalStorageState<ReleasesSortByOption>(
-      'dashboardsReleasesSortBy',
-      ReleasesSortOption.DATE
-    );
-
-  const [urlSortReleasesBy, setUrlSortReleasesBy] = useQueryState(
+  // Release sort state management with synced URL and localStorage
+  const [effectiveSortBy, setEffectiveSortBy] = useSyncedQueryParamState(
     'sortReleasesBy',
-    parseAsString.withDefault(ReleasesSortOption.DATE)
+    'dashboardsReleasesSortBy',
+    ReleasesSortOption.DATE
   );
-
-  // Use URL value if present, otherwise fall back to localStorage
-  const effectiveSortBy = urlSortReleasesBy || localStoragedReleaseBy;
-
-  // Sync localStorage with URL
-  useEffect(() => {
-    if (urlSortReleasesBy && urlSortReleasesBy !== localStoragedReleaseBy) {
-      setLocalStoragedReleaseBy(urlSortReleasesBy as ReleasesSortByOption);
-    }
-  }, [urlSortReleasesBy, localStoragedReleaseBy, setLocalStoragedReleaseBy]);
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -173,8 +157,7 @@ export default function FiltersBar({
           });
         }}
         onSortChange={value => {
-          setUrlSortReleasesBy(value);
-          setLocalStoragedReleaseBy(value as ReleasesSortByOption);
+          setEffectiveSortBy(value as ReleasesSortByOption);
         }}
       />
       {organization.features.includes('dashboards-global-filters') && (
