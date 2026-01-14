@@ -1,4 +1,4 @@
-import {AutomationFixture} from 'sentry-fixture/automations';
+import {ActionFilterFixture, AutomationFixture} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -10,6 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
 import AutomationEdit from 'sentry/views/automations/edit';
@@ -76,6 +77,29 @@ describe('EditAutomation', () => {
     jest.mocked(useParams).mockReturnValue({
       automationId: automation.id,
     });
+  });
+
+  it('displays `any` for ANY in the filter logic dropdown', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+      method: 'GET',
+      body: {
+        ...automation,
+        actionFilters: [
+          ActionFilterFixture({logicType: DataConditionGroupLogicType.ANY}),
+        ],
+      },
+    });
+
+    render(<AutomationEdit />, {
+      organization,
+    });
+
+    // Wait for the form to load
+    expect(await screen.findByRole('button', {name: 'Save'})).toBeInTheDocument();
+
+    const filterLogicType = screen.getByTestId('action-filter-logic-type');
+    expect(within(filterLogicType).getByText('any')).toBeInTheDocument();
   });
 
   it('calls delete mutation when deletion is confirmed', async () => {
