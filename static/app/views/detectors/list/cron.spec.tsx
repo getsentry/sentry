@@ -13,12 +13,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import * as useServiceIncidentsModule from 'sentry/utils/useServiceIncidents';
 import CronDetectorsList from 'sentry/views/detectors/list/cron';
 
-// Mock the service incidents component to verify it's rendered
-jest.mock('sentry/views/insights/crons/components/serviceIncidents', () => ({
-  CronServiceIncidents: () => <div data-test-id="cron-service-incidents" />,
-}));
+jest.mock('sentry/utils/useServiceIncidents');
 
 describe('CronDetectorsList', () => {
   const organization = OrganizationFixture({
@@ -60,6 +58,13 @@ describe('CronDetectorsList', () => {
         return 50;
       },
     });
+
+    jest.mocked(useServiceIncidentsModule.useServiceIncidents).mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as any);
   });
 
   it('displays empty state when no cron monitors are found', async () => {
@@ -119,6 +124,25 @@ describe('CronDetectorsList', () => {
       },
     });
 
+    jest.mocked(useServiceIncidentsModule.useServiceIncidents).mockReturnValue({
+      data: [
+        {
+          id: 'incident-1',
+          name: 'Incident',
+          status: 'investigating',
+          created_at: new Date(nowSec * 1000 - 3600 * 1000).toISOString(),
+          started_at: new Date(nowSec * 1000 - 3600 * 1000).toISOString(),
+          updated_at: new Date(nowSec * 1000).toISOString(),
+          shortlink: 'http://example.com',
+          components: [],
+          incident_updates: [],
+        } as any,
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as any);
+
     const {router} = render(<CronDetectorsList />, {organization, initialRouterConfig});
 
     // Page header/title and detector row
@@ -138,7 +162,9 @@ describe('CronDetectorsList', () => {
     expect(within(row).getByText('production')).toBeInTheDocument();
 
     // Should render service incidents overlay
-    expect(await screen.findByTestId('cron-service-incidents')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('cron-service-incident-indicator')
+    ).toBeInTheDocument();
 
     // Timeline visualization should render ticks once stats load
     expect(await screen.findAllByTestId('monitor-checkin-tick')).not.toHaveLength(0);
