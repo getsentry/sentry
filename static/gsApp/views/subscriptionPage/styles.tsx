@@ -34,13 +34,13 @@ export const StripedTable = styled('table')`
   margin: 0;
 
   tr:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 export const AlertStripedTable = styled(StripedTable)`
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   th {
     text-transform: uppercase;

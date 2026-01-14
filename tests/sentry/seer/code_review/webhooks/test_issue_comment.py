@@ -14,6 +14,11 @@ from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     """Integration tests for GitHub issue_comment webhook events."""
 
+    OPTIONS_TO_SET = {
+        "github.webhook.issue-comment": False,
+        "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
+    }
+
     @pytest.fixture(autouse=True)
     def mock_github_api_calls(self) -> Generator[None]:
         """
@@ -28,11 +33,12 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 "sentry.integrations.github.client.GitHubApiClient.create_comment_reaction"
             ) as mock_reaction,
             patch(
-                "sentry.seer.code_review.utils.GitHubApiClient", return_value=mock_client_instance
-            ) as mock_api_client,
+                "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
+                mock_client_instance.get_pull_request,
+            ) as mock_get_pull_request,
         ):
             self.mock_reaction = mock_reaction
-            self.mock_api_client = mock_api_client
+            self.mock_get_pull_request = mock_get_pull_request
             yield
 
     @pytest.fixture(autouse=True)
@@ -49,7 +55,10 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         return self._send_webhook_event(GithubWebhookType.ISSUE_COMMENT, event_data)
 
     def _build_issue_comment_event(
-        self, comment_body: str, comment_id: int | None = 123456789
+        self,
+        comment_body: str,
+        comment_id: int | None = 123456789,
+        github_org: str = "sentry-ecosystem",
     ) -> bytes:
         event = {
             "action": "created",
@@ -59,7 +68,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             },
             "issue": {
                 "number": 42,
-                "pull_request": {"url": "https://api.github.com/repos/owner/repo/pulls/42"},
+                "pull_request": {"url": f"https://api.github.com/repos/{github_org}/repo/pulls/42"},
                 "user": {
                     "id": 12345678,
                     "login": "pr-author",
@@ -67,8 +76,12 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             },
             "repository": {
                 "id": 12345,
-                "full_name": "owner/repo",
-                "html_url": "https://github.com/owner/repo",
+                "full_name": f"{github_org}/repo",
+                "html_url": f"https://github.com/{github_org}/repo",
+                "owner": {
+                    "login": github_org,
+                    "id": 12345,
+                },
             },
             "sender": {
                 "id": 87654321,
@@ -118,7 +131,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert response.status_code == 204
 
             self.mock_reaction.assert_called_once_with(
-                "owner/repo", "123456789", GitHubReaction.EYES
+                "sentry-ecosystem/repo", "123456789", GitHubReaction.EYES
             )
             self.mock_seer.assert_called_once()
 
@@ -140,17 +153,6 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             mock_reaction.assert_not_called()
             self.mock_seer.assert_called_once()
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
-    def test_skips_processing_when_option_is_true(self, mock_reaction: MagicMock) -> None:
-        """Test that when github.webhook.issue-comment option is True (kill switch), no processing occurs."""
-        with self.code_review_setup(forward_to_overwatch=True), self.tasks():
-            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-            mock_reaction.assert_not_called()
-            self.mock_seer.assert_not_called()
-
     def test_validates_seer_request_contains_trigger_metadata(self) -> None:
         """Test that Seer request includes trigger metadata from the comment."""
         with self.code_review_setup(), self.tasks():
@@ -168,3 +170,28 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_user"] == "test-user"
             assert payload["data"]["config"]["trigger_comment_id"] == 123456789
             assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
+
+    def test_processes_whitelisted_github_org(self) -> None:
+        """Test that whitelisted GitHub organizations are processed."""
+        with self.code_review_setup(), self.tasks():
+            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
+
+            response = self._send_issue_comment_event(event)
+            assert response.status_code == 204
+
+            self.mock_reaction.assert_called_once()
+            self.mock_seer.assert_called_once()
+
+    def test_skips_non_whitelisted_github_org(self) -> None:
+        """Test that non-whitelisted GitHub organizations are skipped."""
+        # The option says to forward to Overwatch AND the org is not whitelisted, so we should skip Seer.
+        with self.code_review_setup({"github.webhook.issue-comment": True}), self.tasks():
+            event = self._build_issue_comment_event(
+                f"Please {SENTRY_REVIEW_COMMAND} this PR", github_org="random-org"
+            )
+
+            response = self._send_issue_comment_event(event)
+            assert response.status_code == 204
+
+            self.mock_reaction.assert_not_called()
+            self.mock_seer.assert_not_called()

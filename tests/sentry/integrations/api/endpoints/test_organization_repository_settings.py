@@ -55,7 +55,7 @@ class OrganizationRepositorySettingsTest(APITestCase):
         self.create_repository_settings(
             repository=repo1,
             enabled_code_review=False,
-            code_review_triggers=[CodeReviewTrigger.ON_COMMAND_PHRASE],
+            code_review_triggers=[CodeReviewTrigger.ON_READY_FOR_REVIEW],
         )
         self.create_repository_settings(
             repository=repo2,
@@ -168,7 +168,7 @@ class OrganizationRepositorySettingsTest(APITestCase):
             repository=repo1,
             enabled_code_review=False,
             code_review_triggers=[
-                CodeReviewTrigger.ON_COMMAND_PHRASE,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
                 CodeReviewTrigger.ON_NEW_COMMIT,
             ],
         )
@@ -191,7 +191,7 @@ class OrganizationRepositorySettingsTest(APITestCase):
 
         settings1 = RepositorySettings.objects.get(repository=repo1)
         assert settings1.enabled_code_review is True
-        assert settings1.code_review_triggers == ["on_command_phrase", "on_new_commit"]
+        assert settings1.code_review_triggers == ["on_ready_for_review", "on_new_commit"]
 
         settings2 = RepositorySettings.objects.get(repository=repo2)
         assert settings2.enabled_code_review is True
@@ -204,7 +204,7 @@ class OrganizationRepositorySettingsTest(APITestCase):
         self.create_repository_settings(
             repository=repo1,
             enabled_code_review=True,
-            code_review_triggers=[CodeReviewTrigger.ON_COMMAND_PHRASE],
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT],
         )
         self.create_repository_settings(
             repository=repo2,

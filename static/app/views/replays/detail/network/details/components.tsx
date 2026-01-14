@@ -18,12 +18,12 @@ export const InspectorMargin = styled('div')`
 `;
 
 const NotFoundText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const WarningText = styled('span')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 export function Warning({warnings}: {warnings: string[]}) {
@@ -108,7 +108,11 @@ const ToggleButton = styled('button')`
   padding: ${space(0.5)} ${space(1)};
 
   :hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  :active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -143,7 +147,9 @@ const StyledKeyValueTable = styled(KeyValueTable)`
     padding-left: ${space(4)};
   }
   & > dd {
-    ${p => p.theme.overflowEllipsis};
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: ${p => p.theme.fontSize.sm};
     display: flex;
     justify-content: flex-end;

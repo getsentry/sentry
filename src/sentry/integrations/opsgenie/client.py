@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Literal
 
-from sentry import features
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
@@ -12,7 +11,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_key_from_rule_data, split_rules_by_rule_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -50,7 +49,7 @@ class OpsgenieClient(ApiClient):
             # fetch the workflow_id from the rule.data
             workflow_id = get_key_from_rule_data(rule, "workflow_id")
             workflow_urls.append(
-                organization.absolute_url(create_link_to_workflow(organization.id, workflow_id))
+                organization.absolute_url(create_link_to_workflow(organization.slug, workflow_id))
             )
         return workflow_urls
 
@@ -91,19 +90,30 @@ class OpsgenieClient(ApiClient):
             group_params = {"referrer": IntegrationProviderSlug.OPSGENIE.value}
             if notification_uuid:
                 group_params["notification_uuid"] = notification_uuid
+
+            rules_and_workflows = split_rules_by_rule_workflow_id(rules)
+            workflow_urls = self._get_workflow_urls(group, rules_and_workflows.workflow_rules)
+            rule_urls = self._get_rule_urls(group, rules_and_workflows.rules)
             rule_workflow_context = {}
-            if features.has("organizations:workflow-engine-ui-links", group.project.organization):
-                workflow_urls = self._get_workflow_urls(group, rules)
-                rule_workflow_context = {
-                    "Triggering Workflows": ", ".join([rule.label for rule in rules]),
-                    "Triggering Workflow URLs": "\n".join(workflow_urls),
-                }
-            else:
-                rule_urls = self._get_rule_urls(group, rules)
-                rule_workflow_context = {
-                    "Triggering Rules": ", ".join([rule.label for rule in rules]),
-                    "Triggering Rule URLs": "\n".join(rule_urls),
-                }
+            if rule_urls:
+                rule_workflow_context.update(
+                    {
+                        "Triggering Rules": ", ".join(
+                            [rule.label for rule in rules_and_workflows.rules]
+                        ),
+                        "Triggering Rule URLs": "\n".join(rule_urls),
+                    }
+                )
+            if workflow_urls:
+                rule_workflow_context.update(
+                    {
+                        "Triggering Workflows": ", ".join(
+                            [workflow.label for workflow in rules_and_workflows.workflow_rules]
+                        ),
+                        "Triggering Workflow URLs": "\n".join(workflow_urls),
+                    }
+                )
+
             payload["details"] = {
                 "Sentry ID": str(group.id),
                 "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),

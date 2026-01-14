@@ -113,5 +113,5 @@ const SubText = styled('div')`
 
 const EventIdText = styled(SubText)`
   font-style: italic;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

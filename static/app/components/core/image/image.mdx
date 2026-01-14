@@ -65,6 +65,38 @@ import image from 'sentry-images/image.png';
 <Image src={image} alt="Sentry logo" />
 ```
 
+## Aspect Ratio
+
+The `aspectRatio` prop allows you to define the width-to-height ratio of the image container. This is useful for preventing layout shifts during image loading and creating consistent image dimensions across hero images and other layouts.
+
+<Storybook.Demo>
+  <Flex gap="lg">
+    <Container width="300px" border="primary">
+      <Image src={image} alt="16:9 aspect ratio" aspectRatio="16/9" />
+    </Container>
+    <Container width="300px" border="primary">
+      <Image src={image} alt="4:3 aspect ratio" aspectRatio="4/3" />
+    </Container>
+    <Container width="300px" border="primary">
+      <Image src={image} alt="1:1 aspect ratio" aspectRatio="1/1" />
+    </Container>
+  </Flex>
+</Storybook.Demo>
+```jsx import image from 'sentry-images/image.png';
+
+<Image src={image} alt="16:9 aspect ratio" aspectRatio="16/9" />
+<Image src={image} alt="4:3 aspect ratio" aspectRatio="4/3" />
+<Image src={image} alt="1:1 aspect ratio" aspectRatio="1/1" />
+```
+
+The `aspectRatio` prop accepts any valid CSS aspect-ratio value, including:
+
+- Ratio strings like `"16/9"`, `"4/3"`, `"1/1"`
+- Decimal values like `"1.5"` or `"0.75"`
+- The `"auto"` keyword
+
+When combined with `objectFit="cover"`, aspect ratio is particularly useful for creating consistent card layouts or hero images that maintain their proportions across different screen sizes.
+
 ## Object Fit
 
 The `objectFit` prop controls how the image content is sized within its container. It accepts `'contain'` (default) or `'cover'` values, which map to the CSS `object-fit` property.

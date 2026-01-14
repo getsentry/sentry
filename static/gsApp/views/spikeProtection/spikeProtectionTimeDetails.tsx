@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {IconCalendar} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -27,13 +29,13 @@ function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
   return (
     <SpikeTimeDetailsWrapper>
       <AlertBadge status={IncidentStatus.CRITICAL} />
-      <SpikeTimeDetailsTextWrapper>
+      <Stack>
         <strong>{formattedTime.toLowerCase()}</strong>
         <span>
           <StyledIconCalendar size="xs" variant="muted" />
           {dateFormat}
         </span>
-      </SpikeTimeDetailsTextWrapper>
+      </Stack>
     </SpikeTimeDetailsWrapper>
   );
 }
@@ -49,14 +51,9 @@ const SpikeTimeDetailsWrapper = styled('div')`
     white-space: nowrap;
   }
   span {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     display: inline-block;
   }
-`;
-
-const SpikeTimeDetailsTextWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;
 
 const StyledIconCalendar = styled(IconCalendar)`

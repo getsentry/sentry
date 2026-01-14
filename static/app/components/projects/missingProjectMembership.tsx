@@ -1,206 +1,173 @@
-import {Component} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
-import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
-import {Select} from 'sentry/components/core/select';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 
-type Props = {
-  api: Client;
+interface JoinTeamActionProps {
   organization: Organization;
-  project?: Project | null;
-};
+  teamSlug: string;
+}
 
-type State = {
-  error: boolean;
-  loading: boolean;
-  team: string | null;
-  project?: Project | null;
-};
+function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
+  const api = useApi({persistInFlight: true});
+  const [isLoading, setIsLoading] = useState(false);
+  const teamStoreData = useLegacyStore(TeamStore);
+  const selectedTeam = teamStoreData.teams.find(team => team.slug === teamSlug);
 
-class MissingProjectMembership extends Component<Props, State> {
-  state: State = {
-    loading: false,
-    error: false,
-    project: this.props.project,
-    team: '',
-  };
-
-  joinTeam(teamSlug: string) {
-    this.setState({
-      loading: true,
-    });
+  const handleJoinTeam = useCallback(() => {
+    setIsLoading(true);
 
     joinTeam(
-      this.props.api,
+      api,
       {
-        orgId: this.props.organization.slug,
+        orgId: organization.slug,
         teamId: teamSlug,
       },
       {
         success: () => {
-          this.setState({
-            loading: false,
-            error: false,
-          });
+          setIsLoading(false);
           addSuccessMessage(t('Request to join team sent.'));
         },
         error: () => {
-          this.setState({
-            loading: false,
-            error: true,
-          });
+          setIsLoading(false);
           addErrorMessage(t('There was an error while trying to request access.'));
         },
       }
     );
+  }, [api, organization.slug, teamSlug]);
+
+  const openMembership = organization.features.includes('open-membership');
+
+  if (!selectedTeam) {
+    return null;
   }
 
-  renderJoinTeam(teamSlug: string, features: string[]) {
-    const team = TeamStore.getBySlug(teamSlug);
-
-    if (!team) {
-      return null;
-    }
-    if (this.state.loading) {
-      if (features.includes('open-membership')) {
-        return <Button busy>{t('Join Team')}</Button>;
-      }
-      return <Button busy>{t('Request Access')}</Button>;
-    }
-    if (team?.isPending) {
-      return <Button disabled>{t('Request Pending')}</Button>;
-    }
-    if (features.includes('open-membership')) {
-      return (
-        <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
-          {t('Join Team')}
-        </Button>
-      );
-    }
-    return (
-      <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
-        {t('Request Access')}
-      </Button>
-    );
+  if (isLoading) {
+    return <Button busy>{openMembership ? t('Join Team') : t('Request Access')}</Button>;
   }
 
-  getTeamsForAccess() {
+  if (selectedTeam.isPending) {
+    return <Button disabled>{t('Request Pending')}</Button>;
+  }
+
+  return (
+    <Button priority="primary" onClick={handleJoinTeam}>
+      {openMembership ? t('Join Team') : t('Request Access')}
+    </Button>
+  );
+}
+
+interface MissingProjectMembershipProps {
+  organization: Organization;
+  project: Project | undefined | null;
+}
+
+export default function MissingProjectMembership({
+  organization,
+  project,
+}: MissingProjectMembershipProps) {
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const teamStoreData = useLegacyStore(TeamStore);
+
+  const teamOptions = useMemo(() => {
     const request: string[] = [];
     const pending: string[] = [];
-    const teams = this.state.project?.teams ?? [];
-    teams.forEach(({slug}) => {
-      const team = TeamStore.getBySlug(slug);
-      if (!team) {
-        return;
-      }
-      if (team.isPending) {
-        pending.push(team.slug);
+    const pendingTeams = new Set<string>(
+      teamStoreData.teams.filter(tm => tm.isPending).map(tm => tm.slug)
+    );
+    project?.teams?.forEach(({slug}) => {
+      if (pendingTeams.has(slug)) {
+        pending.push(slug);
       } else {
-        request.push(team.slug);
+        request.push(slug);
       }
     });
 
-    return [request, pending];
-  }
-
-  getPendingTeamOption = (team: string) => {
-    return {
-      value: team,
-      label: <DisabledLabel>{`#${team}`}</DisabledLabel>,
-    };
-  };
-
-  render() {
-    const {organization} = this.props;
-    const teamSlug = this.state.team;
-    const teams = this.state.project?.teams ?? [];
-
-    const teamAccess = [
+    const hasOpenMembership = organization.features.includes('open-membership');
+    return [
       {
-        label: t('Request Access'),
-        options: this.getTeamsForAccess()[0]!.map(request => ({
-          value: request,
-          label: `#${request}`,
+        label: t('Pending Requests'),
+        options: pending.map(pendingTeam => ({
+          value: pendingTeam,
+          label: `#${pendingTeam}`,
+          disabled: true,
         })),
       },
       {
-        label: t('Pending Requests'),
-        options: this.getTeamsForAccess()[1]!.map(pending =>
-          this.getPendingTeamOption(pending)
-        ),
+        label: hasOpenMembership ? t('Teams') : t('Request Access'),
+        options: request.map(requestingTeam => ({
+          value: requestingTeam,
+          label: `#${requestingTeam}`,
+        })),
       },
     ];
+  }, [organization.features, project, teamStoreData.teams]);
 
-    return (
-      <StyledPanel>
-        {teams.length ? (
-          <EmptyMessage
-            icon={<IconFlag />}
-            title={t("You're not a member of this project.")}
-            action={
-              <Field>
-                <StyledSelectControl
-                  name="select"
-                  placeholder={t('Select a Team')}
-                  options={teamAccess}
-                  onChange={(teamObj: any) => {
-                    const team = teamObj ? teamObj.value : null;
-                    this.setState({team});
-                  }}
-                />
-                {teamSlug ? (
-                  this.renderJoinTeam(teamSlug, organization.features)
-                ) : (
-                  <Button disabled>{t('Select a Team')}</Button>
-                )}
-              </Field>
-            }
-          >
-            {t(`You'll need to join a team with access before you can view this data.`)}
-          </EmptyMessage>
-        ) : (
-          <EmptyMessage icon={<IconFlag />}>
-            {t(
-              'No teams have access to this project yet. Ask an admin to add your team to this project.'
-            )}
-          </EmptyMessage>
-        )}
-      </StyledPanel>
-    );
-  }
+  const hasTeams = !!project?.teams?.length;
+  return (
+    <Panel>
+      {hasTeams ? (
+        <EmptyMessage
+          icon={<IconFlag />}
+          title={t("You're not a member of this project.")}
+          action={
+            <Grid
+              columns="minmax(200px, 300px) minmax(80px, 150px)"
+              gap="md"
+              justify="center"
+            >
+              <StyledCompactSelect
+                searchable
+                value={selectedTeam || undefined}
+                triggerProps={{
+                  children: selectedTeam ? `#${selectedTeam}` : t('Select a Team'),
+                }}
+                emptyMessage={t('No teams found')}
+                options={teamOptions}
+                onChange={option => {
+                  setSelectedTeam(option.value as string | null);
+                }}
+              />
+              {selectedTeam ? (
+                <JoinTeamAction teamSlug={selectedTeam} organization={organization} />
+              ) : (
+                <Button disabled>{t('Join Team')}</Button>
+              )}
+            </Grid>
+          }
+        >
+          {t(`You'll need to join a team with access before you can view this data.`)}
+        </EmptyMessage>
+      ) : (
+        <EmptyMessage icon={<IconFlag />}>
+          {t(
+            'No teams have access to this project yet. Ask an admin to add your team to this project.'
+          )}
+        </EmptyMessage>
+      )}
+    </Panel>
+  );
 }
 
-const StyledPanel = styled(Panel)`
-  margin: ${space(2)} 0;
-`;
-
-const Field = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(2)};
+// Parent EmptyMessage component is aligning text center, so we need to align the text left
+const StyledCompactSelect = styled(CompactSelect)`
+  width: 100%;
   text-align: left;
+  > button {
+    width: 100%;
+  }
 `;
-
-const StyledSelectControl = styled(Select)`
-  width: 250px;
-`;
-
-const DisabledLabel = styled('div')`
-  display: flex;
-  opacity: 0.5;
-  overflow: hidden;
-`;
-
-export default withApi(MissingProjectMembership);

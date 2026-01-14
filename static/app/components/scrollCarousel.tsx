@@ -210,13 +210,14 @@ const StyledArrowButton = styled(Button)<{orientation: 'horizontal' | 'vertical'
   padding: 10px;
   border-radius: 100%;
   z-index: 1;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.6;
   background-color: ${p => p.theme.tokens.background.primary};
 
   &:hover {
     opacity: 1;
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

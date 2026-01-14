@@ -595,7 +595,7 @@ function CheckoutSuccess({
             <LinkButton
               priority="primary"
               aria-label={t('View your subscription')}
-              to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
+              to={`/settings/${organization.slug}/billing/overview/${viewSubscriptionQueryParams}`}
             >
               {t('View your subscription')}
             </LinkButton>
@@ -663,7 +663,7 @@ const ReceiptSlot = styled('div')`
   width: 445px;
   height: 7px;
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.colors.gray200};
   box-shadow: 0px 2px 4px 0px
     ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;
 `;
@@ -692,12 +692,12 @@ const ReceiptPaper = styled(Container)`
 `;
 
 const DateSeparator = styled('div')`
-  border-top: 1px dashed ${p => p.theme.gray500};
+  border-top: 1px dashed ${p => p.theme.colors.gray800};
   width: 100%;
 `;
 
 const DashedContainer = styled(Container)`
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const ZigZagEdge = styled('div')`
@@ -705,7 +705,7 @@ const ZigZagEdge = styled('div')`
   --s: 10px; /* size of the zig-zag */
   --b: 2px; /* control the thickness */
 
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   height: calc(var(--b) + var(--s) / (2 * tan(var(--a) / 2)));
   --_g: var(--s) repeat-x
     conic-gradient(

@@ -1,6 +1,8 @@
 import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -57,14 +59,14 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     getDefaultSelectedNode(nodes);
 
   return (
-    <DrawerWrapper>
+    <Stack height="100%">
       <StyledDrawerHeader>
-        <HeaderContent>
+        <Flex align="center" flex="1" gap="md">
           {t('Conversation')}
           <ConversationIdLabel>
             {conversation.conversationId.slice(0, 8)}
           </ConversationIdLabel>
-        </HeaderContent>
+        </Flex>
       </StyledDrawerHeader>
       <StyledDrawerBody>
         <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
@@ -79,7 +81,7 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
           />
         </TraceStateProvider>
       </StyledDrawerBody>
-    </DrawerWrapper>
+    </Stack>
   );
 });
 
@@ -144,9 +146,9 @@ function ConversationView({
 
   if (isLoading) {
     return (
-      <LoadingContainer>
+      <Flex justify="center" align="center" flex="1" height="100%">
         <LoadingIndicator size={32}>{t('Loading conversation...')}</LoadingIndicator>
-      </LoadingContainer>
+      </Flex>
     );
   }
 
@@ -159,7 +161,7 @@ function ConversationView({
   }
 
   return (
-    <SplitContainer>
+    <Flex flex="1" minHeight="0">
       <MessagesPanel
         nodes={nodes}
         selectedNodeId={selectedNode?.id ?? null}
@@ -185,7 +187,7 @@ function ConversationView({
           hideNodeActions: true,
         })}
       </DetailsPanel>
-    </SplitContainer>
+    </Flex>
   );
 }
 
@@ -197,18 +199,12 @@ const StyledDrawerBody = styled(DrawerBody)`
   flex-direction: column;
 `;
 
-const SplitContainer = styled('div')`
-  display: flex;
-  flex: 1;
-  min-height: 0;
-`;
-
 const TracePanel = styled('div')`
   width: ${TRACE_PANEL_WIDTH}px;
   min-width: ${TRACE_PANEL_WIDTH}px;
   min-height: 0;
   padding: 0 ${p => p.theme.space.md};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
@@ -232,34 +228,13 @@ const PanelHeader = styled('h6')`
   flex-shrink: 0;
 `;
 
-const DrawerWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  flex: 1;
-`;
-
 const StyledDrawerHeader = styled(DrawerHeader)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: flex;
 `;
 
-const HeaderContent = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-`;
-
 const ConversationIdLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
 `;

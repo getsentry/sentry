@@ -28,7 +28,7 @@ export const Header = styled('div')`
 export const HeaderTitle = styled('h4')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export const HeaderButtonContainer = styled('div')`
@@ -115,14 +115,14 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   grid-template-columns: subgrid;
   grid-column: 1/-1;
 
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   text-transform: uppercase;
   user-select: none;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
@@ -158,8 +158,9 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   }
 
   &:hover {
-    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.border)};
-    border-right-color: ${p => p.theme.border};
+    border-left-color: ${p =>
+      p.isFirst ? 'transparent' : p.theme.tokens.border.primary};
+    border-right-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -203,7 +204,7 @@ export const GridRow = styled('tr')<{isClickable?: boolean}>`
     background-color: ${p => p.theme.tokens.background.primary};
 
     &:not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
 
     &:last-child {
@@ -321,7 +322,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.focus.default};
   }
 
   /**
@@ -335,7 +336,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
 `;

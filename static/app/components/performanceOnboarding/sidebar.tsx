@@ -388,7 +388,7 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -430,5 +430,5 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;

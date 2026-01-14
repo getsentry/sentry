@@ -44,6 +44,7 @@ class Condition(StrEnum):
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
     ISSUE_OCCURRENCES = "issue_occurrences"
+    ISSUE_TYPE = "issue_type"
     LATEST_ADOPTED_RELEASE = "latest_adopted_release"
     LATEST_RELEASE = "latest_release"
     LEVEL = "level"
@@ -55,6 +56,7 @@ class Condition(StrEnum):
     ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
     ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
+    ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"
@@ -259,7 +261,7 @@ def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
         )
         return None
 
-    schema = handler.comparison_json_schema
+    schema = handler().comparison_json_schema
 
     try:
         validate(data_condition.comparison, schema)

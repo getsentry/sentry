@@ -1,19 +1,23 @@
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any
 
 import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry.integrations.github.client import GitHubApiClient
+from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+
+
+class RequestType(StrEnum):
+    PR_REVIEW = "pr-review"
+    PR_CLOSED = "pr-closed"
 
 
 class ClientError(Exception):
@@ -22,12 +26,55 @@ class ClientError(Exception):
     pass
 
 
+class SeerCodeReviewTrigger(StrEnum):
+    """
+    Internal code review trigger type used for Seer flows.
+
+    This includes all user-configurable CodeReviewTrigger values, plus on_command_phrase,
+    which is always enabled and cannot be turned off by users.
+    """
+
+    ON_COMMAND_PHRASE = "on_command_phrase"
+    ON_NEW_COMMIT = "on_new_commit"
+    ON_READY_FOR_REVIEW = "on_ready_for_review"
+
+
 # These values need to match the value defined in the Seer API.
 class SeerEndpoint(StrEnum):
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/automation_request.py#L57
     OVERWATCH_REQUEST = "/v1/automation/overwatch-request"
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
+
+
+def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint:
+    """
+    Get the appropriate Seer endpoint for a given GitHub webhook event.
+
+    Args:
+        github_event: The GitHub webhook event type
+
+    Returns:
+        The SeerEndpoint to use for the event
+    """
+    if github_event == GithubWebhookType.CHECK_RUN:
+        return SeerEndpoint.PR_REVIEW_RERUN
+    return SeerEndpoint.OVERWATCH_REQUEST
+
+
+def _get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
+    """
+    Get the option key for a given GitHub webhook type.
+
+    Args:
+        webhook_type: The GitHub webhook event type
+
+    Returns:
+        The option key string if the webhook type has an associated option, None otherwise
+    """
+    from .webhooks.config import WEBHOOK_TYPE_TO_OPTION_KEY
+
+    return WEBHOOK_TYPE_TO_OPTION_KEY.get(webhook_type)
 
 
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
@@ -46,7 +93,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
         The response data from the Seer API
     """
     response = make_signed_seer_api_request(
-        connection_pool=connection_from_url(settings.SEER_AUTOFIX_URL),
+        connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
         path=path,
         body=orjson.dumps(payload),
     )
@@ -140,12 +187,9 @@ def _get_target_commit_sha(
         pr_number = event_payload.get("issue", {}).get("number")
         if not isinstance(pr_number, int):
             raise ValueError("missing-pr-number-for-sha")
-        sha = (
-            GitHubApiClient(integration=integration)
-            .get_pull_request(repo.name, pr_number)
-            .get("head", {})
-            .get("sha")
-        )
+
+        client = integration.get_installation(organization_id=repo.organization_id).get_client()
+        sha = client.get_pull_request(repo.name, pr_number).get("head", {}).get("sha")
         if not isinstance(sha, str) or not sha:
             raise ValueError("missing-api-pr-head-sha")
         return sha
@@ -159,7 +203,7 @@ def transform_webhook_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    trigger: CodeReviewTrigger,
+    trigger: SeerCodeReviewTrigger,
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
@@ -180,7 +224,7 @@ def transform_webhook_to_codegen_request(
     """
     # Determine request_type based on event_type
     # For now, we only support pr-review for these webhook types
-    request_type: Literal["pr-review", "pr-closed"] = "pr-review"
+    request_type: RequestType = RequestType.PR_REVIEW
 
     # Extract pull request number
     # Different event types have PR info in different locations
@@ -214,9 +258,10 @@ def transform_webhook_to_codegen_request(
 
     trigger_metadata = _get_trigger_metadata(github_event, event_payload)
 
+    # XXX: How can we share classes between Sentry and Seer?
     # Build CodecovTaskRequest
     return {
-        "request_type": request_type,
+        "request_type": request_type.value,
         "external_owner_id": repo.external_id,
         "data": {
             "repo": repo_definition,
@@ -229,7 +274,7 @@ def transform_webhook_to_codegen_request(
                 "features": {
                     "bug_prediction": True,
                 },
-                "trigger": trigger,
+                "trigger": trigger.value,
                 **trigger_metadata,
             },
         },
@@ -258,3 +303,60 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
         return str(user_id)
 
     return None
+
+
+def should_forward_to_seer(
+    github_event: GithubWebhookType, event_payload: Mapping[str, Any]
+) -> bool:
+    """
+    Determine if we should proceed with the code review flow to Seer.
+
+    We will proceed if the GitHub org is in the direct-to-seer whitelist.
+    For CHECK_RUN events (no option key), we always proceed.
+    """
+    if not should_forward_to_overwatch(github_event):
+        return True
+
+    return is_github_org_direct_to_seer(event_payload)
+
+
+def is_github_org_direct_to_seer(event_payload: Mapping[str, Any]) -> bool:
+    """
+    Determine if the GitHub org is in the direct-to-seer whitelist.
+    """
+    repository = event_payload.get("repository", {})
+    if not isinstance(repository, dict):
+        return False
+    owner = repository.get("owner", {})
+    if not isinstance(owner, dict):
+        return False
+    github_org = owner.get("login")
+    return github_org is not None and github_org in _direct_to_seer_gh_orgs()
+
+
+def should_forward_to_overwatch(github_event: GithubWebhookType) -> bool:
+    """
+    Determine if a GitHub webhook event should be forwarded to Overwatch.
+
+    - If there is no option key (i.e., _get_webhook_option_key returns None),
+      the event should NOT be forwarded to Overwatch (returns False).
+      This ensures events like CHECK_RUN are excluded from forwarding.
+    - If there is an option key, forwarding is controlled by the option value.
+
+    Args:
+        github_event: The GitHub webhook event type.
+
+    Returns:
+        bool: True if the event should be forwarded to Overwatch, False otherwise.
+    """
+    option_key = _get_webhook_option_key(github_event)
+    if option_key is None:
+        return False
+    return options.get(option_key)
+
+
+def _direct_to_seer_gh_orgs() -> list[str]:
+    """
+    Returns the list of GitHub org names that should always send directly to Seer.
+    """
+    return options.get("seer.code-review.direct-to-seer-enabled-gh-orgs") or []

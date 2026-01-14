@@ -133,7 +133,7 @@ const Sidebar = styled('section')`
   padding: ${space(3)} 0;
   gap: ${space(3)};
   background: ${p => p.theme.tokens.background.primary};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
 
   > * {
     padding: 0 ${space(4)};
@@ -154,7 +154,7 @@ const ThemeToggle = styled(Button)`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: bold;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Navigation = styled('ul')`
@@ -177,7 +177,7 @@ const NavLink = styled(ListLink)`
   gap: ${space(1)};
 
   .active & {
-    color: ${p => p.theme.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
     margin-left: calc(-1 * (${space(1)} + var(--activeIndicatorWidth)));
   }
 
@@ -188,10 +188,10 @@ const NavLink = styled(ListLink)`
     height: ${space(3)};
     position: relative;
     top: -1px;
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 
   &:hover {
-    color: ${p => p.theme.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 `;

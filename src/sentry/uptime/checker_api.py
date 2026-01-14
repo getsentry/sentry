@@ -1,0 +1,62 @@
+import uuid
+
+import requests
+
+from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.uptime.models import UptimeRegionScheduleMode
+from sentry.uptime.types import CheckConfig
+
+
+# Create a "preview check" that we send to an uptime checker to validate the config
+# (in particular, the assertion.)
+def create_preview_check(validated_data, region: UptimeRegionConfig) -> CheckConfig:
+    config: CheckConfig = {
+        "subscription_id": uuid.UUID(int=0).hex,
+        "url": validated_data.get("url"),
+        "interval_seconds": 3600,
+        "timeout_ms": validated_data.get("timeout_ms"),
+        "trace_sampling": False,
+        # We're only going to run in the one specified region.
+        "active_regions": [region.slug],
+        "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
+    }
+
+    config["request_method"] = validated_data.get("method")
+    config["request_headers"] = validated_data.get("headers")
+    config["request_body"] = validated_data.get("body")
+    config["assertion"] = validated_data.get("assertion")
+
+    return config
+
+
+# Call into the uptime checker to validation the check config, throwing a validation
+# error if the config does not pass validation.
+def invoke_checker_validator(
+    validation_enabled: bool, check_config: CheckConfig, region: UptimeRegionConfig
+) -> requests.Response | None:
+    if not validation_enabled:
+        return None
+
+    result = requests.post(
+        f"http://{region.api_endpoint}/validate_check",
+        json=check_config,
+        timeout=10,
+    )
+
+    return result
+
+
+# Call into the uptime checker to execute the check config
+def invoke_checker_preview(
+    assertions_enabled: bool, check_config: CheckConfig, region: UptimeRegionConfig
+) -> requests.Response | None:
+    if not assertions_enabled:
+        return None
+
+    result = requests.post(
+        f"http://{region.api_endpoint}/execute_config",
+        json=check_config,
+        timeout=10,
+    )
+
+    return result

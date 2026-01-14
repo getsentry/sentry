@@ -190,9 +190,9 @@ function ProductSelect({
                             key={category}
                             data-test-id={`product-option-feature-${category}`}
                           >
-                            <IconContainer>
+                            <Flex align="center" marginTop="2xs">
                               <IconCheckmark variant="success" />
-                            </IconContainer>
+                            </Flex>
                             <Flex direction="column" gap="xs">
                               <Text size="md">
                                 {getSingularCategoryName({
@@ -306,12 +306,6 @@ function ProductSelect({
 }
 
 export default ProductSelect;
-
-const IconContainer = styled('div')`
-  margin-top: ${p => p.theme.space['2xs']};
-  display: flex;
-  align-items: center;
-`;
 
 const FeatureItem = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};

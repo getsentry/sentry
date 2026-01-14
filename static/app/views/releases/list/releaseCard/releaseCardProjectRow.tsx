@@ -56,7 +56,7 @@ function getCrashFreeIcon(
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning color="yellow300" size={iconSize} />;
+    return <IconWarning variant="warning" size={iconSize} />;
   }
 
   return <IconCheckmark variant="success" size={iconSize} />;
@@ -166,7 +166,10 @@ function ReleaseCardProjectRow({
 
                     return `${value.toLocaleString()} ${suffix}`;
                   }}
-                  colors={[theme.colors.blue400, theme.colors.gray200]}
+                  colors={[
+                    theme.tokens.dataviz.semantic.accent,
+                    theme.tokens.dataviz.semantic.other,
+                  ]}
                 />
               </LazyLoad>
             </AdoptionWrapper>

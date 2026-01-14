@@ -19,6 +19,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
@@ -30,6 +31,7 @@ import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
+import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -38,7 +40,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
 import MobileBuilds from 'sentry/views/releases/list/mobileBuilds';
 import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
@@ -57,6 +58,10 @@ const RELEASE_FILTER_KEYS = [
   {
     key: 'release',
     name: 'release',
+  },
+  {
+    key: FieldKey.RELEASE_CREATED,
+    name: FieldKey.RELEASE_CREATED,
   },
 ].reduce<TagCollection>((acc, tag) => {
   acc[tag.key] = tag;
@@ -427,7 +432,7 @@ export default function ReleasesList() {
                     key="releases"
                     to={{
                       pathname: location.pathname,
-                      query: {...location.query, tab: undefined},
+                      query: {...location.query, query: undefined, tab: undefined},
                     }}
                     textValue={t('Releases')}
                   >
@@ -437,7 +442,7 @@ export default function ReleasesList() {
                     key="mobile-builds"
                     to={{
                       pathname: location.pathname,
-                      query: {...location.query, tab: 'mobile-builds'},
+                      query: {...location.query, query: undefined, tab: 'mobile-builds'},
                     }}
                     textValue={t('Mobile Builds')}
                   >

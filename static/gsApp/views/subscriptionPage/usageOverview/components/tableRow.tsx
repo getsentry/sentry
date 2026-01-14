@@ -7,11 +7,13 @@ import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
-import {IconLock, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import useMedia from 'sentry/utils/useMedia';
 
+import StartTrialButton from 'getsentry/components/startTrialButton';
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, type ProductTrial} from 'getsentry/types';
@@ -235,6 +237,7 @@ function UsageOverviewTableRow({
   return (
     <Fragment>
       <ProductRow
+        data-test-id={`product-row-${product}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
@@ -264,6 +267,8 @@ function UsageOverviewTableRow({
                   : undefined
             }
             wrap="nowrap"
+            height="100%"
+            align="center"
           >
             <Text as="span" variant="primary" textWrap="balance">
               {formattedDisplayName}{' '}
@@ -272,7 +277,7 @@ function UsageOverviewTableRow({
         </td>
         <Fragment>
           <td>
-            <Flex align="center" gap="xs" wrap="wrap">
+            <Flex align="center" gap="xs" wrap="wrap" height="100%">
               {usageExceeded ? (
                 <Container width="18px" height="18px">
                   <IconWarning size="md" variant="danger" />
@@ -284,7 +289,7 @@ function UsageOverviewTableRow({
                     value={percentUsed}
                     progressColor={
                       !usageExceeded && percentUsed === 100
-                        ? theme.tokens.border.danger
+                        ? theme.tokens.border.danger.vibrant
                         : undefined
                     }
                   />
@@ -292,7 +297,7 @@ function UsageOverviewTableRow({
               ) : null}
               <Text textWrap="balance">
                 {isUnlimited ? (
-                  <Tag variant="info">{t('Unlimited')}</Tag>
+                  <Tag variant="promotion">{t('Unlimited')}</Tag>
                 ) : isPaygOnly || isChildProduct || !formattedPrepaid ? (
                   shouldFormatWithDisplayName ? (
                     formatCategoryQuantityWithDisplayName({
@@ -314,11 +319,41 @@ function UsageOverviewTableRow({
               )}
             </Flex>
           </td>
-          {showAdditionalSpendColumn && (
+          {activeProductTrial ? (
+            <td>
+              <Flex justify="end">
+                <Tag variant="promotion" icon={<IconClock />}>
+                  {tn(
+                    '%s day left',
+                    '%s days left',
+                    -1 * getDaysSinceDate(activeProductTrial.endDate ?? '')
+                  )}
+                </Tag>
+              </Flex>
+            </td>
+          ) : potentialProductTrial ? (
+            <td>
+              <Flex justify="end">
+                <StartTrialButton
+                  organization={organization}
+                  source="usage-overview-table"
+                  requestData={{
+                    productTrial: {
+                      category: potentialProductTrial.category,
+                      reasonCode: potentialProductTrial.reasonCode,
+                    },
+                  }}
+                  size="xs"
+                  icon={<IconPlay />}
+                  priority="primary"
+                />
+              </Flex>
+            </td>
+          ) : showAdditionalSpendColumn ? (
             <td>
               <Text align="right">{displayPriceWithCents({cents: additionalSpend})}</Text>
             </td>
-          )}
+          ) : null}
         </Fragment>
 
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
@@ -356,6 +391,7 @@ function DisabledProductRow({
   return (
     <Fragment>
       <ProductRow
+        data-test-id={`product-row-disabled-${product}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
@@ -376,7 +412,12 @@ function DisabledProductRow({
           />
         )}
         <td>
-          <Flex paddingLeft={potentialProductTrial ? 'lg' : undefined} wrap="nowrap">
+          <Flex
+            paddingLeft={potentialProductTrial ? 'lg' : undefined}
+            wrap="nowrap"
+            align="center"
+            height="100%"
+          >
             <Text as="span" variant="muted" textWrap="balance">
               {displayName}{' '}
               <IconContainer>
@@ -385,6 +426,28 @@ function DisabledProductRow({
             </Text>
           </Flex>
         </td>
+        {potentialProductTrial && (
+          <Fragment>
+            <td />
+            <td>
+              <Flex justify="end">
+                <StartTrialButton
+                  organization={organization}
+                  source="usage-overview-table"
+                  requestData={{
+                    productTrial: {
+                      category: potentialProductTrial.category,
+                      reasonCode: potentialProductTrial.reasonCode,
+                    },
+                  }}
+                  size="xs"
+                  icon={<IconPlay />}
+                  priority="primary"
+                />
+              </Flex>
+            </td>
+          </Fragment>
+        )}
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
       </ProductRow>
       {showPanelInline && isSelected && (
@@ -408,7 +471,7 @@ export default UsageOverviewTableRow;
 
 const Row = styled('tr')`
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   &:last-child {
@@ -419,12 +482,18 @@ const Row = styled('tr')`
 const ProductRow = styled(Row)<{isSelected: boolean}>`
   position: relative;
   background: ${p =>
-    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
+    p.isSelected
+      ? p.theme.tokens.background.secondary
+      : p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xl};
   cursor: pointer;
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 

@@ -298,19 +298,17 @@ const Separator = styled('hr')`
   outline: 0;
   border: 0;
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
 
-const ChonkNavLinkIconContainer = styled('span')`
+const NavLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
 `;
-
-const NavLinkIconContainer = ChonkNavLinkIconContainer;
 
 const NavLinkLabel = styled('div')`
   display: flex;
@@ -321,7 +319,7 @@ const NavLinkLabel = styled('div')`
   letter-spacing: -0.05em;
 `;
 
-const ChonkNavLink = styled(Link, {
+const NavLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -338,7 +336,7 @@ const ChonkNavLink = styled(Link, {
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
 
   /* Disable default link styles and only apply them to the icon container */
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   outline: none;
   box-shadow: none;
   transition: none;
@@ -369,40 +367,40 @@ const ChonkNavLink = styled(Link, {
   &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
-      background-color: ${p => p.theme.colors.blue100};
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
     }
   }
 
   &:hover,
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.gray100};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   }
 
   &[aria-current='page'] {
-    color: ${p => p.theme.tokens.content.accent};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
     &::before {
       opacity: 1;
     }
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.blue100};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     }
 
     &:hover {
-      ${NavLinkIconContainer} {
-        background-color: ${p => p.theme.colors.blue100};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover} ${NavLinkIconContainer} {
+        background-color: ${p =>
+          p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }
     }
   }
 `;
 
-const NavLink = ChonkNavLink;
-
-const ChonkNavButton = styled(Button, {
+const StyledNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -430,7 +428,7 @@ type NavButtonProps = ButtonProps & {
 
 const NavButton = styled((p: NavButtonProps) => {
   return (
-    <ChonkNavButton
+    <StyledNavButton
       {...p}
       aria-label={p['aria-label'] ?? ''}
       size={p.isMobile ? 'zero' : undefined}
@@ -447,7 +445,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   text-align: center;
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSize.xs};
-  background: ${p => p.theme.colors.blue500};
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;
   height: 10px;
   border-radius: 50%;

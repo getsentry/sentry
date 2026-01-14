@@ -69,7 +69,7 @@ STATUS_IGNORED = 2
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-MAX_TAG_VALUE_LENGTH = 200
+MAX_TAG_VALUE_LENGTH = 256
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
 
@@ -82,7 +82,7 @@ PROJECT_SLUG_MAX_LENGTH = 100
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
-MAX_ROLLUP_POINTS = 10000
+MAX_ROLLUP_POINTS = 10081
 
 
 # Organization slugs which may not be used. Generally these are top level URL patterns
@@ -725,15 +725,18 @@ AUTO_OPEN_PRS_DEFAULT = False
 AUTO_ENABLE_CODE_REVIEW = False
 # Seer Org level default for code review triggers
 DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
-    "on_command_phrase",
     "on_ready_for_review",
     "on_new_commit",
 ]
 # Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
 ALLOW_BACKGROUND_AGENT_DELEGATION = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
+CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
+
+# Repository owner for console SDK repositories. Helpful for testing: add your test org here
+CONSOLE_SDK_REPO_OWNER = "getsentry"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

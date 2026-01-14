@@ -578,7 +578,11 @@ const ControlWrap = styled('div')`
 `;
 
 export const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
 `;
 
@@ -598,7 +602,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   align-items: center;
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
-  box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+  box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   [data-menu-has-search='true'] > & {
     padding-bottom: 0;
@@ -636,7 +640,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
 `;
@@ -689,7 +693,7 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 `;
 
 const MenuFooter = styled('div')`
-  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
+  box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   padding: ${space(1)} ${space(1.5)};
   z-index: 2;
 `;

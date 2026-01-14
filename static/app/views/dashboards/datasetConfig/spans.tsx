@@ -23,6 +23,8 @@ import {
   isEquation,
   isEquationAlias,
   type Aggregation,
+  type AggregationOutputType,
+  type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {
@@ -41,6 +43,7 @@ import {
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
@@ -69,7 +72,9 @@ import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/componen
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -236,7 +241,61 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
+    if (field === 'transaction') {
+      return renderTransactionAsLinkable;
+    }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
+  },
+  getSeriesResultUnit: (data, widgetQuery) => {
+    const resultUnits: Record<string, DataUnit> = {};
+    widgetQuery.fieldMeta?.forEach((meta, index) => {
+      if (meta && widgetQuery.fields) {
+        resultUnits[widgetQuery.fields[index]!] = meta.valueUnit;
+      }
+    });
+    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
+
+    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
+    // But we can just assume the units is for all the series
+    // TODO: This doesn't work with multiple aggregates
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
+    if (
+      isMultiSeriesStats &&
+      firstMeta &&
+      widgetQuery.aggregates?.length === 1 &&
+      widgetQuery.columns?.length > 0
+    ) {
+      Object.keys(data).forEach(seriesName => {
+        resultUnits[seriesName] = firstMeta.valueUnit;
+      });
+    }
+    return resultUnits;
+  },
+  getSeriesResultType: (data, widgetQuery) => {
+    const resultTypes: Record<string, AggregationOutputType> = {};
+    widgetQuery.fieldMeta?.forEach((meta, index) => {
+      if (meta && widgetQuery.fields) {
+        resultTypes[widgetQuery.fields[index]!] = meta.valueType as AggregationOutputType;
+      }
+    });
+
+    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
+
+    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
+    // But we can just assume the units is for all the series
+    // TODO: This doesn't work with multiple aggregates
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
+    if (
+      isMultiSeriesStats &&
+      firstMeta &&
+      widgetQuery.aggregates?.length === 1 &&
+      widgetQuery.columns?.length > 0
+    ) {
+      Object.keys(data).forEach(seriesName => {
+        resultTypes[seriesName] = firstMeta.valueType as AggregationOutputType;
+      });
+    }
+    return resultTypes;
   },
 };
 
@@ -427,6 +486,52 @@ function renderEventInTraceView(
   return (
     <Link to={target}>
       <Container>{getShortEventId(spanId)}</Container>
+    </Link>
+  );
+}
+
+function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBaggage) {
+  const transaction = data.transaction;
+  if (!transaction || typeof transaction !== 'string') {
+    return <Container>{emptyStringValue}</Container>;
+  }
+
+  const {organization, location, projects} = baggage;
+
+  let projectID: string | string[] | undefined;
+  const filterProjects = location?.query.project;
+
+  if (typeof filterProjects === 'string' && filterProjects !== '-1') {
+    projectID = filterProjects;
+  } else {
+    const projectMatch = projects?.find(
+      project =>
+        project.slug && [data['project.name'], data.project].includes(project.slug)
+    );
+    projectID = projectMatch ? [projectMatch.id] : undefined;
+  }
+
+  const filters = new MutableSearch('');
+
+  // Filters on the transaction summary page won't match the dashboard because transaction summary isn't on eap yet.
+  if (data[SpanFields.SPAN_OP]) {
+    filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
+  }
+  if (data[SpanFields.REQUEST_METHOD]) {
+    filters.addFilterValue('http.method', data[SpanFields.REQUEST_METHOD]);
+  }
+
+  const target = transactionSummaryRouteWithQuery({
+    organization,
+    transaction: String(transaction),
+    projectID,
+    query: location?.query,
+    additionalQuery: {query: filters.formatString()},
+  });
+
+  return (
+    <Link to={target}>
+      <Container>{transaction}</Container>
     </Link>
   );
 }

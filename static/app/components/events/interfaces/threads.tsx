@@ -440,7 +440,11 @@ const Grid = styled('div')`
 `;
 
 const TheadStateContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ThreadStateWrapper = styled('div')`
@@ -453,7 +457,7 @@ const ThreadStateWrapper = styled('div')`
 
 const LockReason = styled(TextOverflow)`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Wrapper = styled('div')`
@@ -476,7 +480,7 @@ const ThreadTraceWrapper = styled('div')`
 `;
 
 const ThreadHeading = styled('h3')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};

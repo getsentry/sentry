@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -6,8 +6,8 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.utils import (
+    SeerCodeReviewTrigger,
     _get_target_commit_sha,
     _get_trigger_metadata,
     transform_webhook_to_codegen_request,
@@ -95,13 +95,16 @@ class GetTargetCommitShaTest(TestCase):
         with pytest.raises(ValueError, match="missing-pr-head-sha"):
             _get_target_commit_sha(GithubWebhookType.PULL_REQUEST, event, self.repo, None)
 
-    @patch("sentry.seer.code_review.utils.GitHubApiClient")
-    def test_issue_comment_fetches_sha_from_api(self, mock_client_class: MagicMock) -> None:
+    def test_issue_comment_fetches_sha_from_api(self) -> None:
         mock_client = MagicMock()
         mock_client.get_pull_request.return_value = {"head": {"sha": "def456"}}
-        mock_client_class.return_value = mock_client
+
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
 
         mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
         event = {"issue": {"number": 42}}
 
         result = _get_target_commit_sha(
@@ -109,6 +112,9 @@ class GetTargetCommitShaTest(TestCase):
         )
 
         assert result == "def456"
+        mock_integration.get_installation.assert_called_once_with(
+            organization_id=self.repo.organization_id
+        )
         mock_client.get_pull_request.assert_called_once_with("test-owner/test-repo", 42)
 
     def test_issue_comment_raises_without_integration(self) -> None:
@@ -124,13 +130,16 @@ class GetTargetCommitShaTest(TestCase):
                 GithubWebhookType.ISSUE_COMMENT, event, self.repo, mock_integration
             )
 
-    @patch("sentry.seer.code_review.utils.GitHubApiClient")
-    def test_issue_comment_raises_on_api_error(self, mock_client_class: MagicMock) -> None:
+    def test_issue_comment_raises_on_api_error(self) -> None:
         mock_client = MagicMock()
         mock_client.get_pull_request.side_effect = Exception("API error")
-        mock_client_class.return_value = mock_client
+
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
 
         mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
         event = {"issue": {"number": 42}}
 
         with pytest.raises(Exception, match="API error"):
@@ -179,7 +188,7 @@ class TestTransformWebhookToCodegenRequest:
             organization,
             repo,
             "abc123sha",
-            CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            SeerCodeReviewTrigger.ON_READY_FOR_REVIEW,
         )
 
         expected_repo = {
@@ -203,7 +212,7 @@ class TestTransformWebhookToCodegenRequest:
         }
         assert result["data"]["config"] == {
             "features": {"bug_prediction": True},
-            "trigger": CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+            "trigger": SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value,
         } | {k: v for k, v in result["data"]["config"].items() if k not in ("features", "trigger")}
 
     def test_issue_comment_on_pr(
@@ -229,14 +238,14 @@ class TestTransformWebhookToCodegenRequest:
             organization,
             repo,
             "def456sha",
-            CodeReviewTrigger.ON_COMMAND_PHRASE,
+            SeerCodeReviewTrigger.ON_NEW_COMMIT,
         )
 
         assert isinstance(result, dict)
         data = result["data"]
         config = data["config"]
         assert data["pr_id"] == 42
-        assert config["trigger"] == CodeReviewTrigger.ON_COMMAND_PHRASE.value
+        assert config["trigger"] == SeerCodeReviewTrigger.ON_NEW_COMMIT.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"
@@ -256,7 +265,7 @@ class TestTransformWebhookToCodegenRequest:
             organization,
             repo,
             "somesha",
-            CodeReviewTrigger.ON_COMMAND_PHRASE,
+            SeerCodeReviewTrigger.ON_NEW_COMMIT,
         )
         assert result is None
 
@@ -280,5 +289,5 @@ class TestTransformWebhookToCodegenRequest:
                 organization,
                 bad_repo,
                 "sha123",
-                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+                SeerCodeReviewTrigger.ON_READY_FOR_REVIEW,
             )

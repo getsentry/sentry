@@ -14,7 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/nav/constants';
-import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
+import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondaryMobile} from 'sentry/views/nav/secondary/secondaryMobile';
 import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
@@ -49,7 +49,8 @@ function MobileTopbar() {
   return (
     <Topbar showSuperuserWarning={showSuperuserWarning}>
       <Left>
-        <OrgDropdown onClick={() => setView('closed')} />
+        {/* If the view is not closed, it will render under the full screen mobile menu */}
+        <OrganizationDropdown onClick={() => setView('closed')} />
         {showSuperuserWarning && (
           <Hook name="component:superuser-warning" organization={organization} />
         )}
@@ -158,5 +159,5 @@ const NavigationOverlay = styled('nav')`
   background: ${p => p.theme.colors.surface300};
   z-index: ${p => p.theme.zIndex.modal};
   --color: ${p => p.theme.tokens.content.primary};
-  --color-hover: ${p => p.theme.activeText};
+  --color-hover: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;

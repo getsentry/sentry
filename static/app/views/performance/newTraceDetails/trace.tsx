@@ -699,7 +699,7 @@ function VerticalTimestampIndicators({
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
-  box-shadow: 0 0 0 1px ${p => p.theme.border};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.neutral.muted};
   position: absolute;
   left: 0;
   top: 0;
@@ -740,7 +740,7 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     height: 38px;
     background-color: ${p => p.theme.tokens.background.primary};
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     z-index: 10;
   }
 
@@ -804,13 +804,13 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
-      background-color: ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
 
     &:hover {
       &:before {
-        background-color: ${p => p.theme.colors.blue400};
+        background-color: ${p => p.theme.tokens.background.accent.vibrant};
       }
     }
   }
@@ -829,7 +829,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
-    background-color: ${p => p.theme.border};
+    background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
   }
@@ -843,7 +843,7 @@ const TraceStylingWrapper = styled('div')`
     background-color: ${p => p.theme.tokens.background.primary};
     color: ${p => p.theme.tokens.content.primary};
     border-radius: 100px;
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
     display: inline-block;
     line-height: 1;
     margin-top: 2px;
@@ -872,8 +872,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.None {
-      color: ${p => p.theme.subText};
-      border: 1px solid ${p => p.theme.border};
+      color: ${p => p.theme.tokens.content.secondary};
+      border: 1px solid ${p => p.theme.tokens.border.primary};
 
       &.light {
         background-color: rgb(245 245 245);
@@ -949,7 +949,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.subText} 4px 8px
+            ${p => p.theme.tokens.content.secondary} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -982,25 +982,25 @@ const TraceStylingWrapper = styled('div')`
       top: 26px;
 
       &.CurrentReplayTimestamp {
-        background: ${p => p.theme.colors.blue400};
+        background: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
 
       &.HoverReplayTimestamp {
-        background: ${p => p.theme.colors.blue200};
+        background: ${p => p.theme.tokens.background.transparent.accent.muted};
       }
     }
 
     &.Errored {
       .TraceIndicatorLabelContainer {
-        border: 1px solid ${p => p.theme.error};
-        color: ${p => p.theme.error};
+        border: 1px solid ${p => p.theme.tokens.content.danger};
+        color: ${p => p.theme.tokens.content.danger};
       }
 
       .TraceIndicatorLine {
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.error} 4px 8px
+            ${p => p.theme.tokens.content.danger} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1018,7 +1018,7 @@ const TraceStylingWrapper = styled('div')`
         width: auto;
         border: none;
         background-color: transparent;
-        color: ${p => p.theme.subText};
+        color: ${p => p.theme.tokens.content.secondary};
       }
 
       .TraceIndicatorLine {
@@ -1031,16 +1031,16 @@ const TraceStylingWrapper = styled('div')`
   &.light {
     .TracePattern {
       &.info {
-        --pattern-odd: ${p => p.theme.colors.blue500};
-        --pattern-even: ${p => p.theme.colors.blue400};
+        --pattern-odd: ${p => p.theme.tokens.content.accent};
+        --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
       &.warning {
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
-        --pattern-odd: ${p => p.theme.colors.blue500};
-        --pattern-even: ${p => p.theme.colors.blue400};
+        --pattern-odd: ${p => p.theme.tokens.content.accent};
+        --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
 
       &.profile {
@@ -1050,7 +1050,7 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.backgroundTertiary};
+        --pattern-odd: ${p => p.theme.tokens.background.tertiary};
         --pattern-even: ${p => p.theme.tokens.background.primary};
       }
 
@@ -1073,16 +1073,16 @@ const TraceStylingWrapper = styled('div')`
   &.dark {
     .TracePattern {
       &.info {
-        --pattern-odd: ${p => p.theme.colors.blue500};
-        --pattern-even: ${p => p.theme.colors.blue400};
+        --pattern-odd: ${p => p.theme.tokens.content.accent};
+        --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
       &.warning {
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
       &.occurence {
-        --pattern-odd: ${p => p.theme.colors.blue500};
-        --pattern-even: ${p => p.theme.colors.blue400};
+        --pattern-odd: ${p => p.theme.tokens.content.accent};
+        --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
 
       &.profile {
@@ -1120,11 +1120,12 @@ const TraceStylingWrapper = styled('div')`
     font-size: ${p => p.theme.fontSize.sm};
     transform: translateZ(0);
 
-    --row-background-odd: ${p => p.theme.backgroundSecondary};
-    --row-background-hover: ${p => p.theme.backgroundTertiary};
-    --row-background-focused: ${p => p.theme.backgroundTertiary};
-    --row-outline: ${p => p.theme.colors.blue400};
-    --row-children-button-border-color: ${p => p.theme.border};
+    --row-background-odd: ${p => p.theme.tokens.background.secondary};
+    --row-background-hover: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+    --row-background-focused: ${p => p.theme.tokens.background.tertiary};
+    --row-outline: ${p => p.theme.tokens.focus.default};
+    --row-children-button-border-color: ${p => p.theme.tokens.border.neutral.muted};
 
     /* allow empty blocks so we can keep an exhaustive list of classnames for future reference */
     /* stylelint-disable */
@@ -1137,10 +1138,10 @@ const TraceStylingWrapper = styled('div')`
     &.error,
     &.fatal,
     &.occurence {
-      color: ${p => p.theme.errorText};
-      --autogrouped: ${p => p.theme.error};
-      --row-children-button-border-color: ${p => p.theme.error};
-      --row-outline: ${p => p.theme.error};
+      color: ${p => p.theme.tokens.content.danger};
+      --autogrouped: ${p => p.theme.tokens.content.danger};
+      --row-children-button-border-color: ${p => p.theme.tokens.content.danger};
+      --row-outline: ${p => p.theme.tokens.content.danger};
     }
     &.default {
     }
@@ -1270,10 +1271,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue400} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.colors.blue400} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
       }
     }
 
@@ -1310,7 +1311,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Autogrouped {
-      color: ${p => p.theme.colors.blue400};
+      color: ${p => p.theme.tokens.content.accent};
 
       .TraceDescription {
         font-weight: ${p => p.theme.fontWeight.bold};
@@ -1318,35 +1319,35 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceChildrenCountWrapper {
         button {
-          color: ${p => p.theme.white};
-          background-color: ${p => p.theme.colors.blue400};
+          color: ${p => p.theme.tokens.content.onVibrant.light};
+          background-color: ${p => p.theme.tokens.background.accent.vibrant};
         }
         svg {
-          fill: ${p => p.theme.white};
+          fill: ${p => p.theme.tokens.content.onVibrant.light};
         }
       }
 
       &.error {
-        color: ${p => p.theme.colors.red400};
+        color: ${p => p.theme.tokens.content.danger};
 
         .TraceChildrenCountWrapper {
           button {
-            color: ${p => p.theme.white};
-            background-color: ${p => p.theme.colors.red400};
+            color: ${p => p.theme.tokens.content.onVibrant.light};
+            background-color: ${p => p.theme.tokens.background.danger.vibrant};
           }
         }
       }
     }
 
     &.Collapsed {
-      background-color: ${p => p.theme.backgroundSecondary};
-      border-bottom: 1px solid ${p => p.theme.border};
-      border-top: 1px solid ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.background.secondary};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.neutral.muted};
+      border-top: 1px solid ${p => p.theme.tokens.border.neutral.muted};
 
       .TraceLeftColumn {
         padding-left: 14px;
         width: 100%;
-        color: ${p => p.theme.subText};
+        color: ${p => p.theme.tokens.content.secondary};
 
         .TraceLeftColumnInner {
           padding-left: 0 !important;
@@ -1436,13 +1437,13 @@ const TraceStylingWrapper = styled('div')`
     border: none;
     transition: 60ms ease-out;
     font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     padding: 0 2px;
     display: flex;
     align-items: center;
 
     svg {
-      fill: ${p => p.theme.subText};
+      fill: ${p => p.theme.tokens.content.secondary};
     }
 
     &.Left {
@@ -1458,7 +1459,7 @@ const TraceStylingWrapper = styled('div')`
     display: inline-block;
     transform-origin: left center;
     font-size: ${p => p.theme.fontSize.xs};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;
@@ -1551,11 +1552,11 @@ const TraceStylingWrapper = styled('div')`
       .TraceVerticalConnector,
       .TraceVerticalLastChildConnector,
       .TraceExpandedVerticalConnector {
-        border-left: 2px dashed ${p => p.theme.border};
+        border-left: 2px dashed ${p => p.theme.tokens.border.neutral.muted};
       }
 
       &::before {
-        border-bottom: 2px dashed ${p => p.theme.border};
+        border-bottom: 2px dashed ${p => p.theme.tokens.border.neutral.muted};
       }
     }
 
@@ -1571,7 +1572,7 @@ const TraceStylingWrapper = styled('div')`
       display: block;
       width: 50%;
       height: 2px;
-      border-bottom: 2px solid ${p => p.theme.border};
+      border-bottom: 2px solid ${p => p.theme.tokens.border.neutral.muted};
       position: absolute;
       left: 0;
       top: 50%;
@@ -1580,7 +1581,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      background-color: ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.border.neutral.muted};
       border-radius: 50%;
       height: 6px;
       width: 6px;
@@ -1598,10 +1599,10 @@ const TraceStylingWrapper = styled('div')`
     bottom: 0;
     height: 100%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.neutral.muted};
 
     &.Orphaned {
-      border-left: 2px dashed ${p => p.theme.border};
+      border-left: 2px dashed ${p => p.theme.tokens.border.neutral.muted};
     }
   }
 
@@ -1612,7 +1613,7 @@ const TraceStylingWrapper = styled('div')`
     bottom: 0;
     height: 50%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.neutral.muted};
     border-bottom-left-radius: 4px;
   }
 
@@ -1622,7 +1623,7 @@ const TraceStylingWrapper = styled('div')`
     height: 50%;
     left: 50%;
     width: 2px;
-    border-left: 2px solid ${p => p.theme.border};
+    border-left: 2px solid ${p => p.theme.tokens.border.neutral.muted};
   }
 
   .TraceOperation {

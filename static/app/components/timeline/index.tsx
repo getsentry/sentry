@@ -5,16 +5,15 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {space} from 'sentry/styles/space';
-import type {Color} from 'sentry/utils/theme';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
   colorConfig?: {
-    icon: string | Color;
-    iconBorder: string | Color;
-    title: string | Color;
+    icon: string;
+    iconBorder: string;
+    title: string;
   };
   icon?: React.ReactNode;
   isActive?: boolean;
@@ -42,17 +41,13 @@ function Item({
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
 
-  const iconBorder = theme[config.iconBorder as Color] ?? config.iconBorder;
-  const iconColor = theme[config.icon as Color] ?? config.icon;
-  const titleColor = theme[config.title as Color] ?? config.title;
-
   return (
     <Row ref={ref} {...props}>
       {icon ? (
         <IconWrapper
           style={{
-            borderColor: isActive ? iconBorder : 'transparent',
-            color: iconColor,
+            borderColor: isActive ? config.iconBorder : 'transparent',
+            color: config.icon,
           }}
           className="timeline-icon-wrapper"
         >
@@ -62,7 +57,7 @@ function Item({
         <IconWrapper className="timeline-icon-wrapper" />
       )}
       <Flex align="center" gap="xs" wrap="wrap">
-        <Title style={{color: titleColor}}>{title}</Title>
+        <Title style={{color: config.title}}>{title}</Title>
         {titleTrailingItems}
       </Flex>
       {timestamp ?? <div />}
@@ -82,7 +77,7 @@ function makeDefaultColorConfig(theme: Theme) {
 
 const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: grid;
   align-items: start;
   grid-template: auto auto / 22px 1fr auto;
@@ -128,7 +123,7 @@ const Spacer = styled('div')`
 const Content = styled('div')`
   text-align: left;
   grid-column: span 2;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: ${space(0.25)} 0 0;
   font-size: ${p => p.theme.fontSize.sm};
   word-wrap: break-word;
@@ -149,7 +144,7 @@ const Data = styled('div')`
   margin: ${space(0.75)} 0 0 -${space(0.75)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   position: relative;
   &:only-child {
     margin-top: 0;
