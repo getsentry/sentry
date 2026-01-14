@@ -132,7 +132,7 @@ class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
         [e.value for e in SupportedTraceItemType], required=True, source="item_type"
     )
     attributeType = serializers.ChoiceField(
-        ["string", "number"], required=True, source="attribute_type"
+        ["string", "number", "boolean"], required=True, source="attribute_type"
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
@@ -182,7 +182,7 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 
 
 def as_attribute_key(
-    name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
+    name: str, type: Literal["string", "number", "boolean"], item_type: SupportedTraceItemType
 ) -> TraceItemAttributeKey:
     public_key, public_name, attribute_source = translate_internal_to_public_alias(
         name, type, item_type
@@ -193,6 +193,9 @@ def as_attribute_key(
         pass
     elif type == "number":
         public_key = f"tags[{name},number]"
+        public_name = name
+    elif type == "boolean":
+        public_key = f"tags[{name},boolean]"
         public_name = name
     else:
         public_key = name
@@ -218,6 +221,12 @@ def as_attribute_key(
         attribute_key["secondaryAliases"] = sorted(secondary_aliases)
 
     return attribute_key
+
+
+ATTR_TYPE_MAP = {
+    "number": AttributeKey.Type.TYPE_DOUBLE,
+    "boolean": AttributeKey.Type.TYPE_BOOLEAN,
+}
 
 
 @region_silo_endpoint
@@ -274,12 +283,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
 
-        attr_type = (
-            AttributeKey.Type.TYPE_DOUBLE
-            if attribute_type == "number"
-            else AttributeKey.Type.TYPE_STRING
-        )
-
+        attr_type = ATTR_TYPE_MAP.get(attribute_type, AttributeKey.Type.TYPE_STRING)
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def data_fn(offset: int, limit: int):
