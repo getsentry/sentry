@@ -53,6 +53,7 @@ function CheckoutOption({
                 aria-label={ariaLabel}
                 aria-checked={isSelected}
                 checked={isSelected}
+                readOnly
               />
             )}
           </Container>
