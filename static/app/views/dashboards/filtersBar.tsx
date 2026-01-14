@@ -17,6 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useSyncedQueryParamState} from 'sentry/utils/url/useSyncedQueryParamState';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
@@ -35,6 +36,18 @@ import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import SortableReleasesFilter from './sortableReleasesFilter';
 import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
 import {DashboardFilterKeys} from './types';
+
+function getReleasesSortBy(
+  sort: ReleasesSortByOption,
+  environments: string[]
+): ReleasesSortByOption {
+  // Require 1 environment for adoption sort
+  if (sort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
+    return ReleasesSortOption.DATE;
+  }
+
+  return sort;
+}
 
 export type FiltersBarProps = {
   filters: DashboardFilters;
@@ -68,6 +81,7 @@ export default function FiltersBar({
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
+  const {selection} = usePageFilters();
   const getSearchBarData = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
@@ -79,6 +93,11 @@ export default function FiltersBar({
     'sortReleasesBy',
     'dashboards',
     ReleasesSortOption.DATE
+  );
+
+  const validatedReleaseFilterSortBy = getReleasesSortBy(
+    releaseFilterSortBy as ReleasesSortByOption,
+    selection.environments
   );
 
   const hasEditAccess = checkUserHasEditAccess(
@@ -147,7 +166,7 @@ export default function FiltersBar({
         />
       </PageFilterBar>
       <SortableReleasesFilter
-        sortBy={releaseFilterSortBy as ReleasesSortByOption}
+        sortBy={validatedReleaseFilterSortBy}
         selectedReleases={selectedReleases}
         isDisabled={isEditingDashboard}
         handleChangeFilter={activeFilters => {

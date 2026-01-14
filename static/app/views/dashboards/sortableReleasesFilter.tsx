@@ -1,5 +1,4 @@
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ReleasesSortOption} from 'sentry/constants/releases';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,18 +20,6 @@ type Props = {
   onSortChange?: (sortBy: string) => void;
 };
 
-function getReleasesSortBy(
-  sort: ReleasesSortByOption,
-  environments: string[]
-): ReleasesSortByOption {
-  // Require 1 environment for adoption sort
-  if (sort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
-    return ReleasesSortOption.DATE;
-  }
-
-  return sort;
-}
-
 export default function SortableReleasesFilter({
   selectedReleases,
   sortBy,
@@ -43,17 +30,11 @@ export default function SortableReleasesFilter({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const validatedSortBy = getReleasesSortBy(sortBy, selection.environments);
-
   return (
-    <ReleasesProvider
-      organization={organization}
-      selection={selection}
-      sortBy={validatedSortBy}
-    >
+    <ReleasesProvider organization={organization} selection={selection} sortBy={sortBy}>
       <PageFilterBar>
         <ReleasesSelectControl
-          sortBy={validatedSortBy}
+          sortBy={sortBy}
           handleChangeFilter={activeFilters => {
             handleChangeFilter?.({
               ...activeFilters,
@@ -68,7 +49,7 @@ export default function SortableReleasesFilter({
           isDisabled={isDisabled}
         />
         <ReleasesSort
-          sortBy={validatedSortBy}
+          sortBy={sortBy}
           environments={selection.environments}
           onChange={value => {
             onSortChange?.(value);
