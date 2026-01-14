@@ -27,10 +27,19 @@ class OAuthUserInfoEndpoint(Endpoint):
     permission_classes = ()
 
     def get(self, request: Request) -> Response:
-        try:
-            access_token = get_authorization_header(request).split()[1].decode("utf-8")
-        except IndexError:
+        # RFC 6750 Section 2.1: Bearer tokens MUST use the "Bearer" scheme.
+        auth_header = get_authorization_header(request).split()
+
+        if len(auth_header) < 2:
             raise ParameterValidationError("Bearer token not found in authorization header")
+
+        scheme = auth_header[0].decode("utf-8")
+        if scheme.lower() != "bearer":
+            raise ParameterValidationError(
+                f"Invalid authentication scheme '{scheme}', expected 'Bearer'"
+            )
+
+        access_token = auth_header[1].decode("utf-8")
         try:
             token_details = ApiToken.objects.get(token=access_token)
         except ApiToken.DoesNotExist:

@@ -893,3 +893,21 @@ class TestAuthTokens(TestCase):
             assert auth_token.allowed_origins == token.get_allowed_origins()
             assert auth_token.scopes == token.get_scopes()
             assert auth_token.audit_log_data == token.get_audit_log_data()
+
+
+class TestAuthenticateHeader:
+    """
+    Tests for RFC 6750 Section 3 compliance: WWW-Authenticate header.
+    """
+
+    def test_user_auth_token_returns_bearer(self) -> None:
+        auth = UserAuthTokenAuthentication()
+        assert auth.authenticate_header(None) == "Bearer"
+
+    def test_org_auth_token_returns_bearer(self) -> None:
+        auth = OrgAuthTokenAuthentication()
+        assert auth.authenticate_header(None) == "Bearer"
+
+    def test_dsn_authentication_returns_dsn(self) -> None:
+        auth = DSNAuthentication()
+        assert auth.authenticate_header(None) == "Dsn"

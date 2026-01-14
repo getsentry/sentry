@@ -27,6 +27,16 @@ class OAuthUserInfoTest(APITestCase):
             response.data["detail"]["message"] == "Bearer token not found in authorization header"
         )
 
+    def test_rejects_non_bearer_scheme(self) -> None:
+        token = ApiToken.objects.create(user=self.user, scope_list=["openid"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {token.token}")
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 400
+        assert response.data["detail"]["code"] == "parameter-validation-error"
+        assert "expected 'Bearer'" in response.data["detail"]["message"]
+
     def test_declines_invalid_token(self) -> None:
         self.client.credentials(HTTP_AUTHORIZATION="Bearer  abcd")
         response = self.client.get(self.path)
