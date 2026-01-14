@@ -264,7 +264,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByText('Replays Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/?end=2024-01-02T00%3A00%3A00Z&environment=production&environment=staging&project=1&project=2&query=user.email%3A%2A%40example.com&start=2024-01-01T00%3A00%3A00Z'
+      '/organizations/org-slug/replays/?end=2024-01-02T00%3A00%3A00.000&environment=production&environment=staging&project=1&project=2&query=user.email%3A%2A%40example.com&start=2024-01-01T00%3A00%3A00.000'
     );
   });
 
