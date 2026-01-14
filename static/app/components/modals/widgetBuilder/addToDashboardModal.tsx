@@ -271,7 +271,6 @@ function AddToDashboardModal({
       );
 
       goToDashboard('preview', normalizeWidgets(widgetsWithLayouts));
-      closeModal();
       return;
     }
 
@@ -283,7 +282,6 @@ function AddToDashboardModal({
 
       // Navigate to dashboard (widgets already saved, no location state needed)
       goToDashboard('preview');
-      closeModal();
     } catch (error) {
       addErrorMessage(t('Failed to add widgets to dashboard'));
     }
