@@ -130,7 +130,7 @@ describe('Dashboards > Detail', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         method: 'GET',
-        body: [],
+        body: {data: []},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -405,7 +405,7 @@ describe('Dashboards > Detail', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         method: 'GET',
-        body: [],
+        body: {data: []},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/',
@@ -1533,8 +1533,8 @@ describe('Dashboards > Detail', () => {
         ],
         match: [
           (_url, options) => {
-            // Match when query parameter is 's' (in data field for requestPromise)
-            return options.data?.query === 's';
+            // Match when query parameter is 's' (in query field for useApiQuery)
+            return options.query?.query === 's';
           },
         ],
       });

@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
@@ -15,24 +14,13 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useQueries} from 'sentry/utils/queryClient';
-import {useReleases} from 'sentry/utils/releases/releasesProvider';
-import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   SORT_BY_OPTIONS,
   type ReleasesSortByOption,
 } from 'sentry/views/insights/common/components/releasesSort';
 
+import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';
 import {DashboardFilterKeys} from './types';
 
@@ -85,65 +73,13 @@ function ReleasesSelectControl({
   isDisabled,
   id,
 }: Props) {
-  const {releases, loading, onSearch} = useReleases();
+  const [searchTerm, setSearchTerm] = useState('');
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
-  const organization = useOrganization();
-  const location = useLocation();
-  const api = useApi();
-  const {selection, isReady} = usePageFilters();
 
-  // Fetch event counts for releases
-  const chunks = releases?.length ? chunk(releases, 10) : [];
-  const releaseMetrics = useQueries({
-    queries: chunks.map(releaseChunk => {
-      const newQuery: NewQuery = {
-        name: '',
-        fields: ['release', 'count()'],
-        query: `transaction.op:[ui.load,navigation] ${escapeFilterValue(
-          `release:[${releaseChunk.map(r => `"${r.version}"`).join()}]`
-        )}`,
-        dataset: DiscoverDatasets.SPANS,
-        version: 2,
-        projects: selection.projects,
-      };
-      const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
-      const queryKey = [
-        `/organizations/${organization.slug}/events/`,
-        {
-          query: {
-            ...eventView.getEventsAPIPayload(location),
-            referrer: 'api.dashboards-release-selector',
-          },
-        },
-      ] as ApiQueryKey;
-      return {
-        queryKey,
-        queryFn: () =>
-          api.requestPromise(queryKey[0], {
-            method: 'GET',
-            query: queryKey[1]?.query,
-          }) as Promise<TableData>,
-        staleTime: Infinity,
-        enabled: isReady && !loading,
-        retry: false,
-      };
-    }),
-  });
-
-  const metricsFetched = releaseMetrics.every(result => result.isFetched);
-
-  // Create a map of release version to event counts
-  const metricsStats: Record<string, {count: number}> = {};
-  if (metricsFetched) {
-    releaseMetrics.forEach(c =>
-      c.data?.data?.forEach(release => {
-        metricsStats[release.release!] = {count: release['count()'] as number};
-      })
-    );
-  }
+  const {data: releases, isLoading: loading} = useReleases(searchTerm, sortBy);
 
   function resetSearch() {
-    onSearch('');
+    setSearchTerm('');
   }
 
   useEffect(() => {
@@ -170,7 +106,7 @@ function ReleasesSelectControl({
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
       onSearch={debounce(val => {
-        onSearch(val);
+        setSearchTerm(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       options={[
         {
@@ -183,15 +119,14 @@ function ReleasesSelectControl({
             ...activeReleases
               .filter(version => version !== 'latest')
               .map(version => {
-                // Find the release in the releases array to get dateCreated
+                // Find the release in the releases array to get dateCreated and count
                 const release = releases.find(r => r.version === version);
-                const eventCount = metricsStats[version]?.count;
                 return {
                   label: version,
                   value: version,
                   details: (
                     <LabelDetails
-                      eventCount={eventCount}
+                      eventCount={release?.count}
                       dateCreated={release?.dateCreated}
                     />
                   ),
@@ -199,14 +134,11 @@ function ReleasesSelectControl({
               }),
             ...releases
               .filter(({version}) => !activeReleasesSet.has(version))
-              .map(({version, dateCreated}) => {
-                const eventCount = metricsStats[version]?.count;
+              .map(({version, dateCreated, count}) => {
                 return {
                   label: version,
                   value: version,
-                  details: (
-                    <LabelDetails eventCount={eventCount} dateCreated={dateCreated} />
-                  ),
+                  details: <LabelDetails eventCount={count} dateCreated={dateCreated} />,
                 };
               }),
           ],

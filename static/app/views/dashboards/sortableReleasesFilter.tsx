@@ -1,6 +1,5 @@
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
@@ -31,35 +30,33 @@ export default function SortableReleasesFilter({
   const {selection} = usePageFilters();
 
   return (
-    <ReleasesProvider organization={organization} selection={selection} sortBy={sortBy}>
-      <PageFilterBar>
-        <ReleasesSelectControl
-          sortBy={sortBy}
-          handleChangeFilter={activeFilters => {
-            handleChangeFilter?.({
-              ...activeFilters,
-              [DashboardFilterKeys.RELEASE]: activeFilters[DashboardFilterKeys.RELEASE],
-            });
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'release',
-            });
-          }}
-          selectedReleases={selectedReleases}
-          isDisabled={isDisabled}
-        />
-        <ReleasesSort
-          sortBy={sortBy}
-          environments={selection.environments}
-          onChange={value => {
-            onSortChange?.(value);
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'release_sort',
-            });
-          }}
-        />
-      </PageFilterBar>
-    </ReleasesProvider>
+    <PageFilterBar>
+      <ReleasesSelectControl
+        sortBy={sortBy}
+        handleChangeFilter={activeFilters => {
+          handleChangeFilter?.({
+            ...activeFilters,
+            [DashboardFilterKeys.RELEASE]: activeFilters[DashboardFilterKeys.RELEASE],
+          });
+          trackAnalytics('dashboards2.filter.change', {
+            organization,
+            filter_type: 'release',
+          });
+        }}
+        selectedReleases={selectedReleases}
+        isDisabled={isDisabled}
+      />
+      <ReleasesSort
+        sortBy={sortBy}
+        environments={selection.environments}
+        onChange={value => {
+          onSortChange?.(value);
+          trackAnalytics('dashboards2.filter.change', {
+            organization,
+            filter_type: 'release_sort',
+          });
+        }}
+      />
+    </PageFilterBar>
   );
 }
