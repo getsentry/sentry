@@ -25,7 +25,6 @@ EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 def create_workflow_fire_histories(
     actions_to_fire: BaseQuerySet[Action],
     event_data: WorkflowEventData,
-    is_single_processing: bool,
     is_delayed: bool = False,
     start_timestamp: datetime | None = None,
 ) -> list[WorkflowFireHistory]:
@@ -35,9 +34,6 @@ def create_workflow_fire_histories(
 
     If we're reporting a fire due to delayed processing, is_delayed should be True.
     """
-    # Only write canonical fire history records
-    if not is_single_processing:
-        return []
     # Create WorkflowFireHistory objects for workflows we fire actions for
     workflow_ids = set(
         WorkflowDataConditionGroup.objects.filter(
