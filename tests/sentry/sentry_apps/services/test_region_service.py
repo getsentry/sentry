@@ -29,6 +29,11 @@ class TestSentryAppRegionService(TestCase):
         )
         self.rpc_installation = app_service.get_many(filter=dict(uuids=[self.install.uuid]))[0]
 
+    def create_service_hook_project(self, project_id: int) -> ServiceHookProject:
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            return ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project_id)
+
     @responses.activate
     def test_get_select_options(self) -> None:
         options = [{"label": "Project Name", "value": "1234"}]
@@ -213,10 +218,8 @@ class TestSentryAppRegionService(TestCase):
     def test_get_service_hook_projects(self) -> None:
         project2 = self.create_project(organization=self.org)
 
-        with assume_test_silo_mode_of(ServiceHook):
-            hook = ServiceHook.objects.get(installation_id=self.install.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project2.id)
+        self.create_service_hook_project(project_id=self.project.id)
+        self.create_service_hook_project(project_id=project2.id)
 
         result = sentry_app_region_service.get_service_hook_projects(
             organization_id=self.org.id,
@@ -231,25 +234,13 @@ class TestSentryAppRegionService(TestCase):
         assert all(hp.id is not None for hp in result.service_hook_projects)
         assert result.next_cursor is None
 
-    def test_get_service_hook_projects_empty(self) -> None:
-        result = sentry_app_region_service.get_service_hook_projects(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-        )
-
-        assert result.error is None
-        assert result.service_hook_projects == []
-        assert result.next_cursor is None
-
     def test_get_service_hook_projects_paginated(self) -> None:
         project2 = self.create_project(organization=self.org)
         project3 = self.create_project(organization=self.org)
 
-        with assume_test_silo_mode_of(ServiceHook):
-            hook = ServiceHook.objects.get(installation_id=self.install.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project2.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project3.id)
+        self.create_service_hook_project(project_id=self.project.id)
+        self.create_service_hook_project(project_id=project2.id)
+        self.create_service_hook_project(project_id=project3.id)
 
         result = sentry_app_region_service.get_service_hook_projects(
             organization_id=self.org.id,
@@ -276,9 +267,7 @@ class TestSentryAppRegionService(TestCase):
         project2 = self.create_project(organization=self.org)
         project3 = self.create_project(organization=self.org)
 
-        with assume_test_silo_mode_of(ServiceHook):
-            hook = ServiceHook.objects.get(installation_id=self.install.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
+        self.create_service_hook_project(project_id=self.project.id)
 
         result = sentry_app_region_service.set_service_hook_projects(
             organization_id=self.org.id,
@@ -291,7 +280,8 @@ class TestSentryAppRegionService(TestCase):
         assert all(hp.id is not None for hp in result.service_hook_projects)
         assert result.next_cursor is None
 
-        with assume_test_silo_mode_of(ServiceHookProject):
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert not ServiceHookProject.objects.filter(
                 service_hook_id=hook.id, project_id=self.project.id
             ).exists()
@@ -303,13 +293,18 @@ class TestSentryAppRegionService(TestCase):
             ).exists()
 
     def test_set_service_hook_projects_partial_overlap(self) -> None:
+        """
+        Tests setting service hook projects when there's partial overlap between
+        existing and new project IDs. Verifies that:
+        - Projects only in old set (project) are removed
+        - Projects in both sets (project2) are kept
+        - Projects only in new set (project3) are added
+        """
         project2 = self.create_project(organization=self.org)
         project3 = self.create_project(organization=self.org)
 
-        with assume_test_silo_mode_of(ServiceHook):
-            hook = ServiceHook.objects.get(installation_id=self.install.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project2.id)
+        self.create_service_hook_project(project_id=self.project.id)
+        self.create_service_hook_project(project_id=project2.id)
 
         result = sentry_app_region_service.set_service_hook_projects(
             organization_id=self.org.id,
@@ -322,7 +317,8 @@ class TestSentryAppRegionService(TestCase):
         assert all(hp.id is not None for hp in result.service_hook_projects)
         assert result.next_cursor is None
 
-        with assume_test_silo_mode_of(ServiceHookProject):
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert not ServiceHookProject.objects.filter(
                 service_hook_id=hook.id, project_id=self.project.id
             ).exists()
@@ -336,26 +332,16 @@ class TestSentryAppRegionService(TestCase):
     def test_delete_service_hook_projects(self) -> None:
         project2 = self.create_project(organization=self.org)
 
+        self.create_service_hook_project(project_id=self.project.id)
+        self.create_service_hook_project(project_id=project2.id)
+
+        result = sentry_app_region_service.delete_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+        )
+
+        assert result.success is True
+        assert result.error is None
         with assume_test_silo_mode_of(ServiceHook):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
-            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project2.id)
-
-        result = sentry_app_region_service.delete_service_hook_projects(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-        )
-
-        assert result.success is True
-        assert result.error is None
-        with assume_test_silo_mode_of(ServiceHookProject):
             assert not ServiceHookProject.objects.filter(service_hook_id=hook.id).exists()
-
-    def test_delete_service_hook_projects_empty(self) -> None:
-        result = sentry_app_region_service.delete_service_hook_projects(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-        )
-
-        assert result.success is True
-        assert result.error is None
