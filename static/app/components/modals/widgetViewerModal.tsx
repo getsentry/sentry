@@ -548,8 +548,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <IssueWidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -597,8 +595,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <WidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={

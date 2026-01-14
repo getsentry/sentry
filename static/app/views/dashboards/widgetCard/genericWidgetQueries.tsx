@@ -96,6 +96,10 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
   samplingMode?: SamplingMode;
+  // Optional selection override - if not provided, usePageFilters hook will be used
+  // This is needed for the widget viewer modal where local zoom state (modalSelection)
+  // needs to override global PageFiltersStore
+  selection?: any;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
@@ -121,13 +125,17 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     onDataFetched,
     onDemandControlContext,
     samplingMode,
+    selection: propsSelection,
     skipDashboardFilterParens,
   } = props;
 
   const api = useApi();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const hookPageFilters = usePageFilters();
   const {queue} = useWidgetQueryQueue();
+
+  // Use override selection if provided (for modal zoom), otherwise use hook
+  const selection = propsSelection ?? hookPageFilters.selection;
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);

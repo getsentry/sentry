@@ -35,6 +35,8 @@ type Props = {
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: any;
 };
 
 function WidgetQueriesWithOnDemandControl({
@@ -45,15 +47,13 @@ function WidgetQueriesWithOnDemandControl({
   limit,
   onDataFetched,
   onDataFetchStart,
+  selection,
   config,
   afterFetchSeriesData,
   afterFetchTableData,
   mepSettingContext,
   OnDemandControlContext,
-}: Omit<
-  Props,
-  'onWidgetSplitDecision' | 'api' | 'queue' | 'organization' | 'selection'
-> & {
+}: Omit<Props, 'onWidgetSplitDecision'> & {
   OnDemandControlContext: any;
   afterFetchSeriesData: (rawResults: SeriesResult) => void;
   afterFetchTableData: (rawResults: TableResult) => void;
@@ -70,6 +70,7 @@ function WidgetQueriesWithOnDemandControl({
     dashboardFilters,
     onDataFetched,
     onDataFetchStart,
+    selection,
     afterFetchSeriesData,
     afterFetchTableData,
     mepSetting: mepSettingContext.metricSettingState,
@@ -89,7 +90,8 @@ function WidgetQueries({
   onDataFetched,
   onWidgetSplitDecision,
   onDataFetchStart,
-}: Omit<Props, 'api' | 'queue' | 'organization' | 'selection'>) {
+  selection,
+}: Props) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
     widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
@@ -202,6 +204,7 @@ function WidgetQueries({
           limit={limit}
           onDataFetched={onDataFetched}
           onDataFetchStart={onDataFetchStart}
+          selection={selection}
           config={config}
           afterFetchSeriesData={afterFetchSeriesData}
           afterFetchTableData={afterFetchTableData}

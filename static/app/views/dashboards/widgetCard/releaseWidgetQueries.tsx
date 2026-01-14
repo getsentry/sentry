@@ -50,6 +50,8 @@ interface ReleaseWidgetQueriesProps {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: any;
 }
 
 export function derivedMetricsToField(field: string): string {
@@ -209,6 +211,7 @@ function ReleaseWidgetQueries({
   limit,
   onDataFetched,
   onDataFetchStart,
+  selection: propsSelection,
   children,
 }: ReleaseWidgetQueriesProps) {
   const config = ReleasesConfig;
@@ -217,7 +220,10 @@ function ReleaseWidgetQueries({
   const allProjects = useProjects();
   const api = useApi();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const hookPageFilters = usePageFilters();
+
+  // Use override selection if provided (for modal zoom), otherwise use hook
+  const selection = propsSelection ?? hookPageFilters.selection;
 
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | undefined>(
     undefined
@@ -382,6 +388,7 @@ function ReleaseWidgetQueries({
     limit: getLimit(widget.displayType, limit),
     onDataFetched,
     onDataFetchStart,
+    selection: propsSelection,
     loading: requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined,
     customDidUpdateComparator,
     afterFetchTableData: afterFetchData,

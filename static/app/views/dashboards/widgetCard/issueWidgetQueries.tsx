@@ -24,6 +24,8 @@ type Props = {
   limit?: number;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: any;
 };
 
 function IssueWidgetQueries({
@@ -34,6 +36,7 @@ function IssueWidgetQueries({
   dashboardFilters,
   onDataFetched,
   onDataFetchStart,
+  selection,
 }: Props) {
   const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
 
@@ -59,6 +62,7 @@ function IssueWidgetQueries({
     dashboardFilters,
     onDataFetched,
     onDataFetchStart,
+    selection,
     afterFetchTableData,
     skipDashboardFilterParens: true, // Issue widgets do not support parens in search
   });
