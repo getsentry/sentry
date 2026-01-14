@@ -6,7 +6,7 @@ from pytest_django.live_server_helper import LiveServer
 
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import all_silo_test
+from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_objectstore
 
 
@@ -17,7 +17,7 @@ def local_live_server(request: pytest.FixtureRequest, live_server: LiveServer) -
     request.node.live_server = live_server
 
 
-@all_silo_test
+@region_silo_test
 @requires_objectstore
 @pytest.mark.usefixtures("local_live_server")
 class OrganizationObjectstoreEndpointTest(TransactionTestCase):
