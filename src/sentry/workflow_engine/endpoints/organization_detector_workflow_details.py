@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorWorkflowParams, GlobalParams
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
@@ -32,6 +33,7 @@ from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Workflows"])
 class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, detector_workflow_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
@@ -52,7 +54,7 @@ class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
-        operation_id="Fetch a Detector-Workflow Connection",
+        operation_id="Fetch a Monitor-Alert Connection",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorWorkflowParams.DETECTOR_WORKFLOW_ID,
@@ -64,12 +66,13 @@ class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.GET_DETECTOR_WORKFLOW,
     )
     def get(
         self, request: Request, organization: Organization, detector_workflow: DetectorWorkflow
     ):
         """
-        Returns a DetectorWorkflow
+        Returns a connection between a Monitor and an Alert
         """
         serialized_detector_workflow = serialize(
             detector_workflow,
@@ -79,7 +82,7 @@ class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
         return Response(serialized_detector_workflow)
 
     @extend_schema(
-        operation_id="Remove a Detector-Workflow Connection",
+        operation_id="Remove a Monitor-Alert Connection",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorWorkflowParams.DETECTOR_WORKFLOW_ID,
@@ -95,7 +98,7 @@ class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, detector_workflow: DetectorWorkflow
     ):
         """
-        Delete a DetectorWorkflow
+        Delete a connection between a Monitor and an Alert
         """
         if not can_edit_detector_workflow_connections(detector_workflow.detector, request):
             raise PermissionDenied

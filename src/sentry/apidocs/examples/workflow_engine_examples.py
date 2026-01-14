@@ -185,3 +185,10 @@ class WorkflowEngineExamples:
             response_only=True,
         )
     ]
+
+    GET_DETECTOR_WORKFLOW = [
+        OpenApiExample(
+            "Fetch a detector workflow connection",
+            value={"id": "123", "detectorId": "456", "workflowId": "789"},
+        )
+    ]
