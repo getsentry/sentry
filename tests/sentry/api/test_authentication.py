@@ -11,11 +11,11 @@ from sentry_relay.auth import generate_key_pair
 from sentry.api.authentication import (
     ClientIdSecretAuthentication,
     DSNAuthentication,
+    HmacSignatureAuthentication,
     JWTClientSecretAuthentication,
     OrgAuthTokenAuthentication,
     RelayAuthentication,
     RpcSignatureAuthentication,
-    ServiceRpcSignatureAuthentication,
     UserAuthTokenAuthentication,
     compare_service_signature,
 )
@@ -552,12 +552,12 @@ class TestRpcSignatureAuthentication(TestCase):
                 self.auth.authenticate(request)
 
 
-class TestServiceRpcSignatureAuthentication(TestCase):
+class TestHmacSignatureAuthentication(TestCase):
     def setUp(self) -> None:
         super().setUp()
 
         # Create a concrete implementation for testing
-        class TestServiceAuth(ServiceRpcSignatureAuthentication):
+        class TestServiceAuth(HmacSignatureAuthentication):
             shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
             service_name = "TestService"
             sdk_tag_name = "test_service_rpc_auth"
@@ -596,6 +596,79 @@ class TestServiceRpcSignatureAuthentication(TestCase):
         user, token = self.auth.authenticate(request)
         assert user.is_anonymous
         assert token == signature
+
+    def test_authenticate_with_custom_prefix(self) -> None:
+        # Create a service auth with custom prefix
+        class CustomPrefixAuth(HmacSignatureAuthentication):
+            shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
+            service_name = "TestService"
+            sdk_tag_name = "test_service_rpc_auth"
+            signature_prefix = "service0"
+
+        auth = CustomPrefixAuth()
+
+        data = b'{"test": "data"}'
+        request = drf_request_from_request(
+            RequestFactory().post("/test", data=data, content_type="application/json")
+        )
+
+        # Generate signature with rpc0: prefix (from test utility)
+        rpc_signature = generate_service_request_signature(
+            request.path_info, request.body, ["test-secret-key"], "TestService"
+        )
+        # Extract signature data and use custom prefix
+        signature_data = rpc_signature.split(":", 1)[1]
+        custom_signature = f"service0:{signature_data}"
+
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {custom_signature}"
+
+        with override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"]):
+            user, token = auth.authenticate(request)
+            assert user.is_anonymous
+            assert token == custom_signature
+
+    @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_authenticate_with_include_url_in_signature(self) -> None:
+        class UrlInSignatureAuth(HmacSignatureAuthentication):
+            shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
+            service_name = "TestService"
+            sdk_tag_name = "test_service_rpc_auth"
+            include_url_in_signature = True
+
+        auth = UrlInSignatureAuth()
+
+        data = b'{"test": "data"}'
+        url_path = "/test/endpoint"
+        request = drf_request_from_request(
+            RequestFactory().post(url_path, data=data, content_type="application/json")
+        )
+
+        signature = generate_service_request_signature(
+            request.path_info,
+            request.body,
+            ["test-secret-key"],
+            "TestService",
+            include_url_in_signature=True,
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        user, token = auth.authenticate(request)
+        assert user.is_anonymous
+        assert token == signature
+
+        # Signature without URL should fail
+
+        signature_without_url = generate_service_request_signature(
+            request.path_info,
+            request.body,
+            ["test-secret-key"],
+            "TestService",
+            include_url_in_signature=False,
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature_without_url}"
+
+        with pytest.raises(AuthenticationFailed):
+            auth.authenticate(request)
 
     def test_authenticate_without_signature(self) -> None:
         request = drf_request_from_request(

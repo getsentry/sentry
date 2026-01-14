@@ -3,14 +3,14 @@ from __future__ import annotations
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from sentry.api.authentication import AuthenticationSiloLimit, ServiceRpcSignatureAuthentication
+from sentry.api.authentication import AuthenticationSiloLimit, HmacSignatureAuthentication
 from sentry.silo.base import SiloMode
 
 LAUNCHPAD_RPC_SHARED_SECRET_SETTING = "LAUNCHPAD_RPC_SHARED_SECRET"
 
 
 @AuthenticationSiloLimit(SiloMode.REGION)
-class LaunchpadRpcSignatureAuthentication(ServiceRpcSignatureAuthentication):
+class LaunchpadRpcSignatureAuthentication(HmacSignatureAuthentication):
     """
     Authentication for Launchpad RPC requests.
     Requests are sent with an HMAC signed by a shared private key.
