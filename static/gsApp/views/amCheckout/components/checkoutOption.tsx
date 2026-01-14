@@ -35,8 +35,11 @@ function CheckoutOption({
       onClick={onClick}
       data-test-id={dataTestId}
       aria-label={ariaLabel}
-      onKeyDown={({key}) => {
-        if (key === 'Enter') {
+      onKeyDown={event => {
+        if (event.code === 'Space') {
+          event.preventDefault();
+        }
+        if (['Enter', 'Space'].includes(event.code)) {
           onClick();
         }
       }}
