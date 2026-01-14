@@ -168,7 +168,7 @@ const Panel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};

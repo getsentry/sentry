@@ -706,7 +706,7 @@ const FileHeader = styled('div')`
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr auto;
   gap: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 `;
@@ -743,12 +743,12 @@ const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
 
 const HunkHeaderEmptySpace = styled('div')`
   grid-column: 1 / 3;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
   white-space: pre-wrap;
@@ -759,7 +759,7 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
   padding: ${space(0.25)} ${space(1)};
   user-select: none;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
@@ -819,8 +819,7 @@ const ButtonGroup = styled('div')`
 const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
-  background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.tokens.background.primary};
+  background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
   transition:
     background-color 0.2s ease-in-out,

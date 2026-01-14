@@ -7,6 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -715,8 +716,9 @@ function DynamicGrouping() {
           >
             <Flex align="center" gap="md">
               <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-                {t('Top Issues (Experimental)')}
+                {t('Top Issues')}
               </ClickableHeading>
+              <FeatureBadge type="experimental" />
               {isUsingCustomData && (
                 <CustomDataBadge>
                   <Text size="xs" bold>
@@ -974,7 +976,7 @@ const PageWrapper = styled('div')`
 
 const HeaderSection = styled('div')`
   padding: ${space(4)} ${space(4)} ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const ClickableHeading = styled(Heading)`
@@ -985,7 +987,7 @@ const ClickableHeading = styled(Heading)`
 const CardsSection = styled('div')`
   flex: 1;
   padding: ${space(2)} ${space(4)} ${space(4)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const CardsGrid = styled('div')`
@@ -1177,7 +1179,7 @@ const TagPill = styled('span')`
   padding: ${space(0.25)} ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.tokens.content.secondary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
@@ -1212,7 +1214,7 @@ const ShowMoreButton = styled('button')`
   width: 100%;
   margin-top: ${space(3)};
   padding: ${space(2)} ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.secondary};
@@ -1233,7 +1235,7 @@ const ShowMoreButton = styled('button')`
 const JsonInputContainer = styled('div')`
   margin-bottom: ${space(2)};
   padding: ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
