@@ -3,25 +3,7 @@ name: backend - with test coverage
 on: [workflow_dispatch, workflow_call, pull_request]
 
 jobs:
-  files-changed:
-    name: detect what files changed
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    outputs:
-      backend: ${{ steps.changes.outputs.backend_all }}
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Check for backend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
   calculate-shards:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
     name: calculate test shards
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -43,10 +25,9 @@ jobs:
         run: python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
   backend-test-with-cov-context:
-    if: needs.files-changed.outputs.backend == 'true'
     name: backend test
     runs-on: ubuntu-24.04
-    needs: [files-changed, calculate-shards]
+    needs: [calculate-shards]
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -88,14 +69,14 @@ jobs:
           include-hidden-files: true
 
   combine-coverage:
-    if: needs.files-changed.outputs.backend == 'true'
     name: combine coverage
+    if: '!cancelled()' # Always run this step, unless the workflow was cancelled
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
       actions: read # used for DIM metadata
-    needs: [backend-test-with-cov-context, calculate-shards, files-changed]
+    needs: [backend-test-with-cov-context, calculate-shards]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -131,62 +112,29 @@ jobs:
           pattern: pycoverage-sqlite-${{ github.run_id }}-*
           path: .artifacts/all-coverage
 
-      - name: List downloaded artifacts (debug)
-        run: |
-          echo "=== Downloaded artifacts structure ==="
-          ls -la .artifacts/all-coverage || true
-          find .artifacts/all-coverage -type f || true
-
       - name: Prepare coverage files for combining
         run: |
           set -euxo pipefail
-          mkdir -p .artifacts/to-combine
 
-          find .artifacts/all-coverage -name ".coverage" -type f | while IFS= read -r file; do
-            parent_dir=$(basename "$(dirname "$file")")
-            instance=$(echo "$parent_dir" | grep -oP '(?<=-)\d+$' || echo "unknown")
-            cp -v "$file" ".artifacts/to-combine/.coverage.${instance}"
-          done
+          echo "Downloaded coverage files"
+          ls -la .artifacts/all-coverage || true
+          find .artifacts/all-coverage -type f || true
 
-          echo "=== Files ready for combining ==="
-          ls -la .artifacts/to-combine/
+          echo "Files ready for combining:"
+          find .artifacts/all-coverage -name ".coverage" -type f
 
       - name: Combine all coverage databases
         run: |
           set -euxo pipefail
-          coverage combine .artifacts/to-combine/.coverage.*
+          coverage combine $(find .artifacts/all-coverage -name ".coverage" -type f)
 
           if [[ ! -f .coverage ]]; then
             echo "Error: Combined coverage file was not created"
             exit 1
           fi
 
-          # Rename with commit SHA for identification
-          mv .coverage ".coverage.${{ steps.commit-info.outputs.short_sha }}"
-
-      - name: Generate coverage summary (debug)
-        run: |
-          COVERAGE_FILE=".coverage.${{ steps.commit-info.outputs.short_sha }}"
-          python -c "
-          import os, sqlite3
-          p = '$COVERAGE_FILE'
-          print(f'Combined coverage db: {p} ({os.path.getsize(p)} bytes)')
-          con = sqlite3.connect(p)
-          cur = con.cursor()
-          tables = [r[0] for r in cur.execute(\"SELECT name FROM sqlite_master WHERE type='table' ORDER BY 1\").fetchall()]
-          print(f'Tables: {tables}')
-          print(f'File rows: {cur.execute(\"SELECT COUNT(*) FROM file\").fetchone()[0]}')
-          print(f'Context rows: {cur.execute(\"SELECT COUNT(*) FROM context\").fetchone()[0]}')
-          "
-
-      - name: Upload combined coverage database (artifact)
-        uses: actions/upload-artifact@v4
-        with:
-          name: pycoverage-sqlite-combined-${{ github.run_id }}
-          path: .coverage.${{ steps.commit-info.outputs.short_sha }}
-          if-no-files-found: error
-          retention-days: 30
-          include-hidden-files: true
+          # Rename to combined
+          mv .coverage ".coverage.combined"
 
       - name: Authenticate to Google Cloud
         id: gcloud-auth
@@ -198,14 +146,6 @@ jobs:
       - name: Upload coverage to GCS
         uses: google-github-actions/upload-cloud-storage@v2
         with:
-          path: .coverage.${{ steps.commit-info.outputs.short_sha }}
-          destination: sentry-coverage-data/coverage/${{ steps.commit-info.outputs.sha }}
-      - name: Upload coverage  data
-        if: '!cancelled()' # Always run this step, unless the workflow was cancelled
-        uses: getsentry/action-collect-test-data@v0.3.0
-        with:
-          path: .coverage.${{ steps.commit-info.outputs.short_sha }}
-          gcs_path: sentry-coverage-data/${{ steps.commit-info.outputs.sha }}
-          gcp_project_id: sentry-dev-tooling
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+          path: .coverage.combined
+          project_id: sentry-dev-tooling
+          destination: sentry-coverage-data/${{ steps.commit-info.outputs.sha }}
