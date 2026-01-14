@@ -84,14 +84,14 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
-    if (hideCheck && !leadingItems) {
-      return null;
-    }
-
     const leading =
       typeof leadingItems === 'function'
         ? leadingItems({disabled: isDisabled, isFocused, isSelected})
         : leadingItems;
+
+    if (hideCheck && !leading) {
+      return null;
+    }
 
     return (
       <Fragment>
