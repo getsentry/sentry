@@ -28,13 +28,12 @@ class QuotaScope(IntEnum):
     ORGANIZATION = 1
     PROJECT = 2
     KEY = 3
-    GLOBAL = 4
 
     def api_name(self):
         return self.name.lower()
 
 
-AbuseQuotaScope = Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
+AbuseQuotaScope = Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
 
 
 @dataclass
@@ -85,7 +84,6 @@ def build_metric_abuse_quotas() -> list[AbuseQuota]:
     scopes: list[tuple[AbuseQuotaScope, str]] = [
         (QuotaScope.PROJECT, "p"),
         (QuotaScope.ORGANIZATION, "o"),
-        (QuotaScope.GLOBAL, "g"),
     ]
 
     for scope, prefix in scopes:
@@ -499,7 +497,6 @@ class Quota(Service):
         reason_codes = {
             QuotaScope.ORGANIZATION: "org_abuse_limit",
             QuotaScope.PROJECT: "project_abuse_limit",
-            QuotaScope.GLOBAL: "global_abuse_limit",
         }
 
         for quota in abuse_quotas:
