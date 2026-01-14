@@ -94,7 +94,7 @@ Required context variables:
         }
 
         function makeCookieValue(name, value, domain, maxAge) {
-          return `${name}=${value}; domain=${domain}; path=/; max-age=${maxAge || 31536000}; SameSite=none; partitioned; secure`;
+          return `${name}=${value}; domain=${domain}; path=/; max-age=${maxAge === undefined ? 31536000 : maxAge}; SameSite=none; partitioned; secure`;
         }
 
         function clearCookies() {
