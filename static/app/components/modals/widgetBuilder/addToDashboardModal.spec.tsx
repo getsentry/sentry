@@ -519,7 +519,7 @@ describe('add to dashboard modal', () => {
     });
     widget = {
       ...widget,
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.AREA,
       queries: [
         {
           conditions: '',
@@ -564,7 +564,7 @@ describe('add to dashboard modal', () => {
             widgets: [
               {
                 description: 'Test description',
-                displayType: 'top_n',
+                displayType: 'area',
                 interval: '5m',
                 limit: 5,
                 queries: [
