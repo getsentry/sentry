@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
@@ -213,22 +215,29 @@ function AllProjectIssuesSection({
   }, [connectedIds, form, issueStreamDetectorsQuery.data]);
 
   return (
-    <Container maxWidth="400px">
-      <SentryProjectSelectorField
-        name="projectIds"
-        label={t('Projects')}
-        placeholder={t('Select projects')}
-        projects={projects}
-        groupProjects={p => (p.isMember ? 'member' : 'all')}
-        groups={PROJECT_GROUPS}
-        onChange={(values: string[]) => onProjectChange(values)}
-        inline={false}
-        flexibleControlStateSize
-        stacked
-        multiple
-        disabled={issueStreamDetectorsQuery.isPending}
-      />
-    </Container>
+    <Stack gap="md">
+      <Container maxWidth="400px">
+        <SentryProjectSelectorField
+          name="projectIds"
+          label={t('Projects')}
+          placeholder={t('Select projects')}
+          projects={projects}
+          groupProjects={p => (p.isMember ? 'member' : 'all')}
+          groups={PROJECT_GROUPS}
+          onChange={(values: string[]) => onProjectChange(values)}
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          multiple
+          disabled={issueStreamDetectorsQuery.isPending}
+        />
+      </Container>
+      <Alert variant="muted">
+        {t(
+          '‘All issues’ excludes Metric, Cron, and Uptime. Select specific monitors to alert on these issue types.'
+        )}
+      </Alert>
+    </Stack>
   );
 }
 
@@ -351,7 +360,7 @@ function EditConnectedMonitorsContent({
             label={t('Connected monitors mode')}
             value={monitorMode}
             choices={[
-              ['project', t('Alert on all issues in a project')],
+              ['project', t('Alert on all issues in selected projects')],
               ['specific', t('Alert on specific monitors')],
             ]}
             onChange={handleModeChange}
