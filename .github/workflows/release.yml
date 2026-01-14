@@ -6,9 +6,11 @@ on:
         description: Version to release (or "auto")
         required: false
       force:
-        description: Force a release even when there are release-blockers
+        description: Force a release even when there are release-blockers (optional)
         required: false
   schedule:
+    # We want the release to be at 9-10am Pacific Time
+    # We also want it to be 1 hour before the self-hosted release
     - cron: '0 17 15 * *'
 permissions:
   contents: write
@@ -17,15 +19,15 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    name: Release a new version
+    name: 'Release a new version'
     steps:
       - name: Get auth token
         id: token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v1.11.0
         with:
           app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
           private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v2
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
@@ -34,5 +36,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
-          version: ${{ inputs.version }}
-          force: ${{ inputs.force }}
+          version: ${{ github.event.inputs.version }}
+          force: ${{ github.event.inputs.force }}
+          calver: true
