@@ -55,10 +55,15 @@ export function Centered(props: FlexProps<'div'>) {
 export function Cell({
   children,
   textAlign,
+  ...props
 }: {
   children?: React.ReactNode;
   textAlign?: 'left' | 'center' | 'right';
-}) {
+} & React.ComponentProps<'td'>) {
   const theme = useTheme();
-  return <td style={{padding: theme.space.xl, textAlign}}>{children}</td>;
+  return (
+    <td style={{padding: theme.space.xl, textAlign}} {...props}>
+      {children}
+    </td>
+  );
 }
