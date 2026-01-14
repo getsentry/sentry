@@ -3,6 +3,8 @@ import {createContext, useCallback, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 import noop from 'lodash/noop';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {space} from 'sentry/styles/space';
 
@@ -72,7 +74,9 @@ function MultipleCheckbox<T extends string | number>({
 
   return (
     <MultipleCheckboxContext value={contextValue}>
-      <MultipleCheckboxWrapper className={className}>{children}</MultipleCheckboxWrapper>
+      <Flex wrap="wrap" className={className}>
+        {children}
+      </Flex>
     </MultipleCheckboxContext>
   );
 }
@@ -110,11 +114,6 @@ function Item<T extends string | number>({
 MultipleCheckbox.Item = Item;
 
 export default MultipleCheckbox;
-
-const MultipleCheckboxWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-`;
 
 const Label = styled('label')`
   display: inline-flex;

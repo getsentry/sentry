@@ -264,7 +264,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
             <div>
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
-                <Wrapper>
+                <Flex justify="start" align="center" wrap="wrap" flexGrow={1} gap="md">
                   <ButtonBar merged gap="0">
                     <Button
                       title={t('Previous Thread')}
@@ -296,13 +296,13 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                     }}
                     exception={exception}
                   />
-                </Wrapper>
+                </Flex>
               )}
             </div>
             {activeThread?.state && (
               <TheadStateContainer>
                 <ThreadHeading>{t('Thread State')}</ThreadHeading>
-                <ThreadStateWrapper>
+                <Flex align="center" gap="xs" position="relative">
                   <ThreadStateIcon state={threadStateDisplay} />
                   <TextOverflow>{threadStateDisplay}</TextOverflow>
                   {threadStateDisplay && (
@@ -315,7 +315,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                     />
                   )}
                   <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
-                </ThreadStateWrapper>
+                </Flex>
               </TheadStateContainer>
             )}
           </Grid>
@@ -447,26 +447,9 @@ const TheadStateContainer = styled('div')`
   text-overflow: ellipsis;
 `;
 
-const ThreadStateWrapper = styled('div')`
-  display: flex;
-  position: relative;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
 const LockReason = styled(TextOverflow)`
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
-  flex-grow: 1;
-  justify-content: flex-start;
 `;
 
 const ThreadTraceWrapper = styled('div')`
