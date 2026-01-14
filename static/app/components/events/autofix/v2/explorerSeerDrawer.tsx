@@ -129,7 +129,7 @@ function SeerDrawerNavigator({
           title={t('Copy analysis as Markdown / LLM prompt')}
           aria-label={t('Copy analysis as Markdown')}
           icon={<IconCopy />}
-          disabled={!!onCopyMarkdown}
+          disabled={!onCopyMarkdown}
         />
         <Button
           size="xs"
