@@ -215,7 +215,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ GET
         """
         try:
-            hook = ServiceHook.objects.get(installation_id=installation.id)
+            hook = ServiceHook.objects.get(
+                installation_id=installation.id, organization_id=organization_id
+            )
         except ServiceHook.DoesNotExist:
             return RpcServiceHookProjectsResult(
                 error=RpcSentryAppError(
@@ -247,22 +249,32 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         """
         from django.db import router, transaction
 
-        if project_ids:
-            unique_project_ids = set(project_ids)
-            valid_project_count = Project.objects.filter(
-                organization_id=organization_id, id__in=unique_project_ids
-            ).count()
-            if valid_project_count != len(unique_project_ids):
-                return RpcServiceHookProjectsResult(
-                    error=RpcSentryAppError(
-                        message="One or more project IDs do not belong to the organization",
-                        webhook_context={},
-                        status_code=400,
-                    )
+        if not project_ids:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Projects list cannot be empty",
+                    webhook_context={},
+                    status_code=400,
                 )
+            )
+
+        unique_project_ids = set(project_ids)
+        valid_project_count = Project.objects.filter(
+            organization_id=organization_id, id__in=unique_project_ids
+        ).count()
+        if valid_project_count != len(unique_project_ids):
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="One or more project IDs do not belong to the organization",
+                    webhook_context={},
+                    status_code=400,
+                )
+            )
 
         try:
-            hook = ServiceHook.objects.get(installation_id=installation.id)
+            hook = ServiceHook.objects.get(
+                installation_id=installation.id, organization_id=organization_id
+            )
         except ServiceHook.DoesNotExist:
             return RpcServiceHookProjectsResult(
                 error=RpcSentryAppError(
@@ -314,7 +326,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ DELETE
         """
         try:
-            hook = ServiceHook.objects.get(installation_id=installation.id)
+            hook = ServiceHook.objects.get(
+                installation_id=installation.id, organization_id=organization_id
+            )
         except ServiceHook.DoesNotExist:
             return RpcEmptyResult(
                 success=False,
