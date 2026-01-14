@@ -9,7 +9,9 @@ from sentry.api.bases.event import EventEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
+from sentry.models.project import Project
 from sentry.search.utils import tokenize_query
+from sentry.services.eventstore.models import Event
 
 
 @region_silo_endpoint
@@ -19,7 +21,7 @@ class EventAttachmentsEndpoint(EventEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event) -> Response:
+    def get(self, request: Request, project: Project, event: Event) -> Response:
         """
         Retrieve attachments for an event
         `````````````````````````````````

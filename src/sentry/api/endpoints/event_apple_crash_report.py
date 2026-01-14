@@ -7,6 +7,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.event import EventEndpoint
 from sentry.lang.native.applecrashreport import AppleCrashReport
+from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.utils.safe import get_path
 
 
@@ -17,7 +19,7 @@ class EventAppleCrashReportEndpoint(EventEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event) -> HttpResponseBase:
+    def get(self, request: Request, project: Project, event: Event) -> HttpResponseBase:
         """
         Retrieve an Apple Crash Report from an event
         `````````````````````````````````````````````

@@ -31,6 +31,7 @@ from sentry.models.releasefile import (
     ReleaseFile,
 )
 from sentry.sdk_updates import get_sdk_index
+from sentry.services.eventstore.models import Event
 from sentry.utils import json
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
@@ -144,7 +145,7 @@ class SourceMapDebugBlueThunderEditionEndpoint(EventEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, event) -> Response:
+    def get(self, request: Request, project: Project, event: Event) -> Response:
         """
         Return a list of source map errors for a given event.
         """

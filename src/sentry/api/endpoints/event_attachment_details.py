@@ -20,6 +20,8 @@ from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -107,7 +109,7 @@ class EventAttachmentDetailsEndpoint(EventEndpoint):
 
         return response
 
-    def get(self, request: Request, project, event, attachment_id) -> Response:
+    def get(self, request: Request, project: Project, event: Event, attachment_id) -> Response:
         """
         Retrieve an Attachment
         ``````````````````````
@@ -137,7 +139,7 @@ class EventAttachmentDetailsEndpoint(EventEndpoint):
 
         return self.respond(serialize(attachment, request.user))
 
-    def delete(self, request: Request, project, event, attachment_id) -> Response:
+    def delete(self, request: Request, project: Project, event: Event, attachment_id) -> Response:
         """
         Delete an Event Attachment by ID
         ````````````````````````````````
