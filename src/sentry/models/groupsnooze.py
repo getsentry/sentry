@@ -199,16 +199,16 @@ class GroupSnooze(Model):
 
     def test_user_counts(self, group: Group) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
-        cooldown_key = f"groupsnooze:v1:{self.id}:test_user_counts:snuba_cooldown"
+        CACHE_TTL = 3600  # Redis TTL in seconds
+
+        debounce_key = f"groupsnooze:v1:{self.id}:test_user_counts:snuba_cooldown"
+        snuba_debounce_ttl = options.get("snuba.groupsnooze.user-counts-debounce-seconds")
         if self.state is None:
             users_seen = 0
         else:
             users_seen = self.state.get("users_seen", 0)
 
         threshold = self.user_count + users_seen
-
-        CACHE_TTL = 3600  # Redis TTL in seconds
-        snuba_cooldown = options.get("snuba.groupsnooze.user-counts-cooldown-seconds")
 
         cached_event_count: int | float = float("inf")  # using +inf as a sentinel value
         try:
@@ -222,21 +222,21 @@ class GroupSnooze(Model):
             metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "true"})
             return True
 
-        if snuba_cooldown > 0:
-            cooldown_result = cache.get(cooldown_key)
-            if cooldown_result is not None:
+        if snuba_debounce_ttl > 0:
+            debounce_result = cache.get(debounce_key)
+            if debounce_result is not None:
                 metrics.incr(
-                    "groupsnooze.test_user_counts", tags={"cached": "true", "hit": "cooldown"}
+                    "groupsnooze.test_user_counts", tags={"cached": "true", "hit": "debounce"}
                 )
-                return cooldown_result < threshold
+                return True
 
         metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "false"})
         metrics.incr("groupsnooze.test_user_counts.snuba_call")
         real_count = group.count_users_seen(
             referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         )
-        if snuba_cooldown > 0 and real_count < threshold * 0.95:
-            cache.set(cooldown_key, real_count, snuba_cooldown)
+        if snuba_debounce_ttl > 0 and real_count < threshold * 0.95:
+            cache.set(debounce_key, real_count, snuba_debounce_ttl)
         cache.set(cache_key, real_count, CACHE_TTL)
         return real_count < threshold
 

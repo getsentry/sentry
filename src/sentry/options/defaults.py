@@ -882,11 +882,12 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Cooldown period (in seconds) between Snuba queries for groupsnooze user count validation.
+# Cooldown period (in seconds) between Snuba queries for groupsnooze user count validation. Value of 0 disables the debounce check.
 register(
-    "snuba.groupsnooze.user-counts-cooldown-seconds",
+    "snuba.groupsnooze.user-counts-debounce-seconds",
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+    type=Int,
 )
 
 # Kafka Publisher
