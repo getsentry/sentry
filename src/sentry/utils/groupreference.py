@@ -38,7 +38,7 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
     text = _markdown_strip_re.sub(r"\1", text)
 
     results = set()
-    
+
     # First, look for short IDs in "Fixes SENTRY-123" style references
     for fmatch in _fixes_re.finditer(text):
         for smatch in _short_id_re.finditer(fmatch.group(1)):
@@ -51,12 +51,12 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
                 continue
             else:
                 results.add(group)
-    
+
     # Second, look for Sentry issue URLs in the entire text (not just after "Fixes")
     # This allows users to just paste the issue URL without keywords
     for url_match in _sentry_url_re.finditer(text):
         issue_id = url_match.group(1)
-        
+
         # Try to determine if this is a short ID or numeric ID
         if "-" in issue_id:
             # This looks like a short ID (e.g., SENTRY-123)
@@ -74,5 +74,5 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
                 results.add(group)
             except (Group.DoesNotExist, ValueError):
                 continue
-    
+
     return results
