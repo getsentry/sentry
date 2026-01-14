@@ -554,6 +554,7 @@ def remove_expired_values_for_org_members(
 def delete_api_models(
     is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
+    from sentry.models.apidevicecode import ApiDeviceCode
     from sentry.models.apigrant import ApiGrant
     from sentry.models.apitoken import ApiToken
 
@@ -575,6 +576,15 @@ def delete_api_models(
                 queryset = queryset.filter(sentry_app_installation__isnull=True)
 
             queryset.delete()
+
+    # Device codes have short expiration times (10 minutes), so clean up
+    # any that have expired immediately without additional TTL buffer.
+    if is_filtered(ApiDeviceCode):
+        debug_output(">> Skipping ApiDeviceCode")
+    else:
+        debug_output("Removing expired values for ApiDeviceCode")
+        models_attempted.add(ApiDeviceCode.__name__.lower())
+        ApiDeviceCode.objects.filter(expires_at__lt=timezone.now()).delete()
 
 
 @continue_on_error("specialized_cleanup_exported_data")

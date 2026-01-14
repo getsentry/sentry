@@ -21,12 +21,10 @@ import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
 import type {
   AlertVariant,
-  ButtonVariant,
   FormSize,
   LevelVariant,
   MotionDuration,
   MotionEasing,
-  TagVariant,
 } from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
@@ -188,13 +186,6 @@ const generateThemeUtils = (tokens: Tokens) => ({
               : undefined,
     textDecorationStyle: 'dotted' as const,
   }),
-  overflowEllipsis: css`
-    display: block;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  `,
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
     clip: rect(0 0 0 0);
@@ -207,96 +198,7 @@ const generateThemeUtils = (tokens: Tokens) => ({
   `,
 });
 
-const generateThemePrismVariables = (
-  prismColors: typeof prismLight,
-  blockBackground: string
-) =>
-  // eslint-disable-next-line @emotion/syntax-preference
-  css({
-    // block background differs based on light/dark mode
-    '--prism-block-background': blockBackground,
-    ...prismColors,
-  });
-
-const generateButtonTheme = (
-  colors: Colors,
-  alias: Aliases,
-  tokens: Tokens
-): ButtonColors => ({
-  default: {
-    // all alias-based, already derived from new theme
-    color: tokens.content.primary,
-    colorActive: tokens.content.primary,
-    background: alias.background,
-    backgroundActive: tokens.background.transparent.neutral.muted,
-    border: tokens.border.primary,
-    borderActive: tokens.border.primary,
-    borderTranslucent: tokens.border.transparent.neutral.muted,
-    focusBorder: tokens.focus.default,
-    focusShadow: tokens.focus.default,
-  },
-  primary: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.blue400,
-    backgroundActive: colors.blue500,
-    border: colors.blue400,
-    borderActive: colors.blue400,
-    borderTranslucent: colors.blue400,
-    focusBorder: tokens.focus.default,
-    focusShadow: tokens.focus.default,
-  },
-  danger: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.red400,
-    backgroundActive: colors.red500,
-    border: colors.red400,
-    borderActive: colors.red400,
-    borderTranslucent: colors.red400,
-    focusBorder: colors.red400,
-    focusShadow: colors.red200,
-  },
-  link: {
-    color: tokens.interactive.link.accent.rest,
-    colorActive: tokens.interactive.link.accent.hover,
-    background: 'transparent',
-    backgroundActive: 'transparent',
-    border: 'transparent',
-    borderActive: 'transparent',
-    borderTranslucent: 'transparent',
-    focusBorder: tokens.focus.default,
-    focusShadow: tokens.focus.default,
-  },
-  disabled: {
-    color: tokens.content.disabled,
-    colorActive: tokens.content.disabled,
-    background: alias.background,
-    backgroundActive: alias.background,
-    border: tokens.content.disabled,
-    borderActive: tokens.content.disabled,
-    borderTranslucent: tokens.border.transparent.neutral.muted,
-    focusBorder: 'transparent',
-    focusShadow: 'transparent',
-  },
-  transparent: {
-    color: tokens.content.primary,
-    colorActive: tokens.content.primary,
-    background: 'transparent',
-    backgroundActive: 'transparent',
-    border: 'transparent',
-    borderActive: 'transparent',
-    borderTranslucent: 'transparent',
-    focusBorder: 'transparent',
-    focusShadow: 'transparent',
-  },
-});
-
-const generateAlertTheme = (
-  colors: Colors,
-  alias: Aliases,
-  tokens: Tokens
-): AlertColors => ({
+const generateAlertTheme = (colors: Colors, tokens: Tokens): AlertColors => ({
   info: {
     border: colors.blue200,
     background: colors.blue400,
@@ -313,7 +215,7 @@ const generateAlertTheme = (
   },
   muted: {
     background: colors.gray200,
-    backgroundLight: alias.backgroundSecondary,
+    backgroundLight: tokens.background.secondary,
     border: tokens.border.primary,
     borderHover: tokens.border.primary,
     color: 'inherit',
@@ -350,75 +252,13 @@ const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors
   unknown: tokens.dataviz.semantic.other,
 });
 
-const generateTagTheme = (colors: Colors): TagColors => ({
-  muted: {
-    background: colors.surface500,
-    border: colors.gray200,
-    color: colors.gray500,
-  },
-
-  promotion: {
-    background: colors.pink100,
-    border: colors.pink100,
-    color: colors.pink500,
-  },
-
-  warning: {
-    background: colors.yellow100,
-    border: colors.yellow100,
-    color: colors.yellow500,
-  },
-
-  success: {
-    background: colors.green100,
-    border: colors.green100,
-    color: colors.green500,
-  },
-
-  danger: {
-    background: colors.red100,
-    border: colors.red100,
-    color: colors.red500,
-  },
-
-  info: {
-    background: colors.blue100,
-    border: colors.blue100,
-    color: colors.blue500,
-  },
-});
-
 /**
  * Theme definition
  */
 
 type Colors = typeof lightColors;
 
-type TagColors = Record<
-  TagVariant,
-  {
-    background: string;
-    border: string;
-    color: string;
-  }
->;
-
 type LevelColors = Record<LevelVariant, string>;
-
-type ButtonColors = Record<
-  ButtonVariant,
-  {
-    background: string;
-    backgroundActive: string;
-    border: string;
-    borderActive: string;
-    borderTranslucent: string;
-    color: string;
-    colorActive: string;
-    focusBorder: string;
-    focusShadow: string;
-  }
->;
 
 const legacyTypography = {
   fontSize: typography.font.size,
@@ -570,8 +410,6 @@ const commonTheme = {
   ...typography,
   ...formTheme,
 };
-
-type Aliases = typeof lightAliases;
 
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
@@ -1106,51 +944,6 @@ const darkColors: Colors = {
   },
 };
 
-// Prism colors
-// @TODO(jonasbadalic): are these final?
-const prismLight = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#332B3B',
-  '--prism-inline-code': '#332B3B',
-  '--prism-inline-code-background': '#F5F3F7',
-  '--prism-highlight-background': '#5C78A31C',
-  '--prism-highlight-accent': '#5C78A344',
-  '--prism-comment': '#80708F',
-  '--prism-punctuation': '#332B3B',
-  '--prism-property': '#18408B',
-  '--prism-selector': '#177861',
-  '--prism-operator': '#235CC8',
-  '--prism-variable': '#332B3B',
-  '--prism-function': '#235CC8',
-  '--prism-keyword': '#BB3A3D',
-};
-
-// @TODO(jonasbadalic): are these final?
-const prismDark = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#D6D0DC',
-  '--prism-inline-code': '#D6D0DC',
-  '--prism-inline-code-background': '#18121C',
-  '--prism-highlight-background': '#A8A2C31C',
-  '--prism-highlight-accent': '#A8A2C344',
-  '--prism-comment': '#998DA5',
-  '--prism-punctuation': '#D6D0DC',
-  '--prism-property': '#70A2FF',
-  '--prism-selector': '#1DCDA4',
-  '--prism-operator': '#70A2FF',
-  '--prism-variable': '#D6D0DC',
-  '--prism-function': '#70A2FF',
-  '--prism-keyword': '#F8777C',
-};
-
 // @TODO(jonasbadalic): are these final?
 const lightShadows = {
   dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
@@ -1167,34 +960,6 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const generateAliases = (tokens: Tokens) => ({
-  /**
-   * Primary background color
-   */
-  background: tokens.background.primary,
-
-  /**
-   * Secondary background color used as a slight contrast against primary background
-   */
-  backgroundSecondary: tokens.background.secondary,
-
-  /**
-   * Tertiary background color used as a stronger contrast against primary background
-   */
-  backgroundTertiary: tokens.background.tertiary,
-
-  /**
-   * Indicates that something is "active" or "selected"
-   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
-   */
-  active: tokens.interactive.link.accent.active,
-  activeHover: tokens.interactive.link.accent.hover,
-  activeText: tokens.interactive.link.accent.rest,
-});
-
-const lightAliases = generateAliases(baseLightTheme.tokens);
-const darkAliases = generateAliases(baseDarkTheme.tokens);
-
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get black() {
@@ -1203,27 +968,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
   get white() {
     return colors.white;
-  },
-
-  /** @deprecated */
-  get gray500() {
-    return colors.gray800;
-  },
-  /** @deprecated */
-  get gray400() {
-    return colors.gray500;
-  },
-  /** @deprecated */
-  get gray300() {
-    return colors.gray400;
-  },
-  /** @deprecated */
-  get gray200() {
-    return colors.gray200;
-  },
-  /** @deprecated */
-  get gray100() {
-    return colors.gray100;
   },
 
   /** @deprecated */
@@ -1278,23 +1022,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
 
   /** @deprecated */
-  get yellow400() {
-    return colors.yellow500;
-  },
-  /** @deprecated */
-  get yellow300() {
-    return colors.yellow400;
-  },
-  /** @deprecated */
-  get yellow200() {
-    return colors.yellow200;
-  },
-  /** @deprecated */
-  get yellow100() {
-    return colors.yellow100;
-  },
-
-  /** @deprecated */
   get green400() {
     return colors.green500;
   },
@@ -1318,20 +1045,17 @@ const lightThemeDefinition = {
   ...commonTheme,
   ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
-  ...lightAliases,
   ...lightShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseLightTheme.tokens),
-  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
+  focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseLightTheme.tokens),
-  alert: generateAlertTheme(lightColors, lightAliases, baseLightTheme.tokens),
-  button: generateButtonTheme(lightColors, lightAliases, baseLightTheme.tokens),
-  tag: generateTagTheme(lightColors),
+  alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
@@ -1339,15 +1063,6 @@ const lightThemeDefinition = {
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
-
-  prismVariables: generateThemePrismVariables(
-    prismLight,
-    lightAliases.backgroundSecondary
-  ),
-  prismDarkVariables: generateThemePrismVariables(
-    prismDark,
-    baseDarkTheme.tokens.background.primary
-  ),
 
   colors: lightColors,
 };
@@ -1367,20 +1082,17 @@ export const darkTheme: SentryTheme = {
 
   ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
-  ...darkAliases,
   ...darkShadows,
   // @TODO: remove backwards-compatability shim
   tokens: withLegacyTokens(baseDarkTheme.tokens),
-  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
+  focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(baseDarkTheme.tokens),
-  alert: generateAlertTheme(darkColors, darkAliases, baseDarkTheme.tokens),
-  button: generateButtonTheme(darkColors, darkAliases, baseDarkTheme.tokens),
-  tag: generateTagTheme(darkColors),
+  alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
@@ -1388,12 +1100,6 @@ export const darkTheme: SentryTheme = {
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
-
-  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
-  prismDarkVariables: generateThemePrismVariables(
-    prismDark,
-    baseDarkTheme.tokens.background.primary
-  ),
 
   colors: darkColors,
 };

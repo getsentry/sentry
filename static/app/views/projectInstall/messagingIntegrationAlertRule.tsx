@@ -176,7 +176,7 @@ export default function MessagingIntegrationAlertRule({
 
 const Rule = styled('div')`
   padding: ${space(1)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-wrap: wrap;

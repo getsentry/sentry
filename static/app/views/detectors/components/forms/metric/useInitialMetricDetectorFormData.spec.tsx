@@ -28,6 +28,23 @@ describe('useInitialMetricDetectorFormData', () => {
     );
   });
 
+  it('respects an explicitly empty query param', () => {
+    const organization = OrganizationFixture();
+    const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            query: '',
+          },
+        },
+      },
+    });
+
+    expect(result.current.query).toBe('');
+  });
+
   it('parses dataset, aggregate, query, environment, and name from URL', () => {
     const organization = OrganizationFixture({features: ['performance-view']});
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {

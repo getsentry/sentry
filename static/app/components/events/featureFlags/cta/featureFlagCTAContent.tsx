@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -28,14 +30,14 @@ export default function FeatureFlagCTAContent({
 
   return (
     <Fragment>
-      <BannerContent>
+      <Stack justify="center" padding="xl">
         <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
         <BannerDescription>
           {t(
             'Want to know which feature flags were associated with this issue? Set up your feature flag integration.'
           )}
         </BannerDescription>
-        <ActionButton>
+        <Flex gap="md">
           <Button onClick={handleSetupButtonClick} priority="primary">
             {t('Set Up Now')}
           </Button>
@@ -52,17 +54,12 @@ export default function FeatureFlagCTAContent({
           >
             {t('Read More')}
           </LinkButton>
-        </ActionButton>
-      </BannerContent>
+        </Flex>
+      </Stack>
       <BannerIllustration src={onboardingInstall} alt="" />
     </Fragment>
   );
 }
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
@@ -73,13 +70,6 @@ const BannerTitle = styled('div')`
 const BannerDescription = styled('div')`
   margin-bottom: ${space(1.5)};
   max-width: 340px;
-`;
-
-const BannerContent = styled('div')`
-  padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const BannerIllustration = styled('img')`
@@ -97,9 +87,9 @@ export const BannerWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
   display: flex;
   flex-direction: row;

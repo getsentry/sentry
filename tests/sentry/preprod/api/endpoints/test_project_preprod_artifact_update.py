@@ -52,8 +52,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert set(resp_data["updatedFields"]) == {
             "date_built",
             "artifact_type",
-            "build_version",
-            "build_number",
             "state",
         }
 
@@ -61,8 +59,8 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.date_built is not None
         assert self.preprod_artifact.date_built.isoformat() == "2024-01-01T00:00:00+00:00"
         assert self.preprod_artifact.artifact_type == 1
-        assert self.preprod_artifact.build_version == "1.2.3"
-        assert self.preprod_artifact.build_number == 123
+        assert self.preprod_artifact.mobile_app_info.build_version == "1.2.3"
+        assert self.preprod_artifact.mobile_app_info.build_number == 123
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_partial_update(self) -> None:
@@ -354,8 +352,11 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         self.preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
         self.preprod_artifact.app_id = "com.example.app"
-        self.preprod_artifact.build_version = "1.0.0"
-        self.preprod_artifact.build_number = 123
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.preprod_artifact,
+            build_version="1.0.0",
+            build_number=123,
+        )
         self.preprod_artifact.save()
 
         response = self._make_request({})
@@ -467,27 +468,13 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "build_version" in resp_data["updatedFields"]
-        assert "build_number" in resp_data["updatedFields"]
-        assert "app_name" in resp_data["updatedFields"]
-        assert "app_icon_id" in resp_data["updatedFields"]
+
+        assert self.preprod_artifact.mobile_app_info.build_version == "1.2.3"
+        assert self.preprod_artifact.mobile_app_info.build_number == 456
+        assert self.preprod_artifact.mobile_app_info.app_name == "Test App"
+        assert self.preprod_artifact.mobile_app_info.app_icon_id == "icon-123"
 
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.build_version == "1.2.3"
-        assert self.preprod_artifact.build_number == 456
-        assert self.preprod_artifact.app_name == "Test App"
-        assert self.preprod_artifact.app_icon_id == "icon-123"
-
-        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
-            preprod_artifact=self.preprod_artifact
-        )
-        assert mobile_app_info.build_version == "1.2.3"
-        assert mobile_app_info.build_number == 456
-        assert mobile_app_info.app_name == "Test App"
-        assert mobile_app_info.app_icon_id == "icon-123"
-
-        assert self.preprod_artifact.mobile_app_info.id == mobile_app_info.id
-        assert mobile_app_info.preprod_artifact.id == self.preprod_artifact.id
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_updates_existing_mobile_app_info(self) -> None:
@@ -499,14 +486,11 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         response1 = self._make_request(initial_data)
         assert response1.status_code == 200
 
-        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
-            preprod_artifact=self.preprod_artifact
-        )
-        assert mobile_app_info.build_version == "1.0.0"
-        assert mobile_app_info.build_number == 100
-        assert mobile_app_info.app_name == "Initial App"
-        assert mobile_app_info.app_icon_id is None
-        initial_mobile_app_info_id = mobile_app_info.id
+        assert self.preprod_artifact.mobile_app_info.build_version == "1.0.0"
+        assert self.preprod_artifact.mobile_app_info.build_number == 100
+        assert self.preprod_artifact.mobile_app_info.app_name == "Initial App"
+        assert self.preprod_artifact.mobile_app_info.app_icon_id is None
+        initial_mobile_app_info_id = self.preprod_artifact.mobile_app_info.id
 
         updated_data = {
             "build_version": "2.0.0",
@@ -516,19 +500,14 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         response2 = self._make_request(updated_data)
         assert response2.status_code == 200
 
-        mobile_app_info_after = PreprodArtifactMobileAppInfo.objects.get(
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
             preprod_artifact=self.preprod_artifact
         )
-        assert mobile_app_info_after.id == initial_mobile_app_info_id
-        assert mobile_app_info_after.build_version == "2.0.0"
-        assert mobile_app_info_after.build_number == 200
-        assert mobile_app_info_after.app_name == "Initial App"
-        assert mobile_app_info_after.app_icon_id == "new-icon-456"
-
-        count = PreprodArtifactMobileAppInfo.objects.filter(
-            preprod_artifact=self.preprod_artifact
-        ).count()
-        assert count == 1
+        assert mobile_app_info.build_version == "2.0.0"
+        assert mobile_app_info.build_number == 200
+        assert mobile_app_info.app_name == "Initial App"
+        assert mobile_app_info.app_icon_id == "new-icon-456"
+        assert mobile_app_info.id == initial_mobile_app_info_id
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_partial_mobile_app_info_update(self) -> None:

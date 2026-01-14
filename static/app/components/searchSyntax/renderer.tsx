@@ -229,6 +229,7 @@ function KeyToken({
     | Token.KEY_SIMPLE
     | Token.KEY_AGGREGATE
     | Token.KEY_EXPLICIT_TAG
+    | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
     | Token.KEY_EXPLICIT_FLAG
@@ -294,20 +295,32 @@ const colorType = (p: TokenGroupProps) =>
 function makeSearchTokenVariants(theme: Theme) {
   return {
     searchTokenBorder: {
-      valid: theme.colors.blue200,
-      validActive: modifyColor(theme.colors.blue200).opaquer(1).string(),
-      invalid: theme.colors.red200,
-      invalidActive: modifyColor(theme.colors.red200).opaquer(1).string(),
-      warning: theme.colors.yellow200,
-      warningActive: modifyColor(theme.colors.yellow200).opaquer(1).string(),
+      valid: theme.tokens.border.transparent.accent.muted,
+      validActive: modifyColor(theme.tokens.border.transparent.accent.moderate)
+        .opaquer(1)
+        .string(),
+      invalid: theme.tokens.border.transparent.danger.muted,
+      invalidActive: modifyColor(theme.tokens.border.transparent.danger.moderate)
+        .opaquer(1)
+        .string(),
+      warning: theme.tokens.border.transparent.warning.muted,
+      warningActive: modifyColor(theme.tokens.border.transparent.warning.moderate)
+        .opaquer(1)
+        .string(),
     },
     searchTokenBackground: {
-      valid: theme.colors.blue100,
-      validActive: modifyColor(theme.colors.blue100).opaquer(1.0).string(),
-      invalid: theme.colors.red100,
-      invalidActive: modifyColor(theme.colors.red100).opaquer(0.8).string(),
-      warning: theme.colors.yellow100,
-      warningActive: modifyColor(theme.colors.yellow100).opaquer(0.8).string(),
+      valid: theme.tokens.background.transparent.accent.muted,
+      validActive: modifyColor(theme.tokens.background.transparent.accent.muted)
+        .opaquer(1.0)
+        .string(),
+      invalid: theme.tokens.background.transparent.danger.muted,
+      invalidActive: modifyColor(theme.tokens.background.transparent.danger.muted)
+        .opaquer(0.8)
+        .string(),
+      warning: theme.tokens.background.transparent.warning.muted,
+      warningActive: modifyColor(theme.tokens.background.transparent.warning.muted)
+        .opaquer(0.8)
+        .string(),
     },
   };
 }
@@ -322,7 +335,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
       ? p.theme.colors.red500
       : p.warning
         ? p.theme.colors.gray500
-        : p.theme.colors.blue500};
+        : p.theme.tokens.content.accent};
 
   position: relative;
   animation-name: ${shakeAnimation};
@@ -442,16 +455,16 @@ const InList = styled('span')`
   &:before {
     content: '[';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
   &:after {
     content: ']';
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
 
   ${Value} {
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
 `;
 
