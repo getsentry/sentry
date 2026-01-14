@@ -16,8 +16,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
-from sentry.seer.code_review.utils import get_webhook_option_key
-from sentry.seer.code_review.webhooks.config import get_direct_to_seer_gh_orgs
+from sentry.seer.code_review.utils import is_github_org_direct_to_seer
+from sentry.seer.code_review.utils import (
+    should_forward_to_overwatch as should_forward_to_overwatch_for_event,
+)
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -26,24 +28,6 @@ _INSTALLATION_EVENTS = {
     GithubWebhookType.INSTALLATION,
     GithubWebhookType.INSTALLATION_REPOSITORIES,
 }
-
-
-def get_github_events_to_forward_overwatch() -> set[GithubWebhookType]:
-    """
-    Returns the set of GitHub webhook event types that should be forwarded to Overwatch.
-
-    Installation events are always included. Other event types can be controlled via options:
-    - When option is True: forward to Overwatch
-    - When option is False: forward to Seer (handled elsewhere)
-    """
-    events = set(_INSTALLATION_EVENTS)
-
-    for webhook_type in GithubWebhookType:
-        option_key = get_webhook_option_key(webhook_type)
-        if option_key and options.get(option_key):
-            events.add(webhook_type)
-
-    return events
 
 
 @dataclass(frozen=True)
@@ -68,14 +52,22 @@ class OverwatchGithubWebhookForwarder:
 
     def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
         event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
-        events_to_forward = get_github_events_to_forward_overwatch()
-        should_forward = event_type in events_to_forward
+        if event_type is None:
+            return False
+        try:
+            event_type_enum = GithubWebhookType(event_type)
+        except ValueError:
+            return False
+        # Installation events are always forwarded
+        is_installation = event_type_enum in _INSTALLATION_EVENTS
+        # Other events are controlled by options
+        should_forward = is_installation or should_forward_to_overwatch_for_event(event_type_enum)
         verbose_log(
             "overwatch.debug.should_forward_to_overwatch.checked",
             extra={
                 "event_type": event_type,
                 "should_forward": should_forward,
-                "enabled_events": list(events_to_forward),
+                "is_installation": is_installation,
             },
         )
         return should_forward
@@ -146,22 +138,6 @@ class OverwatchGithubWebhookForwarder:
                 # feature isn't enabled, no work to do
                 return
 
-            repository = event.get("repository", {})
-            github_org = None
-            if isinstance(repository, dict):
-                github_org = repository.get("owner", {}).get("login")
-
-            direct_to_seer_orgs = get_direct_to_seer_gh_orgs()
-            if github_org and github_org in direct_to_seer_orgs:
-                verbose_log(
-                    "overwatch.debug.github_org_not_whitelisted",
-                    extra={
-                        "github_org": github_org,
-                        "direct_to_seer_orgs": direct_to_seer_orgs,
-                    },
-                )
-                return
-
             orgs_by_region = self._get_org_summaries_by_region_for_integration(
                 integration=self.integration
             )
@@ -180,6 +156,14 @@ class OverwatchGithubWebhookForwarder:
                         "orgs_by_region_empty": not orgs_by_region,
                         "event_in_forward_list": self.should_forward_to_overwatch(headers),
                     },
+                )
+                return
+
+            if is_github_org_direct_to_seer(event):
+                github_org = event.get("repository", {}).get("owner", {}).get("login")
+                verbose_log(
+                    "overwatch.debug.github_org_whitelisted_for_direct_to_seer",
+                    extra={"github_org": github_org},
                 )
                 return
 
