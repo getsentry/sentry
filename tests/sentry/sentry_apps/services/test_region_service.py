@@ -140,3 +140,39 @@ class TestSentryAppRegionService(TestCase):
         assert result.external_issue is None
         assert result.error.webhook_context["error_type"] == "external_issue.linked.bad_response"
         assert result.error.status_code == 500
+
+    def test_create_external_issue(self) -> None:
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(group_id=self.group.id).exists() is False
+
+        result = sentry_app_region_service.create_external_issue(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            group_id=self.group.id,
+            web_url="https://example.com/project/issue-1",
+            project="ProjectName",
+            identifier="issue-1",
+        )
+
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(group_id=self.group.id).exists()
+
+        assert result.error is None
+        assert result.external_issue is not None
+        assert result.external_issue.issue_id == str(self.group.id)
+        assert result.external_issue.web_url == "https://example.com/project/issue-1"
+        assert result.external_issue.display_name == "ProjectName#issue-1"
+
+    def test_create_external_issue_group_not_found(self) -> None:
+        result = sentry_app_region_service.create_external_issue(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            group_id=99999999,
+            web_url="https://example.com/project/issue-1",
+            project="ProjectName",
+            identifier="issue-1",
+        )
+
+        assert result.error is not None
+        assert result.external_issue is None
+        assert result.error.status_code == 404
