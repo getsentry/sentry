@@ -290,7 +290,13 @@ const ChapterWrapper = styled('details')`
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid ${p => p.theme.tokens.background.secondary};
+    border-top: 1px solid
+      ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    border-top: 1px solid
+      ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   [data-is-feedback='true'] {
@@ -314,7 +320,13 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   }
 
   &:hover {
-    background-color: ${p => p.theme.tokens.background.secondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -327,7 +339,13 @@ const Chapter = styled('summary')`
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   /* sorry */

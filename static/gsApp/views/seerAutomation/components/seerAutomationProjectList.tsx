@@ -453,7 +453,8 @@ const StyledCheckbox = styled(Checkbox)`
 const ClickablePanelItem = styled(PanelItem)`
   cursor: pointer;
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

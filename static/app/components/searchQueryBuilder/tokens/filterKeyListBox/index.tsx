@@ -480,7 +480,7 @@ const RecentFiltersPane = styled('ul')`
   grid-area: recentFilters;
   display: flex;
   flex-wrap: wrap;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} 10px;
   gap: ${p => p.theme.space['2xs']};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -530,14 +530,18 @@ const RecentFilterPill = styled('li')`
     height: 100%;
     background: linear-gradient(
       to left,
-      ${p => p.theme.backgroundSecondary} 0 2px,
+      ${p => p.theme.tokens.background.secondary} 0 2px,
       transparent ${p => p.theme.space.xl} 100%
     );
   }
 `;
 
 const RecentFilterPillLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 

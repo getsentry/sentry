@@ -1125,7 +1125,13 @@ function ViewerTableV2({
             organization
           )!;
 
-          if (field === 'transaction' && dataRow.transaction) {
+          // For SPANS widgets, the customRenderer already returns a link, so we shouldn't wrap it
+          // to avoid nested anchor tags
+          if (
+            field === 'transaction' &&
+            dataRow.transaction &&
+            widget.widgetType !== WidgetType.SPANS
+          ) {
             return function (cellData, baggage) {
               return (
                 <TransactionLink

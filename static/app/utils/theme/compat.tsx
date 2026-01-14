@@ -13,7 +13,12 @@ function createBackwardsCompatibleToken<
       if (prop === '__emotion_styles') {
         return target.vibrant;
       }
-      if (prop === 'toString' || prop === 'valueOf' || prop === Symbol.toPrimitive) {
+      if (
+        prop === 'toString' ||
+        prop === 'valueOf' ||
+        prop === 'toJSON' ||
+        prop === Symbol.toPrimitive
+      ) {
         return () => target.vibrant;
       }
       return Reflect.get(target, prop, receiver);
