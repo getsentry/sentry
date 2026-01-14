@@ -5,55 +5,47 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class GithubCopilotPRConfig(BaseModel):
-    title: str | None = None
-    body_placeholder: str | None = None
-    body_suffix: str | None = None
-    base_ref: str | None = None
-    head_ref: str | None = None
-    labels: list[str] | None = None
-
-
-class GithubCopilotJobRequest(BaseModel):
+class GithubCopilotTaskRequest(BaseModel):
     problem_statement: str
-    content_filter_mode: str = "hidden_characters"
-    pull_request: GithubCopilotPRConfig | None = None
-    run_name: str | None = None
+    event_content: str | None = None
+    model: str | None = None
+    create_pull_request: bool = True
+    base_ref: str | None = None
     event_type: str = "sentry"
-    event_url: str | None = None
-    event_identifiers: list[str] | None = None
 
 
-class GithubCopilotActor(BaseModel):
+class GithubCopilotTask(BaseModel):
     id: str
-    login: str
-
-
-class GithubCopilotJobResponse(BaseModel):
-    job_id: str
-    session_id: str
-    actor: GithubCopilotActor
-    created_at: datetime
-    updated_at: datetime
-
-
-class GithubCopilotPullRequest(BaseModel):
-    id: int
-    number: int
-
-
-class GithubCopilotJobStatusResponse(BaseModel):
-    job_id: str
-    session_id: str
     status: str
-    actor: GithubCopilotActor
-    created_at: datetime
-    updated_at: datetime
-    pull_request: GithubCopilotPullRequest | None = None
-    problem_statement: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
-class GithubPRDetails(BaseModel):
+class GithubCopilotTaskCreateResponse(BaseModel):
+    task: GithubCopilotTask
+
+
+class GithubCopilotArtifactData(BaseModel):
+    id: int
+    type: str
+    global_id: str
+
+
+class GithubCopilotArtifact(BaseModel):
+    provider: str
+    type: str
+    data: GithubCopilotArtifactData
+
+
+class GithubCopilotTaskStatusResponse(BaseModel):
+    id: str
+    status: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    artifacts: list[GithubCopilotArtifact] | None = None
+
+
+class GithubPRFromGraphQL(BaseModel):
+    number: int
     title: str
-    body: str | None = None
-    state: str
+    url: str

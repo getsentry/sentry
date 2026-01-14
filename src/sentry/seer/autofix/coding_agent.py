@@ -491,7 +491,7 @@ def poll_github_copilot_agents(
             )
             continue
 
-        owner, repo, job_id = decoded
+        owner, repo, task_id = decoded
 
         if user_access_token is None:
             user_access_token = github_copilot_identity_service.get_access_token_for_user(
@@ -506,64 +506,61 @@ def poll_github_copilot_agents(
 
         try:
             client = GithubCopilotAgentClient(user_access_token)
-            job_status = client.get_job_status(owner, repo, job_id)
+            task_status = client.get_task_status(owner, repo, task_id)
 
-            if job_status.pull_request:
-                pr_number = job_status.pull_request.number
-                pr_url = f"https://github.com/{owner}/{repo}/pull/{pr_number}"
+            pr_artifact = None
+            if task_status.artifacts:
+                for artifact in task_status.artifacts:
+                    if artifact.data.type == "pull":
+                        pr_artifact = artifact
+                        break
 
-                description = "GitHub Copilot fix"
-                try:
-                    pr_details = client.get_pr_details(owner, repo, pr_number)
-                    description = pr_details.title
-                    if pr_details.body:
-                        description = f"{pr_details.title}\n\n{pr_details.body}"
-                except Exception:
-                    logger.exception(
-                        "coding_agent.github_copilot.pr_details_error",
-                        extra={"owner": owner, "repo": repo, "pr_number": pr_number},
+            if pr_artifact:
+                pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
+                if pr_info:
+                    pr_url = pr_info.url
+                    description = pr_info.title
+
+                    result = CodingAgentResult(
+                        description=description,
+                        repo_provider="github",
+                        repo_full_name=f"{owner}/{repo}",
+                        pr_url=pr_url,
                     )
 
-                result = CodingAgentResult(
-                    description=description,
-                    repo_provider="github",
-                    repo_full_name=f"{owner}/{repo}",
-                    pr_url=pr_url,
-                )
+                    is_task_done = task_status.status in ("completed", "succeeded")
+                    new_status = (
+                        CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
+                    )
 
-                is_job_done = job_status.status in ("completed", "succeeded")
-                new_status = (
-                    CodingAgentStatus.COMPLETED if is_job_done else CodingAgentStatus.RUNNING
-                )
+                    update_coding_agent_state(
+                        agent_id=agent_id,
+                        status=new_status,
+                        result=result,
+                    )
 
-                update_coding_agent_state(
-                    agent_id=agent_id,
-                    status=new_status,
-                    result=result,
-                )
+                    logger.info(
+                        "coding_agent.github_copilot.pr_update",
+                        extra={
+                            "agent_id": agent_id,
+                            "pr_url": pr_url,
+                            "task_status": task_status.status,
+                            "is_task_done": is_task_done,
+                        },
+                    )
 
-                logger.info(
-                    "coding_agent.github_copilot.pr_update",
-                    extra={
-                        "agent_id": agent_id,
-                        "pr_url": pr_url,
-                        "job_status": job_status.status,
-                        "is_job_done": is_job_done,
-                    },
-                )
-
-            elif job_status.status in ("failed", "error"):
+            elif task_status.status in ("failed", "error"):
                 update_coding_agent_state(
                     agent_id=agent_id,
                     status=CodingAgentStatus.FAILED,
                 )
                 logger.info(
-                    "coding_agent.github_copilot.job_failed",
-                    extra={"agent_id": agent_id, "job_status": job_status.status},
+                    "coding_agent.github_copilot.task_failed",
+                    extra={"agent_id": agent_id, "task_status": task_status.status},
                 )
 
         except Exception:
             logger.exception(
                 "coding_agent.github_copilot.poll_error",
-                extra={"agent_id": agent_id, "owner": owner, "repo": repo, "job_id": job_id},
+                extra={"agent_id": agent_id, "owner": owner, "repo": repo, "task_id": task_id},
             )
