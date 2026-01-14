@@ -1,0 +1,25 @@
+tests/sentry/models/test_trustedidentityprovider.py
+  1a687d5cc1ac7faf 1-739
+src/sentry/models/trustedidentityprovider.py
+  1a687d5cc1ac7faf 1-42,45-275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.31",
+  "base_commit_sha": "5f9ea08375e8c9ef428c2402643978d894834ba0",
+  "prompts": {
+    "1a687d5cc1ac7faf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c016ed04-cfca-4198-9fc8-e1af0c5c42e5",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "David Cramer <dcramer@gmail.com>",
+      "messages": [],
+      "total_additions": 370,
+      "total_deletions": 8,
+      "accepted_lines": 1012,
+      "overriden_lines": 0
+    }
+  }
+}
