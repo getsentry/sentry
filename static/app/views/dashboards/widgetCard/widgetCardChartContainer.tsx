@@ -109,6 +109,7 @@ export function WidgetCardChartContainer({
   return (
     <WidgetCardDataLoader
       widget={widget}
+      selection={selection}
       dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
       onWidgetSplitDecision={onWidgetSplitDecision}

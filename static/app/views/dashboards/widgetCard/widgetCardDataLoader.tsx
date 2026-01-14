@@ -55,16 +55,18 @@ type Props = {
 export function WidgetCardDataLoader({
   children,
   widget,
+  selection,
   dashboardFilters,
   tableItemLimit,
   onDataFetched,
   onWidgetSplitDecision,
   onDataFetchStart,
-}: Omit<Props, 'selection'>) {
+}: Props) {
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
         widget={widget}
+        selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
@@ -95,6 +97,7 @@ export function WidgetCardDataLoader({
     return (
       <ReleaseWidgetQueries
         widget={widget}
+        selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
@@ -140,6 +143,7 @@ export function WidgetCardDataLoader({
   return (
     <WidgetQueries
       widget={widget}
+      selection={selection}
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
