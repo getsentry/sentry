@@ -2490,28 +2490,28 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
     {
-      path: 'size/:artifactId/',
+      path: ':artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
     },
     {
-      path: 'install/:artifactId/',
+      path: ':artifactId/install/',
       component: make(() => import('sentry/views/preprod/install/installPage')),
     },
     {
-      path: 'size/compare/',
+      path: 'compare/',
       children: [
         {
           index: true,
           component: errorHandler(RouteNotFound),
         },
         {
-          path: ':headId/',
+          path: ':headArtifactId/',
           component: make(
             () => import('sentry/views/preprod/buildComparison/buildComparison')
           ),
         },
         {
-          path: ':headId/:baseId/',
+          path: ':headArtifactId/:baseArtifactId/',
           component: make(
             () => import('sentry/views/preprod/buildComparison/buildComparison')
           ),
@@ -2520,7 +2520,7 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const preprodRoutes: SentryRouteObject = {
-    path: '/preprod/',
+    path: '/preprod/:projectId/',
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
