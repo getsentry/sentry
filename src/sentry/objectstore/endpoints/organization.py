@@ -102,7 +102,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
 def get_raw_body(
     request: HttpRequest,
-) -> Generator[bytes] | ChunkedEncodingDecoder | _body_with_length | None:
+) -> Generator[bytes] | ChunkedEncodingDecoder | body_with_length | None:
     wsgi_input = request.META.get("wsgi.input")
     if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
         return wsgi_input
@@ -134,7 +134,7 @@ def get_raw_body(
         return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
 
     # wsgiref and the request has been already proxied through control silo
-    return _body_with_length(request)
+    return body_with_length(request)
 
 
 def get_target_url(path: str) -> str:
@@ -148,7 +148,7 @@ def get_target_url(path: str) -> str:
     return target
 
 
-class _body_with_length:
+class body_with_length:
     """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
 
     def __init__(self, request: HttpRequest):

@@ -150,7 +150,8 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert response.status_code == 200
-                b"".join(response.streaming_content)  # consume body to close connection
+                # consume body to close connection
+                b"".join(response.streaming_content)  # type: ignore[attr-defined]
 
     def test_full_cycle(self):
 
@@ -170,7 +171,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 201)
-                object_key = json.loads(b"".join(response.streaming_content))["key"]
+                object_key = json.loads(b"".join(response.streaming_content))["key"]  # type: ignore[attr-defined]
                 assert object_key is not None
 
                 response = self.client.get(
@@ -179,7 +180,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 200)
-                retrieved_data = b"".join(response.streaming_content)
+                retrieved_data = b"".join(response.streaming_content)  # type: ignore[attr-defined]
                 assert retrieved_data == b"test data"
 
                 response = self.client.put(
@@ -190,7 +191,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 200)
-                new_key = json.loads(b"".join(response.streaming_content))["key"]
+                new_key = json.loads(b"".join(response.streaming_content))["key"]  # type: ignore[attr-defined]
                 assert new_key == object_key
 
                 response = self.client.get(
@@ -199,7 +200,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 200)
-                retrieved = b"".join(response.streaming_content)
+                retrieved = b"".join(response.streaming_content)  # type: ignore[attr-defined]
                 assert retrieved == b"new data"
 
                 response = self.client.delete(
@@ -208,7 +209,8 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 204)
-                b"".join(response.streaming_content)  # consume body to close connection
+                # consume body to close connection
+                b"".join(response.streaming_content)  # type: ignore[attr-defined]
 
                 response = self.client.get(
                     f"{base_url}{object_key}",
@@ -216,4 +218,5 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 404)
-                b"".join(response.streaming_content)  # consume body to close connection
+                # consume body to close connection
+                b"".join(response.streaming_content)  # type: ignore[attr-defined]

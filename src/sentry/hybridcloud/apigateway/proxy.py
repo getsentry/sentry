@@ -19,7 +19,11 @@ from requests.exceptions import Timeout
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
+from sentry.objectstore.endpoints.organization import (
+    ChunkedEncodingDecoder,
+    body_with_length,
+    get_raw_body,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.util import (
@@ -206,7 +210,9 @@ def proxy_region_request(
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
-    data: Generator[bytes] | ChunkedEncodingDecoder | _body_with_length | None = None
+    data: (
+        Generator[bytes] | ChunkedEncodingDecoder | _body_with_length | body_with_length | None
+    ) = None
     if url_name == "sentry-api-0-organization-objectstore":
         data = get_raw_body(request)
     else:
