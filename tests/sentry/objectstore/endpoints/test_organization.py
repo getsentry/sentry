@@ -150,6 +150,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert response.status_code == 200
+                b"".join(response.streaming_content)  # consume body to close connection
 
     def test_full_cycle(self):
 
@@ -184,8 +185,8 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 response = self.client.put(
                     f"{base_url}{object_key}",
                     data=b"new data",
-                    HTTP_AUTHORIZATION=auth_header,
                     content_type="application/octet-stream",
+                    HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
                 assert_status_code(response, 200)
@@ -198,8 +199,8 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 200)
-                retrieved_data = b"".join(response.streaming_content)
-                assert retrieved_data == b"new data"
+                retrieved = b"".join(response.streaming_content)
+                assert retrieved == b"new data"
 
                 response = self.client.delete(
                     f"{base_url}{object_key}",
@@ -207,6 +208,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 204)
+                b"".join(response.streaming_content)  # consume body to close connection
 
                 response = self.client.get(
                     f"{base_url}{object_key}",
@@ -214,3 +216,4 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 404)
+                b"".join(response.streaming_content)  # consume body to close connection
