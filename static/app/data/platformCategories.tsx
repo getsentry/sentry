@@ -446,6 +446,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'node',
   'python',
   'php',
+  'ruby',
 ]);
 
 export const profiling: PlatformKey[] = [
