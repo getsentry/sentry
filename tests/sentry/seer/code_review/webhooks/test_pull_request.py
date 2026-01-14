@@ -28,9 +28,10 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
 
         with patch(
-            "sentry.seer.code_review.utils.GitHubApiClient", return_value=mock_client_instance
-        ) as mock_api_client:
-            self.mock_api_client = mock_api_client
+            "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
+            mock_client_instance.get_pull_request,
+        ) as mock_get_pull_request:
+            self.mock_get_pull_request = mock_get_pull_request
             yield
 
     @pytest.fixture(autouse=True)
