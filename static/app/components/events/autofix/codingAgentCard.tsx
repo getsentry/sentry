@@ -8,7 +8,6 @@ import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
@@ -19,7 +18,6 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import testableTransition from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -71,6 +69,8 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     switch (provider) {
       case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
         return t('Cursor Cloud Agent');
+      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
+        return t('GitHub Copilot');
       default:
         return t('Coding Agent');
     }
@@ -110,7 +110,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   </Stack>
 
                   <Stack gap="sm">
-                    {/* Show results for completed or failed agents */}
                     {codingAgentState.results && codingAgentState.results.length > 0 && (
                       <ResultsSection>
                         {codingAgentState.status === CodingAgentStatus.FAILED && (
@@ -165,7 +164,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
                             >
-                              {t('Open in Cursor')}
+                              {codingAgentState.provider ===
+                              CodingAgentProvider.CURSOR_BACKGROUND_AGENT
+                                ? t('Open in Cursor')
+                                : t('View Agent')}
                             </Button>
                           </ExternalLink>
                         )}
@@ -283,30 +285,6 @@ const Value = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const ResultsSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const ResultItem = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.md} 0;
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
-`;
-
-const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
-  color: ${p =>
-    p.status === CodingAgentStatus.FAILED
-      ? p.theme.tokens.content.danger
-      : p.theme.tokens.content.primary};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

@@ -167,7 +167,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   ];
 
   const handleSetupCursorHandoff = useCallback(async () => {
-    if (!cursorIntegration) {
+    if (!cursorIntegration || cursorIntegration.id === null) {
       return;
     }
 
