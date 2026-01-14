@@ -1091,23 +1091,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
 
   /** @deprecated */
-  get red400() {
-    return colors.red500;
-  },
-  /** @deprecated */
-  get red300() {
-    return colors.red400;
-  },
-  /** @deprecated */
-  get red200() {
-    return colors.red200;
-  },
-  /** @deprecated */
-  get red100() {
-    return colors.red100;
-  },
-
-  /** @deprecated */
   get yellow400() {
     return colors.yellow500;
   },

@@ -90,7 +90,7 @@ function AllocationRow({
               <span
                 style={
                   allocation.consumedQuantity > allocation.reservedQuantity
-                    ? {color: theme.red400}
+                    ? {color: theme.colors.red500}
                     : {}
                 }
               >
@@ -124,7 +124,7 @@ function AllocationRow({
             size="xs"
             onClick={deleteAction}
             priority="danger"
-            style={deleteHovered ? {color: theme.red400} : {}}
+            style={deleteHovered ? {color: theme.colors.red500} : {}}
             onMouseEnter={() => setDeleteHovered(true)}
             onMouseLeave={() => setDeleteHovered(false)}
             data-test-id="delete"

@@ -356,7 +356,7 @@ function AllocationForm({
         <div>
           {showPrice ? (
             <div>
-              <HalvedGrid style={exhaustedEvents ? {color: theme.red400} : {}}>
+              <HalvedGrid style={exhaustedEvents ? {color: theme.colors.red500} : {}}>
                 <div>{t('Available Unconsumed Spend')}</div>
                 <div>
                   {displayPrice({
@@ -364,7 +364,7 @@ function AllocationForm({
                   })}
                 </div>
               </HalvedGrid>
-              <HalvedGrid style={exhaustedEvents ? {color: theme.red400} : {}}>
+              <HalvedGrid style={exhaustedEvents ? {color: theme.colors.red500} : {}}>
                 <div>{t('Available Unallocated Spend')}</div>
                 <div>
                   {displayPrice({
@@ -377,7 +377,7 @@ function AllocationForm({
             </div>
           ) : (
             <div>
-              <HalvedGrid style={exhaustedEvents ? {color: theme.red400} : {}}>
+              <HalvedGrid style={exhaustedEvents ? {color: theme.colors.red500} : {}}>
                 <div>{t('Available Unconsumed Events')}</div>
                 <div>
                   <Tooltip title={availableUnconsumedEvents}>
@@ -385,7 +385,7 @@ function AllocationForm({
                   </Tooltip>
                 </div>
               </HalvedGrid>
-              <HalvedGrid style={exhaustedEvents ? {color: theme.red400} : {}}>
+              <HalvedGrid style={exhaustedEvents ? {color: theme.colors.red500} : {}}>
                 <div>{t('Available Unallocated Events')}</div>
                 <div>
                   <Tooltip title={rootAllocation ? rootAllocation.reservedQuantity : 0}>
@@ -405,7 +405,7 @@ function AllocationForm({
                 <div>{t('Current Allocation:')}</div>
                 <div>{bigNumFormatter(initializedData.reservedQuantity, metricUnit)}</div>
               </HalvedGrid>
-              <HalvedGrid style={overConsumedEvents ? {color: theme.red400} : {}}>
+              <HalvedGrid style={overConsumedEvents ? {color: theme.colors.red500} : {}}>
                 <div>{t('Current Project Consumption:')}</div>
                 <div>{bigNumFormatter(initializedData.consumedQuantity, metricUnit)}</div>
               </HalvedGrid>
@@ -422,7 +422,7 @@ function AllocationForm({
                   })}
                 </div>
               </HalvedGrid>
-              <HalvedGrid style={overConsumedEvents ? {color: theme.red400} : {}}>
+              <HalvedGrid style={overConsumedEvents ? {color: theme.colors.red500} : {}}>
                 <div>{t('Consumed Spend')}</div>
                 <div>
                   {displayPrice({

@@ -165,7 +165,7 @@ function RootAllocationCard({
                         }
                       >
                         &nbsp;
-                        <span style={{color: theme.red400, marginLeft: space(1)}}>
+                        <span style={{color: theme.colors.red500, marginLeft: space(1)}}>
                           (
                           {bigNumFormatter(
                             rootAllocation.consumedQuantity -
