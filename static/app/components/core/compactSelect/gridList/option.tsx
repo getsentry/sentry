@@ -114,7 +114,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [multiple, isSelected, isDisabled, size, leadingItems, hideCheck]);
+  }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
   return (
     <StyledMenuListItem
