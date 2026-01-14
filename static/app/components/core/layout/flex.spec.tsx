@@ -51,6 +51,15 @@ describe('Flex', () => {
     );
   });
 
+  it('as=label props are correctly inferred', () => {
+    render(
+      <Flex as="label" htmlFor="test-id">
+        Hello World
+      </Flex>
+    );
+    expect(screen.getByText('Hello World')).toHaveAttribute('htmlFor', 'test-id');
+  });
+
   it('passes attributes to the underlying element', () => {
     render(<Flex data-test-id="container">Hello</Flex>);
     expect(screen.getByTestId('container')).toBeInTheDocument();

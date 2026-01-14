@@ -49,6 +49,15 @@ describe('Container', () => {
     );
   });
 
+  it('as=label props are correctly inferred', () => {
+    render(
+      <Container as="label" htmlFor="test-id">
+        Hello World
+      </Container>
+    );
+    expect(screen.getByText('Hello World')).toHaveAttribute('htmlFor', 'test-id');
+  });
+
   it('passes attributes to the underlying element', () => {
     render(<Container data-test-id="container">Hello</Container>);
     expect(screen.getByTestId('container')).toBeInTheDocument();
