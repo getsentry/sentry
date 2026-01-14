@@ -34,8 +34,6 @@ export function useMonitorsScheduleSampleBuckets({
 }: UseMonitorsScheduleSampleBucketsOptions) {
   const organization = useOrganization();
 
-  // Defaults make this hook easier to use in tests where the form store may not
-  // have initialized values yet.
   const scheduleType =
     useCronDetectorFormField('scheduleType') ?? CRON_DEFAULT_SCHEDULE_TYPE;
   const scheduleCrontab = useCronDetectorFormField('scheduleCrontab') ?? DEFAULT_CRONTAB;

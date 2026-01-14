@@ -7,10 +7,14 @@ import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
+import type {
+  CheckInBucket,
+  TimeWindowConfig,
+} from 'sentry/components/checkInTimeline/types';
 import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import LoadingError from 'sentry/components/loadingError';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   PreviewStatus,
@@ -102,7 +106,13 @@ export function Preview() {
         </TimeLineContainer>
       ) : timeWindowConfig && sampleBucketsData ? (
         <Fragment>
-          <GridLineOverlay showCursor timeWindowConfig={timeWindowConfig} />
+          <GridLineOverlay
+            showCursor
+            timeWindowConfig={timeWindowConfig}
+            additionalUi={
+              <OpenPeriod bucketedData={sampleBucketsData} timeWindowConfig={timeWindowConfig} />
+            }
+          />
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
           <TimeLineContainer>
             <CheckInTimeline<PreviewStatus>
@@ -119,6 +129,82 @@ export function Preview() {
   );
 }
 
+function OpenPeriod({
+  bucketedData,
+  timeWindowConfig,
+}: {
+  bucketedData: Array<CheckInBucket<PreviewStatus>>;
+  timeWindowConfig: TimeWindowConfig;
+}) {
+  const {bucketPixels, underscanStartOffset} = timeWindowConfig.rollupConfig;
+
+  let lastSubFailureIdx: number | null = null;
+  let lastSubRecoveryIdx: number | null = null;
+
+  function getBucketStatus(stats?: Record<string, number>) {
+    return stats
+      ? statusPrecedent.find(status => (stats[status] ?? 0) > 0)
+      : undefined;
+  }
+
+  for (let i = bucketedData.length - 1; i >= 0; i--) {
+    const stats = bucketedData[i]?.[1];
+    const status = getBucketStatus(stats);
+    if (lastSubFailureIdx === null && status === PreviewStatus.SUB_FAILURE_ERROR) {
+      lastSubFailureIdx = i;
+    }
+    if (lastSubRecoveryIdx === null && status === PreviewStatus.SUB_RECOVERY_OK) {
+      lastSubRecoveryIdx = i;
+    }
+    if (lastSubFailureIdx !== null && lastSubRecoveryIdx !== null) {
+      break;
+    }
+  }
+
+  if (
+    lastSubFailureIdx === null ||
+    lastSubRecoveryIdx === null ||
+    lastSubRecoveryIdx < lastSubFailureIdx
+  ) {
+    return null;
+  }
+
+  const left = lastSubFailureIdx * bucketPixels - underscanStartOffset;
+  const right = (lastSubRecoveryIdx + 1) * bucketPixels - underscanStartOffset;
+  const width = right - left;
+
+  if (width <= 0) {
+    return null;
+  }
+
+  let failureCount = 0;
+  let successCount = 0;
+  for (let i = 0; i < bucketedData.length; i++) {
+    const stats = bucketedData[i]?.[1];
+    if (!stats) {
+      continue;
+    }
+    failureCount += stats[PreviewStatus.SUB_FAILURE_ERROR] ?? 0;
+    successCount += stats[PreviewStatus.SUB_RECOVERY_OK] ?? 0;
+  }
+
+  return (
+    <Fragment>
+      <OpenPeriodBar style={{left, width}}>
+        <OpenPeriodLabel>{t('New Open Period')}</OpenPeriodLabel>
+      </OpenPeriodBar>
+      <OpenPeriodCountLabel style={{left}}>
+        {failureCount}{' '}
+        {tn('failed check-in', 'failed check-ins', failureCount)}
+      </OpenPeriodCountLabel>
+      <OpenPeriodCountLabel style={{left: right}}>
+        {successCount}{' '}
+        {tn('success check-in', 'success check-ins', successCount)}
+      </OpenPeriodCountLabel>
+    </Fragment>
+  );
+}
+
 const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
@@ -126,14 +212,63 @@ const TimelineWidthTracker = styled('div')`
 
 const TimeLineContainer = styled('div')`
   position: absolute;
-  top: 46px;
+  top: 50px;
   width: 100%;
+`;
+
+const OpenPeriodBar = styled('div')`
+  position: absolute;
+  top: 78px;
+  height: 18px;
+  background: ${p => p.theme.colors.red600};
+  color: ${p => p.theme.white};
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  padding: 0 ${p => p.theme.space.md};
+  overflow: visible;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: -8px;
+    width: 2px;
+    background: ${p => p.theme.colors.red600};
+  }
+
+  /* Start/end boundary markers */
+  &::before {
+    left: 0;
+  }
+  &::after {
+    right: 0;
+  }
+`;
+
+const OpenPeriodLabel = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+`;
+
+const OpenPeriodCountLabel = styled('div')`
+  position: absolute;
+  top: 108px;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  white-space: nowrap;
+  transform: translateX(-50%);
+  text-align: center;
 `;
 
 const Container = styled('div')`
   position: relative;
   width: 100%;
-  height: 100px;
+  height: 138px;
   background-color: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
