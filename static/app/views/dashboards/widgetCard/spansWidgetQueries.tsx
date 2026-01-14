@@ -23,7 +23,7 @@ import {
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import type {
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
@@ -32,7 +32,7 @@ type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEve
 type TableResult = TableData | EventsTableData;
 
 type SpansWidgetQueriesProps = {
-  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
+  children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;

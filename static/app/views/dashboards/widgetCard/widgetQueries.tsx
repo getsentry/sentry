@@ -18,7 +18,7 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import type {
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
@@ -27,7 +27,7 @@ type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEve
 type TableResult = TableData | EventsTableData;
 
 type Props = {
-  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
+  children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;

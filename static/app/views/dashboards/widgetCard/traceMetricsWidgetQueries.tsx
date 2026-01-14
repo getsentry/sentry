@@ -12,7 +12,7 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import type {
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
@@ -21,7 +21,7 @@ type SeriesResult = EventsTimeSeriesResponse;
 type TableResult = EventsTableData;
 
 type TraceMetricsWidgetQueriesProps = {
-  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
+  children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;

@@ -52,7 +52,7 @@ export type OnDataFetchedProps = {
   totalIssuesCount?: string;
 };
 
-export type GenericWidgetQueriesChildrenProps = {
+export type GenericWidgetQueriesResult = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
@@ -103,7 +103,7 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
 
 export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
-): GenericWidgetQueriesChildrenProps {
+): GenericWidgetQueriesResult {
   const {
     config,
     widget,
@@ -124,7 +124,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     skipDashboardFilterParens,
   } = props;
 
-  // Use hooks to get required dependencies
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();

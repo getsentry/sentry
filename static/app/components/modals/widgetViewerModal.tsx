@@ -100,7 +100,7 @@ import {
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -453,11 +453,7 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  function renderTable({
-    tableResults,
-    loading,
-    pageLinks,
-  }: GenericWidgetQueriesChildrenProps) {
+  function renderTable({tableResults, loading, pageLinks}: GenericWidgetQueriesResult) {
     return ViewerTableV2({
       tableResults,
       loading,
@@ -484,7 +480,7 @@ function WidgetViewerModal(props: Props) {
     loading,
     pageLinks,
     totalCount,
-  }: GenericWidgetQueriesChildrenProps) => {
+  }: GenericWidgetQueriesResult) => {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }

@@ -34,13 +34,13 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import type {
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   UseGenericWidgetQueriesProps,
 } from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 interface ReleaseWidgetQueriesProps {
-  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
+  children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;

@@ -14,7 +14,7 @@ import {
   DashboardsMEPContext,
   DashboardsMEPProvider,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', () => {
@@ -295,7 +295,7 @@ describe('Dashboards > WidgetQueries', () => {
     // Initialize PageFiltersStore with selection
     PageFiltersStore.onInitializeUrlState(selection);
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
+    let childProps: GenericWidgetQueriesResult | undefined;
     renderWithProviders(
       <WidgetQueries widget={tableWidget}>
         {props => {
@@ -368,7 +368,7 @@ describe('Dashboards > WidgetQueries', () => {
       ],
     };
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
+    let childProps: GenericWidgetQueriesResult | undefined;
     renderWithProviders(
       <WidgetQueries widget={widget}>
         {props => {
@@ -401,7 +401,7 @@ describe('Dashboards > WidgetQueries', () => {
     // Initialize PageFiltersStore with selection
     PageFiltersStore.onInitializeUrlState(selection);
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
+    let childProps: GenericWidgetQueriesResult | undefined;
     renderWithProviders(
       <WidgetQueries
         widget={{
@@ -489,7 +489,7 @@ describe('Dashboards > WidgetQueries', () => {
       ],
     };
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
+    let childProps: GenericWidgetQueriesResult | undefined;
     renderWithProviders(
       <WidgetQueries widget={widget}>
         {props => {
@@ -648,7 +648,7 @@ describe('Dashboards > WidgetQueries', () => {
       displayType: DisplayType.LINE,
       interval: '5m',
     };
-    let childProps!: GenericWidgetQueriesChildrenProps;
+    let childProps!: GenericWidgetQueriesResult;
     const {rerender} = renderWithProviders(
       <WidgetQueries widget={lineWidget}>
         {props => {
