@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, TypedDict
+
+from slack_sdk.models.blocks.blocks import Block
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixSuccess,
@@ -19,6 +23,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.shared_integrations.exceptions import IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +115,22 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             ),
             ephemeral_user_id=self.slack_request.user_id,
         )
+        try:
+            _update_existing_message(
+                request=self.slack_request,
+                install=self.install,
+                channel_id=self.channel_id,
+                message_ts=self.thread_ts,
+            )
+        except (IntegrationError, TypeError, KeyError):
+            logger.exception(
+                "slack.autofix.update_message_failed",
+                extra={
+                    "channel_id": self.channel_id,
+                    "message_ts": self.thread_ts,
+                    "organization_id": self.organization_id,
+                },
+            )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
@@ -273,3 +294,60 @@ def _send_thread_update(
             thread_ts=thread_ts,
             renderable=renderable,
         )
+
+
+def _transform_block_actions(
+    blocks: Sequence[dict[str, Any]],
+    transform_fn: Callable[[dict[str, Any]], dict[str, Any] | None],
+) -> list[dict[str, Any]]:
+    """
+    Transform action elements within top-level action blocks. Does not traverse nested blocks.
+    """
+    result = []
+    for block in blocks:
+        if block["type"] != "actions":
+            result.append(block)
+            continue
+
+        transformed_elements = []
+        for elem in block["elements"]:
+            transformed = transform_fn(elem)
+            if transformed is not None:
+                transformed_elements.append(transformed)
+
+        if transformed_elements:
+            result.append({**block, "elements": transformed_elements})
+
+    return result
+
+
+def _update_existing_message(
+    *,
+    request: SlackActionRequest,
+    install: SlackIntegration,
+    channel_id: str,
+    message_ts: str,
+) -> None:
+    from sentry.integrations.slack.message_builder.types import SlackAction
+
+    # XXX: Removes the autofix button to prevent repeated usage
+    blocks = _transform_block_actions(
+        request.data["message"]["blocks"],
+        lambda elem: (
+            None
+            if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value)
+            else elem
+        ),
+    )
+
+    parsed_blocks = [Block.parse(block) for block in blocks]
+    renderable = SlackRenderable(
+        blocks=[block for block in parsed_blocks if block is not None],
+        text=request.data["message"]["text"],
+    )
+
+    install.update_message(
+        channel_id=channel_id,
+        message_ts=message_ts,
+        renderable=renderable,
+    )

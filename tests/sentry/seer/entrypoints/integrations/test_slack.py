@@ -1,13 +1,13 @@
 from unittest.mock import ANY, Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
-from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.integrations.slack import (
     SlackEntrypoint,
     SlackEntrypointCachePayload,
     _send_thread_update,
+    _update_existing_message,
 )
 from sentry.testutils.cases import TestCase
 
@@ -22,7 +22,7 @@ class SlackEntrypointTest(TestCase):
             external_id="TXXXXXXXXX1",
             provider="slack",
         )
-        self.slack_request: SlackActionRequest = Mock()
+        self.slack_request = Mock()
         self.slack_request.integration = self.integration
         self.slack_request.channel_id = self.channel_id
         self.slack_request.user_id = self.slack_user_id
@@ -43,8 +43,18 @@ class SlackEntrypointTest(TestCase):
             slack_user_id=self.slack_request.user_id,
         )
 
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_autofix_success(self, mock_send_threaded_ephemeral_message):
+    def test_on_trigger_autofix_success(
+        self, mock_send_threaded_ephemeral_message, mock_update_message
+    ):
+        self.slack_request.data = {
+            "message": {
+                "ts": self.thread_ts,
+                "text": "Issue notification",
+                "blocks": [],
+            }
+        }
         ep = SlackEntrypoint(
             slack_request=self.slack_request,
             group=self.group,
@@ -57,6 +67,7 @@ class SlackEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_request.user_id,
         )
+        mock_update_message.assert_called_once()
 
     def test_create_autofix_cache_payload(self):
         ep = SlackEntrypoint(
@@ -132,3 +143,85 @@ class SlackEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_user_id,
         )
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_update_existing_message(self, mock_update_message):
+        self.slack_request.data = {
+            "message": {
+                "ts": self.thread_ts,
+                "text": "Issue notification",
+                "blocks": [
+                    {"type": "section", "text": {"type": "plain_text", "text": "Issue found"}},
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "action_id": "seer_autofix_start",
+                                "value": AutofixStoppingPoint.SOLUTION.value,
+                                "text": {"type": "plain_text", "text": "Plan a Solution"},
+                            },
+                            {
+                                "type": "button",
+                                "action_id": "other_action",
+                                "text": {"type": "plain_text", "text": "Other Action"},
+                            },
+                        ],
+                    },
+                ],
+            }
+        }
+
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        _update_existing_message(
+            request=self.slack_request,
+            install=install,
+            channel_id=self.channel_id,
+            message_ts=self.thread_ts,
+        )
+
+        mock_update_message.assert_called_once()
+        call_args = mock_update_message.call_args
+        assert call_args.kwargs["channel_id"] == self.channel_id
+        assert call_args.kwargs["message_ts"] == self.thread_ts
+        renderable = call_args.kwargs["renderable"]
+        assert len(renderable["blocks"]) == 2
+        # The second block is an ActionsBlock with only the non-autofix button remaining
+        actions_block = renderable["blocks"][1]
+        assert len(actions_block.elements) == 1
+        assert actions_block.elements[0].action_id == "other_action"
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_autofix_success_updates_message(
+        self, mock_send_threaded_ephemeral_message, mock_update_message
+    ):
+        self.slack_request.data = {
+            "message": {
+                "ts": self.thread_ts,
+                "text": "Issue notification",
+                "blocks": [
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "action_id": "seer_autofix_start",
+                                "value": AutofixStoppingPoint.SOLUTION.value,
+                                "text": {"type": "plain_text", "text": "Plan a Solution"},
+                            },
+                        ],
+                    }
+                ],
+            }
+        }
+
+        ep = SlackEntrypoint(
+            slack_request=self.slack_request,
+            group=self.group,
+            organization_id=self.organization.id,
+        )
+        ep.on_trigger_autofix_success(run_id=MOCK_RUN_ID)
+
+        mock_send_threaded_ephemeral_message.assert_called_once()
+        mock_update_message.assert_called_once()
