@@ -404,7 +404,12 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         projects=projects,
         organization=organization,
     )
-    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_EXPLORER_TOOLS)
+    events = query_trace_data(
+        snuba_params,
+        full_trace_id,
+        additional_attributes=["span.status_code"],
+        referrer=Referrer.SEER_EXPLORER_TOOLS,
+    )
 
     return EAPTrace(
         trace_id=full_trace_id,
@@ -626,45 +631,75 @@ def rpc_get_profile_flamegraph(
     }
 
 
-def get_repository_definition(*, organization_id: int, repo_full_name: str) -> dict | None:
+def get_repository_definition(
+    *,
+    organization_id: int,
+    repo_full_name: str,
+    external_id: str | None = None,
+) -> dict | None:
     """
-    Look up a repository by full name (owner/repo-name) that the org has access to.
+    Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
+
+    Lookup priority:
+    1. external_id (GitHub's repo ID - stable across renames)
+    2. Current name (exact match)
 
     Args:
         organization_id: The ID of the organization
         repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
+        external_id: Optional external repository ID (e.g., GitHub repo ID). Stable across renames.
+                     If provided, this is used for lookup instead of name.
 
     Returns:
-        dict with RepoDefinition fields if found, None otherwise
+        dict with RepoDefinition fields if found, None otherwise. Includes external_id
+        which should be stored for future lookups.
     """
-    parts = repo_full_name.split("/")
-    if len(parts) != 2:
-        logger.warning(
-            "seer.rpc.invalid_repo_name_format",
-            extra={"repo_full_name": repo_full_name},
-        )
-        return None
+    repo: Repository | None = None
 
-    owner, name = parts
+    if external_id:
+        repo = Repository.objects.filter(
+            organization_id=organization_id,
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+        ).first()
 
-    repo = Repository.objects.filter(
-        organization_id=organization_id,
-        name=repo_full_name,
-        status=ObjectStatus.ACTIVE,
-        provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
-    ).first()
+    if not repo:
+        parts = repo_full_name.split("/")
+        if len(parts) < 2:
+            logger.warning(
+                "seer.rpc.invalid_repo_name_format",
+                extra={"repo_full_name": repo_full_name},
+            )
+            return None
+
+        repo = Repository.objects.filter(
+            organization_id=organization_id,
+            name=repo_full_name,
+            status=ObjectStatus.ACTIVE,
+            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+        ).first()
 
     if not repo:
         logger.info(
             "seer.rpc.repository_not_found",
-            extra={"organization_id": organization_id, "repo_full_name": repo_full_name},
+            extra={
+                "organization_id": organization_id,
+                "repo_full_name": repo_full_name,
+                "external_id": external_id,
+            },
         )
         return None
 
+    # Use the actual repo name from the database, not the requested name.
+    repo_name_parts = repo.name.split("/")
+    owner = repo_name_parts[0]
+    name = "/".join(repo_name_parts[1:])
+
     return {
         "organization_id": organization_id,
-        "integration_id": str(repo.integration_id) if repo.integration_id else None,
+        "integration_id": str(repo.integration_id) if repo.integration_id is not None else None,
         "provider": repo.provider,
         "owner": owner,
         "name": name,
@@ -733,7 +768,7 @@ def _get_recommended_event(
     organization: Organization,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> Event | GroupEvent | None:
+) -> GroupEvent | None:
     """
     Our own implementation of Group.get_recommended_event. Requires the return event to fall in the time range and have a non-empty trace.
     Time range defaults to the group's first and last seen times.
@@ -763,62 +798,71 @@ def _get_recommended_event(
     else:
         dataset = Dataset.IssuePlatform
 
-    # Get up to 30 events with a recommended ordering.
-    events: list[Event] = eventstore.backend.get_events_snql(
-        organization_id=organization.id,
-        group_id=group.id,
-        start=start,
-        end=end,
-        conditions=[
-            Condition(Column("project_id"), Op.IN, [group.project.id]),
-            Condition(Column("group_id"), Op.IN, [group.id]),
-        ],
-        limit=30,
-        orderby=EventOrdering.RECOMMENDED.value,
-        referrer=Referrer.SEER_EXPLORER_TOOLS,
-        dataset=dataset,
-        tenant_ids={"organization_id": group.project.organization_id},
-        inner_limit=1000,
-    )
+    w_size = timedelta(days=3)
+    w_start = max(end - w_size, start)
+    w_end = end
+    event_query_limit = 100
+    fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
 
-    if not events:
-        return None
+    while w_start >= start:
+        # Get candidate events with the standard recommended ordering.
+        # This is an expensive orderby, hence the inner limit and sliding window.
+        events: list[Event] = eventstore.backend.get_events_snql(
+            organization_id=organization.id,
+            group_id=group.id,
+            start=w_start,
+            end=w_end,
+            conditions=[
+                Condition(Column("project_id"), Op.IN, [group.project.id]),
+                Condition(Column("group_id"), Op.IN, [group.id]),
+            ],
+            limit=event_query_limit,
+            orderby=EventOrdering.RECOMMENDED.value,
+            referrer=Referrer.SEER_EXPLORER_TOOLS,
+            dataset=dataset,
+            tenant_ids={"organization_id": group.project.organization_id},
+            inner_limit=1000,
+        )
 
-    trace_ids = list({e.trace_id for e in events if e.trace_id})
-    if len(trace_ids) == 0:
-        return events[0].for_group(group)
-    elif len(trace_ids) == 1:
-        query = f"trace:{trace_ids[0]}"
-    else:
-        query = f"trace:[{','.join(trace_ids)}]"
+        if events and not fallback_event:
+            fallback_event = events[0].for_group(group)
 
-    # Query EAP to get the span count of each trace.
-    # Extend the time range by +-1 day to account for min/max trace start/end times.
-    spans_start = start - timedelta(days=1)
-    spans_end = end + timedelta(days=1)
+        trace_ids = list({e.trace_id for e in events if e.trace_id})
 
-    result = execute_table_query(
-        org_id=organization.id,
-        dataset="spans",
-        per_page=len(trace_ids),
-        fields=["trace", "count()"],
-        query=query,
-        start=spans_start.isoformat(),
-        end=spans_end.isoformat(),
-    )
+        if len(trace_ids) > 0:
+            # Query EAP to get the span count of each trace.
+            # Extend the time range by +-1 day to account for min/max trace start/end times.
+            spans_start = w_start - timedelta(days=1)
+            spans_end = w_end + timedelta(days=1)
 
-    if not result or not result.get("data"):
-        return events[0].for_group(group)
+            count_field = "count(span.duration)"
+            result = execute_table_query(
+                org_id=organization.id,
+                dataset="spans",
+                per_page=len(trace_ids),
+                fields=["trace", count_field],
+                query=f"trace:[{','.join(trace_ids)}]",
+                start=spans_start.isoformat(),
+                end=spans_end.isoformat(),
+            )
 
-    # Return the first event with a span count greater than 0.
-    traces_with_spans: set[str] = set()
-    for item in result["data"]:
-        if item.get("trace") and item["count()"] > 0:
-            traces_with_spans.add(item["trace"])
+            if result and result.get("data"):
+                # Return the first event with a span count greater than 0.
+                traces_with_spans = {
+                    item["trace"]
+                    for item in result["data"]
+                    if item.get("trace") and item.get(count_field, 0) > 0
+                }
 
-    for e in events:
-        if e.trace_id in traces_with_spans:
-            return e.for_group(group)
+                for e in events:
+                    if e.trace_id in traces_with_spans:
+                        return e.for_group(group)
+
+        if w_start == start:
+            break
+
+        w_end = w_start
+        w_start = max(w_start - w_size, start)
 
     logger.warning(
         "_get_recommended_event: No event with a span found",
@@ -829,7 +873,7 @@ def _get_recommended_event(
             "end": end,
         },
     )
-    return events[0].for_group(group)
+    return fallback_event
 
 
 # Activity types to include in issue details for Seer Explorer (manual actions only)

@@ -156,7 +156,7 @@ const Title = styled('h3')`
 
 const Subheader = styled('p')`
   text-transform: uppercase;
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.tokens.content.promotion};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   margin-bottom: ${space(1)};
@@ -175,7 +175,7 @@ const InfoHeader = styled('div')`
 
 const ConsentHeader = styled('p')`
   font-weight: bold;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
 `;
@@ -205,13 +205,13 @@ const ConsentLabelHeader = styled('div')`
 `;
 const ConsentLabelBody = styled('p')`
   margin-bottom: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledIconWrapper = styled('span')`
   margin-left: ${space(3)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Footer = styled('div')`
@@ -228,7 +228,7 @@ const LearnMore = styled(ExternalLink)`
 
   &:hover {
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.blue200};
+    text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 `;
 
@@ -261,7 +261,7 @@ const DismissButton = styled(Button)`
   position: absolute;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 1;
   background-color: rgba(255, 255, 255, 0.8);
   border-radius: 50%;

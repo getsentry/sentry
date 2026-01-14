@@ -95,6 +95,8 @@ export const enum SectionKey {
 
   SPAN_LINKS = 'span-links',
   CLUSTERED_ISSUES = 'clustered-issues',
+
+  XRAY_DIFF = 'xray-diff',
 }
 
 /**

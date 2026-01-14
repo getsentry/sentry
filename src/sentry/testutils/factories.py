@@ -5,6 +5,7 @@ import copy
 import io
 import os
 import random
+import uuid
 import zipfile
 from base64 import b64encode
 from binascii import hexlify
@@ -19,6 +20,7 @@ from uuid import uuid4
 
 import orjson
 import petname
+import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
@@ -26,6 +28,9 @@ from django.db import router, transaction
 from django.test.utils import override_settings
 from django.utils import timezone
 from django.utils.text import slugify
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
@@ -133,6 +138,7 @@ from sentry.organizations.services.organization import RpcOrganization, RpcUserO
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
@@ -2533,6 +2539,72 @@ class Factories:
         )
 
     @staticmethod
+    def store_preprod_size_metric(
+        project_id: int,
+        organization_id: int,
+        timestamp: datetime,
+        preprod_artifact_id: int = 1,
+        size_metric_id: int = 1,
+        app_id: str = "com.example.app",
+        artifact_type: PreprodArtifact.ArtifactType = PreprodArtifact.ArtifactType.XCARCHIVE,
+        metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        max_install_size: int = 100000,
+        max_download_size: int = 80000,
+        min_install_size: int = 95000,
+        min_download_size: int = 75000,
+        git_head_ref: str | None = None,
+        build_configuration_name: str | None = None,
+    ) -> None:
+        """Write a preprod size metric to EAP/Snuba for testing."""
+        from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+        from sentry.search.eap.rpc_utils import anyvalue
+        from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
+
+        proto_timestamp = Timestamp()
+        proto_timestamp.FromDatetime(timestamp)
+
+        trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(preprod_artifact_id)).hex
+        item_id_str = f"size_metric_{size_metric_id}"
+        item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
+
+        attributes = {
+            "preprod_artifact_id": anyvalue(preprod_artifact_id),
+            "size_metric_id": anyvalue(size_metric_id),
+            "sub_item_type": anyvalue("size_metric"),
+            "metrics_artifact_type": anyvalue(metrics_artifact_type),
+            "identifier": anyvalue(""),
+            "min_install_size": anyvalue(min_install_size),
+            "max_install_size": anyvalue(max_install_size),
+            "min_download_size": anyvalue(min_download_size),
+            "max_download_size": anyvalue(max_download_size),
+            "artifact_type": anyvalue(artifact_type),
+            "app_id": anyvalue(app_id),
+        }
+
+        if git_head_ref:
+            attributes["git_head_ref"] = anyvalue(git_head_ref)
+        if build_configuration_name:
+            attributes["build_configuration_name"] = anyvalue(build_configuration_name)
+
+        trace_item = TraceItem(
+            organization_id=organization_id,
+            project_id=project_id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+            timestamp=proto_timestamp,
+            trace_id=trace_id,
+            item_id=item_id,
+            received=proto_timestamp,
+            retention_days=90,
+            attributes=attributes,
+        )
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files={"item_0": trace_item.SerializeToString()},
+        )
+        assert response.status_code == 200
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_comparison(
         organization: Organization,
@@ -2577,11 +2649,12 @@ class Factories:
         commit_comparison: CommitComparison | None = None,
         file_id: int | None = None,
         installable_app_file_id: int | None = None,
+        date_added: datetime | None = None,
         build_configuration: PreprodBuildConfiguration | None = None,
         extras: dict | None = None,
         **kwargs,
     ) -> PreprodArtifact:
-        return PreprodArtifact.objects.create(
+        artifact = PreprodArtifact.objects.create(
             project=project,
             state=state,
             artifact_type=artifact_type,
@@ -2596,6 +2669,24 @@ class Factories:
             extras=extras,
             **kwargs,
         )
+        if date_added is not None:
+            artifact.update(date_added=date_added)
+
+        mobile_app_info_fields: dict[str, Any] = {}
+        if build_version is not None:
+            mobile_app_info_fields["build_version"] = build_version
+        if build_number is not None:
+            mobile_app_info_fields["build_number"] = build_number
+        if app_name is not None:
+            mobile_app_info_fields["app_name"] = app_name
+
+        if mobile_app_info_fields:
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=artifact,
+                **mobile_app_info_fields,
+            )
+
+        return artifact
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2649,3 +2740,28 @@ class Factories:
             expiration_date=expiration_date,
             download_count=download_count,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_github_identity(
+        user: User | None = None, idp: IdentityProvider | None = None, **kwargs: Any
+    ) -> Identity:
+        if idp is None:
+            idp = Factories.create_github_provider()
+        if user is None:
+            user = Factories.create_user()
+        if "external_id" not in kwargs:
+            kwargs["external_id"] = f"github-user-{user.id}"
+        if "status" not in kwargs:
+            kwargs["status"] = IdentityStatus.VALID
+
+        identity, _ = Identity.objects.update_or_create(user=user, idp=idp, defaults=kwargs)
+        return identity
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_github_provider(**kwargs) -> IdentityProvider:
+        identity_provider, _ = IdentityProvider.objects.update_or_create(
+            type="github", external_id="github-app", defaults=kwargs
+        )
+        return identity_provider

@@ -250,7 +250,7 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
   ${p =>
     p.highlighted
       ? css`
-          border: 2px solid ${p.theme.colors.blue400};
+          border: 2px solid ${p.theme.tokens.border.accent.vibrant};
         `
       : css`
           padding: 1px;
@@ -268,12 +268,12 @@ const ScheduleLabel = styled('div')`
 
 const Label = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SubHeading = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};
   text-transform: uppercase;
@@ -303,7 +303,7 @@ const IntervalInputs = styled(MultiColumnInput)`
 `;
 
 const CronstrueText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;

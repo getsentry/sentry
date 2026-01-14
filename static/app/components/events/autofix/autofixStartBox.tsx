@@ -196,7 +196,7 @@ const Container = styled('div')`
     );
   overflow: visible;
   padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AutofixStartText = styled('div')`
@@ -226,7 +226,7 @@ const BackgroundStar = styled('img')`
 `;
 
 const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.5;
 `;
 
@@ -240,9 +240,9 @@ const StyledInput = styled(TextArea)`
   resize: none;
   background: ${p => p.theme.tokens.background.primary};
 
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 

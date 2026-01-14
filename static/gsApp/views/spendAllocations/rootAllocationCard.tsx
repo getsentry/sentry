@@ -3,6 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -13,6 +15,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import type {Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
 import {Card, HalvedGrid} from './components/styles';
@@ -40,16 +43,15 @@ function RootAllocationCard({
   }, [rootAllocation]);
 
   const metricUnit = useMemo(() => {
-    return selectedMetric === DataCategory.ATTACHMENTS
-      ? BigNumUnits.KILO_BYTES
-      : BigNumUnits.NUMBERS;
+    const categoryInfo = getCategoryInfoFromPlural(selectedMetric as DataCategory);
+    return categoryInfo?.formatting.bigNumUnit ?? BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
   return (
     <RootAllocation>
       {!rootAllocation && (
         <Card data-test-id="missing-root">
-          <CreateRoot>
+          <Flex justify="between">
             <NoRootInfo>
               There is currently no organization-level allocation for this billing metric.
               <p>
@@ -59,7 +61,7 @@ function RootAllocationCard({
               Click the button to create one and to enable spend allocation for{' '}
               {selectedMetric}.
             </NoRootInfo>
-            <EnableRoot>
+            <Flex justify="center" align="center" area="bt" column="-auto / span 1">
               <Button
                 icon={<IconAdd />}
                 onClick={createRootAllocation}
@@ -67,8 +69,8 @@ function RootAllocationCard({
               >
                 Create Organization-Level Allocation
               </Button>
-            </EnableRoot>
-          </CreateRoot>
+            </Flex>
+          </Flex>
         </Card>
       )}
       {rootAllocation && (
@@ -201,18 +203,6 @@ const Body = styled('div')`
 
 const RootAllocation = styled('div')`
   margin: ${space(2)} 0;
-`;
-
-const CreateRoot = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-const EnableRoot = styled('div')`
-  grid-column: -auto / span 1;
-  grid-area: bt;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 `;
 
 const NoRootInfo = styled('div')`

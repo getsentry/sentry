@@ -85,18 +85,18 @@ const SliderThumbWrap = styled('div')<{
   ${p =>
     p.error &&
     css`
-      background: ${p.theme.error};
-      color: ${p.theme.errorText};
+      background: ${p.theme.tokens.content.danger};
+      color: ${p.theme.tokens.content.danger};
 
       &:hover {
-        background: ${p.theme.error};
+        background: ${p.theme.tokens.content.danger};
       }
     `}
 
   ${p =>
     p.isFocused &&
     css`
-      box-shadow: 0 0 0 2px ${p.error ? p.theme.tokens.border.danger : p.theme.focus};
+      box-shadow: 0 0 0 2px ${p.theme.tokens.focus[p.error ? 'invalid' : 'default']};
       z-index: 1;
     `}
 
@@ -104,11 +104,11 @@ const SliderThumbWrap = styled('div')<{
     p.isDisabled &&
     css`
       cursor: initial;
-      background: ${p.theme.subText};
-      color: ${p.theme.subText};
+      background: ${p.theme.tokens.content.disabled};
+      color: ${p.theme.tokens.content.disabled};
 
       &:hover {
-        background: ${p.theme.subText};
+        background: ${p.theme.tokens.content.disabled};
       }
     `};
 

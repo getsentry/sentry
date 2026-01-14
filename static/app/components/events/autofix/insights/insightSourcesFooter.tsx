@@ -164,7 +164,7 @@ export function InsightSourcesFooter({
 // Styled Components
 const BottomDivider = styled('div')`
   margin-top: ${p => p.theme.space.lg};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const FooterContainer = styled('div')`

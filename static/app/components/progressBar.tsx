@@ -26,7 +26,7 @@ const getVariantStyle = ({
     return `
       height: 24px;
       border-radius: 24px;
-      border: 1px solid ${theme.border};
+      border: 1px solid ${theme.tokens.border.primary};
       box-shadow: inset 0px 1px 3px rgba(0, 0, 0, 0.06);
       :before {
         left: 6px;
@@ -42,7 +42,7 @@ const getVariantStyle = ({
   return `
     height: 6px;
     border-radius: 100px;
-    background: ${theme.progressBackground};
+    background: ${theme.colors.gray100};
     :before {
       top: 0;
       left: 0;
@@ -66,7 +66,7 @@ const ProgressBar = styled(({className, value}: Props) => (
   :before {
     content: ' ';
     width: ${p => p.value}%;
-    background-color: ${p => p.theme.progressBar};
+    background-color: ${p => p.theme.tokens.background.accent.vibrant};
     position: absolute;
   }
 

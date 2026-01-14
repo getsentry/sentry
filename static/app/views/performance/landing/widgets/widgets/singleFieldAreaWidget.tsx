@@ -38,7 +38,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const mepSetting = useMEPSettingContext();
   const useEap = useInsightsEap();
 
@@ -77,7 +77,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
             'medium'
           )}
           hideError
-          onError={setPageError}
+          onError={setPageDanger}
           queryExtras={queryExtras}
         />
       ),
@@ -178,7 +178,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
 const EventsRequest = withApi(_EventsRequest);
 export const Subtitle = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 

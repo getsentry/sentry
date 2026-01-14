@@ -758,25 +758,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         end = None
         paginator_options = {} if paginator_options is None else paginator_options
 
-        debug_allowlist = options.get("snuba.search.debug-log-project-allowlist")
-        project_ids = [p.id for p in projects]
-        debug_enabled = bool(debug_allowlist and any(pid in debug_allowlist for pid in project_ids))
-        if debug_enabled:
-            search_filter_summary = [
-                {"key": sf.key.name, "value": str(sf.value.raw_value), "operator": sf.operator}
-                for sf in (search_filters or ())
-            ]
-            self.logger.info(
-                "snuba.search.debug.query_start",
-                extra={
-                    "project_ids": project_ids,
-                    "sort_by": sort_by,
-                    "limit": limit,
-                    "search_filters": search_filter_summary,
-                    "referrer": referrer,
-                },
-            )
-
         end_params = [
             _f
             for _f in [
@@ -890,14 +871,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if not group_ids:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
-            if debug_enabled:
-                self.logger.info(
-                    "snuba.search.debug.early_return",
-                    extra={
-                        "project_ids": project_ids,
-                        "reason": "no_candidates",
-                    },
-                )
             return self.empty_result
         elif len(group_ids) > max_candidates:
             original_group_ids = group_ids
@@ -913,20 +886,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
             too_many_candidates = True
             group_ids = []
-
-        if debug_enabled:
-            self.logger.info(
-                "snuba.search.debug.candidates",
-                extra={
-                    "project_ids": project_ids,
-                    "max_candidates": max_candidates,
-                    "group_ids_count": len(group_ids),
-                    "too_many_candidates": too_many_candidates,
-                    "group_queryset_sql": (
-                        str(group_queryset.query) if too_many_candidates else None
-                    ),
-                },
-            )
 
         sort_field = self.sort_strategies[sort_by]
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
@@ -961,33 +920,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # If we had too_many_candidates, fall back to truncation instead of
             # returning empty. This handles selective filters (like assigned_to)
             # where random sampling is unlikely to find matches.
-            truncation_allowlist = options.get(
-                "snuba.search.truncate-group-ids-for-selective-filters-project-allowlist"
-            )
-            is_truncation_enabled = any(pid in truncation_allowlist for pid in project_ids)
-
-            if too_many_candidates and original_group_ids and is_truncation_enabled:
+            if too_many_candidates and original_group_ids:
                 metrics.incr("snuba.search.hits_zero_fallback_to_truncation", skip_internal=False)
                 group_ids = original_group_ids[:max_candidates]
                 too_many_candidates = False
                 hits = None
-                if debug_enabled:
-                    self.logger.info(
-                        "snuba.search.debug.fallback_to_truncation",
-                        extra={
-                            "project_ids": project_ids,
-                            "truncated_group_ids_count": len(group_ids),
-                        },
-                    )
             else:
-                if debug_enabled:
-                    self.logger.info(
-                        "snuba.search.debug.early_return",
-                        extra={
-                            "project_ids": project_ids,
-                            "reason": "hits_zero",
-                        },
-                    )
                 return self.empty_result
 
         paginator_results = self.empty_result
@@ -1035,36 +973,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             more_results = count >= limit and (offset + limit) < total
             offset += len(snuba_groups)
 
-            if debug_enabled:
-                snuba_group_ids_sample = [gid for gid, _ in snuba_groups[:10]]
-                self.logger.info(
-                    "snuba.search.debug.chunk",
-                    extra={
-                        "project_ids": project_ids,
-                        "chunk_num": num_chunks,
-                        "chunk_limit": chunk_limit,
-                        "offset_before": offset - len(snuba_groups),
-                        "offset_after": offset,
-                        "snuba_count": count,
-                        "snuba_total": total,
-                        "more_results": more_results,
-                        "limit": limit,
-                        "snuba_group_ids_sample": snuba_group_ids_sample,
-                        "elapsed_seconds": time.time() - time_start,
-                    },
-                )
-
             if not snuba_groups:
-                if debug_enabled:
-                    self.logger.info(
-                        "snuba.search.debug.loop_break",
-                        extra={
-                            "project_ids": project_ids,
-                            "reason": "snuba_groups_empty",
-                            "num_chunks": num_chunks,
-                            "result_groups_count": len(result_groups),
-                        },
-                    )
                 break
 
             if group_ids:
@@ -1098,18 +1007,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                     result_group_ids.add(group_id)
                     result_groups.append((group_id, group_score))
 
-                if debug_enabled:
-                    self.logger.info(
-                        "snuba.search.debug.post_filter",
-                        extra={
-                            "project_ids": project_ids,
-                            "chunk_num": num_chunks,
-                            "snuba_group_ids_count": len(snuba_groups),
-                            "filtered_group_ids_count": filtered_count,
-                            "result_groups_count_after": len(result_groups),
-                        },
-                    )
-
             # break the query loop for one of three reasons:
             # * we started with Postgres candidates and so only do one Snuba query max
             # * the paginator is returning enough results to satisfy the query (>= the limit)
@@ -1121,43 +1018,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
 
             if group_ids or len(paginator_results.results) >= limit or not more_results:
-                if debug_enabled:
-                    termination_reason = (
-                        "group_ids_present"
-                        if group_ids
-                        else (
-                            "enough_results"
-                            if len(paginator_results.results) >= limit
-                            else "no_more_results"
-                        )
-                    )
-                    self.logger.info(
-                        "snuba.search.debug.loop_break",
-                        extra={
-                            "project_ids": project_ids,
-                            "reason": termination_reason,
-                            "num_chunks": num_chunks,
-                            "result_groups_count": len(result_groups),
-                            "paginator_results_count": len(paginator_results.results),
-                            "more_results": more_results,
-                            "total_elapsed_seconds": time.time() - time_start,
-                        },
-                    )
                 break
-        else:
-            # Loop exited due to timeout (while condition became false)
-            if debug_enabled:
-                self.logger.info(
-                    "snuba.search.debug.loop_break",
-                    extra={
-                        "project_ids": project_ids,
-                        "reason": "timeout",
-                        "num_chunks": num_chunks,
-                        "result_groups_count": len(result_groups),
-                        "max_time": max_time,
-                        "total_elapsed_seconds": time.time() - time_start,
-                    },
-                )
 
         # HACK: We're using the SequencePaginator to mask the complexities of going
         # back and forth between two databases. This causes a problem with pagination
@@ -1188,19 +1049,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             (timezone.now() - now).total_seconds(),
             tags={"postgres_only": False},
         )
-
-        if debug_enabled:
-            final_result_ids = [g.id for g in paginator_results.results]
-            self.logger.info(
-                "snuba.search.debug.query_complete",
-                extra={
-                    "project_ids": project_ids,
-                    "num_chunks": num_chunks,
-                    "final_result_count": len(paginator_results.results),
-                    "final_result_ids": final_result_ids[:25],
-                    "total_elapsed_seconds": (timezone.now() - now).total_seconds(),
-                },
-            )
 
         return paginator_results
 
@@ -1287,28 +1135,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             )
             snuba_count = len(snuba_groups)
 
-            debug_allowlist = options.get("snuba.search.debug-log-project-allowlist")
-            project_ids = [p.id for p in projects]
-            debug_enabled = bool(
-                debug_allowlist and any(pid in debug_allowlist for pid in project_ids)
-            )
-
             if snuba_count == 0:
                 # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result
-                if debug_enabled:
-                    self.logger.info(
-                        "snuba.search.debug.calculate_hits",
-                        extra={
-                            "project_ids": project_ids,
-                            "sample_size": sample_size,
-                            "snuba_count": 0,
-                            "snuba_total": snuba_total,
-                            "filtered_count": 0,
-                            "hit_ratio": 0,
-                            "hits": 0,
-                            "reason": "snuba_returned_no_samples",
-                        },
-                    )
                 return 0
             else:
                 filtered_count = group_queryset.filter(
@@ -1317,23 +1145,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
                 hit_ratio = filtered_count / float(snuba_count)
                 hits = int(hit_ratio * snuba_total)
-
-                if debug_enabled:
-                    snuba_sample_ids = [gid for gid, _ in snuba_groups[:10]]
-                    self.logger.info(
-                        "snuba.search.debug.calculate_hits",
-                        extra={
-                            "project_ids": project_ids,
-                            "sample_size": sample_size,
-                            "snuba_count": snuba_count,
-                            "snuba_total": snuba_total,
-                            "filtered_count": filtered_count,
-                            "hit_ratio": hit_ratio,
-                            "hits": hits,
-                            "snuba_sample_ids": snuba_sample_ids,
-                            "too_many_candidates": too_many_candidates,
-                        },
-                    )
                 return hits
         return None
 

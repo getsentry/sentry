@@ -302,7 +302,9 @@ function PlanDetailsSection({
         <h3 id={planTypeId} style={{margin: 0}}>
           {planTierIdFormatted} {planNameFormatted} Plan
         </h3>
-        <Badge type={notLive ? 'warning' : 'new'}>{notLive ? 'NOT LIVE' : 'LIVE'}</Badge>
+        <Badge variant={notLive ? 'warning' : 'new'}>
+          {notLive ? 'NOT LIVE' : 'LIVE'}
+        </Badge>
       </div>
 
       {/* Pricing Table */}
@@ -381,7 +383,7 @@ function PriceTiersTable({
         <h5 id={dataCategoryId} style={{margin: 0}}>
           {dataCategoryFormatted} for {planTierIdFormatted} {planNameFormatted}
         </h5>
-        <Badge type={badgeType}>{badgeText}</Badge>
+        <Badge variant={badgeType}>{badgeText}</Badge>
       </div>
       <Panel>
         <StyledResultTable>
@@ -440,7 +442,7 @@ const TOCContainer = styled('nav')`
   }
   a {
     text-decoration: none;
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     &:hover {
       text-decoration: underline;
     }

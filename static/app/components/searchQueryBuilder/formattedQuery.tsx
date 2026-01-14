@@ -206,7 +206,7 @@ export const FilterWrapper = styled('div')`
   gap: ${space(0.5)};
   background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.25)} ${space(0.5)};
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: 24px;
   white-space: nowrap;
@@ -216,12 +216,12 @@ export const FilterWrapper = styled('div')`
 const FilterValue = styled('div')`
   width: 100%;
   max-width: 300px;
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const Paren = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

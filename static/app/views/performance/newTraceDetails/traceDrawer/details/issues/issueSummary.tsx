@@ -33,7 +33,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
     <Fragment>
       {isBookmarked && (
         <IconWrapper>
-          <IconStar isSolid color="yellow400" />
+          <IconStar isSolid variant="warning" />
         </IconWrapper>
       )}
       <ErrorBoundary customComponent={() => <EventTitleError />} mini>
@@ -99,7 +99,7 @@ const Title = styled('div')`
     font-size: ${p => p.theme.fontSize.md};
     font-style: normal;
     font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -112,7 +112,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   span {
     direction: ltr;
   }

@@ -329,11 +329,11 @@ export function ToolbarSaveAs() {
 }
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;
 
 const StyledToolbarSection = styled(ToolbarSection)`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${space(3)};
 `;
 

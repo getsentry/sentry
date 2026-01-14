@@ -1,7 +1,12 @@
 import {Fragment, useCallback, useState} from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {
+  SelectTrigger,
+  type SelectTriggerProps,
+} from '@sentry/scraps/compactSelect/trigger';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
@@ -72,6 +77,7 @@ export interface TimeRangeSelectorProps
     | 'onInteractOutside'
     | 'closeOnSelect'
     | 'onKeyDown'
+    | 'trigger'
   > {
   /**
    * Set an optional default value to prefill absolute date with
@@ -135,6 +141,12 @@ export interface TimeRangeSelectorProps
    * Start date value for absolute date selector
    */
   start?: DateString;
+  trigger?: (
+    props: SelectTriggerProps & {
+      desynced?: boolean;
+    },
+    isOpen: boolean
+  ) => React.ReactNode;
   /**
    * Default initial value for using UTC
    */
@@ -205,7 +217,7 @@ export function TimeRangeSelector({
               <IconArrow
                 direction="right"
                 size="xs"
-                color={isFocused || isSelected ? undefined : 'subText'}
+                variant={isFocused || isSelected ? undefined : 'muted'}
               />
             ),
             textValue: item.textValue,
@@ -357,31 +369,25 @@ export function TimeRangeSelector({
           }}
           onInteractOutside={commitChanges}
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
-          trigger={
-            trigger ??
-            (triggerProps => {
-              const relativeSummary = items.some(item => item.value === relative)
-                ? relative?.toUpperCase()
-                : t('Invalid Period');
-              const defaultLabel =
-                start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
+          trigger={(triggerProps, isOpen) => {
+            const relativeSummary = items.some(item => item.value === relative)
+              ? relative?.toUpperCase()
+              : t('Invalid Period');
+            const defaultLabel =
+              start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
-              return (
-                <SelectTrigger.Button
-                  data-test-id="page-filter-timerange-selector"
-                  {...triggerProps}
-                  {...selectProps.triggerProps}
-                >
-                  <TriggerLabelWrap>
-                    <TriggerLabel>
-                      {selectProps.triggerProps?.children ?? defaultLabel}
-                    </TriggerLabel>
-                    {desynced && <DesyncedFilterIndicator />}
-                  </TriggerLabelWrap>
-                </SelectTrigger.Button>
-              );
-            })
-          }
+            const mergedProps = mergeProps(triggerProps, {
+              'data-test-id': 'page-filter-timerange-selector',
+              children: defaultLabel,
+              desynced,
+            });
+
+            return trigger ? (
+              trigger(mergedProps, isOpen)
+            ) : (
+              <TimeRangeSelectTrigger {...mergedProps} />
+            );
+          }}
           menuWidth={showAbsoluteSelector ? undefined : (menuWidth ?? '16rem')}
           menuBody={
             (showAbsoluteSelector || menuBody) && (
@@ -487,6 +493,22 @@ export function TimeRangeSelector({
         />
       )}
     </SelectorItemsHook>
+  );
+}
+
+export function TimeRangeSelectTrigger({
+  desynced,
+  ...props
+}: SelectTriggerProps & {
+  desynced?: boolean;
+}) {
+  return (
+    <SelectTrigger.Button {...props}>
+      <TriggerLabelWrap>
+        <TriggerLabel>{props.children}</TriggerLabel>
+        {desynced && <DesyncedFilterIndicator />}
+      </TriggerLabelWrap>
+    </SelectTrigger.Button>
   );
 }
 

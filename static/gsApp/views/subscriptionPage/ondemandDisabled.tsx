@@ -30,22 +30,24 @@ import {NavLink} from 'react-router-dom';
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 
 import {type Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
 
 interface Props {
+  organization: Organization;
   subscription: Subscription;
 }
 
-function OnDemandDisabled({subscription}: Props) {
+function OnDemandDisabled({organization, subscription}: Props) {
   // Only show the alert if billing is disabled and there's a spend limit configured
   if (!(subscription.onDemandDisabled && subscription.onDemandMaxSpend > 0)) {
     return null;
   }
 
   return (
-    <Alert type="error" data-test-id="ondemand-disabled-alert" showIcon={false}>
+    <Alert variant="danger" data-test-id="ondemand-disabled-alert" showIcon={false}>
       <span>
         {tct(
           "[budgetTerm] billing is disabled for your organization due to an unpaid [lowerCaseBudgetTerm] invoice. This may impact your organization's ability to accept data into Sentry. [docs_link:Learn more about this process].",
@@ -63,7 +65,9 @@ function OnDemandDisabled({subscription}: Props) {
           'Please contact [contact_link:support@sentry.io] to pay [receipts_link:closed/outstanding invoices] to re-enable [budgetTerm] billing.',
           {
             budgetTerm: displayBudgetName(subscription.planDetails),
-            receipts_link: <NavLink to="/settings/billing/receipts/" />,
+            receipts_link: (
+              <NavLink to={`/settings/${organization.slug}/billing/receipts/`} />
+            ),
             contact_link: <a href="mailto:support@sentry.io" />,
           }
         )}

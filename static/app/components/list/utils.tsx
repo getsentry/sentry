@@ -7,7 +7,7 @@ const bulletStyle = (theme: Theme) => css`
   padding-left: ${space(3)};
   list-style-type: circle;
   & > li::marker {
-    color: ${theme.subText};
+    color: ${theme.tokens.content.secondary};
   }
 `;
 
@@ -40,8 +40,8 @@ const numericStyle = (
             height: 24px;
             font-weight: ${theme.fontWeight.normal};
             font-size: ${theme.fontSize.sm};
-            background-color: ${theme.colors.chonk.yellow400};
-            color: ${theme.black};
+            background-color: ${theme.tokens.background.warning.vibrant};
+            color: ${theme.tokens.content.onVibrant.dark};
           `
         : css`
             top: 3px;
@@ -49,7 +49,7 @@ const numericStyle = (
             height: 18px;
             font-weight: ${theme.fontWeight.bold};
             font-size: 10px;
-            border: 1px solid ${theme.border};
+            border: 1px solid ${theme.tokens.border.primary};
           `}
     }
   }

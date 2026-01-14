@@ -120,7 +120,7 @@ export default class TableField extends Component<InputFieldProps> {
       return (
         <Fragment>
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <span
                 dangerouslySetInnerHTML={{
                   __html: singleLineRenderer(
@@ -202,7 +202,7 @@ export default class TableField extends Component<InputFieldProps> {
 const HeaderLabel = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Header = styled('div')`

@@ -133,7 +133,7 @@ interface SkipConfirmationProps {
 
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Flex direction="column" gap="md">
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="between" gap="xs" flex={1}>
@@ -288,7 +288,7 @@ function Task({task, hidePanel}: TaskProps) {
         icon={
           task.skippable ? (
             <Button
-              icon={<IconNot size="sm" color="subText" />}
+              icon={<IconNot size="sm" variant="muted" />}
               aria-label={t('Skip Task')}
               onClick={event => {
                 event.stopPropagation();
@@ -304,7 +304,7 @@ function Task({task, hidePanel}: TaskProps) {
         title={<strong>{task.title}</strong>}
         actions={
           <ClickIndicator>
-            <IconChevron direction="right" size="xs" color="subText" />
+            <IconChevron direction="right" size="xs" variant="muted" />
           </ClickIndicator>
         }
       />
@@ -563,21 +563,22 @@ const Content = styled('div')`
 `;
 
 const TaskGroupWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
 
   background-color: ${p => p.theme.tokens.background.primary};
 
   hr {
-    border-color: ${p => p.theme.translucentBorder};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
     margin: ${space(1)} -${space(1)};
   }
 `;
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
-    color: ${p => (p.hasProgress ? p.theme.tokens.content.accent : p.theme.subText)};
+    color: ${p =>
+      p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
   }
 `;
 
@@ -591,7 +592,7 @@ const TaskGroupBody = styled('ul')`
 const TaskWrapper = styled('li')`
   gap: ${space(1)};
   p {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 

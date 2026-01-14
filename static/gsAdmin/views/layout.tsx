@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Outlet} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -37,11 +38,7 @@ const useToggleTheme = () => {
   return [themeName === 'darkTheme', themes[themeName], toggleTheme] as const;
 };
 
-type Props = {
-  children: React.ReactNode;
-};
-
-function Layout({children}: Props) {
+export default function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
 
   return (
@@ -100,7 +97,9 @@ function Layout({children}: Props) {
               </ThemeToggle>
             </div>
           </Sidebar>
-          <Content>{children}</Content>
+          <Content>
+            <Outlet />
+          </Content>
         </AppContainer>
       </ScrapsProviders>
     </ThemeProvider>
@@ -134,7 +133,7 @@ const Sidebar = styled('section')`
   padding: ${space(3)} 0;
   gap: ${space(3)};
   background: ${p => p.theme.tokens.background.primary};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
 
   > * {
     padding: 0 ${space(4)};
@@ -155,7 +154,7 @@ const ThemeToggle = styled(Button)`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: bold;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Navigation = styled('ul')`
@@ -196,5 +195,3 @@ const NavLink = styled(ListLink)`
     color: ${p => p.theme.active};
   }
 `;
-
-export default Layout;

@@ -146,7 +146,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
             {recentDeploysByEnvironment.map(deploy => {
               return (
                 <Flex key={deploy.id} align="center" gap="md" justify="between">
-                  <Tag type="highlight">{deploy.environment}</Tag>
+                  <Tag variant="info">{deploy.environment}</Tag>
                   {deploy.dateFinished && <StyledTimeSince date={deploy.dateFinished} />}
                 </Flex>
               );
@@ -227,7 +227,7 @@ const ConnectRepo = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

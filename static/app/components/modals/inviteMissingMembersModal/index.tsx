@@ -288,7 +288,7 @@ export function InviteMissingMembersModal({
           );
         })}
       </StyledPanelTable>
-      <Footer>
+      <Flex justify="between">
         <div>{renderStatusMessage()}</div>
         <ButtonBar>
           <Button
@@ -315,7 +315,7 @@ export function InviteMissingMembersModal({
             {inviteButtonLabel()}
           </Button>
         </ButtonBar>
-      </Footer>
+      </Flex>
     </Fragment>
   );
 
@@ -345,11 +345,6 @@ const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;
 `;
 
-const Footer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
 const ContentRow = styled('div')`
   display: flex;
   align-items: center;
@@ -362,7 +357,7 @@ const MemberEmail = styled('div')`
   max-width: 150px;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   overflow: hidden;
 `;

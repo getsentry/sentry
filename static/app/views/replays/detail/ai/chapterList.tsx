@@ -67,7 +67,7 @@ export function ChapterList({timeRanges}: Props) {
   if (!chapterData?.length) {
     return (
       <EmptyContainer>
-        <Alert type="info" showIcon={false}>
+        <Alert variant="info" showIcon={false}>
           {t('No chapters available for this replay.')}
         </Alert>
       </EmptyContainer>
@@ -148,15 +148,15 @@ function ChapterRow({
         <ChapterIconWrapper>
           {isError ? (
             isOpen || isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="red300" />
+              <ChapterIconArrow direction="right" size="xs" variant="danger" />
             ) : (
-              <IconFire size="xs" color="red300" />
+              <IconFire size="xs" variant="danger" />
             )
           ) : isFeedback ? (
             isOpen || isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="pink300" />
+              <ChapterIconArrow direction="right" size="xs" variant="promotion" />
             ) : (
-              <IconMegaphone size="xs" color="pink300" />
+              <IconMegaphone size="xs" variant="promotion" />
             )
           ) : (
             <ChapterIconArrow direction="right" size="xs" />
@@ -271,7 +271,7 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
-    background: ${p => p.theme.innerBorder};
+    background: ${p => p.theme.tokens.border.secondary};
   }
 
   &:first-child summary::after {
@@ -284,24 +284,24 @@ const ChapterWrapper = styled('details')`
   }
 
   &.activeChapter .beforeCurrentTime:last-child {
-    border-bottom-color: ${p => p.theme.colors.blue400};
+    border-bottom-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid ${p => p.theme.backgroundSecondary};
+    border-top: 1px solid ${p => p.theme.tokens.background.secondary};
   }
 
   [data-is-feedback='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.colors.pink100};
+      border-top: 1px solid ${p => p.theme.tokens.border.promotion.muted};
     }
   }
 
   [data-is-error='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.colors.red100};
+      border-top: 1px solid ${p => p.theme.tokens.border.danger.muted};
     }
   }
 `;
@@ -314,7 +314,7 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -341,18 +341,18 @@ const Chapter = styled('summary')`
   }
 
   [data-is-feedback='true'] & {
-    color: ${p => p.theme.colors.pink400};
+    color: ${p => p.theme.tokens.content.promotion};
 
     &:hover {
-      background-color: ${p => p.theme.colors.pink100};
+      background-color: ${p => p.theme.tokens.background.transparent.promotion.muted};
     }
   }
 
   [data-is-error='true'] & {
-    color: ${p => p.theme.colors.red400};
+    color: ${p => p.theme.tokens.content.danger};
 
     &:hover {
-      background-color: ${p => p.theme.colors.red100};
+      background-color: ${p => p.theme.tokens.background.transparent.danger.muted};
     }
   }
 `;
@@ -371,7 +371,7 @@ const ChapterTitle = styled('div')`
     font-weight: ${p => p.theme.fontWeight.bold};
   }
 
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-bottom: -1px; /* Compensate for border to fully eliminate gap */
 
   details:last-child:not([open]) & {

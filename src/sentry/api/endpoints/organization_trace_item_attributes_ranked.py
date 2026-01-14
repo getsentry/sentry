@@ -30,7 +30,6 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
 from sentry.seer.endpoints.compare import compare_distributions
-from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
@@ -98,6 +97,17 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
 
         query_1 = request.GET.get("query_1", "")  # Suspect query
         query_2 = request.GET.get("query_2", "")  # Query for all the spans with the base query
+
+        # For failure_rate and failure_count, we want the selected cohort to be
+        # specifically failed spans. Sentry treats spans with status other than
+        # "ok", "cancelled", and "unknown" as failures.
+        # The baseline remains all other spans (not filtered to failures) to provide
+        # a meaningful comparison with enough data points.
+        is_failure_function = function_name in ("failure_rate", "failure_count")
+        if is_failure_function:
+            failure_filter = "has:span.status !span.status:[ok,cancelled,unknown]"
+            query_1 = f"({query_1}) {failure_filter}" if query_1 else failure_filter
+            # query_2 (baseline) intentionally not filtered - compare failed spans vs all other spans
 
         # Only segment on percentile functions
         function_value = None
@@ -295,13 +305,6 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         )
         total_baseline = total_spans - total_outliers
 
-        scored_attrs_rrf = keyed_rrf_score(
-            baseline=cohort_2_distribution,
-            outliers=cohort_1_distribution,
-            total_outliers=total_outliers,
-            total_baseline=total_baseline,
-        )
-
         logger.info(
             "compare_distributions params: baseline=%s, outliers=%s, total_outliers=%s, total_baseline=%s, config=%s, meta=%s",
             cohort_2_distribution,
@@ -327,10 +330,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         )
         logger.info("scored_attrs_rrr: %s", scored_attrs_rrr)
 
-        # Create RRR order mapping from compare_distributions results
-        # scored_attrs_rrr returns a dict with 'results' key containing list of [attribute_name, score] pairs
         rrr_results = scored_attrs_rrr.get("results", [])
-        rrr_order_map = {attr_name: i for i, (attr_name, _) in enumerate(rrr_results)}
 
         ranked_distribution: dict[str, Any] = {
             "rankedAttributes": [],
@@ -343,9 +343,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             "cohort2Total": total_baseline,
         }
 
-        for i, scored_attr_tuple in enumerate(scored_attrs_rrf):
-            attr = scored_attr_tuple[0]
-
+        for i, (attr, _) in enumerate(rrr_results):
             public_alias, _, _ = translate_internal_to_public_alias(
                 attr, "string", SupportedTraceItemType.SPANS
             )
@@ -360,10 +358,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
                     "attributeName": public_alias,
                     "cohort1": cohort_1_distribution_map.get(attr),
                     "cohort2": cohort_2_distribution_map.get(attr),
-                    "order": {  # TODO: aayush-se remove this once we have selected a single ranking method
-                        "rrf": i,
-                        "rrr": rrr_order_map.get(attr),
-                    },
+                    # TODO(aayush-se): Remove order field once frontend stops using it
+                    "order": {"rrr": i},
                 }
                 ranked_distribution["rankedAttributes"].append(distribution)
 

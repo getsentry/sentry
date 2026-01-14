@@ -12,6 +12,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -35,6 +36,7 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 function getMainComparison(
   response: SizeComparisonApiResponse | undefined
@@ -105,15 +107,21 @@ export function SizeCompareMainContent() {
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/`
+        getCompareBuildPath({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId,
+          baseArtifactId,
+        })
       );
     },
     onError: error => {
-      const errorMessage =
-        (typeof error?.responseJSON?.error === 'string'
-          ? error?.responseJSON.error
-          : null) ?? t('Failed to trigger comparison. Please try again.');
-      addErrorMessage(errorMessage);
+      const errorMessage = parseApiError(error);
+      addErrorMessage(
+        errorMessage === 'Unknown API Error'
+          ? t('Failed to trigger comparison. Please try again.')
+          : errorMessage
+      );
     },
   });
 
@@ -153,11 +161,16 @@ export function SizeCompareMainContent() {
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
+    const errorMessage = sizeComparisonQuery.error
+      ? parseApiError(sizeComparisonQuery.error)
+      : 'Unknown API Error';
     return (
       <BuildError
         title={t('Size comparison data unavailable')}
         message={
-          sizeComparisonQuery.error?.message || t('Failed to load size comparison data')
+          errorMessage === 'Unknown API Error'
+            ? t('Failed to load size comparison data')
+            : errorMessage
         }
       />
     );
@@ -227,6 +240,22 @@ export function SizeCompareMainContent() {
     );
   }
 
+  if (comparisonDataQuery.isError || !comparisonDataQuery.data) {
+    const errorMessage = comparisonDataQuery.error
+      ? parseApiError(comparisonDataQuery.error)
+      : 'Unknown API Error';
+    return (
+      <BuildError
+        title={t('Failed to load comparison details')}
+        message={
+          errorMessage === 'Unknown API Error'
+            ? t('Could not retrieve detailed comparison results')
+            : errorMessage
+        }
+      />
+    );
+  }
+
   return (
     <Flex direction="column" gap="2xl">
       <SizeCompareSelectedBuilds
@@ -235,7 +264,11 @@ export function SizeCompareMainContent() {
         isComparing={false}
         onClearBaseBuild={() => {
           navigate(
-            `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
+            getCompareBuildPath({
+              organizationSlug: organization.slug,
+              projectId,
+              headArtifactId,
+            })
           );
         }}
       />

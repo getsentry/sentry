@@ -119,7 +119,7 @@ function MonitorTypeField() {
   ];
 
   return (
-    <RadioOptions role="radiogroup" aria-label={t('Monitor type')}>
+    <Stack gap="md" role="radiogroup" aria-label={t('Monitor type')}>
       {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
         const checked = selectedDetectorType === id;
         return (
@@ -148,15 +148,9 @@ function MonitorTypeField() {
           </OptionLabel>
         );
       })}
-    </RadioOptions>
+    </Stack>
   );
 }
-
-const RadioOptions = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
 
 const OptionBody = styled('div')`
   display: flex;
@@ -170,7 +164,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   display: grid;
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.colors.surface500};
   font-weight: ${p => p.theme.fontWeight.normal};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
@@ -187,8 +181,8 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   }
 
   &[aria-checked='true'] {
-    border-color: ${p => p.theme.focusBorder};
-    outline: solid 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+    outline: solid 1px ${p => p.theme.tokens.border.accent.vibrant};
   }
 
   ${OptionBody} {
@@ -197,7 +191,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
 `;
 
 const OptionInfo = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   background-color: ${p => p.theme.backgroundSecondary};
   font-size: ${p => p.theme.fontSize.md};
@@ -223,7 +217,8 @@ const Visualization = styled('div')`
 function MetricVisualization() {
   const theme = useTheme();
   const danger = theme.colors.red400;
-  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.colors.blue500;
+  const defaultChartColor =
+    theme.chart.getColorPalette(0)[0] ?? theme.tokens.graphics.accent.vibrant;
 
   return (
     <svg fill="none" viewBox="0 0 480 56">

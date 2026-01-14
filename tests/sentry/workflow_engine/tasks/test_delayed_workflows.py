@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.project import Project
@@ -10,7 +11,10 @@ from sentry.utils import json
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.delayed_workflow import EventRedisData
+from sentry.workflow_engine.processors.delayed_workflow import (
+    EventRedisData,
+    process_delayed_workflows,
+)
 from sentry.workflow_engine.processors.schedule import process_in_batches
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
@@ -212,3 +216,44 @@ class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
         for key in first_batch.keys():
             all_data.pop(key)
         assert data == all_data
+
+    def test_deleted_workflow_events_cleaned_from_redis(self) -> None:
+        self._push_base_events()
+        self.workflow1.update(status=ObjectStatus.PENDING_DELETION)
+
+        project_client = self.batch_client.for_project(self.project.id)
+        initial_data = project_client.get_hash_data(batch_key=None)
+        assert len(initial_data) > 0
+
+        with patch("sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"):
+            process_delayed_workflows(self.batch_client, self.project.id)
+
+        final_data = project_client.get_hash_data(batch_key=None)
+        assert final_data == {}
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.get_condition_group_results")
+    def test_deleted_workflow_skips_snuba_queries(self, mock_snuba: MagicMock) -> None:
+        self._push_base_events()
+        self.workflow1.update(status=ObjectStatus.PENDING_DELETION)
+        self.workflow2.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+
+        process_delayed_workflows(self.batch_client, self.project.id)
+
+        mock_snuba.assert_not_called()
+
+    def test_partial_workflow_deletion(self) -> None:
+        self._push_base_events()
+        self.workflow1.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+
+        project_client = self.batch_client.for_project(self.project.id)
+        initial_data = project_client.get_hash_data(batch_key=None)
+        assert len(initial_data) == 2
+
+        with patch(
+            "sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"
+        ) as mock_fire:
+            process_delayed_workflows(self.batch_client, self.project.id)
+            assert mock_fire.called
+
+        final_data = project_client.get_hash_data(batch_key=None)
+        assert final_data == {}

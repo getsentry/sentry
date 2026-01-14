@@ -130,10 +130,10 @@ function TriggerDescription({
 
 function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
   return type === 'critical'
-    ? theme.colors.chonk.red400
+    ? theme.tokens.background.danger.vibrant
     : type === 'warning'
-      ? theme.colors.chonk.yellow400
-      : theme.colors.chonk.green400;
+      ? theme.tokens.background.warning.vibrant
+      : theme.tokens.background.success.vibrant;
 }
 const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
   fill: ${p => getColor(p.theme, p.type)};
@@ -392,7 +392,7 @@ const TriggerTitle = styled('div')`
 `;
 
 const TriggerTitleText = styled('h4')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: 24px;

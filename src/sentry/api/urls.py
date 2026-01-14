@@ -3,6 +3,9 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.organization_ai_conversation_details import (
+    OrganizationAIConversationDetailsEndpoint,
+)
 from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
@@ -162,6 +165,7 @@ from sentry.dashboards.endpoints.organization_dashboards_starred import (
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
@@ -391,8 +395,14 @@ from sentry.monitors.endpoints.organization_monitor_index_stats import (
 from sentry.monitors.endpoints.organization_monitor_processing_errors_index import (
     OrganizationMonitorProcessingErrorsIndexEndpoint,
 )
+from sentry.monitors.endpoints.organization_monitor_schedule_sample_buckets import (
+    OrganizationMonitorScheduleSampleBucketsEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import (
     OrganizationMonitorScheduleSampleDataEndpoint,
+)
+from sentry.monitors.endpoints.organization_monitor_schedule_sample_window import (
+    OrganizationMonitorScheduleSampleWindowEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.monitors.endpoints.project_monitor_checkin_index import (
@@ -601,6 +611,9 @@ from sentry.uptime.endpoints.organiation_uptime_alert_index import (
 from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
     OrganizationUptimeAlertIndexCountEndpoint,
 )
+from sentry.uptime.endpoints.organization_uptime_alert_preview_check import (
+    OrganizationUptimeAlertPreviewCheckEndpoint,
+)
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
@@ -691,6 +704,7 @@ from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoin
 from .endpoints.organization_artifactbundle_assemble import (
     OrganizationArtifactBundleAssembleEndpoint,
 )
+from .endpoints.organization_attribute_mappings import OrganizationAttributeMappingsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
@@ -821,7 +835,6 @@ from .endpoints.relay import (
     RelayHealthCheck,
     RelayIndexEndpoint,
     RelayProjectConfigsEndpoint,
-    RelayProjectIdsEndpoint,
     RelayPublicKeysEndpoint,
     RelayRegisterChallengeEndpoint,
     RelayRegisterResponseEndpoint,
@@ -960,11 +973,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/current-release/$",
             GroupCurrentReleaseEndpoint.as_view(),
             name=f"{name_prefix}-group-current-release",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/first-last-release/$",
-            GroupFirstLastReleaseEndpoint.as_view(),
-            name=f"{name_prefix}-group-first-last-release",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/autofix/$",
@@ -1108,11 +1116,6 @@ RELAY_URLS = [
         r"^projectconfigs/$",
         RelayProjectConfigsEndpoint.as_view(),
         name="sentry-api-0-relay-projectconfigs",
-    ),
-    re_path(
-        r"^projectids/$",
-        RelayProjectIdsEndpoint.as_view(),
-        name="sentry-api-0-relay-projectids",
     ),
     re_path(
         r"^publickeys/$",
@@ -1366,6 +1369,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
     ),
+    # first-last-release is only available via org-scoped URL (legacy URL deprecated for cellularization)
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/(?P<issue_id>[^/]+)/first-last-release/$",
+        GroupFirstLastReleaseEndpoint.as_view(),
+        name="sentry-api-0-organization-group-first-last-release",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
@@ -1407,6 +1416,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/data-export/(?P<data_export_id>[^/]+)/$",
         DataExportDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-data-export-details",
+    ),
+    # Data Secrecy
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/data-secrecy/$",
+        WaiveDataSecrecyEndpoint.as_view(),
+        name="sentry-api-0-data-secrecy",
     ),
     # Incidents
     re_path(
@@ -1534,6 +1549,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/starred/order/$",
         ExploreSavedQueryStarredOrderEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-starred-order",
+    ),
+    # Attribute Mappings
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/attribute-mappings/$",
+        OrganizationAttributeMappingsEndpoint.as_view(),
+        name="sentry-api-0-organization-attribute-mappings",
     ),
     # Dashboards
     re_path(
@@ -1725,6 +1746,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/$",
         OrganizationAIConversationsEndpoint.as_view(),
         name="sentry-api-0-organization-ai-conversations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>[^/]+)/$",
+        OrganizationAIConversationDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-ai-conversation-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",
@@ -2064,6 +2090,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/monitors-schedule-data/$",
         OrganizationMonitorScheduleSampleDataEndpoint.as_view(),
         name="sentry-api-0-organization-monitors-schedule-sample-data",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitors-schedule-buckets/$",
+        OrganizationMonitorScheduleSampleBucketsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitors-schedule-sample-buckets",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitors-schedule-window/$",
+        OrganizationMonitorScheduleSampleWindowEndpoint.as_view(),
+        name="sentry-api-0-organization-monitors-schedule-sample-window",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/monitors/(?P<monitor_id_or_slug>[^/]+)/$",
@@ -2611,6 +2647,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-uptime-alert-index",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/uptime-preview-check/$",
+        OrganizationUptimeAlertPreviewCheckEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-preview-check",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-count/$",
         OrganizationUptimeAlertIndexCountEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-index-count",
@@ -2650,11 +2691,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationObjectstoreEndpoint.as_view(),
         name="sentry-api-0-organization-objectstore",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/preprod/app-size-stats/$",
-        preprod_urls.OrganizationPreprodAppSizeStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-preprod-app-size-stats",
-    ),
+    *preprod_urls.preprod_organization_urlpatterns,
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -3285,7 +3322,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectUserIssueEndpoint.as_view(),
         name="sentry-api-0-project-user-issue",
     ),
-    *preprod_urls.preprod_urlpatterns,
+    *preprod_urls.preprod_project_urlpatterns,
 ]
 
 TEAM_URLS = [

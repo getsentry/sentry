@@ -39,6 +39,7 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -177,6 +178,11 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   );
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
+
+  // Sync active thread to module store for copy functionality
+  useEffect(() => {
+    setActiveThreadId(activeThread?.id);
+  }, [activeThread?.id]);
 
   const stackTraceNotFound = !threads.length;
 
@@ -447,7 +453,7 @@ const ThreadStateWrapper = styled('div')`
 
 const LockReason = styled(TextOverflow)`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Wrapper = styled('div')`
@@ -470,7 +476,7 @@ const ThreadTraceWrapper = styled('div')`
 `;
 
 const ThreadHeading = styled('h3')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};

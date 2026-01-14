@@ -313,7 +313,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const StyledPanelBody = styled(PanelBody)`
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -326,7 +326,7 @@ const Item = styled('div')`
 `;
 
 const ControlItem = styled(Item)`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RemoveButtonWrapper = styled('div')`

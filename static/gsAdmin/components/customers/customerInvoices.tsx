@@ -25,7 +25,7 @@ const getRow = (orgId: string, region: string, row: any) => [
     {row.channel || 'n/a'}
   </td>,
   <td key="status" style={{textAlign: 'center'}}>
-    <Tag type={row.isPaid ? 'success' : row.isClosed ? 'error' : 'warning'}>
+    <Tag variant={row.isPaid ? 'success' : row.isClosed ? 'danger' : 'warning'}>
       {row.isPaid ? 'Paid' : row.isClosed ? 'Closed' : 'Pending'}
     </Tag>
   </td>,

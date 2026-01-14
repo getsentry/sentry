@@ -25,6 +25,7 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -71,7 +72,7 @@ const SESSION_DURATION_ALERT_TEXT = tct(
 );
 
 export const SESSION_DURATION_ALERT = (
-  <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
+  <PanelAlert variant="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
 type Props = WithRouterProps & {
@@ -247,7 +248,7 @@ function WidgetCard(props: Props) {
       });
 
       navigate(
-        {
+        normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
           query: {
             ...location.query,
@@ -256,7 +257,7 @@ function WidgetCard(props: Props) {
                 ? widget.queries[0]?.orderby
                 : location.query.sort,
           },
-        },
+        }),
         {preventScrollReset: true}
       );
     }
@@ -541,14 +542,14 @@ const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: ${p => p.theme.alert.error.backgroundLight};
-  border: 1px solid ${p => p.theme.alert.error.border};
-  color: ${p => p.theme.alert.error.textLight};
+  background-color: ${p => p.theme.alert.danger.backgroundLight};
+  border: 1px solid ${p => p.theme.alert.danger.border};
+  color: ${p => p.theme.alert.danger.textLight};
   border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;
 
 export const WidgetDescription = styled('small')`
   ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -17,9 +17,10 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -35,26 +36,25 @@ import {
 import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
-type RouteParams = {
-  projectId?: string;
-};
-
-type AlertWizardProps = RouteComponentProps<RouteParams> & {
+interface AlertWizardProps {
   organization: Organization;
   projectId: string;
-};
+}
 
 const DEFAULT_ALERT_OPTION = 'issues';
 
-function AlertWizard({organization, params, location, projectId}: AlertWizardProps) {
+function AlertWizard({organization, projectId}: AlertWizardProps) {
+  const location = useLocation();
+  const params = useParams<{projectId?: string}>();
   const useMetricDetectorLimit =
     HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
   const quota = useMetricDetectorLimit();
   const canCreateMetricAlert = !quota?.hasReachedLimit;
 
+  const alertOptionQuery = location.query.alert_option as AlertType | undefined;
   const [alertOption, setAlertOption] = useState<AlertType>(
-    location.query.alert_option in AlertWizardAlertNames
-      ? location.query.alert_option
+    alertOptionQuery && alertOptionQuery in AlertWizardAlertNames
+      ? alertOptionQuery
       : DEFAULT_ALERT_OPTION
   );
   const projectSlug = params.projectId ?? projectId;
@@ -312,7 +312,7 @@ const ExampleItem = styled(ListItem)`
 `;
 
 const WizardFooter = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
 `;
 
@@ -331,10 +331,10 @@ const WizardGroupedOptions = styled(RadioPanelGroup)`
 `;
 
 const DisabledAlertMessageContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 `;
 

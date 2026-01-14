@@ -128,7 +128,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             <SettingsButton
               borderless
               size="zero"
-              icon={<IconSettings color="subText" />}
+              icon={<IconSettings variant="muted" />}
               title={t('Settings')}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
@@ -272,21 +272,21 @@ const SummaryLinks = styled('div')`
   top: -${space(2)};
   font-weight: ${p => p.theme.fontWeight.normal};
 
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 
   /* Need to offset for the project icon and margin */
   margin-left: 40px;
 
   a:not(:hover) {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 
   & > *:not(:last-child)::after {
     content: '|';
     position: relative;
     left: ${space(0.5)};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -316,7 +316,7 @@ const ScoreCardWrapper = styled('div')`
   }
   ${Title} {
     font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     margin-bottom: ${space(0.5)};
   }
   ${ScoreWrapper} {
@@ -333,7 +333,7 @@ const ScoreCardWrapper = styled('div')`
 `;
 
 const SubHeading = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
 `;

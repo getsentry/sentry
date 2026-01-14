@@ -456,7 +456,7 @@ export function ActionableItems({event, project}: ActionableItemsProps) {
   return (
     <StyledAlert
       defaultExpanded
-      type={hasErrorAlert ? 'error' : 'warning'}
+      variant={hasErrorAlert ? 'danger' : 'warning'}
       expand={
         <Fragment>
           {Object.keys(errorMessages).map((error, idx) => {
@@ -490,7 +490,7 @@ const StyledListItem = styled(ListItem)`
 `;
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover,
