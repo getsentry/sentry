@@ -236,6 +236,8 @@ describe('MobileAppSizeConfig', () => {
       expect(result).toEqual({
         'max(install_size)': 'size',
         'max(download_size)': 'size',
+        'min(install_size)': 'size',
+        'min(download_size)': 'size',
       });
     });
   });
