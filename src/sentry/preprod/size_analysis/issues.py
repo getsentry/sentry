@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import uuid4
 
-from sentry.issues.grouptype import PreprodDeltaGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     platform_from_artifact_type,
 )
+from sentry.preprod.grouptype import PreprodDeltaGroupType
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.models import SizeMetricDiffItem
 
