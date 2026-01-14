@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {ReactNode} from 'react';
+
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import Access from 'sentry/components/acl/access';
@@ -113,6 +115,8 @@ export const InputPathColumn = styled(Column)`
   grid-area: input-path;
 `;
 
-export function ButtonWrapper(props: Omit<FlexProps<'span'>, 'as'>) {
+export function ButtonWrapper(
+  props: Omit<FlexProps<'span'>, 'as'> & {children?: ReactNode}
+) {
   return <Flex<'span'> gap="md" {...props} as="span" />;
 }
