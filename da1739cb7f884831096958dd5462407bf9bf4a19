@@ -1,0 +1,23 @@
+tests/sentry/api/test_authentication.py
+  4b4ce6b44dc319e5 905,909,913
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.31",
+  "base_commit_sha": "da1739cb7f884831096958dd5462407bf9bf4a19",
+  "prompts": {
+    "4b4ce6b44dc319e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "51e71729-8eaa-43a8-a3f9-e00b5d415dd4",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "David Cramer <dcramer@gmail.com>",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 3,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
