@@ -76,16 +76,3 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
     />
   );
 }
-
-// /**
-//  * @deprecated Use AutoTriggeredFixesToggle and SeerAgentSection instead.
-//  * This component is kept for backwards compatibility during the transition.
-//  */
-// export default function ProjectDetailsForm({canWrite, project, preference}: Props) {
-//   return (
-//     <div>
-//       <AutoTriggeredFixesToggle canWrite={canWrite} project={project} />
-//       <SeerAgentSection canWrite={canWrite} project={project} preference={preference} />
-//     </div>
-//   );
-// }
