@@ -454,6 +454,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
 
   const fetchDataWithQueueIfAvailable = useCallback(() => {
     if (queue) {
+      queryFetchIDRef.current = undefined;
       // Pass the ref to the queue instead of the function
       // When the queue executes, it will call fetchDataRef.current which always points to the latest fetchData
       // Deduplication is based on fetchDataRef identity (per-component-instance)
