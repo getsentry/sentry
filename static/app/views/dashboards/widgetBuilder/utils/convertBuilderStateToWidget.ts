@@ -101,6 +101,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       // Orderby is only applicable for tables or charts with columns (TOP-N queries)
       orderby:
         state.displayType === DisplayType.TABLE ||
+        state.displayType === DisplayType.DETAILS ||
         (isChartDisplayType(state.displayType) && (columns?.length ?? 0) > 0)
           ? sort
           : '',

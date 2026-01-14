@@ -203,7 +203,9 @@ function AddToDashboardModal({
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
-    const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+    const widgetAsQueryParams = convertWidgetToBuilderStateParams(
+      normalizeWidgets([widget])[0]!
+    );
     navigate(
       normalizeUrl({
         pathname,
