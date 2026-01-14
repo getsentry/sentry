@@ -12,8 +12,8 @@ from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, Test
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
-from sentry.utils.snuba import RateLimitExceeded
 from sentry.utils.samples import load_data
+from sentry.utils.snuba import RateLimitExceeded
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 

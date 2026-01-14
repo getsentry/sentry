@@ -8,7 +8,6 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry import options, tsdb
-from sentry.utils.snuba import RateLimitExceeded
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -23,6 +22,7 @@ from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_u
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.snuba import RateLimitExceeded
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
