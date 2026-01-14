@@ -116,7 +116,11 @@ const AuthorLine = styled('div')`
 
 const AuthorName = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Commits = styled('div')`

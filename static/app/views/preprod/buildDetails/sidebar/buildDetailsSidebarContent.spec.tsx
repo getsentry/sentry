@@ -22,7 +22,6 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
     build_configuration: 'Release',
     date_built: '2023-01-01T00:00:00Z',
     date_added: '2023-01-01T00:00:00Z',
-    is_installable: true,
   },
   distribution_info: {
     is_installable: true,

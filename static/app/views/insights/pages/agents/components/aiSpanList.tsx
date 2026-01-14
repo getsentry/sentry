@@ -426,7 +426,13 @@ const ListItemContainer = styled('div')<{
       : 'none'};
 
   &:hover {
-    background-color: ${p => p.theme.tokens.background.secondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -469,7 +475,13 @@ const TransactionButton = styled('button')`
   font-weight: ${p => p.theme.fontWeight.normal};
 
   &:hover:not(:disabled) {
-    background-color: ${p => p.theme.tokens.background.secondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active:not(:disabled) {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   &:first-child {
@@ -477,7 +489,11 @@ const TransactionButton = styled('button')`
   }
 
   & > span {
-    ${p => p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     flex: 1;
     min-width: 0;
     text-align: left;

@@ -7,13 +7,13 @@ from typing import Any, NamedTuple, TypeAlias
 
 import sentry_sdk
 
-from sentry import features, tsdb
+from sentry import tsdb
 from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.models import Workflow
@@ -77,28 +77,18 @@ def unsplit_key(
 
 
 def event_to_record(
-    event: Event | GroupEvent, rules: Sequence[Rule], notification_uuid: str | None = None
+    event: Event | GroupEvent,
+    rules: Sequence[Rule],
+    notification_uuid: str | None = None,
+    identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
     # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
     # TODO(iamrajjoshi): Creating a PR to fix this
     assert event.group is not None
-    rule_ids = []
-    identifier_key = IdentifierKey.RULE
-    if features.has("organizations:workflow-engine-ui-links", event.organization):
-        identifier_key = IdentifierKey.WORKFLOW
-        for rule in rules:
-            rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
-    elif should_fire_workflow_actions(event.organization, event.group.type):
-        for rule in rules:
-            rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
-    else:
-        for rule in rules:
-            rule_ids.append(rule.id)
+    rule_ids = [int(get_rule_or_workflow_id(rule)[1]) for rule in rules]
     return Record(
         event.event_id,
         Notification(event, rule_ids, notification_uuid, identifier_key),
@@ -192,60 +182,40 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
         workflow_ids
     )
 
-    # We are only processing the workflows in the digest if under the new flag
-    # This should be ok since we should only add workflow_ids to redis when under this flag
-    if features.has("organizations:workflow-engine-ui-links", project.organization):
-        for workflow_id, workflow in workflows.items():
-            assert (
-                workflow.organization_id == project.organization_id
-            ), "Workflow must belong to Organization"
-            rules[workflow_id] = Rule(
-                label=workflow.name,
-                id=workflow_id,
-                project_id=project.id,
-                # We need to do this so that the links are built correctly downstream
-                data={"actions": [{"workflow_id": workflow_id}]},
-            )
-    # This is if we had workflows in the digest but the flag is not enabled
-    # This can happen if we rollback the flag, but the records in the digest aren't flushed
-    else:
-        alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
-        alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
+    # Try to fetch rules for workflows, if not use the workflow id
+    alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
+    alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
 
-        rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
+    rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
 
-        bulk_rules = Rule.objects.filter(project_id=project.id).in_bulk(rule_ids_to_fetch)
+    bulk_rules = Rule.objects.filter(project_id=project.id).in_bulk(rule_ids_to_fetch)
 
-        for workflow_id in workflow_ids:
-            alert_workflow = alert_rule_workflows_map.get(workflow_id)
-            if not alert_workflow:
-                logger.warning(
-                    "Workflow %s does not have a corresponding AlertRuleWorkflow entry", workflow_id
-                )
-                raise
-
-            rule = bulk_rules.get(alert_workflow.rule_id)
-            if not rule:
-                logger.warning(
-                    "Rule %s linked to Workflow %s not found or does not belong to project %s",
-                    alert_workflow.rule_id,
-                    workflow_id,
-                    project.id,
-                )
+    for workflow_id, workflow in workflows.items():
+        alert_workflow = alert_rule_workflows_map.get(workflow_id)
+        if alert_workflow:
+            if rule := bulk_rules.get(alert_workflow.rule_id):
+                assert rule.project_id == project.id, "Rule must belong to Project"
+                try:
+                    rule.data["actions"][0]["legacy_rule_id"] = rule.id
+                    rule.data["actions"][0]["workflow_id"] = workflow_id
+                except KeyError:
+                    # This shouldn't happen, but isn't a deal breaker if it does
+                    sentry_sdk.capture_exception(
+                        Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
+                        level="warning",
+                    )
+                rules[workflow_id] = rule
                 continue
 
-            assert rule.project_id == project.id, "Rule must belong to Project"
+        # Create synthetic Rule when no AlertRuleWorkflow or no Rule found
+        rules[workflow_id] = Rule(
+            label=workflow.name,
+            id=workflow_id,
+            project_id=project.id,
+            # We need to do this so that the links are built correctly downstream
+            data={"actions": [{"workflow_id": workflow_id}]},
+        )
 
-            try:
-                rule.data["actions"][0]["legacy_rule_id"] = rule.id
-            except KeyError:
-                # This shouldn't happen, but isn't a deal breaker if it does
-                sentry_sdk.capture_exception(
-                    Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
-                    level="warning",
-                )
-
-            rules[workflow_id] = rule
     return rules
 
 

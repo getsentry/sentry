@@ -704,6 +704,7 @@ from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoin
 from .endpoints.organization_artifactbundle_assemble import (
     OrganizationArtifactBundleAssembleEndpoint,
 )
+from .endpoints.organization_attribute_mappings import OrganizationAttributeMappingsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
@@ -1549,6 +1550,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         ExploreSavedQueryStarredOrderEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-starred-order",
     ),
+    # Attribute Mappings
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/attribute-mappings/$",
+        OrganizationAttributeMappingsEndpoint.as_view(),
+        name="sentry-api-0-organization-attribute-mappings",
+    ),
     # Dashboards
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/$",
@@ -1741,7 +1748,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-ai-conversations",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>[^/]+)/$",
         OrganizationAIConversationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-ai-conversation-details",
     ),
