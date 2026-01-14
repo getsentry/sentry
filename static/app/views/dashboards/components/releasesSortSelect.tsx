@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -51,7 +53,7 @@ export function ReleasesSortSelect({sortBy, onChange}: Props) {
         };
       })}
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <StyledTriggerButton
           {...triggerProps}
           icon={<IconSort />}
           aria-label={t('Sort Releases')}
@@ -61,3 +63,8 @@ export function ReleasesSortSelect({sortBy, onChange}: Props) {
     />
   );
 }
+
+const StyledTriggerButton = styled(SelectTrigger.Button)`
+  padding-left: 0;
+  padding-right: 0;
+`;
