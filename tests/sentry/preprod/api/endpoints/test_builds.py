@@ -271,6 +271,10 @@ class BuildsEndpointTest(APITestCase):
         # Create an installable artifact (has both installable_app_file_id and build_number)
         artifact = self.create_preprod_artifact(
             installable_app_file_id=12345,
+        )
+        # build_number must be in mobile_app_info for is_installable check
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=artifact,
             build_number=100,
         )
         # Create InstallablePreprodArtifact records with download counts
@@ -335,6 +339,10 @@ class BuildsEndpointTest(APITestCase):
         artifact1 = self.create_preprod_artifact(
             app_id="com.app.one",
             installable_app_file_id=11111,
+        )
+        # build_number must be in mobile_app_info for is_installable check
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=artifact1,
             build_number=1,
         )
         self.create_installable_preprod_artifact(artifact1, download_count=100)
@@ -342,6 +350,10 @@ class BuildsEndpointTest(APITestCase):
         artifact2 = self.create_preprod_artifact(
             app_id="com.app.two",
             installable_app_file_id=22222,
+        )
+        # build_number must be in mobile_app_info for is_installable check
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=artifact2,
             build_number=2,
         )
         self.create_installable_preprod_artifact(artifact2, download_count=50)

@@ -21,8 +21,11 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             installable_app_file_id=self.file.id,
-            build_version="1.2.3",
             app_id="com.example.TestApp",
+        )
+        self.mobile_app_info = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.preprod_artifact,
+            build_version="1.2.3",
             app_name="TestApp",
         )
 

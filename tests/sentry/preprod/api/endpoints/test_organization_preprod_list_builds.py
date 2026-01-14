@@ -43,12 +43,15 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.app",
-            app_name="TestApp",
-            build_version="1.0.0",
-            build_number=42,
             build_configuration=None,
             installable_app_file_id=1234,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info1 = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.artifact1,
+            build_version="1.0.0",
+            build_number=42,
+            app_name="TestApp",
         )
 
         self.artifact2 = self.create_preprod_artifact(
@@ -57,12 +60,15 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
             app_id="com.example.app2",
-            app_name="TestApp2",
-            build_version="2.0.0",
-            build_number=43,
             build_configuration=None,
             installable_app_file_id=1235,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info2 = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.artifact2,
+            build_version="2.0.0",
+            build_number=43,
+            app_name="TestApp2",
         )
 
         self.artifact3 = self.create_preprod_artifact(
@@ -71,12 +77,15 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             state=PreprodArtifact.ArtifactState.UPLOADED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             app_id="com.example.app3",
-            app_name="TestApp3",
-            build_version="3.0.0",
-            build_number=44,
             build_configuration=None,
             installable_app_file_id=1236,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info3 = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.artifact3,
+            build_version="3.0.0",
+            build_number=44,
+            app_name="TestApp3",
         )
 
         self.artifact4 = self.create_preprod_artifact(
@@ -85,12 +94,15 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.app4",
-            app_name="TestApp4",
-            build_version="4.0.0",
-            build_number=45,
             build_configuration=None,
             installable_app_file_id=1237,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info4 = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.artifact4,
+            build_version="4.0.0",
+            build_number=45,
+            app_name="TestApp4",
         )
 
         self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
