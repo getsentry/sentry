@@ -627,6 +627,49 @@ class TestHmacSignatureAuthentication(TestCase):
             assert user.is_anonymous
             assert token == custom_signature
 
+    @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_authenticate_with_include_url_in_signature(self) -> None:
+        class UrlInSignatureAuth(HmacSignatureAuthentication):
+            shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
+            service_name = "TestService"
+            sdk_tag_name = "test_service_rpc_auth"
+            include_url_in_signature = True
+
+        auth = UrlInSignatureAuth()
+
+        data = b'{"test": "data"}'
+        url_path = "/test/endpoint"
+        request = drf_request_from_request(
+            RequestFactory().post(url_path, data=data, content_type="application/json")
+        )
+
+        signature = generate_service_request_signature(
+            request.path_info,
+            request.body,
+            ["test-secret-key"],
+            "TestService",
+            include_url_in_signature=True,
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        user, token = auth.authenticate(request)
+        assert user.is_anonymous
+        assert token == signature
+
+        # Signature without URL should fail
+
+        signature_without_url = generate_service_request_signature(
+            request.path_info,
+            request.body,
+            ["test-secret-key"],
+            "TestService",
+            include_url_in_signature=False,
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature_without_url}"
+
+        with pytest.raises(AuthenticationFailed):
+            auth.authenticate(request)
+
     def test_authenticate_without_signature(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post(
