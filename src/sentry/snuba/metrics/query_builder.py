@@ -32,6 +32,7 @@ from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
+    MetricIndexNotFound,
     bulk_reverse_resolve_tag_value,
     resolve_tag_key,
     resolve_tag_value,
@@ -1399,7 +1400,13 @@ class SnubaResultConverter:
             # Handle TAG_NOT_SET (0) the same way as reverse_resolve_weak
             if value == 0:
                 return None
-            return resolved_values.get(value, value)
+            if isinstance(value, str) or value is None:
+                return value
+            # For positive integers, we must find a resolved value
+            resolved = resolved_values.get(value)
+            if resolved is None:
+                raise MetricIndexNotFound()
+            return resolved
 
         groups: list[_BySeriesTotals] = [
             {
