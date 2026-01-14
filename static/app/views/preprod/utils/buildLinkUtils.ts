@@ -45,16 +45,6 @@ export function getCompareBuildPath(params: {
   return `${path}?project=${projectId}`;
 }
 
-export function getSnapshotsCompareBuildPath(params: {
-  baseArtifactId: string;
-  headArtifactId: string;
-  organizationSlug: string;
-  projectId: string;
-}): string {
-  const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
-  return `/organizations/${organizationSlug}/preprod/snapshots/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
-}
-
 export function getListBuildPath(params: {
   organizationSlug: string;
   projectId: string;

@@ -2509,18 +2509,6 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/preprod/buildComparison/buildComparison')
       ),
     },
-    {
-      path: 'snapshots/compare/:headId/',
-      component: make(
-        () => import('sentry/views/preprod/buildComparison/buildComparison')
-      ),
-    },
-    {
-      path: 'snapshots/compare/:headId/:baseId/',
-      component: make(
-        () => import('sentry/views/preprod/buildComparison/buildComparison')
-      ),
-    },
   ];
   const preprodRoutes: SentryRouteObject = {
     path: '/preprod/',
