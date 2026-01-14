@@ -75,6 +75,48 @@ class FindReferencedGroupsTest(TestCase):
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
 
+    def test_resolve_with_sentry_issue_url(self) -> None:
+        """Test that pasting a Sentry issue URL in PR body associates the PR"""
+        group = self.create_group()
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+
+        pr = PullRequest.objects.create(
+            key="1",
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            title="Fix n+1 query issue",
+            message=f"Reduce insert # on /broadcasts/ by bulk inserting\n\n"
+            f"n+1 issue\nhttps://sentry.sentry.io/issues/{group.id}/",
+        )
+
+        groups = pr.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+        # Verify GroupLink was created
+        assert GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        ).exists()
+
+    def test_resolve_with_issue_url_and_short_id(self) -> None:
+        """Test that issue URL with qualified short ID works"""
+        group = self.create_group()
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+
+        pr = PullRequest.objects.create(
+            key="2",
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            title="Fix the bug",
+            message=f"This fixes the issue\n\n"
+            f"https://sentry.io/organizations/test-org/issues/{group.qualified_short_id}/",
+        )
+
+        groups = pr.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+
 
 class PullRequestRetentionTest(TestCase):
     def setUp(self):
