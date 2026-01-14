@@ -46,7 +46,7 @@ export default Storybook.story('Timeline', story => {
           colorConfig={{
             title: theme.tokens.content.danger,
             icon: theme.tokens.graphics.danger,
-            iconBorder: theme.tokens.border.danger,
+            iconBorder: theme.tokens.border.danger.vibrant,
           }}
           isActive
         >
@@ -82,7 +82,7 @@ export default Storybook.story('Timeline', story => {
           colorConfig={{
             title: theme.tokens.content.success,
             icon: theme.tokens.graphics.success,
-            iconBorder: theme.tokens.border.success,
+            iconBorder: theme.tokens.border.success.vibrant,
           }}
         >
           <Timeline.Data>
@@ -154,7 +154,7 @@ export default Storybook.story('Timeline', story => {
           colorConfig={{
             title: theme.tokens.content.accent,
             icon: theme.tokens.graphics.accent,
-            iconBorder: theme.tokens.border.accent,
+            iconBorder: theme.tokens.border.accent.vibrant,
           }}
           isActive
         >
@@ -173,7 +173,7 @@ export default Storybook.story('Timeline', story => {
           colorConfig={{
             title: theme.tokens.content.promotion,
             icon: theme.tokens.graphics.promotion,
-            iconBorder: theme.tokens.border.promotion,
+            iconBorder: theme.tokens.border.promotion.vibrant,
           }}
         >
           <Timeline.Data>
@@ -191,7 +191,7 @@ export default Storybook.story('Timeline', story => {
           colorConfig={{
             title: theme.tokens.content.accent,
             icon: theme.tokens.graphics.accent,
-            iconBorder: theme.tokens.border.accent,
+            iconBorder: theme.tokens.border.accent.vibrant,
           }}
         >
           <Timeline.Text>This is a description of the error</Timeline.Text>
@@ -217,7 +217,7 @@ export default Storybook.story('Timeline', story => {
             colorConfig={{
               title: theme.tokens.content.danger,
               icon: theme.tokens.graphics.danger,
-              iconBorder: theme.tokens.border.danger,
+              iconBorder: theme.tokens.border.danger.vibrant,
             }}
           >
             <Timeline.Text>This is a description of the error</Timeline.Text>
@@ -230,7 +230,7 @@ export default Storybook.story('Timeline', story => {
             colorConfig={{
               title: theme.tokens.content.success,
               icon: theme.tokens.graphics.success,
-              iconBorder: theme.tokens.border.success,
+              iconBorder: theme.tokens.border.success.vibrant,
             }}
           >
             {' '}
@@ -264,7 +264,7 @@ export default Storybook.story('Timeline', story => {
             colorConfig={{
               title: theme.tokens.content.accent,
               icon: theme.tokens.graphics.accent,
-              iconBorder: theme.tokens.border.accent,
+              iconBorder: theme.tokens.border.accent.vibrant,
             }}
           >
             <Timeline.Text>

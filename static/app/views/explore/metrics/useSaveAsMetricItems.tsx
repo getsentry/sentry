@@ -101,22 +101,36 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
     if (hasTraceMetricsDashboards) {
       items.push({
         key: 'add-to-dashboard',
-        label: <span>{t('A Dashboard widget')}</span>,
+        label: t('A Dashboard widget'),
         textValue: t('A Dashboard widget'),
         isSubmenu: true,
-        children: metricQueries.map((metricQuery, index) => {
-          return {
-            key: `add-to-dashboard-${index}`,
-            label: `${getVisualizeLabel(index)}: ${
-              formatTraceMetricsFunction(
-                metricQuery.queryParams.aggregateFields.find(isVisualize)?.yAxis ?? ''
-              ) as string
-            }`,
-            onAction: () => {
-              addToDashboard(metricQuery);
-            },
-          };
-        }),
+        children: [
+          ...(metricQueries.length > 1
+            ? [
+                {
+                  key: 'add-to-dashboard-all',
+                  label: t('All Metrics'),
+                  textValue: t('All Metrics'),
+                  onAction: () => {
+                    addToDashboard(metricQueries);
+                  },
+                },
+              ]
+            : []),
+          ...metricQueries.map((metricQuery, index) => {
+            return {
+              key: `add-to-dashboard-${index}`,
+              label: `${getVisualizeLabel(index)}: ${
+                formatTraceMetricsFunction(
+                  metricQuery.queryParams.aggregateFields.find(isVisualize)?.yAxis ?? ''
+                ) as string
+              }`,
+              onAction: () => {
+                addToDashboard(metricQuery);
+              },
+            };
+          }),
+        ],
       });
     }
 
