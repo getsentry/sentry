@@ -80,7 +80,7 @@ def build_description_workflow_engine_ui(
     generate_footer: Callable[[str], str],
 ) -> str:
     project = event.group.project
-    workflow_url = create_link_to_workflow(project.organization.id, str(workflow_id))
+    workflow_url = create_link_to_workflow(project.organization.slug, str(workflow_id))
 
     description: str = installation.get_group_description(event.group, event) + generate_footer(
         workflow_url
