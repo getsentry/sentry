@@ -6,7 +6,6 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
@@ -198,12 +197,9 @@ def _get_target_commit_sha(
         pr_number = event_payload.get("issue", {}).get("number")
         if not isinstance(pr_number, int):
             raise ValueError("missing-pr-number-for-sha")
-        sha = (
-            GitHubApiClient(integration=integration)
-            .get_pull_request(repo.name, pr_number)
-            .get("head", {})
-            .get("sha")
-        )
+
+        client = integration.get_installation(organization_id=repo.organization_id).get_client()
+        sha = client.get_pull_request(repo.name, pr_number).get("head", {}).get("sha")
         if not isinstance(sha, str) or not sha:
             raise ValueError("missing-api-pr-head-sha")
         return sha
