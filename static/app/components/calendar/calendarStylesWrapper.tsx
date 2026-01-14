@@ -36,7 +36,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
   .rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span,
   .rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
 
   .rdrDayDisabled {

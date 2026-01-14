@@ -66,11 +66,11 @@ const SentryStyleAnsi = styled(Ansi)`
 
   .ansi-black-fg,
   .ansi-bright-black-fg {
-    color: ${p => p.theme.black};
+    color: ${p => p.theme.colors.black};
   }
   .ansi-white-fg,
   .ansi-bright-white-fg {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
 `;
 

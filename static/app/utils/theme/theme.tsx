@@ -1048,15 +1048,6 @@ const darkShadows = {
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
-  get black() {
-    return colors.black;
-  },
-  /** @deprecated */
-  get white() {
-    return colors.white;
-  },
-
-  /** @deprecated */
   get purple400() {
     return colors.blue500;
   },

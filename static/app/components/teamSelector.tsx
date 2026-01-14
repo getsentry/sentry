@@ -64,7 +64,7 @@ const getOptionValue = (option: TeamOption) => option.value;
 const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
   option: (provided, state) => ({
     ...provided,
-    svg: {color: state.isSelected ? theme.white : undefined},
+    svg: {color: state.isSelected ? theme.colors.white : undefined},
   }),
 });
 
