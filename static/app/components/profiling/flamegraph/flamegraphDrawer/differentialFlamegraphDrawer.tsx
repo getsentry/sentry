@@ -2,6 +2,8 @@ import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -213,7 +215,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
         </ProfilingDetailsListItem>
         <Separator />
         <ProfilingDetailsListItem>
-          <LayoutSelectionContainer>
+          <Flex align="center" gap="2xs" height="100%">
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
@@ -250,7 +252,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
                 icon={<IconPanel direction="right" />}
               />
             </Tooltip>
-          </LayoutSelectionContainer>
+          </Flex>
         </ProfilingDetailsListItem>
       </ProfilingDetailsFrameTabs>
 
@@ -412,13 +414,6 @@ const StyledButton = styled('button')<{active: boolean}>`
   &:hover {
     opacity: ${p => (p.active ? 0.6 : 0.5)};
   }
-`;
-
-const LayoutSelectionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  gap: ${space(0.25)};
 `;
 
 export {DifferentialFlamegraphDrawer};

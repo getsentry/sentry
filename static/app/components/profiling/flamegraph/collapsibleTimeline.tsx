@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
@@ -50,9 +52,9 @@ const StyledButton = Button;
 
 export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
   return (
-    <CollapsibleTimelineLoadingIndicatorContainer>
+    <Stack justify="center" width="100%" height="100%" position="absolute">
       <LoadingIndicator size={size ?? 32} />
-    </CollapsibleTimelineLoadingIndicatorContainer>
+    </Stack>
   );
 }
 
@@ -60,15 +62,6 @@ const CollapsibleTimelineContainer = styled('div')<{labelHeight: number}>`
   position: relative;
   width: 100%;
   height: calc(100% - ${p => p.labelHeight}px);
-`;
-
-const CollapsibleTimelineLoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
 `;
 
 const CollapsibleTimelineHeader = styled('div')<{
