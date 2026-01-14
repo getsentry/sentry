@@ -10,8 +10,8 @@ from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.region.model import (
-    RpcDeleteResult,
-    RpcIssueLinkResult,
+    RpcEmptyResult,
+    RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcServiceHookProjectsResult,
 )
@@ -64,7 +64,7 @@ class SentryAppRegionService(RpcService):
         fields: dict[str, Any],
         uri: str,
         user: RpcUser,
-    ) -> RpcIssueLinkResult:
+    ) -> RpcPlatformExternalIssueResult:
         """Invokes IssueLinkCreator to create an issue link."""
         pass
 
@@ -79,7 +79,7 @@ class SentryAppRegionService(RpcService):
         web_url: str,
         project: str,
         identifier: str,
-    ) -> RpcIssueLinkResult:
+    ) -> RpcPlatformExternalIssueResult:
         """Invokes ExternalIssueCreator to create an external issue."""
         pass
 
@@ -91,7 +91,7 @@ class SentryAppRegionService(RpcService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         external_issue_id: int,
-    ) -> RpcDeleteResult:
+    ) -> RpcEmptyResult:
         """Deletes a PlatformExternalIssue by id."""
         pass
 
@@ -116,7 +116,7 @@ class SentryAppRegionService(RpcService):
         sentry_app_slug: str,
         tsdb_field: str,
         component_type: str | None = None,
-    ) -> RpcDeleteResult:
+    ) -> RpcEmptyResult:
         """Records a sentry app interaction in TSDB."""
         pass
 

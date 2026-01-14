@@ -10,6 +10,8 @@ from pydantic.fields import Field
 from sentry.hybridcloud.rpc import RpcModel
 
 
+# XXX: Normally RPCs wouldn't return errors like this, but we need to surface these errors to Sentry
+# Apps and by moving operation into these services, we'd lose the helpful errors without this.
 class RpcSentryAppError(RpcModel):
     message: str
     webhook_context: dict[str, Any]
@@ -30,13 +32,8 @@ class RpcPlatformExternalIssue(RpcModel):
     web_url: str
 
 
-class RpcIssueLinkResult(RpcModel):
+class RpcPlatformExternalIssueResult(RpcModel):
     external_issue: RpcPlatformExternalIssue | None = None
-    error: RpcSentryAppError | None = None
-
-
-class RpcDeleteResult(RpcModel):
-    success: bool = False
     error: RpcSentryAppError | None = None
 
 
@@ -47,4 +44,9 @@ class RpcServiceHookProject(RpcModel):
 
 class RpcServiceHookProjectsResult(RpcModel):
     projects: list[RpcServiceHookProject] = Field(default_factory=list)
+    error: RpcSentryAppError | None = None
+
+
+class RpcEmptyResult(RpcModel):
+    success: bool = False
     error: RpcSentryAppError | None = None

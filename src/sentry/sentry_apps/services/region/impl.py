@@ -10,9 +10,9 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.region.model import (
-    RpcDeleteResult,
-    RpcIssueLinkResult,
+    RpcEmptyResult,
     RpcPlatformExternalIssue,
+    RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcSentryAppError,
     RpcServiceHookProject,
@@ -76,7 +76,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         fields: dict[str, Any],
         uri: str,
         user: RpcUser,
-    ) -> RpcIssueLinkResult:
+    ) -> RpcPlatformExternalIssueResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_actions.py @ POST
         """
@@ -86,7 +86,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 project_id__in=Project.objects.filter(organization_id=organization_id),
             )
         except Group.DoesNotExist:
-            return RpcIssueLinkResult(
+            return RpcPlatformExternalIssueResult(
                 error=RpcSentryAppError(
                     message="Could not find the corresponding issue for the given groupId",
                     webhook_context={},
@@ -104,7 +104,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 user=user,
             ).run()
         except (SentryAppIntegratorError, SentryAppSentryError) as e:
-            return RpcIssueLinkResult(
+            return RpcPlatformExternalIssueResult(
                 error=RpcSentryAppError(
                     message=e.message,
                     webhook_context=e.webhook_context,
@@ -112,7 +112,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 )
             )
 
-        return RpcIssueLinkResult(
+        return RpcPlatformExternalIssueResult(
             external_issue=RpcPlatformExternalIssue(
                 id=str(external_issue.id),
                 issue_id=str(external_issue.group_id),
@@ -131,7 +131,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         web_url: str,
         project: str,
         identifier: str,
-    ) -> RpcIssueLinkResult:
+    ) -> RpcPlatformExternalIssueResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issues.py @ POST
         """
@@ -141,7 +141,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 project_id__in=Project.objects.filter(organization_id=organization_id),
             )
         except Group.DoesNotExist:
-            return RpcIssueLinkResult(
+            return RpcPlatformExternalIssueResult(
                 error=RpcSentryAppError(
                     message="Could not find the corresponding issue for the given issueId",
                     webhook_context={},
@@ -158,7 +158,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 identifier=identifier,
             ).run()
         except SentryAppSentryError as e:
-            return RpcIssueLinkResult(
+            return RpcPlatformExternalIssueResult(
                 error=RpcSentryAppError(
                     message=e.message,
                     webhook_context=e.webhook_context,
@@ -166,7 +166,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 )
             )
 
-        return RpcIssueLinkResult(
+        return RpcPlatformExternalIssueResult(
             external_issue=RpcPlatformExternalIssue(
                 id=str(external_issue.id),
                 issue_id=str(external_issue.group_id),
@@ -182,7 +182,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         external_issue_id: int,
-    ) -> RpcDeleteResult:
+    ) -> RpcEmptyResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_details.py @ DELETE
         """
@@ -193,7 +193,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 service_type=installation.sentry_app.slug,
             )
         except PlatformExternalIssue.DoesNotExist:
-            return RpcDeleteResult(
+            return RpcEmptyResult(
                 error=RpcSentryAppError(
                     message="Could not find the corresponding external issue",
                     webhook_context={},
@@ -202,7 +202,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             )
 
         deletions.exec_sync(platform_external_issue)
-        return RpcDeleteResult(success=True)
+        return RpcEmptyResult(success=True)
 
     def get_service_hook_projects(
         self,
@@ -240,7 +240,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         sentry_app_slug: str,
         tsdb_field: str,
         component_type: str | None = None,
-    ) -> RpcDeleteResult:
+    ) -> RpcEmptyResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ POST
         """
@@ -249,7 +249,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         if model == TSDBModel.sentry_app_component_interacted:
             valid_component_types = ["stacktrace-link", "issue-link"]
             if component_type is None or component_type not in valid_component_types:
-                return RpcDeleteResult(
+                return RpcEmptyResult(
                     error=RpcSentryAppError(
                         message=f"componentType is required and must be one of {valid_component_types}",
                         webhook_context={},
@@ -260,7 +260,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         elif model == TSDBModel.sentry_app_viewed:
             key = f"{sentry_app_id}"
         else:
-            return RpcDeleteResult(
+            return RpcEmptyResult(
                 error=RpcSentryAppError(
                     message="tsdbField must be one of: sentry_app_viewed, sentry_app_component_interacted",
                     webhook_context={},
@@ -269,4 +269,4 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             )
 
         tsdb.backend.incr(model, key)
-        return RpcDeleteResult(success=True)
+        return RpcEmptyResult(success=True)
