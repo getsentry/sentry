@@ -120,4 +120,5 @@ from .team import *  # NOQA
 from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
+from .trustedidentityprovider import *  # NOQA
 from .userreport import *  # NOQA
