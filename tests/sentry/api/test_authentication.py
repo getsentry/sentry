@@ -603,7 +603,7 @@ class TestHmacSignatureAuthentication(TestCase):
             shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
             service_name = "TestService"
             sdk_tag_name = "test_service_rpc_auth"
-            signature_prefix = "service0:"
+            signature_prefix = "service0"
 
         auth = CustomPrefixAuth()
 
