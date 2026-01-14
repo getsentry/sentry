@@ -76,6 +76,12 @@ class GroupCategory(IntEnum):
     """
     PREPROD = 17
 
+    """
+    Issues detected by autopilot instrumentation analysis suggesting
+    improvements to product usage and observability coverage.
+    """
+    INSTRUMENTATION = 18
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
