@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -20,7 +22,7 @@ const IMAGE_SIZE = {height: 'auto', width: '540px'};
 
 function HighlightedFeature({feature, organization, subscription}: Props) {
   return (
-    <Description data-test-id="highlighted-feature">
+    <Stack data-test-id="highlighted-feature">
       <div>{feature.desc}</div>
       {feature.image && <FeatureImg src={feature.image} {...IMAGE_SIZE} />}
       <PlanContext>
@@ -46,14 +48,9 @@ function HighlightedFeature({feature, organization, subscription}: Props) {
             current: subscription.planDetails.name,
           })}
       </PlanContext>
-    </Description>
+    </Stack>
   );
 }
-
-const Description = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const FeatureImg = styled('img')`
   margin: ${space(2)} 0;

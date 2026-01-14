@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import Confirm from 'sentry/components/confirm';
@@ -118,7 +120,7 @@ function DisabledMemberView(props: Props) {
     </Button>
   );
   return (
-    <PageContainer>
+    <Stack flexGrow={1} minHeight="100vh">
       <MinimalistSidebar>
         {organization ? <OrganizationDropdown hideCurrentOrganizationLinks /> : null}
         {<UserDropdown />}
@@ -190,7 +192,7 @@ function DisabledMemberView(props: Props) {
         />
       )}
       <Footer />
-    </PageContainer>
+    </Stack>
   );
 }
 
@@ -204,13 +206,6 @@ const MinimalistSidebar = styled('div')`
   align-items: center;
   justify-content: space-between;
   padding: 0 ${space(2)};
-`;
-
-const PageContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  min-height: 100vh;
 `;
 
 const DisabledMemberButtonBar = styled(ButtonBar)`
