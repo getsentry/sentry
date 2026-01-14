@@ -328,7 +328,7 @@ jobs:
         run: |
           if ! git diff --name-only origin/master HEAD | grep -q "migrations_lockfile.txt"; then
             echo "::error::Migration files were added but migrations_lockfile.txt was not updated"
-            echo "::error::Run: sentry django makemigrations -n <migration_name>"
+            echo "::error::Make sure you have not forgotten to commit the migrations_lockfile.txt file"
             exit 1
           fi
           echo "✓ Migration lockfile was properly updated"
