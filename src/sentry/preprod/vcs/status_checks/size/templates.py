@@ -143,9 +143,11 @@ def _format_artifact_summary(
 
         # Comparison URL
         if base_artifact and base_metrics:
-            artifact_url = get_preprod_artifact_comparison_url(artifact, base_artifact)
+            artifact_url = get_preprod_artifact_comparison_url(
+                artifact, base_artifact, comparison_type="size"
+            )
         else:
-            artifact_url = get_preprod_artifact_url(artifact)
+            artifact_url = get_preprod_artifact_url(artifact, view_type="size")
 
         name_text = f"[{app_name}<br>`{app_id}`]({artifact_url})"
 
@@ -195,7 +197,7 @@ def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
     for artifact in artifacts:
         version_string = _format_version_string(artifact, default="-")
 
-        artifact_url = get_preprod_artifact_url(artifact)
+        artifact_url = get_preprod_artifact_url(artifact, view_type="size")
         unknown_app_text = str(_("Unknown App"))
         app_id_link = f"[`{artifact.app_id or unknown_app_text}`]({artifact_url})"
 

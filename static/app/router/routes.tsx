@@ -2489,38 +2489,62 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
+    // Size view
     {
-      path: ':artifactId/',
+      path: 'size/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
     },
+    // Install view
     {
-      path: ':artifactId/install/',
+      path: 'install/:artifactId/',
       component: make(() => import('sentry/views/preprod/install/installPage')),
     },
+    // Size comparison
     {
-      path: 'compare/',
-      children: [
-        {
-          index: true,
-          component: errorHandler(RouteNotFound),
-        },
-        {
-          path: ':headArtifactId/',
-          component: make(
-            () => import('sentry/views/preprod/buildComparison/buildComparison')
-          ),
-        },
-        {
-          path: ':headArtifactId/:baseArtifactId/',
-          component: make(
-            () => import('sentry/views/preprod/buildComparison/buildComparison')
-          ),
-        },
-      ],
+      path: 'size/compare/:headId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
+    },
+    {
+      path: 'size/compare/:headId/:baseId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
+    },
+    // Snapshots/distribution comparison
+    {
+      path: 'snapshots/compare/:headId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
+    },
+    {
+      path: 'snapshots/compare/:headId/:baseId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
+    },
+    // Legacy redirects
+    {
+      path: ':projectId/:artifactId/',
+      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
+    },
+    {
+      path: ':projectId/:artifactId/install/',
+      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
+    },
+    {
+      path: ':projectId/compare/:headArtifactId/',
+      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
+    },
+    {
+      path: ':projectId/compare/:headArtifactId/:baseArtifactId/',
+      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
     },
   ];
   const preprodRoutes: SentryRouteObject = {
-    path: '/preprod/:projectId/',
+    path: '/preprod/',
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,

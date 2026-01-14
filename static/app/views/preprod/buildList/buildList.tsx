@@ -13,18 +13,16 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 export default function BuildList() {
   const organization = useOrganization();
-  const params = useParams<{projectId: string}>();
-  const projectId = params.projectId;
 
-  const {cursor} = useLocationQuery({
+  const {cursor, project: projectId} = useLocationQuery({
     fields: {
       cursor: decodeScalar,
+      project: decodeScalar,
     },
   });
 
