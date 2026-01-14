@@ -64,6 +64,8 @@ register_grouping_config(
         "handle_js_single_frame_url_origin_backwards": True,
         # Don't parameterize `spawn_main(tracker_fd=12, pipe_handle=31)`-type context lines
         "prevent_python_multiprocessing_context_line_parameterization": True,
+        # Ignore rather than flagging unknown fingerprint variables
+        "use_legacy_unknown_variable_handling": True,
     },
     enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
