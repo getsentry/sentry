@@ -902,12 +902,12 @@ class TestAuthenticateHeader:
 
     def test_user_auth_token_returns_bearer(self) -> None:
         auth = UserAuthTokenAuthentication()
-        assert auth.authenticate_header(None) == "Bearer"
+        assert auth.authenticate_header(_drf_request()) == "Bearer"
 
     def test_org_auth_token_returns_bearer(self) -> None:
         auth = OrgAuthTokenAuthentication()
-        assert auth.authenticate_header(None) == "Bearer"
+        assert auth.authenticate_header(_drf_request()) == "Bearer"
 
     def test_dsn_authentication_returns_dsn(self) -> None:
         auth = DSNAuthentication()
-        assert auth.authenticate_header(None) == "Dsn"
+        assert auth.authenticate_header(_drf_request()) == "Dsn"
