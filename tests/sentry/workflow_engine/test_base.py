@@ -133,7 +133,7 @@ class DataConditionHandlerMixin:
         for module_path in module_paths:
             new_patch = mock.patch(
                 f"{module_path}.condition_handler_registry.get",
-                return_value=MockDataConditionHandler(),
+                return_value=MockDataConditionHandler,
             )
             self.patches.append(new_patch)
             new_patch.start()
