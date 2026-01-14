@@ -1405,7 +1405,7 @@ class SnubaResultConverter:
             # For positive integers, we must find a resolved value
             resolved = resolved_values.get(value)
             if resolved is None:
-                raise MetricIndexNotFound()
+                raise MetricIndexNotFound(f"Unknown string index: {value}")
             return resolved
 
         groups: list[_BySeriesTotals] = [
