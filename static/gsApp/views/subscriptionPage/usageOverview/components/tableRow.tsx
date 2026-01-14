@@ -289,7 +289,7 @@ function UsageOverviewTableRow({
                     value={percentUsed}
                     progressColor={
                       !usageExceeded && percentUsed === 100
-                        ? theme.tokens.border.danger
+                        ? theme.tokens.border.danger.vibrant
                         : undefined
                     }
                   />
@@ -482,12 +482,18 @@ const Row = styled('tr')`
 const ProductRow = styled(Row)<{isSelected: boolean}>`
   position: relative;
   background: ${p =>
-    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
+    p.isSelected
+      ? p.theme.tokens.background.secondary
+      : p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xl};
   cursor: pointer;
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 

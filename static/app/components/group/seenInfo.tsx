@@ -112,7 +112,11 @@ const dateTimeCss = (p: any) => css`
 
 const DateWrapper = styled('div')`
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledDateTime = styled(DateTime)`

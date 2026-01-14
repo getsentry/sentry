@@ -41,10 +41,10 @@ export default function AutomationBuilderRow({
 
 const RowContainer = styled('div')<{incompatible?: boolean}>`
   display: flex;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => p.theme.tokens.border.secondary} solid;
-  border-color: ${p => (p.incompatible ? p.theme.tokens.border.danger : 'none')};
+  border-color: ${p => (p.incompatible ? p.theme.tokens.border.danger.vibrant : 'none')};
   position: relative;
   padding: ${space(0.75)} ${space(1.5)};
   min-height: 46px;
