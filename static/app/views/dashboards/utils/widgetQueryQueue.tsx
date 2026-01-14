@@ -13,7 +13,7 @@ type FetchDataFn = () => Promise<void>;
 
 type QueueItem = {
   fetchData: FetchDataFn;
-  widgetId: string | undefined;
+  widgetId: string;
 };
 
 export type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
@@ -84,11 +84,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
     const addItem = (item: QueueItem) => {
       // Never add the same widget to the queue twice
       // even if the date selection has change `fetchData()` in `fetchWidgetItem` will still be called with the latest state.
-      if (
-        queue
-          .peekPendingItems()
-          .some(i => i.widgetId === item.widgetId || i.fetchData === item.fetchData)
-      ) {
+      if (queue.peekPendingItems().some(i => i.widgetId === item.widgetId)) {
         return true;
       }
       const queueIsEmpty = queue.peekAllItems().length === 0;

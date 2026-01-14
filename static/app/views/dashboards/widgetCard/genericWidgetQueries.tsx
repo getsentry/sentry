@@ -423,7 +423,8 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
   }, [widget, onDataFetchStart, fetchSeriesData, fetchTableData]);
 
   const fetchDataWithQueueIfAvailable = useCallback(() => {
-    if (queue) {
+    // We use the widget id to deduplicate requests for the same widget, if it's missing we don't use the queue.
+    if (queue && widget.id) {
       queryFetchIDRef.current = undefined;
       setLoading(true);
       setTableResults(undefined);
