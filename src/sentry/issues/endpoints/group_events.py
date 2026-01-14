@@ -31,7 +31,7 @@ from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_query
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
@@ -116,22 +116,27 @@ class GroupEventsEndpoint(GroupEndpoint):
     ) -> Response:
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
-        params: ParamsType = {
-            "project_id": [group.project_id],
-            "organization_id": group.project.organization_id,
-            "start": start if start else default_start,
-            "end": end if end else default_end,
-        }
         referrer = f"api.group-events.{group.issue_category.name.lower()}"
 
+        direct_hit_snuba_params = SnubaParams(
+            start=start if start else default_start,
+            end=end if end else default_end,
+            projects=[group.project],
+            organization=group.project.organization,
+        )
         direct_hit_resp = get_direct_hit_response(
-            request, query, params, f"{referrer}.direct-hit", group
+            request, query, direct_hit_snuba_params, f"{referrer}.direct-hit", group
         )
         if direct_hit_resp:
             return direct_hit_resp
 
-        if environments:
-            params["environment"] = [env.name for env in environments]
+        snuba_params = SnubaParams(
+            start=start if start else default_start,
+            end=end if end else default_end,
+            environments=environments,
+            projects=[group.project],
+            organization=group.project.organization,
+        )
 
         full = request.GET.get("full") in ("1", "true")
         sample = request.GET.get("sample") in ("1", "true")
@@ -145,7 +150,7 @@ class GroupEventsEndpoint(GroupEndpoint):
             try:
                 snuba_query = get_query_builder_for_group(
                     request.GET.get("query", ""),
-                    params,
+                    snuba_params,
                     group,
                     limit=limit,
                     offset=offset,

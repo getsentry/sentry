@@ -3,6 +3,9 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.organization_ai_conversation_details import (
+    OrganizationAIConversationDetailsEndpoint,
+)
 from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
@@ -392,8 +395,14 @@ from sentry.monitors.endpoints.organization_monitor_index_stats import (
 from sentry.monitors.endpoints.organization_monitor_processing_errors_index import (
     OrganizationMonitorProcessingErrorsIndexEndpoint,
 )
+from sentry.monitors.endpoints.organization_monitor_schedule_sample_buckets import (
+    OrganizationMonitorScheduleSampleBucketsEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import (
     OrganizationMonitorScheduleSampleDataEndpoint,
+)
+from sentry.monitors.endpoints.organization_monitor_schedule_sample_window import (
+    OrganizationMonitorScheduleSampleWindowEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.monitors.endpoints.project_monitor_checkin_index import (
@@ -602,6 +611,9 @@ from sentry.uptime.endpoints.organiation_uptime_alert_index import (
 from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
     OrganizationUptimeAlertIndexCountEndpoint,
 )
+from sentry.uptime.endpoints.organization_uptime_alert_preview_check import (
+    OrganizationUptimeAlertPreviewCheckEndpoint,
+)
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
@@ -692,6 +704,7 @@ from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoin
 from .endpoints.organization_artifactbundle_assemble import (
     OrganizationArtifactBundleAssembleEndpoint,
 )
+from .endpoints.organization_attribute_mappings import OrganizationAttributeMappingsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
@@ -1537,6 +1550,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         ExploreSavedQueryStarredOrderEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-starred-order",
     ),
+    # Attribute Mappings
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/attribute-mappings/$",
+        OrganizationAttributeMappingsEndpoint.as_view(),
+        name="sentry-api-0-organization-attribute-mappings",
+    ),
     # Dashboards
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/$",
@@ -1727,6 +1746,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/$",
         OrganizationAIConversationsEndpoint.as_view(),
         name="sentry-api-0-organization-ai-conversations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>[^/]+)/$",
+        OrganizationAIConversationDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-ai-conversation-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",
@@ -2066,6 +2090,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/monitors-schedule-data/$",
         OrganizationMonitorScheduleSampleDataEndpoint.as_view(),
         name="sentry-api-0-organization-monitors-schedule-sample-data",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitors-schedule-buckets/$",
+        OrganizationMonitorScheduleSampleBucketsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitors-schedule-sample-buckets",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitors-schedule-window/$",
+        OrganizationMonitorScheduleSampleWindowEndpoint.as_view(),
+        name="sentry-api-0-organization-monitors-schedule-sample-window",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/monitors/(?P<monitor_id_or_slug>[^/]+)/$",
@@ -2611,6 +2645,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/uptime/$",
         OrganizationUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/uptime-preview-check/$",
+        OrganizationUptimeAlertPreviewCheckEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-preview-check",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-count/$",

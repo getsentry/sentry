@@ -82,7 +82,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
       upperLabel: {
@@ -96,7 +96,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
     };
@@ -134,7 +134,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
               fontSize: 12,
               fontWeight: 'bold',
               fontFamily: 'Rubik',
-              color: theme.activeText,
+              color: theme.tokens.interactive.link.accent.rest,
             },
           },
         },
@@ -266,6 +266,15 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
   );
 }
 
+type TagType = 'success' | 'danger' | 'muted';
+const tagColors = (
+  theme: Theme
+): Record<TagType, {backgroundColor: string; color: string}> => ({
+  success: {backgroundColor: theme.colors.green100, color: theme.colors.green500},
+  danger: {backgroundColor: theme.colors.red100, color: theme.colors.red500},
+  muted: {backgroundColor: theme.colors.surface500, color: theme.colors.gray500},
+});
+
 function DiffTag(
   theme: Theme,
   sizeDiff: number,
@@ -273,7 +282,7 @@ function DiffTag(
   label: string
 ): string {
   const diffString = formattedSizeDiff(sizeDiff);
-  let tagType: 'success' | 'danger' | 'muted' = 'muted';
+  let tagType: TagType = 'muted';
   if (diffType === 'increased' || diffType === 'added') {
     tagType = 'danger';
   } else if (diffType === 'decreased' || diffType === 'removed') {
@@ -283,14 +292,14 @@ function DiffTag(
   // Intentionally a string as Echarts cannot render React components
   return `<div style="
     font-size: ${theme.font.size.sm};
-    background-color: ${theme.tag[tagType].background};
+    background-color: ${tagColors(theme)[tagType].backgroundColor};
     display: inline-flex;
     align-items: center;
     height: 20px;
     border-radius: 4px;
     padding: 0 ${theme.space.md};
     gap: ${theme.space.md};
-    color: ${theme.tag[tagType].color};
+    color: ${tagColors(theme)[tagType].color};
   ">
     <span style="
       white-space: nowrap;

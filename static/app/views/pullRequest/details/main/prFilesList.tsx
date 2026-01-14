@@ -203,11 +203,11 @@ const DiffRow = styled('tr')`
 
     .old-line-number {
       background-color: ${p => p.theme.tokens.background.primary};
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
     .new-line-number {
       background-color: #d1f4db;
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
   }
 
@@ -226,7 +226,7 @@ const DiffRow = styled('tr')`
     .old-line-number,
     .new-line-number {
       background-color: #ffd7d5;
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
   }
 
@@ -239,10 +239,10 @@ const DiffRow = styled('tr')`
   }
 
   &.header {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
 
     td {
-      color: ${p => p.theme.colors.blue400};
+      color: ${p => p.theme.tokens.content.accent};
       font-weight: ${p => p.theme.fontWeight.bold};
     }
   }
@@ -254,7 +254,7 @@ const LineNumber = styled('td')`
   text-align: right;
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: 10px;
   user-select: none;
   vertical-align: top;

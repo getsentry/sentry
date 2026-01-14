@@ -2,18 +2,14 @@
 source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: null
-  contributing component: null
-  hint: ignored because system exception takes precedence
+  hash: "e9e285f37b2b82b2a3e0fdaf8e1655c1"
+  contributing component: exception
+  hint: None
   root_component:
-    app (ignored because system exception takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        type*
-          "TimeoutError"
-        value*
-          "timed out"
-        stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+    app*
+      exception*
+        stacktrace*
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "__main__"
             filename (ignored because module takes precedence)
@@ -21,8 +17,8 @@ app:
             function*
               "<module>"
             context_line*
-              "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+              "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -31,7 +27,7 @@ app:
               "spawn_main"
             context_line*
               "exitcode = _main(fd, parent_sentinel)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -40,7 +36,7 @@ app:
               "_main"
             context_line*
               "return self._bootstrap(parent_sentinel)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -49,7 +45,7 @@ app:
               "_bootstrap"
             context_line*
               "self.run()"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -58,7 +54,7 @@ app:
               "run"
             context_line*
               "self._target(*self._args, **self._kwargs)"
-          frame (non app frame)
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "sentry.taskworker.workerchild"
             filename (ignored because module takes precedence)
@@ -67,7 +63,7 @@ app:
               "child_process"
             context_line*
               "run_worker("
-          frame (non app frame)
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "sentry.taskworker.workerchild"
             filename (ignored because module takes precedence)
@@ -76,7 +72,7 @@ app:
               "run_worker"
             context_line*
               "_execute_activation(task_func, inflight.activation)"
-          frame (non app frame)
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "sentry.taskworker.workerchild"
             filename (ignored because module takes precedence)
@@ -85,7 +81,7 @@ app:
               "_execute_activation"
             context_line*
               "task_func(*args, **kwargs)"
-          frame (non app frame)
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "sentry.taskworker.task"
             filename (ignored because module takes precedence)
@@ -94,7 +90,7 @@ app:
               "__call__"
             context_line*
               "return self._func(*args, **kwargs)"
-          frame (non app frame)
+          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
             module*
               "sentry.tasks.post_process"
             filename (ignored because module takes precedence)
@@ -112,7 +108,7 @@ app:
               "run_post_process_job"
             context_line*
               "logger.exception("
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -121,7 +117,7 @@ app:
               "exception"
             context_line*
               "self.error(msg, *args, exc_info=exc_info, **kwargs)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -130,7 +126,7 @@ app:
               "error"
             context_line*
               "self._log(ERROR, msg, args, **kwargs)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -139,7 +135,7 @@ app:
               "_log"
             context_line*
               "self.handle(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -148,7 +144,7 @@ app:
               "handle"
             context_line*
               "self.callHandlers(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -157,7 +153,7 @@ app:
               "callHandlers"
             context_line*
               "hdlr.handle(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -193,29 +189,29 @@ app:
               "_connect"
             context_line*
               "sock.connect(socket_address)"
+        type*
+          "TimeoutError"
+        value (ignored because stacktrace takes precedence)
+          "timed out"
 --------------------------------------------------------------------------
 default:
   hash: null
   contributing component: null
-  hint: ignored because system exception takes precedence
+  hint: ignored because app/system exception takes precedence
   root_component:
-    default (ignored because system exception takes precedence)
-      message (ignored because system exception takes precedence)
+    default (ignored because app/system exception takes precedence)
+      message (ignored because app/system exception takes precedence)
         "Failed to process pipeline step %s"
 --------------------------------------------------------------------------
 system:
-  hash: "1bc764ab44acfab9a38f23ae670038bd"
+  hash: "7c1fcfc8523ad78a4d0424bfd03bdb13"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
-        type*
-          "TimeoutError"
-        value (ignored because stacktrace takes precedence)
-          "timed out"
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame*
             module*
               "__main__"
             filename (ignored because module takes precedence)
@@ -223,7 +219,7 @@ system:
             function*
               "<module>"
             context_line*
-              "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
+              "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
           frame*
             module*
               "multiprocessing.spawn"
@@ -395,3 +391,7 @@ system:
               "_connect"
             context_line*
               "sock.connect(socket_address)"
+        type*
+          "TimeoutError"
+        value (ignored because stacktrace takes precedence)
+          "timed out"

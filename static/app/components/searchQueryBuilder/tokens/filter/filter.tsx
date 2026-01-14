@@ -293,14 +293,14 @@ const FilterValueGridCell = styled(BaseGridCell)`
 
 const ValueButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
   max-width: 400px;
 
   :focus {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
@@ -308,13 +308,13 @@ const ValueButton = styled(UnstyledButton)`
 
 const ValueEditing = styled('div')`
   padding: 0 ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   max-width: 100%;
 
   :focus-within {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
@@ -323,7 +323,7 @@ const ValueEditing = styled('div')`
 const DeleteButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 1px solid transparent;
 
   :focus {
@@ -341,17 +341,23 @@ const FilterValueList = styled('div')`
 `;
 
 const FilterValueOr = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FilterMultiValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 110px;
   width: min-content;
 `;
 
 const FilterValueSingleTruncatedValue = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 100%;
   width: min-content;
 `;

@@ -281,12 +281,12 @@ const DetailRow = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Label = styled('span')`
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   min-width: 80px;
 `;
 
@@ -316,7 +316,7 @@ const ResultItem = styled('div')`
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
     p.status === CodingAgentStatus.FAILED
-      ? p.theme.errorText
+      ? p.theme.tokens.content.danger
       : p.theme.tokens.content.primary};
 `;
 
