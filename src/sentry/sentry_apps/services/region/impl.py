@@ -216,6 +216,15 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ GET
         """
+        if cursor is not None and cursor < 0:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Cursor cannot be negative",
+                    webhook_context={},
+                    status_code=400,
+                )
+            )
+
         try:
             hook = ServiceHook.objects.get(installation_id=installation.id)
         except ServiceHook.DoesNotExist:
@@ -257,6 +266,28 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ POST
         """
         from django.db import router, transaction
+
+        if cursor is not None and cursor < 0:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Cursor cannot be negative",
+                    webhook_context={},
+                    status_code=400,
+                )
+            )
+
+        if project_ids:
+            valid_project_count = Project.objects.filter(
+                organization_id=organization_id, id__in=project_ids
+            ).count()
+            if valid_project_count != len(project_ids):
+                return RpcServiceHookProjectsResult(
+                    error=RpcSentryAppError(
+                        message="One or more project IDs do not belong to the organization",
+                        webhook_context={},
+                        status_code=400,
+                    )
+                )
 
         try:
             hook = ServiceHook.objects.get(installation_id=installation.id)
