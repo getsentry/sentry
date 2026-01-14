@@ -234,7 +234,7 @@ function AllProjectIssuesSection({
       </Container>
       <Alert variant="muted">
         {t(
-          '‘All issues’ excludes Metric, Cron, and Uptime. Select specific monitors to alert on these issue types.'
+          '‘All issues’ includes Error, Feedback, and Performance issue types. Select specific monitors to alert on Metric, Cron, and Uptime.'
         )}
       </Alert>
     </Stack>
