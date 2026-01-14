@@ -35,3 +35,8 @@ class RpcPlatformExternalIssue(RpcModel):
 class RpcPlatformExternalIssueResult(RpcModel):
     external_issue: RpcPlatformExternalIssue | None = None
     error: RpcSentryAppError | None = None
+
+
+class RpcEmptyResult(RpcModel):
+    success: bool = True
+    error: RpcSentryAppError | None = None
