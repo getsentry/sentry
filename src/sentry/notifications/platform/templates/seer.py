@@ -26,7 +26,7 @@ class SeerAutofixTrigger(NotificationData):
     @property
     def label(self) -> str:
         if self.stopping_point == AutofixStoppingPoint.ROOT_CAUSE:
-            return "Start RCA"
+            return "Fix with Seer"
         elif self.stopping_point == AutofixStoppingPoint.SOLUTION:
             return "Plan a Solution"
         elif self.stopping_point == AutofixStoppingPoint.CODE_CHANGES:
