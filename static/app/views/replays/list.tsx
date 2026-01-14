@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Grid} from 'sentry/components/core/layout';
@@ -14,13 +15,11 @@ import {
 } from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -39,7 +38,6 @@ const ReplayListPageHeaderHook = HookOrDefault({
 export default function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
-  const location = useLocation();
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
 
   const hasSessionReplay = organization.features.includes('session-replay');
@@ -48,7 +46,7 @@ export default function ReplaysListContainer() {
     selection: {projects},
   } = usePageFilters();
 
-  const searchQuery = decodeScalar(location.query.query, '');
+  const [searchQuery] = useQueryState('query', parseAsString.withDefault(''));
   const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
     minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
     projectId: projects.map(String),
