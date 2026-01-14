@@ -231,40 +231,40 @@ class TestOnCommitInManualTransactionManagement(TransactionTestCase):
         management mode instead of raising TransactionManagementError.
         """
         calls = []
-        
+
         # Get a connection and disable autocommit (manual transaction management)
         connection = transaction.get_connection("default")
         old_autocommit = connection.get_autocommit()
-        
+
         try:
             # Disable autocommit to simulate manual transaction management
             connection.set_autocommit(False)
-            
+
             # This should not raise TransactionManagementError anymore
             # Instead, it should log a warning and skip the on_commit hook
             transaction.on_commit(lambda: calls.append("should_not_be_called"), "default")
-            
+
             # Verify the hook was not registered (it should have been skipped)
             assert len(calls) == 0
-            
+
             # Commit the transaction manually
             connection.commit()
-            
+
             # The hook should still not have been called since it was skipped
             assert len(calls) == 0
         finally:
             # Restore autocommit
             connection.set_autocommit(old_autocommit)
-    
+
     def test_on_commit_works_normally_in_atomic_block(self) -> None:
         """
         Test that on_commit() still works correctly when used properly in an atomic block.
         """
         calls = []
-        
+
         with transaction.atomic("default"):
             transaction.on_commit(lambda: calls.append("called"), "default")
             assert len(calls) == 0
-        
+
         # After atomic block commits, the hook should be executed
         assert calls == ["called"]

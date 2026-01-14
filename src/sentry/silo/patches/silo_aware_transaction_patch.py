@@ -48,13 +48,13 @@ def siloed_get_connection(using: str | None = None) -> BaseDatabaseWrapper:
 
 def siloed_on_commit(func: Callable[..., Any], using: str | None = None) -> None:
     validate_transaction_using_for_silo_mode(using)
-    
+
     # Check if we're in a valid state to use on_commit
     # on_commit() requires either:
     # 1. The connection to be in autocommit mode (no manual transaction management), OR
     # 2. An active atomic block
     connection = _default_get_connection(using)
-    
+
     # If connection is not in autocommit mode and we're not in an atomic block,
     # Django will raise TransactionManagementError. We should check this first.
     if not connection.get_autocommit() and not connection.in_atomic_block:
@@ -62,6 +62,7 @@ def siloed_on_commit(func: Callable[..., Any], using: str | None = None) -> None
         # This is an invalid state for on_commit().
         # Log the error and skip registering the on_commit hook rather than crashing.
         import logging
+
         logger = logging.getLogger("sentry.transactions")
         logger.warning(
             "Attempted to call transaction.on_commit() in manual transaction management. "
@@ -70,7 +71,7 @@ def siloed_on_commit(func: Callable[..., Any], using: str | None = None) -> None
             exc_info=True,
         )
         return
-    
+
     return _default_on_commit(func, using)
 
 
