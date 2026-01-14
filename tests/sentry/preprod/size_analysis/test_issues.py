@@ -1,4 +1,4 @@
-from sentry.issues.grouptype import PreprodDeltaGroupType
+from sentry.preprod.grouptype import PreprodDeltaGroupType
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.issues import artifact_to_tags, diff_to_occurrence
 from sentry.preprod.size_analysis.models import SizeMetricDiffItem
