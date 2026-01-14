@@ -4,24 +4,24 @@ from django.http import HttpRequest, HttpResponse
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.event import EventEndpoint
 from sentry.grouping.api import load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
-from sentry.services import eventstore
+from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 
 
 @region_silo_endpoint
-class EventGroupingInfoEndpoint(ProjectEndpoint):
+class EventGroupingInfoEndpoint(EventEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: HttpRequest, project, event_id) -> HttpResponse:
+    def get(self, request: HttpRequest, project: Project, event: Event) -> HttpResponse:
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````
@@ -29,10 +29,6 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         This endpoint returns a JSON dump of the metadata that went into the
         grouping algorithm.
         """
-        event = eventstore.backend.get_event_by_id(project.id, event_id)
-        if event is None:
-            raise ResourceDoesNotExist
-
         grouping_config = load_grouping_config(event.get_grouping_config())
 
         # We want the stacktraces in the grouping info to match the issue details page's main

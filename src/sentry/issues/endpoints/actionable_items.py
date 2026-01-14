@@ -1,11 +1,10 @@
-from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.event import EventEndpoint
 from sentry.api.helpers.actionable_items_helper import (
     ActionPriority,
     deprecated_event_errors,
@@ -14,11 +13,11 @@ from sentry.api.helpers.actionable_items_helper import (
 )
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
-from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 
 
 @region_silo_endpoint
-class ActionableItemsEndpoint(ProjectEndpoint):
+class ActionableItemsEndpoint(EventEndpoint):
     """
     This endpoint is used to retrieve actionable items that a user can perform on an event. It is a private endpoint
     that is only used by the Sentry UI. The Source Map Debugging endpoint will remain public as it will only ever
@@ -31,12 +30,8 @@ class ActionableItemsEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.ISSUES
 
-    def get(self, request: Request, project: Project, event_id: str) -> Response:
+    def get(self, request: Request, project: Project, event: Event) -> Response:
         # Retrieve information about actionable items (source maps, event errors, etc.) for a given event.
-        event = eventstore.backend.get_event_by_id(project.id, event_id)
-        if event is None:
-            raise NotFound(detail="Event not found")
-
         actions = []
         event_errors = event.data.get("errors", [])
 

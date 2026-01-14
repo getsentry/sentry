@@ -4,22 +4,23 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.event import EventEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
-from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.types.actor import Actor
 
 
 @region_silo_endpoint
-class EventOwnersEndpoint(ProjectEndpoint):
+class EventOwnersEndpoint(EventEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event: Event) -> Response:
         """
         Retrieve suggested owners information for an event
         ``````````````````````````````````````````````````
@@ -29,10 +30,6 @@ class EventOwnersEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-        event = eventstore.backend.get_event_by_id(project.id, event_id)
-        if event is None:
-            return Response({"detail": "Event not found"}, status=404)
-
         owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 
         serialized_owners = serialize(Actor.resolve_many(owners), request.user, ActorSerializer())
