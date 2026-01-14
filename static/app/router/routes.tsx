@@ -2498,16 +2498,25 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/preprod/install/installPage')),
     },
     {
-      path: 'size/compare/:headId/',
-      component: make(
-        () => import('sentry/views/preprod/buildComparison/buildComparison')
-      ),
-    },
-    {
-      path: 'size/compare/:headId/:baseId/',
-      component: make(
-        () => import('sentry/views/preprod/buildComparison/buildComparison')
-      ),
+      path: 'size/compare/',
+      children: [
+        {
+          index: true,
+          component: errorHandler(RouteNotFound),
+        },
+        {
+          path: ':headId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+        {
+          path: ':headId/:baseId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+      ],
     },
   ];
   const preprodRoutes: SentryRouteObject = {
