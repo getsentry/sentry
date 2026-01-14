@@ -116,7 +116,10 @@ export function Preview() {
               />
             }
           />
-          <OpenPeriod bucketedData={sampleBucketsData} timeWindowConfig={timeWindowConfig} />
+          <OpenPeriod
+            bucketedData={sampleBucketsData}
+            timeWindowConfig={timeWindowConfig}
+          />
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
           <TimeLineContainer>
             <CheckInTimeline<PreviewStatus>
@@ -192,7 +195,11 @@ function OpenPeriod({
     }
   }
 
-  if (openBarStartIdx === null || openBarEndIdx === null || openBarEndIdx <= openBarStartIdx) {
+  if (
+    openBarStartIdx === null ||
+    openBarEndIdx === null ||
+    openBarEndIdx <= openBarStartIdx
+  ) {
     return null;
   }
 
@@ -222,12 +229,10 @@ function OpenPeriod({
         <OpenPeriodLabel>{t('New Open Period')}</OpenPeriodLabel>
       </OpenPeriodBar>
       <OpenPeriodCountLabel style={{left}}>
-        {failureCount + 1}{' '}
-        {tn('failed check-in', 'failed check-ins', failureCount)}
+        {failureCount + 1} {tn('failed check-in', 'failed check-ins', failureCount)}
       </OpenPeriodCountLabel>
       <OpenPeriodCountLabel style={{left: right}}>
-        {successCount + 1}{' '}
-        {tn('success check-in', 'success check-ins', successCount)}
+        {successCount + 1} {tn('success check-in', 'success check-ins', successCount)}
       </OpenPeriodCountLabel>
     </Fragment>
   );
