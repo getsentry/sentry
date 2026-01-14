@@ -482,6 +482,9 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str | None]
     for group_key, group_filters in filters_by_group.items():
         artifact_value = context.get(group_filters[0].key.name)
 
+        if artifact_value is None:
+            return False
+
         group_matches = False
         for f in group_filters:
             if f.is_in_filter:

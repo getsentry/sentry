@@ -768,3 +768,94 @@ class StatusCheckFiltersTest(TestCase):
 
         status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
         assert status == StatusCheckStatus.SUCCESS
+
+    def test_filters_on_missing_fields_do_not_match(self):
+        artifact_no_build_config = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id="com.example.app",
+            commit_comparison=self.commit_comparison,
+        )
+
+        context = _get_artifact_filter_context(artifact_no_build_config)
+        assert "build_configuration" not in context
+
+        positive_rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="build_configuration:Debug",
+        )
+        negated_rule = StatusCheckRule(
+            id="rule2",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="!build_configuration:Debug",
+        )
+        negated_in_rule = StatusCheckRule(
+            id="rule3",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="!build_configuration:[Debug,Release]",
+        )
+
+        assert _rule_matches_artifact(positive_rule, context) is False
+        assert _rule_matches_artifact(negated_rule, context) is False
+        assert _rule_matches_artifact(negated_in_rule, context) is False
+
+    def test_negated_filters_still_work_when_field_present(self):
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id="com.example.app",
+            commit_comparison=self.commit_comparison,
+            build_configuration_id=self.build_config_debug.id,
+        )
+
+        context = _get_artifact_filter_context(artifact)
+
+        rule_not_release = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="!build_configuration:Release",
+        )
+        rule_not_debug = StatusCheckRule(
+            id="rule2",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="!build_configuration:Debug",
+        )
+
+        assert _rule_matches_artifact(rule_not_release, context) is True
+        assert _rule_matches_artifact(rule_not_debug, context) is False
+
+    def test_combined_filters_fail_when_any_field_missing(self):
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id="com.example.app",
+            commit_comparison=self.commit_comparison,
+        )
+
+        context = _get_artifact_filter_context(artifact)
+        assert context["platform"] == "ios"
+        assert "build_configuration" not in context
+
+        rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="platform:ios !build_configuration:Debug",
+        )
+
+        assert _rule_matches_artifact(rule, context) is False
