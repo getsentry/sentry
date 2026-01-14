@@ -1,5 +1,7 @@
 import logging
+import uuid
 from datetime import timedelta
+from enum import StrEnum
 from itertools import chain, groupby
 from typing import Any
 
@@ -9,8 +11,11 @@ from pydantic import BaseModel
 
 from sentry import options
 from sentry.api.utils import handle_query_errors
+from sentry.autopilot.grouptype import InstrumentationIssueExperimentalGroupType
 from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sdk_updates import get_sdk_versions
@@ -23,6 +28,69 @@ from sentry.taskworker.namespaces import autopilot_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+class AutopilotDetectorName(StrEnum):
+    SDK_UPDATE = "sdk-update"
+    MISSING_SDK_INTEGRATION = "missing-sdk-integration"
+
+
+def create_instrumentation_issue(
+    project_id: int,
+    detector_name: str,
+    title: str,
+    subtitle: str,
+    description: str | None = None,
+) -> None:
+    detection_time = timezone.now()
+    event_id = uuid.uuid4().hex
+
+    # Fetch the project to get its platform
+    project = Project.objects.get_from_cache(id=project_id)
+
+    evidence_data: dict[str, Any] = {}
+    if description:
+        evidence_data["description"] = description
+
+    occurrence = IssueOccurrence(
+        id=uuid.uuid4().hex,
+        project_id=project_id,
+        event_id=event_id,
+        fingerprint=[detector_name],
+        issue_title=title,
+        subtitle=subtitle,
+        resource_id=None,
+        evidence_data=evidence_data,
+        evidence_display=[],
+        type=InstrumentationIssueExperimentalGroupType,
+        detection_time=detection_time,
+        culprit=detector_name,
+        level="info",
+    )
+
+    event_data: dict[str, Any] = {
+        "event_id": occurrence.event_id,
+        "project_id": occurrence.project_id,
+        "platform": project.platform or "other",
+        "received": detection_time.isoformat(),
+        "timestamp": detection_time.isoformat(),
+        "tags": {},
+    }
+
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.OCCURRENCE,
+        occurrence=occurrence,
+        event_data=event_data,
+    )
+
+    logger.info(
+        "autopilot.instrumentation_issue.created",
+        extra={
+            "project_id": project_id,
+            "detector_name": detector_name,
+            "title": title,
+        },
+    )
 
 
 class MissingSdkIntegrationsResult(BaseModel):
@@ -145,6 +213,22 @@ def run_sdk_update_detector_for_organization(organization: Organization):
     logger.warning("updates_list: %s", updates_list)
     metrics.incr("autopilot.sdk_update_detector.updates_found", len(updates_list))
 
+    for update in updates_list:
+        project_id = int(update["projectId"])
+        sdk_name = update["sdkName"]
+        current_version = update["sdkVersion"]
+        newest_version = update["newestSdkVersion"]
+
+        create_instrumentation_issue(
+            project_id=project_id,
+            detector_name=AutopilotDetectorName.SDK_UPDATE,
+            title=f"SDK Update Available: {sdk_name}",
+            subtitle=f"Update from {current_version} to {newest_version}",
+            description=f"A newer version of {sdk_name} is available. "
+            f"Consider updating from version {current_version} to {newest_version} "
+            f"to gain access to bug fixes, performance improvements, and new features.",
+        )
+
     return updates_list
 
 
@@ -200,7 +284,7 @@ def run_missing_sdk_integration_detector_for_project(
         client = SeerExplorerClient(
             organization,
             user=None,
-            category_key="missing-sdk-integration-detector",
+            category_key=AutopilotDetectorName.MISSING_SDK_INTEGRATION,
             category_value=str(project.id),
             intelligence_level="low",
         )
@@ -314,6 +398,18 @@ If no missing integrations are found, return an empty array: `[]`"""
                 "repo_name": repo_name,
             },
         )
+
+        if missing_integrations:
+            integrations_list = ", ".join(missing_integrations)
+            create_instrumentation_issue(
+                project_id=project.id,
+                detector_name=AutopilotDetectorName.MISSING_SDK_INTEGRATION,
+                title="Missing SDK Integrations Detected",
+                subtitle=f"Found {len(missing_integrations)} missing integration(s): {integrations_list}",
+                description=f"The following SDK integrations are available for your project but not configured: {integrations_list}. "
+                f"Adding these integrations can improve error tracking and provide better insights into your application's behavior. "
+                f"Learn more at: {integration_docs_url}",
+            )
 
         return missing_integrations
 
