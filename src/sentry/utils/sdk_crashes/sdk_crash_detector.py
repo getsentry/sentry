@@ -129,6 +129,8 @@ class SDKCrashDetector:
         has_non_conditional_sdk_frame = False
         for frame in iter_frames:
             if self.is_sdk_frame(frame):
+                if self._matches_sdk_crash_ignore(frame):
+                    continue
                 if self._matches_ignore_when_only_sdk_frame(frame):
                     conditional_sdk_frame_count += 1
                 else:
