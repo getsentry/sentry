@@ -70,7 +70,7 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
         else:
             # This is a numeric ID
             try:
-                group = Group.objects.get(id=int(issue_id), organization_id=org_id)
+                group = Group.objects.get(id=int(issue_id), project__organization_id=org_id)
                 results.add(group)
             except (Group.DoesNotExist, ValueError):
                 continue
