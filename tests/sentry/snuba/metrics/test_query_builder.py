@@ -30,6 +30,7 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
+    MetricIndexNotFound,
     resolve,
     resolve_tag_key,
     resolve_tag_value,
@@ -2044,3 +2045,63 @@ def test_having_clause(include_totals, include_series) -> None:
     if include_series:
         query = queries["series"]
         assert query.having == having
+
+
+@django_db_all
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+def test_translate_result_groups_raises_for_unresolvable_tag_value(
+    _1: mock.MagicMock, _2: mock.MagicMock
+) -> None:
+    """
+    Test that MetricIndexNotFound is raised when a tag value (positive integer)
+    cannot be resolved by the string indexer.
+    """
+    org_id = 1
+    use_case_id = UseCaseID.SESSIONS
+
+    query_params = MultiValueDict(
+        {
+            "field": ["sum(sentry.sessions.session)"],
+            "interval": ["1d"],
+            "statsPeriod": ["1d"],
+            "groupBy": ["release"],
+        }
+    )
+    query_definition = QueryDefinition([PseudoProject(org_id, 1)], query_params)
+    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
+        "metrics_counters": [
+            ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
+        ],
+    }
+    intervals = list(
+        get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
+    )
+
+    # Use a large integer that definitely won't exist in the string indexer
+    nonexistent_tag_value = 999999999
+
+    results = {
+        "metrics_counters": {
+            "totals": {
+                "data": [
+                    {"release": nonexistent_tag_value, "sum(sentry.sessions.session)": 100},
+                ],
+            },
+            "series": {
+                "data": [],
+            },
+        },
+    }
+
+    converter = SnubaResultConverter(
+        org_id,
+        query_definition.to_metrics_query(),
+        fields_in_entities,
+        intervals,
+        results,
+        use_case_id,
+    )
+
+    with pytest.raises(MetricIndexNotFound):
+        converter.translate_result_groups()
