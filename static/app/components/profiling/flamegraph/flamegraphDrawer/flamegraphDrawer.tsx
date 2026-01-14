@@ -361,7 +361,7 @@ export const ProfilingDetailsFrameTabs = styled('ul')`
   padding: 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
-  background-color: ${props => props.theme.colors.surface300};
+  background-color: ${props => props.theme.tokens.background.tertiary};
   user-select: none;
   grid-area: tabs;
 `;

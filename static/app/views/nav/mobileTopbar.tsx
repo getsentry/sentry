@@ -156,7 +156,7 @@ const NavigationOverlay = styled('nav')`
   left: 0;
   display: flex;
   flex-direction: column;
-  background: ${p => p.theme.colors.surface300};
+  background: ${p => p.theme.tokens.background.tertiary};
   z-index: ${p => p.theme.zIndex.modal};
   --color: ${p => p.theme.tokens.content.primary};
   --color-hover: ${p => p.theme.tokens.interactive.link.accent.rest};
