@@ -67,9 +67,12 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
             # Validate project_id belongs to the organization (IDOR protection)
             if "project_id" in required_fields and organization:
                 project_id = filters.get("project_id")
-                if project_id and not Project.objects.filter(
-                    id=project_id, organization_id=organization.id
-                ).exists():
+                if (
+                    project_id
+                    and not Project.objects.filter(
+                        id=project_id, organization_id=organization.id
+                    ).exists()
+                ):
                     return Response({"detail": "Project not found"}, status=404)
 
             condition = Q(feature=feature, **filters)
