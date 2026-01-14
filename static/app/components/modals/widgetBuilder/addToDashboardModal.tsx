@@ -225,7 +225,12 @@ function AddToDashboardModal({
   function normalizeWidgets(widgetsToNormalize: Widget[]): Widget[] {
     return widgetsToNormalize.map(w => {
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
-      if (!(w.displayType === DisplayType.AREA && w.queries[0]!.columns.length)) {
+      if (
+        !(
+          [DisplayType.AREA, DisplayType.TOP_N].includes(w.displayType) &&
+          w.queries[0]!.columns.length
+        )
+      ) {
         newOrderBy = ''; // Clear orderby if its not a top n visualization.
       }
       const queries = w.queries.map(query => ({
@@ -265,7 +270,7 @@ function AddToDashboardModal({
         getInitialColumnDepths()
       );
 
-      goToDashboard('preview', widgetsWithLayouts);
+      goToDashboard('preview', normalizeWidgets(widgetsWithLayouts));
       closeModal();
       return;
     }
