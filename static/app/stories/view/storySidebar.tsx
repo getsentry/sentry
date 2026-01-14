@@ -46,7 +46,7 @@ const SidebarContainer = styled('nav')`
     display: block;
     content: '';
     height: 1px;
-    background: ${p => p.theme.tokens.border.muted};
+    background: ${p => p.theme.tokens.border.secondary};
     margin: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
   > ul > li:first-child::before {

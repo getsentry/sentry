@@ -13,7 +13,7 @@ export function Typography() {
       />
       <path stroke={theme.tokens.border.primary} d="M-.1626 135.109H551" />
       <path
-        stroke={theme.tokens.border.muted}
+        stroke={theme.tokens.border.secondary}
         d="M235.5 196.333V-.33337m53 196.66637V-.33337m218 196.66637V-.33337M23.5 196.333V-.33337"
       />
       <path

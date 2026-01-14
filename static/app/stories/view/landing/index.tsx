@@ -248,7 +248,7 @@ const CardLink = styled(Link)`
   width: calc(100% * 3 / 5);
   aspect-ratio: 2/1;
   padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.tokens.border.muted};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;
