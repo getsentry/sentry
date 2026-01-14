@@ -31,6 +31,7 @@ jobs:
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      migrations_added: ${{ steps.changes.outputs.migrations_added }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -310,6 +311,28 @@ jobs:
             devservices logs
           fi
 
+  migration-lockfile-guard:
+    if: needs.files-changed.outputs.migrations_added == 'true'
+    needs: files-changed
+    name: verify migration lockfile updated
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+
+      - name: Check if lockfile was updated
+        run: |
+          if ! git diff --name-only origin/master...HEAD | grep -q "migrations_lockfile.txt"; then
+            echo "::error::Migration files were added but migrations_lockfile.txt was not updated"
+            echo "::error::Run: sentry django makemigrations -n <migration_name>"
+            exit 1
+          fi
+          echo "✓ Migration lockfile was properly updated"
+
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -434,6 +457,7 @@ jobs:
         files-changed,
         requirements,
         migration,
+        migration-lockfile-guard,
         monolith-dbs,
         typing,
       ]
