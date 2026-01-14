@@ -30,12 +30,15 @@ describe('CronDetectorsList', () => {
     },
   };
 
+  afterEach(() => {
+    fetchMock.resetMocks();
+  });
+
   beforeEach(() => {
     ConfigStore.set('statuspage', {
       id: 'sentry',
       api_host: 'status.sentry.io',
     });
-    fetchMock.resetMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
