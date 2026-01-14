@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -372,6 +372,11 @@ function ReleaseWidgetQueries({
     [allProjects.projects, limit, releases, widget.displayType, widget.queries]
   );
 
+  const transformedWidget = useMemo(
+    () => transformWidget(widget),
+    [transformWidget, widget]
+  );
+
   return (
     <GenericWidgetQueries<SessionApiResponse, SessionApiResponse>
       queue={queue}
@@ -379,7 +384,7 @@ function ReleaseWidgetQueries({
       api={api}
       organization={organization}
       selection={selection}
-      widget={transformWidget(widget)}
+      widget={transformedWidget}
       dashboardFilters={dashboardFilters}
       cursor={cursor}
       limit={getLimit(widget.displayType, limit)}
