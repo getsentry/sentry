@@ -1,0 +1,49 @@
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud data models or service classes are
+# defined, because we want to reflect on type annotations and avoid forward references.
+
+import abc
+
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.services.region.model import RpcSelectRequesterResult
+from sentry.silo.base import SiloMode
+
+
+class SentryAppRegionService(RpcService):
+    """
+    Region silo service for Sentry App operations that require access to region-specific data
+    (like projects, issues, etc.).
+
+    Enables control silo endpoints to perform operations that access or modify region silo data
+    without creating a bunch of services and RPC calls.
+    """
+
+    key = "sentry_app_region"
+    local_mode = SiloMode.REGION
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.sentry_apps.services.region.impl import DatabaseBackedSentryAppRegionService
+
+        return DatabaseBackedSentryAppRegionService()
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def get_select_options(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        uri: str,
+        project_id: int | None = None,
+        query: str | None = None,
+        dependent_data: str | None = None,
+    ) -> RpcSelectRequesterResult:
+        """Invokes SelectRequester to get select options."""
+        pass
+
+
+sentry_app_region_service = SentryAppRegionService.create_delegation()
