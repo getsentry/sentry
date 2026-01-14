@@ -103,11 +103,6 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   skipDashboardFilterParens?: boolean;
 };
 
-export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> =
-  UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> & {
-    children: (props: GenericWidgetQueriesChildrenProps) => React.ReactNode;
-  };
-
 export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
 ): GenericWidgetQueriesChildrenProps {
@@ -594,14 +589,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   };
 }
 
-function GenericWidgetQueries<SeriesResponse, TableResponse>(
-  props: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
-) {
-  const {children, ...hookProps} = props;
-  const result = useGenericWidgetQueries(hookProps);
-  return children(result);
-}
-
 export function cleanWidgetForRequest(widget: Widget): Widget {
   const _widget = cloneDeep(widget);
   _widget.queries.forEach(query => {
@@ -611,5 +598,3 @@ export function cleanWidgetForRequest(widget: Widget): Widget {
 
   return _widget;
 }
-
-export default GenericWidgetQueries;

@@ -37,7 +37,7 @@ import {
 
 import type {
   GenericWidgetQueriesChildrenProps,
-  GenericWidgetQueriesProps,
+  UseGenericWidgetQueriesProps,
 } from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
 
@@ -155,8 +155,8 @@ function getLimit(displayType: DisplayType, limit?: number) {
 }
 
 function customDidUpdateComparator(
-  prevProps: GenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>,
-  nextProps: GenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>
+  prevProps: UseGenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>,
+  nextProps: UseGenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>
 ) {
   const {loading, limit, widget, cursor, organization, selection, dashboardFilters} =
     nextProps;
