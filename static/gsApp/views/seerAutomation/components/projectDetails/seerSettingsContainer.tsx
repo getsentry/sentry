@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Stack} from '@sentry/scraps/layout/stack';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
@@ -8,13 +9,15 @@ import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAu
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import AutoTriggeredFixesToggle from 'getsentry/views/seerAutomation/components/projectDetails/autoTriggeredFixesToggle';
+import BackgroundAgentFields from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentFields';
 import BackgroundAgentPicker from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentPicker';
-import BackgroundAgentSection from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentSection';
+import BackgroundAgentSetup from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentSetup';
 import {SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS} from 'getsentry/views/seerAutomation/components/projectDetails/constants';
 import SeerAgentSection from 'getsentry/views/seerAutomation/components/projectDetails/seerAgentSection';
 
@@ -83,14 +86,23 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
                 preference={preference}
               />
 
-              <BackgroundAgentSection
-                canWrite={canWrite}
-                project={project}
-                preference={preference}
-                supportedIntegrations={supportedIntegrations}
-                selectedIntegration={selectedIntegration}
-                isLoadingIntegrations={isLoadingIntegrations}
-              />
+              {isLoadingIntegrations ? (
+                <Flex justify="center" align="center" padding="xl">
+                  <Placeholder height="52px" />
+                </Flex>
+              ) : (
+                <Fragment>
+                  {selectedIntegration ? (
+                    <BackgroundAgentFields
+                      canWrite={canWrite}
+                      project={project}
+                      preference={preference}
+                      selectedIntegration={selectedIntegration}
+                    />
+                  ) : null}
+                  <BackgroundAgentSetup supportedIntegrations={supportedIntegrations} />
+                </Fragment>
+              )}
             </PanelBody>
           </PanelNoMargin>
         </Fragment>

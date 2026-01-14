@@ -60,7 +60,7 @@ function CursorIntegrationFields({
   if (!isAutoTriggeredFixesEnabled) {
     disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
   } else if (!isBackgroundAgentEnabled) {
-    disabledReason = t('This setting is not available when using background agents.');
+    disabledReason = t('This setting is only available when using background agents.');
   }
 
   return (
