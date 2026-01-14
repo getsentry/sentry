@@ -1039,7 +1039,7 @@ const ClusterTitleLink = styled(Link)`
 
 const ClusterId = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: normal;
   margin-left: ${space(1)};
 `;

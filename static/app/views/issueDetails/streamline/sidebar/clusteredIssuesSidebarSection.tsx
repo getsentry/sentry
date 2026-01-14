@@ -87,7 +87,7 @@ const ClusterInfo = styled('div')`
 `;
 
 const ClusterId = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const IssueList = styled('ul')`
@@ -99,5 +99,7 @@ const IssueList = styled('ul')`
 
 const IssueItem = styled('li')`
   margin-bottom: ${space(0.5)};
-  ${p => p.theme.overflowEllipsis};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
