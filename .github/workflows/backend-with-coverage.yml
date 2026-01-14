@@ -196,3 +196,12 @@ jobs:
         with:
           path: .coverage.${{ steps.commit-info.outputs.short_sha }}
           destination: sentry-coverage-data/coverage/${{ steps.commit-info.outputs.sha }}
+      - name: Upload coverage  data
+        if: '!cancelled()' # Always run this step, unless the workflow was cancelled
+        uses: getsentry/action-collect-test-data@v0.3.0
+        with:
+          path: .coverage.${{ steps.commit-info.outputs.short_sha }}
+          gcs_path: sentry-coverage-data/${{ steps.commit-info.outputs.sha }}
+          gcp_project_id: sentry-dev-tooling
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
