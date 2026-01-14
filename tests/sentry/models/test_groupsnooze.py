@@ -10,6 +10,7 @@ from sentry.models.group import Group
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -444,3 +445,41 @@ class GroupSnoozeTest(
             assert not snooze.is_valid(test_rates=True)
             assert mocked_get_timeseries_sums.call_count == 3
             cache_spy.set.assert_called_with(cache_key, 100, 3600)
+
+    @override_options({"snuba.groupsnooze.user-counts-debounce-seconds": 60})
+    def test_test_user_counts_sets_debounce_on_snuba_failure(self) -> None:
+        """
+        When Snuba call fails (e.g., rate limited), the debounce key should still be set
+        to prevent thundering herd - thousands of retries all failing.
+        """
+        snooze = GroupSnooze.objects.create(group=self.group, user_count=100)
+
+        cache_key = f"groupsnooze:v1:{snooze.id}:test_user_counts:events_seen_counter"
+        debounce_key = f"groupsnooze:v1:{snooze.id}:test_user_counts:snuba_cooldown"
+
+        with (
+            mock.patch.object(
+                snooze.group,
+                "count_users_seen",
+                side_effect=Exception("Snuba rate limited"),
+            ) as mocked_count_users_seen,
+            mock.patch.object(
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+            ) as cache_spy,
+        ):
+            cache_spy.set = mock.Mock(side_effect=cache_spy.set)
+
+            # Force counter past threshold so we attempt Snuba call
+            cache_spy.set(cache_key, 200, 3600)
+
+            # First call should fail but set debounce
+            with pytest.raises(Exception, match="Snuba rate limited"):
+                snooze.is_valid(test_rates=True)
+
+            assert mocked_count_users_seen.call_count == 1
+            # Verify debounce key was set despite the failure
+            assert cache_spy.get(debounce_key) is True
+
+            # Second call should hit debounce and NOT retry Snuba
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_count_users_seen.call_count == 1  # Still 1, didn't retry
