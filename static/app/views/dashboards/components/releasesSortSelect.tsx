@@ -53,7 +53,7 @@ export function ReleasesSortSelect({sortBy, onChange}: Props) {
       trigger={triggerProps => (
         <SelectTrigger.Button
           {...triggerProps}
-          icon={<IconSort />}
+          icon={<IconSort variant="muted" />}
           aria-label={t('Sort Releases')}
           showChevron={false}
         />
