@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
@@ -120,9 +122,9 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
           );
         })}
       </StyledPanelTable>
-      <PaginationWrapper>
+      <Flex justify="end" align="center" marginBottom="xl">
         <StyledPagination pageLinks={getResponseHeader?.('Link')} size="xs" />
-      </PaginationWrapper>
+      </Flex>
     </Fragment>
   );
 }
@@ -170,13 +172,6 @@ const MessageWrapper = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.primary};
-`;
-
-const PaginationWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-bottom: ${space(2)};
 `;
 
 const StyledPagination = styled(Pagination)`

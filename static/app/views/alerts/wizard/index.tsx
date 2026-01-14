@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -171,7 +173,7 @@ function AlertWizard({organization, projectId}: AlertWizardProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">
-          <WizardBody>
+          <Flex paddingTop="md">
             <WizardOptions>
               {getAlertWizardCategories(organization).map(
                 ({categoryHeading, options}: any) => (
@@ -228,7 +230,7 @@ function AlertWizard({organization, projectId}: AlertWizardProps) {
                 )}
               </WizardPanelBody>
             </WizardPanel>
-          </WizardBody>
+          </Flex>
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
@@ -243,11 +245,6 @@ const CategoryTitle = styled('h2')`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)} !important;
-`;
-
-const WizardBody = styled('div')`
-  display: flex;
-  padding-top: ${space(1)};
 `;
 
 const WizardOptions = styled('div')`
