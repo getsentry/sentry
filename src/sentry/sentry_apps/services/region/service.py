@@ -13,6 +13,7 @@ from sentry.sentry_apps.services.region.model import (
     RpcEmptyResult,
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
+    RpcServiceHookProjectsResult,
 )
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
@@ -92,6 +93,17 @@ class SentryAppRegionService(RpcService):
         external_issue_id: int,
     ) -> RpcEmptyResult:
         """Deletes a PlatformExternalIssue."""
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def get_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+    ) -> RpcServiceHookProjectsResult:
+        """Returns the project IDs associated with an installation's service hook."""
         pass
 
 

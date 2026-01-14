@@ -4,6 +4,7 @@ from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.region import sentry_app_region_service
 from sentry.testutils.cases import TestCase
@@ -208,3 +209,28 @@ class TestSentryAppRegionService(TestCase):
         assert result.success is False
         assert result.error is not None
         assert result.error.status_code == 404
+
+    def test_get_service_hook_projects(self) -> None:
+        project2 = self.create_project(organization=self.org)
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=self.project.id)
+            ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project2.id)
+
+        result = sentry_app_region_service.get_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+        )
+
+        assert result.error is None
+        assert set(result.project_ids) == {self.project.id, project2.id}
+
+    def test_get_service_hook_projects_empty(self) -> None:
+        result = sentry_app_region_service.get_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+        )
+
+        assert result.error is None
+        assert result.project_ids == []
