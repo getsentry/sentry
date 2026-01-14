@@ -130,10 +130,10 @@ function TriggerDescription({
 
 function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
   return type === 'critical'
-    ? theme.colors.chonk.red400
+    ? theme.tokens.background.danger.vibrant
     : type === 'warning'
-      ? theme.colors.chonk.yellow400
-      : theme.colors.chonk.green400;
+      ? theme.tokens.background.warning.vibrant
+      : theme.tokens.background.success.vibrant;
 }
 const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
   fill: ${p => getColor(p.theme, p.type)};
@@ -375,7 +375,11 @@ const StatusContainer = styled('div')`
 `;
 
 const OverflowTableValue = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TriggerContainer = styled('div')`

@@ -2,10 +2,14 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container as ScrapsContainer} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -21,6 +25,7 @@ import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -33,6 +38,10 @@ import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
+import {
+  getSimilarEventsUrl,
+  isPartialSpanOrTraceData,
+} from 'sentry/views/explore/tables/tracesTable/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -113,6 +122,7 @@ function BaseExploreFieldRenderer({
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();
+  const {selection} = usePageFilters();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
@@ -125,6 +135,8 @@ function BaseExploreFieldRenderer({
       {} as Record<string, Project>
     );
   }, [projects]);
+
+  const project = projectsMap[data.project];
 
   if (!defined(column)) {
     return nullableValue(null);
@@ -148,32 +160,126 @@ function BaseExploreFieldRenderer({
   }
 
   if (field === 'trace') {
-    const target = getTraceDetailsUrl({
-      traceSlug: data.trace,
-      timestamp: data.timestamp,
-      organization,
-      dateSelection,
-      location,
-      source: TraceViewSources.TRACES,
-    });
+    if (isPartialSpanOrTraceData(data.timestamp)) {
+      const queryString = new MutableSearch('');
 
-    rendered = <Link to={target}>{rendered}</Link>;
+      if (data?.['span.name']) {
+        queryString.addFilterValue('span.name', data['span.name']);
+      }
+
+      if (data?.['span.description']) {
+        queryString.addFilterValue('span.description', data['span.description']);
+      }
+      rendered = (
+        <ScrapsContainer maxWidth="fit-content">
+          <Tooltip
+            isHoverable
+            showUnderline
+            title={
+              <Text>
+                {tct(
+                  'Trace is older than 30 days. [similarTraces] in the past 24 hours.',
+                  {
+                    similarTraces: (
+                      <Link
+                        to={getSimilarEventsUrl({
+                          queryString: queryString.formatString(),
+                          table: 'trace',
+                          organization,
+                          projectIds: defined(project?.id)
+                            ? [parseInt(project.id, 10)]
+                            : selection.projects,
+                          selection,
+                        })}
+                      >
+                        {t('View similar traces')}
+                      </Link>
+                    ),
+                  }
+                )}
+              </Text>
+            }
+          >
+            <Text variant="muted">{rendered}</Text>
+          </Tooltip>
+        </ScrapsContainer>
+      );
+    } else {
+      const target = getTraceDetailsUrl({
+        traceSlug: data.trace,
+        timestamp: data.timestamp,
+        organization,
+        dateSelection,
+        location,
+        source: TraceViewSources.TRACES,
+      });
+
+      rendered = <Link to={target}>{rendered}</Link>;
+    }
   }
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
-    const target = generateLinkToEventInTraceView({
-      traceSlug: data.trace,
-      timestamp: data.timestamp,
-      targetId: data['transaction.span_id'],
-      eventId: undefined,
-      organization,
-      location,
-      spanId,
-      source: TraceViewSources.TRACES,
-    });
 
-    rendered = <Link to={target}>{rendered}</Link>;
+    if (isPartialSpanOrTraceData(data.timestamp)) {
+      const queryString = new MutableSearch('');
+
+      if (field === 'transaction.id') {
+        queryString.addFilterValue('is_transaction', 'true');
+      }
+
+      if (data?.['span.name']) {
+        queryString.addFilterValue('span.name', data['span.name']);
+      }
+
+      if (data?.['span.description']) {
+        queryString.addFilterValue('span.description', data['span.description']);
+      }
+
+      rendered = (
+        <ScrapsContainer maxWidth="fit-content">
+          <Tooltip
+            isHoverable
+            showUnderline
+            title={
+              <Text>
+                {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
+                  similarSpans: (
+                    <Link
+                      to={getSimilarEventsUrl({
+                        queryString: queryString.formatString(),
+                        organization,
+                        projectIds: defined(project?.id)
+                          ? [parseInt(project.id, 10)]
+                          : selection.projects,
+                        selection,
+                      })}
+                    >
+                      {t('View similar spans')}
+                    </Link>
+                  ),
+                })}
+              </Text>
+            }
+          >
+            <Text variant="muted">{rendered}</Text>
+          </Tooltip>
+        </ScrapsContainer>
+      );
+    } else {
+      const target = generateLinkToEventInTraceView({
+        traceSlug: data.trace,
+        timestamp: data.timestamp,
+        targetId: data['transaction.span_id'],
+        eventId: undefined,
+        organization,
+        location,
+        spanId,
+        source: TraceViewSources.TRACES,
+      });
+
+      rendered = <Link to={target}>{rendered}</Link>;
+    }
 
     if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
       return rendered;
@@ -279,7 +385,10 @@ const StyledTimeSince = styled(TimeSince)`
 `;
 
 const Description = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -287,6 +396,9 @@ const Description = styled('div')`
 `;
 
 const WrappingText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;

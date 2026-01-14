@@ -98,7 +98,12 @@ const ListItem = styled('li')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   cursor: pointer;
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
   &:last-child {
     border-bottom: 0;

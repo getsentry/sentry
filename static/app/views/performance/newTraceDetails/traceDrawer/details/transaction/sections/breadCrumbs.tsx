@@ -1,92 +1,189 @@
+import {useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {
-  Breadcrumbs,
-  SearchAndSortWrapper,
-} from 'sentry/components/events/interfaces/breadcrumbs';
-import {
-  BreadcrumbRow,
-  StyledBreadcrumbPanelTable,
-} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
-import {PanelTableHeader} from 'sentry/components/panels/panelTable';
-import {
-  EntryType,
-  type EntryBreadcrumbs,
-  type EventTransaction,
-} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 
-export function BreadCrumbs({
-  event,
-  organization,
-}: {
-  event: EventTransaction;
-  organization: Organization;
-}) {
-  const matchingEntry: EntryBreadcrumbs | undefined = event?.entries?.find(
-    (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {
+  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BreadcrumbTimeDisplay,
+  getEnhancedBreadcrumbs,
+  useBreadcrumbFilters,
+} from 'sentry/components/events/breadcrumbs/utils';
+import {
+  applyBreadcrumbSearch,
+  BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+  BREADCRUMB_SORT_OPTIONS,
+  BreadcrumbSort,
+} from 'sentry/components/events/interfaces/breadcrumbs';
+import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {EventTransaction} from 'sentry/types/event';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+
+const MAX_BREADCRUMBS_HEIGHT = 400;
+
+export function BreadCrumbs({event}: {event: EventTransaction}) {
+  const theme = useTheme();
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<string[]>([]);
+  const [timeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+    BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+    BreadcrumbTimeDisplay.ABSOLUTE
+  );
+  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
   );
 
-  if (!matchingEntry) {
+  const enhancedCrumbs = useMemo(
+    () => getEnhancedBreadcrumbs(event, theme),
+    [event, theme]
+  );
+
+  const {filterOptions, applyFilters} = useBreadcrumbFilters(enhancedCrumbs);
+
+  const displayCrumbs = useMemo(() => {
+    const sortedCrumbs =
+      sort === BreadcrumbSort.OLDEST ? enhancedCrumbs : [...enhancedCrumbs].reverse();
+    const filteredCrumbs = applyFilters(sortedCrumbs, filters);
+    const searchedCrumbs = applyBreadcrumbSearch(filteredCrumbs, search);
+    return searchedCrumbs;
+  }, [enhancedCrumbs, sort, filters, search, applyFilters]);
+
+  const startTimeString = useMemo(
+    () =>
+      timeDisplay === BreadcrumbTimeDisplay.RELATIVE
+        ? displayCrumbs?.at(0)?.breadcrumb?.timestamp
+        : undefined,
+    [displayCrumbs, timeDisplay]
+  );
+
+  if (enhancedCrumbs.length === 0) {
     return null;
   }
 
-  return (
-    <ResponsiveBreadcrumbWrapper>
-      <Breadcrumbs
-        data={matchingEntry.data}
-        event={event}
-        organization={organization}
-        disableCollapsePersistence
+  const actions = (
+    <ActionsWrapper>
+      <SearchWrapper>
+        <InputGroup>
+          <SearchInput
+            size="xs"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t('Search')}
+            aria-label={t('Search Breadcrumbs')}
+          />
+          <InputGroup.TrailingItems disablePointerEvents>
+            <IconSearch size="xs" />
+          </InputGroup.TrailingItems>
+        </InputGroup>
+      </SearchWrapper>
+      <CompactSelect
+        size="xs"
+        multiple
+        clearable
+        position="bottom-end"
+        menuTitle={t('Filter by')}
+        value={filters}
+        onChange={options => setFilters(options.map(({value}) => value))}
+        options={filterOptions}
+        maxMenuHeight={400}
+        trigger={props => (
+          <SelectTrigger.Button
+            borderless
+            showChevron={false}
+            icon={<IconFilter />}
+            aria-label={t('Filter Breadcrumbs')}
+            title={t('Filter')}
+            {...props}
+          >
+            {filters.length > 0 ? filters.length : null}
+          </SelectTrigger.Button>
+        )}
       />
-    </ResponsiveBreadcrumbWrapper>
+      <CompactSelect
+        size="xs"
+        position="bottom-end"
+        trigger={props => (
+          <SelectTrigger.IconButton
+            borderless
+            icon={<IconSort />}
+            aria-label={t('Sort Breadcrumbs')}
+            title={t('Sort')}
+            {...props}
+          />
+        )}
+        onChange={selectedOption => setSort(selectedOption.value)}
+        value={sort}
+        options={BREADCRUMB_SORT_OPTIONS}
+      />
+    </ActionsWrapper>
+  );
+
+  return (
+    <BreadcrumbsContainer>
+      <InterimSection
+        title={t('Breadcrumbs')}
+        type="breadcrumbs"
+        actions={actions}
+        disableCollapsePersistence
+      >
+        <ScrollContainer ref={setContainer}>
+          {displayCrumbs.length === 0 ? (
+            <EmptyMessage>
+              {t('No breadcrumbs match your search or filters.')}
+            </EmptyMessage>
+          ) : (
+            <BreadcrumbsTimeline
+              breadcrumbs={displayCrumbs}
+              startTimeString={startTimeString}
+              containerElement={container}
+            />
+          )}
+        </ScrollContainer>
+      </InterimSection>
+    </BreadcrumbsContainer>
   );
 }
 
-const ResponsiveBreadcrumbWrapper = styled('div')`
-  container: breadcrumbs / inline-size;
+const BreadcrumbsContainer = styled('div')`
+  container-type: inline-size;
+`;
 
-  ${SearchAndSortWrapper} {
-    @container breadcrumbs (width < 600px) {
-      display: none;
-    }
+const ActionsWrapper = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
 
-    > div {
-      width: auto !important;
-    }
+  @container (max-width: 400px) {
+    display: none;
   }
+`;
 
-  ${StyledBreadcrumbPanelTable} {
-    @container breadcrumbs (width < 640px) {
-      grid-template-columns: 64px 1fr 106px;
-    }
+const SearchWrapper = styled('div')`
+  @container (max-width: 500px) {
+    display: none;
   }
+`;
 
-  @container breadcrumbs (width < 640px) {
-    ${PanelTableHeader}:nth-child(2) {
-      display: none;
-    }
+const SearchInput = styled(InputGroup.Input)`
+  width: 180px;
+`;
 
-    ${PanelTableHeader}:nth-child(4) {
-      display: none;
-    }
-  }
+const ScrollContainer = styled('div')`
+  max-height: ${MAX_BREADCRUMBS_HEIGHT}px;
+  overflow-y: auto;
+  padding-right: ${p => p.theme.space.md};
+`;
 
-  ${BreadcrumbRow} {
-    @container breadcrumbs (width < 640px) {
-      > div {
-        grid-template-columns: 64px 1fr 106px;
-      }
-
-      ${PanelTableHeader}:nth-child(2),
-      > div > div:nth-child(2) {
-        display: none;
-      }
-
-      ${PanelTableHeader}:nth-child(4),
-      > div > span:nth-child(4) {
-        display: none;
-      }
-    }
-  }
+const EmptyMessage = styled('div')`
+  color: ${p => p.theme.tokens.content.muted};
+  padding: ${p => p.theme.space.xl};
+  text-align: center;
 `;

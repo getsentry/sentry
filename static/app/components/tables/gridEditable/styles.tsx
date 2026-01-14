@@ -115,7 +115,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   grid-template-columns: subgrid;
   grid-column: 1/-1;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -322,7 +322,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.focus.default};
   }
 
   /**
@@ -336,7 +336,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
 `;

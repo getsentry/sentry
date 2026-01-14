@@ -334,7 +334,11 @@ const IconWrapper = styled('div')`
 
 const ActorName = styled('div')`
   line-height: 1.2;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`

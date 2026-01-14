@@ -133,7 +133,11 @@ const TagHeader = styled('h5')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const progressBarWidth = '45px'; // Prevent percentages from overflowing
@@ -144,7 +148,7 @@ const TagValueContent = styled('div')`
   grid-column-gap: ${space(1)};
 
   & > :nth-child(2n) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
