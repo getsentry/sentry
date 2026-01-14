@@ -1,20 +1,22 @@
 import {useState} from 'react';
+import {DragOverlay, useDraggable} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
 
 import {type SelectOption} from 'sentry/components/core/compactSelect';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import {IconAdd, IconDelete} from 'sentry/icons';
+import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import type {GroupOp, LogicalOp, Op} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AddOpButton} from './addOpButton';
+import {AssertionsDndContext, DropHandler, DroppableHitbox} from './dragDrop';
+import {AnimatedOp} from './opCommon';
 import {AssertionOpHeader} from './opHeader';
 import {AssertionOpJsonPath} from './opJsonPath';
 import {AssertionOpStatusCode} from './opStatusCode';
@@ -22,6 +24,7 @@ import {AssertionOpStatusCode} from './opStatusCode';
 interface AssertionOpGroupProps {
   onChange: (op: LogicalOp) => void;
   value: LogicalOp;
+  disableDropping?: boolean;
   onRemove?: () => void;
   root?: boolean;
 }
@@ -36,6 +39,7 @@ export function AssertionOpGroup({
   onChange,
   onRemove,
   root,
+  disableDropping,
 }: AssertionOpGroupProps) {
   const isNegated = value.op === 'not';
 
@@ -93,6 +97,14 @@ export function AssertionOpGroup({
       ? t('Assert All')
       : t('Assert Any');
 
+  const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
+    useDraggable({
+      id: groupOp.id,
+      data: value,
+    });
+
+  const innerDroppableDisabled = !root && (isDragging || !!disableDropping);
+
   const renderOp = (op: Op, index: number) => {
     switch (op.op) {
       case 'status_code_check':
@@ -131,6 +143,7 @@ export function AssertionOpGroup({
             value={op}
             onChange={updatedOp => handleUpdateChild(index, updatedOp)}
             onRemove={() => handleRemoveChild(index)}
+            disableDropping={innerDroppableDisabled}
           />
         );
       default:
@@ -138,23 +151,46 @@ export function AssertionOpGroup({
     }
   };
 
+  const opList = groupOp.children.map((child, index) => {
+    const dropProps = {
+      disabled: innerDroppableDisabled,
+      groupId: value.id,
+      idIndex: index,
+      op: child,
+    };
+
+    return (
+      <Container position="relative" key={child.id}>
+        <DroppableHitbox {...dropProps} position="before" />
+        {renderOp(child, index)}
+        <DroppableHitbox {...dropProps} position="after" />
+      </Container>
+    );
+  });
+
   if (root) {
     return (
-      <Stack gap="md">
-        {groupOp.children.map((child, index) => renderOp(child, index))}
-        <div>
-          <AddOpButton
-            triggerProps={{icon: <IconAdd />}}
-            triggerLabel={t('Add Assertion')}
-            onAddOp={handleAddOp}
-          />
-        </div>
-      </Stack>
+      <AssertionsDndContext>
+        <Stack gap="md">
+          {opList}
+          <div>
+            <AddOpButton
+              triggerProps={{icon: <IconAdd />}}
+              triggerLabel={t('Add Assertion')}
+              onAddOp={handleAddOp}
+            />
+          </div>
+        </Stack>
+        <DropHandler rootOp={value} onChange={onChange} />
+        <DragOverlay dropAnimation={null} />
+      </AssertionsDndContext>
     );
   }
 
+  const isEmptyGroup = groupOp.children.length === 0;
+
   return (
-    <GroupContainer role="group">
+    <GroupContainer op={groupOp} role="group" ref={setNodeRef}>
       <GroupHeading>
         <CompositeSelect
           size="xs"
@@ -178,16 +214,14 @@ export function AssertionOpGroup({
             options={[{value: 'negated', label: t('Negate result')}]}
           />
         </CompositeSelect>
-        <AddOpButton
-          size="xs"
-          triggerProps={{
-            borderless: true,
-            size: 'zero',
-            icon: <IconAdd size="xs" />,
-            title: t('Add assertion to group'),
-            'aria-label': t('Add assertion to group'),
-          }}
-          onAddOp={handleAddOp}
+        <Button
+          size="zero"
+          borderless
+          icon={<IconGrabbable size="xs" />}
+          aria-label={t('Reorder assertion group')}
+          ref={setActivatorNodeRef}
+          {...listeners}
+          {...attributes}
         />
         <TopBorder rightBorder={!onRemove} />
         {onRemove && (
@@ -201,16 +235,34 @@ export function AssertionOpGroup({
         )}
       </GroupHeading>
       <Stack gap="md">
-        {groupOp.children.length === 0 && (
-          <Text size="xs">{t('Empty assertion group')}</Text>
+        {isEmptyGroup && (
+          <DroppableHitbox
+            op={groupOp}
+            groupId={groupOp.id}
+            idIndex={-1}
+            position="inside"
+            disabled={innerDroppableDisabled}
+          />
         )}
-        {groupOp.children.map((child, index) => renderOp(child, index))}
+        {opList}
+        <Container paddingTop="md">
+          <AddOpButton
+            size="xs"
+            triggerProps={{
+              borderless: true,
+              size: 'zero',
+              icon: <IconAdd size="xs" />,
+            }}
+            triggerLabel={t('Add Assertion')}
+            onAddOp={handleAddOp}
+          />
+        </Container>
       </Stack>
     </GroupContainer>
   );
 }
 
-const GroupContainer = styled('div')`
+const GroupContainer = styled(AnimatedOp)`
   --margin-right-align: calc(${p => p.theme.space.xl} + 2px);
   --container-padding: ${p => p.theme.space.lg};
   --border-radius: ${p => p.theme.radius.md};

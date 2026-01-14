@@ -10,6 +10,8 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
+import useOrganization from 'sentry/utils/useOrganization';
+import {UptimeAssertionsField} from 'sentry/views/alerts/rules/uptime/assertions/field';
 import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';
 import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
 import {
@@ -59,6 +61,8 @@ function ConnectedHttpSnippet() {
 }
 
 export function UptimeDetectorFormDetectSection() {
+  const org = useOrganization();
+
   return (
     <Container>
       <Section title={t('Detect')}>
@@ -141,6 +145,16 @@ export function UptimeDetectorFormDetectSection() {
             placeholder='{"key": "value"}'
             flexibleControlStateSize
           />
+          {org.features.includes('uptime-runtime-assertions') && (
+            <UptimeAssertionsField
+              name="assertions"
+              label={t('Assertions')}
+              help={t(
+                'Define conditions that must be met for the check to be considered successful.'
+              )}
+              flexibleControlStateSize
+            />
+          )}
           <BooleanField
             name="traceSampling"
             label={t('Allow Sampling')}
