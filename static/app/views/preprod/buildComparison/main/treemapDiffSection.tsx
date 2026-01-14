@@ -82,7 +82,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
       upperLabel: {
@@ -96,7 +96,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
     };
@@ -134,7 +134,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
               fontSize: 12,
               fontWeight: 'bold',
               fontFamily: 'Rubik',
-              color: theme.activeText,
+              color: theme.tokens.interactive.link.accent.rest,
             },
           },
         },

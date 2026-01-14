@@ -86,7 +86,11 @@ const Title = styled('h3')`
   line-height: ${p => p.theme.text.lineHeightHeading};
   margin-right: ${space(2)};
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TimeStamp = styled('div')`

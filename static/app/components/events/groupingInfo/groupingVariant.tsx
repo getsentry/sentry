@@ -238,7 +238,10 @@ const TextWithQuestionTooltip = styled('div')`
 
 const Hash = styled('span')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    ${p => p.theme.overflowEllipsis};
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     width: 210px;
   }
 `;

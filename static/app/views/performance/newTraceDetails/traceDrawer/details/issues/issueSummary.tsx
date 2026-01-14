@@ -136,10 +136,18 @@ const IconWrapper = styled('span')`
 
 const TitleWithLink = styled(GlobalSelectionLink)`
   align-items: center;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 const TitleWithoutLink = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
