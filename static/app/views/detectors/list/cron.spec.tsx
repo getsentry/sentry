@@ -15,6 +15,11 @@ import {
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import CronDetectorsList from 'sentry/views/detectors/list/cron';
 
+// Mock the service incidents component to verify it's rendered
+jest.mock('sentry/views/insights/crons/components/serviceIncidents', () => ({
+  CronServiceIncidents: () => <div data-test-id="cron-service-incidents" />,
+}));
+
 describe('CronDetectorsList', () => {
   const organization = OrganizationFixture({
     features: ['workflow-engine-ui'],
@@ -131,6 +136,9 @@ describe('CronDetectorsList', () => {
 
     // Environment name
     expect(within(row).getByText('production')).toBeInTheDocument();
+
+    // Should render service incidents overlay
+    expect(await screen.findByTestId('cron-service-incidents')).toBeInTheDocument();
 
     // Timeline visualization should render ticks once stats load
     expect(await screen.findAllByTestId('monitor-checkin-tick')).not.toHaveLength(0);
