@@ -53,7 +53,7 @@ describe('EditConnectedMonitors', () => {
 
     expect(screen.getByText('Source')).toBeInTheDocument();
     expect(
-      await screen.findByRole('radio', {name: 'Alert on all issues in a project'})
+      await screen.findByRole('radio', {name: 'Alert on all issues in selected projects'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('radio', {name: 'Alert on specific monitors'})
@@ -65,7 +65,7 @@ describe('EditConnectedMonitors', () => {
     render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
 
     expect(
-      await screen.findByRole('radio', {name: 'Alert on all issues in a project'})
+      await screen.findByRole('radio', {name: 'Alert on all issues in selected projects'})
     ).toBeChecked();
     expect(
       screen.getByRole('radio', {name: 'Alert on specific monitors'})
@@ -188,7 +188,7 @@ describe('EditConnectedMonitors', () => {
     // Wait for the initial mode to be determined
     await waitFor(() => {
       expect(
-        screen.getByRole('radio', {name: 'Alert on all issues in a project'})
+        screen.getByRole('radio', {name: 'Alert on all issues in selected projects'})
       ).toBeChecked();
     });
   });
@@ -199,7 +199,7 @@ describe('EditConnectedMonitors', () => {
 
     // Initially in "all project issues" mode
     expect(
-      await screen.findByRole('radio', {name: 'Alert on all issues in a project'})
+      await screen.findByRole('radio', {name: 'Alert on all issues in selected projects'})
     ).toBeChecked();
 
     // Switch to specific monitors mode
@@ -212,11 +212,11 @@ describe('EditConnectedMonitors', () => {
 
     // Switch back to all project issues mode
     await userEvent.click(
-      screen.getByRole('radio', {name: 'Alert on all issues in a project'})
+      screen.getByRole('radio', {name: 'Alert on all issues in selected projects'})
     );
 
     expect(
-      screen.getByRole('radio', {name: 'Alert on all issues in a project'})
+      screen.getByRole('radio', {name: 'Alert on all issues in selected projects'})
     ).toBeChecked();
   });
 
