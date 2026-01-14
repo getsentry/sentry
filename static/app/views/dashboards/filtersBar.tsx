@@ -75,7 +75,7 @@ export default function FiltersBar({
     : [];
 
   // Release sort state management with synced URL and localStorage
-  const [effectiveSortBy, setEffectiveSortBy] = useSyncedQueryParamState(
+  const [releaseFilterSortBy, setReleaseFilterSortBy] = useSyncedQueryParamState(
     'sortReleasesBy',
     'dashboards',
     ReleasesSortOption.DATE
@@ -147,7 +147,7 @@ export default function FiltersBar({
         />
       </PageFilterBar>
       <SortableReleasesFilter
-        sortBy={effectiveSortBy as ReleasesSortByOption}
+        sortBy={releaseFilterSortBy as ReleasesSortByOption}
         selectedReleases={selectedReleases}
         isDisabled={isEditingDashboard}
         handleChangeFilter={activeFilters => {
@@ -157,7 +157,7 @@ export default function FiltersBar({
           });
         }}
         onSortChange={value => {
-          setEffectiveSortBy(value as ReleasesSortByOption);
+          setReleaseFilterSortBy(value as ReleasesSortByOption);
         }}
       />
       {organization.features.includes('dashboards-global-filters') && (
