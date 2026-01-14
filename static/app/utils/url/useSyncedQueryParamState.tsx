@@ -8,46 +8,43 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
  * URL takes precedence over localStorage, enabling URL sharing while
  * maintaining user preferences across sessions.
  *
- * @param urlParamName - The URL query parameter name
- * @param localStorageKey - The localStorage key
+ * @param key - The URL query parameter name
+ * @param namespace - The localStorage namespace (key will be `namespace:key`)
  * @param defaultValue - The default value if neither source has a value
  * @returns Tuple of [effectiveValue, setValue]
  *
  * @example
  * const [sortBy, setSortBy] = useSyncedQueryParamState(
  *   'sortBy',
- *   'mySortPreference',
+ *   'dashboards',
  *   'date'
  * );
  */
 export function useSyncedQueryParamState<T extends string>(
-  urlParamName: string,
-  localStorageKey: string,
+  key: string,
+  namespace: string,
   defaultValue: T
 ): [T, (value: T) => void] {
-  // localStorage provides fallback when URL is empty
+  const localStorageKey = `${namespace}:${key}`;
+
   const [localStorageValue, setLocalStorageValue] = useLocalStorageState<T>(
     localStorageKey,
     defaultValue
   );
 
-  // URL query param state (Nuqs handles URL updates)
   const [urlValue, setUrlValue] = useQueryState(
-    urlParamName,
+    key,
     parseAsString.withDefault(defaultValue)
   );
 
-  // URL takes precedence over localStorage
-  const effectiveValue = (urlValue || localStorageValue) as T;
+  const effectiveValue = (urlValue ?? localStorageValue) as T;
 
-  // Sync localStorage when URL changes (URL is source of truth for sharing)
   useEffect(() => {
     if (urlValue && urlValue !== localStorageValue) {
       setLocalStorageValue(urlValue as T);
     }
   }, [urlValue, localStorageValue, setLocalStorageValue]);
 
-  // Single setter that updates both URL and localStorage
   const setValue = (value: T) => {
     setUrlValue(value);
     setLocalStorageValue(value);

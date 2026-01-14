@@ -38,28 +38,28 @@ describe('useSyncedQueryParamState', () => {
 
   it('returns default value when neither URL nor localStorage has value', () => {
     const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testKey', 'default')
+      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
     );
 
     expect(result.current[0]).toBe('default');
   });
 
   it('returns localStorage value when URL is empty', () => {
-    localStorageWrapper.setItem('testKey', JSON.stringify('fromStorage'));
+    localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('fromStorage'));
 
     const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testKey', 'default')
+      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
     );
 
     expect(result.current[0]).toBe('fromStorage');
   });
 
   it('returns URL value when URL has value (URL takes precedence)', () => {
-    localStorageWrapper.setItem('testKey', JSON.stringify('fromStorage'));
+    localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('fromStorage'));
     __setMockQueryState('testParam', 'fromURL');
 
     const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testKey', 'default')
+      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
     );
 
     expect(result.current[0]).toBe('fromURL');
@@ -68,18 +68,17 @@ describe('useSyncedQueryParamState', () => {
   it('syncs localStorage when URL changes', async () => {
     __setMockQueryState('testParam', 'newURLValue');
 
-    renderHook(() => useSyncedQueryParamState('testParam', 'testKey', 'default'));
+    renderHook(() => useSyncedQueryParamState('testParam', 'testNamespace', 'default'));
 
-    // localStorage should be updated
     await waitFor(() => {
-      const storedValue = localStorageWrapper.getItem('testKey');
+      const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
       expect(storedValue).toBe(JSON.stringify('newURLValue'));
     });
   });
 
   it('setValue updates both URL and localStorage', async () => {
     const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testKey', 'default')
+      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
     );
 
     const mockSetUrlValue = useQueryState.mock.results[0].value[1];
@@ -88,12 +87,10 @@ describe('useSyncedQueryParamState', () => {
       result.current[1]('newValue');
     });
 
-    // Check that setUrlValue was called
     expect(mockSetUrlValue).toHaveBeenCalledWith('newValue');
 
-    // Check that localStorage was updated (may be async)
     await waitFor(() => {
-      const storedValue = localStorageWrapper.getItem('testKey');
+      const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
       expect(storedValue).toBe(JSON.stringify('newValue'));
     });
   });
@@ -101,10 +98,10 @@ describe('useSyncedQueryParamState', () => {
   it('works with enum-like string types', async () => {
     type SortOption = 'date' | 'name' | 'size';
 
-    localStorageWrapper.setItem('sortKey', JSON.stringify('name'));
+    localStorageWrapper.setItem('myNamespace:sort', JSON.stringify('name'));
 
     const {result} = renderHook(() =>
-      useSyncedQueryParamState<SortOption>('sort', 'sortKey', 'date')
+      useSyncedQueryParamState<SortOption>('sort', 'myNamespace', 'date')
     );
 
     expect(result.current[0]).toBe('name');
@@ -117,26 +114,23 @@ describe('useSyncedQueryParamState', () => {
 
     expect(mockSetUrlValue).toHaveBeenCalledWith('size');
 
-    // Check that localStorage was updated (may be async)
     await waitFor(() => {
-      const storedValue = localStorageWrapper.getItem('sortKey');
+      const storedValue = localStorageWrapper.getItem('myNamespace:sort');
       expect(storedValue).toBe(JSON.stringify('size'));
     });
   });
 
   it('does not sync localStorage if URL value matches localStorage', () => {
-    localStorageWrapper.setItem('testKey', JSON.stringify('sameValue'));
+    localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('sameValue'));
     __setMockQueryState('testParam', 'sameValue');
 
     const {result} = renderHook(() =>
-      useSyncedQueryParamState('testParam', 'testKey', 'default')
+      useSyncedQueryParamState('testParam', 'testNamespace', 'default')
     );
 
-    // Should return the matching value without triggering sync
     expect(result.current[0]).toBe('sameValue');
 
-    // Value in localStorage should remain unchanged
-    const storedValue = localStorageWrapper.getItem('testKey');
+    const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
     expect(storedValue).toBe(JSON.stringify('sameValue'));
   });
 });
