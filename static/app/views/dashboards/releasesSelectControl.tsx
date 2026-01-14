@@ -65,7 +65,7 @@ function LabelDetails(props: LabelDetailsProps) {
   );
 }
 
-function ReleasesSelectControl({
+export function ReleasesSelectControl({
   handleChangeFilter,
   selectedReleases,
   sortBy,
@@ -167,8 +167,6 @@ function ReleasesSelectControl({
     />
   );
 }
-
-export default ReleasesSelectControl;
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;

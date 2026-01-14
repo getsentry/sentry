@@ -7,7 +7,7 @@ import {
   ReleasesSortSelect,
   type ReleasesSortByOption,
 } from './components/releasesSortSelect';
-import ReleasesSelectControl from './releasesSelectControl';
+import {ReleasesSelectControl} from './releasesSelectControl';
 import type {DashboardFilters} from './types';
 import {DashboardFilterKeys} from './types';
 
@@ -19,7 +19,7 @@ type Props = {
   onSortChange?: (sortBy: string) => void;
 };
 
-export default function SortableReleasesFilter({
+export function SortableReleasesFilter({
   selectedReleases,
   sortBy,
   handleChangeFilter,

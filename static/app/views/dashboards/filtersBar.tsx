@@ -33,7 +33,7 @@ import {
 
 import type {ReleasesSortByOption} from './components/releasesSortSelect';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import SortableReleasesFilter from './sortableReleasesFilter';
+import {SortableReleasesFilter} from './sortableReleasesFilter';
 import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
 import {DashboardFilterKeys} from './types';
 
