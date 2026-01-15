@@ -2652,6 +2652,13 @@ class Factories:
         create_mobile_app_info: bool = True,
         **kwargs,
     ) -> PreprodArtifact:
+        # Extract deprecated fields that were moved to PreprodArtifactMobileAppInfo
+        # Remove them from kwargs before passing to PreprodArtifact.objects.create()
+        build_version = kwargs.pop("build_version", None)
+        build_number = kwargs.pop("build_number", None)
+        app_name = kwargs.pop("app_name", None)
+        app_icon_id = kwargs.pop("app_icon_id", None)
+
         artifact = PreprodArtifact.objects.create(
             project=project,
             state=state,
@@ -2667,10 +2674,6 @@ class Factories:
         if date_added is not None:
             artifact.update(date_added=date_added)
 
-        build_version = kwargs.get("build_version", None)
-        build_number = kwargs.get("build_number", None)
-        app_name = kwargs.get("app_name", None)
-        app_icon_id = kwargs.get("app_icon_id", None)
         if create_mobile_app_info and (build_version or build_number or app_name or app_icon_id):
             Factories.create_preprod_artifact_mobile_app_info(
                 preprod_artifact=artifact,
