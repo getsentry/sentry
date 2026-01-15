@@ -8,7 +8,6 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.vcs.status_checks.size.tasks import (
-    StatusCheckRule,
     _compute_overall_status,
     _evaluate_rule_threshold,
     _fetch_base_size_metrics,
@@ -16,6 +15,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
     _get_status_check_rules,
     _rule_matches_artifact,
 )
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -240,8 +240,11 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="build_configuration:Debug",
         )
 
-        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
         assert status == StatusCheckStatus.FAILURE
+        assert triggered_rules == [rule]
 
     def test_status_check_succeeds_when_rule_matches_but_under_threshold(self):
         artifact = PreprodArtifact.objects.create(
@@ -275,8 +278,11 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="build_configuration:Debug",
         )
 
-        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
         assert status == StatusCheckStatus.SUCCESS
+        assert triggered_rules == []
 
     def test_status_check_succeeds_when_rule_does_not_match(self):
         artifact = PreprodArtifact.objects.create(
@@ -310,8 +316,11 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="build_configuration:Debug",
         )
 
-        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
         assert status == StatusCheckStatus.SUCCESS
+        assert triggered_rules == []
 
     def test_parse_rules_from_project_options(self):
         self.project.update_option(
@@ -723,13 +732,14 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="",
         )
 
-        status = _compute_overall_status(
+        status, triggered_rules = _compute_overall_status(
             [head_artifact],
             size_metrics_map,
             rules=[rule],
             base_size_metrics_map=base_size_metrics_map,
         )
         assert status == StatusCheckStatus.FAILURE
+        assert triggered_rules == [rule]
 
     def test_rules_only_evaluate_main_artifact_not_watch_app(self):
         artifact = self.create_preprod_artifact(
@@ -766,8 +776,11 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="",
         )
 
-        status = _compute_overall_status([artifact], size_metrics_map, rules=[rule])
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
         assert status == StatusCheckStatus.SUCCESS
+        assert triggered_rules == []
 
     def test_filters_on_missing_fields_do_not_match(self):
         artifact_no_build_config = PreprodArtifact.objects.create(

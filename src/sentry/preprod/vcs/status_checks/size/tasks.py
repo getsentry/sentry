@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
@@ -31,6 +30,7 @@ from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -58,51 +58,6 @@ preprod_artifact_search_config = SearchConfig.create_from(
         "build_configuration",
     },
 )
-
-
-@dataclass
-class StatusCheckRule:
-    """A rule that defines when a status check should fail.
-
-    Measurement types:
-    - absolute: Fail if size exceeds threshold in bytes
-    - absolute_diff: Fail if size increases by more than threshold in bytes
-    - relative_diff: Fail if size increases by more than percentage
-
-    Examples:
-        StatusCheckRule(
-            id="rule-1",
-            metric="install_size",
-            measurement="absolute",
-            value=52428800,
-            filter_query="platform:iOS"
-        )
-        Triggers failure if any iOS build exceeds 50MB (52428800 bytes).
-
-        StatusCheckRule(
-            id="rule-2",
-            metric="install_size",
-            measurement="absolute_diff",
-            value=5242880,
-            filter_query="platform:iOS"
-        )
-        Triggers failure if any iOS build increases by more than 5MB (5242880 bytes).
-
-        StatusCheckRule(
-            id="rule-3",
-            metric="download_size",
-            measurement="relative_diff",
-            value=10.0,
-            filter_query=""
-        )
-        Triggers failure if any build's download size increases by more than 10%.
-    """
-
-    id: str
-    metric: str
-    measurement: str
-    value: float
-    filter_query: str = ""
 
 
 @instrumented_task(
@@ -204,11 +159,13 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
     rules = _get_status_check_rules(preprod_artifact.project)
     base_size_metrics_map = _fetch_base_size_metrics(all_artifacts, preprod_artifact.project)
 
-    status = _compute_overall_status(
+    status, triggered_rules = _compute_overall_status(
         all_artifacts, size_metrics_map, rules=rules, base_size_metrics_map=base_size_metrics_map
     )
 
-    title, subtitle, summary = format_status_check_messages(all_artifacts, size_metrics_map, status)
+    title, subtitle, summary = format_status_check_messages(
+        all_artifacts, size_metrics_map, status, preprod_artifact.project, triggered_rules
+    )
 
     target_url = get_preprod_artifact_url(preprod_artifact)
 
@@ -579,31 +536,32 @@ def _compute_overall_status(
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
     base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
-) -> StatusCheckStatus:
+) -> tuple[StatusCheckStatus, list[StatusCheckRule]]:
+    triggered_rules: list[StatusCheckRule] = []
+
     if not artifacts:
         raise ValueError("Cannot compute status for empty artifact list")
 
     states = {artifact.state for artifact in artifacts}
 
     if PreprodArtifact.ArtifactState.FAILED in states:
-        return StatusCheckStatus.FAILURE
+        return StatusCheckStatus.FAILURE, triggered_rules
     elif (
         PreprodArtifact.ArtifactState.UPLOADING in states
         or PreprodArtifact.ArtifactState.UPLOADED in states
     ):
-        return StatusCheckStatus.IN_PROGRESS
+        return StatusCheckStatus.IN_PROGRESS, triggered_rules
     elif all(state == PreprodArtifact.ArtifactState.PROCESSED for state in states):
-        # All artifacts are processed, but we need to check if size analysis (if present) is complete
         for artifact in artifacts:
             size_metrics_list = size_metrics_map.get(artifact.id, [])
             if size_metrics_list:
                 for size_metrics in size_metrics_list:
                     if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-                        return StatusCheckStatus.FAILURE
+                        return StatusCheckStatus.FAILURE, triggered_rules
                     elif (
                         size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                     ):
-                        return StatusCheckStatus.IN_PROGRESS
+                        return StatusCheckStatus.IN_PROGRESS, triggered_rules
 
         if rules:
             for artifact in artifacts:
@@ -635,11 +593,14 @@ def _compute_overall_status(
                                     "threshold": rule.value,
                                 },
                             )
-                            return StatusCheckStatus.FAILURE
+                            triggered_rules.append(rule)
 
-        return StatusCheckStatus.SUCCESS
+        if triggered_rules:
+            return StatusCheckStatus.FAILURE, triggered_rules
+
+        return StatusCheckStatus.SUCCESS, triggered_rules
     else:
-        return StatusCheckStatus.IN_PROGRESS
+        return StatusCheckStatus.IN_PROGRESS, triggered_rules
 
 
 def _get_status_check_client(

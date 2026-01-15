@@ -50,7 +50,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.IN_PROGRESS
+                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project
                 )
 
                 assert title == "Size Analysis"
@@ -73,7 +73,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         with pytest.raises(ValueError, match="No metrics exist for VCS size status check"):
-            format_status_check_messages([artifact], {}, StatusCheckStatus.SUCCESS)
+            format_status_check_messages([artifact], {}, StatusCheckStatus.SUCCESS, self.project)
 
     def test_processed_state_with_metrics_no_previous(self):
         """Test formatting for processed state with metrics but no previous build."""
@@ -101,7 +101,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [size_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -135,7 +135,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                     )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.IN_PROGRESS
+                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project
                 )
 
                 assert expected in summary
@@ -162,7 +162,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             artifacts.append(artifact)
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, {}, StatusCheckStatus.IN_PROGRESS
+            artifacts, {}, StatusCheckStatus.IN_PROGRESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -209,7 +209,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -246,7 +246,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [pending_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -283,7 +283,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], {}, StatusCheckStatus.FAILURE
+            [artifact], {}, StatusCheckStatus.FAILURE, self.project
         )
 
         assert title == "Size Analysis"
@@ -311,7 +311,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
                 )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.FAILURE
+                    [artifact], {}, StatusCheckStatus.FAILURE, self.project
                 )
 
                 assert expected_error in summary
@@ -370,7 +370,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         artifacts.append(failed_artifact)
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, size_metrics_map, StatusCheckStatus.FAILURE
+            artifacts, size_metrics_map, StatusCheckStatus.FAILURE, self.project
         )
 
         assert title == "Size Analysis"
@@ -416,7 +416,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             size_metrics_map[artifact.id] = [size_metrics]
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS
+            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -462,7 +462,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -523,7 +523,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, feature_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -599,7 +599,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_size_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -639,7 +639,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [size_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -728,7 +728,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_main_metrics, head_watch_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Main artifact should show changes (has matching base)
@@ -770,7 +770,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         android_size_metrics_map = {android_artifact.id: [android_size_metrics]}
 
         title, subtitle, android_summary = format_status_check_messages(
-            [android_artifact], android_size_metrics_map, StatusCheckStatus.SUCCESS
+            [android_artifact], android_size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Android app should show "Uncompressed" instead of "Install"
@@ -803,7 +803,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         ios_size_metrics_map = {ios_artifact.id: [ios_size_metrics]}
 
         title, subtitle, ios_summary = format_status_check_messages(
-            [ios_artifact], ios_size_metrics_map, StatusCheckStatus.SUCCESS
+            [ios_artifact], ios_size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # iOS app should show "Install" not "Uncompressed"
@@ -860,7 +860,10 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         }
 
         _, _, summary = format_status_check_messages(
-            [android_artifact, ios_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [android_artifact, ios_artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
         )
 
         # Build expected URLs
@@ -981,7 +984,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         size_metrics_map = {head_debug_artifact.id: [head_debug_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_debug_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_debug_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Verify current sizes are shown
@@ -1068,7 +1071,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Verify that comparison works properly for same configuration
@@ -1147,7 +1150,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Verify current sizes are shown
