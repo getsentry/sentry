@@ -187,6 +187,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Hello"}],
             response_text="Hi there!",
+            tokens=150,
+            cost=0.0025,
             user_id="user-123",
             user_email="test@example.com",
         )
@@ -220,6 +222,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "ai_client"
         assert span["gen_ai.request.messages"] is not None
         assert span["gen_ai.response.text"] == "Hi there!"
+        assert span["gen_ai.usage.total_tokens"] == 150
+        assert span["gen_ai.cost.total_tokens"] == 0.0025
         # Verify user attributes are included
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
