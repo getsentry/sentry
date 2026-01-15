@@ -620,7 +620,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <Grid columns={{xs: '1fr', md: 'repeat(2, 1fr)'}} gap="xl">
+    <Grid columns={{xs: '1fr', lg: 'repeat(2, 1fr)'}} gap="lg">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
@@ -637,25 +637,14 @@ function BudgetModeSettings({
                 onDemandBudgets: nextOnDemandBudget,
               });
             }}
-          >
-            <Flex align="start" gap="md" padding="xl">
-              <Container paddingTop="2xs">
-                <RadioMarker
-                  width="16px"
-                  height="16px"
-                  border={isSelected ? 'accent' : 'primary'}
-                  radius="full"
-                  background="primary"
-                  isSelected={isSelected}
-                />
-              </Container>
+            optionHeader={
               <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
                 {budgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? t('Set a spending limit for each product')
                   : t('Set a spending limit shared across all products')}
               </Heading>
-            </Flex>
-          </CheckoutOption>
+            }
+          />
         );
       })}
     </Grid>
@@ -715,10 +704,6 @@ function SpendLimitSettings({
 }
 
 export default SpendLimitSettings;
-
-const RadioMarker = styled(Container)<{isSelected: boolean}>`
-  border-width: ${p => (p.isSelected ? '4px' : '1px')};
-`;
 
 const InnerContainer = styled(Flex)`
   border-bottom: 3px solid ${p => p.theme.tokens.border.primary};
