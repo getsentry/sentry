@@ -645,10 +645,10 @@ const Added = styled(Change)<{prefersDarkMode?: boolean}>`
 `;
 
 const Removed = styled(Change)<{prefersDarkMode?: boolean}>`
-  background: ${p => p.theme.red100};
+  background: ${p => p.theme.colors.red100};
 
   span {
-    background: ${p => (p.prefersDarkMode ? p.theme.red400 : '#f7d4d3')};
+    background: ${p => (p.prefersDarkMode ? p.theme.colors.red500 : '#f7d4d3')};
   }
 `;
 
