@@ -442,8 +442,8 @@ class OrganizationDetectorIndexGetFilterTest(UptimeDetectorBaseTest):
         assert str(active_detector.id) in returned_ids
         assert str(onboarding_detector.id) not in returned_ids
 
-        # Verify the count is correct (3 = base detector + manual + active)
-        assert len(response.data) == 3
+        # Verify the count is correct (5 = base detector + manual + active + default [issue stream + error])
+        assert len(response.data) == 5
 
     def test_filters_onboarding_detectors_with_query(self):
         """Test that AUTO_DETECTED_ONBOARDING detectors are filtered even when using query filters."""

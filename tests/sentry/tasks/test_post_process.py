@@ -567,7 +567,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         mock_process_workflows_event.apply_async.assert_called_with(
             kwargs={
                 "event_id": regressed_event.event_id,
-                "occurrence_id": None,
+                "occurrence_id": ANY,
                 "group_id": group.id,
                 "group_state": {
                     "id": group.id,

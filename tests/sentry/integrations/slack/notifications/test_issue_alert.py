@@ -250,7 +250,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # Assert we are using the workflow id and created a link to the workflow
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.id}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
 

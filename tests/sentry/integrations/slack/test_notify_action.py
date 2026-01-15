@@ -92,7 +92,9 @@ class SlackNotifyActionTest(RuleTestCase):
         event = self.get_event()
 
         fake_rule = self.create_project_rule()
-        fake_rule.id = Action.objects.all().order_by("id").first().id
+        action = Action.objects.all().order_by("id").first()
+        assert action
+        fake_rule.id = action.id
 
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel"},
@@ -364,7 +366,9 @@ class SlackNotifyActionTest(RuleTestCase):
             event = self.get_event()
 
             fake_rule = self.create_project_rule()
-            fake_rule.id = Action.objects.all().order_by("id").first().id
+            action = Action.objects.all().order_by("id").first()
+            assert action
+            fake_rule.id = action.id
             rule = self.get_rule(
                 data={
                     "workspace": self.integration.id,

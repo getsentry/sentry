@@ -24,7 +24,6 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         create_workflow_fire_histories(
             Action.objects.filter(id=self.action.id),
             self.event_data,
-            is_single_processing=True,
             is_delayed=False,
         )
         assert (
