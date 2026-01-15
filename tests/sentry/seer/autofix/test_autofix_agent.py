@@ -133,6 +133,48 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         assert "## Proposed Solution" in prompt
         assert "Fix the handler" in prompt
 
+    def test_prompt_with_short_id(self):
+        """Test that short_id is included in prompt when provided."""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(state, short_id="AIML-2301")
+
+        assert "Include 'Fixes AIML-2301' in the pull request description" in prompt
+
+    def test_prompt_without_short_id(self):
+        """Test that 'Fixes' is not in prompt when short_id is None."""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(state, short_id=None)
+
+        assert "Fixes" not in prompt
+
+    def test_prompt_with_short_id_and_instruction(self):
+        """Test that both short_id and instruction are included."""
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(
+            state, instruction="Focus on performance", short_id="PROJ-123"
+        )
+
+        assert "Include 'Fixes PROJ-123' in the pull request description" in prompt
+        assert "Focus on performance" in prompt
+
 
 class TestBuildStepPrompt(TestCase):
     def setUp(self):
@@ -501,3 +543,56 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(result["failures"]) == 1
         assert "No repositories configured" in result["failures"][0]["error_message"]
         mock_client.launch_coding_agents.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_coding_agent_handoff_includes_short_id_when_auto_create_pr_enabled(
+        self, mock_client_class, mock_get_prefs
+    ):
+        """Test that short_id is included in prompt when auto_create_pr is True."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+
+        # Set up preferences with auto_create_pr=True
+        mock_get_prefs.return_value = self._make_preference_response(auto_create_pr=True)
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            integration_id=456,
+        )
+
+        call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
+        prompt = call_kwargs["prompt"]
+        # Prompt should contain "Fixes {short_id}" instruction
+        assert (
+            f"Include 'Fixes {self.group.qualified_short_id}' in the pull request description"
+            in prompt
+        )
+
+    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_coding_agent_handoff_excludes_short_id_when_auto_create_pr_disabled(
+        self, mock_client_class, mock_get_prefs
+    ):
+        """Test that short_id is NOT included in prompt when auto_create_pr is False."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+
+        # Set up preferences with auto_create_pr=False (default)
+        mock_get_prefs.return_value = self._make_preference_response(auto_create_pr=False)
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            integration_id=456,
+        )
+
+        call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
+        prompt = call_kwargs["prompt"]
+        # Prompt should NOT contain "Fixes" instruction
+        assert "Fixes" not in prompt
