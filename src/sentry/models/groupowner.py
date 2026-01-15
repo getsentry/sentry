@@ -198,7 +198,7 @@ class GroupOwner(Model):
         """
         cache.delete(ISSUE_OWNERS_DEBOUNCE_KEY(group_id))
 
-    # TODO(shashank): can make this O(1) cache invalidation by using the project ownership version timestamp (follow-up PR)
+    # TODO(shashank): can make this O(1) cache invalidation by using the project ownership version timestamp (follow-up PR), prob will need to update some tests in test_post_process.py as well
     @classmethod
     def invalidate_assignee_exists_cache(cls, project_id, group_id=None):
         """
