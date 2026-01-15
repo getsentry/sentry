@@ -25,8 +25,6 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams> & {
-  hasMetricAlerts: boolean;
-  hasUptimeAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;
   project: Project;
