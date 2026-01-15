@@ -248,7 +248,11 @@ def _launch_agents_for_repos(
             "There are no repos in the Seer state to launch coding agents with, make sure you have repos connected to Seer and rerun this Issue Fix."
         )
 
-    prompt = get_coding_agent_prompt(run_id, trigger_source, instruction)
+    short_id = None
+    if autofix_state and auto_create_pr:
+        short_id = autofix_state.request.issue.get("short_id")
+
+    prompt = get_coding_agent_prompt(run_id, trigger_source, instruction, short_id)
 
     if not prompt:
         raise APIException("Issue fetching prompt to send to coding agents.")

@@ -178,6 +178,58 @@ class TestGetCodingAgentPrompt(TestCase):
         assert result == expected
         mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt includes Fixes line when short_id is provided."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345, AutofixTriggerSource.SOLUTION, None, short_id="AIML-2301"
+        )
+
+        assert "Fixes AIML-2301" in result
+        assert "Include 'Fixes AIML-2301' in the pull request description" in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_without_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt does not include Fixes line when short_id is None."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id=None)
+
+        assert "Fixes" not in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_short_id_and_instruction(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt includes both Fixes line and instruction."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345,
+            AutofixTriggerSource.SOLUTION,
+            "Be careful with backwards compatibility",
+            short_id="PROJ-1234",
+        )
+
+        assert "Fixes PROJ-1234" in result
+        assert "Be careful with backwards compatibility" in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_empty_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt does not include Fixes line when short_id is empty string."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id="")
+
+        assert "Fixes" not in result
+        assert "Please fix the following issue" in result
+
 
 class TestAutofixStateParsing(TestCase):
     def test_autofix_state_validate_parses_nested_structures(self):
