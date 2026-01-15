@@ -358,7 +358,7 @@ const NavLink = styled(Link, {
     width: 4px;
     height: 20px;
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }

@@ -23,8 +23,8 @@ function ProductTrialRibbon({
     color: 'white' as const,
   };
   const ribbonColor = activeProductTrial
-    ? theme.tokens.graphics.promotion
-    : theme.tokens.graphics.accent;
+    ? theme.tokens.graphics.promotion.vibrant
+    : theme.tokens.graphics.accent.vibrant;
 
   if (!activeProductTrial && !potentialProductTrial) {
     return null;

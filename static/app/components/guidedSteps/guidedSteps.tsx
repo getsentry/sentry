@@ -269,7 +269,9 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   line-height: 34px;
   border-radius: 50%;
   background: ${p =>
-    p.isActive ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
+    p.isActive
+      ? p.theme.tokens.graphics.accent.vibrant
+      : p.theme.tokens.graphics.neutral.moderate};
   color: ${p => p.theme.colors.white};
   border: 4px solid ${p => p.theme.tokens.background.primary};
 `;
