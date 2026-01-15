@@ -130,10 +130,8 @@ def _format_artifact_summary(
         if metric_type_display:
             qualifiers.append(metric_type_display)
 
-        mobile_app_info = getattr(artifact, "mobile_app_info", None)
-        artifact_app_name = mobile_app_info.app_name if mobile_app_info else None
         app_name = (
-            f"{artifact_app_name or '--'}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
+            f"{artifact.app_name or '--'}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
         )
 
         # App ID
@@ -162,9 +160,11 @@ def _format_artifact_summary(
 
         # Comparison URL
         if base_artifact and base_metrics:
-            artifact_url = get_preprod_artifact_comparison_url(artifact, base_artifact)
+            artifact_url = get_preprod_artifact_comparison_url(
+                artifact, base_artifact, comparison_type="size"
+            )
         else:
-            artifact_url = get_preprod_artifact_url(artifact)
+            artifact_url = get_preprod_artifact_url(artifact, view_type="size")
 
         name_text = f"[{app_name}<br>`{app_id}`]({artifact_url})"
 
@@ -216,7 +216,7 @@ def _format_failure_summary(
     for artifact in artifacts:
         version_string = _format_version_string(artifact, default="-")
 
-        artifact_url = get_preprod_artifact_url(artifact)
+        artifact_url = get_preprod_artifact_url(artifact, view_type="size")
         unknown_app_text = str(_("Unknown App"))
         app_id_link = f"[`{artifact.app_id or unknown_app_text}`]({artifact_url})"
 
@@ -287,13 +287,10 @@ def _get_size_metric_display_data(
 def _format_version_string(artifact: PreprodArtifact, default: str = "-") -> str:
     """Format version string from build_version and build_number."""
     version_parts = []
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
-    build_version = mobile_app_info.build_version if mobile_app_info else None
-    build_number = mobile_app_info.build_number if mobile_app_info else None
-    if build_version:
-        version_parts.append(build_version)
-    if build_number:
-        version_parts.append(f"({build_number})")
+    if artifact.build_version:
+        version_parts.append(artifact.build_version)
+    if artifact.build_number:
+        version_parts.append(f"({artifact.build_number})")
     return " ".join(version_parts) if version_parts else default
 
 
