@@ -667,7 +667,6 @@ class Factories:
         if rule.data.get("actions"):
             rule.data["actions"][0]["legacy_rule_id"] = rule.id
             rule.data["actions"][0]["workflow_id"] = workflow.id
-            rule.save()
         return rule
 
     @staticmethod
