@@ -60,7 +60,7 @@ Check in this order - **use the highest-level framework found** (e.g., if using 
 
 | Library (check in order) | Node.js | Browser | Python Integration | Python Extra |
 |--------------------------|---------|---------|-------------------|--------------|
-| Vercel AI SDK | Auto-enabled (needs \`experimental_telemetry\`) | Not supported | - | - |
+| Vercel AI SDK | Auto-enabled (needs \`experimental_telemetry\`) | - | - | - |
 | LangGraph | Auto-enabled | \`instrumentLangChainClient()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
 | LangChain | Auto-enabled | \`instrumentLangChainClient()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
 | OpenAI Agents | - | - | Auto-enabled | - |
@@ -91,14 +91,13 @@ Sentry.init({
 // That's it! The SDK automatically instruments supported AI libraries
 \`\`\`
 
-**Vercel AI SDK Extra Step:** Pass \`experimental_telemetry\` with \`functionId\` to every call:
+**Vercel AI SDK Extra Step:** Pass \`experimental_telemetry\` to every call:
 \`\`\`javascript
 const result = await generateText({
   model: openai("gpt-4o"),
   prompt: "Tell me a joke",
   experimental_telemetry: {
     isEnabled: true,
-    functionId: "generate-joke",  // Name your functions for better tracing
     recordInputs: true,
     recordOutputs: true,
   },
