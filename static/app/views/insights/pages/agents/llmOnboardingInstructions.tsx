@@ -85,7 +85,7 @@ import * as Sentry from "@sentry/node";
 Sentry.init({
   dsn: "...",
   tracesSampleRate: 1.0,  // Required for AI monitoring
-  sendDefaultPii: true,   // Required to capture inputs/outputs
+  sendDefaultPii: true,   // Add data like inputs and responses to/from LLMs and tools
 });
 
 // That's it! The SDK automatically instruments supported AI libraries
@@ -115,7 +115,7 @@ import * as Sentry from "@sentry/react";
 Sentry.init({
   dsn: "...",
   tracesSampleRate: 1.0,  // Required for AI monitoring
-  sendDefaultPii: true,   // Required to capture inputs/outputs
+  sendDefaultPii: true,   // Add data like inputs and responses to/from LLMs and tools
 });
 \`\`\`
 
