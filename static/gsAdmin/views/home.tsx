@@ -7,15 +7,12 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import DebounceSearch from 'admin/components/debounceSearch';
 import Overview from 'admin/views/overview';
 
-type Props = RouteComponentProps<unknown, unknown>;
-
-function HomePage(props: Props) {
+function HomePage() {
   const navigate = useNavigate();
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);
@@ -78,7 +75,7 @@ function HomePage(props: Props) {
   };
 
   if (oldSplash) {
-    return <Overview {...props} />;
+    return <Overview />;
   }
   return (
     <SplashWrapper>

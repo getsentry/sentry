@@ -1,15 +1,11 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-
 import CustomerGrid from 'admin/components/customerGrid';
 import PageHeader from 'admin/components/pageHeader';
 
-type Props = RouteComponentProps<unknown, unknown>;
-
-function Customers(props: Props) {
+function Customers() {
   return (
     <div>
       <PageHeader title="Customers" />
-      <CustomerGrid endpoint="/customers/" {...props} />
+      <CustomerGrid endpoint="/customers/" />
     </div>
   );
 }

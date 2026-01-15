@@ -4,13 +4,10 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
 import AddPolicyModal from 'admin/components/policies/addPolicyModal';
 import ResultGrid from 'admin/components/resultGrid';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: any) => [
   <td key="policy">
@@ -26,7 +23,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function Policies(props: Props) {
+function Policies() {
   const hasPermission = ConfigStore.get('user').permissions.has('policies.admin');
 
   return (
@@ -59,7 +56,6 @@ function Policies(props: Props) {
           </th>,
         ]}
         columnsForRow={getRow}
-        {...props}
       />
     </div>
   );
