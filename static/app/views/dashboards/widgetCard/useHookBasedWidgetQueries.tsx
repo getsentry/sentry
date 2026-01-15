@@ -24,7 +24,6 @@ type UseHookBasedWidgetQueriesProps<SeriesResponse, TableResponse> = {
   isChartDisplay: boolean;
   organization: any;
   pageFilters: PageFilters;
-  props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>;
   queue: any; // ReactAsyncQueuer from @tanstack/react-pacer
   selection: PageFilters;
   widget: Widget;
@@ -76,7 +75,6 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
   propsLoading,
   customDidUpdateComparator,
   organization,
-  props,
   forceOnDemand,
 }: UseHookBasedWidgetQueriesProps<
   SeriesResponse,
@@ -316,14 +314,29 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
 
   // Refetch when dependencies change
   const prevPropsRef = useRef<
-    UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> | undefined
+    | {
+        widget: Widget;
+        cursor?: string;
+        dashboardFilters?: DashboardFilters;
+        disabled?: boolean;
+        forceOnDemand?: boolean;
+      }
+    | undefined
   >(undefined);
   const prevSelectionRef = useRef(selection);
 
   useEffect(() => {
     const prevProps = prevPropsRef.current;
+    const currentProps = {
+      widget,
+      dashboardFilters,
+      forceOnDemand,
+      disabled,
+      cursor,
+    };
+
     if (!prevProps || !hasInitialFetchRef.current) {
-      prevPropsRef.current = props;
+      prevPropsRef.current = currentProps;
       prevSelectionRef.current = selection;
       return;
     }
@@ -361,7 +374,7 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
 
     if (
       customDidUpdateComparator
-        ? customDidUpdateComparator(prevProps, props)
+        ? customDidUpdateComparator(prevProps as any, currentProps as any)
         : widget.limit !== prevProps.widget.limit ||
           !isEqual(widget.widgetType, prevProps.widget.widgetType) ||
           !isEqual(widget.displayType, prevProps.widget.displayType) ||
@@ -379,7 +392,7 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
       } else {
         refetchRef.current();
       }
-      prevPropsRef.current = props;
+      prevPropsRef.current = currentProps;
       prevSelectionRef.current = selection;
     }
   }, [
@@ -391,7 +404,6 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
     forceOnDemand,
     disabled,
     queue,
-    props,
   ]);
 
   // Call onDataFetchStart when queries start

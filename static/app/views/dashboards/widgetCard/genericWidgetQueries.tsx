@@ -170,7 +170,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     propsLoading,
     customDidUpdateComparator,
     organization,
-    props,
     forceOnDemand,
   });
 
