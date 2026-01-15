@@ -8,16 +8,27 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
 import {
   Dataset,
   EventTypes,
   ExtrapolationMode,
+  type MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/analytics');
+
+function getRouteConfig(organization: Organization, rule: MetricRule) {
+  return {
+    location: {
+      pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
+    },
+    route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
+  };
+}
 
 describe('MetricAlertDetails', () => {
   const project = ProjectFixture({slug: 'earth', platform: 'javascript'});
@@ -73,12 +84,7 @@ describe('MetricAlertDetails', () => {
 
     render(<MetricAlertDetails />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
-        },
-        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
-      },
+      initialRouterConfig: getRouteConfig(organization, rule),
     });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
@@ -128,13 +134,7 @@ describe('MetricAlertDetails', () => {
 
     render(<MetricAlertDetails />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
-          query: {alert: incident.id},
-        },
-        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
-      },
+      initialRouterConfig: getRouteConfig(organization, rule),
     });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
@@ -185,12 +185,7 @@ describe('MetricAlertDetails', () => {
 
     render(<MetricAlertDetails />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
-        },
-        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
-      },
+      initialRouterConfig: getRouteConfig(organization, rule),
     });
 
     expect(await screen.findByText('Mute for everyone')).toBeInTheDocument();
@@ -229,12 +224,7 @@ describe('MetricAlertDetails', () => {
 
     render(<MetricAlertDetails />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
-        },
-        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
-      },
+      initialRouterConfig: getRouteConfig(organization, rule),
     });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
@@ -275,12 +265,7 @@ describe('MetricAlertDetails', () => {
 
     render(<MetricAlertDetails />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
-        },
-        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
-      },
+      initialRouterConfig: getRouteConfig(organization, rule),
     });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
@@ -319,12 +304,7 @@ describe('MetricAlertDetails', () => {
 
     render(<MetricAlertDetails />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${ruleWithExtrapolation.id}/`,
-        },
-        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
-      },
+      initialRouterConfig: getRouteConfig(organization, ruleWithExtrapolation),
     });
 
     expect(await screen.findByText(ruleWithExtrapolation.name)).toBeInTheDocument();
@@ -369,12 +349,7 @@ describe('MetricAlertDetails', () => {
 
     render(<MetricAlertDetails />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${ruleWithNoExtrapolation.id}/`,
-        },
-        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
-      },
+      initialRouterConfig: getRouteConfig(organization, ruleWithNoExtrapolation),
     });
 
     expect(await screen.findByText(ruleWithNoExtrapolation.name)).toBeInTheDocument();
