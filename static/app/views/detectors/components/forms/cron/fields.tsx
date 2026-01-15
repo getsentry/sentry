@@ -9,7 +9,7 @@ import {
   type MonitorIntervalUnit,
 } from 'sentry/views/insights/crons/types';
 
-const CRON_DEFAULT_TIMEZONE = 'UTC';
+export const CRON_DEFAULT_TIMEZONE = 'UTC';
 export const CRON_DEFAULT_SCHEDULE_TYPE = ScheduleType.CRONTAB;
 export const DEFAULT_CRONTAB = '0 0 * * *';
 export const CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE = 1;
