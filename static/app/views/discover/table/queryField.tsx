@@ -596,10 +596,9 @@ class _QueryField extends Component<Props> {
       return renderTagOverride(kind, label, meta);
     }
 
-    let valueType: FieldValueType | undefined = meta?.name as FieldValueType;
-    if ('dataType' in meta) {
-      valueType = meta.dataType as FieldValueType;
-    }
+    const valueType =
+      meta && 'dataType' in meta ? (meta.dataType as FieldValueType) : undefined;
+
     return (
       <TypeBadge
         label={label}
