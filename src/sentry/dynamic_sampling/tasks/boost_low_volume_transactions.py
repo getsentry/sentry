@@ -48,7 +48,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -242,9 +242,22 @@ class FetchProjectTransactionTotals:
     def __init__(self, orgs: Sequence[int]):
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-        is_segment_string_id = indexer.resolve_shared_org("is_segment")
-        self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
-        self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+
+        # Check if we should use the span metric with is_segment filter
+        self.use_span_metric = options.get(
+            "dynamic-sampling.prioritise_transactions.use_span_count_per_root"
+        )
+        if self.use_span_metric:
+            is_segment_string_id = indexer.resolve_shared_org("is_segment")
+            self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
+            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+            self.use_case_id = UseCaseID.SPANS
+        else:
+            self.is_segment_tag = None
+            self.metric_id = indexer.resolve_shared_org(
+                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+            )
+            self.use_case_id = UseCaseID.TRANSACTIONS
 
         self.org_ids = list(orgs)
         self.offset = 0
@@ -262,6 +275,20 @@ class FetchProjectTransactionTotals:
         granularity = Granularity(60)
 
         if self.has_more_results:
+            where_conditions = [
+                Condition(
+                    Column("timestamp"),
+                    Op.GTE,
+                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                ),
+                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("metric_id"), Op.EQ, self.metric_id),
+                Condition(Column("org_id"), Op.IN, self.org_ids),
+            ]
+            # Add is_segment filter only when using span metric
+            if self.use_span_metric and self.is_segment_tag:
+                where_conditions.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
+
             query = (
                 Query(
                     match=Entity(EntityKey.GenericOrgMetricsCounters.value),
@@ -275,17 +302,7 @@ class FetchProjectTransactionTotals:
                         Column("org_id"),
                         Column("project_id"),
                     ],
-                    where=[
-                        Condition(
-                            Column("timestamp"),
-                            Op.GTE,
-                            datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-                        ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                        Condition(Column("org_id"), Op.IN, self.org_ids),
-                        Condition(Column(self.is_segment_tag), Op.EQ, "true"),
-                    ],
+                    where=where_conditions,
                     granularity=granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
@@ -299,7 +316,7 @@ class FetchProjectTransactionTotals:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.SPANS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": self.use_case_id.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
@@ -364,9 +381,23 @@ class FetchProjectTransactionVolumes:
         self.offset = 0
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-        is_segment_string_id = indexer.resolve_shared_org("is_segment")
-        self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
-        self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+
+        # Check if we should use the span metric with is_segment filter
+        self.use_span_metric = options.get(
+            "dynamic-sampling.prioritise_transactions.use_span_count_per_root"
+        )
+        if self.use_span_metric:
+            is_segment_string_id = indexer.resolve_shared_org("is_segment")
+            self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
+            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+            self.use_case_id = UseCaseID.SPANS
+        else:
+            self.is_segment_tag = None
+            self.metric_id = indexer.resolve_shared_org(
+                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+            )
+            self.use_case_id = UseCaseID.TRANSACTIONS
+
         self.has_more_results = True
         self.cache: list[ProjectTransactions] = []
 
@@ -391,6 +422,20 @@ class FetchProjectTransactionVolumes:
 
         if self.has_more_results:
             # still data in the db, load cache
+            where_conditions = [
+                Condition(
+                    Column("timestamp"),
+                    Op.GTE,
+                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                ),
+                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("metric_id"), Op.EQ, self.metric_id),
+                Condition(Column("org_id"), Op.IN, self.org_ids),
+            ]
+            # Add is_segment filter only when using span metric
+            if self.use_span_metric and self.is_segment_tag:
+                where_conditions.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
+
             query = (
                 Query(
                     match=Entity(EntityKey.GenericOrgMetricsCounters.value),
@@ -405,17 +450,7 @@ class FetchProjectTransactionVolumes:
                         Column("project_id"),
                         AliasedExpression(Column(self.transaction_tag), "transaction_name"),
                     ],
-                    where=[
-                        Condition(
-                            Column("timestamp"),
-                            Op.GTE,
-                            datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-                        ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                        Condition(Column("org_id"), Op.IN, self.org_ids),
-                        Condition(Column(self.is_segment_tag), Op.EQ, "true"),
-                    ],
+                    where=where_conditions,
                     granularity=granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
@@ -436,7 +471,7 @@ class FetchProjectTransactionVolumes:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.SPANS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": self.use_case_id.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
