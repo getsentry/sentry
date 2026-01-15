@@ -36,6 +36,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {UptimeAssertionsField} from './assertions/field';
 import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
@@ -81,6 +82,7 @@ function getFormDataFromRule(rule: UptimeRule) {
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
     recoveryThreshold: rule.recoveryThreshold,
     downtimeThreshold: rule.downtimeThreshold,
+    assertion: rule.assertion,
   };
 }
 
@@ -380,6 +382,35 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             )}
           </Observer>
         </Configuration>
+        <Observer>
+          {() => {
+            const hasAssertionsFeature = organization.features.includes(
+              'uptime-runtime-assertions'
+            );
+            if (!hasAssertionsFeature) {
+              return null;
+            }
+            return (
+              <>
+                <AlertListItem>{t('Verification')}</AlertListItem>
+                <ListItemSubText>
+                  {t(
+                    'Define conditions that must be met for the check to be considered successful.'
+                  )}
+                </ListItemSubText>
+                <Configuration>
+                  <ConfigurationPanel>
+                    <UptimeAssertionsField
+                      name="assertion"
+                      label={t('Assertions')}
+                      flexibleControlStateSize
+                    />
+                  </ConfigurationPanel>
+                </Configuration>
+              </>
+            );
+          }}
+        </Observer>
         <AlertListItem>{t('Set thresholds')}</AlertListItem>
         <ListItemSubText>
           {t('Configure when an issue is created or resolved.')}
