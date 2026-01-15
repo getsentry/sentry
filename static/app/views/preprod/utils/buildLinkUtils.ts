@@ -14,11 +14,7 @@ export function getBaseBuildPath(
     return undefined;
   }
 
-  if (viewType === 'install') {
-    return `/organizations/${organizationSlug}/preprod/${projectId}/${baseArtifactId}/install/?project=${projectId}`;
-  }
-
-  return `/organizations/${organizationSlug}/preprod/${projectId}/${baseArtifactId}/?project=${projectId}`;
+  return `/organizations/${organizationSlug}/preprod/${viewType}/${baseArtifactId}/?project=${projectId}`;
 }
 
 export function getSizeBuildPath(params: BuildLinkParams): string | undefined {

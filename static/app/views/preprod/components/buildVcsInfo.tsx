@@ -87,11 +87,14 @@ export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
                 );
                 const baseBuildUrl =
                   buildDetailsData.base_artifact_id && projectId
-                    ? getBaseBuildPath({
-                        baseArtifactId: buildDetailsData.base_artifact_id,
-                        organizationSlug: organization.slug,
-                        projectId,
-                      })
+                    ? getBaseBuildPath(
+                        {
+                          baseArtifactId: buildDetailsData.base_artifact_id,
+                          organizationSlug: organization.slug,
+                          projectId,
+                        },
+                        'size'
+                      )
                     : null;
                 if (!baseBuildUrl || !buildName) {
                   return '-';
