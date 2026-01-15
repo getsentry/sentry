@@ -3,6 +3,7 @@ name: backend - with test coverage
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
   # Every 30 minutes
   schedule:
     - cron: '0,30 * * * *'
