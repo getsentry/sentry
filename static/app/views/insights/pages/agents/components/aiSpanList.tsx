@@ -100,7 +100,7 @@ export function AISpanList({
   }, [nodes]);
 
   return (
-    <Stack padding="md lg" gap="xs">
+    <Stack gap="xs">
       {Array.from(nodesByTransaction.entries()).map(([transaction, transactionNodes]) => (
         <Fragment key={transaction.id}>
           <TransactionWrapper

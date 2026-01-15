@@ -181,14 +181,14 @@ function ConversationView({
               </TabContent>
             </TabPanels.Item>
             <TabPanels.Item key="trace">
-              <TabContent>
+              <TabContentPadded>
                 <AISpanList
                   nodes={nodes}
                   selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
                   onSelectNode={onSelectNode}
                   compressGaps
                 />
-              </TabContent>
+              </TabContentPadded>
             </TabPanels.Item>
           </StyledTabPanels>
         </StyledTabs>
@@ -261,6 +261,10 @@ const TabContent = styled('div')`
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+`;
+
+const TabContentPadded = styled(TabContent)`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const DetailsPanel = styled('div')`
