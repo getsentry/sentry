@@ -295,6 +295,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             <AlignCenter>
               <StyledTooltip
                 isHoverable
+                showUnderline
                 title={
                   <span>
                     {tct('The [webVital] performance rating of this sample.', {
@@ -307,11 +308,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                   </span>
                 }
               >
-                <TooltipHeader>
-                  {tct('[webVital] Score', {
-                    webVital: datatype.toUpperCase(),
-                  })}
-                </TooltipHeader>
+                {tct('[webVital] Score', {
+                  webVital: datatype.toUpperCase(),
+                })}
               </StyledTooltip>
             </AlignCenter>
           }
@@ -679,10 +678,6 @@ const Wrapper = styled('div')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-`;
-
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;
 
 const StyledTooltip = styled(Tooltip)`
