@@ -195,3 +195,28 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_reaction.assert_not_called()
             self.mock_seer.assert_not_called()
+
+    def test_skips_regular_issue_comments(self) -> None:
+        """Test that comments on regular issues (not PRs) are skipped and not sent to Seer."""
+        with self.code_review_setup(), self.tasks():
+            # Build event for a regular issue comment (without pull_request key)
+            event_dict = {
+                "action": "created",
+                "comment": {"body": f"Please {SENTRY_REVIEW_COMMAND} this issue"},
+                # Note: No "pull_request" key - this is a regular issue, not a PR
+                "issue": {},
+                "repository": {
+                    "id": 12345,
+                    "full_name": "sentry-ecosystem/repo",
+                    "html_url": "https://github.com/sentry-ecosystem/repo",
+                },
+                "sender": {},
+            }
+            event = orjson.dumps(event_dict)
+
+            response = self._send_issue_comment_event(event)
+            assert response.status_code == 204
+
+            # Should not react or send to Seer for regular issue comments
+            self.mock_reaction.assert_not_called()
+            self.mock_seer.assert_not_called()

@@ -13,9 +13,10 @@ class WebhookFilteredReason(StrEnum):
     """Webhook-specific reasons why a webhook was filtered out."""
 
     NOT_REVIEW_COMMAND = "not_review_command"  # issue_comment not @sentry review
-    UNSUPPORTED_ACTION = (
-        "unsupported_action"  # Not a supported action, e.g., check_run not rerequested
-    )
+    NOT_PR_COMMENT = "not_pr_comment"  # issue_comment not on a PR
+    # Not a supported action, e.g., check_run not rerequested
+    UNSUPPORTED_ACTION = "unsupported_action"
+    DRAFT_PR = "draft_pr"  # PR is in draft state (except for closed actions)
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
 

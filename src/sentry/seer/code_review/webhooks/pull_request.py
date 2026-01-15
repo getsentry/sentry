@@ -121,7 +121,9 @@ def handle_pull_request_event(
         )
         return
 
-    if pull_request.get("draft") is True:
+    # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
+    # even if the PR was converted to draft before closing
+    if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
         return
 
     if should_forward_to_seer(github_event, event):

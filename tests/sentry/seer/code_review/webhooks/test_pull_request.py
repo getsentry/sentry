@@ -270,3 +270,28 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
             assert payload["data"]["config"]["trigger_comment_id"] is None
             assert payload["data"]["config"]["trigger_comment_type"] is None
+
+    def test_pull_request_closed_draft_still_sends_to_seer(self) -> None:
+        """Test that closed draft PRs still send cleanup notifications to Seer.
+
+        This prevents orphaned state in Seer when a PR is:
+        1. Opened as non-draft (Seer notified)
+        2. Converted to draft
+        3. Closed while draft (Seer must be notified to cleanup state)
+        """
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "closed"
+            event["pull_request"]["draft"] = True
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            # Should still call Seer even though PR is draft
+            self.mock_seer.assert_called_once()
+            call_kwargs = self.mock_seer.call_args[1]
+            payload = call_kwargs["payload"]
+            assert payload["request_type"] == RequestType.PR_CLOSED.value

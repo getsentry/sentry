@@ -140,19 +140,6 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
     }
 
 
-def _get_trigger_metadata(
-    github_event: GithubWebhookType, event_payload: Mapping[str, Any]
-) -> dict[str, Any]:
-    """Extract trigger metadata fields from the event payload based on the GitHub event type."""
-    if github_event == GithubWebhookType.PULL_REQUEST:
-        return _get_trigger_metadata_for_pull_request(event_payload)
-
-    if github_event == GithubWebhookType.ISSUE_COMMENT:
-        return _get_trigger_metadata_for_issue_comment(event_payload)
-
-    raise ValueError(f"unsupported-event-type-for-trigger-metadata: {github_event}")
-
-
 def _get_target_commit_sha(
     github_event: GithubWebhookType,
     event_payload: Mapping[str, Any],
@@ -187,7 +174,7 @@ def _get_target_commit_sha(
 # XXX: Refactor this function to handle it at the handler level rather than during task execution
 def transform_webhook_to_codegen_request(
     github_event: GithubWebhookType,
-    github_event_action: str,  # XXX: This should be the enum
+    github_event_action: str,
     event_payload: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -212,10 +199,71 @@ def transform_webhook_to_codegen_request(
     Raises:
         ValueError: If required fields are missing from the webhook payload
     """
-    request_type = RequestType.PR_REVIEW
-    if github_event == GithubWebhookType.PULL_REQUEST and github_event_action == "closed":
-        request_type = RequestType.PR_CLOSED
+    if github_event == GithubWebhookType.ISSUE_COMMENT:
+        payload = transform_issue_comment_to_codegen_request(
+            event_payload, organization, repo, target_commit_sha
+        )
+    elif github_event == GithubWebhookType.PULL_REQUEST:
+        payload = transform_pull_request_to_codegen_request(
+            github_event_action, event_payload, organization, repo, target_commit_sha
+        )
+    else:
+        raise ValueError(f"unsupported-event-type-for-codegen-request: {github_event}")
 
+    return payload
+
+
+def _common_codegen_request_payload(
+    request_type: RequestType, repo: Repository, target_commit_sha: str, organization: Organization
+) -> dict[str, Any]:
+    return {
+        # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
+        "request_type": request_type.value,
+        "external_owner_id": repo.external_id,
+        "data": {
+            "repo": _build_repo_definition(repo, target_commit_sha),
+            "bug_prediction_specific_information": {
+                "organization_id": organization.id,
+                "organization_slug": organization.slug,
+            },
+            "config": {"features": {"bug_prediction": True}},
+        },
+    }
+
+
+def transform_issue_comment_to_codegen_request(
+    event_payload: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    target_commit_sha: str,
+) -> dict[str, Any]:
+    """
+    Transform an issue comment on a PR into a CodecovTaskRequest for Seer.
+    """
+    payload = _common_codegen_request_payload(
+        RequestType.PR_REVIEW,  # An issue comment on a PR is a PR review request
+        repo=repo,
+        target_commit_sha=target_commit_sha,
+        organization=organization,
+    )
+    payload["data"]["pr_id"] = event_payload["issue"]["number"]
+    config = payload["data"]["config"]
+    config["trigger"] = SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
+    comment = event_payload.get("comment", {})
+    config["trigger_comment_id"] = comment.get("id")
+    config["trigger_comment_type"] = "issue_comment"
+    config["trigger_user"] = comment.get("user", {}).get("login")
+    config["trigger_user_id"] = comment.get("user", {}).get("id")
+    return payload
+
+
+def transform_pull_request_to_codegen_request(
+    github_event_action: str,
+    event_payload: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    target_commit_sha: str,
+) -> dict[str, Any]:
     review_request_trigger = SeerCodeReviewTrigger.UNKNOWN
     match github_event_action:
         case "opened" | "ready_for_review":
@@ -223,68 +271,45 @@ def transform_webhook_to_codegen_request(
         case "synchronize":
             review_request_trigger = SeerCodeReviewTrigger.ON_NEW_COMMIT
 
-    # We know that we only schedule a task if the comment contains the command phrase
-    if github_event == GithubWebhookType.ISSUE_COMMENT:
-        review_request_trigger = SeerCodeReviewTrigger.ON_COMMAND_PHRASE
+    request_type = (
+        RequestType.PR_REVIEW if github_event_action != "closed" else RequestType.PR_CLOSED
+    )
+    payload = _common_codegen_request_payload(
+        request_type,
+        repo=repo,
+        target_commit_sha=target_commit_sha,
+        organization=organization,
+    )
+    pull_request = event_payload.get("pull_request", {})
+    payload["data"]["pr_id"] = pull_request.get("number")
+    config = payload["data"]["config"]
+    # In Seer, used here:
+    # src/seer/automation/codegen/tasks.py
+    # src/seer/automation/codegen/pr_review_step.py
+    config["trigger"] = review_request_trigger.value
+    config["trigger_comment_id"] = None
+    config["trigger_comment_type"] = None
+    user = pull_request.get("user", {})
+    config["trigger_user"] = user.get("login")
+    config["trigger_user_id"] = user.get("id")
+    return payload
 
-    # Extract pull request number
-    # Different event types have PR info in different locations
-    pr_number = None
-    if "pull_request" in event_payload:
-        pr_number = event_payload["pull_request"]["number"]
-    elif "issue" in event_payload and "pull_request" in event_payload["issue"]:
-        # issue_comment events on PRs have the PR number in the issue
-        pr_number = event_payload["issue"]["number"]
 
-    if not pr_number:
-        # Not a PR-related event (e.g., issue_comment on regular issues)
-        return None
-
+def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str, Any]:
+    """
+    Build the repository definition for the CodecovTaskRequest.
+    """
     # Extract owner and repo name from full repository name (format: "owner/repo")
     repo_name_sections = repo.name.split("/")
     if len(repo_name_sections) < 2:
         raise ValueError(f"Invalid repository name format: {repo.name}")
 
-    owner = repo_name_sections[0]
-    repo_name = "/".join(repo_name_sections[1:])
-
-    # Build RepoDefinition
-    repo_definition = {
+    return {
         "provider": "github",  # All GitHub webhooks use "github" provider
-        "owner": owner,
-        "name": repo_name,
+        "owner": repo_name_sections[0],
+        "name": "/".join(repo_name_sections[1:]),
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
-    }
-
-    trigger_metadata = _get_trigger_metadata(github_event, event_payload)
-
-    # XXX: We will need to share classes between Sentry and Seer to avoid code duplication
-    # for the request payload.
-    # For now, we will use the same class names and fields as the Seer repository.
-    # Build CodecovTaskRequest
-    return {
-        # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
-        "request_type": request_type.value,
-        "external_owner_id": repo.external_id,
-        "data": {
-            "repo": repo_definition,
-            "pr_id": pr_number,
-            "bug_prediction_specific_information": {
-                "organization_id": organization.id,
-                "organization_slug": organization.slug,
-            },
-            "config": {
-                "features": {
-                    "bug_prediction": True,
-                },
-                # In Seer, used here:
-                # src/seer/automation/codegen/tasks.py
-                # src/seer/automation/codegen/pr_review_step.py
-                "trigger": review_request_trigger.value,
-                **trigger_metadata,
-            },
-        },
     }
 
 
