@@ -1018,7 +1018,6 @@ export const darkTheme: SentryTheme = {
   ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
   ...darkShadows,
-
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
