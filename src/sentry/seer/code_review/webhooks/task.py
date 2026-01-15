@@ -19,7 +19,7 @@ from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
-from ..utils import SeerCodeReviewTrigger, get_seer_endpoint_for_event, make_seer_request
+from ..utils import get_seer_endpoint_for_event, make_seer_request
 
 logger = logging.getLogger(__name__)
 
@@ -38,18 +38,17 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    trigger: SeerCodeReviewTrigger,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
 
     transformed_event = transform_webhook_to_codegen_request(
         github_event=github_event,
+        github_event_action=github_event_action,
         event_payload=dict(event),
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
-        trigger=trigger,
     )
 
     if transformed_event is None:
