@@ -9,7 +9,8 @@ type DisplayOptions =
   | 'absolute-file-paths'
   | 'minified'
   | 'raw-stack-trace'
-  | 'verbose-function-names';
+  | 'verbose-function-names'
+  | 'flamegraph-view';
 
 interface StackTraceContextOptions {
   children: React.ReactNode;
@@ -29,6 +30,12 @@ interface StackTraceContextOptions {
    * @default false
    */
   forceFullStackTrace?: boolean;
+  /**
+   * Whether the stack trace has flamegraph data (parent_index fields).
+   * When true, forces flamegraph view.
+   * @default false
+   */
+  hasFlamegraphData?: boolean;
 }
 
 interface StacktraceContextType {
@@ -92,6 +99,7 @@ export function StacktraceContext({
   hasSystemFrames,
   forceFullStackTrace = false,
   defaultIsNewestFramesFirst = true,
+  hasFlamegraphData = false,
 }: StackTraceContextOptions) {
   const organization = useOrganization();
   const [isFullStackTrace, setIsFullStackTrace] = useState(false);
@@ -104,11 +112,14 @@ export function StacktraceContext({
     []
   );
 
-  const stackView = displayOptions.includes('raw-stack-trace')
-    ? StackView.RAW
-    : isFullStackTrace || forceFullStackTrace
-      ? StackView.FULL
-      : StackView.APP;
+  // When hasFlamegraphData is true, always show flamegraph view
+  const stackView = hasFlamegraphData
+    ? StackView.FLAMEGRAPH
+    : displayOptions.includes('raw-stack-trace')
+      ? StackView.RAW
+      : isFullStackTrace || forceFullStackTrace
+        ? StackView.FULL
+        : StackView.APP;
 
   const stackType =
     hasSystemFrames && displayOptions.includes('minified')

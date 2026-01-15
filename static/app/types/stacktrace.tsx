@@ -4,6 +4,7 @@ export enum StackView {
   RAW = 'raw',
   FULL = 'full',
   APP = 'app',
+  FLAMEGRAPH = 'flamegraph',
 }
 
 export enum StackType {
