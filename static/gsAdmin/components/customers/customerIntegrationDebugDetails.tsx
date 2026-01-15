@@ -61,7 +61,7 @@ function CustomerIntegrationDebugDetails({orgId}: Props) {
       inPanel
       panelTitle="Integration Debug Details"
       path={`/_admin/customers/${orgId}/`}
-      endpoint={`/api/0/customers/${orgId}/integrations/`}
+      endpoint={`/customers/${orgId}/integrations/`}
       method="GET"
       defaultParams={{per_page: 25}}
       useQueryString={false}
@@ -153,7 +153,6 @@ function CustomerIntegrationDebugDetails({orgId}: Props) {
 const MetadataContent = styled('pre')`
   margin: 0;
   padding: ${space(1.5)};
-  background-color: ${p => p.theme.backgroundSecondary};
   border-radius: 4px;
   overflow-x: auto;
   font-size: ${p => p.theme.fontSize.sm};
