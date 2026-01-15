@@ -436,6 +436,9 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'python-tornado',
   'python-tryton',
   'python-wsgi',
+  'ruby',
+  'ruby-rack',
+  'ruby-rails',
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
