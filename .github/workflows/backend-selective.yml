@@ -138,12 +138,11 @@ jobs:
       - name: Compute selected tests
         id: compute-tests
         if: steps.download-coverage.outputs.coverage-file != ''
-        run: |
-          python3 .github/workflows/scripts/compute-selected-tests.py \
-            --coverage-db "${{ steps.download-coverage.outputs.coverage-file }}" \
-            --changed-files "${{ steps.changed-files.outputs.files }}" \
-            --output .artifacts/selected-tests.txt \
-            --github-output
+        env:
+          COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+          IS_CI: true
+        run: make compute-selected-tests
 
       - name: Upload coverage database artifact
         if: steps.download-coverage.outputs.coverage-file != ''
