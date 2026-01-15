@@ -1905,3 +1905,63 @@ class OAuthTokenJWTBearerTest(TestCase):
         call_args = mock_is_limited.call_args
         assert call_args[0][0].startswith("oauth:jwt_bearer:")
         assert call_args[1] == {"limit": 10, "window": 60}
+
+    def test_jti_replay_prevention(self) -> None:
+        """Same JWT with jti should be rejected on second use."""
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+                "jti": "unique-token-id-12345",
+            }
+        )
+
+        # First request should succeed
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        # Second request with same token should be rejected (replay)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_jwt_without_jti_still_works(self) -> None:
+        """JWT without jti claim should still be accepted (jti is optional)."""
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+                # No jti claim
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200

@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
+from django.core.cache import cache
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -777,6 +778,28 @@ class OAuthTokenView(View):
                 name="invalid_grant",
                 reason="assertion validation failed",
             )
+
+        # Replay prevention: check jti claim hasn't been used before
+        jti = claims.get("jti")
+        if jti:
+            # Cache key includes issuer to prevent cross-IdP collisions
+            jti_cache_key = f"oauth:jwt_bearer:jti:{issuer}:{jti}"
+            if cache.get(jti_cache_key):
+                logger.warning(
+                    "JWT bearer grant: assertion already used (replay attempt)",
+                    extra={
+                        "client_id": application.client_id,
+                        "issuer": issuer,
+                        "jti": jti,
+                    },
+                )
+                return self.error(
+                    request=request,
+                    name="invalid_grant",
+                    reason="assertion already used",
+                )
+            # Mark jti as used - cache for 10 minutes (ID-JAGs should be short-lived)
+            cache.set(jti_cache_key, True, timeout=600)
 
         # Extract subject identifier using configured claim
         subject_claim = validated_idp.subject_claim
