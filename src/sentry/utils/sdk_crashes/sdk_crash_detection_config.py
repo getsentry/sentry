@@ -83,6 +83,14 @@ class SDKCrashDetectionConfig:
     sdk_frame_config: SDKFrameConfig
     """The function and module patterns to ignore when detecting SDK crashes. For example, FunctionAndModulePattern("*", "**SentrySDK crash**") for any module with that function"""
     sdk_crash_ignore_matchers: set[FunctionAndModulePattern]
+    """The function patterns to ignore when they are the only SDK frames in the stacktrace.
+    These frames are typically SDK instrumentation frames that intercept calls, such as swizzling or monkey patching,
+    but don't cause crashes themselves. If there are other SDK frames anywhere in the stacktrace, the crash is still
+    reported as an SDK crash. For example, SentrySwizzleWrapper is used for method swizzling and shouldn't be reported
+    as an SDK crash when it's the only SDK frame, since it's highly unlikely the crash stems from that code."""
+    sdk_crash_ignore_when_only_sdk_frame_matchers: set[FunctionAndModulePattern] = field(
+        default_factory=set
+    )
 
 
 class SDKCrashDetectionOptions(TypedDict):
@@ -150,6 +158,15 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="**SentryCrashExceptionApplicationHelper _crashOnException**",
+                ),
+            },
+            sdk_crash_ignore_when_only_sdk_frame_matchers={
+                # SentrySwizzleWrapper is used for method swizzling to intercept UI events.
+                # When it's the only SDK frame, it's highly unlikely the crash stems from the SDK.
+                # Only report as SDK crash if there are other SDK frames anywhere in the stacktrace.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentrySwizzleWrapper**",
                 ),
             },
         )
