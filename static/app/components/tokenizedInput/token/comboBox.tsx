@@ -13,6 +13,8 @@ import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
@@ -310,7 +312,7 @@ export function ComboBox({
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
   return (
-    <Wrapper>
+    <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
@@ -344,7 +346,7 @@ export function ComboBox({
           />
         </ListBoxOverlay>
       </StyledPositionWrapper>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -395,14 +397,6 @@ function useUpdateOverlayPositionOnContentChange({
     };
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  width: 100%;
-`;
 
 const UnstyledInput = styled(Input)`
   background: transparent;

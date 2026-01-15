@@ -5,6 +5,8 @@ import pick from 'lodash/pick';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -238,7 +240,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 
   return (
     <Fragment>
-      <ControlsWrapper>
+      <Flex justify="between" align="end" wrap="wrap" marginBottom="md">
         <SegmentedControl
           aria-label={t('Issue type')}
           value={issuesType}
@@ -270,7 +272,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
           </DiscoverButton>
           <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
         </OpenInButtonBar>
-      </ControlsWrapper>
+      </Flex>
 
       <GroupList
         queryParams={queryParams}
@@ -285,14 +287,6 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     </Fragment>
   );
 }
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-  flex-wrap: wrap;
-`;
 
 const OpenInButtonBar = styled(ButtonBar)`
   margin-top: ${space(1)};

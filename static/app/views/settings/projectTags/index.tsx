@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
@@ -116,7 +118,7 @@ export default function ProjectTags() {
                   return (
                     <TagPanelItem key={key} data-test-id="tag-row">
                       <TagName>{key}</TagName>
-                      <Actions>
+                      <Flex align="center" padding="xl">
                         <Confirm
                           message={t('Are you sure you want to remove this tag?')}
                           onConfirm={() => mutate({key})}
@@ -136,7 +138,7 @@ export default function ProjectTags() {
                             data-test-id="delete"
                           />
                         </Confirm>
-                      </Actions>
+                      </Flex>
                     </TagPanelItem>
                   );
                 })
@@ -156,11 +158,5 @@ const TagPanelItem = styled(PanelItem)`
 
 const TagName = styled('div')`
   flex: 1;
-  padding: ${space(2)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-  align-items: center;
   padding: ${space(2)};
 `;

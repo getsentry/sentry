@@ -1,10 +1,9 @@
 import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -38,7 +37,13 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
   }
 
   return (
-    <Breadcrumbs aria-label={t('Settings Breadcrumbs')} className={className}>
+    <Flex
+      as="nav"
+      align="center"
+      gap="sm"
+      aria-label={t('Settings Breadcrumbs')}
+      className={className}
+    >
       {routes.map((route, i) => {
         if (!route.name) {
           return null;
@@ -70,7 +75,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
           </Flex>
         );
       })}
-    </Breadcrumbs>
+    </Flex>
   );
 }
 
@@ -85,12 +90,6 @@ export const CrumbLink = styled(RouterLink)`
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const Breadcrumbs = styled('nav')`
-  display: flex;
-  gap: ${space(0.75)};
-  align-items: center;
 `;
 
 export default SettingsBreadcrumb;

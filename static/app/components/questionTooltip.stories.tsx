@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
@@ -19,7 +21,7 @@ export default Storybook.story('QuestionTooltip', story => {
         <p>
           An example <Storybook.JSXNode name="QuestionTooltip" /> looks like this:
         </p>
-        <InlineContainer>
+        <Flex align="center" gap="xs">
           <h3 style={{margin: 0}}>Most Dead Clicks</h3>
           <QuestionTooltip
             size="lg"
@@ -27,7 +29,7 @@ export default Storybook.story('QuestionTooltip', story => {
             title="The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds)."
             isHoverable
           />
-        </InlineContainer>
+        </Flex>
         <p>
           Required props are <Storybook.JSXProperty name="size" value />, which specifies
           the size of the icon, and
@@ -100,10 +102,4 @@ export default Storybook.story('QuestionTooltip', story => {
 const IconExamples = styled('div')`
   display: grid;
   gap: ${space(1)};
-`;
-
-const InlineContainer = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
 `;

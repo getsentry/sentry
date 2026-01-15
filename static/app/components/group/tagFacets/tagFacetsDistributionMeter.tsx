@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -90,14 +92,14 @@ function TagFacetsDistributionMeter({
   function renderSegments() {
     if (totalValues === 0) {
       return (
-        <SegmentBar>
+        <Flex overflow="hidden">
           <p>{t('No recent data.')}</p>
-        </SegmentBar>
+        </Flex>
       );
     }
 
     return (
-      <SegmentBar>
+      <Flex overflow="hidden">
         {topSegments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
@@ -141,7 +143,7 @@ function TagFacetsDistributionMeter({
             </div>
           );
         })}
-      </SegmentBar>
+      </Flex>
     );
   }
 
@@ -265,11 +267,6 @@ const TagSummary = styled('div')`
 
 const TagHeader = styled('span')`
   cursor: pointer;
-`;
-
-const SegmentBar = styled('div')`
-  display: flex;
-  overflow: hidden;
 `;
 
 const Title = styled('div')`

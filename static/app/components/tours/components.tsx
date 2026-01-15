@@ -4,6 +4,8 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -429,7 +431,11 @@ export function TourGuide({
                         )}
                         {title && <TitleRow>{title}</TitleRow>}
                         {description && <DescriptionRow>{description}</DescriptionRow>}
-                        {actions && <ActionRow>{actions}</ActionRow>}
+                        {actions && (
+                          <Flex justify="end" marginTop="md">
+                            {actions}
+                          </Flex>
+                        )}
                       </TourBody>
                     </TourOverlay>
                   )}
@@ -491,12 +497,6 @@ const DescriptionRow = styled('div')`
   line-height: 1.4;
   white-space: wrap;
   opacity: 0.9;
-`;
-
-const ActionRow = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(1)};
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {

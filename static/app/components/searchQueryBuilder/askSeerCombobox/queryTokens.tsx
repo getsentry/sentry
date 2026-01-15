@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {formatDateRange} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -21,7 +23,7 @@ function QueryTokens({
   const parsedQuery = query ? parseQueryBuilderValue(query, getFieldDefinition) : null;
   if (query && parsedQuery?.length) {
     tokens.push(
-      <Token key="filter">
+      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="filter">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
         {parsedQuery
           .filter(({text}) => text.trim() !== '')
@@ -30,59 +32,80 @@ function QueryTokens({
               <ProvidedFormattedQuery query={text} />
             </FormattedQueryWrapper>
           ))}
-      </Token>
+      </Flex>
     );
   }
 
   if (visualizations && visualizations.length > 0) {
     tokens.push(
-      <Token key="visualization">
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="visualization"
+      >
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
         {visualizations.map((visualization, vIdx) =>
           visualization.yAxes.map(yAxis => (
             <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
           ))
         )}
-      </Token>
+      </Flex>
     );
   }
 
   if (groupBys && groupBys.length > 0) {
     tokens.push(
-      <Token key="groupBy">
+      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
         {groupBys.map((groupBy, idx) => (
           <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
         ))}
-      </Token>
+      </Flex>
     );
   }
 
   // Display absolute date range if start and end are provided
   if (start && end) {
     tokens.push(
-      <Token key="timeRange">
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="timeRange"
+      >
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
         <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
-      </Token>
+      </Flex>
     );
   } else if (statsPeriod && statsPeriod.length > 0) {
     tokens.push(
-      <Token key="timeRange">
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="timeRange"
+      >
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
         <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
-      </Token>
+      </Flex>
     );
   }
 
   if (sort && sort.length > 0) {
     tokens.push(
-      <Token key="sort">
+      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
         <ExploreGroupBys>
           {sort[0] === '-' ? sort.slice(1) + ' Desc' : sort + ' Asc'}
         </ExploreGroupBys>
-      </Token>
+      </Flex>
     );
   }
 
@@ -95,15 +118,6 @@ const TokenContainer = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.md};
-`;
-
-const Token = styled('span')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.xs};
-  overflow: hidden;
-  flex-wrap: wrap;
-  align-items: center;
 `;
 
 const ExploreParamTitle = styled('span')`
