@@ -1833,6 +1833,139 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["tags[foo,number]"] == 5
         assert data[0]["description"] == "foo"
 
+    def test_explicit_boolean_tag_filter(self) -> None:
+        span_true = self.create_span(
+            {"description": "enabled"},
+            start_ts=self.ten_mins_ago,
+        )
+        span_true["data"] = {"is_enabled": True}
+        span_false = self.create_span(
+            {"description": "disabled"},
+            start_ts=self.ten_mins_ago,
+        )
+        span_false["data"] = {"is_enabled": False}
+        self.store_spans([span_true, span_false], is_eap=True)
+
+        # Test filtering for true
+        response = self.do_request(
+            {
+                "field": ["description", "tags[is_enabled,boolean]"],
+                "query": "tags[is_enabled,boolean]:true",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["description"] == "enabled"
+        assert data[0]["tags[is_enabled,boolean]"] is True
+
+        # Test filtering for false
+        response = self.do_request(
+            {
+                "field": ["description", "tags[is_enabled,boolean]"],
+                "query": "tags[is_enabled,boolean]:false",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["description"] == "disabled"
+        assert data[0]["tags[is_enabled,boolean]"] is False
+
+    def test_explicit_boolean_tag_negation(self) -> None:
+        span_true = self.create_span(
+            {"description": "enabled"},
+            start_ts=self.ten_mins_ago,
+        )
+        span_true["data"] = {"is_enabled": True}
+        span_false = self.create_span(
+            {"description": "disabled"},
+            start_ts=self.ten_mins_ago,
+        )
+        span_false["data"] = {"is_enabled": False}
+        self.store_spans([span_true, span_false], is_eap=True)
+
+        # Test negation: !tags[is_enabled,boolean]:true should return spans where is_enabled is false
+        response = self.do_request(
+            {
+                "field": ["description", "tags[is_enabled,boolean]"],
+                "query": "!tags[is_enabled,boolean]:true",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["description"] == "disabled"
+        assert data[0]["tags[is_enabled,boolean]"] is False
+
+    def test_explicit_boolean_tag_as_field(self) -> None:
+        span_true = self.create_span(
+            {"description": "feature_on"},
+            start_ts=self.ten_mins_ago,
+        )
+        span_true["data"] = {"feature_flag": True}
+        span_false = self.create_span(
+            {"description": "feature_off"},
+            start_ts=self.ten_mins_ago,
+        )
+        span_false["data"] = {"feature_flag": False}
+        self.store_spans([span_true, span_false], is_eap=True)
+
+        # Request boolean tag as a field without filtering
+        response = self.do_request(
+            {
+                "field": ["description", "tags[feature_flag,boolean]"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = sorted(response.data["data"], key=lambda x: x["description"])
+        assert data[0]["description"] == "feature_off"
+        assert data[0]["tags[feature_flag,boolean]"] is False
+        assert data[1]["description"] == "feature_on"
+        assert data[1]["tags[feature_flag,boolean]"] is True
+
+    def test_explicit_boolean_tag_with_colon_in_key(self) -> None:
+        span = self.create_span(
+            {"description": "colon_test"},
+            start_ts=self.ten_mins_ago,
+        )
+        span["data"] = {"feature:enabled": True}
+        self.store_spans([span], is_eap=True)
+
+        # Test filtering with colon in tag key
+        response = self.do_request(
+            {
+                "field": ["description", "tags[feature:enabled,boolean]"],
+                "query": "tags[feature:enabled,boolean]:true",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["description"] == "colon_test"
+        assert data[0]["tags[feature:enabled,boolean]"] is True
+
     def test_long_attr_name(self) -> None:
         response = self.do_request(
             {

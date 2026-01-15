@@ -14,14 +14,11 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSync} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import CustomerContact from 'admin/components/customerContact';
 import CustomerStatus from 'admin/components/customerStatus';
 import PercentChange from 'admin/components/percentChange';
 import ResultGrid from 'admin/components/resultGrid';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const Badge = styled('div')`
   display: flex;
@@ -65,7 +62,7 @@ const getDocIntegrationRow = (doc: DocIntegration) => [
  * DEPRECATION WARNING
  * THIS COMPONENT WILL SOON BE REMOVED
  */
-function SentryAppList(props: Props) {
+function SentryAppList() {
   return (
     <ResultGrid
       path="/_admin/"
@@ -83,7 +80,6 @@ function SentryAppList(props: Props) {
       ]}
       columnsForRow={getAppRow}
       inPanel
-      {...props}
     />
   );
 }
@@ -92,7 +88,7 @@ function SentryAppList(props: Props) {
  * DEPRECATION WARNING
  * THIS COMPONENT WILL SOON BE REMOVED
  */
-function DocIntegrationList(props: Props) {
+function DocIntegrationList() {
   return (
     <ResultGrid
       path="/_admin/"
@@ -110,7 +106,6 @@ function DocIntegrationList(props: Props) {
       ]}
       columnsForRow={getDocIntegrationRow}
       inPanel
-      {...props}
     />
   );
 }
@@ -181,7 +176,7 @@ const CustomerName = styled('div')`
  * THIS COMPONENT WILL SOON BE REMOVED
  */
 
-function CustomersByVolume(props: Props) {
+function CustomersByVolume() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   return (
@@ -226,7 +221,6 @@ function CustomersByVolume(props: Props) {
         ]}
         columnsForRow={getCustomerRow}
         inPanel
-        {...props}
       />
     </SectionFull>
   );
@@ -236,10 +230,10 @@ function CustomersByVolume(props: Props) {
  * DEPRECATION WARNING
  * THIS COMPONENT WILL SOON BE REMOVED
  */
-function Overview(props: Props) {
+function Overview() {
   return (
     <OverviewContainer>
-      <CustomersByVolume {...props} />
+      <CustomersByVolume />
       <div>
         <SectionHeading>
           Integration Platform Apps{' '}
@@ -247,7 +241,7 @@ function Overview(props: Props) {
             More
           </LinkButton>
         </SectionHeading>
-        <SentryAppList {...props} />
+        <SentryAppList />
       </div>
       <div>
         <SectionHeading>
@@ -256,7 +250,7 @@ function Overview(props: Props) {
             More
           </LinkButton>
         </SectionHeading>
-        <DocIntegrationList {...props} />
+        <DocIntegrationList />
       </div>
       <SectionFull>
         <SectionHeading>Signups</SectionHeading>

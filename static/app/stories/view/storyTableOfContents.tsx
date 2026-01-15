@@ -322,7 +322,7 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
         height: 16px;
         border-radius: 4px;
         transform: translateX(-2px);
-        background: ${p.theme.tokens.graphics.accent};
+        background: ${p.theme.tokens.graphics.accent.vibrant};
       }
     `}
 `;
