@@ -717,6 +717,89 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         resp = self.get_response(self.organization.slug, **data_member)
         assert resp.status_code == 403
 
+    def test_owner_team_not_member_denied(self) -> None:
+        """
+        Test that members cannot assign a team they are not a member of as owner.
+        This is a regression test for an IDOR vulnerability.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "owner": f"team:{other_team.id}",
+        }
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert response.data == {
+            "owner": [
+                ErrorDetail(
+                    string="You do not have permission to assign this owner",
+                    code="invalid",
+                )
+            ]
+        }
+
+    def test_owner_team_member_allowed(self) -> None:
+        """
+        Test that members CAN assign a team they are a member of as owner.
+        """
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "owner": f"team:{self.team.id}",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+        assert monitor.owner_team_id == self.team.id
+
+    def test_owner_team_admin_can_assign_any_team(self) -> None:
+        """
+        Test that users with team:admin scope CAN assign any team as owner.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        admin_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=admin_user,
+            organization=self.organization,
+            role="admin",
+            teams=[self.team],
+        )
+        self.login_as(admin_user)
+
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "owner": f"team:{other_team.id}",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+        assert monitor.owner_team_id == other_team.id
+
 
 class BulkEditOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
