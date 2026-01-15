@@ -12,6 +12,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
@@ -19,6 +20,7 @@ import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -30,6 +32,27 @@ import {
 } from 'sentry/views/settings/organizationConsoleSdkInvites/hooks';
 
 type ConsolePlatform = ConsoleSdkInviteUser['platforms'][number];
+
+function QuotaAlert() {
+  const playstation = useFormField<boolean>('playstation');
+  const nintendoSwitch = useFormField<boolean>('nintendo-switch');
+  const xbox = useFormField<boolean>('xbox');
+  const quota = useFormField<string | number>('newConsoleSdkInviteQuota');
+
+  const hasEnabledPlatform = playstation || nintendoSwitch || xbox;
+  const isQuotaZero = quota === 0 || quota === '0';
+
+  if (!hasEnabledPlatform || !isQuotaZero) {
+    return null;
+  }
+
+  return (
+    <StyledQuotaAlert variant="warning">
+      You have enabled console platforms but the invite quota is set to 0. Users won't be
+      able to request access to the console SDK repositories.
+    </StyledQuotaAlert>
+  );
+}
 
 interface InviteRowProps {
   invite: ConsoleSdkInviteUser;
@@ -306,6 +329,8 @@ function ToggleConsolePlatformsModal({
             onRevoke={handleRevoke}
           />
         </SimpleTableWithColumns>
+
+        <QuotaAlert />
       </Body>
     </Form>
   );
@@ -327,6 +352,10 @@ const NumberFieldFromConfig = styled(FieldFromConfig)`
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr max-content;
+`;
+
+const StyledQuotaAlert = styled(Alert)`
+  margin-top: ${space(2)};
 `;
 
 export function openToggleConsolePlatformsModal({
