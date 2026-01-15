@@ -2489,7 +2489,6 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
-    // New routes (without projectId in path, using query param instead)
     {
       path: 'size/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
