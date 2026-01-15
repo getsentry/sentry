@@ -35,7 +35,7 @@ export type MotionDuration = 'fast' | 'moderate' | 'slow';
 /**
  * Background surface level for layered UI elements.
  */
-export type SurfaceVariant = 'primary' | 'secondary' | 'tertiary';
+export type SurfaceVariant = 'primary' | 'secondary' | 'tertiary' | 'overlay';
 
 /**
  * Semantic color variant for conveying meaning through color.

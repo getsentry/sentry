@@ -1,0 +1,49 @@
+---
+title: Stack
+description: A simplified layout component built on Flex that provides easy vertical stacking with responsive props and spacing controls.
+category: layout
+source: 'sentry/components/core/layout/stack'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/stack.tsx
+---
+
+import {Stack, Surface} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/layout/stack';
+
+export {documentation};
+
+The `Surface` component is a simplified layout component built on top of the `Flex` component. It provides a focused API for surfaces with only the essential props: `variant` and `elevation`.
+
+## Basic Usage
+
+To create a basic primary surface, wrap elements in `<Surface variant="primary">`.
+
+<Storybook.Demo>
+  <Stack minWidth="0" flexGrow={1} gap="md">
+    <Surface variant="primary">Primary</Surface>
+    <Surface variant="secondary">Secondary</Surface>
+    <Surface variant="tertiary">Tertiary</Surface>
+    <Surface variant="overlay" elevation="low">
+      Overlay: Low
+    </Surface>
+    <Surface variant="overlay" elevation="high">
+      Overlay: High
+    </Surface>
+    <Surface variant="well">Well</Surface>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Surface variant="primary">Primary</Surface>
+<Surface variant="secondary">Secondary</Surface>
+<Surface variant="tertiary">Tertiary</Surface>
+<Surface variant="overlay" elevation="low">
+  Overlay: Low
+</Surface>
+<Surface variant="overlay" elevation="high">
+  Overlay: High
+</Surface>
+<Surface variant="well">Well</Surface>
+```
