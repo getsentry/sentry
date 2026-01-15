@@ -41,10 +41,10 @@ const AnimatedGradient = styled('div')`
   height: 100%;
   background-image: linear-gradient(
     90deg,
-    ${p => p.theme.tokens.content.muted} 0%,
+    ${p => p.theme.tokens.content.secondary} 0%,
     rgba(255, 255, 255, 0) 20%,
     rgba(255, 255, 255, 0) 80%,
-    ${p => p.theme.tokens.content.muted} 100%
+    ${p => p.theme.tokens.content.secondary} 100%
   );
   background-size: 200% 100%;
   animation: ${gradientAnimation} 2s linear infinite;

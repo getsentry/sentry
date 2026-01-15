@@ -110,7 +110,7 @@ function Content({
       min: 0,
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter: (value: number) =>
           axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
