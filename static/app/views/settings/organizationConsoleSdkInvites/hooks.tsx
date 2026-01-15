@@ -1,9 +1,5 @@
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import {tct} from 'sentry/locale';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {
   fetchMutation,
   useApiQuery,
@@ -23,7 +19,7 @@ export interface ConsoleSdkInviteUser {
 interface UseRevokeConsoleSdkPlatformInviteParams {
   email: string;
   orgSlug: string;
-  platform: ConsolePlatform;
+  platforms: ConsolePlatform[];
   userId: string;
 }
 
@@ -43,38 +39,32 @@ export function useRevokeConsoleSdkPlatformInvite() {
     mutationFn: ({
       orgSlug,
       userId,
-      platform,
+      platforms,
     }: UseRevokeConsoleSdkPlatformInviteParams) => {
       return fetchMutation({
         method: 'DELETE',
         url: `/organizations/${orgSlug}/console-sdk-invites/`,
-        data: {user_id: userId, platforms: [platform]},
+        data: {user_id: userId, platforms},
       });
-    },
-    onMutate: ({email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
-      addLoadingMessage(tct('Removing [platform] access for [email]', {platform, email}));
     },
     onSuccess: (
       _data,
-      {email, platform, orgSlug}: UseRevokeConsoleSdkPlatformInviteParams
+      {email, orgSlug, platforms}: UseRevokeConsoleSdkPlatformInviteParams
     ) => {
-      addSuccessMessage(
-        tct('Successfully removed [platform] access for [email]', {platform, email})
-      );
+      const platformNames = platforms
+        .map(p => CONSOLE_PLATFORM_METADATA[p]?.displayName ?? p)
+        .join(', ');
+      addSuccessMessage(`Successfully removed ${platformNames} access from ${email}`);
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
       });
     },
-    onError: (
-      error: RequestError,
-      {email, platform}: UseRevokeConsoleSdkPlatformInviteParams
-    ) => {
+    onError: (error: RequestError) => {
       const rawDetail = error.responseJSON?.detail;
       const detail =
         typeof rawDetail === 'string'
           ? rawDetail
-          : (rawDetail?.message ??
-            tct('Failed to remove [platform] access for [email]', {platform, email}));
+          : (rawDetail?.message ?? 'Failed to revoke console SDK access');
       addErrorMessage(detail);
     },
   });
