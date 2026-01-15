@@ -84,7 +84,10 @@ function CustomerIntegrationDebugDetails({orgId}: Props) {
         <th key="integrationStatus">Integration Status</th>,
         <th key="orgIntegrationStatus">Org Integration Status</th>,
         <th key="id" style={{textAlign: 'right'}}>
-          ID
+          Org Integration ID
+        </th>,
+        <th key="integrationId" style={{textAlign: 'right'}}>
+          Integration ID
         </th>,
         <th key="gracePeriodEnd" style={{textAlign: 'right'}}>
           Grace Period End
@@ -135,8 +138,11 @@ function CustomerIntegrationDebugDetails({orgId}: Props) {
           <td key="provider">{row.integration.provider}</td>,
           <td key="integrationStatus">{getStatusLabel(row.integration.status)}</td>,
           <td key="orgIntegrationStatus">{getStatusLabel(row.status)}</td>,
-          <td key="id" style={{textAlign: 'right'}}>
+          <td key="orgIntegrationId" style={{textAlign: 'right'}}>
             {row.id}
+          </td>,
+          <td key="integrationId" style={{textAlign: 'right'}}>
+            {row.integration.id}
           </td>,
           <td key="gracePeriodEnd" style={{textAlign: 'right'}}>
             {row.gracePeriodEnd ? moment(row.gracePeriodEnd).fromNow() : 'n/a'}
