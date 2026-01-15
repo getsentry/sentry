@@ -3261,3 +3261,7 @@ CONDUIT_PUBLISH_SECRET: str | None = os.getenv("CONDUIT_PUBLISH_SECRET")
 CONDUIT_PUBLISH_URL: str = os.getenv("CONDUIT_PUBLISH_URL", "http://127.0.0.1:9097")
 CONDUIT_PUBLISH_JWT_ISSUER: str = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "sentry.io")
 CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "conduit")
+
+SYNAPSE_HMAC_SECRET: list[str] | None = None
+if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:
+    SYNAPSE_HMAC_SECRET = [val]

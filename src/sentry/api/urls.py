@@ -69,6 +69,7 @@ from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndp
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
+from sentry.api.endpoints.synapse.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
@@ -3612,6 +3613,12 @@ INTERNAL_URLS = [
         r"^demo/email-capture/$",
         EmailCaptureEndpoint.as_view(),
         name="sentry-demo-mode-email-capture",
+    ),
+    # Cell routing endpoints
+    re_path(
+        r"^org-cell-mappings/$",
+        OrgCellMappingsEndpoint.as_view(),
+        name="sentry-api-0-org-cell-mappings",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,

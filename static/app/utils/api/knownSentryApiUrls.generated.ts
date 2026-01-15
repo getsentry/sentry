@@ -112,6 +112,7 @@ export type KnownSentryApiUrls =
   | '/internal/mail/'
   | '/internal/notifications/registered-templates/'
   | '/internal/options/'
+  | '/internal/org-cell-mappings/'
   | '/internal/packages/'
   | '/internal/preprod-artifact/$headArtifactId/info/'
   | '/internal/preprod-artifact/batch-delete/'
