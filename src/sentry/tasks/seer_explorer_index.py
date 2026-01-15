@@ -21,7 +21,8 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
 
-CACHE_KEY = "seer:explorer_index:last_run"
+LAST_RUN_CACHE_KEY = "seer:explorer_index:last_run"
+LAST_RUN_CACHE_TIMEOUT = 24 * 60 * 60  # 24 hours
 
 EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
 EXPLORER_INDEX_RUN_FREQUENCY = timedelta(hours=24)
@@ -59,11 +60,11 @@ def schedule_explorer_index() -> None:
     if not options.get("seer.explorer_index.enable"):
         return
 
-    last_run = cache.get(CACHE_KEY)
+    last_run = cache.get(LAST_RUN_CACHE_KEY)
     if last_run and last_run > django_timezone.now() - EXPLORER_INDEX_RUN_FREQUENCY:
         return
 
-    cache.set(CACHE_KEY, django_timezone.now())
+    cache.set(LAST_RUN_CACHE_KEY, django_timezone.now(), LAST_RUN_CACHE_TIMEOUT)
 
     now = django_timezone.now()
 
