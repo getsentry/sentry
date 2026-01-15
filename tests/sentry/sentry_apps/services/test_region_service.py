@@ -293,7 +293,6 @@ class TestSentryAppRegionService(TestCase):
         now = before_now(days=1)
         since = (now - timedelta(minutes=5)).timestamp()
         result = sentry_app_region_service.get_interaction_stats(
-            organization_id=self.org.id,
             sentry_app=self.rpc_installation.sentry_app,
             component_types=["issue-link", "stacktrace-link"],
             since=since,
