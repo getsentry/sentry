@@ -2,6 +2,9 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Container} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -91,7 +94,6 @@ function CustomerIntegrationDebugDetails({orgId}: Props) {
         </th>,
       ]}
       columnsForRow={(row: any) => {
-        // Handle expansion rows
         if (row._isExpansionRow) {
           const parentRow = row._parentData;
           const isExpanded = expandedRows.has(parentRow.id);
@@ -105,17 +107,16 @@ function CustomerIntegrationDebugDetails({orgId}: Props) {
 
           return [
             <td key="metadata" colSpan={7}>
-              <MetadataContainer>
-                <MetadataTitle>Integration Metadata</MetadataTitle>
+              <Container>
+                <Heading as="h6">Integration Metadata</Heading>
                 <MetadataContent>
                   {JSON.stringify(parentRow.integration.metadata, null, 2)}
                 </MetadataContent>
-              </MetadataContainer>
+              </Container>
             </td>,
           ];
         }
 
-        // Handle regular rows
         const isExpanded = expandedRows.has(row.id);
         const hasMetadata =
           row.integration.metadata && Object.keys(row.integration.metadata).length > 0;
@@ -145,23 +146,9 @@ function CustomerIntegrationDebugDetails({orgId}: Props) {
           </td>,
         ];
       }}
-      // {...props}
     />
   );
 }
-
-const MetadataContainer = styled('div')`
-  padding: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: 4px;
-  margin: ${space(1)} 0;
-`;
-
-const MetadataTitle = styled('div')`
-  font-weight: 600;
-  margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
-`;
 
 const MetadataContent = styled('pre')`
   margin: 0;
