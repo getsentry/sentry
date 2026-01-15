@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -29,7 +30,6 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
@@ -801,7 +801,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         ]
         rule = self.create_project_rule(
             project=self.project,
-            action_data=self.notify_issue_owners_action,
+            action_data=deepcopy(self.notify_issue_owners_action),
             condition_data=conditions,
         )
         conditions.append(
@@ -814,7 +814,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         rule2 = self.create_project_rule(
             project=self.project,
-            action_data=self.notify_issue_owners_action,
+            action_data=deepcopy(self.notify_issue_owners_action),
             condition_data=conditions,
         )
         conditions.pop(1)
@@ -841,12 +841,12 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         that does have one set, we consider this when determining if it's a duplicate"""
         self.create_project_rule(
             project=self.project,
-            action_data=self.notify_issue_owners_action,
+            action_data=deepcopy(self.notify_issue_owners_action),
             condition_data=self.first_seen_condition,
         )
         env_rule = self.create_project_rule(
             project=self.project,
-            action_data=self.notify_issue_owners_action,
+            action_data=deepcopy(self.notify_issue_owners_action),
             condition_data=self.first_seen_condition,
         )
         payload = {
@@ -884,14 +884,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         """
         rule = self.create_project_rule(
             project=self.project,
-            action_data=self.notify_issue_owners_action,
+            action_data=deepcopy(self.notify_issue_owners_action),
             condition_data=self.first_seen_condition,
             name="rule_with_env",
             environment_id=self.environment.id,
         )
         rule2 = self.create_project_rule(
             project=self.project,
-            action_data=self.notify_issue_owners_action,
+            action_data=deepcopy(self.notify_issue_owners_action),
             condition_data=self.first_seen_condition,
             name="rule_wo_env",
         )
@@ -1527,7 +1527,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 },
             ],
         )
-        IssueAlertMigrator(rule, user_id=self.user.id).run()
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
         workflow = alert_rule_workflow.workflow
@@ -1548,11 +1547,3 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
-
-    def test_dual_delete_workflow_engine_no_migrated_models(self) -> None:
-        rule = self.create_project_rule(self.project)
-        self.get_success_response(
-            self.organization.slug, rule.project.slug, rule.id, status_code=202
-        )
-
-        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
