@@ -29,6 +29,7 @@ import {
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
@@ -405,6 +406,11 @@ function OpenInButton({detector}: OpenInButtonProps) {
   const location = useLocation();
   const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
 
+  const isUsingMigratedExtrapolationMode = useIsMigratedExtrapolation({
+    dataset: getDetectorDataset(snubaQuery?.dataset, snubaQuery?.eventTypes),
+    extrapolationMode: snubaQuery?.extrapolationMode,
+  });
+
   if (!snubaQuery) {
     return null;
   }
@@ -423,9 +429,20 @@ function OpenInButton({detector}: OpenInButtonProps) {
     return null;
   }
 
+  const disabledTooltip = isUsingMigratedExtrapolationMode
+    ? t(
+        'This detector cannot be opened in Explore until you update thresholds and resave.'
+      )
+    : undefined;
+
   return (
     <Feature features="visibility-explore-view">
-      <LinkButton size="xs" to={destination.to}>
+      <LinkButton
+        size="xs"
+        to={destination.to}
+        disabled={isUsingMigratedExtrapolationMode}
+        title={disabledTooltip}
+      >
         {destination.buttonText}
       </LinkButton>
     </Feature>
