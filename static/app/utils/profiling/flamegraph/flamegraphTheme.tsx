@@ -359,7 +359,7 @@ export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
 
       // Layout colors
       GRID_LINE_COLOR: theme.colors.surface200,
-      GRID_FRAME_BACKGROUND_COLOR: theme.colors.surface400,
+      GRID_FRAME_BACKGROUND_COLOR: theme.tokens.background.secondary,
       MINIMAP_POSITION_OVERLAY_BORDER_COLOR: theme.colors.gray300,
       MINIMAP_POSITION_OVERLAY_COLOR: theme.colors.gray200,
 

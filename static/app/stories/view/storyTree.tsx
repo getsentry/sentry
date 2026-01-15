@@ -114,10 +114,9 @@ type ComponentSubcategory =
   | 'layout'
   | 'buttons'
   | 'forms'
-  | 'pickers'
   | 'navigation'
-  | 'status-feedback'
-  | 'data-display'
+  | 'status'
+  | 'display'
   | 'overlays'
   | 'utilities'
   | 'shared';
@@ -139,7 +138,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
 > = {
   layout: {
     label: 'Layout',
-    components: ['composition', 'container', 'flex', 'grid', 'stack'],
+    components: ['composition', 'container', 'disclosure', 'flex', 'grid', 'stack'],
   },
   typography: {
     label: 'Typography',
@@ -160,11 +159,6 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
       'radio',
       'switch',
       'slider',
-    ],
-  },
-  pickers: {
-    label: 'Pickers',
-    components: [
       'select',
       'multiselect',
       'compactselect',
@@ -174,13 +168,13 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   navigation: {
     label: 'Navigation',
-    components: ['link', 'tabs', 'menulistitem', 'disclosure'],
+    components: ['link', 'tabs', 'menulistitem'],
   },
-  'status-feedback': {
+  status: {
     label: 'Status & Feedback',
-    components: ['alert', 'badge', 'toast'],
+    components: ['alert', 'badge', 'tag', 'toast'],
   },
-  'data-display': {
+  display: {
     label: 'Data Display',
     components: ['avatar', 'image', 'codeblock'],
   },
@@ -211,10 +205,9 @@ const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
   'typography',
   'buttons',
   'forms',
-  'pickers',
   'navigation',
-  'status-feedback',
-  'data-display',
+  'status',
+  'display',
   'overlays',
   'utilities',
   'shared',
@@ -719,7 +712,7 @@ const FolderName = styled('div')`
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.md};
   padding-right: ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   position: relative;
 
@@ -773,7 +766,7 @@ const FolderLink = styled(Link, {
     position: absolute;
     left: -8px;
     height: 20px;
-    background: ${p => p.theme.tokens.graphics.accent};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
     width: 4px;
     border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};

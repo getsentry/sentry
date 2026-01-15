@@ -277,7 +277,7 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconCodeRef}>
                 <IconCode size="md" variant="accent" />
@@ -294,7 +294,7 @@ export function AutofixChanges({
                 <IconChat />
               </Button>
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <AnimatePresence>
             {agentCommentThread && iconCodeRef.current && (
               <AutofixHighlightPopup
@@ -481,14 +481,6 @@ const HeaderText = styled('div')`
   align-items: center;
   gap: ${space(1)};
   margin-right: ${space(2)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const BottomDivider = styled('div')`

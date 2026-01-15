@@ -106,6 +106,8 @@ export enum IssueCategory {
   AI_DETECTED = 'ai_detected',
 
   PREPROD = 'preprod',
+
+  INSTRUMENTATION = 'instrumentation',
 }
 
 /**
@@ -141,6 +143,9 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
+  [IssueCategory.INSTRUMENTATION]: t(
+    'Improvements to your instrumentation and SDK usage.'
+  ),
 };
 
 export enum IssueType {

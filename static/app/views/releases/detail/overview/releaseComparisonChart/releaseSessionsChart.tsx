@@ -97,7 +97,7 @@ class ReleaseSessionsChart extends Component<Props> {
           scale: true,
           axisLabel: {
             formatter: (value: number) => displayCrashFreePercent(value),
-            color: theme.tokens.content.muted,
+            color: theme.tokens.content.secondary,
           },
         };
       case ReleaseComparisonChartType.HEALTHY_SESSIONS:
@@ -114,7 +114,7 @@ class ReleaseSessionsChart extends Component<Props> {
           scale: true,
           axisLabel: {
             formatter: (value: number) => `${round(value, 2)}%`,
-            color: theme.tokens.content.muted,
+            color: theme.tokens.content.secondary,
           },
         };
       case ReleaseComparisonChartType.SESSION_COUNT:
