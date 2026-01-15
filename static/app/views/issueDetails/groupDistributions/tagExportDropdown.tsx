@@ -18,6 +18,7 @@ interface Props {
 
 export default function TagExportDropdown({tagKey, group, organization, project}: Props) {
   const [isExportDisabled, setIsExportDisabled] = useState(false);
+  const hasDiscoverQuery = organization.features.includes('discover-query');
   const handleDataExport = useDataExport({
     payload: {
       queryType: ExportQueryType.ISSUES_BY_TAG,
@@ -28,6 +29,32 @@ export default function TagExportDropdown({tagKey, group, organization, project}
       },
     },
   });
+
+  const items = [
+    {
+      key: 'export-page',
+      label: t('Export Page to CSV'),
+      // TODO(issues): Dropdown menu doesn't support hrefs yet
+      onAction: () => {
+        window.open(
+          `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+          '_blank'
+        );
+      },
+    },
+  ];
+
+  if (hasDiscoverQuery) {
+    items.push({
+      key: 'export-all',
+      label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
+      onAction: () => {
+        handleDataExport();
+        setIsExportDisabled(true);
+      },
+      disabled: isExportDisabled,
+    });
+  }
 
   return (
     <DropdownMenu
@@ -41,28 +68,7 @@ export default function TagExportDropdown({tagKey, group, organization, project}
           icon={<IconDownload />}
         />
       )}
-      items={[
-        {
-          key: 'export-page',
-          label: t('Export Page to CSV'),
-          // TODO(issues): Dropdown menu doesn't support hrefs yet
-          onAction: () => {
-            window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
-              '_blank'
-            );
-          },
-        },
-        {
-          key: 'export-all',
-          label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
-          onAction: () => {
-            handleDataExport();
-            setIsExportDisabled(true);
-          },
-          disabled: isExportDisabled,
-        },
-      ]}
+      items={items}
     />
   );
 }
