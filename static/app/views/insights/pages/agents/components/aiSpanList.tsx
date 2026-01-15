@@ -68,13 +68,21 @@ export function AISpanList({
   nodes,
   selectedNodeKey,
   onSelectNode,
+  compressGaps = false,
 }: {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
+  compressGaps?: boolean;
 }) {
   const nodesByTransaction = useMemo(() => {
-    const result: Map<TransactionNode | EapSpanNode, AITraceSpanNode[]> = new Map();
+    const result: Map<
+      TransactionNode | EapSpanNode | AITraceSpanNode,
+      AITraceSpanNode[]
+    > = new Map();
+    // Use a placeholder key for nodes without a transaction (e.g., conversation view)
+    let orphanGroup: AITraceSpanNode | null = null;
+
     for (const node of nodes) {
       // TODO: We should consider using BaseNode.expand to control toggle state,
       // instead of grouping by transactions for toggling by transactions only.
@@ -82,18 +90,18 @@ export function AISpanList({
       const isNodeTransaction =
         isTransactionNode(node) || (isEAPSpanNode(node) && node.value.is_transaction);
       const transaction = isNodeTransaction ? node : node.findClosestParentTransaction();
-      if (!transaction) {
-        continue;
-      }
-      const transactionNodes = result.get(transaction) || [];
-      result.set(transaction, [...transactionNodes, node]);
+
+      // If no transaction, group under the first orphan node as a placeholder
+      const groupKey = transaction ?? (orphanGroup ??= node);
+      const transactionNodes = result.get(groupKey) || [];
+      result.set(groupKey, [...transactionNodes, node]);
     }
     return result;
   }, [nodes]);
 
   return (
-    <Stack padding="2xs" gap="xs" overflow="hidden">
-      {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
+    <Stack padding="md lg" gap="xs">
+      {Array.from(nodesByTransaction.entries()).map(([transaction, transactionNodes]) => (
         <Fragment key={transaction.id}>
           <TransactionWrapper
             canCollapse={nodesByTransaction.size > 1}
@@ -101,6 +109,7 @@ export function AISpanList({
             nodes={transactionNodes}
             onSelectNode={onSelectNode}
             selectedNodeKey={selectedNodeKey}
+            compressGaps={compressGaps}
           />
         </Fragment>
       ))}
@@ -114,17 +123,24 @@ function TransactionWrapper({
   onSelectNode,
   selectedNodeKey,
   transaction,
+  compressGaps = false,
 }: {
   canCollapse: boolean;
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
   transaction: TransactionNode | EapSpanNode;
+  compressGaps?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const theme = useTheme();
   const colors = [...theme.chart.getColorPalette(5), theme.colors.red400];
-  const timeBounds = getNodeTimeBounds(nodes);
+
+  const compressedBounds = useMemo(
+    () => (compressGaps ? getCompressedTimeBounds(nodes) : null),
+    [compressGaps, nodes]
+  );
+  const timeBounds = compressedBounds ?? getNodeTimeBounds(nodes);
 
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
     const parents: Record<string, AITraceSpanNode> = {};
@@ -175,6 +191,7 @@ function TransactionWrapper({
               onClick={() => onSelectNode(node)}
               isSelected={uniqueKey === selectedNodeKey}
               colors={colors}
+              getCompressedTimestamp={compressedBounds?.getCompressedTimestamp}
             />
           );
         })}
@@ -189,6 +206,7 @@ const TraceListItem = memo(function TraceListItem({
   colors,
   traceBounds,
   indent,
+  getCompressedTimestamp,
 }: {
   colors: readonly string[];
   indent: number;
@@ -196,11 +214,16 @@ const TraceListItem = memo(function TraceListItem({
   node: AITraceSpanNode;
   onClick: () => void;
   traceBounds: TraceBounds;
+  getCompressedTimestamp?: (timestamp: number) => number;
 }) {
   const hasErrors = hasError(node);
   const {icon, title, subtitle, color} = getNodeInfo(node, colors);
   const safeColor = color || colors[0] || '#9ca3af';
-  const relativeTiming = calculateRelativeTiming(node, traceBounds);
+  const relativeTiming = calculateRelativeTiming(
+    node,
+    traceBounds,
+    getCompressedTimestamp
+  );
   const duration = getNodeTimeBounds(node).duration;
 
   return (
@@ -267,9 +290,127 @@ interface TraceBounds {
   startTime: number;
 }
 
+interface CompressedTimeBounds extends TraceBounds {
+  getCompressedTimestamp: (timestamp: number) => number;
+}
+
+const MAX_GAP_SECONDS = 30;
+const COMPRESSED_GAP_SECONDS = 1;
+
+/**
+ * Compresses large time gaps between spans to make the timeline more readable.
+ * Gaps larger than MAX_GAP_SECONDS are compressed to COMPRESSED_GAP_SECONDS.
+ *
+ * For overlapping spans (where a span starts before the previous one ends),
+ * the overlap is handled by tracking the maximum end time seen so far.
+ * This ensures spans don't double-count time in the compressed timeline.
+ */
+function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds {
+  if (nodes.length === 0) {
+    return {
+      startTime: 0,
+      endTime: 0,
+      duration: 0,
+      getCompressedTimestamp: () => 0,
+    };
+  }
+
+  const sortedNodes = [...nodes]
+    .filter(n => n.startTimestamp && n.endTimestamp)
+    .sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
+
+  if (sortedNodes.length === 0) {
+    return {
+      startTime: 0,
+      endTime: 0,
+      duration: 0,
+      getCompressedTimestamp: () => 0,
+    };
+  }
+
+  const segments: Array<{
+    compressedStart: number;
+    realEnd: number;
+    realStart: number;
+  }> = [];
+
+  let compressedTime = 0;
+  let maxRealEndSeen = 0;
+
+  for (let i = 0; i < sortedNodes.length; i++) {
+    const node = sortedNodes[i]!;
+    const nodeStart = node.startTimestamp ?? 0;
+    const nodeEnd = node.endTimestamp ?? 0;
+
+    if (i > 0) {
+      const gap = nodeStart - maxRealEndSeen;
+
+      if (gap > MAX_GAP_SECONDS) {
+        compressedTime += COMPRESSED_GAP_SECONDS;
+      } else if (gap > 0) {
+        compressedTime += gap;
+      }
+      // gap <= 0 means this span overlaps with or touches a previous span,
+      // so no additional gap time is added
+    }
+
+    segments.push({
+      realStart: nodeStart,
+      realEnd: nodeEnd,
+      compressedStart: compressedTime,
+    });
+
+    const spanDuration = nodeEnd - nodeStart;
+    compressedTime += spanDuration;
+    maxRealEndSeen = Math.max(maxRealEndSeen, nodeEnd);
+  }
+
+  const totalDuration = compressedTime;
+
+  const getCompressedTimestamp = (timestamp: number): number => {
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i]!;
+      if (timestamp >= segment.realStart && timestamp <= segment.realEnd) {
+        const offsetInSegment = timestamp - segment.realStart;
+        return segment.compressedStart + offsetInSegment;
+      }
+      if (i < segments.length - 1) {
+        const nextSegment = segments[i + 1]!;
+        if (timestamp > segment.realEnd && timestamp < nextSegment.realStart) {
+          const gapStart = segment.realEnd;
+          const gapEnd = nextSegment.realStart;
+          const realGapDuration = gapEnd - gapStart;
+          const compressedGapDuration =
+            nextSegment.compressedStart -
+            (segment.compressedStart + (segment.realEnd - segment.realStart));
+          const progress = (timestamp - gapStart) / realGapDuration;
+          return (
+            segment.compressedStart +
+            (segment.realEnd - segment.realStart) +
+            progress * compressedGapDuration
+          );
+        }
+      }
+    }
+
+    if (segments.length > 0 && timestamp < segments[0]!.realStart) {
+      return 0;
+    }
+    return totalDuration;
+  };
+
+  return {
+    startTime: 0,
+    endTime: totalDuration,
+    duration: totalDuration,
+    getCompressedTimestamp,
+  };
+}
+
 function calculateRelativeTiming(
   node: AITraceSpanNode,
-  traceBounds: TraceBounds
+  traceBounds: TraceBounds,
+  getCompressedTimestamp?: (timestamp: number) => number
 ): {leftPercent: number; widthPercent: number} {
   if (!node.value) return {leftPercent: 0, widthPercent: 0};
 
@@ -284,11 +425,16 @@ function calculateRelativeTiming(
 
   if (traceBounds.duration === 0) return {leftPercent: 0, widthPercent: 0};
 
-  const relativeStart =
-    Math.max(0, (startTime - traceBounds.startTime) / traceBounds.duration) * 100;
-  const spanDuration = ((endTime - startTime) / traceBounds.duration) * 100;
+  const effectiveStart = getCompressedTimestamp
+    ? getCompressedTimestamp(startTime)
+    : startTime - traceBounds.startTime;
+  const effectiveEnd = getCompressedTimestamp
+    ? getCompressedTimestamp(endTime)
+    : endTime - traceBounds.startTime;
 
-  // Minimum width of 2% for very short spans
+  const relativeStart = Math.max(0, effectiveStart / traceBounds.duration) * 100;
+  const spanDuration = ((effectiveEnd - effectiveStart) / traceBounds.duration) * 100;
+
   const minWidth = 2;
   const adjustedWidth = Math.max(spanDuration, minWidth);
 
