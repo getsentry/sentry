@@ -21,7 +21,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
-import AlertsContainer from 'sentry/views/alerts';
+// import AlertsContainer from 'sentry/views/alerts';
 import IncidentsList from 'sentry/views/alerts/list/incidents';
 
 describe('IncidentsList', () => {
@@ -38,12 +38,7 @@ describe('IncidentsList', () => {
       ...orgOverride,
     });
 
-    const {router} = render(
-      <AlertsContainer>
-        <IncidentsList />
-      </AlertsContainer>,
-      {organization}
-    );
+    const {router} = render(<IncidentsList />, {organization});
 
     return {router};
   };

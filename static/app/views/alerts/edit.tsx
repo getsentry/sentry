@@ -5,11 +5,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Member, Organization} from 'sentry/types/organization';
+import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 
@@ -25,15 +26,13 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams> & {
-  hasMetricAlerts: boolean;
-  hasUptimeAlerts: boolean;
   members: Member[] | undefined;
-  organization: Organization;
   project: Project;
 };
 
 function ProjectAlertsEditor(props: Props) {
-  const {members, organization, project} = props;
+  const organization = useOrganization();
+  const {members, project} = props;
   const location = useLocation();
 
   const [title, setTitle] = useState('');
@@ -87,6 +86,7 @@ function ProjectAlertsEditor(props: Props) {
             {alertType === CombinedAlertType.ISSUE && (
               <IssueEditor
                 {...props}
+                organization={organization}
                 project={project}
                 onChangeTitle={setTitle}
                 userTeamIds={teams.map(({id}) => id)}
@@ -96,6 +96,7 @@ function ProjectAlertsEditor(props: Props) {
             {alertType === CombinedAlertType.METRIC && (
               <MetricRulesEdit
                 {...props}
+                organization={organization}
                 project={project}
                 onChangeTitle={setTitle}
                 userTeamIds={teams.map(({id}) => id)}
@@ -104,12 +105,18 @@ function ProjectAlertsEditor(props: Props) {
             {alertType === CombinedAlertType.UPTIME && (
               <UptimeRulesEdit
                 {...props}
+                organization={organization}
                 onChangeTitle={setTitle}
                 userTeamIds={teams.map(({id}) => id)}
               />
             )}
             {alertType === CombinedAlertType.CRONS && (
-              <CronRulesEdit {...props} project={project} onChangeTitle={setTitle} />
+              <CronRulesEdit
+                {...props}
+                organization={organization}
+                project={project}
+                onChangeTitle={setTitle}
+              />
             )}
           </Fragment>
         )}

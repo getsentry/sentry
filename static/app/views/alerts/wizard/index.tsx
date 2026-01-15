@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useOutletContext} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -22,6 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import type {ProjectProviderChildProps} from 'sentry/views/alerts/builder/projectProvider';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
@@ -42,6 +44,10 @@ function AlertWizard() {
   const organization = useOrganization();
   const location = useLocation();
   const params = useParams<{projectId?: string}>();
+  // Get projectId from outlet context (provided by projectProvider parent)
+  const outletContext = useOutletContext<Partial<ProjectProviderChildProps>>();
+  const projectIdFromContext = outletContext?.projectId;
+
   const useMetricDetectorLimit =
     HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
   const quota = useMetricDetectorLimit();
@@ -53,7 +59,8 @@ function AlertWizard() {
       ? alertOptionQuery
       : DEFAULT_ALERT_OPTION
   );
-  const projectSlug = params.projectId ?? '';
+  // Try params first, then outlet context, then fallback to empty string
+  const projectSlug = params.projectId ?? projectIdFromContext ?? '';
 
   const handleChangeAlertOption = (option: AlertType) => {
     setAlertOption(option);

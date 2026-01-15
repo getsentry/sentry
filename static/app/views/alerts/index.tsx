@@ -5,12 +5,8 @@ import Redirect from 'sentry/components/redirect';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
-function AlertsContainer() {
+export default function AlertsContainer() {
   const organization = useOrganization();
-  const hasMetricAlerts = organization.features.includes('incidents');
-
-  // Uptime alerts are not behind a feature flag at the moment
-  const hasUptimeAlerts = true;
 
   const redirectPath = useRedirectNavV2Routes({
     oldPathPrefix: '/alerts/',
@@ -23,9 +19,7 @@ function AlertsContainer() {
 
   return (
     <NoProjectMessage organization={organization}>
-      <Outlet context={{organization, hasMetricAlerts, hasUptimeAlerts}} />
+      <Outlet />
     </NoProjectMessage>
   );
 }
-
-export default AlertsContainer;

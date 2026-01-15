@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
-import {Outlet, useOutletContext} from 'react-router-dom';
+import {Outlet} from 'react-router-dom';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Member} from 'sentry/types/organization';
+import type {Member, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
@@ -17,13 +17,13 @@ import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
-interface OutletContextWithAlerts {
-  hasMetricAlerts: boolean;
-  hasUptimeAlerts: boolean;
-}
-
+/**
+ * Context interface for child components that consume projectProvider's outlet context
+ */
 export interface ProjectProviderChildProps {
+  hasMetricAlerts: boolean;
   members: Member[] | undefined;
+  organization: Organization;
   project: Project;
   projectId: string;
 }
@@ -35,7 +35,7 @@ function AlertBuilderProjectProvider() {
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams<{projectId?: string}>();
-  const {hasMetricAlerts} = useOutletContext<OutletContextWithAlerts>();
+  const hasMetricAlerts = organization.features.includes('incidents');
   const [members, setMembers] = useState<Member[] | undefined>(undefined);
   useScrollToTop({location});
 

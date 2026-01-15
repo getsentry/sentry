@@ -4,11 +4,12 @@
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GroupsFixture} from 'sentry-fixture/groups';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+// import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+
+// import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -17,7 +18,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
-import AlertsContainer from 'sentry/views/alerts';
+// import AlertsContainer from 'sentry/views/alerts';
 import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
@@ -92,36 +93,37 @@ describe('ProjectAlertsCreate', () => {
     jest.clearAllMocks();
   });
 
-  const createWrapper = (props = {}, location = {}) => {
+  const createWrapper = (props = {}, _location = {}) => {
     const {organization, project, router} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
-    const params = {orgId: organization.slug, projectId: project.slug};
+    const _params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = render(
-      <AlertsContainer>
-        <AlertBuilderProjectProvider
+      <AlertBuilderProjectProvider>
+        {/* <ProjectAlertsCreate
           {...RouteComponentPropsFixture()}
+          members={[]}
           params={params}
           organization={organization}
-          hasMetricAlerts={false}
-        >
-          <ProjectAlertsCreate
-            {...RouteComponentPropsFixture()}
-            hasMetricAlerts={false}
-            members={[]}
-            params={params}
-            organization={organization}
-            project={project}
-            location={LocationFixture({
-              pathname: `/organizations/org-slug/issues/alerts/rules/${project.slug}/new/`,
-              query: {createFromWizard: 'true'},
-              ...location,
-            })}
-            router={router}
-          />
-        </AlertBuilderProjectProvider>
-      </AlertsContainer>,
+          project={project}
+          location={LocationFixture({
+            pathname: `/organizations/org-slug/issues/alerts/rules/${project.slug}/new/`,
+            query: {createFromWizard: 'true'},
+            ...location,
+          })}
+          router={router}
+        /> */}
+      </AlertBuilderProjectProvider>,
       {
         organization,
+        initialRouterConfig: {
+          route: '/organizations/org-slug/issues/alerts/rules/:projectId/',
+          children: [
+            {
+              path: '/organizations/org-slug/issues/alerts/rules/:projectId/new/',
+              element: <ProjectAlertsCreate />,
+            },
+          ],
+        },
       }
     );
 
