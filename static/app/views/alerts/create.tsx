@@ -15,6 +15,7 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -42,15 +43,15 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams> & {
-  hasMetricAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;
   project: Project;
 };
 
 function Create(props: Props) {
-  const {hasMetricAlerts, organization, project, location, members, params, router} =
-    props;
+  const organization = useOrganization();
+  const hasMetricAlerts = organization.features.includes('incidents');
+  const {project, location, members, params, router} = props;
   const {
     aggregate,
     dataset,

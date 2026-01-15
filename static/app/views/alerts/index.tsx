@@ -11,17 +11,11 @@ type Props = {
 
 function AlertsContainer({children}: Props) {
   const organization = useOrganization();
-  const hasMetricAlerts = organization.features.includes('incidents');
-
-  // Uptime alerts are not behind a feature flag at the moment
-  const hasUptimeAlerts = true;
 
   const content =
     children && isValidElement(children)
       ? cloneElement<any>(children, {
           organization,
-          hasMetricAlerts,
-          hasUptimeAlerts,
         })
       : children;
 

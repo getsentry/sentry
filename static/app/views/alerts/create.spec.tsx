@@ -99,11 +99,9 @@ describe('ProjectAlertsCreate', () => {
           {...RouteComponentPropsFixture()}
           params={params}
           organization={organization}
-          hasMetricAlerts={false}
         >
           <ProjectAlertsCreate
             {...RouteComponentPropsFixture()}
-            hasMetricAlerts={false}
             members={[]}
             params={params}
             organization={organization}
