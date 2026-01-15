@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 import orjson
 import requests
+import sentry_sdk
 from django.conf import settings
 from django.utils import timezone as django_timezone
 
@@ -46,7 +47,9 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         if options.get("seer.explorer_index.killswitch.enable"):
             return
 
-        if features.has("organizations:seer-explorer-index", project.organization):
+        with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
+            has_feature = features.has("organizations:seer-explorer-index", project.organization)
+        if has_feature:
             yield project.id, project.organization_id
 
 
