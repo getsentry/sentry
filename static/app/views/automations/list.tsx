@@ -82,7 +82,7 @@ export default function AutomationsList() {
         description={t(
           'Alerts are triggered when issue changes state, is created, or passes a threshold. They perform external actions like sending notifications, creating tickets, or calling webhooks and integrations.'
         )}
-        docsUrl="https://docs.sentry.io/product/new-monitors-and-alerts/alerts/"
+        docsUrl="https://docs.sentry.io/product/alerts/"
       >
         <TableHeader />
         <div>
