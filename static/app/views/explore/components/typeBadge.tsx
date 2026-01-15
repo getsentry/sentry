@@ -4,16 +4,32 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 interface TypeBadgeProps {
+  deprecatedFields?: string[];
   func?: ParsedFunction;
   isLogicFilter?: boolean;
   kind?: FieldKind;
+  label?: string;
+  valueKind?: FieldValueKind;
   valueType?: FieldValueType;
 }
 
-export function TypeBadge({func, kind, valueType, isLogicFilter}: TypeBadgeProps) {
-  if (defined(func) || kind === FieldKind.FUNCTION) {
+export function TypeBadge({
+  func,
+  kind,
+  valueType,
+  isLogicFilter,
+  valueKind,
+  deprecatedFields,
+  label,
+}: TypeBadgeProps) {
+  if (
+    defined(func) ||
+    kind === FieldKind.FUNCTION ||
+    valueKind === FieldValueKind.FUNCTION
+  ) {
     return <Text variant="success">{t('f(x)')}</Text>;
   }
 
@@ -57,12 +73,32 @@ export function TypeBadge({func, kind, valueType, isLogicFilter}: TypeBadgeProps
     return <Text variant="success">{t('currency')}</Text>;
   }
 
-  if (valueType === FieldValueType.NUMBER || kind === FieldKind.MEASUREMENT) {
+  if (
+    kind === FieldKind.MEASUREMENT ||
+    valueType === FieldValueType.NUMBER ||
+    valueKind === FieldValueKind.MEASUREMENT ||
+    valueKind === FieldValueKind.CUSTOM_MEASUREMENT
+  ) {
     return <Text variant="warning">{t('number')}</Text>;
   }
 
   if (valueType === FieldValueType.STRING || kind === FieldKind.TAG) {
     return <Text variant="accent">{t('string')}</Text>;
+  }
+
+  if (valueKind === FieldValueKind.BREAKDOWN) {
+    return <Text variant="accent">{t('field')}</Text>;
+  }
+
+  if (valueKind === FieldValueKind.TAG) {
+    return <Text variant="warning">{t('tag')}</Text>;
+  }
+
+  if (valueKind === FieldValueKind.FIELD) {
+    if (label && deprecatedFields?.includes(label)) {
+      return <Text variant="danger">{t('deprecated')}</Text>;
+    }
+    return <Text variant="success">{t('field')}</Text>;
   }
 
   if (isLogicFilter) {
