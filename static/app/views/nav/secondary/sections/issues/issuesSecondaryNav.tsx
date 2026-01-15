@@ -54,6 +54,14 @@ export function IssuesSecondaryNav() {
           >
             {t('User Feedback')}
           </SecondaryNav.Item>
+          {organization.features.includes('seer-autopilot') && (
+            <SecondaryNav.Item
+              to={`${baseUrl}/instrumentation/`}
+              analyticsItemName="issues_instrumentation"
+            >
+              {t('Instrumentation')}
+            </SecondaryNav.Item>
+          )}
         </SecondaryNav.Section>
         <SecondaryNav.Section id="issues-views-all">
           <SecondaryNav.Item
