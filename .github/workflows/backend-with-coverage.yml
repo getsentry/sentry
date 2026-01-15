@@ -120,7 +120,8 @@ jobs:
 
   combine-coverage:
     name: combine coverage
-    if: needs.check-existing-coverage.outputs.has-coverage != 'true' && !cancelled()
+    # Only upload coverage if all test shards pass - incomplete coverage could cause selective testing to skip tests incorrectly
+    if: needs.check-existing-coverage.outputs.has-coverage != 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -141,16 +142,24 @@ jobs:
           pattern: pycoverage-sqlite-${{ github.run_id }}-*
           path: .artifacts/all-coverage
 
-      - name: Prepare coverage files for combining
+      - name: Verify all shards produced coverage
+        env:
+          EXPECTED_SHARD_COUNT: ${{ needs.calculate-shards.outputs.shard-count }}
         run: |
           set -euxo pipefail
 
-          echo "Downloaded coverage files"
+          echo "Downloaded coverage artifacts:"
           ls -la .artifacts/all-coverage || true
-          find .artifacts/all-coverage -type f || true
 
-          echo "Files ready for combining:"
-          find .artifacts/all-coverage -name ".coverage" -type f
+          COVERAGE_FILE_COUNT=$(find .artifacts/all-coverage -name ".coverage" -type f | wc -l)
+          echo "Found ${COVERAGE_FILE_COUNT} coverage files, expected ${EXPECTED_SHARD_COUNT}"
+
+          if [[ "$COVERAGE_FILE_COUNT" -ne "$EXPECTED_SHARD_COUNT" ]]; then
+            echo "Error: Missing coverage files. Expected ${EXPECTED_SHARD_COUNT}, found ${COVERAGE_FILE_COUNT}"
+            echo "This indicates some test shards failed to produce coverage."
+            find .artifacts/all-coverage -name ".coverage" -type f
+            exit 1
+          fi
 
       - name: Combine all coverage databases
         run: |
