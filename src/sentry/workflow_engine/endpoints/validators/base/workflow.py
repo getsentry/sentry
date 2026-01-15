@@ -39,7 +39,7 @@ class WorkflowValidator(CamelSnakeSerializer):
     config = serializers.JSONField(
         required=False,
         help_text="""
-        Typically the frequency at which the alert will fire
+        Typically the frequency at which the alert will fire, in minutes
 
         ```json
             {
