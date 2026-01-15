@@ -2519,7 +2519,7 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
-    // Old routes (kept for backwards compatibility until backend switches)
+    // TODO(EME-735): Remove old routes after backend deployment
     {
       path: ':projectId/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
