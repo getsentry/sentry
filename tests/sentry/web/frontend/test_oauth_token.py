@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -1872,3 +1873,35 @@ class OAuthTokenJWTBearerTest(TestCase):
             },
         )
         assert resp.status_code == 200
+
+    @patch("sentry.web.frontend.oauth_token.ratelimiter.is_limited")
+    def test_rate_limiting(self, mock_is_limited: MagicMock) -> None:
+        """Rate limiting should return slow_down error."""
+        mock_is_limited.return_value = True
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "slow_down"}
+
+        # Verify rate limiter was called with correct key pattern
+        mock_is_limited.assert_called_once()
+        call_args = mock_is_limited.call_args
+        assert call_args[0][0].startswith("oauth:jwt_bearer:")
+        assert call_args[1] == {"limit": 10, "window": 60}

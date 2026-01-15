@@ -291,11 +291,11 @@ class OAuthTokenView(View):
             return self.error(
                 request=request,
                 name=token_data["error"],
-                reason=token_data["reason"] if "reason" in token_data else None,
+                reason=token_data.get("reason"),
             )
         return self.process_token_details(
             token=token_data["token"],
-            id_token=token_data["id_token"] if "id_token" in token_data else None,
+            id_token=token_data.get("id_token"),
         )
 
     def _extract_basic_auth_credentials(
@@ -700,6 +700,15 @@ class OAuthTokenView(View):
                 reason="assertion missing issuer claim",
             )
 
+        # Rate limit JWT bearer attempts per client+issuer to prevent brute force
+        rate_limit_key = f"oauth:jwt_bearer:{application.client_id}:{issuer}"
+        if ratelimiter.is_limited(rate_limit_key, limit=10, window=60):
+            return self.error(
+                request=request,
+                name="slow_down",
+                reason="too many requests",
+            )
+
         # Look up TrustedIdentityProvider by issuer
         # We find all providers with this issuer and try each one
         trusted_idps = TrustedIdentityProvider.objects.filter(
@@ -823,7 +832,7 @@ class OAuthTokenView(View):
                 reason="user not found",
             )
         except User.MultipleObjectsReturned:
-            logger.exception(
+            logger.warning(
                 "JWT bearer grant: multiple users with same email",
                 extra={
                     "client_id": application.client_id,
@@ -838,30 +847,25 @@ class OAuthTokenView(View):
             )
 
         # Determine scopes for the token
-        # Intersect: requested scopes ∩ IdP allowed scopes ∩ application scopes
-        if requested_scope:
-            requested_scopes = set(requested_scope.split())
-        else:
-            requested_scopes = set()
+        # Intersect: requested scopes ∩ IdP allowed scopes
+        requested_scopes = set(requested_scope.split()) if requested_scope else set()
+        idp_scopes = set(validated_idp.allowed_scopes) if validated_idp.allowed_scopes else None
 
         # If IdP has scope restrictions, apply them
-        if validated_idp.allowed_scopes:
-            idp_scopes = set(validated_idp.allowed_scopes)
-            if requested_scopes:
-                final_scopes = requested_scopes & idp_scopes
-            else:
-                final_scopes = idp_scopes
+        if idp_scopes is not None:
+            final_scopes = requested_scopes & idp_scopes if requested_scopes else idp_scopes
         else:
             final_scopes = requested_scopes
 
         # Create the access token
         # Token is scoped to the IdP's organization
-        token = ApiToken.objects.create(
-            application=application,
-            user=user,
-            scope_list=list(final_scopes) if final_scopes else [],
-            scoping_organization_id=validated_idp.organization_id,
-        )
+        with transaction.atomic(router.db_for_write(ApiToken)):
+            token = ApiToken.objects.create(
+                application=application,
+                user=user,
+                scope_list=list(final_scopes) if final_scopes else [],
+                scoping_organization_id=validated_idp.organization_id,
+            )
 
         metrics.incr("oauth_token.jwt_bearer.success", sample_rate=1.0)
         logger.info(
