@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -275,6 +276,77 @@ export function SpansTabSeerComboBox() {
   useTraceExploreAiQuerySetup({
     enableAISearch: areAiFeaturesAllowed && !useTranslateEndpoint,
   });
+
+  // Get selected project IDs for the polling variant
+  const selectedProjectIds = useMemo(() => {
+    if (
+      pageFilters.selection.projects?.length > 0 &&
+      pageFilters.selection.projects?.[0] !== -1
+    ) {
+      return pageFilters.selection.projects;
+    }
+    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
+  }, [pageFilters.selection.projects, projects]);
+
+  // Transform the final_response from Seer to match the expected format
+  // The final_response contains a list of query suggestions in Seer's format
+  const transformResponse = useCallback(
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      // If response has a 'responses' array (from Seer), transform each one
+      const seerResponse = response as unknown as {
+        responses?: Array<{
+          end: string | null;
+          group_by: string[];
+          mode: string;
+          query: string;
+          sort: string;
+          start: string | null;
+          stats_period: string;
+          visualization: Array<{
+            chart_type: number;
+            y_axes: string[];
+          }>;
+        }>;
+      };
+
+      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
+        return seerResponse.responses.map(r => ({
+          visualizations:
+            r?.visualization?.map(v => ({
+              chartType: v?.chart_type,
+              yAxes: v?.y_axes,
+            })) ?? [],
+          query: r?.query ?? '',
+          sort: r?.sort ?? '',
+          groupBys: r?.group_by ?? [],
+          statsPeriod: r?.stats_period ?? '',
+          start: r?.start ?? null,
+          end: r?.end ?? null,
+          mode: r?.mode ?? 'spans',
+        }));
+      }
+
+      // If it's already in the expected format, wrap in array
+      return [response];
+    },
+    []
+  );
+
+  // Use polling variant when the feature flag is enabled
+  if (useTranslateEndpoint) {
+    return (
+      <AskSeerPollingComboBox<AskSeerSearchQuery>
+        initialQuery={initialSeerQuery}
+        projectIds={selectedProjectIds}
+        strategy="Traces"
+        applySeerSearchQuery={applySeerSearchQuery}
+        transformResponse={transformResponse}
+        analyticsSource="trace.explorer"
+        feedbackSource="trace_explorer_ai_query"
+        fallbackMutationOptions={spansTabAskSeerMutationOptions}
+      />
+    );
+  }
 
   return (
     <AskSeerComboBox

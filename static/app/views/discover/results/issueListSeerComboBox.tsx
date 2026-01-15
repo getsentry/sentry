@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -80,6 +81,59 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     initialSeerQuery =
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
+
+  const usePollingEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+
+  // Get selected project IDs for the polling variant
+  const selectedProjectIds = useMemo(() => {
+    if (
+      pageFilters.selection.projects?.length > 0 &&
+      pageFilters.selection.projects?.[0] !== -1
+    ) {
+      return pageFilters.selection.projects;
+    }
+    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
+  }, [pageFilters.selection.projects, projects]);
+
+  // Transform the final_response from Seer to match the expected format
+  const transformResponse = useCallback(
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      const seerResponse = response as unknown as {
+        responses?: Array<{
+          end: string | null;
+          group_by: string[];
+          mode: string;
+          query: string;
+          sort: string;
+          start: string | null;
+          stats_period: string;
+          visualization: Array<{chart_type: number; y_axes: string[]}>;
+        }>;
+      };
+
+      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
+        return seerResponse.responses.map(r => ({
+          query: r?.query ?? '',
+          sort: r?.sort ?? '',
+          groupBys: r?.group_by ?? [],
+          statsPeriod: r?.stats_period ?? '',
+          start: r?.start ?? null,
+          end: r?.end ?? null,
+          mode: r?.mode ?? 'samples',
+          visualizations:
+            r?.visualization?.map(v => ({
+              chartType: v.chart_type,
+              yAxes: v.y_axes ?? [],
+            })) ?? [],
+        }));
+      }
+
+      return [response];
+    },
+    []
+  );
 
   const issueListAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
@@ -248,6 +302,21 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
 
   if (!areAiFeaturesAllowed) {
     return null;
+  }
+
+  if (usePollingEndpoint) {
+    return (
+      <AskSeerPollingComboBox<AskSeerSearchQuery>
+        initialQuery={initialSeerQuery}
+        projectIds={selectedProjectIds}
+        strategy="Errors"
+        applySeerSearchQuery={applySeerSearchQuery}
+        transformResponse={transformResponse}
+        analyticsSource="errors"
+        feedbackSource="errors_ai_query"
+        fallbackMutationOptions={issueListAskSeerMutationOptions}
+      />
+    );
   }
 
   return (
