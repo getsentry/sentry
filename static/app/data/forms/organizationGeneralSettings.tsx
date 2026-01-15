@@ -13,7 +13,6 @@ import slugify from 'sentry/utils/slugify';
 import {makeHideAiFeaturesField} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 import {makePreventAiField} from 'sentry/views/settings/organizationGeneralSettings/preventAiSettings';
 
-
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
 });
