@@ -14,6 +14,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.cache import cache
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
@@ -168,6 +169,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             data=instance.get_audit_log_data(),
         )
 
+        self._invalidate_cache_by_detector(instance)
+
         return instance
 
     def delete(self) -> None:
@@ -179,8 +182,11 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         They should call super().delete() to perform the actual deletion.
         """
         assert self.instance is not None
+
         RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
+
+        self._invalidate_cache_by_detector(self.instance)
 
     def _create_data_source(self, validated_data_source, detector: Detector):
         data_source_creator = validated_data_source["_creator"]
@@ -192,6 +198,11 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             type=validated_data_source["data_source_type"],
         )
         DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
+
+        cache_key = Detector._get_detectors_by_data_source_cache_key(
+            detector_data_source.source_id, detector_data_source.type
+        )
+        cache.delete(cache_key)
 
     def create(self, validated_data):
         # If quotas are exceeded, we will prevent creation of new detectors.
@@ -254,4 +265,11 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 data=detector.get_audit_log_data(),
             )
 
+            self._invalidate_cache_by_detector(detector)
+
         return detector
+
+    def _invalidate_cache_by_detector(self, detector: Detector) -> None:
+        for ds in detector.data_sources.all():
+            cache_key = Detector._get_detectors_by_data_source_cache_key(ds.source_id, ds.type)
+            cache.delete(cache_key)

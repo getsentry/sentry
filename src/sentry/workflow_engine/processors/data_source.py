@@ -13,17 +13,7 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
     Get all of the enabled detectors for a list of detector source ids and types.
     This will also prefetch all the subsequent data models for evaluating the detector.
     """
-    detector_ids = Detector.get_detector_ids_by_data_source(source_id, query_type)
-
-    if not detector_ids:
-        return []
-
-    return list(
-        Detector.objects.filter(id__in=detector_ids, enabled=True)
-        .select_related("workflow_condition_group")
-        .prefetch_related("workflow_condition_group__conditions")
-        .order_by("id")
-    )
+    return Detector.get_detectors_by_data_source(source_id, query_type)
 
 
 # TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.
