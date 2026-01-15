@@ -4,12 +4,18 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
+from typing import Any
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.services.region.model import RpcSelectRequesterResult
+from sentry.sentry_apps.services.region.model import (
+    RpcEmptyResult,
+    RpcPlatformExternalIssueResult,
+    RpcSelectRequesterResult,
+)
 from sentry.silo.base import SiloMode
+from sentry.users.services.user import RpcUser
 
 
 class SentryAppRegionService(RpcService):
@@ -43,6 +49,49 @@ class SentryAppRegionService(RpcService):
         dependent_data: str | None = None,
     ) -> RpcSelectRequesterResult:
         """Invokes SelectRequester to get select options."""
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def create_issue_link(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        group_id: int,
+        action: str,
+        fields: dict[str, Any],
+        uri: str,
+        user: RpcUser,
+    ) -> RpcPlatformExternalIssueResult:
+        """Invokes IssueLinkCreator to create an issue link."""
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def create_external_issue(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        group_id: int,
+        web_url: str,
+        project: str,
+        identifier: str,
+    ) -> RpcPlatformExternalIssueResult:
+        """Invokes ExternalIssueCreator to create an external issue."""
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def delete_external_issue(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        external_issue_id: int,
+    ) -> RpcEmptyResult:
+        """Deletes a PlatformExternalIssue."""
         pass
 
 

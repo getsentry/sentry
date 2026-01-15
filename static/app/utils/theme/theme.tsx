@@ -11,7 +11,6 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
-import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
@@ -28,7 +27,6 @@ import type {
 } from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
-type TokensWithLegacy = Tokens & LegacyTokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -167,25 +165,7 @@ type AlertColors = Record<
   }
 >;
 
-const generateThemeUtils = (tokens: Tokens) => ({
-  tooltipUnderline: (
-    underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
-  ) => ({
-    textDecoration: 'underline' as const,
-    textDecorationThickness: '0.75px',
-    textUnderlineOffset: '1.25px',
-    textDecorationColor:
-      underlineColor === 'warning'
-        ? tokens.content.warning
-        : underlineColor === 'danger'
-          ? tokens.content.danger
-          : underlineColor === 'success'
-            ? tokens.content.success
-            : underlineColor === 'muted'
-              ? tokens.content.secondary
-              : undefined,
-    textDecorationStyle: 'dotted' as const,
-  }),
+const generateThemeUtils = () => ({
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
     clip: rect(0 0 0 0);
@@ -418,7 +398,7 @@ export interface SentryTheme
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
     neutral: string;
   };
-  tokens: TokensWithLegacy;
+  tokens: Tokens;
 }
 
 const ccl = color.categorical.light;
@@ -962,15 +942,6 @@ const darkShadows = {
 
 const deprecatedColorMappings = (colors: Colors) => ({
   /** @deprecated */
-  get black() {
-    return colors.black;
-  },
-  /** @deprecated */
-  get white() {
-    return colors.white;
-  },
-
-  /** @deprecated */
   get purple400() {
     return colors.blue500;
   },
@@ -1003,40 +974,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   get blue100() {
     return colors.blue100;
   },
-
-  /** @deprecated */
-  get red400() {
-    return colors.red500;
-  },
-  /** @deprecated */
-  get red300() {
-    return colors.red400;
-  },
-  /** @deprecated */
-  get red200() {
-    return colors.red200;
-  },
-  /** @deprecated */
-  get red100() {
-    return colors.red100;
-  },
-
-  /** @deprecated */
-  get green400() {
-    return colors.green500;
-  },
-  /** @deprecated */
-  get green300() {
-    return colors.green400;
-  },
-  /** @deprecated */
-  get green200() {
-    return colors.green200;
-  },
-  /** @deprecated */
-  get green100() {
-    return colors.green100;
-  },
 });
 
 const lightThemeDefinition = {
@@ -1046,15 +983,13 @@ const lightThemeDefinition = {
   ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
   ...lightShadows,
-  // @TODO: remove backwards-compatability shim
-  tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(baseLightTheme.tokens),
+  ...generateThemeUtils(),
   alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
@@ -1083,15 +1018,13 @@ export const darkTheme: SentryTheme = {
   ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
   ...darkShadows,
-  // @TODO: remove backwards-compatability shim
-  tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(baseDarkTheme.tokens),
+  ...generateThemeUtils(),
   alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 

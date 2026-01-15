@@ -76,7 +76,7 @@ function UserMiseryChart({
       <EventsRequest
         {...requestCommonProps}
         organization={organization}
-        showLoading={false}
+        showLoading
         includePrevious={false}
         yAxis={yAxis}
         partial

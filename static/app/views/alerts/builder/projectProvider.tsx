@@ -15,7 +15,6 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = RouteComponentProps<RouteParams> & {
   children: React.ReactNode;
-  hasMetricAlerts: boolean;
   organization: Organization;
 };
 
