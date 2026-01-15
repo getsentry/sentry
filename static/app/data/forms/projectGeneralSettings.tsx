@@ -262,4 +262,4 @@ export const fields = {
       ]) ?? []),
     ],
   },
-};
+} satisfies Record<string, Field>;

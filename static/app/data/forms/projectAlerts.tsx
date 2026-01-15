@@ -43,4 +43,4 @@ export const fields = {
     help: t('Notifications will be delivered at least this often.'),
     formatLabel: formatMinutes,
   },
-};
+} satisfies Record<string, Field>;
