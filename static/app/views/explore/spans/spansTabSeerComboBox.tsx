@@ -140,7 +140,7 @@ export function SpansTabSeerComboBox() {
             visualizations:
               r?.visualization?.map(v => ({
                 chartType: v?.chart_type,
-                yAxes: v?.y_axes,
+                yAxes: v?.y_axes ?? [],
               })) ?? [],
             query: r?.query ?? '',
             sort: r?.sort ?? '',
@@ -170,7 +170,7 @@ export function SpansTabSeerComboBox() {
           visualizations:
             q?.visualization?.map((v: any) => ({
               chartType: v?.chart_type,
-              yAxes: v?.y_axes,
+              yAxes: v?.y_axes ?? [],
             })) ?? [],
           query: q?.query,
           sort: q?.sort ?? '',
@@ -314,7 +314,7 @@ export function SpansTabSeerComboBox() {
           visualizations:
             r?.visualization?.map(v => ({
               chartType: v?.chart_type,
-              yAxes: v?.y_axes,
+              yAxes: v?.y_axes ?? [],
             })) ?? [],
           query: r?.query ?? '',
           sort: r?.sort ?? '',
