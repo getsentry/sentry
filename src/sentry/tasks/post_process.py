@@ -253,19 +253,8 @@ def handle_owner_assignment(job):
     issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
     issue_owners_debounce_time = cache.get(issue_owners_key)
 
-    # Debounce check with timestamp-based invalidation:
-    # - issue_owners_debounce_time is None: no debounce, process ownership
-    # - issue_owners_debounce_time is True: legacy format, debounce (backwards compatibility)
-    # - issue_owners_debounce_time is float: compare timestamps
-    #   - If ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time: debounce
-    #   - If ownership_changed_at >= issue_owners_debounce_time: ownership rules changed, re-evaluate
+    # Debounce if ownership rules haven't changed since the last evaluation of issue owners
     if issue_owners_debounce_time is not None:
-        # TODO(shashank): once rolled out for 24hrs, remove this legacy cache format check and the comment line above. prob will need to remove some tests in test_post_process.py as well.
-        if issue_owners_debounce_time is True:
-            # Backwards compatibility: old cache format, debounce
-            metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
-            return
-
         ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
         if ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time:
             metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
