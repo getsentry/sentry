@@ -64,6 +64,7 @@ class SubscriptionProcessor:
         self.detector: Detector | None = None
         self.last_update = to_datetime(0)
 
+        # We're doing workflow engine processing, we need the Detector.
         try:
             self.detector = Detector.objects.get(
                 data_sources__source_id=str(self.subscription.id),

@@ -100,6 +100,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
+from sentry.utils.cache import cache
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
 from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
@@ -1067,6 +1068,7 @@ def enable_disable_subscriptions(
 
 
 def update_detector(detector: Detector, enabled: bool) -> None:
+
     with transaction.atomic(router.db_for_write(Detector)):
         toggle_detector(detector, enabled)
 
@@ -1075,6 +1077,12 @@ def update_detector(detector: Detector, enabled: bool) -> None:
         )
         if query_subscriptions:
             enable_disable_subscriptions(query_subscriptions, enabled)
+
+    # Invalidate cache after transaction commits
+    data_sources = detector.data_sources.values_list("source_id", "type")
+    for source_id, source_type in data_sources:
+        cache_key = Detector._get_detectors_by_data_source_cache_key(source_id, source_type)
+        cache.delete(cache_key)
 
 
 def delete_alert_rule(

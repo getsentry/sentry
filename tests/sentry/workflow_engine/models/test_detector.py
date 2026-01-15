@@ -201,6 +201,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             assert result[0].id == detector.id
 
     def test_get_detectors_by_data_source__multiple_detectors(self) -> None:
+        # Using MessageIssue detector type so that we're able to have multiple detectors on the same data source
         detector1 = self.create_detector(
             project=self.project, name="Detector 1", type=MetricIssue.slug
         )

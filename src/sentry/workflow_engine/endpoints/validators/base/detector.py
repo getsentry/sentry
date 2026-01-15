@@ -99,6 +99,13 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
+    def _invalidate_cache_by_detector(self, detector: Detector) -> None:
+        """Invalidate detector cache for all data sources associated with the detector."""
+        data_sources = detector.data_sources.values_list("source_id", "type")
+        for source_id, source_type in data_sources:
+            cache_key = Detector._get_detectors_by_data_source_cache_key(source_id, source_type)
+            cache.delete(cache_key)
+
     def enforce_quota(self, validated_data) -> None:
         """
         Enforce quota limits for detector creation.
@@ -161,6 +168,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
             instance.save()
 
+        self._invalidate_cache_by_detector(instance)
+
         create_audit_entry(
             request=self.context["request"],
             organization=self.context["organization"],
@@ -168,8 +177,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             event=audit_log.get_event_id("DETECTOR_EDIT"),
             data=instance.get_audit_log_data(),
         )
-
-        self._invalidate_cache_by_detector(instance)
 
         return instance
 
@@ -185,7 +192,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
         RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
-
         self._invalidate_cache_by_detector(self.instance)
 
     def _create_data_source(self, validated_data_source, detector: Detector):
@@ -199,6 +205,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         )
         DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
+        # Invalidate cache for the new data source association
         cache_key = Detector._get_detectors_by_data_source_cache_key(
             detector_data_source.source_id, detector_data_source.type
         )
@@ -265,11 +272,4 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 data=detector.get_audit_log_data(),
             )
 
-            self._invalidate_cache_by_detector(detector)
-
         return detector
-
-    def _invalidate_cache_by_detector(self, detector: Detector) -> None:
-        for ds in detector.data_sources.all():
-            cache_key = Detector._get_detectors_by_data_source_cache_key(ds.source_id, ds.type)
-            cache.delete(cache_key)
