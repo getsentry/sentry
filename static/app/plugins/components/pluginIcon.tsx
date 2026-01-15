@@ -98,7 +98,7 @@ const StyledPluginIconContainer = styled('div')<{
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   min-width: ${p => p.size}px;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.colors.white};
   border-radius: 2px;
   display: flex;
   align-items: center;
