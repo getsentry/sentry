@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -166,7 +167,7 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <PanelLabel>
+              <Flex as="label" align="center">
                 <Checkbox
                   css={css`
                     margin-right: 6px;
@@ -180,7 +181,7 @@ function AccountClose() {
                   role="checkbox"
                 />
                 {organization.slug}
-              </PanelLabel>
+              </Flex>
             </PanelItem>
           ))}
         </PanelBody>
@@ -192,10 +193,5 @@ function AccountClose() {
     </div>
   );
 }
-
-const PanelLabel = styled('label')`
-  display: flex;
-  align-items: center;
-`;
 
 export default AccountClose;

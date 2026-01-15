@@ -1,8 +1,7 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -32,21 +31,15 @@ function CustomerIntegrations({orgId, ...props}: Props) {
           </ExternalLink>
         </td>,
         <td key="integration">
-          <IntegrationName>
+          <Flex align="center" gap="md">
             <PluginIcon size={16} pluginId={row.integration} />
             {row.integration}
-          </IntegrationName>
+          </Flex>
         </td>,
       ]}
       {...props}
     />
   );
 }
-
-const IntegrationName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 export default CustomerIntegrations;

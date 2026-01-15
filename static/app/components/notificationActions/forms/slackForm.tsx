@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
@@ -12,7 +14,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
@@ -68,8 +69,8 @@ function SlackForm({
   }, [availableActions, onChange]);
 
   return (
-    <NotificationActionFormContainer>
-      <NotificationActionCell>
+    <Flex justify="between" width="100%">
+      <Flex align="center" wrap="wrap" gap="xs">
         <div>{t('Send a notification to the')}</div>
         <DropdownMenu
           items={workspaceOptions}
@@ -107,7 +108,7 @@ function SlackForm({
           onChange={e => onChange('targetIdentifier', e.target.value)}
           data-test-id="target-identifier-input"
         />
-      </NotificationActionCell>
+      </Flex>
 
       <ButtonBar gap="xs">
         <Button onClick={onCancel} size="xs">
@@ -117,25 +118,12 @@ function SlackForm({
           {t('Save')}
         </Button>
       </ButtonBar>
-    </NotificationActionFormContainer>
+    </Flex>
   );
 }
 
 const StyledInput = styled(Input)`
   width: 100px;
-`;
-
-const NotificationActionCell = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-`;
-
-const NotificationActionFormContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
 `;
 
 export default SlackForm;

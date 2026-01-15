@@ -325,7 +325,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
-                    <TimeAndDistWrapper>
+                    <Flex align="center" marginTop="md" width="100%">
                       <TimeWrapper>
                         <IconClock size="sm" />
                         <TimeSince date={data.dateCreated} />
@@ -338,7 +338,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                           {data.dist ?? t('none')}
                         </StyledTag>
                       </Tooltip>
-                    </TimeAndDistWrapper>
+                    </Flex>
                   }
                 />
               );
@@ -410,13 +410,6 @@ const SizeColumn = styled('div')`
   text-align: right;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const TimeAndDistWrapper = styled('div')`
-  width: 100%;
-  display: flex;
-  margin-top: ${space(1)};
-  align-items: center;
 `;
 
 const TimeWrapper = styled('div')`

@@ -2,6 +2,8 @@ import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -80,10 +82,10 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
   return (
     <Fragment>
       <Header>
-        <HeaderWrapper>
+        <Flex justify="between" align="center" width="100%">
           <h3>{t('Choose Integration Type')}</h3>
           <ExampleIntegrationButton analyticsView={analyticsView} />
-        </HeaderWrapper>
+        </Flex>
       </Header>
       <Body>
         <StyledRadioGroup
@@ -136,13 +138,6 @@ const RadioChoiceDescription = styled('div')`
   color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.6em;
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
 `;
 
 export default CreateNewIntegrationModal;

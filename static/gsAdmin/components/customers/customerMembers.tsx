@@ -1,12 +1,12 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {IconMail} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -16,7 +16,7 @@ type Props = {
 
 const getRow = (row: any) => [
   <td key="name">
-    <UserName>
+    <Flex align="center" gap="md">
       <UserAvatar user={row} size={18} />
       <LinkButton
         external
@@ -32,7 +32,7 @@ const getRow = (row: any) => [
         <span>{row.email}</span>
       )}
       {row.pending && <Tag variant="warning">Invite Pending</Tag>}
-    </UserName>
+    </Flex>
   </td>,
   <td key="role" style={{textAlign: 'center'}}>
     {row.roleName}
@@ -77,11 +77,5 @@ function CustomerMembers({orgId}: Props) {
     />
   );
 }
-
-const UserName = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 export default CustomerMembers;

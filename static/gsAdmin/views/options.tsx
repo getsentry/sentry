@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconEdit, IconStack} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import EditAdminOptionModal from 'admin/components/editAdminOptionModal';
 import PageHeader from 'admin/components/pageHeader';
@@ -42,21 +43,21 @@ function EditableOption({
     <Fragment>
       <td key="name">
         {row.groupingInfo ? (
-          <GroupNameContainer>
+          <Flex as="span" align="center" gap="md">
             {row.groupingInfo.name} <IconStack size="xs" />
-          </GroupNameContainer>
+          </Flex>
         ) : (
           row.name
         )}
       </td>
       <td key="value">
         {row.groupingInfo ? null : (
-          <OptionContainer>
+          <Flex justify="end" align="center" gap="md">
             {row.fieldType === 'rate' && isNum(row.value) ? (
               <FormattedValue>{`(${row.value * 100}%)`}</FormattedValue>
             ) : null}
             <span>{JSON.stringify(row.value)}</span>
-          </OptionContainer>
+          </Flex>
         )}
       </td>
       <td key="edit">
@@ -109,22 +110,9 @@ export default function Options() {
   );
 }
 
-const OptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${space(1)};
-`;
-
 const FormattedValue = styled('span')`
   color: ${p => p.theme.colors.gray500};
   opacity: 0.5;
-`;
-
-const GroupNameContainer = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const modalCss = css`

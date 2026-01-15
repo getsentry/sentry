@@ -3,6 +3,8 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
@@ -91,7 +93,7 @@ export default function ReplayPreviewPlayer({
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
 
   return (
-    <PlayerPanel>
+    <Stack flexGrow={1} gap="md" height="100%">
       {errorBeforeReplayStart && (
         <StyledAlert variant="warning">
           {t(
@@ -99,7 +101,7 @@ export default function ReplayPreviewPlayer({
           )}
         </StyledAlert>
       )}
-      <HeaderWrapper>
+      <Flex justify="between" align="center" marginBottom="md" position="relative">
         <ReplaySessionColumn.Component
           to={{
             pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
@@ -129,7 +131,7 @@ export default function ReplayPreviewPlayer({
         >
           {t('See Full Replay')}
         </ContainedLinkButton>
-      </HeaderWrapper>
+      </Flex>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         <TooltipContext value={{container: fullscreenRef.current}}>
           <PlayerBreadcrumbContainer>
@@ -151,7 +153,7 @@ export default function ReplayPreviewPlayer({
             {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
           </PlayerBreadcrumbContainer>
           <ErrorBoundary mini>
-            <ButtonGrid>
+            <Flex justify="between" align="center" gap="0 md">
               {showNextAndPrevious && (
                 <Button
                   size="sm"
@@ -183,27 +185,19 @@ export default function ReplayPreviewPlayer({
                   analyticsEventKey="replay_preview_player.clicked_next_clip"
                 />
               )}
-              <Container>
+              <Stack justify="center" flex="1 1">
                 <TimelineScaleContextProvider>
                   <TimeAndScrubberGrid />
                 </TimelineScaleContextProvider>
-              </Container>
+              </Stack>
               <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-            </ButtonGrid>
+            </Flex>
           </ErrorBoundary>
         </TooltipContext>
       </PreviewPlayerContainer>
-    </PlayerPanel>
+    </Stack>
   );
 }
-
-const PlayerPanel = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-  flex-grow: 1;
-  height: 100%;
-`;
 
 const PlayerBreadcrumbContainer = styled(FluidHeight)`
   position: relative;
@@ -237,35 +231,12 @@ const StaticPanel = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
-const ButtonGrid = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: 0 ${space(1)};
-  flex-direction: row;
-  justify-content: space-between;
-`;
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1;
-  justify-content: center;
-`;
-
 const ContextContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const HeaderWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(1)};
 `;
 
 const StyledAlert = styled(Alert)`

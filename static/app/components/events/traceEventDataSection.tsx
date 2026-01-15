@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -549,10 +551,10 @@ function InlineThreadSection({
 }) {
   return (
     <Wrapper>
-      <InlineSectionHeaderWrapper>
+      <Flex justify="between" align="center" marginBottom="md">
         <ThreadHeading>{title}</ThreadHeading>
         {actions}
-      </InlineSectionHeaderWrapper>
+      </Flex>
       {children}
     </Wrapper>
   );
@@ -564,12 +566,5 @@ const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
-`;
-
-const InlineSectionHeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: ${space(1)};
 `;

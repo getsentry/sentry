@@ -3,6 +3,8 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import type {StylesConfig} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
 import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -110,7 +112,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   }, [isOverMemberLimit, setRole, setTeams]);
 
   return (
-    <RowWrapper>
+    <Stack gap="lg">
       <div>
         <Heading htmlFor="email-addresses">{t('Email addresses')}</Heading>
         <Select
@@ -174,7 +176,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           />
         </div>
       </RoleTeamWrapper>
-    </RowWrapper>
+    </Stack>
   );
 }
 
@@ -228,12 +230,6 @@ const Heading = styled('label')`
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const RowWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
 `;
 
 const RoleTeamWrapper = styled('div')`

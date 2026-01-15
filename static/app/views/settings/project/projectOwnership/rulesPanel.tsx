@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {TextArea} from 'sentry/components/core/textarea';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -55,12 +57,12 @@ function RulesPanel({
   return (
     <Panel data-test-id={dataTestId}>
       <PanelHeader hasButtons>
-        <Container>
+        <Flex align="center" gap="sm">
           {renderIcon()}
           {renderTitle()}
           {repoName && <div>{`- ${repoName}`}</div>}
-        </Container>
-        <Container>
+        </Flex>
+        <Flex align="center" gap="sm">
           {dateUpdated && (
             <SyncDate>
               {t('Last %s', type === 'codeowners' ? t('synced') : t('edited'))}{' '}
@@ -68,7 +70,7 @@ function RulesPanel({
             </SyncDate>
           )}
           {controls}
-        </Container>
+        </Flex>
       </PanelHeader>
 
       <PanelBody>
@@ -90,12 +92,6 @@ function RulesPanel({
 }
 
 export default RulesPanel;
-
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
 
 const InnerPanelBody = styled(PanelBody)`
   height: auto;

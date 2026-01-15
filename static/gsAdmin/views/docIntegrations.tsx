@@ -1,11 +1,10 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import DocIntegrationModal from 'admin/components/docIntegrationModal';
@@ -14,12 +13,12 @@ import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (doc: DocIntegration) => [
   <td key="name" style={{textAlign: 'left'}}>
-    <IntegrationName>
+    <Flex align="center" gap="md">
       <DocIntegrationAvatar size={16} docIntegration={doc} />
       <strong>
         <Link to={`/_admin/doc-integrations/${doc.slug}/`}>{doc.name}</Link>
       </strong>
-    </IntegrationName>
+    </Flex>
   </td>,
 
   <td key="author" style={{textAlign: 'center'}}>
@@ -72,9 +71,3 @@ export default function DocIntegrations() {
     </div>
   );
 }
-
-const IntegrationName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;

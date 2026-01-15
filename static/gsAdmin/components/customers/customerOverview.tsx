@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -512,7 +513,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
     return (
       <DetailLabel key={apiName} title={formattedTrialName}>
-        <TrialState>
+        <Stack gap="md">
           <StyledTag
             variant={
               lessThanOneDayLeft
@@ -530,7 +531,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 ? 'Used'
                 : 'Available'}
           </StyledTag>
-          <TrialActions>
+          <Flex align="center" wrap="wrap" gap="md">
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
@@ -573,8 +574,8 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             >
               Stop Trial
             </Button>
-          </TrialActions>
-        </TrialState>
+          </Flex>
+        </Stack>
       </DetailLabel>
     );
   };
@@ -840,19 +841,6 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     </DetailsContainer>
   );
 }
-
-const TrialState = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TrialActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-  align-items: center;
-`;
 
 const ProductTrialsDetailListContainer = styled(DetailList)`
   align-items: baseline;

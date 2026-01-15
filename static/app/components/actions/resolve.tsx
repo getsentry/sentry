@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -224,7 +226,7 @@ function ResolveActions({
               key: 'semver-release',
               label: t('The current semver release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : (
@@ -236,7 +238,7 @@ function ResolveActions({
                       </div>{' '}
                     </Fragment>
                   )}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -249,7 +251,7 @@ function ResolveActions({
               key: 'current-release',
               label: t('The current release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : latestRelease ? (
@@ -262,7 +264,7 @@ function ResolveActions({
                       ({isSemver ? t('semver') : t('non-semver')})
                     </Fragment>
                   ) : null}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -419,12 +421,6 @@ const SetupReleases = styled('div')`
 const SetupReleasesHeader = styled('h6')`
   font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
-`;
-
-const CurrentReleaseWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
 `;
 
 const MaxReleaseWidthWrapper = styled('div')`

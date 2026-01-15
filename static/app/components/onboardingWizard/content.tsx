@@ -85,7 +85,9 @@ function TaskCard({
       className={className}
     >
       {onClick && <InteractionStateLayer />}
-      <TaskCardIcon>{icon}</TaskCardIcon>
+      <Flex justify="center" align="center" height="20px">
+        {icon}
+      </Flex>
       <TaskCardDescription>
         {title}
         {description && <p>{description}</p>}
@@ -303,9 +305,9 @@ function Task({task, hidePanel}: TaskProps) {
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          <ClickIndicator>
+          <Flex justify="center" align="center" width="20px" height="100%">
             <IconChevron direction="right" size="xs" variant="muted" />
-          </ClickIndicator>
+          </Flex>
         }
       />
       {showSkipConfirmation && (
@@ -596,14 +598,6 @@ const TaskWrapper = styled('li')`
   }
 `;
 
-const ClickIndicator = styled('div')`
-  width: 20px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
@@ -631,13 +625,6 @@ const TaskCardDescription = styled('div')`
   strong {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const TaskCardIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 20px;
 `;
 
 const TaskCardActions = styled('div')`

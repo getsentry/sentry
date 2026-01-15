@@ -2,6 +2,8 @@ import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import Hook from 'sentry/components/hook';
 import {IconClose, IconMenu} from 'sentry/icons';
@@ -48,13 +50,13 @@ function MobileTopbar() {
 
   return (
     <Topbar showSuperuserWarning={showSuperuserWarning}>
-      <Left>
+      <Flex align="center" gap="md">
         {/* If the view is not closed, it will render under the full screen mobile menu */}
         <OrganizationDropdown onClick={() => setView('closed')} />
         {showSuperuserWarning && (
           <Hook name="component:superuser-warning" organization={organization} />
         )}
-      </Left>
+      </Flex>
       <Button
         ref={closeButtonRef}
         onClick={handleClick}
@@ -140,12 +142,6 @@ const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.sidebar};
-`;
-
-const Left = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const NavigationOverlay = styled('nav')`
