@@ -312,12 +312,12 @@ const OtherSegment = styled('span')<{color: string}>`
 
 const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
   &:hover {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
   display: block;
   width: 100%;
   height: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   outline: none;
   background-color: ${p => p.color};
   text-align: right;

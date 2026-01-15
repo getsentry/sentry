@@ -43,6 +43,8 @@ MOCK_OPENROUTER_API_RESPONSE = {
                 "image": "0",
                 "web_search": "0",
                 "internal_reasoning": "0",
+                "input_cache_read": "0.0000015",
+                "input_cache_write": "0.00001875",
             },
             "top_provider": {
                 "context_length": 1000000,
@@ -81,6 +83,7 @@ MOCK_OPENROUTER_API_RESPONSE = {
                 "web_search": "0.0003",
                 "internal_reasoning": "0.00000055",
                 "input_cache_read": "0.00000055",
+                "input_cache_write": "0.000006875",
             },
             "top_provider": {
                 "context_length": 128000,
@@ -118,6 +121,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "input": 0.4 * 1000000,  # models.dev have prices per 1M tokens
                     "output": 1.6 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.1 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_write": 0.2 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
             "gpt-4": {  # This should be skipped since it exists in OpenRouter
@@ -125,6 +129,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "input": 0.1 * 1000000,  # models.dev have prices per 1M tokens
                     "output": 0.2 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.05 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_write": 0.15 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
         }
@@ -136,6 +141,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "input": 1.25 * 1000000,  # models.dev have prices per 1M tokens
                     "output": 10 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.31 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_write": 0.62 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
             "google/gemini-2.0-flash-001": {  # Test provider prefix stripping
@@ -143,6 +149,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "input": 0.075 * 1000000,  # models.dev have prices per 1M tokens
                     "output": 0.3 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.01875 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_write": 0.0375 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
         }
@@ -196,13 +203,15 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt4_model.get("inputPerToken") == 0.0000003  # OpenRouter price, not models.dev
         assert gpt4_model.get("outputPerToken") == 0.00000165
         assert gpt4_model.get("outputReasoningPerToken") == 0.0
-        assert gpt4_model.get("inputCachedPerToken") == 0.0
+        assert gpt4_model.get("inputCachedPerToken") == 0.0000015
+        assert gpt4_model.get("inputCacheWritePerToken") == 0.00001875
 
         gpt5_model = models["gpt-5"]
         assert gpt5_model.get("inputPerToken") == 0.00000055
         assert gpt5_model.get("outputPerToken") == 0.0000022
         assert gpt5_model.get("outputReasoningPerToken") == 0.00000055
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
+        assert gpt5_model.get("inputCacheWritePerToken") == 0.000006875
 
         # Check models.dev models
         gpt41_mini_model = models["gpt-4.1-mini"]
@@ -212,12 +221,14 @@ class FetchAIModelCostsTest(TestCase):
             gpt41_mini_model.get("outputReasoningPerToken") == 0.0
         )  # models.dev doesn't provide this
         assert gpt41_mini_model.get("inputCachedPerToken") == 0.1
+        assert gpt41_mini_model.get("inputCacheWritePerToken") == 0.2
 
         gemini_model = models["gemini-2.5-pro"]
         assert gemini_model.get("inputPerToken") == 1.25
         assert gemini_model.get("outputPerToken") == 10
         assert gemini_model.get("outputReasoningPerToken") == 0.0
         assert gemini_model.get("inputCachedPerToken") == 0.31
+        assert gemini_model.get("inputCacheWritePerToken") == 0.62
 
         # Check models.dev model with provider prefix (should be stripped)
         gemini_flash_model = models["gemini-2.0-flash-001"]
@@ -225,6 +236,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gemini_flash_model.get("outputPerToken") == 0.3
         assert gemini_flash_model.get("outputReasoningPerToken") == 0.0
         assert gemini_flash_model.get("inputCachedPerToken") == 0.01875
+        assert gemini_flash_model.get("inputCacheWritePerToken") == 0.0375
 
     @responses.activate
     def test_fetch_ai_model_costs_success_openrouter_only(self) -> None:
@@ -245,12 +257,13 @@ class FetchAIModelCostsTest(TestCase):
         models = cached_data.get("models")
         assert models is not None
 
-        # Check first model with only input and output pricing
+        # Check first model with cache pricing
         gpt4_model = models["gpt-4"]
         assert gpt4_model.get("inputPerToken") == 0.0000003
         assert gpt4_model.get("outputPerToken") == 0.00000165
         assert gpt4_model.get("outputReasoningPerToken") == 0.0
-        assert gpt4_model.get("inputCachedPerToken") == 0.0
+        assert gpt4_model.get("inputCachedPerToken") == 0.0000015
+        assert gpt4_model.get("inputCacheWritePerToken") == 0.00001875
 
         # Check second model with all pricing fields
         gpt5_model = models["gpt-5"]
@@ -258,6 +271,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt5_model.get("outputPerToken") == 0.0000022
         assert gpt5_model.get("outputReasoningPerToken") == 0.00000055
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
+        assert gpt5_model.get("inputCacheWritePerToken") == 0.000006875
 
     @responses.activate
     def test_fetch_ai_model_costs_missing_pricing(self) -> None:
@@ -318,11 +332,13 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt4_model.get("outputPerToken") == 0.06
         assert gpt4_model.get("outputReasoningPerToken") == 0.0  # Missing should default to 0.0
         assert gpt4_model.get("inputCachedPerToken") == 0.0
+        assert gpt4_model.get("inputCacheWritePerToken") == 0.0
 
         # Check model with invalid pricing (should default to 0.0)
         another_model = models["another-model"]
         assert another_model.get("inputPerToken") == 0.0  # Invalid "invalid" -> 0.0
         assert another_model.get("outputPerToken") == 0.02
+        assert another_model.get("inputCacheWritePerToken") == 0.0
 
         # Check model with no pricing (should default to 0.0)
         no_pricing_model = models["no-pricing-model"]
@@ -330,6 +346,7 @@ class FetchAIModelCostsTest(TestCase):
         assert no_pricing_model.get("outputPerToken") == 0.0
         assert no_pricing_model.get("outputReasoningPerToken") == 0.0
         assert no_pricing_model.get("inputCachedPerToken") == 0.0
+        assert no_pricing_model.get("inputCacheWritePerToken") == 0.0
 
         # Check models.dev model
         models_dev_model = models["model-with-pricing"]
@@ -337,6 +354,7 @@ class FetchAIModelCostsTest(TestCase):
         assert models_dev_model.get("outputPerToken") == 0.2
         assert models_dev_model.get("outputReasoningPerToken") == 0.0
         assert models_dev_model.get("inputCachedPerToken") == 0.0
+        assert models_dev_model.get("inputCacheWritePerToken") == 0.0
 
     @responses.activate
     def test_fetch_ai_model_costs_openrouter_invalid_response(self) -> None:
@@ -476,6 +494,9 @@ class FetchAIModelCostsTest(TestCase):
         )
         assert gemini_model.get("inputCachedPerToken") == gemini_alt_model.get(
             "inputCachedPerToken"
+        )
+        assert gemini_model.get("inputCacheWritePerToken") == gemini_alt_model.get(
+            "inputCacheWritePerToken"
         )
 
         # Non-existent mapping should not create a new model

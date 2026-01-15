@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry import tsdb
+from sentry import options, tsdb
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -22,6 +22,7 @@ from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_u
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.snuba import RateLimitExceeded
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -199,14 +200,16 @@ class GroupSnooze(Model):
 
     def test_user_counts(self, group: Group) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
+        CACHE_TTL = 3600  # Redis TTL in seconds
+
+        debounce_key = f"groupsnooze:v1:{self.id}:test_user_counts:snuba_cooldown"
+        snuba_debounce_ttl = options.get("snuba.groupsnooze.user-counts-debounce-seconds")
         if self.state is None:
             users_seen = 0
         else:
             users_seen = self.state.get("users_seen", 0)
 
         threshold = self.user_count + users_seen
-
-        CACHE_TTL = 3600  # Redis TTL in seconds
 
         cached_event_count: int | float = float("inf")  # using +inf as a sentinel value
         try:
@@ -220,11 +223,30 @@ class GroupSnooze(Model):
             metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "true"})
             return True
 
+        if snuba_debounce_ttl > 0:
+            debounce_result = cache.get(debounce_key)
+            if debounce_result is not None:
+                metrics.incr(
+                    "groupsnooze.test_user_counts", tags={"cached": "true", "hit": "debounce"}
+                )
+                return True
+
         metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "false"})
         metrics.incr("groupsnooze.test_user_counts.snuba_call")
-        real_count = group.count_users_seen(
-            referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
-        )
+        try:
+            real_count = group.count_users_seen(
+                referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
+            )
+        except RateLimitExceeded:
+            # Set debounce even on failure to prevent thundering herd when Snuba
+            # is rate-limited. Without this, every event would retry Snuba and fail,
+            # causing thousands of exceptions instead of just one per debounce period.
+            if snuba_debounce_ttl > 0:
+                cache.set(debounce_key, True, snuba_debounce_ttl)
+                metrics.incr("groupsnooze.test_user_counts.debounce_set_on_error")
+            raise
+        if snuba_debounce_ttl > 0 and real_count < threshold * 0.95:
+            cache.set(debounce_key, real_count, snuba_debounce_ttl)
         cache.set(cache_key, real_count, CACHE_TTL)
         return real_count < threshold
 

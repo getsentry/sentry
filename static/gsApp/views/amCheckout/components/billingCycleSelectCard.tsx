@@ -1,9 +1,8 @@
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 
@@ -85,54 +84,39 @@ function BillingCycleSelectCard({
       onClick={onCycleSelect}
       ariaLabel={t('%s billing cycle', intervalName)}
       ariaRole="radio"
-    >
-      <Flex align="start" justify="between" gap="md" padding="xl">
-        <Container paddingTop="2xs">
-          <RadioMarker isSelected={isSelected} />
-        </Container>
-        <Stack flex="1">
-          <Flex justify="between" align="center">
-            <Flex align="center" gap="sm">
-              <Heading as="h3" variant="primary">
-                {intervalName}
-              </Heading>
-              {isAnnual && <Tag variant="promotion">{t('save 10%')}</Tag>}
-            </Flex>
-            <Flex align="center" gap="xs">
-              {formattedPriceBeforeDiscount && (
-                <Text
-                  variant="muted"
-                  strikethrough
-                  size="lg"
-                >{`$${formattedPriceBeforeDiscount}`}</Text>
-              )}
+      optionHeader={
+        <Flex justify="between" align="center" flexGrow={1}>
+          <Flex align="center" gap="sm">
+            <Heading as="h3" variant="primary">
+              {intervalName}
+            </Heading>
+            {isAnnual && <Tag variant="promotion">{t('save 10%')}</Tag>}
+          </Flex>
+          <Flex align="center" gap="xs">
+            {formattedPriceBeforeDiscount && (
               <Text
+                variant="muted"
+                strikethrough
                 size="lg"
-                bold
-                variant="primary"
-              >{`$${formattedPriceAfterDiscount}`}</Text>
-            </Flex>
+              >{`$${formattedPriceBeforeDiscount}`}</Text>
+            )}
+            <Text
+              size="lg"
+              bold
+              variant="primary"
+            >{`$${formattedPriceAfterDiscount}`}</Text>
           </Flex>
-          <Flex paddingTop="md">
-            <Text variant="muted" size="md" textWrap="pretty">
-              {cycleInfo}. {additionalInfo}
-            </Text>
-          </Flex>
-        </Stack>
-      </Flex>
-    </CheckoutOption>
+        </Flex>
+      }
+      optionDescription={
+        <Container>
+          <Text variant="muted" size="md" textWrap="pretty">
+            {cycleInfo}. {additionalInfo}
+          </Text>
+        </Container>
+      }
+    />
   );
 }
 
 export default BillingCycleSelectCard;
-
-const RadioMarker = styled('div')<{isSelected?: boolean}>`
-  width: ${p => p.theme.space.xl};
-  height: ${p => p.theme.space.xl};
-  border-radius: ${p => p.theme.space['3xl']};
-  background: ${p => p.theme.tokens.background.primary};
-  border-color: ${p =>
-    p.isSelected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary};
-  border-width: ${p => (p.isSelected ? '4px' : '1px')};
-  border-style: solid;
-`;
