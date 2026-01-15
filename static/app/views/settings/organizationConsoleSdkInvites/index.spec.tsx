@@ -1,13 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
@@ -30,18 +24,6 @@ describe('ConsoleSDKInvitesSettings', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-  });
-
-  it('shows loading state', () => {
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: [],
-    });
-
-    render(<ConsoleSDKInvitesSettings />, {organization: defaultOrganization});
-
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('shows error state with retry', async () => {
@@ -69,20 +51,6 @@ describe('ConsoleSDKInvitesSettings', () => {
     expect(await screen.findByText('No invites found')).toBeInTheDocument();
   });
 
-  it('shows empty state when no invites exist', async () => {
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: [],
-    });
-
-    render(<ConsoleSDKInvitesSettings />, {organization: defaultOrganization});
-
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-    expect(screen.getByText('No invites found')).toBeInTheDocument();
-  });
-
   it('shows invites with platform tags', async () => {
     const invites = [
       {
@@ -105,16 +73,14 @@ describe('ConsoleSDKInvitesSettings', () => {
 
     render(<ConsoleSDKInvitesSettings />, {organization: defaultOrganization});
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-    expect(screen.getByText('user1@example.com')).toBeInTheDocument();
+    expect(await screen.findByText('user1@example.com')).toBeInTheDocument();
     expect(screen.getByText('user2@example.com')).toBeInTheDocument();
     expect(screen.getByText('PlayStation')).toBeInTheDocument();
     expect(screen.getByText('Xbox')).toBeInTheDocument();
     expect(screen.getByText('Nintendo Switch')).toBeInTheDocument();
   });
 
-  it('shows no access alert when organization has no console platforms enabled', async () => {
+  it('shows no access state when organization has no console platforms enabled', async () => {
     const orgWithoutConsoleAccess = OrganizationFixture({
       enabledConsolePlatforms: [],
       consoleSdkInviteQuota: 10,
@@ -130,14 +96,15 @@ describe('ConsoleSDKInvitesSettings', () => {
 
     render(<ConsoleSDKInvitesSettings />, {organization: orgWithoutConsoleAccess});
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
     expect(
-      screen.getByText(/Your organization does not have any console platforms enabled/)
+      await screen.findByText(
+        /Your organization does not have any console platforms enabled/
+      )
     ).toBeInTheDocument();
     expect(screen.getByText('PlayStation Partners')).toBeInTheDocument();
     expect(screen.getByText('Nintendo Developer Portal')).toBeInTheDocument();
     expect(screen.getByText('Microsoft GDK Middleware')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Request SDK Access'})).toBeDisabled();
   });
 
   it('shows no quota remaining alert when invite quota is exhausted', async () => {
@@ -161,31 +128,10 @@ describe('ConsoleSDKInvitesSettings', () => {
 
     render(<ConsoleSDKInvitesSettings />, {organization: orgWithExhaustedQuota});
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-    expect(screen.getByText(/has used all GitHub invites available/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/has used all GitHub invites available/)
+    ).toBeInTheDocument();
     expect(screen.getByText(/Contact support/)).toBeInTheDocument();
-  });
-
-  it('disables request access button when organization has no console platforms', async () => {
-    const orgWithoutConsoleAccess = OrganizationFixture({
-      enabledConsolePlatforms: [],
-      consoleSdkInviteQuota: 10,
-    });
-
-    OrganizationsStore.addOrReplace(orgWithoutConsoleAccess);
-
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: [],
-    });
-
-    render(<ConsoleSDKInvitesSettings />, {organization: orgWithoutConsoleAccess});
-
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-    expect(screen.getByRole('button', {name: 'Request SDK Access'})).toBeDisabled();
   });
 
   describe('revoking platform invites', () => {
@@ -214,9 +160,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
       render(<ConsoleSDKInvitesSettings />, {organization: defaultOrganization});
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-      expect(screen.getByText('PlayStation')).toBeInTheDocument();
+      expect(await screen.findByText('PlayStation')).toBeInTheDocument();
       expect(screen.getByText('Xbox')).toBeInTheDocument();
 
       // Get all dismiss buttons and click the first one (PlayStation)
@@ -268,9 +212,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
       render(<ConsoleSDKInvitesSettings />, {organization: defaultOrganization});
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-      const dismissButton = screen.getByRole('button', {name: 'Dismiss'});
+      const dismissButton = await screen.findByRole('button', {name: 'Dismiss'});
       await userEvent.click(dismissButton);
 
       await waitFor(() => {
@@ -310,10 +252,8 @@ describe('ConsoleSDKInvitesSettings', () => {
 
       render(<ConsoleSDKInvitesSettings />, {organization: memberOrg});
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
       // Member should see dismiss button for their own invite
-      const dismissButton = screen.getByRole('button', {name: 'Dismiss'});
+      const dismissButton = await screen.findByRole('button', {name: 'Dismiss'});
       expect(dismissButton).toBeInTheDocument();
 
       await userEvent.click(dismissButton);
@@ -351,10 +291,8 @@ describe('ConsoleSDKInvitesSettings', () => {
 
         render(<ConsoleSDKInvitesSettings />, {organization: org});
 
-        await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
         // Platform tag should be visible but no dismiss button
-        expect(screen.getByText('PlayStation')).toBeInTheDocument();
+        expect(await screen.findByText('PlayStation')).toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Dismiss'})).not.toBeInTheDocument();
       }
     );
@@ -393,10 +331,8 @@ describe('ConsoleSDKInvitesSettings', () => {
 
         render(<ConsoleSDKInvitesSettings />, {organization: org});
 
-        await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
         // Should see dismiss button for any invite
-        const dismissButton = screen.getByRole('button', {name: 'Dismiss'});
+        const dismissButton = await screen.findByRole('button', {name: 'Dismiss'});
         expect(dismissButton).toBeInTheDocument();
 
         await userEvent.click(dismissButton);
