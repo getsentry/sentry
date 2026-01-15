@@ -403,7 +403,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
     def record_interaction(
         self,
         *,
-        organization_id: int,
         sentry_app: RpcSentryApp,
         tsdb_field: str,
         component_type: str | None = None,

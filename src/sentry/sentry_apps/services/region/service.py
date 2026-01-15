@@ -150,12 +150,13 @@ class SentryAppRegionService(RpcService):
         """Gets TSDB stats for Sentry App views and component interactions."""
         pass
 
-    @regional_rpc_method(ByOrganizationId())
+    @regional_rpc_method(
+        ByOrganizationIdAttribute(parameter_name="sentry_app", attribute_name="owner_id")
+    )
     @abc.abstractmethod
     def record_interaction(
         self,
         *,
-        organization_id: int,
         sentry_app: RpcSentryApp,
         tsdb_field: str,
         component_type: str | None = None,
