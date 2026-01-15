@@ -1,0 +1,31 @@
+src/sentry/web/frontend/oauth_token.py
+  1a687d5cc1ac7faf 5,783-795,801-810,894,897,899-900,904-908
+src/sentry/models/trustedidentityprovider.py
+  1a687d5cc1ac7faf 125-131,133-135,196-203,205-208,217,225,228-234,242
+src/sentry/utils/jwt.py
+  1a687d5cc1ac7faf 14,144-160
+tests/sentry/web/frontend/test_oauth_token.py
+  1a687d5cc1ac7faf 1540-1549,1551,1700-1729
+tests/sentry/models/test_trustedidentityprovider.py
+  1a687d5cc1ac7faf 8,61-106,517-558,594-620
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.31",
+  "base_commit_sha": "53a1dece6e725ef24d724c65d90525d95c91437c",
+  "prompts": {
+    "1a687d5cc1ac7faf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c016ed04-cfca-4198-9fc8-e1af0c5c42e5",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "David Cramer <dcramer@gmail.com>",
+      "messages": [],
+      "total_additions": 245,
+      "total_deletions": 23,
+      "accepted_lines": 241,
+      "overriden_lines": 5
+    }
+  }
+}
