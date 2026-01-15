@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tn} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
@@ -331,8 +333,15 @@ export function useSendTestNotification(
       options?.onSuccess?.(data, variables, context);
     },
     onError: (error, variables, context) => {
+      const detail = error.responseJSON?.detail;
+      const message = typeof detail === 'string' ? detail : detail?.message;
+
       addErrorMessage(
-        tn('Notification failed', 'Notifications failed', variables.length)
+        message ? (
+          <Fragment>{message}</Fragment>
+        ) : (
+          tn('Notification failed', 'Notifications failed', variables.length)
+        )
       );
       options?.onError?.(error, variables, context);
     },
