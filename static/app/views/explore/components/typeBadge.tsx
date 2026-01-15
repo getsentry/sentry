@@ -25,6 +25,10 @@ export function TypeBadge({
   deprecatedFields,
   label,
 }: TypeBadgeProps) {
+  if (label && deprecatedFields?.includes(label)) {
+    return <Text variant="danger">{t('deprecated')}</Text>;
+  }
+
   if (
     defined(func) ||
     kind === FieldKind.FUNCTION ||
@@ -92,10 +96,6 @@ export function TypeBadge({
     valueKind === FieldValueKind.MEASUREMENT ||
     valueKind === FieldValueKind.CUSTOM_MEASUREMENT
   ) {
-    if (label && deprecatedFields?.includes(label)) {
-      return <Text variant="danger">{t('deprecated')}</Text>;
-    }
-
     return <Text variant="accent">{t('field')}</Text>;
   }
 
