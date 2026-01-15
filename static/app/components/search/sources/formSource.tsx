@@ -71,8 +71,9 @@ function getSearchMap() {
     }
 
     const searchMap = createSearchMap({
-      // `formGroups` can be a default export or a named export :<
-      formGroups: mod.default || mod.formGroups,
+      // Prefer named `formGroups` export (used by forms with factories for searchable fields)
+      // Fall back to `default` export for backwards compatibility with static forms
+      formGroups: mod.formGroups || mod.default,
       fields: mod.fields,
       route: mod.route,
     });

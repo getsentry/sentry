@@ -38,6 +38,26 @@ const baseFormGroups: readonly JsonFormObject[] = [
 ];
 
 /**
+ * Form groups for search - includes all fields for cmd+k discoverability.
+ * Named export allows formSource to statically detect this as the searchable form definition.
+ */
+export const formGroups: readonly JsonFormObject[] = [
+  {
+    ...baseFormGroups[0]!,
+    fields: [
+      ...baseFormGroups[0]!.fields,
+      {
+        name: 'userId',
+        type: 'string',
+        disabled: true,
+        label: 'User ID',
+        help: `The unique identifier for your account. It cannot be modified.`,
+      },
+    ],
+  },
+];
+
+/**
  * Factory function to create account details form with optional userId field
  */
 export function createAccountDetailsForm(options?: {
