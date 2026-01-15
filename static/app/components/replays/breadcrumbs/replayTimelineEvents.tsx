@@ -209,7 +209,7 @@ const IconNode = styled('button')<{
   width: ${p => NODE_SIZES[p.frameCount - 1]}px;
   height: ${p => NODE_SIZES[p.frameCount - 1]}px;
   border-radius: 50%;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   ${getBackgroundGradient}
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
