@@ -1,6 +1,6 @@
 import type { TickStyle } from "sentry/components/checkInTimeline/types";
 import { SchedulePreviewStatus } from "sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets";
-import { t } from "sentry/locale";  
+import { t } from "sentry/locale";
 import { SchedulePreview } from "../common/schedulePreview";
 import { useCronDetectorFormField } from "./fields";
 import type { ScheduleType } from "sentry/views/insights/crons/types";
