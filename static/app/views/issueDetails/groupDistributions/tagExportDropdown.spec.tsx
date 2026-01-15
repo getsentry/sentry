@@ -32,7 +32,7 @@ describe('TagExportDropdown', () => {
     ).toBeInTheDocument();
   });
 
-  it('hides Export All option when organization does not have discover-query feature', async () => {
+  it('disables Export All option when organization does not have discover-query feature', async () => {
     const organization = OrganizationFixture({features: []});
 
     render(
@@ -50,7 +50,14 @@ describe('TagExportDropdown', () => {
       screen.getByRole('menuitemradio', {name: 'Export Page to CSV'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Export All to CSV'})
-    ).not.toBeInTheDocument();
+      screen.getByRole('menuitemradio', {name: 'Export All to CSV'})
+    ).toBeInTheDocument();
+    const exportAllItem = screen.getByRole('menuitemradio', {name: 'Export All to CSV'});
+    expect(exportAllItem).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(exportAllItem);
+    expect(
+      await screen.findByText('This feature is not available for your organization')
+    ).toBeInTheDocument();
   });
 });
