@@ -22,6 +22,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
+from sentry.sentry_apps.services.region.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
     SentryAppIntegratorError,
@@ -93,6 +94,17 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
 
 
 class IntegrationPlatformEndpoint(Endpoint):
+
+    def respond_rpc_sentry_app_error(self, rpc_error: RpcSentryAppError) -> Response:
+        """
+        Surfaces errors from the region-side Sentry App RPC to the client.
+        """
+        response_body = rpc_error.public_dict or {}
+        status_code = rpc_error.status_code or 500
+        response = Response(response_body, status=status_code)
+        response.exception = True
+        return response
+
     def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
         return self._handle_sentry_app_exception(
             exception=exc

@@ -3,19 +3,38 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+from __future__ import annotations
+
 from typing import Any
 
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
+from sentry.sentry_apps.utils.errors import (
+    SentryAppBaseError,
+    SentryAppErrorType,
+    SentryAppPublicErrorBody,
+)
 
 
 # XXX: Normally RPCs wouldn't return errors like this, but we need to surface these errors to Sentry
 # Apps and by moving operation into these services, we'd lose the helpful errors without this.
 class RpcSentryAppError(RpcModel):
-    message: str
-    webhook_context: dict[str, Any]
-    status_code: int | None = None
+    error_type: SentryAppErrorType = SentryAppErrorType.CLIENT
+    status_code: int = 400
+    message: str = ""
+    public_dict: SentryAppPublicErrorBody | None = None
+    webhook_context: dict[str, Any] = Field(default_factory=dict)
+
+    @classmethod
+    def from_exc(cls, exception: SentryAppBaseError) -> RpcSentryAppError:
+        return RpcSentryAppError(
+            error_type=exception.error_type,
+            status_code=exception.status_code,
+            message=exception.message,
+            public_dict=exception.to_public_dict(),
+            webhook_context=exception.webhook_context,
+        )
 
 
 class RpcSelectRequesterResult(RpcModel):

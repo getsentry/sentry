@@ -60,12 +60,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 project_slug=project_slug,
             ).run()
         except (SentryAppIntegratorError, SentryAppSentryError) as e:
-            error = RpcSentryAppError(
-                message=e.message,
-                webhook_context=e.webhook_context,
-                status_code=e.status_code,
-            )
-            return RpcSelectRequesterResult(error=error)
+            return RpcSelectRequesterResult(error=RpcSentryAppError.from_exc(e))
 
         return RpcSelectRequesterResult(
             choices=list(result.get("choices", [])),
@@ -95,7 +90,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             return RpcPlatformExternalIssueResult(
                 error=RpcSentryAppError(
                     message="Could not find the corresponding issue for the given groupId",
-                    webhook_context={},
                     status_code=404,
                 )
             )
@@ -110,13 +104,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 user=user,
             ).run()
         except (SentryAppIntegratorError, SentryAppSentryError) as e:
-            return RpcPlatformExternalIssueResult(
-                error=RpcSentryAppError(
-                    message=e.message,
-                    webhook_context=e.webhook_context,
-                    status_code=e.status_code,
-                )
-            )
+            return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         return RpcPlatformExternalIssueResult(
             external_issue=RpcPlatformExternalIssue(
@@ -150,7 +138,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             return RpcPlatformExternalIssueResult(
                 error=RpcSentryAppError(
                     message="Could not find the corresponding issue for the given issueId",
-                    webhook_context={},
                     status_code=404,
                 )
             )
@@ -164,13 +151,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 identifier=identifier,
             ).run()
         except SentryAppSentryError as e:
-            return RpcPlatformExternalIssueResult(
-                error=RpcSentryAppError(
-                    message=e.message,
-                    webhook_context=e.webhook_context,
-                    status_code=e.status_code,
-                )
-            )
+            return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         return RpcPlatformExternalIssueResult(
             external_issue=RpcPlatformExternalIssue(
@@ -203,7 +184,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 success=False,
                 error=RpcSentryAppError(
                     message="Could not find the corresponding external issue from given external_issue_id",
-                    webhook_context={},
                     status_code=404,
                 ),
             )
@@ -229,7 +209,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             return RpcServiceHookProjectsResult(
                 error=RpcSentryAppError(
                     message="Service hook not found for installation",
-                    webhook_context={},
                     status_code=404,
                 )
             )
@@ -260,7 +239,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             return RpcServiceHookProjectsResult(
                 error=RpcSentryAppError(
                     message="Projects list cannot be empty",
-                    webhook_context={},
                     status_code=400,
                 )
             )
@@ -273,7 +251,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             return RpcServiceHookProjectsResult(
                 error=RpcSentryAppError(
                     message="One or more project IDs do not belong to the organization",
-                    webhook_context={},
                     status_code=400,
                 )
             )
@@ -286,7 +263,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             return RpcServiceHookProjectsResult(
                 error=RpcSentryAppError(
                     message="Service hook not found for installation",
-                    webhook_context={},
                     status_code=404,
                 )
             )
@@ -341,7 +317,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 success=False,
                 error=RpcSentryAppError(
                     message="Service hook not found for installation",
-                    webhook_context={},
                     status_code=404,
                 ),
             )
@@ -418,7 +393,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                     success=False,
                     error=RpcSentryAppError(
                         message=f"The field componentType is required and must be one of {COMPONENT_TYPES}",
-                        webhook_context={},
                         status_code=400,
                     ),
                 )
@@ -431,7 +405,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 success=False,
                 error=RpcSentryAppError(
                     message="The tsdbField must be one of: sentry_app_viewed, sentry_app_component_interacted",
-                    webhook_context={},
                     status_code=400,
                 ),
             )
