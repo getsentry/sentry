@@ -9,6 +9,8 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 import moment from 'moment-timezone';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -796,10 +798,10 @@ function WidgetViewerModal(props: Props) {
                 forceTransactions={metricsDataSide.forceTransactionsOnly}
               >
                 <Header closeButton>
-                  <WidgetHeader>
-                    <WidgetTitleRow>
+                  <Stack gap="md">
+                    <Flex align="center" gap="sm">
                       <h3>{widget.title}</h3>
-                    </WidgetTitleRow>
+                    </Flex>
                     {widget.description && (
                       <Tooltip
                         title={widget.description}
@@ -811,7 +813,7 @@ function WidgetViewerModal(props: Props) {
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       </Tooltip>
                     )}
-                  </WidgetHeader>
+                  </Stack>
                 </Header>
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
@@ -1262,18 +1264,6 @@ const ResultsContainer = styled('div')`
 
 const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
-`;
-
-const WidgetHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
-
-const WidgetTitleRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
 `;
 
 export default withPageFilters(WidgetViewerModal);
