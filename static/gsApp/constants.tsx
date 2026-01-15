@@ -216,4 +216,10 @@ export const BILLED_DATA_CATEGORY_INFO = {
     tallyType: 'seat',
     shortenedUnitName: t('contributor'),
   },
+  [DataCategoryExact.SIZE_ANALYSIS]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SIZE_ANALYSIS],
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1,
+    shortenedUnitName: t('upload'),
+  },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
