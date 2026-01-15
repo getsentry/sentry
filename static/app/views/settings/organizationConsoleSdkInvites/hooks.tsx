@@ -1,9 +1,4 @@
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 
 type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
@@ -29,8 +24,6 @@ export function useConsoleSdkInvites(orgSlug: string) {
 }
 
 export function useRevokeConsoleSdkPlatformInvite() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({
       orgSlug,
@@ -41,11 +34,6 @@ export function useRevokeConsoleSdkPlatformInvite() {
         method: 'DELETE',
         url: `/organizations/${orgSlug}/console-sdk-invites/`,
         data: {user_id: userId, platforms},
-      });
-    },
-    onSuccess: (_data, {orgSlug}: UseRevokeConsoleSdkPlatformInviteParams) => {
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
       });
     },
   });

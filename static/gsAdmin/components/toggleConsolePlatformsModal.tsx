@@ -22,7 +22,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {
   useConsoleSdkInvites,
   useRevokeConsoleSdkPlatformInvite,
@@ -147,7 +147,9 @@ function ToggleConsolePlatformsModal({
 
   const {mutateAsync: revokeConsoleInvites} = useRevokeConsoleSdkPlatformInvite();
 
-  const {isPending: isUpdatePending, mutate: updateConsolePlatforms} = useMutation({
+  const queryClient = useQueryClient();
+
+  const {isPending: isUpdatePending, mutateAsync: updateConsolePlatforms} = useMutation({
     mutationFn: (data: Record<string, boolean | number>) => {
       const {newConsoleSdkInviteQuota, ...platforms} = data;
       return fetchMutation({
@@ -163,15 +165,6 @@ function ToggleConsolePlatformsModal({
           consoleSdkInviteQuota: newConsoleSdkInviteQuota,
         },
       });
-    },
-    onMutate: () => {
-      addLoadingMessage(`Updating console platforms for ${organization.slug}\u2026`);
-    },
-    onSuccess: () => {
-      addSuccessMessage(`Console platforms updated for ${organization.slug}`);
-    },
-    onError: () => {
-      addErrorMessage(`Failed to update console platforms for ${organization.slug}`);
     },
   });
 
@@ -192,12 +185,14 @@ function ToggleConsolePlatformsModal({
   };
 
   const handleSubmit = async (data: Record<string, boolean | number>) => {
-    const revocationPromises: Array<Promise<unknown>> = [];
+    addLoadingMessage('Saving changes...');
+
+    const promises: Array<Promise<unknown>> = [];
     pendingRevocations.forEach((platforms, userId) => {
       if (platforms.size <= 0) {
         return;
       }
-      revocationPromises.push(
+      promises.push(
         revokeConsoleInvites({
           orgSlug: organization.slug,
           userId,
@@ -205,14 +200,21 @@ function ToggleConsolePlatformsModal({
         })
       );
     });
+    promises.push(updateConsolePlatforms(data));
 
-    if (revocationPromises.length > 0) {
-      await Promise.all(revocationPromises);
-    }
+    await Promise.all(promises)
+      .then(() => {
+        addSuccessMessage('Console SDK settings updated successfully');
+        closeModal();
+        onSuccess();
+      })
+      .catch(() => {
+        addErrorMessage('Failed to update console SDK settings');
+      });
 
-    updateConsolePlatforms(data);
-    closeModal();
-    onSuccess();
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
+    });
   };
 
   return (
