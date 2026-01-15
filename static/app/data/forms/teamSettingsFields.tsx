@@ -1,14 +1,7 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {FormSearchContext} from 'sentry/data/forms/accountDetails';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import slugify from 'sentry/utils/slugify';
-
-export type FormSearchContext = {
-  access: Set<string>;
-  organization: Organization | null;
-  user: User | null;
-};
 
 // Export route to make these forms searchable by label/help
 // TODO: :teamId is not a valid route parameter
@@ -41,8 +34,10 @@ const baseFormGroups: readonly JsonFormObject[] = [
  * Accepts FormSearchContext for consistency with other form factories.
  */
 export function createTeamSettingsForm(
-  _context: FormSearchContext
+  context: FormSearchContext
 ): readonly JsonFormObject[] {
+  const {team} = context;
+
   // Always include teamId field for search discoverability
   return [
     {
@@ -54,6 +49,9 @@ export function createTeamSettingsForm(
           type: 'string',
           disabled: true,
           label: t('Team ID'),
+          setValue(_, _name) {
+            return team?.id ?? '';
+          },
           help: `The unique identifier for this team. It cannot be modified.`,
         },
       ],

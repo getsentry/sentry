@@ -122,6 +122,7 @@ function FormSource({searchOptions, query, children}: Props) {
     () => ({
       user,
       organization,
+      team: null,
       // TODO: Get actual access set from organization membership/permissions
       access: new Set(['org:write']),
     }),

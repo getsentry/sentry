@@ -1,11 +1,12 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 
 export type FormSearchContext = {
   access: Set<string>;
   organization: Organization | null;
   user: User | null;
+  team?: Team | null;
 };
 
 export const route = '/settings/account/details/';

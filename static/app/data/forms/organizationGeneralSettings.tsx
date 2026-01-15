@@ -5,20 +5,13 @@ import {ExternalLink} from 'sentry/components/core/link';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
+import type {FormSearchContext} from 'sentry/data/forms/accountDetails';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import slugify from 'sentry/utils/slugify';
 import {makeHideAiFeaturesField} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 import {makePreventAiField} from 'sentry/views/settings/organizationGeneralSettings/preventAiSettings';
-
-export type FormSearchContext = {
-  access: Set<string>;
-  organization: Organization | null;
-  user: User | null;
-};
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
