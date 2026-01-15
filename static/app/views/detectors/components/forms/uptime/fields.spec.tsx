@@ -96,7 +96,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
 
     const payload = uptimeFormDataToEndpointPayload(formData);
 
-    expect(payload.dataSources[0].assertion).toEqual(assertion);
+    expect(payload.dataSources[0]?.assertion).toEqual(assertion);
   });
 
   it('converts body to null when empty string', () => {
@@ -121,7 +121,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
 
     const payload = uptimeFormDataToEndpointPayload(formData);
 
-    expect(payload.dataSources[0].body).toBeNull();
+    expect(payload.dataSources[0]?.body).toBeNull();
   });
 
   it('includes non-empty body in payload', () => {
@@ -146,7 +146,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
 
     const payload = uptimeFormDataToEndpointPayload(formData);
 
-    expect(payload.dataSources[0].body).toBe('{"key": "value"}');
+    expect(payload.dataSources[0]?.body).toBe('{"key": "value"}');
   });
 
   it('uses default thresholds when not provided', () => {
@@ -180,7 +180,7 @@ describe('uptimeSavedDetectorToFormData', () => {
   it('converts detector to form data', () => {
     const detector = UptimeDetectorFixture({
       name: 'Saved Monitor',
-      owner: {type: 'user', id: '1'},
+      owner: {type: 'user', id: '1', name: 'User 1'},
       projectId: '123',
       config: {
         environment: 'production',
@@ -255,7 +255,7 @@ describe('uptimeSavedDetectorToFormData', () => {
 
   it('uses default values when data source is missing', () => {
     const detector = UptimeDetectorFixture({
-      dataSources: [],
+      dataSources: [] as any,
     });
 
     const formData = uptimeSavedDetectorToFormData(detector);
