@@ -6,13 +6,10 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import type {DocIntegration} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import DocIntegrationModal from 'admin/components/docIntegrationModal';
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (doc: DocIntegration) => [
   <td key="name" style={{textAlign: 'left'}}>
@@ -37,7 +34,7 @@ const getRow = (doc: DocIntegration) => [
   </td>,
 ];
 
-function DocIntegrations(props: Props) {
+export default function DocIntegrations() {
   return (
     <div>
       <PageHeader title="Document Integrations">
@@ -70,10 +67,7 @@ function DocIntegrations(props: Props) {
           </th>,
         ]}
         columnsForRow={getRow}
-        {...props}
       />
     </div>
   );
 }
-
-export default DocIntegrations;

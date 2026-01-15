@@ -371,7 +371,7 @@ const StyledCard = styled(Card)<{isEditing: boolean}>`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   background-color: ${props =>
-    props.isEditing ? props.theme.colors.surface300 : 'inherit'};
+    props.isEditing ? props.theme.tokens.background.tertiary : 'inherit'};
 `;
 
 const NotificationRecipientBadge = styled(Badge)`

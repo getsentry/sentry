@@ -356,7 +356,7 @@ const NavLink = styled(Link, {
     width: 4px;
     height: 20px;
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
@@ -441,7 +441,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   font-size: ${p => p.theme.fontSize.xs};
   background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;

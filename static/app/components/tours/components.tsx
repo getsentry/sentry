@@ -477,7 +477,7 @@ const TopRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
@@ -527,7 +527,7 @@ const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.radius.md};
-      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent.vibrant};
       ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
   }

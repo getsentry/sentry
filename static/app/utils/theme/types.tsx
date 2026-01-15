@@ -51,12 +51,15 @@ type SemanticVariant =
 /**
  * Content/text color variant.
  */
-export type ContentVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'muted';
+export type ContentVariant =
+  | Exclude<SemanticVariant, 'neutral'>
+  | 'primary'
+  | 'secondary';
 
 /**
  * Graphics/icon color variant.
  */
-export type GraphicsVariant = Exclude<SemanticVariant, 'neutral'> | 'muted';
+export type GraphicsVariant = SemanticVariant;
 
 /**
  * Border color variant.

@@ -79,7 +79,7 @@ export const inputStyles = ({
     borderRadius: theme.form[size].borderRadius,
 
     '&::placeholder': {
-      color: theme.tokens.content.muted,
+      color: theme.tokens.content.secondary,
       opacity: 1,
     },
 

@@ -7,13 +7,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconEdit, IconStack} from 'sentry/icons';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import EditAdminOptionModal from 'admin/components/editAdminOptionModal';
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 export interface SerializedOption {
   fieldType: 'bool' | 'rate';
@@ -90,7 +87,7 @@ function EditableOption({
   );
 }
 
-function Options(props: Props) {
+export default function Options() {
   return (
     <div>
       <PageHeader title="Options" />
@@ -108,7 +105,6 @@ function Options(props: Props) {
         ]}
         columnsForRow={getRow}
         hasSearch
-        {...props}
       />
     </div>
   );
@@ -127,5 +123,3 @@ const modalCss = css`
 function isNum(input: any): input is number {
   return typeof input === 'number' && !isNaN(input);
 }
-
-export default Options;

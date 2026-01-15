@@ -3,12 +3,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: any) => [
   <td key="name">
@@ -40,7 +37,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function SentryApps(props: Props) {
+export default function SentryApps() {
   return (
     <div>
       <PageHeader title="Integration Platform Apps" />
@@ -60,10 +57,7 @@ function SentryApps(props: Props) {
           </th>,
         ]}
         columnsForRow={getRow}
-        {...props}
       />
     </div>
   );
 }
-
-export default SentryApps;

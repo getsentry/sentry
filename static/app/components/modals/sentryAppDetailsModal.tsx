@@ -21,7 +21,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
@@ -165,7 +164,7 @@ export default function SentryAppDetailsModal(props: Props) {
           {!!features.length && <Features>{featureTags(features)}</Features>}
         </Stack>
       </Heading>
-      <Description text={overview} />
+      <Description>{overview}</Description>
       <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
       <IntegrationFeatures {...featureProps}>
         {({disabled, disabledReason}) => (
@@ -217,12 +216,9 @@ const Name = styled('div')`
   font-size: 1.4em;
 `;
 
-const Description = styled(MarkedText)`
+const Description = styled('div')`
   margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: 6px;
-  }
+  white-space: pre-wrap;
 `;
 
 const Author = styled('div')`

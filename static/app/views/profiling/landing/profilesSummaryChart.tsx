@@ -154,7 +154,7 @@ export function ProfilesSummaryChart({
           gridIndex: 0,
           scale: true,
           axisLabel: {
-            color: theme.tokens.content.muted,
+            color: theme.tokens.content.secondary,
             formatter(value: number) {
               return axisLabelFormatter(value, 'integer');
             },
@@ -164,7 +164,7 @@ export function ProfilesSummaryChart({
           gridIndex: 1,
           scale: true,
           axisLabel: {
-            color: theme.tokens.content.muted,
+            color: theme.tokens.content.secondary,
             formatter(value: number) {
               return axisLabelFormatter(value, 'duration');
             },
@@ -174,7 +174,7 @@ export function ProfilesSummaryChart({
     };
 
     return baseProps;
-  }, [hideCount, series, seriesOrder, theme.tokens.content.muted]);
+  }, [hideCount, series, seriesOrder, theme.tokens.content.secondary]);
 
   return (
     <ProfilesChartContainer>
