@@ -85,6 +85,16 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
   // Track if we've started fetching (for loading state)
   const [hasFetched, setHasFetched] = useState(false);
 
+  // Store callbacks in refs to avoid adding them to dependency arrays
+  const onDataFetchedRef = useRef(onDataFetched);
+  const onDataFetchStartRef = useRef(onDataFetchStart);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onDataFetchedRef.current = onDataFetched;
+    onDataFetchStartRef.current = onDataFetchStart;
+  });
+
   // Helper to apply dashboard filters
   const applyDashboardFilters = useCallback(
     (widgetToFilter: Widget): Widget => {
@@ -295,9 +305,9 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
   // Call onDataFetched when data is ready
   useEffect(() => {
     if (queryResults.every(q => q.isSuccess)) {
-      onDataFetched?.(transformedData as OnDataFetchedProps);
+      onDataFetchedRef.current?.(transformedData as OnDataFetchedProps);
     }
-  }, [queryResults, transformedData, onDataFetched]);
+  }, [queryResults, transformedData]);
 
   // Queue integration for initial fetch
   const hasInitialFetchRef = useRef(false);
@@ -409,9 +419,9 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
   // Call onDataFetchStart when queries start
   useEffect(() => {
     if (isLoading) {
-      onDataFetchStart?.();
+      onDataFetchStartRef.current?.();
     }
-  }, [isLoading, onDataFetchStart]);
+  }, [isLoading]);
 
   return {
     loading: isLoading || propsLoading || !hasFetched,
