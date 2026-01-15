@@ -41,6 +41,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/customers/[^/]+/subscription/usage-logs/$'),
   new RegExp('^api/0/customers/[^/]+/policies/$'),
   new RegExp('^api/0/customers/[^/]+/migrate-google-domain/$'),
+  new RegExp('^api/0/customers/[^/]+/integrations/$'),
   new RegExp('^api/0/users/[^/]+/merge-accounts/$'),
   new RegExp('^api/0/organizations/[^/]+/partnership-agreements/$'),
   new RegExp('^api/0/policies/$'),
