@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PromoCode as PromoCodeType} from 'admin/types';
@@ -25,40 +24,34 @@ function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
 
 describe('PromoCodes', () => {
   it('renders', async () => {
-    const {routerProps} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [],
     });
-    render(<PromoCodes {...routerProps} />);
+    render(<PromoCodes />);
     expect(await screen.findByRole('heading', {name: 'Promo Codes'})).toBeInTheDocument();
   });
 
   it('shows a promo code created by someone with an email', async () => {
-    const {routerProps} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [PromoCodeFixture({})],
     });
-    render(<PromoCodes {...routerProps} />);
+    render(<PromoCodes />);
     expect(
       await screen.findByRole('link', {name: 'hellboy@cutecats.io'})
     ).toBeInTheDocument();
   });
 
   it('shows a promo code created by someone without an email', async () => {
-    const {routerProps} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [PromoCodeFixture({userEmail: null})],
     });
-    render(<PromoCodes {...routerProps} />);
+    render(<PromoCodes />);
     expect(await screen.findByRole('link', {name: 'Created By'})).toBeEmptyDOMElement();
   });
 });
