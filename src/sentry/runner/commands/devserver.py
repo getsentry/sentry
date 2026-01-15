@@ -432,10 +432,8 @@ def devserver(
             os.environ["SENTRY_REGION_SILO_PORT"] = str(server_port)
             os.environ["SENTRY_CONTROL_SILO_PORT"] = str(ports["server"] + 1)
             os.environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{server_port}"
+            os.environ["SENTRY_GRANIAN_WORKERS"] = "2"
             server_port = str(ports["region.server"])
-            # TODO: recheck if we actually need to customise workers/threads
-            # os.environ["UWSGI_WORKERS"] = "8"
-            # os.environ["UWSGI_THREADS"] = "2"
 
         server = SentryHTTPServer(
             host=host,
@@ -462,6 +460,7 @@ def devserver(
             # Make sure that the environment is prepared before honcho takes over
             # This sets all the appropriate env vars, etc
             server.prepare_environment()
+            os.environ["SENTRY_GRANIAN_PORT"] = str(server_port)
 
             if silo != "control":
                 daemons += [_get_daemon("server")]
@@ -488,10 +487,8 @@ def devserver(
                 "SENTRY_CONTROL_SILO_PORT": server_port,
                 "SENTRY_REGION_SILO_PORT": str(ports["region.server"]),
                 "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
-                "SENTRY_WEB_PORT": str(ports["server"]),
-                # TODO: recheck if we actually need to customise workers/threads
-                # "UWSGI_WORKERS": "8",
-                # "UWSGI_THREADS": "2",
+                "SENTRY_GRANIAN_PORT": str(ports["server"]),
+                "SENTRY_GRANIAN_WORKERS": "2",
             }
             merged_env = os.environ.copy()
             merged_env.update(control_environ)

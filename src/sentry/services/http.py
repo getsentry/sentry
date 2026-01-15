@@ -22,8 +22,8 @@ def _run_server(options: dict[str, Any]):
         blocking_threads=options["threads"],
         respawn_failed_workers=True,
         reload=options["reload"],
-        reload_ignore_worker_failure=options["reload_ignore_worker_failure"],
-        process_name=options["process-name"],
+        reload_ignore_worker_failure=options["reload-ignore-worker-failure"],
+        process_name=options["proc-name"],
         workers_max_rss=options["reload-on-rss"],
         log_access=options["log-enabled"],
         log_access_format=options["log-format"],
@@ -47,9 +47,9 @@ class SentryHTTPServer(Service):
         from sentry import options as sentry_options
         from sentry.logging import LoggingFormat
 
-        host = host or settings.SENTRY_WEB_HOST or "127.0.0.1"
-        port = port or settings.SENTRY_WEB_PORT or 9000
-        workers = workers or 1
+        host = host or settings.SENTRY_WEB_HOST
+        port = port or int(os.environ.get("SENTRY_GRANIAN_PORT", "0")) or settings.SENTRY_WEB_PORT
+        workers = workers or int(os.environ.get("SENTRY_GRANIAN_WORKERS", "1"))
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         if extra_options is not None:
