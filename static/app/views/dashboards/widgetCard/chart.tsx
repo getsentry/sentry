@@ -84,13 +84,13 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
 
 type TableComponentProps = Pick<
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   'errorMessage' | 'loading' | 'tableResults'
 > & {
   selection: PageFilters;
@@ -102,7 +102,7 @@ type TableComponentProps = Pick<
   onWidgetTableSort?: (sort: Sort) => void;
 };
 
-type WidgetCardChartProps = Pick<GenericWidgetQueriesChildrenProps, 'timeseriesResults'> &
+type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'> &
   TableComponentProps & {
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;

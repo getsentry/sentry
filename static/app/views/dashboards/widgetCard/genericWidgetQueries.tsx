@@ -3,16 +3,19 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -20,7 +23,7 @@ import {
   dashboardFiltersToString,
   isChartDisplayType,
 } from 'sentry/views/dashboards/utils';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export function getReferrer(displayType: DisplayType) {
@@ -50,7 +53,7 @@ export type OnDataFetchedProps = {
   totalIssuesCount?: string;
 };
 
-export type GenericWidgetQueriesChildrenProps = {
+export type GenericWidgetQueriesResult = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
@@ -65,12 +68,8 @@ export type GenericWidgetQueriesChildrenProps = {
   totalCount?: string;
 };
 
-export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
-  api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => React.ReactNode;
+export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
-  organization: Organization;
-  selection: PageFilters;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;
   afterFetchTableData?: (
@@ -79,8 +78,8 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
   customDidUpdateComparator?: (
-    prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
-    nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
+    prevProps: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>,
+    nextProps: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
   dashboardFilters?: DashboardFilters;
   disabled?: boolean;
@@ -97,22 +96,21 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
-  queue?: WidgetQueryQueue;
   samplingMode?: SamplingMode;
+  // Optional selection override - if not provided, usePageFilters hook will be used
+  // This is needed for the widget viewer modal where local zoom state (modalSelection)
+  // needs to override global PageFiltersStore
+  selection?: PageFilters;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
 };
 
-function GenericWidgetQueries<SeriesResponse, TableResponse>(
-  props: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
-) {
+export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
+  props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
+): GenericWidgetQueriesResult {
   const {
-    api,
-    children,
     config,
-    organization,
-    selection,
     widget,
     afterFetchSeriesData,
     afterFetchTableData,
@@ -127,10 +125,18 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     onDataFetchStart,
     onDataFetched,
     onDemandControlContext,
-    queue,
     samplingMode,
+    selection: propsSelection,
     skipDashboardFilterParens,
   } = props;
+
+  const api = useApi();
+  const organization = useOrganization();
+  const hookPageFilters = usePageFilters();
+  const {queue} = useWidgetQueryQueue();
+
+  // Use override selection if provided (for modal zoom), otherwise use hook
+  const selection = propsSelection ?? hookPageFilters.selection;
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
@@ -152,8 +158,9 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
   const isMountedRef = useRef(false);
   const queryFetchIDRef = useRef<symbol | undefined>(undefined);
   const prevPropsRef = useRef<
-    GenericWidgetQueriesProps<SeriesResponse, TableResponse> | undefined
+    UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> | undefined
   >(undefined);
+  const prevSelectionRef = useRef(selection);
   const rawResultsRef = useRef<SeriesResponse[] | undefined>(undefined);
   const hasInitialFetchRef = useRef(false);
   // Ref to store the latest fetchData function for the queue
@@ -537,11 +544,12 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
           !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
           !isEqual(forceOnDemand, prevProps.forceOnDemand) ||
           !isEqual(disabled, prevProps.disabled) ||
-          !isSelectionEqual(selection, prevProps.selection) ||
+          !isSelectionEqual(selection, prevSelectionRef.current) ||
           cursor !== prevProps.cursor
     ) {
       fetchDataWithQueueIfAvailable();
       prevPropsRef.current = props;
+      prevSelectionRef.current = selection;
       return;
     }
 
@@ -580,7 +588,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     props,
   ]);
 
-  return children({
+  return {
     loading,
     tableResults,
     timeseriesResults,
@@ -588,7 +596,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>(
     pageLinks,
     timeseriesResultsTypes,
     timeseriesResultsUnits,
-  });
+  };
 }
 
 export function cleanWidgetForRequest(widget: Widget): Widget {
@@ -600,5 +608,3 @@ export function cleanWidgetForRequest(widget: Widget): Widget {
 
   return _widget;
 }
-
-export default GenericWidgetQueries;
