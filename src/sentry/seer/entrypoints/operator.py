@@ -85,7 +85,12 @@ class SeerOperator[CachePayloadT]:
             if stopping_point == AutofixStoppingPoint.SOLUTION:
                 # TODO(Leander): We need to figure out a way to get the real cause_id for this.
                 # Probably need to add it to the root cause webhook from seer's side.
-                payload = AutofixSelectRootCausePayload(type="select_root_cause", cause_id=0)
+                payload = AutofixSelectRootCausePayload(
+                    type="select_root_cause",
+                    cause_id=0,
+                    # XXX: Continue from solution to code changes automatically.
+                    stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+                )
             elif stopping_point == AutofixStoppingPoint.CODE_CHANGES:
                 payload = AutofixSelectSolutionPayload(type="select_solution")
             elif stopping_point == AutofixStoppingPoint.OPEN_PR:

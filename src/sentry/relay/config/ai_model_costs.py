@@ -22,6 +22,7 @@ class AIModelCostV2(TypedDict):
     outputPerToken: float
     outputReasoningPerToken: float
     inputCachedPerToken: float
+    inputCacheWritePerToken: float
 
 
 class AIModelCosts(TypedDict):

@@ -21,7 +21,6 @@ import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
 import type {
   AlertVariant,
-  ButtonVariant,
   FormSize,
   LevelVariant,
   MotionDuration,
@@ -168,25 +167,7 @@ type AlertColors = Record<
   }
 >;
 
-const generateThemeUtils = (tokens: Tokens) => ({
-  tooltipUnderline: (
-    underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
-  ) => ({
-    textDecoration: 'underline' as const,
-    textDecorationThickness: '0.75px',
-    textUnderlineOffset: '1.25px',
-    textDecorationColor:
-      underlineColor === 'warning'
-        ? tokens.content.warning
-        : underlineColor === 'danger'
-          ? tokens.content.danger
-          : underlineColor === 'success'
-            ? tokens.content.success
-            : underlineColor === 'muted'
-              ? tokens.content.secondary
-              : undefined,
-    textDecorationStyle: 'dotted' as const,
-  }),
+const generateThemeUtils = () => ({
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
     clip: rect(0 0 0 0);
@@ -197,76 +178,6 @@ const generateThemeUtils = (tokens: Tokens) => ({
     white-space: nowrap;
     width: 1px;
   `,
-});
-
-const generateButtonTheme = (colors: Colors, tokens: Tokens): ButtonColors => ({
-  default: {
-    // all alias-based, already derived from new theme
-    color: tokens.content.primary,
-    colorActive: tokens.content.primary,
-    background: tokens.background.primary,
-    backgroundActive: tokens.background.transparent.neutral.muted,
-    border: tokens.border.primary,
-    borderActive: tokens.border.primary,
-    borderTranslucent: tokens.border.transparent.neutral.muted,
-    focusBorder: tokens.focus.default,
-    focusShadow: tokens.focus.default,
-  },
-  primary: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.blue400,
-    backgroundActive: colors.blue500,
-    border: colors.blue400,
-    borderActive: colors.blue400,
-    borderTranslucent: colors.blue400,
-    focusBorder: tokens.focus.default,
-    focusShadow: tokens.focus.default,
-  },
-  danger: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.red400,
-    backgroundActive: colors.red500,
-    border: colors.red400,
-    borderActive: colors.red400,
-    borderTranslucent: colors.red400,
-    focusBorder: colors.red400,
-    focusShadow: colors.red200,
-  },
-  link: {
-    color: tokens.interactive.link.accent.rest,
-    colorActive: tokens.interactive.link.accent.hover,
-    background: 'transparent',
-    backgroundActive: 'transparent',
-    border: 'transparent',
-    borderActive: 'transparent',
-    borderTranslucent: 'transparent',
-    focusBorder: tokens.focus.default,
-    focusShadow: tokens.focus.default,
-  },
-  disabled: {
-    color: tokens.content.disabled,
-    colorActive: tokens.content.disabled,
-    background: tokens.background.primary,
-    backgroundActive: tokens.background.primary,
-    border: tokens.content.disabled,
-    borderActive: tokens.content.disabled,
-    borderTranslucent: tokens.border.transparent.neutral.muted,
-    focusBorder: 'transparent',
-    focusShadow: 'transparent',
-  },
-  transparent: {
-    color: tokens.content.primary,
-    colorActive: tokens.content.primary,
-    background: 'transparent',
-    backgroundActive: 'transparent',
-    border: 'transparent',
-    borderActive: 'transparent',
-    borderTranslucent: 'transparent',
-    focusBorder: 'transparent',
-    focusShadow: 'transparent',
-  },
 });
 
 const generateAlertTheme = (colors: Colors, tokens: Tokens): AlertColors => ({
@@ -330,21 +241,6 @@ const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors
 type Colors = typeof lightColors;
 
 type LevelColors = Record<LevelVariant, string>;
-
-type ButtonColors = Record<
-  ButtonVariant,
-  {
-    background: string;
-    backgroundActive: string;
-    border: string;
-    borderActive: string;
-    borderTranslucent: string;
-    color: string;
-    colorActive: string;
-    focusBorder: string;
-    focusShadow: string;
-  }
->;
 
 const legacyTypography = {
   fontSize: typography.font.size,
@@ -1082,40 +978,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
 
   /** @deprecated */
-  get red400() {
-    return colors.red500;
-  },
-  /** @deprecated */
-  get red300() {
-    return colors.red400;
-  },
-  /** @deprecated */
-  get red200() {
-    return colors.red200;
-  },
-  /** @deprecated */
-  get red100() {
-    return colors.red100;
-  },
-
-  /** @deprecated */
-  get yellow400() {
-    return colors.yellow500;
-  },
-  /** @deprecated */
-  get yellow300() {
-    return colors.yellow400;
-  },
-  /** @deprecated */
-  get yellow200() {
-    return colors.yellow200;
-  },
-  /** @deprecated */
-  get yellow100() {
-    return colors.yellow100;
-  },
-
-  /** @deprecated */
   get green400() {
     return colors.green500;
   },
@@ -1148,9 +1010,8 @@ const lightThemeDefinition = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(baseLightTheme.tokens),
+  ...generateThemeUtils(),
   alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
-  button: generateButtonTheme(lightColors, baseLightTheme.tokens),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
@@ -1186,9 +1047,8 @@ export const darkTheme: SentryTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(baseDarkTheme.tokens),
+  ...generateThemeUtils(),
   alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
-  button: generateButtonTheme(darkColors, baseDarkTheme.tokens),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {

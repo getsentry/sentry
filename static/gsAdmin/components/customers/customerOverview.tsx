@@ -888,7 +888,7 @@ function ThresholdLabel({positive, children}: ThresholdLabelProps) {
 }
 
 const ThresholdValue = styled('dd')<{positive: boolean}>`
-  color: ${p => (p.positive ? p.theme.green400 : p.theme.red400)};
+  color: ${p => (p.positive ? p.theme.green400 : p.theme.colors.red500)};
 `;
 
 export default CustomerOverview;

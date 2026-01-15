@@ -1,17 +1,17 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
@@ -48,26 +48,35 @@ function RootAllocationCard({
   }, [selectedMetric]);
 
   return (
-    <RootAllocation>
+    <Container margin="xl 0">
       {!rootAllocation && (
         <Card data-test-id="missing-root">
           <Flex justify="between">
-            <NoRootInfo>
-              There is currently no organization-level allocation for this billing metric.
-              <p>
-                An organization-level allocation is required to distribute allocations to
-                projects.
-              </p>
-              Click the button to create one and to enable spend allocation for{' '}
-              {selectedMetric}.
-            </NoRootInfo>
+            <Container marginRight="xl">
+              {t(
+                'There is currently no organization-level allocation for this billing metric. '
+              )}
+              <Text>
+                {t(
+                  'An organization-level allocation is required to distribute allocations to projects. '
+                )}
+              </Text>
+              <Text>
+                {tct(
+                  'Click the button to create one and to enable spend allocation for [selectedMetric].',
+                  {
+                    selectedMetric,
+                  }
+                )}
+              </Text>
+            </Container>
             <Flex justify="center" align="center" area="bt" column="-auto / span 1">
               <Button
                 icon={<IconAdd />}
                 onClick={createRootAllocation}
                 disabled={rootAllocation}
               >
-                Create Organization-Level Allocation
+                {t('Create Organization-Level Allocation')}
               </Button>
             </Flex>
           </Flex>
@@ -76,13 +85,17 @@ function RootAllocationCard({
       {rootAllocation && (
         <Card>
           <HalvedGrid>
-            <div>
-              <Header>
-                {t('Un-Allocated ')}
-                {capitalize(selectedMetric)}&nbsp;
-                {t('Pool')}
-              </Header>
-              <Body>
+            <Container>
+              <Container padding="md">
+                <Text bold size="lg" variant="muted">
+                  {tct('Un-Allocated [selectedMetric] Pool', {
+                    selectedMetric: toTitleCase(selectedMetric, {
+                      allowInnerUpperCase: true,
+                    }),
+                  })}
+                </Text>
+              </Container>
+              <Container padding="md">
                 {tct(
                   `The un-allocated pool represents the remaining Reserved Volume available for your projects. Excess project consumption will first consume events from your un-allocated pool, and then from your [pricingLink] volume, if available`,
                   {
@@ -93,8 +106,8 @@ function RootAllocationCard({
                     ),
                   }
                 )}
-              </Body>
-            </div>
+              </Container>
+            </Container>
             <Table>
               <colgroup>
                 <col style={{width: '50%'}} />
@@ -104,14 +117,14 @@ function RootAllocationCard({
               <tbody>
                 <tr>
                   <THead />
-                  <THead>$ Spend</THead>
-                  <THead>Event Volume</THead>
+                  <THead>{t('$ Spend')}</THead>
+                  <THead>{t('Event Volume')}</THead>
                 </tr>
                 <tr>
-                  <Cell>Available</Cell>
+                  <Cell>{t('Available')}</Cell>
                   <Cell>
                     {rootAllocation.costPerItem === 0 ? (
-                      <Tooltip title="Cost per event is unavailable for base plans">
+                      <Tooltip title={t('Cost per event is unavailable for base plans')}>
                         --
                       </Tooltip>
                     ) : (
@@ -127,11 +140,11 @@ function RootAllocationCard({
                   </Cell>
                 </tr>
                 <tr>
-                  <Cell>Consumed</Cell>
+                  <Cell>{t('Consumed')}</Cell>
                   <Cell>
                     {/* TODO: include OD costs if enabled */}
                     {rootAllocation.costPerItem === 0 ? (
-                      <Tooltip title="Cost per event is unavailable for base plans">
+                      <Tooltip title={t('Cost per event is unavailable for base plans')}>
                         --
                       </Tooltip>
                     ) : (
@@ -165,15 +178,17 @@ function RootAllocationCard({
                         }
                       >
                         &nbsp;
-                        <span style={{color: theme.red400, marginLeft: space(1)}}>
-                          (
-                          {bigNumFormatter(
-                            rootAllocation.consumedQuantity -
-                              rootAllocation.reservedQuantity,
-                            2,
-                            metricUnit
-                          )}{' '}
-                          over)
+                        <span
+                          style={{color: theme.colors.red500, marginLeft: theme.space.md}}
+                        >
+                          {tct('([overCount] over)', {
+                            overCount: bigNumFormatter(
+                              rootAllocation.consumedQuantity -
+                                rootAllocation.reservedQuantity,
+                              2,
+                              metricUnit
+                            ),
+                          })}
                         </span>
                       </Tooltip>
                     )}
@@ -184,39 +199,24 @@ function RootAllocationCard({
           </HalvedGrid>
         </Card>
       )}
-    </RootAllocation>
+    </Container>
   );
 }
 
+function THead({children}: {children?: React.ReactNode}) {
+  const theme = useTheme();
+  return <th style={{padding: theme.space.md}}>{children}</th>;
+}
+
+function Cell({children}: {children?: React.ReactNode}) {
+  const theme = useTheme();
+  return <td style={{padding: theme.space.md}}>{children}</td>;
+}
+
 export default RootAllocationCard;
-
-const Header = styled('div')`
-  display: flex;
-  color: ${p => p.theme.colors.gray500};
-  font-weight: 600;
-  font-size: ${p => p.theme.fontSize.lg};
-  padding: ${space(1)};
-`;
-const Body = styled('div')`
-  padding: ${space(1)};
-`;
-
-const RootAllocation = styled('div')`
-  margin: ${space(2)} 0;
-`;
-
-const NoRootInfo = styled('div')`
-  margin-right: ${space(2)};
-`;
 
 const Table = styled('table')`
   tr:nth-child(even) {
     background-color: ${p => p.theme.tokens.background.secondary};
   }
-`;
-const THead = styled('th')`
-  padding: ${space(1)};
-`;
-const Cell = styled('td')`
-  padding: ${space(1)};
 `;

@@ -186,11 +186,13 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
             )
         )
 
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+
     return BuildDetailsAppInfo(
         app_id=artifact.app_id,
-        name=artifact.app_name,
-        version=artifact.build_version,
-        build_number=artifact.build_number,
+        name=mobile_app_info.app_name if mobile_app_info else None,
+        version=(mobile_app_info.build_version if mobile_app_info else None),
+        build_number=(mobile_app_info.build_number if mobile_app_info else None),
         date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
         date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
         artifact_type=artifact.artifact_type,
@@ -198,7 +200,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
         build_configuration=(
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
-        app_icon_id=artifact.app_icon_id,
+        app_icon_id=(mobile_app_info.app_icon_id if mobile_app_info else None),
         apple_app_info=apple_app_info,
         android_app_info=android_app_info,
     )
