@@ -542,7 +542,7 @@ export const getNodeAgentMonitoringOnboarding = ({
     },
   ],
   configure: params => {
-    const isNodePackage = packageName === '@sentry/node';
+    const isNodePlatform = params.platformKey.startsWith('node');
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
 
@@ -631,7 +631,7 @@ const result = await generateText({
     const nonManualContent: ContentBlock[] = [
       {
         type: 'text',
-        text: isNodePackage
+        text: isNodePlatform
           ? tct(
               'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
               {
@@ -666,7 +666,7 @@ Sentry.init({
     return [
       {
         title: t('Configure'),
-        content: isNodePackage
+        content: isNodePlatform
           ? nonManualContent
           : [
               ...nonManualContent,
@@ -680,7 +680,7 @@ Sentry.init({
     ];
   },
   verify: params => {
-    const isNodePackage = packageName === '@sentry/node';
+    const isNodePlatform = params.platformKey.startsWith('node');
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
     const content: ContentBlock[] = [
@@ -699,13 +699,13 @@ Sentry.init({
             language: 'javascript',
             code: `
 ${
-  isNodePackage
+  isNodePlatform
     ? `const Anthropic = require("anthropic");
 const anthropic = new Anthropic();`
     : ''
 }
 
-const msg = await ${isNodePackage ? 'anthropic' : 'client'}.messages.create({
+const msg = await ${isNodePlatform ? 'anthropic' : 'client'}.messages.create({
 model: "claude-3-5-sonnet",
 messages: [{role: "user", content: "Tell me a joke"}],
 });`,
@@ -722,7 +722,7 @@ messages: [{role: "user", content: "Tell me a joke"}],
             language: 'javascript',
             code: `
 ${
-  isNodePackage
+  isNodePlatform
     ? `
 const OpenAI = require("openai");
 const client = new OpenAI();`
@@ -746,7 +746,7 @@ const response = await client.responses.create({
             language: 'javascript',
             code: `
             ${
-              isNodePackage
+              isNodePlatform
                 ? `
 const GoogleGenAI = require("@google/genai").GoogleGenAI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -755,7 +755,7 @@ const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
 `
                 : ''
             }
-const response = await ${isNodePackage ? 'ai' : 'client'}.models.generateContent({
+const response = await ${isNodePlatform ? 'ai' : 'client'}.models.generateContent({
   model: 'gemini-2.0-flash-001',
   contents: 'Why is the sky blue?',
 });`,
@@ -785,7 +785,7 @@ const messages = [
 ];
 
 const response = await chatModel.invoke(messages${
-              isNodePackage
+              isNodePlatform
                 ? ''
                 : `, {
   callbacks: [callbackHandler],
@@ -805,7 +805,7 @@ const text = response.content;`,
             language: 'javascript',
             code: `
 ${
-  isNodePackage
+  isNodePlatform
     ? `const { ChatOpenAI } = require("@langchain/openai");
 const { createReactAgent } = require("@langchain/langgraph/prebuilt");
 const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
