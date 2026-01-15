@@ -134,7 +134,7 @@ test-python-ci:
 		-o junit_suite_name=pytest
 	@echo ""
 
-test-python-ci-with-coverage:
+test-backend-ci-with-coverage:
 	@echo "--> Running CI Python tests with coverage"
 	COVERAGE_CORE=sysmon python3 -b -m pytest \
 		tests \

@@ -3,9 +3,9 @@ name: backend - with test coverage
 on:
   workflow_dispatch:
   workflow_call:
-  # Once an hour
+  # Every 30 minutes
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0,30 * * * *'
 
 jobs:
   # Skip generating coverage if already exists in GCS
@@ -31,7 +31,7 @@ jobs:
           echo "sha=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
         with:
           project_id: sentry-dev-tooling
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
@@ -96,7 +96,7 @@ jobs:
           mode: backend-ci
 
       - name: Run backend test with coverage (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: make test-python-ci-with-coverage
+        run: make test-backend-ci-with-coverage
 
       - name: Validate coverage database
         if: always()
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload raw coverage sqlite as artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pycoverage-sqlite-${{ github.run_id }}-${{ steps.setup.outputs.matrix-instance-number }}
           path: .coverage
@@ -137,7 +137,7 @@ jobs:
           enable-cache: false
 
       - name: Download all coverage artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: pycoverage-sqlite-${{ github.run_id }}-*
           path: .artifacts/all-coverage
@@ -175,14 +175,14 @@ jobs:
 
       - name: Authenticate to Google Cloud
         id: gcloud-auth
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
         with:
           project_id: sentry-dev-tooling
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
       - name: Upload coverage to GCS
-        uses: google-github-actions/upload-cloud-storage@v2
+        uses: google-github-actions/upload-cloud-storage@c0f6160ff80057923ff50e5e567695cea181ec23 # v2.2.4
         with:
           path: .coverage.combined
           destination: sentry-coverage-data/${{ needs.check-existing-coverage.outputs.commit-sha }}
