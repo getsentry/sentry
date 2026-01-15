@@ -1,0 +1,97 @@
+---
+title: Tag
+description: Tags are highlighted text elements that provide quick, at-a-glance contextual information such as status indicators.
+category: status
+source: 'sentry/components/core/badge/tag'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=3574-5336
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/badge/tag.tsx
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+---
+
+import {useState} from 'react';
+
+import {Tag} from 'sentry/components/core/badge/tag';
+import {IconCheckmark, IconCircle, IconRefresh, IconWarning} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+The `Tag` component is a generic primitive for displaying status information. Depending on the `variant` prop, it can be used as an error/warning/success indicator and for various other use cases.
+
+## Variants
+
+Tags support multiple variants for different semantic meanings.
+
+<Storybook.Demo>
+  <Tag variant="muted">Default</Tag>
+  <Tag variant="success">Success</Tag>
+  <Tag variant="danger">Error</Tag>
+  <Tag variant="warning">Warning</Tag>
+  <Tag variant="info">Info</Tag>
+  <Tag variant="promotion">Promotion</Tag>
+</Storybook.Demo>
+```jsx
+<Tag variant="muted">Default</Tag>
+<Tag variant="success">Success</Tag>
+<Tag variant="danger">Error</Tag>
+<Tag variant="warning">Warning</Tag>
+<Tag variant="info">Info</Tag>
+<Tag variant="promotion">Promotion</Tag>
+```
+
+## Icons
+
+The `icon` prop accepts an `<Icon />` component to render a custom leading icon.
+
+<Storybook.Demo>
+  <Tag icon={<IconCheckmark />} variant="success">
+    Success
+  </Tag>
+  <Tag icon={<IconWarning />} variant="warning">
+    Warning
+  </Tag>
+  <Tag icon={<IconCircle />} variant="promotion">
+    Promotion
+  </Tag>
+</Storybook.Demo>
+```jsx
+<Tag icon={<IconCheckmark />} variant="success">
+  Success
+</Tag>
+<Tag icon={<IconWarning />} variant="warning">
+  Warning
+</Tag>
+<Tag icon={<IconCircle />} variant="promotion">
+  Promotion
+</Tag>
+```
+
+## Dismissible Tags
+
+Pass a custom `onDismiss` callback to create a dismissible tag with a trailing close icon.
+
+export function DismissibleTag() {
+  const [dismissed, setDismissed] = useState(false);
+
+if (dismissed) {
+return <Tag icon={<IconRefresh />} variant="muted" onClick={() => setDismissed(false)}>Reset Tag</Tag>
+}
+
+return <Tag variant="info" onDismiss={() => setDismissed(true)}>
+Dismiss Tag
+
+  </Tag>
+}
+
+<Storybook.Demo>
+  <DismissibleTag />
+</Storybook.Demo>
+```jsx
+<Tag variant="info" onDismiss={() => setDismissed(true)}>
+  Dismiss Tag
+</Tag>
+```
+
+## See Also
+
+- [Badge](/stories/core/badge/) - Related component for feature badges, alert badges, and deploy badges
