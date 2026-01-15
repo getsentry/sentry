@@ -8,7 +8,6 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.vcs.status_checks.size.tasks import (
-    StatusCheckRule,
     _compute_overall_status,
     _evaluate_rule_threshold,
     _fetch_base_size_metrics,
@@ -16,6 +15,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
     _get_status_check_rules,
     _rule_matches_artifact,
 )
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
