@@ -145,12 +145,9 @@ def run_explorer_index_for_projects(
     if not projects:
         return
 
-    # The seer endpoint expects: {"projects": [{"org_id": int, "project_id": int}, ...]}
     project_list = [{"org_id": org_id, "project_id": project_id} for project_id, org_id in projects]
-
     payload = {"projects": project_list}
     body = orjson.dumps(payload)
-
     path = "/v1/automation/explorer/index"
 
     try:
@@ -164,18 +161,6 @@ def run_explorer_index_for_projects(
             timeout=30,
         )
         response.raise_for_status()
-
-        result = response.json()
-        scheduled_count = result.get("scheduled_count", 0)
-
-        logger.info(
-            "Successfully scheduled explorer index tasks in seer",
-            extra={
-                "scheduled_count": scheduled_count,
-                "requested_count": len(projects),
-            },
-        )
-
     except requests.RequestException as e:
         logger.exception(
             "Failed to schedule explorer index tasks in seer",
@@ -184,5 +169,15 @@ def run_explorer_index_for_projects(
                 "error": str(e),
             },
         )
-        # Re-raise to let the task framework handle retry logic
         raise
+
+    result = response.json()
+    scheduled_count = result.get("scheduled_count", 0)
+
+    logger.info(
+        "Successfully scheduled explorer index tasks in seer",
+        extra={
+            "scheduled_count": scheduled_count,
+            "requested_count": len(projects),
+        },
+    )
