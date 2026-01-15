@@ -42,30 +42,18 @@ type SchedulePreviewProps = {
 };
 
 export function SchedulePreview({
-  scheduleType,
-  scheduleCrontab,
-  scheduleIntervalValue,
-  scheduleIntervalUnit,
-  timezone,
-  failureIssueThreshold,
-  recoveryThreshold,
   tickStyle,
   statusToText,
   statusPrecedent,
   isSticky,
+  ...detectorFields
 }: SchedulePreviewProps) {
   const {
     data: sampleWindowData,
     isLoading: isLoadingSampleWindow,
     error: errorSampleWindow,
   } = useMonitorsScheduleSampleWindow({
-    scheduleType,
-    scheduleCrontab,
-    scheduleIntervalValue,
-    scheduleIntervalUnit,
-    timezone,
-    failureIssueThreshold,
-    recoveryThreshold,
+    ...detectorFields,
   });
 
   const elementRef = useRef<HTMLDivElement>(null);
@@ -76,7 +64,7 @@ export function SchedulePreview({
         new Date(sampleWindowData.start * 1000),
         new Date(sampleWindowData.end * 1000),
         timelineWidth,
-        timezone
+        detectorFields.timezone
       )
     : undefined;
 
@@ -89,16 +77,10 @@ export function SchedulePreview({
     isLoading: isLoadingSampleBuckets,
     error: errorSampleBuckets,
   } = useMonitorsScheduleSampleBuckets({
-    scheduleType,
-    scheduleCrontab,
-    scheduleIntervalValue,
-    scheduleIntervalUnit,
-    timezone,
-    failureIssueThreshold,
-    recoveryThreshold,
     start: start ? start.getTime() / 1000 : undefined,
     end: end ? end.getTime() / 1000 : undefined,
     interval: interval ?? undefined,
+    ...detectorFields,
   });
 
   if (errorSampleWindow || errorSampleBuckets) {
@@ -134,8 +116,8 @@ export function SchedulePreview({
         <Fragment>
           <GridLineOverlay showCursor timeWindowConfig={timeWindowConfig} />
           <OpenPeriod
-            failureThreshold={failureIssueThreshold}
-            recoveryThreshold={recoveryThreshold}
+            failureThreshold={detectorFields.failureIssueThreshold}
+            recoveryThreshold={detectorFields.recoveryThreshold}
             statusPrecedent={statusPrecedent}
             bucketedData={sampleBucketsData}
             timeWindowConfig={timeWindowConfig}
