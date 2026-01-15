@@ -66,47 +66,8 @@ const baseFormGroups: readonly JsonFormObject[] = [
 ];
 
 /**
- * Form groups for search - includes all fields for cmd+k discoverability.
- * Named export allows formSource to statically detect this as the searchable form definition.
- */
-export const formGroups: readonly JsonFormObject[] = [
-  {
-    ...baseFormGroups[0]!,
-    fields: [
-      ...baseFormGroups[0]!.fields,
-      {
-        name: 'organizationId',
-        type: 'string',
-        disabled: true,
-        label: t('Organization ID'),
-        help: `The unique identifier for this organization. It cannot be modified.`,
-      },
-      {
-        name: 'hideAiFeatures',
-        type: 'boolean',
-        label: t('Show Generative AI Features'),
-        help: t('Allows organization members to access generative AI features'),
-      },
-      {
-        name: 'codecovAccess',
-        type: 'boolean',
-        label: t('Enable Code Coverage Insights'),
-        help: t('powered by Codecov'),
-      },
-      {
-        name: 'enablePrReviewTestGeneration',
-        type: 'boolean',
-        label: t('Enable AI Code Review'),
-        help: t(
-          'Enable AI-powered code review and test generation for pull requests (Beta)'
-        ),
-      },
-    ],
-  },
-];
-
-/**
  * Factory function to create organization general settings form with all fields
+ * For search: invoke with {organization: {id: '', features: ['gen-ai-features', 'codecov-integration']}, access: new Set(['org:write'])}
  */
 export function createOrganizationGeneralSettingsForm(options: {
   access: Set<string>;

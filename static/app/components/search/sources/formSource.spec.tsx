@@ -81,12 +81,15 @@ describe('FormSource', () => {
     );
   });
 
-  describe('factory forms with named formGroups export', () => {
-    it('accountDetails exports formGroups with factory-added userId field', () => {
-      expect(accountDetailsForm.formGroups).toBeDefined();
-      expect(accountDetailsForm.formGroups[0]?.fields).toBeDefined();
+  describe('factory forms invocation', () => {
+    it('accountDetails factory returns form with userId field when invoked with includeUserId', () => {
+      const result = accountDetailsForm.createAccountDetailsForm({
+        includeUserId: true,
+        user: {id: 'test-user-id'} as any,
+      });
 
-      const fields = accountDetailsForm.formGroups[0]!.fields;
+      expect(result[0]?.fields).toBeDefined();
+      const fields = result[0]!.fields;
       const userIdField = fields.find(
         field => typeof field !== 'function' && field.name === 'userId'
       );
@@ -99,11 +102,18 @@ describe('FormSource', () => {
       });
     });
 
-    it('organizationGeneralSettings exports formGroups with factory-added fields', () => {
-      expect(organizationGeneralSettingsForm.formGroups).toBeDefined();
-      expect(organizationGeneralSettingsForm.formGroups[0]?.fields).toBeDefined();
+    it('organizationGeneralSettings factory returns form with factory-added fields', () => {
+      const result =
+        organizationGeneralSettingsForm.createOrganizationGeneralSettingsForm({
+          organization: {
+            id: 'test-org-id',
+            features: ['gen-ai-features', 'codecov-integration'],
+          } as any,
+          access: new Set(['org:write']),
+        });
 
-      const fields = organizationGeneralSettingsForm.formGroups[0]!.fields;
+      expect(result[0]?.fields).toBeDefined();
+      const fields = result[0]!.fields;
 
       // Check for organizationId field
       const organizationIdField = fields.find(
@@ -128,11 +138,14 @@ describe('FormSource', () => {
       expect(codecovField).toBeDefined();
     });
 
-    it('teamSettingsFields exports formGroups with factory-added teamId field', () => {
-      expect(teamSettingsFieldsForm.formGroups).toBeDefined();
-      expect(teamSettingsFieldsForm.formGroups[0]?.fields).toBeDefined();
+    it('teamSettingsFields factory returns form with teamId field when invoked with includeTeamId', () => {
+      const result = teamSettingsFieldsForm.createTeamSettingsForm({
+        includeTeamId: true,
+        team: {id: 'test-team-id'} as any,
+      });
 
-      const fields = teamSettingsFieldsForm.formGroups[0]!.fields;
+      expect(result[0]?.fields).toBeDefined();
+      const fields = result[0]!.fields;
       const teamIdField = fields.find(
         field => typeof field !== 'function' && field.name === 'teamId'
       );

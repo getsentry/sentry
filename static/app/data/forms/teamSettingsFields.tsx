@@ -30,27 +30,8 @@ const baseFormGroups: readonly JsonFormObject[] = [
 ];
 
 /**
- * Form groups for search - includes all fields for cmd+k discoverability.
- * Named export allows formSource to statically detect this as the searchable form definition.
- */
-export const formGroups: readonly JsonFormObject[] = [
-  {
-    ...baseFormGroups[0]!,
-    fields: [
-      ...baseFormGroups[0]!.fields,
-      {
-        name: 'teamId',
-        type: 'string',
-        disabled: true,
-        label: t('Team ID'),
-        help: `The unique identifier for this team. It cannot be modified.`,
-      },
-    ],
-  },
-];
-
-/**
  * Factory function to create team settings form with optional teamId field
+ * For search: invoke with {includeTeamId: true, team: {id: ''}} to get all searchable fields
  */
 export function createTeamSettingsForm(options?: {
   includeTeamId?: boolean;

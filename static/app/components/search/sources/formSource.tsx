@@ -70,10 +70,37 @@ function getSearchMap() {
       return [];
     }
 
+    let formGroups = mod.default;
+
+    // Check if the module exports a factory function (starts with 'create')
+    // If so, invoke it with mock arguments to get all searchable fields
+    const factoryFnKey = Object.keys(mod).find(
+      k => typeof mod[k] === 'function' && k.startsWith('create')
+    );
+
+    if (factoryFnKey) {
+      const factoryFn = mod[factoryFnKey];
+      try {
+        // Invoke factory with mock arguments to get full form definition for search
+        // Different factories need different arguments
+        if (factoryFnKey === 'createAccountDetailsForm') {
+          formGroups = factoryFn({includeUserId: true, user: {id: ''}});
+        } else if (factoryFnKey === 'createTeamSettingsForm') {
+          formGroups = factoryFn({includeTeamId: true, team: {id: ''}});
+        } else if (factoryFnKey === 'createOrganizationGeneralSettingsForm') {
+          formGroups = factoryFn({
+            organization: {id: '', features: ['gen-ai-features', 'codecov-integration']},
+            access: new Set(['org:write']),
+          });
+        }
+      } catch {
+        // If factory invocation fails, fall back to default export
+        formGroups = mod.default;
+      }
+    }
+
     const searchMap = createSearchMap({
-      // Prefer named `formGroups` export (used by forms with factories for searchable fields)
-      // Fall back to `default` export for backwards compatibility with static forms
-      formGroups: mod.formGroups || mod.default,
+      formGroups,
       fields: mod.fields,
       route: mod.route,
     });
