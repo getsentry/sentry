@@ -1120,6 +1120,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
     },
+    "seer-explorer-index": {
+        "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
+        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
