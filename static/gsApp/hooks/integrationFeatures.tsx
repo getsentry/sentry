@@ -246,7 +246,7 @@ const HasFeatureIndicator = styled((p: any) => (
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.colors.green400};
   font-weight: bold;
   text-transform: uppercase;
   font-size: 0.8em;
