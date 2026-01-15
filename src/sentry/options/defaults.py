@@ -1254,6 +1254,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "seer.explorer_index.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
 # {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
 register(
