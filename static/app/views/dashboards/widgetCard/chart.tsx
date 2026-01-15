@@ -804,7 +804,7 @@ function LoadingScreen({
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />
 ))`
-  background-color: ${p => p.theme.colors.surface400};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
