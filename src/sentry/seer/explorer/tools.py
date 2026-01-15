@@ -920,6 +920,7 @@ def get_group_tags_overview(
         "query": f"issue:{group.qualified_short_id}",
         "dataset": dataset,
         "project": [group.project_id],
+        "per_page": 1000,
     }
     if start:
         params["start"] = start
@@ -944,7 +945,7 @@ def get_group_tags_overview(
         end=end,
         per_page=1,
     )
-    event_count = count_result.get("data", [{}])[0].get("count()", 0)
+    event_count = (count_result or {}).get("data", [{}])[0].get("count()", 0)
 
     tag_keys: list[TagKey | GroupTagKey] = []
     for item in resp.data:

@@ -1093,6 +1093,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         assert call_kwargs["params"]["project"] == [project.id]
         assert call_kwargs["params"]["start"] == start
         assert call_kwargs["params"]["end"] == end
+        assert call_kwargs["params"]["per_page"] == 1000
 
         # Verify total event count is correctly queried.
         mock_execute_table_query.assert_called_once()
@@ -1182,6 +1183,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         assert call_kwargs["params"]["dataset"] == "issuePlatform"
         assert call_kwargs["params"]["query"] == f"issue:{group.qualified_short_id}"
         assert call_kwargs["params"]["project"] == [project.id]
+        assert call_kwargs["params"]["per_page"] == 1000
 
         mock_execute_table_query.assert_called_once()
         assert mock_execute_table_query.call_args.kwargs["dataset"] == "issuePlatform"
