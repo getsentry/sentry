@@ -143,6 +143,7 @@ export function PagePerformanceTable() {
         <AlignCenter>
           <StyledTooltip
             isHoverable
+            showUnderline
             title={
               <span>
                 {t('The overall performance rating of this page.')}
@@ -154,7 +155,7 @@ export function PagePerformanceTable() {
             }
           >
             <SortLink
-              title={<TooltipHeader>{t('Perf Score')}</TooltipHeader>}
+              title={t('Perf Score')}
               direction={sort?.field === col.key ? sort.kind : undefined}
               canSort={canSort}
               generateSortLink={generateSortLink}
@@ -169,6 +170,7 @@ export function PagePerformanceTable() {
         <AlignRight>
           <StyledTooltip
             isHoverable
+            showUnderline
             title={
               <span>
                 {t(
@@ -183,7 +185,7 @@ export function PagePerformanceTable() {
           >
             <SortLink
               align="right"
-              title={<TooltipHeader>{col.name}</TooltipHeader>}
+              title={col.name}
               direction={sort?.field === col.key ? sort.kind : undefined}
               canSort={canSort}
               generateSortLink={generateSortLink}
@@ -372,10 +374,6 @@ const SearchBarContainer = styled('div')`
 
 const GridContainer = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

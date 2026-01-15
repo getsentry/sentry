@@ -184,7 +184,11 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   `}
 
   abbr {
-    ${theme.tooltipUnderline()};
+    text-decoration: underline;
+    text-decoration-thickness: 0.75px;
+    text-underline-offset: 1.25px;
+    text-decoration-color: ${theme.tokens.content.secondary};
+    text-decoration-style: dotted;
   }
 
   a {

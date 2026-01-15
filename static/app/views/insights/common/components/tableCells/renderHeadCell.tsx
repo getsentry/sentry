@@ -120,7 +120,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
       align={alignment}
       canSort={Boolean(location && sort && SORTABLE_FIELDS.has(key))}
       direction={sort?.field === column.key ? sort.kind : undefined}
-      title={hasTooltip ? <TooltipHeader>{name}</TooltipHeader> : name}
+      title={name}
       generateSortLink={() => {
         return {
           ...location,
@@ -138,7 +138,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
 
     return (
       <AlignmentContainer>
-        <StyledTooltip isHoverable title={column.tooltip}>
+        <StyledTooltip isHoverable showUnderline title={column.tooltip}>
           {sortLink}
         </StyledTooltip>
       </AlignmentContainer>
@@ -181,8 +181,4 @@ const AlignRight = styled('span')`
 const StyledTooltip = styled(Tooltip)`
   top: 1px;
   position: relative;
-`;
-
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;

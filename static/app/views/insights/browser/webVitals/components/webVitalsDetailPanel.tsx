@@ -131,6 +131,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
       return (
         <Tooltip
           isHoverable
+          showUnderline
           title={
             <span>
               {tct(
@@ -144,7 +145,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
             </span>
           }
         >
-          <OpportunityHeader>{col.name}</OpportunityHeader>
+          {col.name}
         </Tooltip>
       );
     }
@@ -297,10 +298,6 @@ const ChartContainer = styled('div')`
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
-`;
-
-const OpportunityHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;
 
 const TableContainer = styled('div')`
