@@ -32,6 +32,10 @@ class JWTValidationError(Exception):
     """JWT signature validation failed."""
 
 
+class IdPDisabledError(JWTValidationError):
+    """The IdP is disabled and cannot be used for validation."""
+
+
 class KeyNotFoundError(JWTValidationError):
     """The key ID (kid) from the JWT was not found in the JWKS."""
 
@@ -233,9 +237,18 @@ class TrustedIdentityProvider(Model):
 
         Raises:
             JWTValidationError: If signature validation fails.
+            IdPDisabledError: If the IdP is disabled.
             KeyNotFoundError: If the key ID is not found in JWKS (after refresh if enabled).
             JWKSFetchError: If JWKS refresh fails.
         """
+        # Check if IdP is enabled
+        if not self.enabled:
+            logger.warning(
+                "JWT validation attempted on disabled IdP",
+                extra={"idp_id": self.id, "issuer": self.issuer},
+            )
+            raise IdPDisabledError(f"IdP {self.issuer} is disabled")
+
         # Ensure we have a cached JWKS
         if not self.is_jwks_cache_valid():
             self.fetch_jwks()
@@ -288,12 +301,13 @@ class TrustedIdentityProvider(Model):
                 token,
                 public_key,
                 algorithms=[alg],
-                audience=audience if audience else False,
+                audience=audience or False,
             )
         except jwt.DecodeError as e:
             logger.warning(
                 "JWT signature validation failed",
                 extra={"idp_id": self.id, "issuer": self.issuer, "kid": kid, "algorithm": alg},
+                exc_info=True,
             )
             raise JWTValidationError(f"JWT signature validation failed: {e}") from e
 

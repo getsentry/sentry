@@ -12,6 +12,7 @@ from jwt import algorithms as jwt_algorithms
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from sentry.models.trustedidentityprovider import (
+    IdPDisabledError,
     JWKSFetchError,
     JWTValidationError,
     KeyNotFoundError,
@@ -106,7 +107,6 @@ class TrustedIdentityProviderTest(TestCase):
             jwks_uri="https://acme.okta.com/.well-known/jwks.json",
         )
 
-        # Same issuer in different org should succeed
         idp2 = TrustedIdentityProvider.objects.create(
             organization_id=other_org.id,
             issuer="https://acme.okta.com",
@@ -172,10 +172,7 @@ class TrustedIdentityProviderTest(TestCase):
             jwks_cached_at=timezone.now() - timedelta(minutes=30),
         )
 
-        # With 1 hour TTL, 30 min old cache is valid
         assert idp.is_jwks_cache_valid(max_age_seconds=3600) is True
-
-        # With 15 min TTL, 30 min old cache is invalid
         assert idp.is_jwks_cache_valid(max_age_seconds=900) is False
 
     def test_update_jwks_cache(self) -> None:
@@ -218,7 +215,6 @@ class TrustedIdentityProviderTest(TestCase):
             allowed_client_ids=[],
         )
 
-        # Empty list means all clients allowed
         assert idp.is_client_allowed("any-client-id") is True
         assert idp.is_client_allowed("another-client") is True
 
@@ -507,6 +503,25 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         assert result["iss"] == "https://acme.okta.com"
         assert result["aud"] == "sentry.io"
 
+    def test_validate_jwt_disabled_idp(self) -> None:
+        idp = TrustedIdentityProvider.objects.create(
+            organization_id=self.organization.id,
+            issuer="https://acme.okta.com",
+            name="Acme Okta",
+            jwks_uri=self.jwks_uri,
+            jwks_cache={"keys": [self.jwk]},
+            jwks_cached_at=timezone.now(),
+            enabled=False,
+        )
+
+        claims = {"sub": "user@example.com"}
+        token = create_signed_jwt(self.private_key_pem, claims, self.kid)
+
+        with pytest.raises(IdPDisabledError) as exc_info:
+            idp.validate_jwt_signature(token)
+
+        assert "is disabled" in str(exc_info.value)
+
     def test_validate_jwt_signature_no_audience_check(self) -> None:
         idp = TrustedIdentityProvider.objects.create(
             organization_id=self.organization.id,
@@ -523,13 +538,11 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         }
         token = create_signed_jwt(self.private_key_pem, claims, self.kid)
 
-        # Should succeed without audience validation
         result = idp.validate_jwt_signature(token)
 
         assert result["sub"] == "user@example.com"
 
     def test_validate_jwt_invalid_signature(self) -> None:
-        # Use a different key to sign
         other_private_key, other_private_key_pem = generate_rsa_key_pair()
 
         idp = TrustedIdentityProvider.objects.create(
@@ -542,7 +555,6 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         )
 
         claims = {"sub": "user@example.com"}
-        # Sign with the OTHER key but use the same kid
         token = create_signed_jwt(other_private_key_pem, claims, self.kid)
 
         with pytest.raises(JWTValidationError) as exc_info:
@@ -561,7 +573,6 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         )
 
         claims = {"sub": "user@example.com"}
-        # Create token without kid header
         token = jwt.encode(claims, self.private_key_pem, algorithm="RS256")
 
         with pytest.raises(JWTValidationError) as exc_info:
@@ -580,7 +591,6 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         )
 
         claims = {"sub": "user@example.com"}
-        # Create token with HS256 algorithm (symmetric, not allowed)
         token = jwt.encode(
             claims,
             "secret",
@@ -633,12 +643,10 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         result = idp.validate_jwt_signature(token)
 
         assert result["sub"] == "user@example.com"
-        # Should have made a request to refresh
         assert len(responses.calls) == 1
 
     @responses.activate
     def test_validate_jwt_refreshes_on_missing_key(self) -> None:
-        # First return JWKS without our key
         responses.add(
             responses.GET,
             self.jwks_uri,
@@ -662,15 +670,12 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         claims = {"sub": "user@example.com"}
         token = create_signed_jwt(self.private_key_pem, claims, self.kid)
 
-        # Should refresh JWKS because our kid is not found
         result = idp.validate_jwt_signature(token)
 
         assert result["sub"] == "user@example.com"
-        # Should have made a request to refresh
         assert len(responses.calls) == 1
 
     def test_validate_jwt_no_refresh_when_disabled(self) -> None:
-        # Create a different key that's in the cache
         other_private_key, _ = generate_rsa_key_pair()
         other_jwk = private_key_to_jwk(other_private_key, "other-key")
 
@@ -712,11 +717,9 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         result = idp.validate_jwt_signature(token)
 
         assert result["sub"] == "user@example.com"
-        # Should have fetched JWKS
         assert len(responses.calls) == 1
 
     def test_validate_jwt_with_multiple_keys(self) -> None:
-        # Create multiple keys
         private_key2, private_key2_pem = generate_rsa_key_pair()
         jwk2 = private_key_to_jwk(private_key2, "test-key-2")
 
@@ -729,7 +732,6 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
             jwks_cached_at=timezone.now(),
         )
 
-        # Sign with the second key
         claims = {"sub": "user@example.com"}
         token = create_signed_jwt(private_key2_pem, claims, "test-key-2")
 
