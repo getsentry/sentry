@@ -68,7 +68,7 @@ def create_instrumentation_issue(
         id=uuid.uuid4().hex,
         project_id=project_id,
         event_id=event_id,
-        fingerprint=[detector_name, title],
+        fingerprint=[f"{detector_name}:{title}"],
         issue_title=title,
         subtitle=subtitle,
         resource_id=None,
