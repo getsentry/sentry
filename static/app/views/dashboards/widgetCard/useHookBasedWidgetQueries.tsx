@@ -192,7 +192,7 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
       let timeseriesResultsUnits: Record<string, DataUnit> = {};
 
       queryResults.forEach((q, requestIndex) => {
-        if (!q.data) {
+        if (!q || !q.data) {
           return;
         }
 
@@ -240,7 +240,7 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
     let afterTableFetchData: OnDataFetchedProps | undefined;
 
     queryResults.forEach((q, i) => {
-      if (!q.data) {
+      if (!q || !q.data) {
         return;
       }
 
