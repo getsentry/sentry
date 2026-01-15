@@ -1117,6 +1117,24 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         ]
         self.run_fail_validation_test({"target_type": 50}, {"targetType": invalid_values})
 
+    def test_target_identifier_must_be_integer_for_user(self) -> None:
+        self.run_fail_validation_test(
+            {
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
+                "target_identifier": "not-a-number",
+            },
+            {"targetIdentifier": ["Must be a valid integer for user or team targets"]},
+        )
+
+    def test_target_identifier_must_be_integer_for_team(self) -> None:
+        self.run_fail_validation_test(
+            {
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.TEAM],
+                "target_identifier": "abc123",
+            },
+            {"targetIdentifier": ["Must be a valid integer for user or team targets"]},
+        )
+
     def test_user_perms(self) -> None:
         self.run_fail_validation_test(
             {
