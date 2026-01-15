@@ -295,3 +295,69 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             call_kwargs = self.mock_seer.call_args[1]
             payload = call_kwargs["payload"]
             assert payload["request_type"] == RequestType.PR_CLOSED.value
+
+    def test_pull_request_opened_extracts_trigger_metadata(self) -> None:
+        """Test that opened PR events extract complete trigger metadata from PR user."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "opened"
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
+            # Ensure PR has complete user information
+            event["pull_request"]["user"] = {"login": "pr-author", "id": 12345678}
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_called_once()
+            payload = self.mock_seer.call_args[1]["payload"]
+            config = payload["data"]["config"]
+
+            # Verify trigger metadata is extracted from PR user
+            assert config["trigger"] == SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
+            assert config["trigger_user"] == "pr-author"
+            assert config["trigger_user_id"] == 12345678
+            # PR events don't have comment metadata
+            assert config["trigger_comment_id"] is None
+            assert config["trigger_comment_type"] is None
+
+    def test_pull_request_synchronize_sets_correct_trigger(self) -> None:
+        """Test that synchronize (new commits) action sets correct trigger type."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "synchronize"
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_called_once()
+            payload = self.mock_seer.call_args[1]["payload"]
+            config = payload["data"]["config"]
+
+            # Verify correct trigger for new commits
+            assert config["trigger"] == SeerCodeReviewTrigger.ON_NEW_COMMIT.value
+            assert payload["request_type"] == RequestType.PR_REVIEW.value
+
+    def test_pull_request_ready_for_review_sets_correct_trigger(self) -> None:
+        """Test that ready_for_review action sets correct trigger type."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "ready_for_review"
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_called_once()
+            payload = self.mock_seer.call_args[1]["payload"]
+            config = payload["data"]["config"]
+
+            # Verify correct trigger for ready for review
+            assert config["trigger"] == SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
+            assert payload["request_type"] == RequestType.PR_REVIEW.value
