@@ -4,8 +4,10 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
+from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
 
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
 
@@ -14,11 +16,16 @@ def format_status_check_messages(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     overall_status: StatusCheckStatus,
+    project: Project,
+    triggered_rules: list[StatusCheckRule] | None = None,
 ) -> tuple[str, str, str]:
     """
     Args:
         artifacts: List of PreprodArtifact objects
         size_metrics_map: Dict mapping artifact_id to PreprodArtifactSizeMetrics
+        overall_status: The overall status of the check
+        project: The project associated with the artifacts
+        triggered_rules: List of rules that triggered a failure
 
     Returns:
         tuple: (title, subtitle, summary)
@@ -84,7 +91,7 @@ def format_status_check_messages(
         case StatusCheckStatus.IN_PROGRESS | StatusCheckStatus.SUCCESS:
             summary = _format_artifact_summary(artifacts, size_metrics_map)
         case StatusCheckStatus.FAILURE:
-            summary = _format_failure_summary(artifacts)
+            summary = _format_failure_summary(artifacts, project, triggered_rules)
 
     return str(title), str(subtitle), str(summary)
 
@@ -191,8 +198,14 @@ def _format_artifact_summary(
     return "\n\n".join(tables)
 
 
-def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
+def _format_failure_summary(
+    artifacts: list[PreprodArtifact],
+    project: Project,
+    triggered_rules: list[StatusCheckRule] | None = None,
+) -> str:
     """Format summary for multiple artifacts with failures."""
+    parts = []
+
     table_rows = []
     for artifact in artifacts:
         version_string = _format_version_string(artifact, default="-")
@@ -209,9 +222,23 @@ def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
             processing_text = str(_("Processing..."))
             table_rows.append(f"| {app_id_link} | {version_string} | {processing_text} |")
 
-    return _("| Name | Version | Error |\n" "|------|---------|-------|\n" "{table_rows}").format(
+    table = _("| Name | Version | Error |\n" "|------|---------|-------|\n" "{table_rows}").format(
         table_rows="\n".join(table_rows)
     )
+    parts.append(table)
+
+    if triggered_rules:
+        base_url = f"/settings/projects/{project.slug}/preprod/"
+        expanded_params = "&".join(f"expanded={rule.id}" for rule in triggered_rules)
+        settings_url = project.organization.absolute_url(f"{base_url}?{expanded_params}")
+        parts.append(
+            _(
+                "\n\n**Status check failed due to size threshold rules.** "
+                "[View triggered rules]({settings_url})"
+            ).format(settings_url=settings_url)
+        )
+
+    return "".join(parts)
 
 
 def _get_size_metric_display_data(

@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from 'sentry/components/core/layout';
@@ -16,10 +16,11 @@ import type {StatusCheckFilter, StatusCheckRule} from './types';
 import {bytesToMB, getDisplayUnit, getMeasurementLabel, getMetricLabel} from './types';
 
 interface Props {
+  isExpanded: boolean;
   onDelete: () => void;
   onSave: (rule: StatusCheckRule) => void;
+  onToggleExpanded: (isExpanded: boolean) => void;
   rule: StatusCheckRule;
-  defaultExpanded?: boolean;
 }
 
 function FilterSummary({filters}: {filters: StatusCheckFilter[]}) {
@@ -52,10 +53,14 @@ export function StatusCheckRuleItem({
   rule,
   onSave,
   onDelete,
-  defaultExpanded = false,
+  onToggleExpanded,
+  isExpanded,
 }: Props) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const filters = parseFiltersForDisplay(rule.filterQuery);
+
+  const handleToggle = () => {
+    onToggleExpanded(!isExpanded);
+  };
 
   const displayUnit = getDisplayUnit(rule.measurement);
   const displayValue = displayUnit === '%' ? rule.value : bytesToMB(rule.value);
@@ -64,7 +69,7 @@ export function StatusCheckRuleItem({
 
   return (
     <ItemContainer>
-      <ItemHeader onClick={() => setIsExpanded(!isExpanded)}>
+      <ItemHeader onClick={handleToggle}>
         <Stack gap="2xs">
           <Text size="md" bold>
             {title}
