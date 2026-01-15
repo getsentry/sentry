@@ -2004,3 +2004,78 @@ class OAuthTokenJWTBearerTest(TestCase):
             },
         )
         assert resp.status_code == 200
+
+    def test_empty_requested_scopes_results_in_empty_token_scopes(self) -> None:
+        """When no scopes are requested, token should have empty scopes, not all IdP scopes."""
+        # Configure IdP with allowed scopes
+        self.idp.allowed_scopes = ["org:read", "project:read", "event:read"]
+        self.idp.save()
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        # Request with no scope parameter - should result in empty scopes
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+                # No "scope" parameter
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        # Empty scopes should result in empty scope string (not all IdP allowed scopes)
+        assert data["scope"] == ""
+
+        # Verify token actually has empty scopes
+        api_token = ApiToken.objects.get(token=data["access_token"])
+        assert api_token.get_scopes() == []
+
+    def test_user_not_member_of_organization_rejected(self) -> None:
+        """User not a member of the IdP's organization should be rejected."""
+        # Create a different organization and IdP
+        other_org = self.create_organization(name="Other Org")
+        other_idp_issuer = "https://other.okta.com"
+
+        from sentry.models.trustedidentityprovider import TrustedIdentityProvider
+
+        TrustedIdentityProvider.objects.create(
+            organization_id=other_org.id,
+            issuer=other_idp_issuer,
+            name="Other Okta",
+            jwks_uri="https://other.okta.com/.well-known/jwks.json",
+            jwks_cache={"keys": [self.jwk]},
+            jwks_cached_at=timezone.now(),
+        )
+
+        # Create JWT with the other org's issuer
+        token = self._create_jwt(
+            {
+                "iss": other_idp_issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,  # This user is NOT a member of other_org
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}

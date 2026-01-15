@@ -890,6 +890,31 @@ class OAuthTokenView(View):
                 reason="ambiguous user identity",
             )
 
+        # Verify user is a member of the IdP's organization
+        from sentry.organizations.services.organization import organization_service
+
+        org_context = organization_service.get_organization_by_id(
+            id=validated_idp.organization_id,
+            user_id=user.id,
+            include_projects=False,
+            include_teams=False,
+        )
+        if org_context is None or org_context.member is None:
+            logger.warning(
+                "JWT bearer grant: user is not a member of the IdP's organization",
+                extra={
+                    "client_id": application.client_id,
+                    "issuer": issuer,
+                    "user_id": user.id,
+                    "organization_id": validated_idp.organization_id,
+                },
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="user not authorized for this organization",
+            )
+
         # Determine scopes for the token
         # Intersect: requested scopes ∩ IdP allowed scopes ∩ application allowed scopes
         requested_scopes = set(requested_scope.split()) if requested_scope else set()
@@ -899,13 +924,14 @@ class OAuthTokenView(View):
         # Start with requested scopes (or empty if none requested)
         final_scopes = requested_scopes
 
-        # If IdP has scope restrictions, apply them
+        # Always apply scope restrictions via intersection
+        # Note: We always perform the intersection, even if final_scopes is empty.
+        # An empty requested scope set should result in an empty final scope set.
         if idp_scopes is not None:
-            final_scopes = final_scopes & idp_scopes if final_scopes else idp_scopes
+            final_scopes = final_scopes & idp_scopes
 
-        # If application has scope restrictions, apply them
         if app_scopes is not None:
-            final_scopes = final_scopes & app_scopes if final_scopes else app_scopes
+            final_scopes = final_scopes & app_scopes
 
         # Create the access token
         # Token is scoped to the IdP's organization
