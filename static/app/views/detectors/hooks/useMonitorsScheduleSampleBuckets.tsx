@@ -1,23 +1,31 @@
 import {useMemo} from 'react';
 
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
+import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
-  CRON_DEFAULT_RECOVERY_THRESHOLD,
-  CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT,
-  CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE,
-  CRON_DEFAULT_SCHEDULE_TYPE,
-  DEFAULT_CRONTAB,
-  useCronDetectorFormField,
-} from 'sentry/views/detectors/components/forms/cron/fields';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 interface UseMonitorsScheduleSampleBucketsOptions {
+  /**
+   * The end timestamp of the sample window in seconds
+   */
   end: number | undefined;
+  /**
+   * The interval of the sample window in seconds
+   */
   interval: number | undefined;
+  /**
+   * The start timestamp of the sample window in seconds
+   */
   start: number | undefined;
+  scheduleType: ScheduleType;
+  scheduleCrontab: string;
+  scheduleIntervalValue: number;
+  scheduleIntervalUnit: string;
+  timezone: string;
+  failureIssueThreshold: number;
+  recoveryThreshold: number;
 }
 
 export enum SchedulePreviewStatus {
@@ -31,24 +39,15 @@ export function useMonitorsScheduleSampleBuckets({
   start,
   end,
   interval,
+  scheduleType,
+  scheduleCrontab,
+  scheduleIntervalValue,
+  scheduleIntervalUnit,
+  timezone,
+  failureIssueThreshold,
+  recoveryThreshold,
 }: UseMonitorsScheduleSampleBucketsOptions) {
   const organization = useOrganization();
-
-  const scheduleType =
-    useCronDetectorFormField('scheduleType') ?? CRON_DEFAULT_SCHEDULE_TYPE;
-  const scheduleCrontab = useCronDetectorFormField('scheduleCrontab') ?? DEFAULT_CRONTAB;
-  const scheduleIntervalValue =
-    useCronDetectorFormField('scheduleIntervalValue') ??
-    CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE;
-  const scheduleIntervalUnit =
-    useCronDetectorFormField('scheduleIntervalUnit') ??
-    CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT;
-  const timezone = useCronDetectorFormField('timezone') ?? 'UTC';
-  const failureIssueThreshold =
-    useCronDetectorFormField('failureIssueThreshold') ??
-    CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD;
-  const recoveryThreshold =
-    useCronDetectorFormField('recoveryThreshold') ?? CRON_DEFAULT_RECOVERY_THRESHOLD;
 
   const query = useMemo(() => {
     const schedule =
@@ -83,7 +82,7 @@ export function useMonitorsScheduleSampleBuckets({
     [`/organizations/${organization.slug}/monitors-schedule-buckets/`, {query}],
     {
       staleTime: 0,
-      enabled: start !== undefined && end !== undefined && interval !== undefined,
+      enabled: defined(start) && defined(end) && defined(interval),
       retry: false,
     }
   );

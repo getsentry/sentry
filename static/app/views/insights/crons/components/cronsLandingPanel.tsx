@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Preview} from 'sentry/views/detectors/components/forms/cron/preview';
+import {PreviewSection} from 'sentry/views/detectors/components/forms/cron/previewSection';
 import MonitorCreateForm from 'sentry/views/insights/crons/components/monitorCreateForm';
 
 import {PlatformPickerPanel} from './platformPickerPanel';
@@ -50,7 +50,7 @@ export function CronsLandingPanel() {
 
   return (
     <OnboardingPanelHook>
-      <Preview />
+      <PreviewSection />
       <Panel>
         <BackButton
           icon={<IconChevron direction="left" />}

@@ -1,4 +1,5 @@
 import {Fragment, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
@@ -21,48 +22,48 @@ import {
   useMonitorsScheduleSampleBuckets,
 } from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {useMonitorsScheduleSampleWindow} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleWindow';
+import type { ScheduleType } from 'sentry/views/insights/crons/types';
 
-const tickStyle: TickStyle<SchedulePreviewStatus> = theme => ({
-  [SchedulePreviewStatus.ERROR]: {
-    labelColor: theme.colors.red500,
-    tickColor: theme.colors.red400,
-  },
-  [SchedulePreviewStatus.OK]: {
-    labelColor: theme.colors.green500,
-    tickColor: theme.colors.green400,
-  },
-  [SchedulePreviewStatus.SUB_FAILURE_ERROR]: {
-    labelColor: theme.colors.red500,
-    tickColor: theme.colors.red400,
-    hatchTick: theme.colors.red200,
-  },
-  [SchedulePreviewStatus.SUB_RECOVERY_OK]: {
-    labelColor: theme.colors.green500,
-    tickColor: theme.colors.green400,
-    hatchTick: theme.colors.green200,
-  },
-});
-
-const statusToText: Record<SchedulePreviewStatus, string> = {
-  [SchedulePreviewStatus.OK]: t('Okay'),
-  [SchedulePreviewStatus.ERROR]: t('Failed'),
-  [SchedulePreviewStatus.SUB_FAILURE_ERROR]: t('Failed (Sub-Threshold)'),
-  [SchedulePreviewStatus.SUB_RECOVERY_OK]: t('Okay (Sub-Threshold)'),
+type SchedulePreviewProps = {
+    tickStyle: TickStyle<SchedulePreviewStatus>;
+    statusToText: Record<SchedulePreviewStatus, string>;
+    statusPrecedent: SchedulePreviewStatus[];
+    scheduleType: ScheduleType;
+    scheduleCrontab: string;
+    scheduleIntervalValue: number;
+    scheduleIntervalUnit: string;
+    timezone: string;
+    failureIssueThreshold: number;
+    recoveryThreshold: number;
+    sticky?: boolean;
 };
 
-export const statusPrecedent: SchedulePreviewStatus[] = [
-  SchedulePreviewStatus.SUB_FAILURE_ERROR,
-  SchedulePreviewStatus.SUB_RECOVERY_OK,
-  SchedulePreviewStatus.ERROR,
-  SchedulePreviewStatus.OK,
-];
-
-export function Preview() {
+export function SchedulePreview({
+  scheduleType,
+  scheduleCrontab,
+  scheduleIntervalValue,
+  scheduleIntervalUnit,
+  timezone,
+  failureIssueThreshold,
+  recoveryThreshold,
+  tickStyle,
+  statusToText,
+  statusPrecedent,
+  sticky,
+}: SchedulePreviewProps) {
   const {
     data: sampleWindowData,
     isLoading: isLoadingSampleWindow,
     isError: isErrorSampleWindow,
-  } = useMonitorsScheduleSampleWindow();
+  } = useMonitorsScheduleSampleWindow({
+    scheduleType,
+    scheduleCrontab,
+    scheduleIntervalValue,
+    scheduleIntervalUnit,
+    timezone,
+    failureIssueThreshold,
+    recoveryThreshold,
+  });
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
@@ -85,6 +86,13 @@ export function Preview() {
     isLoading: isLoadingSampleBuckets,
     isError: isErrorSampleBuckets,
   } = useMonitorsScheduleSampleBuckets({
+    scheduleType,
+    scheduleCrontab,
+    scheduleIntervalValue,
+    scheduleIntervalUnit,
+    timezone,
+    failureIssueThreshold,
+    recoveryThreshold,
     start: start ? start.getTime() / 1000 : undefined,
     end: end ? end.getTime() / 1000 : undefined,
     interval: interval ?? undefined,
@@ -98,7 +106,7 @@ export function Preview() {
   }
 
   return (
-    <Container>
+    <Container sticky={sticky}>
       <TimelineWidthTracker ref={elementRef} />
       {isLoading ? (
         <TimeLineContainer>
@@ -109,14 +117,11 @@ export function Preview() {
           <GridLineOverlay
             showCursor
             timeWindowConfig={timeWindowConfig}
-            additionalUi={
-              <OpenPeriod
-                bucketedData={sampleBucketsData}
-                timeWindowConfig={timeWindowConfig}
-              />
-            }
           />
           <OpenPeriod
+            failureThreshold={failureIssueThreshold}
+            recoveryThreshold={recoveryThreshold}
+            statusPrecedent={statusPrecedent}
             bucketedData={sampleBucketsData}
             timeWindowConfig={timeWindowConfig}
           />
@@ -137,24 +142,26 @@ export function Preview() {
 }
 
 function OpenPeriod({
+ failureThreshold,
+ recoveryThreshold,
+  statusPrecedent,
   bucketedData,
   timeWindowConfig,
 }: {
+  failureThreshold: number;
+  recoveryThreshold: number;
+  statusPrecedent: SchedulePreviewStatus[];
   bucketedData: Array<CheckInBucket<SchedulePreviewStatus>>;
   timeWindowConfig: TimeWindowConfig;
 }) {
   const {bucketPixels, underscanStartOffset} = timeWindowConfig.rollupConfig;
-
-  function getBucketStatus(stats?: Record<string, number>) {
-    return stats ? statusPrecedent.find(status => (stats[status] ?? 0) > 0) : undefined;
-  }
 
   // Draw the open period from:
   // - the first ERROR bucket, to
   // - the first OK bucket after that.
   let openBarStartIdx: number | null = null;
   for (let i = 0; i < bucketedData.length; i++) {
-    if (getBucketStatus(bucketedData[i]?.[1]) === SchedulePreviewStatus.ERROR) {
+    if (getBucketStatus(statusPrecedent, bucketedData[i]?.[1]) === SchedulePreviewStatus.ERROR) {
       openBarStartIdx = i;
       break;
     }
@@ -163,7 +170,7 @@ function OpenPeriod({
   let openBarEndIdx: number | null = null;
   if (openBarStartIdx !== null) {
     for (let i = openBarStartIdx + 1; i < bucketedData.length; i++) {
-      if (getBucketStatus(bucketedData[i]?.[1]) === SchedulePreviewStatus.OK) {
+      if (getBucketStatus(statusPrecedent, bucketedData[i]?.[1]) === SchedulePreviewStatus.OK) {
       openBarEndIdx = i;
       break;
       }
@@ -178,7 +185,6 @@ function OpenPeriod({
     return null;
   }
 
-  // openBarEndIdx is the first OK bucket after recovery, so end at its start boundary.
   const left = openBarStartIdx * bucketPixels - underscanStartOffset;
   const right = openBarEndIdx * bucketPixels - underscanStartOffset;
   const width = right - left;
@@ -187,15 +193,15 @@ function OpenPeriod({
     return null;
   }
 
-  let failureCount = 0;
-  let successCount = 0;
+  let subFailureCount = 0;
+  let subRecoveryCount = 0;
   for (let i = 0; i < bucketedData.length; i++) {
     const stats = bucketedData[i]?.[1];
     if (!stats) {
       continue;
     }
-    failureCount += stats[SchedulePreviewStatus.SUB_FAILURE_ERROR] ?? 0;
-    successCount += stats[SchedulePreviewStatus.SUB_RECOVERY_OK] ?? 0;
+    subFailureCount += stats[SchedulePreviewStatus.SUB_FAILURE_ERROR] ?? 0;
+    subRecoveryCount += stats[SchedulePreviewStatus.SUB_RECOVERY_OK] ?? 0;
   }
 
   return (
@@ -204,13 +210,17 @@ function OpenPeriod({
         <OpenPeriodLabel>{t('New Open Period')}</OpenPeriodLabel>
       </OpenPeriodBar>
       <OpenPeriodCountLabel style={{left}}>
-        {failureCount + 1} {tn('failed check-in', 'failed check-ins', failureCount)}
+        {failureThreshold} {tn('failed check-in', 'failed check-ins', failureThreshold)}
       </OpenPeriodCountLabel>
       <OpenPeriodCountLabel style={{left: right}}>
-        {successCount + 1} {tn('success check-in', 'success check-ins', successCount)}
+        {recoveryThreshold} {tn('success check-in', 'success check-ins', recoveryThreshold)}
       </OpenPeriodCountLabel>
     </Fragment>
   );
+}
+
+function getBucketStatus(statusPrecedent: SchedulePreviewStatus[], stats: Record<string, number> | undefined) {
+    return stats ? statusPrecedent.find(status => (stats[status] ?? 0) > 0) : undefined;
 }
 
 const TimelineWidthTracker = styled('div')`
@@ -273,12 +283,26 @@ const OpenPeriodCountLabel = styled('div')`
   text-align: center;
 `;
 
-const Container = styled('div')`
+const Container = styled('div')<{sticky?: boolean}>`
   position: relative;
   width: 100%;
   height: 138px;
+
   background-color: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${p => p.theme.space.lg};
+
+  ${p =>
+    p.sticky &&
+    css`
+      position: sticky;
+      top: 8px;
+      z-index: 1;
+
+      /*
+       * Prevent seeing content beneath in the uncovered strip above the sticky element.
+       * Use a solid, zero-blur shadow so we don't paint over the border.
+       */
+      box-shadow: 0 -8px 0 0 ${p.theme.tokens.background.primary};
+    `}
 `;
