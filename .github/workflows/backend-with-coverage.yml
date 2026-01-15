@@ -1,6 +1,11 @@
 name: backend - with test coverage
 
-on: [workflow_dispatch, workflow_call, pull_request]
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+  schedule:
+    - cron: '0 * * * *'
 
 jobs:
   calculate-shards:
