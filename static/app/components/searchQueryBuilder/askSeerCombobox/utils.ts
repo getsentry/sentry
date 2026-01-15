@@ -40,6 +40,11 @@ function formatToken(token: string): string {
       const negation = isNegated ? 'not ' : '';
       const description = desc ? `${negation}${desc}` : negation ? 'not' : '';
 
+      // Special case: avoid "is is unresolved" for fields like "is:unresolved"
+      if (cleanKey.toLowerCase() === 'is') {
+        return `is ${negation}${cleanVal}`.replace(/\s+/g, ' ').trim();
+      }
+
       return `${cleanKey} is ${description} ${cleanVal}`.replace(/\s+/g, ' ').trim();
     }
   }
