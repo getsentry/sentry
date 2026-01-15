@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -174,7 +176,7 @@ function OurlogsSectionContent({
       title={t('Logs')}
       data-test-id="logs-data-section"
     >
-      <SmallTableContentWrapper>
+      <Stack>
         <SmallTable>
           <TableBody>
             {abbreviatedTableData?.map((row, index) => (
@@ -204,7 +206,7 @@ function OurlogsSectionContent({
             </Button>
           </div>
         ) : null}
-      </SmallTableContentWrapper>
+      </Stack>
     </InterimSection>
   );
 }
@@ -212,9 +214,4 @@ function OurlogsSectionContent({
 const SmallTable = styled('table')`
   display: grid;
   grid-template-columns: 15px auto 1fr;
-`;
-
-const SmallTableContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;

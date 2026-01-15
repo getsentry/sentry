@@ -2,6 +2,8 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 
@@ -18,12 +20,9 @@ const Z_INDEX_STICKY_HEADER = 2;
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
 
-export const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.md};
-`;
+export function Header(props: FlexProps<'div'>) {
+  return <Flex justify="between" align="center" marginBottom="md" {...props} />;
+}
 
 export const HeaderTitle = styled('h4')`
   margin: 0;

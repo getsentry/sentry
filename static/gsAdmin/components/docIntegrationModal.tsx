@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AvatarChooser from 'sentry/components/avatarChooser';
@@ -69,7 +71,7 @@ function DocIntegrationModal(props: Props) {
 
   const renderResourceSection = () => {
     const resourceRows = Object.entries(resources).map(([id, entry]) => (
-      <ResourceContainer key={id}>
+      <Flex gap="xl" key={id}>
         <ResourceTextField
           {...fieldProps}
           name={`___resource-title-${id}`}
@@ -112,7 +114,7 @@ function DocIntegrationModal(props: Props) {
           }}
           aria-label="Close"
         />
-      </ResourceContainer>
+      </Flex>
     ));
     resourceRows.push(
       <AddButton
@@ -298,11 +300,6 @@ const AddButton = styled(Button)`
 
 const RemoveButton = styled(Button)`
   margin-top: ${space(4)};
-`;
-
-const ResourceContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
 `;
 
 const ResourceTextField = styled(TextField)`

@@ -2,6 +2,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
@@ -67,7 +69,13 @@ function Pagination({
   const cursorHandler = onCursor ?? defaultCursorHandler;
 
   return (
-    <Wrapper className={className} data-test-id="pagination">
+    <Flex
+      justify="end"
+      align="center"
+      margin="2xl 0 0 0"
+      className={className}
+      data-test-id="pagination"
+    >
       {caption && <PaginationCaption>{caption}</PaginationCaption>}
       <ButtonBar merged gap="0">
         <Button
@@ -91,16 +99,9 @@ function Pagination({
           }}
         />
       </ButtonBar>
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin: ${space(3)} 0 0 0;
-`;
 
 const PaginationCaption = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};

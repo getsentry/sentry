@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {
@@ -33,10 +35,10 @@ export function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
   return (
     <AskSeerListItem ref={itemRef} {...optionProps} justifyContent="space-between">
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
-      <AskSeerConsentLabelWrapper>
+      <Flex align="center" gap="md">
         <IconSeer />
         <AskSeerLabel {...labelProps}>{t('Enable Gen AI')}</AskSeerLabel>
-      </AskSeerConsentLabelWrapper>
+      </Flex>
       <SeerConsentText>
         {tct(
           'Query assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
@@ -54,12 +56,6 @@ export function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
     </AskSeerListItem>
   );
 }
-
-const AskSeerConsentLabelWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-`;
 
 const SeerConsentText = styled('p')`
   color: ${p => p.theme.tokens.content.secondary};

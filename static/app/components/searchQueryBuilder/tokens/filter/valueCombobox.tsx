@@ -4,6 +4,8 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Checkbox} from 'sentry/components/core/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
@@ -922,7 +924,13 @@ export function SearchQueryBuilderValueCombobox({
           });
 
   return (
-    <ValueEditing ref={ref} data-test-id="filter-value-editing">
+    <Flex
+      align="center"
+      maxWidth="400px"
+      height="100%"
+      ref={ref}
+      data-test-id="filter-value-editing"
+    >
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={items}
@@ -955,16 +963,9 @@ export function SearchQueryBuilderValueCombobox({
           </Section>
         ))}
       </SearchQueryBuilderCombobox>
-    </ValueEditing>
+    </Flex>
   );
 }
-
-const ValueEditing = styled('div')`
-  display: flex;
-  height: 100%;
-  align-items: center;
-  max-width: 400px;
-`;
 
 const TrailingWrap = styled('div')`
   display: grid;

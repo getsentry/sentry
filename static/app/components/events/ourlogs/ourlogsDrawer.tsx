@@ -1,8 +1,7 @@
 import {useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -17,7 +16,6 @@ import {
 } from 'sentry/components/events/eventDrawer';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -155,22 +153,16 @@ export function OurlogsDrawer({
           </Flex>
         </EventNavigator>
         <EventDrawerBody ref={containerRef}>
-          <LogsTableContainer>
+          <Stack gap="xl">
             <LogsInfiniteTable
               embedded
               scrollContainer={containerRef}
               embeddedOptions={embeddedOptions}
               additionalData={additionalData}
             />
-          </LogsTableContainer>
+          </Stack>
         </EventDrawerBody>
       </EventDrawerContainer>
     </SearchQueryBuilderProvider>
   );
 }
-
-const LogsTableContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

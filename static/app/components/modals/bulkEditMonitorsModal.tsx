@@ -2,6 +2,8 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
@@ -126,7 +128,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <h3>{t('Manage Monitors')}</h3>
       </Header>
       <Body>
-        <Actions>
+        <Flex justify="between" wrap="wrap" marginBottom="xl" gap="md">
           <ActionButtons>
             {[disableEnableBtnParams, muteUnmuteBtnParams].map(
               ({operation, actionText, ...analyticsProps}, i) => (
@@ -169,7 +171,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               {...sortSelection}
             />
           </ButtonBar>
-        </Actions>
+        </Flex>
         <StyledPanelTable
           headers={headers}
           stickyHeaders
@@ -221,14 +223,6 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
 export const modalCss = css`
   width: 100%;
   max-width: 900px;
-`;
-
-const Actions = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
 `;
 
 const ActionButtons = styled(ButtonBar)`

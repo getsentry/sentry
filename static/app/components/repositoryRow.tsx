@@ -1,6 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
@@ -78,7 +80,7 @@ export default function RepositoryRow({
     <Access access={['org:integrations']}>
       {({hasAccess}) => (
         <StyledPanelItem status={repository.status}>
-          <RepositoryTitleAndUrl>
+          <Stack>
             <RepositoryTitle>
               <strong>{repository.name}</strong>
               {!isActive && <small> &mdash; {getRepoStatusLabel(repository)}</small>}
@@ -104,7 +106,7 @@ export default function RepositoryRow({
                 </small>
               )}
             </div>
-          </RepositoryTitleAndUrl>
+          </Stack>
           {renderDeleteButton(hasAccess)}
         </StyledPanelItem>
       )}
@@ -133,11 +135,6 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
 
 const StyledButton = styled(Button)`
   margin-left: ${space(1)};
-`;
-
-const RepositoryTitleAndUrl = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;
 
 const RepositoryTitle = styled('div')`

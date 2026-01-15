@@ -127,14 +127,14 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
                   {release.authors.length}{' '}
                   {release.authors.length === 1 ? t('author') : t('authors')}{' '}
                 </h6>
-                <AvatarListContainer>
+                <Flex paddingLeft="xs">
                   <AvatarList
                     users={authors}
                     avatarSize={25}
                     tooltipOptions={{container: 'body'} as any}
                     typeAvatars="authors"
                   />
-                </AvatarListContainer>
+                </Flex>
               </div>
             ) : null}
           </Flex>
@@ -206,7 +206,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   return (
     <Flex align="center" gap="xs">
       {t('Release:')}
-      <VersionWrapper>
+      <Flex justify="end" align="center" gap="xs">
         <StyledVersion version={releaseVersion} truncate anchor={false} />
         <CopyToClipboardButton
           borderless
@@ -214,7 +214,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
           text={releaseVersion}
           aria-label={t('Copy release version to clipboard')}
         />
-      </VersionWrapper>
+      </Flex>
     </Flex>
   );
 }
@@ -231,13 +231,6 @@ const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-const VersionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  justify-content: flex-end;
-`;
-
 const StyledVersion = styled(Version)`
   max-width: 190px;
   font-weight: ${p => p.theme.fontWeight.normal};
@@ -246,9 +239,4 @@ const StyledVersion = styled(Version)`
 const CountSince = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.xl};
-`;
-
-const AvatarListContainer = styled('div')`
-  display: flex;
-  padding-left: ${space(0.5)};
 `;

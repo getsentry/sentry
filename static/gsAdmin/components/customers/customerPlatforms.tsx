@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ExternalLink} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -31,21 +31,15 @@ function CustomerPlatforms({orgId, ...props}: Props) {
           </ExternalLink>
         </td>,
         <td key="platform">
-          <PlatformName>
+          <Flex align="center" gap="md">
             <PlatformIcon platform={row.platform} size={16} />
             {row.platform}
-          </PlatformName>
+          </Flex>
         </td>,
       ]}
       {...props}
     />
   );
 }
-
-const PlatformName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 export default CustomerPlatforms;

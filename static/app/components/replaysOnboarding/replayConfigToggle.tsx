@@ -1,8 +1,7 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function ReplayConfigToggle({
   maskToggle,
@@ -16,30 +15,17 @@ function ReplayConfigToggle({
   onMaskToggle: () => void;
 }) {
   return (
-    <SwitchWrapper>
-      <SwitchItem htmlFor="mask">
+    <Flex align="center" paddingTop="xs" gap="xl">
+      <Flex as="label" align="center" gap="md" htmlFor="mask">
         {t('Mask All Text')}
         <Switch id="mask" onChange={onMaskToggle} size="lg" checked={maskToggle} />
-      </SwitchItem>
-      <SwitchItem htmlFor="block">
+      </Flex>
+      <Flex as="label" align="center" gap="md" htmlFor="block">
         {t('Block All Media')}
         <Switch id="block" onChange={onBlockToggle} size="lg" checked={blockToggle} />
-      </SwitchItem>
-    </SwitchWrapper>
+      </Flex>
+    </Flex>
   );
 }
-
-const SwitchItem = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const SwitchWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-  padding-top: ${space(0.5)};
-`;
 
 export default ReplayConfigToggle;

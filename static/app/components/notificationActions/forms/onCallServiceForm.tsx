@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -7,7 +8,6 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
@@ -91,8 +91,8 @@ function OnCallServiceForm({
     onCallService === 'pagerduty' ? t('Select Service') : t('Select Team');
 
   return (
-    <NotificationActionFormContainer>
-      <NotificationActionCell>
+    <Flex justify="between" width="100%">
+      <Flex align="center" wrap="wrap" gap="xs">
         <div>{t('Send a notification to the')}</div>
         <DropdownMenu
           items={accountOptions}
@@ -124,7 +124,7 @@ function OnCallServiceForm({
             </DropdownButton>
           )}
         />
-      </NotificationActionCell>
+      </Flex>
 
       <ButtonBar gap="xs">
         <Button onClick={onCancel} size="xs">
@@ -134,21 +134,8 @@ function OnCallServiceForm({
           {t('Save')}
         </Button>
       </ButtonBar>
-    </NotificationActionFormContainer>
+    </Flex>
   );
 }
-
-const NotificationActionCell = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-`;
-
-const NotificationActionFormContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-`;
 
 export default OnCallServiceForm;

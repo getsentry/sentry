@@ -28,9 +28,9 @@ export default function SettingsLayout({children}: Props) {
         </Flex>
       </SettingsHeader>
 
-      <MaxWidthContainer>
+      <Flex flex="1" maxWidth="1440px">
         <Content>{children}</Content>
-      </MaxWidthContainer>
+      </Flex>
     </SettingsColumn>
   );
 }
@@ -46,13 +46,6 @@ const SettingsColumn = styled('div')`
 `;
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
-  flex: 1;
-`;
-
-const MaxWidthContainer = styled('div')`
-  display: flex;
-  /* @TODO(jonasbadalic) 1440px used to be defined as theme.settings.containerWidth and only used here */
-  max-width: 1440px;
   flex: 1;
 `;
 

@@ -2,6 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -655,14 +657,14 @@ function ProjectSeer({
       <ProjectSeerGeneralForm project={project} />
       <CursorIntegrationCta project={project} />
       <AutofixRepositories project={project} />
-      <Center>
+      <Flex justify="center" marginTop="lg">
         <LinkButton
           to={`/settings/${organization.slug}/seer/onboarding/`}
           priority="primary"
         >
           {t('Set up my other projects')}
         </LinkButton>
-      </Center>
+      </Flex>
     </Fragment>
   );
 }
@@ -692,10 +694,4 @@ const Subheading = styled('div')`
   text-transform: none;
   margin-top: ${space(1)};
   line-height: 1.4;
-`;
-
-const Center = styled('div')`
-  display: flex;
-  justify-content: center;
-  margin-top: ${p => p.theme.space.lg};
 `;

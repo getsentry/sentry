@@ -2,6 +2,8 @@ import {PureComponent} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
@@ -57,10 +59,10 @@ class ProjectPluginRow extends PureComponent<Props> {
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => {
           return (
-            <PluginItem key={id} className={slug}>
+            <Flex align="center" flex="1" key={id} className={slug}>
               <PluginInfo>
                 <StyledPluginIcon size={48} pluginId={id} />
-                <PluginDescription>
+                <Stack justify="center">
                   <PluginName>
                     {`${name} `}
                     <Version>{version ? `v${version}` : <em>{t('n/a')}</em>}</Version>
@@ -81,7 +83,7 @@ class ProjectPluginRow extends PureComponent<Props> {
                       </span>
                     )}
                   </div>
-                </PluginDescription>
+                </Stack>
               </PluginInfo>
               <Switch
                 size="lg"
@@ -89,7 +91,7 @@ class ProjectPluginRow extends PureComponent<Props> {
                 checked={enabled}
                 onChange={this.handleChange}
               />
-            </PluginItem>
+            </Flex>
           );
         }}
       </Access>
@@ -98,18 +100,6 @@ class ProjectPluginRow extends PureComponent<Props> {
 }
 
 export default withOrganization(ProjectPluginRow);
-
-const PluginItem = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-`;
-
-const PluginDescription = styled('div')`
-  display: flex;
-  justify-content: center;
-  flex-direction: column;
-`;
 
 const PluginInfo = styled('div')`
   display: flex;
