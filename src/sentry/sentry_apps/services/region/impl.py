@@ -425,7 +425,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 )
             key = self.get_component_interaction_key(sentry_app.slug, component_type)
         elif model == TSDBModel.sentry_app_viewed:
-            key = str(sentry_app.id)
+            key = sentry_app.id
         else:
             return RpcEmptyResult(
                 success=False,
