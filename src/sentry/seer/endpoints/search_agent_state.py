@@ -23,13 +23,13 @@ from sentry.seer.signed_seer_api import sign_with_seer_secret
 logger = logging.getLogger(__name__)
 
 
-def fetch_search_agent_state(run_id: int) -> dict[str, Any]:
+def fetch_search_agent_state(run_id: int, organization_id: int) -> dict[str, Any]:
     """
     Fetch the current state of a search agent run from Seer.
 
-    Calls POST /v1/assisted-query/state with the run_id.
+    Calls POST /v1/assisted-query/state with the run_id and organization_id.
     """
-    body = orjson.dumps({"run_id": run_id})
+    body = orjson.dumps({"run_id": run_id, "organization_id": organization_id})
 
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/state",
@@ -105,7 +105,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
             )
 
         try:
-            data = fetch_search_agent_state(run_id_int)
+            data = fetch_search_agent_state(run_id_int, organization.id)
 
             # Return the session data directly from Seer
             return Response(data)

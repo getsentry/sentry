@@ -61,7 +61,8 @@ def send_search_agent_start_request(
     project_ids: list[int],
     natural_language_query: str,
     strategy: str = "Traces",
-    user_org_context: dict[str, Any] | None = None,
+    user_email: str | None = None,
+    timezone: str | None = None,
     model_name: str | None = None,
 ) -> dict[str, Any]:
     """
@@ -73,11 +74,13 @@ def send_search_agent_start_request(
         "project_ids": project_ids,
         "natural_language_query": natural_language_query,
         "strategy": strategy,
-        "async_mode": True,  # Request async mode to get run_id immediately
     }
 
-    if user_org_context:
-        body_dict["user_org_context"] = user_org_context
+    if user_email:
+        body_dict["user_email"] = user_email
+
+    if timezone:
+        body_dict["timezone"] = timezone
 
     options: dict[str, Any] = {}
     if model_name is not None:
@@ -160,6 +163,8 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
 
         # Collect user context for the agent
         user_org_context = collect_user_org_context(request.user, organization)
+        user_email = user_org_context.get("user_email")
+        timezone = user_org_context.get("user_timezone")
 
         data = send_search_agent_start_request(
             organization.id,
@@ -167,7 +172,8 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
             project_ids,
             natural_language_query,
             strategy=strategy,
-            user_org_context=user_org_context,
+            user_email=user_email,
+            timezone=timezone,
             model_name=model_name,
         )
 
