@@ -74,39 +74,9 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         }
 
     @responses.activate
-    def test_applies_correctly_for_legacy_webhooks(self) -> None:
-        responses.add(responses.POST, "http://my-fake-webhook.io")
-
-        rule = Rule.objects.create(
-            label="bad stuff happening",
-            project=self.event.project,
-            data=self.rule_webhook_data,
-        )
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
-                group_id=self.event.group_id,
-                project_id=self.event.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        assert len(responses.calls) == 1
-
-        payload = json.loads(responses.calls[0].request.body)
-        assert payload["level"] == "error"
-        assert payload["message"] == "こんにちは"
-        assert payload["event"]["id"] == self.event.event_id
-        assert payload["event"]["event_id"] == self.event.event_id
-        assert payload["triggering_rules"] == [rule.label]
-
-    @responses.activate
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
-    def test_applies_correctly_for_legacy_webhooks_aci(self):
+    def test_applies_correctly_for_legacy_webhooks(self):
         responses.add(responses.POST, "http://my-fake-webhook.io")
 
         (

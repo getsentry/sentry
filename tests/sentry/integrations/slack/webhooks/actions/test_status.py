@@ -29,8 +29,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -723,28 +721,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_resolve_issue(self, mock_tags: MagicMock, mock_record: MagicMock) -> None:
-        original_message = self.get_original_message(self.group.id)
-        self.resolve_issue(original_message, "resolved", mock_record)
-
-        self.group = Group.objects.get(id=self.group.id)
-        assert self.group.get_status() == GroupStatus.RESOLVED
-        assert not GroupResolution.objects.filter(group=self.group)
-
-        blocks = self.mock_post.call_args.kwargs["blocks"]
-        assert mock_tags.call_args.kwargs["tags"] == self.tags
-
-        expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"] == expect_status
-        assert ":white_circle:" in blocks[0]["text"]["text"]
-
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
-    def test_resolve_issue_during_aci_rollout(
-        self, mock_tags: MagicMock, mock_record: MagicMock
-    ) -> None:
         original_message = self.get_original_message(self.group.id)
         self.resolve_issue(original_message, "resolved", mock_record)
 

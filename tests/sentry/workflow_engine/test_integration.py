@@ -9,7 +9,6 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.rules.match import MatchType
@@ -17,8 +16,7 @@ from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import Feature, with_feature
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache_key_for_event
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
@@ -151,31 +149,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
 
-    def test_workflow_engine__workflows__other_events(self) -> None:
-        """
-        Ensure that the workflow engine only supports MetricIssue events for now.
-        """
-        error_event = self.store_event(data={}, project_id=self.project.id)
-
-        occurrence_data = self.build_occurrence_data(
-            event_id=error_event.event_id,
-            project_id=self.project.id,
-            fingerprint=[f"detector-{self.detector.id}"],
-            evidence_data={},
-            type=ErrorGroupType.type_id,
-        )
-
-        self.occurrence, group_info = save_issue_occurrence(occurrence_data, error_event)
-        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
-
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
-        ) as mock_process_workflow:
-            self.call_post_process_group(error_event.group_id)
-
-            # We currently don't have a detector for this issue type, so it should not call workflow_engine.
-            mock_process_workflow.assert_not_called()
-
 
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
@@ -191,22 +164,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         self.workflow_triggers.conditions.all().delete()
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
-
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        with (
-            Feature(
-                {
-                    "organizations:workflow-engine-single-process-workflows": True,
-                }
-            ),
-            override_options(
-                {
-                    "workflow_engine.issue_alert.group.type_id.rollout": [1],
-                }
-            ),
-        ):
-            yield
 
     @pytest.fixture(autouse=True)
     def with_tasks(self):
@@ -544,72 +501,4 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             project_id=self.project.id,
             group_id=event.group_id,
             event_id=event.event_id,
-        )
-
-
-class TestWorkflowEngineIntegrationPostProcessRollout(BaseWorkflowIntegrationTest):
-    def setUp(self) -> None:
-        self.project = self.create_project(create_default_detectors=True)
-        occurrence_data = self.build_occurrence_data(
-            type=FeedbackGroup.type_id,
-            event_id=self.event.event_id,
-            project_id=self.project.id,
-            evidence_data={
-                "contact_email": "test@test.com",
-                "message": "test",
-                "name": "Name Test",
-                "source": "new_feedback_envelope",
-                "summary": "test",
-            },
-        )
-
-        self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
-        assert group_info is not None
-
-        self.feedback_group = Group.objects.get(id=group_info.group.id)
-        assert self.feedback_group.type == FeedbackGroup.type_id
-
-    @override_options(
-        {
-            "workflow_engine.issue_alert.group.type_id.ga": [1],
-        }
-    )
-    def test_errors_only_rollout(self) -> None:
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
-        ) as mock_process_workflow:
-            self.call_post_process_group(self.feedback_group.id)
-            assert not mock_process_workflow.called
-
-    @override_options(
-        {
-            "workflow_engine.issue_alert.group.type_id.ga": [1],
-            "workflow_engine.issue_alert.group.type_id.rollout": [6001],
-        }
-    )
-    @with_feature(
-        {
-            "organizations:workflow-engine-single-process-workflows": True,
-            "organizations:workflow-engine-log-evaluations": True,
-        }
-    )
-    @patch("sentry.workflow_engine.tasks.workflows.logger")
-    def test_rollout_new_issue_type(self, mock_logger: MagicMock) -> None:
-        with self.tasks():
-            self.call_post_process_group(self.feedback_group.id)
-
-        # log and exit because no workflows, but we fetched issue stream detector successfully
-        mock_logger.info.assert_any_call(
-            "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
-            extra={
-                "event_id": self.event.event_id,
-                "group_id": self.feedback_group.id,
-                "detection_type": "issue_stream",
-                "workflow_ids": None,
-                "triggered_workflow_ids": [],
-                "delayed_conditions": None,
-                "action_filter_group_ids": [],
-                "triggered_action_ids": [],
-                "debug_msg": "No workflows are associated with the detector in the event",
-            },
         )

@@ -975,7 +975,13 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].kwargs == {}
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_slack_title_link_notification_uuid(self, mock_post: MagicMock) -> None:
+    @patch(
+        "sentry.notifications.notification_action.utils.should_fire_workflow_actions",
+        return_value=False,
+    )
+    def test_slack_title_link_notification_uuid(
+        self, mock_should_fire_workflow_actions, mock_post: MagicMock
+    ) -> None:
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
         action_data = [
@@ -1003,7 +1009,13 @@ class RuleProcessorTestFilters(TestCase):
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
-    def test_msteams_title_link_notification_uuid(self, mock_post: MagicMock) -> None:
+    @patch(
+        "sentry.notifications.notification_action.utils.should_fire_workflow_actions",
+        return_value=False,
+    )
+    def test_msteams_title_link_notification_uuid(
+        self, mock_should_fire_workflow_actions, mock_post: MagicMock
+    ) -> None:
         """Test that the slack title link includes the notification uuid from apply function"""
         tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         integration = self.create_integration(
@@ -1045,7 +1057,13 @@ class RuleProcessorTestFilters(TestCase):
         )
 
     @patch("sentry.integrations.discord.message_builder.base.base.DiscordMessageBuilder._build")
-    def test_discord_title_link_notification_uuid(self, mock_build: MagicMock) -> None:
+    @patch(
+        "sentry.notifications.notification_action.utils.should_fire_workflow_actions",
+        return_value=False,
+    )
+    def test_discord_title_link_notification_uuid(
+        self, mock_should_fire_workflow_actions, mock_build: MagicMock
+    ) -> None:
         integration = self.create_integration(
             organization=self.organization,
             external_id="1234567890",
