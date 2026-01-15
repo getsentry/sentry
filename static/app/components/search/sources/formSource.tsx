@@ -10,7 +10,7 @@ import {useUser} from 'sentry/utils/useUser';
 import type {ChildProps, Result, ResultItem} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
 
-export type FormSearchField = {
+type FormSearchField = {
   description: React.ReactNode;
   field: FieldObject;
   route: string;
