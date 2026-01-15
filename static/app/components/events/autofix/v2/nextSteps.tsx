@@ -79,7 +79,8 @@ function getAvailableNextSteps(
   // After root cause, all steps become available (except ones already completed)
   const available: AutofixExplorerStep[] = [];
 
-  if (!hasSolution) {
+  // Don't show "Plan a Solution" if code changes have been initiated
+  if (!hasSolution && !hasCodeChanges && !hasCodingAgents) {
     available.push('solution');
   }
 
