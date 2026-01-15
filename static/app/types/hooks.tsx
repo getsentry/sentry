@@ -163,7 +163,7 @@ export type PartnershipAgreementProps = {
 };
 
 export type MembershipSettingsProps = {
-  forms: JsonFormObject[];
+  forms: readonly JsonFormObject[];
   jsonFormSettings: Omit<
     FormPanelProps,
     'highlighted' | 'fields' | 'additionalFieldProps'

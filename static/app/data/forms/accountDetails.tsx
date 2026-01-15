@@ -1,11 +1,12 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {User} from 'sentry/types/user';
 
 export const route = '/settings/account/details/';
 
 // For fields that are
 const getUserIsManaged = ({user}: any) => user.isManaged;
 
-const formGroups: JsonFormObject[] = [
+const baseFormGroups: readonly JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Account Details',
@@ -36,4 +37,35 @@ const formGroups: JsonFormObject[] = [
   },
 ];
 
-export default formGroups;
+/**
+ * Factory function to create account details form with optional userId field
+ */
+export function createAccountDetailsForm(options?: {
+  includeUserId?: boolean;
+  user?: User;
+}): readonly JsonFormObject[] {
+  if (!options?.includeUserId || !options?.user) {
+    return baseFormGroups;
+  }
+
+  return [
+    {
+      ...baseFormGroups[0]!,
+      fields: [
+        ...baseFormGroups[0]!.fields,
+        {
+          name: 'userId',
+          type: 'string',
+          disabled: true,
+          label: 'User ID',
+          setValue(_, _name) {
+            return options.user!.id;
+          },
+          help: `The unique identifier for your account. It cannot be modified.`,
+        },
+      ],
+    },
+  ];
+}
+
+export default baseFormGroups;

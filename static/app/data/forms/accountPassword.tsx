@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 
 const getUserIsNotManaged = ({user}: any) => !user.isManaged;
 
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Password',

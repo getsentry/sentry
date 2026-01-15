@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 
 export const route = '/settings/:orgId/projects/:projectId/security-headers/csp';
 
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'CSP Settings',

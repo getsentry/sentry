@@ -233,9 +233,9 @@ export type Field = (
 export type FieldObject = Field | (() => React.ReactNode);
 
 export type JsonFormObject = {
-  fields: FieldObject[];
-  initiallyCollapsed?: boolean;
-  title?: React.ReactNode;
+  readonly fields: readonly FieldObject[];
+  readonly initiallyCollapsed?: boolean;
+  readonly title?: React.ReactNode;
 };
 
 export type Data = Record<string, any>;

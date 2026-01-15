@@ -50,7 +50,7 @@ export function SeerAutomationDefault() {
     help: t('Allow members to use Seer to write code.'),
   };
 
-  const seerFormGroups: JsonFormObject[] = [
+  const seerFormGroups: readonly JsonFormObject[] = [
     {
       title: t('Default Automation for New Projects'),
       fields: [orgDefaultScannerAutomation, orgDefaultAutomationTuning],

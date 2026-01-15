@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/emails/';
 
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: t('Add Secondary Emails'),

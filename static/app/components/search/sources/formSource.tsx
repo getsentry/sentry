@@ -18,7 +18,7 @@ let ALL_FORM_FIELDS_CACHED: FormSearchField[] | null = null;
 
 type SearchMapParams = {
   fields: Record<string, Field>;
-  formGroups: JsonFormObject[];
+  formGroups: readonly JsonFormObject[];
   route: string;
 };
 

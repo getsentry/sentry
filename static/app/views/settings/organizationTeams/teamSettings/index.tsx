@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
@@ -11,11 +10,10 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import type {FieldObject} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
+import {createTeamSettingsForm} from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
@@ -56,24 +54,10 @@ export default function TeamSettings() {
   const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
   const isIdpProvisioned = team.flags['idp:provisioned'];
 
-  const forms = useMemo(() => {
-    const formsConfig = cloneDeep(teamSettingsFields);
-
-    const teamIdField: FieldObject = {
-      name: 'teamId',
-      type: 'string',
-      disabled: true,
-      label: t('Team ID'),
-      setValue(_, _name) {
-        return team.id;
-      },
-      help: `The unique identifier for this team. It cannot be modified.`,
-    };
-
-    formsConfig[0]!.fields = [...formsConfig[0]!.fields, teamIdField];
-
-    return formsConfig;
-  }, [team]);
+  const forms = useMemo(
+    () => createTeamSettingsForm({includeTeamId: true, team}),
+    [team]
+  );
 
   return (
     <Fragment>

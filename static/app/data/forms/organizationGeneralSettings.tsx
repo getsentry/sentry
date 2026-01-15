@@ -1,13 +1,26 @@
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {ExternalLink} from 'sentry/components/core/link';
-import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {Hovercard} from 'sentry/components/hovercard';
+import {IconCodecov, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
 import slugify from 'sentry/utils/slugify';
+import {makeHideAiFeaturesField} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
+import {makePreventAiField} from 'sentry/views/settings/organizationGeneralSettings/preventAiSettings';
+
+const HookCodecovSettingsLink = HookOrDefault({
+  hookName: 'component:codecov-integration-settings-link',
+});
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
 
-const formGroups: JsonFormObject[] = [
+const baseFormGroups: readonly JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: t('General'),
@@ -52,4 +65,85 @@ const formGroups: JsonFormObject[] = [
   },
 ];
 
-export default formGroups;
+/**
+ * Factory function to create organization general settings form with all fields
+ */
+export function createOrganizationGeneralSettingsForm(options: {
+  access: Set<string>;
+  organization: Organization;
+}): readonly JsonFormObject[] {
+  const {organization, access} = options;
+  const baseFields = baseFormGroups[0]!.fields;
+
+  const additionalFields: FieldObject[] = [
+    makeHideAiFeaturesField(organization),
+    {
+      name: 'codecovAccess',
+      type: 'boolean',
+      disabled:
+        !organization.features.includes('codecov-integration') ||
+        !access.has('org:write'),
+      label: (
+        <span style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+          {t('Enable Code Coverage Insights')}{' '}
+          <Feature
+            hookName="feature-disabled:codecov-integration-setting"
+            renderDisabled={p => (
+              <Hovercard
+                body={
+                  <FeatureDisabled
+                    features={p.features}
+                    hideHelpToggle
+                    featureName={t('Codecov Coverage')}
+                  />
+                }
+              >
+                <Tag variant="muted" role="status" icon={<IconLock locked />}>
+                  {t('disabled')}
+                </Tag>
+              </Hovercard>
+            )}
+            features="organizations:codecov-integration"
+          >
+            {() => null}
+          </Feature>
+        </span>
+      ),
+      formatMessageValue: (value: boolean) => {
+        const onOff = value ? t('on') : t('off');
+        return t('Codecov access was turned %s', onOff);
+      },
+      help: (
+        <span style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+          {t('powered by')} <IconCodecov /> Codecov{' '}
+          <HookCodecovSettingsLink organization={organization} />
+        </span>
+      ),
+    },
+    makePreventAiField(organization),
+  ];
+
+  return [
+    {
+      ...baseFormGroups[0]!,
+      fields: [
+        baseFields[0]!, // slug
+        baseFields[1]!, // name
+        {
+          name: 'organizationId',
+          type: 'string',
+          disabled: true,
+          label: t('Organization ID'),
+          setValue(_, _name) {
+            return organization.id;
+          },
+          help: `The unique identifier for this organization. It cannot be modified.`,
+        },
+        baseFields[2]!, // isEarlyAdopter
+        ...additionalFields,
+      ],
+    },
+  ];
+}
+
+export default baseFormGroups;

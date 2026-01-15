@@ -12,7 +12,7 @@ export const route = '/settings/account/details/';
 // `options` object
 const transformOptions = (data: Record<PropertyKey, unknown>) => ({options: data});
 
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Preferences',

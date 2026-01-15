@@ -1,16 +1,14 @@
 import {Fragment} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import type {FieldObject} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import accountDetailsFields from 'sentry/data/forms/accountDetails';
+import {createAccountDetailsForm} from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
@@ -79,20 +77,7 @@ function AccountDetails() {
     onSubmitSuccess: handleSubmitSuccess,
   };
 
-  const formConfig = cloneDeep(accountDetailsFields);
-
-  const userIdField: FieldObject = {
-    name: 'userId',
-    type: 'string',
-    disabled: true,
-    label: t('User ID'),
-    setValue(_, _name) {
-      return user.id;
-    },
-    help: `The unique identifier for your account. It cannot be modified.`,
-  };
-
-  formConfig[0]!.fields = [...formConfig[0]!.fields, userIdField];
+  const formConfig = createAccountDetailsForm({includeUserId: true, user});
 
   return (
     <Fragment>

@@ -62,7 +62,7 @@ function projectWriteAndOrgOverrideDisabledReason({
   return null;
 }
 
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     title: t('Security & Privacy'),
     fields: [
