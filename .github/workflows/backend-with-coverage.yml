@@ -3,13 +3,63 @@ name: backend - with test coverage
 on:
   workflow_dispatch:
   workflow_call:
-  pull_request:
+  # Once an hour
   schedule:
     - cron: '0 * * * *'
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
+  # Optimization to not generate coverage if it already exists in GCS
+  check-existing-coverage:
+    name: check for existing coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      has-coverage: ${{ steps.check-coverage.outputs.exists }}
+      commit-sha: ${{ steps.get-sha.outputs.sha }}
+    steps:
+      - name: Determine commit SHA
+        id: get-sha
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            COMMIT_SHA="${{ github.sha }}"
+          fi
+          echo "sha=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: sentry-dev-tooling
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Check if coverage exists
+        id: check-coverage
+        env:
+          COMMIT_SHA: ${{ steps.get-sha.outputs.sha }}
+        run: |
+          if gcloud storage ls "gs://sentry-coverage-data/${COMMIT_SHA}/.coverage.combined" &>/dev/null; then
+            echo "Coverage already exists for commit ${COMMIT_SHA}, skipping test run"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No coverage found for commit ${COMMIT_SHA}, will run tests"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
   calculate-shards:
     name: calculate test shards
+    if: needs.check-existing-coverage.outputs.has-coverage != 'true'
+    needs: [check-existing-coverage]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -31,8 +81,9 @@ jobs:
 
   backend-test-with-cov-context:
     name: backend test
+    if: needs.check-existing-coverage.outputs.has-coverage != 'true'
     runs-on: ubuntu-24.04
-    needs: [calculate-shards]
+    needs: [check-existing-coverage, calculate-shards]
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -75,28 +126,15 @@ jobs:
 
   combine-coverage:
     name: combine coverage
-    if: '!cancelled()' # Always run this step, unless the workflow was cancelled
+    if: needs.check-existing-coverage.outputs.has-coverage != 'true' && !cancelled()
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
       actions: read # used for DIM metadata
-    needs: [backend-test-with-cov-context, calculate-shards]
+    needs: [check-existing-coverage, backend-test-with-cov-context, calculate-shards]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Determine commit SHA
-        id: commit-info
-        run: |
-          # For PRs, use the head SHA (the actual commit being tested)
-          # For other events (workflow_dispatch, workflow_call), use github.sha
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
-          else
-            COMMIT_SHA="${{ github.sha }}"
-          fi
-          echo "sha=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "short_sha=${COMMIT_SHA:0:12}" >> "$GITHUB_OUTPUT"
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
@@ -153,4 +191,4 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v2
         with:
           path: .coverage.combined
-          destination: sentry-coverage-data/${{ steps.commit-info.outputs.sha }}
+          destination: sentry-coverage-data/${{ needs.check-existing-coverage.outputs.commit-sha }}
