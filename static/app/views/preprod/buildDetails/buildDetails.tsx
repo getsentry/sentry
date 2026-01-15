@@ -39,9 +39,10 @@ import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
 export default function BuildDetails() {
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
-  const params = useParams() as {artifactId: string};
-  const artifactId = params.artifactId;
-  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
+  const {artifactId} = useParams<{artifactId: string}>();
+  const {project: projectSlug} = useLocationQuery({fields: {project: decodeScalar}});
+  // Handle project as query param - take first value if array
+  const projectId = Array.isArray(projectSlug) ? projectSlug[0] : projectSlug;
   const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({
     projectId,
     artifactId,

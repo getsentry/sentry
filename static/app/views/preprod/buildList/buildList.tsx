@@ -19,12 +19,14 @@ import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsT
 export default function BuildList() {
   const organization = useOrganization();
 
-  const {cursor, project: projectId} = useLocationQuery({
+  const {cursor, project: projectSlug} = useLocationQuery({
     fields: {
       cursor: decodeScalar,
       project: decodeScalar,
     },
   });
+  // Handle project as query param - take first value if array
+  const projectId = Array.isArray(projectSlug) ? projectSlug[0] : projectSlug;
 
   const queryParams: Record<string, any> = {
     per_page: 25,
