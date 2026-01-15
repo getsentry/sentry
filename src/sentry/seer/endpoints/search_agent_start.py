@@ -180,8 +180,24 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 model_name=model_name,
             )
 
-            # Return just the run_id for polling
-            return Response({"run_id": data.get("run_id")})
+            # Validate that run_id is present in the response
+            run_id = data.get("run_id")
+            if run_id is None:
+                logger.error(
+                    "search_agent.missing_run_id",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_ids": project_ids,
+                        "response_data": data,
+                    },
+                )
+                return Response(
+                    {"detail": "Failed to start search agent: missing run_id in response"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            # Return the run_id for polling
+            return Response({"run_id": run_id})
 
         except requests.HTTPError as e:
             logger.exception(
