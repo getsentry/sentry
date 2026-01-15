@@ -1,0 +1,164 @@
+name: backend (selective)
+
+on:
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      api_docs: ${{ steps.changes.outputs.api_docs }}
+      backend: ${{ steps.changes.outputs.backend_all }}
+      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+      backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
+      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for backend file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  backend-test-selective:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+      actions: read # used for DIM metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 1
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0 # Need full history for git diff
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Authenticate to Google Cloud
+        id: gcloud-auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: sentry-dev-tooling
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Find coverage data for selective testing
+        id: find-coverage
+        env:
+          GCS_BUCKET: sentry-coverage-data
+        run: |
+          set -euo pipefail
+
+          # Get the base commit (what the PR branches from)
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+
+          echo "Looking for coverage data starting from base commit: $BASE_SHA"
+
+          COVERAGE_SHA=""
+          for sha in $(git rev-list "$BASE_SHA" --max-count=30); do
+            # Check if coverage exists in GCS for this commit
+            if gcloud storage ls "gs://${GCS_BUCKET}/${sha}/" &>/dev/null; then
+              COVERAGE_SHA="$sha"
+              echo "Found coverage data at commit: $sha"
+              break
+            fi
+            echo "No coverage at $sha, checking parent..."
+          done
+
+          if [[ -z "$COVERAGE_SHA" ]]; then
+            echo "No coverage found in last 30 commits, will run full test suite"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "coverage-sha=$COVERAGE_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download coverage database
+        id: download-coverage
+        if: steps.find-coverage.outputs.found == 'true'
+        env:
+          COVERAGE_SHA: ${{ steps.find-coverage.outputs.coverage-sha }}
+        run: |
+          set -euxo pipefail
+          mkdir -p .coverage
+          gcloud storage cp "gs://sentry-coverage-data/${COVERAGE_SHA}/*" .coverage/ || true
+
+          # Find the coverage file (could be .coverage.* format)
+          COVERAGE_FILE=$(ls .coverage/.coverage.* 2>/dev/null | head -1 || true)
+          if [[ -z "$COVERAGE_FILE" ]]; then
+            echo "Warning: No coverage file found in downloaded data, will run full test suite"
+            ls -la .coverage/ || true
+            echo "coverage-file=" >> "$GITHUB_OUTPUT"
+          else
+            echo "Downloaded coverage file: $COVERAGE_FILE"
+            echo "coverage-file=$COVERAGE_FILE" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Get files changed between base and head of PR
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | tr '\n' ' ')
+          echo "Changed files: $CHANGED_FILES"
+          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+
+      - name: Run backend tests (selective)
+        if: steps.download-coverage.outputs.coverage-file != ''
+        id: run_backend_tests_selective
+        run: make test-python-ci
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+          COVERAGE_DB_PATH: ${{ steps.download-coverage.outputs.coverage-file }}
+
+      - name: Run backend tests (full - no coverage data)
+        if: steps.download-coverage.outputs.coverage-file == ''
+        id: run_backend_tests_full
+        run: make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+      - name: Collect test data
+        uses: ./.github/actions/collect-test-data
+        if: ${{ !cancelled() }}
+        with:
+          artifact_path: .artifacts/pytest.json # TODO
+          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}

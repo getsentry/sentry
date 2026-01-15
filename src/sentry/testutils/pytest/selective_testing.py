@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from sentry.testutils import pytest
+import pytest
 
 PYTEST_IGNORED_FILES = [
     # the pytest code itself is not part of the test suite but will be referenced by most tests
