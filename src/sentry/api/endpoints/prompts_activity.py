@@ -3,7 +3,6 @@ from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
-from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -102,9 +101,9 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
             return Response({"detail": "Missing required field"}, status=400)
 
         # Validate organization_id is present and matches URL organization
-        if "organization_id" not in required_fields:
-            return Response({"detail": "Organization missing or mismatched"}, status=400)
-        if str(fields["organization_id"]) != str(organization.id):
+        if "organization_id" not in required_fields or str(fields["organization_id"]) != str(
+            organization.id
+        ):
             return Response({"detail": "Organization missing or mismatched"}, status=400)
         # Override with URL organization to prevent IDOR
         fields["organization_id"] = organization.id
@@ -138,4 +137,4 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
                 )
         except IntegrityError:
             pass
-        return HttpResponse(status=201)
+        return Response(status=201)

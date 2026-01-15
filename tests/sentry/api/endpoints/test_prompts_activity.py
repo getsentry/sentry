@@ -292,7 +292,7 @@ class PromptsActivityTest(APITestCase):
         resp = self.client.get(
             self.path,
             {
-                "project_id": other_project.id,
+                "project_id": str(other_project.id),
                 "feature": "releases",
             },
         )
