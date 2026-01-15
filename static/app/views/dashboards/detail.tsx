@@ -214,7 +214,6 @@ class DashboardDetail extends Component<Props, State> {
     if (this.isWidgetBuilder()) {
       this.setState({isWidgetBuilderOpen: true});
     }
-    console.log('mounted');
     window.addEventListener('beforeunload', this.handleBeforeUnload);
   }
 
@@ -721,8 +720,6 @@ class DashboardDetail extends Component<Props, State> {
           ...currentDashboard.widgets.slice(index + 1),
         ]
       : [...currentDashboard.widgets, mergedWidget];
-
-    console.log(newWidgets);
 
     try {
       if (this.isEditingDashboard) {
