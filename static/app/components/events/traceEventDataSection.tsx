@@ -42,6 +42,7 @@ type Props = {
   eventId: Event['id'];
   hasAbsoluteAddresses: boolean;
   hasAbsoluteFilePaths: boolean;
+  hasFlamegraphData: boolean;
   hasMinified: boolean;
   hasNewestFirst: boolean;
   hasVerboseFunctionNames: boolean;
@@ -68,6 +69,7 @@ export function TraceEventDataSection({
   hasVerboseFunctionNames,
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
+  hasFlamegraphData,
   isNestedSection = false,
   activeThreadId,
 }: Props) {
@@ -454,7 +456,7 @@ export function TraceEventDataSection({
       actions={
         !stackTraceNotFound && (
           <ButtonBar>
-            {!displayOptions.includes('raw-stack-trace') && (
+            {!displayOptions.includes('raw-stack-trace') && !hasFlamegraphData && (
               <Tooltip
                 title={t('Only full version available')}
                 disabled={!forceFullStackTrace}

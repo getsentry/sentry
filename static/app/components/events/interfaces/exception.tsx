@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {hasFlamegraphData} from 'sentry/components/events/interfaces/crashContent/stackTrace/flamegraph';
 import {StacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
@@ -55,15 +56,20 @@ export function Exception({
     value.stacktrace?.frames?.some(frame => !frame.inApp)
   );
 
+  const hasFlamegraphDataForException = !!data.values?.some(value =>
+    hasFlamegraphData(value.stacktrace?.frames)
+  );
+
   return (
     <StacktraceContext
       projectSlug={projectSlug}
       forceFullStackTrace={hasNonAppFrames ? !data.hasSystemFrames : true}
       defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
       hasSystemFrames={data.hasSystemFrames}
+      hasFlamegraphData={hasFlamegraphDataForException}
     >
       <TraceEventDataSection
-        title={t('Stack Trace')}
+        title={hasFlamegraphDataForException ? t('Flamegraph') : t('Stack Trace')}
         type={EntryType.EXCEPTION}
         projectSlug={projectSlug}
         event={event}
@@ -94,6 +100,7 @@ export function Exception({
         hasNewestFirst={
           !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
         }
+        hasFlamegraphData={hasFlamegraphDataForException}
         stackTraceNotFound={stackTraceNotFound}
       >
         {stackTraceNotFound ? (
