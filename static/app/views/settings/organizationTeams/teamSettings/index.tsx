@@ -20,6 +20,7 @@ import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -27,6 +28,7 @@ export default function TeamSettings() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const api = useApi();
+  const user = useUser();
   const {team} = useTeamDetailsOutlet();
 
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
@@ -55,8 +57,13 @@ export default function TeamSettings() {
   const isIdpProvisioned = team.flags['idp:provisioned'];
 
   const forms = useMemo(
-    () => createTeamSettingsForm({includeTeamId: true, team}),
-    [team]
+    () =>
+      createTeamSettingsForm({
+        user,
+        organization,
+        access: new Set(),
+      }),
+    [user, organization]
   );
 
   return (

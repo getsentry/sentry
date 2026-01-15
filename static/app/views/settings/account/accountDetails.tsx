@@ -77,7 +77,11 @@ function AccountDetails() {
     onSubmitSuccess: handleSubmitSuccess,
   };
 
-  const formConfig = createAccountDetailsForm({includeUserId: true, user});
+  const formConfig = createAccountDetailsForm({
+    user,
+    organization,
+    access: new Set(), // Account details don't require org access
+  });
 
   return (
     <Fragment>

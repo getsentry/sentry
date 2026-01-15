@@ -9,9 +9,16 @@ import {IconCodecov, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import slugify from 'sentry/utils/slugify';
 import {makeHideAiFeaturesField} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 import {makePreventAiField} from 'sentry/views/settings/organizationGeneralSettings/preventAiSettings';
+
+export type FormSearchContext = {
+  access: Set<string>;
+  organization: Organization | null;
+  user: User | null;
+};
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
@@ -66,14 +73,17 @@ const baseFormGroups: readonly JsonFormObject[] = [
 ];
 
 /**
- * Factory function to create organization general settings form with all fields
- * For search: invoke with {organization: {id: '', features: ['gen-ai-features', 'codecov-integration']}, access: new Set(['org:write'])}
+ * Factory function to create organization general settings form with all fields.
+ * Accepts FormSearchContext for consistency with other form factories.
  */
-export function createOrganizationGeneralSettingsForm(options: {
-  access: Set<string>;
-  organization: Organization;
-}): readonly JsonFormObject[] {
-  const {organization, access} = options;
+export function createOrganizationGeneralSettingsForm(
+  context: FormSearchContext
+): readonly JsonFormObject[] {
+  const {organization, access} = context;
+
+  if (!organization) {
+    return baseFormGroups;
+  }
   const baseFields = baseFormGroups[0]!.fields;
 
   const additionalFields: FieldObject[] = [

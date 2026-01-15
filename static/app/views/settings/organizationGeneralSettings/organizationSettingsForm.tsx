@@ -12,6 +12,7 @@ import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 const HookOrganizationMembershipSettings = HookOrDefault({
   hookName: 'component:organization-membership-settings',
@@ -30,6 +31,7 @@ interface Props {
 function OrganizationSettingsForm({initialData, onSave}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const user = useUser();
   const endpoint = `/organizations/${organization.slug}/`;
 
   const access = useMemo(() => new Set(organization.access), [organization]);
@@ -48,9 +50,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     () =>
       createOrganizationGeneralSettingsForm({
         organization,
+        user,
         access,
       }),
-    [access, organization]
+    [access, organization, user]
   );
 
   return (

@@ -13,7 +13,6 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import CommandPaletteModal from 'sentry/components/modals/deprecatedCommandPalette';
-import {setSearchMap} from 'sentry/components/search/sources/formSource';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 jest.mock('sentry/actionCreators/navigation');
@@ -21,7 +20,6 @@ jest.mock('sentry/actionCreators/navigation');
 describe('Command Palette Modal', () => {
   it('can open command palette modal and search', async () => {
     OrganizationsStore.load(OrganizationsFixture());
-    setSearchMap([]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

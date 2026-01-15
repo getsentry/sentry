@@ -1,5 +1,12 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+
+export type FormSearchContext = {
+  access: Set<string>;
+  organization: Organization | null;
+  user: User | null;
+};
 
 export const route = '/settings/account/details/';
 
@@ -38,14 +45,15 @@ const baseFormGroups: readonly JsonFormObject[] = [
 ];
 
 /**
- * Factory function to create account details form with optional userId field
- * For search: invoke with {includeUserId: true, user: {id: ''}} to get all searchable fields
+ * Factory function to create account details form with userId field for search.
+ * Accepts FormSearchContext for consistency with other form factories.
  */
-export function createAccountDetailsForm(options?: {
-  includeUserId?: boolean;
-  user?: User;
-}): readonly JsonFormObject[] {
-  if (!options?.includeUserId || !options?.user) {
+export function createAccountDetailsForm(
+  context: FormSearchContext
+): readonly JsonFormObject[] {
+  const {user} = context;
+
+  if (!user) {
     return baseFormGroups;
   }
 
@@ -60,7 +68,7 @@ export function createAccountDetailsForm(options?: {
           disabled: true,
           label: 'User ID',
           setValue(_, _name) {
-            return options.user!.id;
+            return user.id;
           },
           help: `The unique identifier for your account. It cannot be modified.`,
         },

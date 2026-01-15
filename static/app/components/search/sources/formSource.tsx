@@ -1,8 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import type {Field, FieldObject, JsonFormObject} from 'sentry/components/forms/types';
+import type {FormSearchContext} from 'sentry/data/forms/accountDetails';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import type {ChildProps, Result, ResultItem} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
@@ -13,8 +16,6 @@ export type FormSearchField = {
   route: string;
   title: React.ReactNode;
 };
-
-let ALL_FORM_FIELDS_CACHED: FormSearchField[] | null = null;
 
 type SearchMapParams = {
   fields: Record<string, Field>;
@@ -51,16 +52,13 @@ function createSearchMap({
   }));
 }
 
-function getSearchMap() {
-  if (ALL_FORM_FIELDS_CACHED !== null) {
-    return ALL_FORM_FIELDS_CACHED;
-  }
-
-  // Load all form configuration files via webpack that export a named `route`
-  // as well as either `fields` or `formGroups`
+/**
+ * Gets a list of all form fields defined in `sentry/data/forms`. For forms using the factory pattern and dynamic fields,
+ * invoke the factory function with runtime context to get the full form definition for search.
+ */
+function getSearchMap(searchContext: FormSearchContext): FormSearchField[] {
   const context = require.context('sentry/data/forms', true, /\.tsx?$/);
 
-  // Get a list of all form fields defined in `../data/forms`
   const allFormFields: FormSearchField[] = context.keys().flatMap((key: any) => {
     const mod = context(key);
 
@@ -72,27 +70,14 @@ function getSearchMap() {
 
     let formGroups = mod.default;
 
-    // Check if the module exports a factory function (starts with 'create')
-    // If so, invoke it with mock arguments to get all searchable fields
-    const factoryFnKey = Object.keys(mod).find(
-      k => typeof mod[k] === 'function' && k.startsWith('create')
-    );
+    // Check if the module exports a function - if so, invoke it with FormSearchContext
+    const factoryFnKey = Object.keys(mod).find(k => typeof mod[k] === 'function');
 
     if (factoryFnKey) {
       const factoryFn = mod[factoryFnKey];
       try {
-        // Invoke factory with mock arguments to get full form definition for search
-        // Different factories need different arguments
-        if (factoryFnKey === 'createAccountDetailsForm') {
-          formGroups = factoryFn({includeUserId: true, user: {id: ''}});
-        } else if (factoryFnKey === 'createTeamSettingsForm') {
-          formGroups = factoryFn({includeTeamId: true, team: {id: ''}});
-        } else if (factoryFnKey === 'createOrganizationGeneralSettingsForm') {
-          formGroups = factoryFn({
-            organization: {id: '', features: ['gen-ai-features', 'codecov-integration']},
-            access: new Set(['org:write']),
-          });
-        }
+        // All form factories accept FormSearchContext
+        formGroups = factoryFn(searchContext);
       } catch {
         // If factory invocation fails, fall back to default export
         formGroups = mod.default;
@@ -112,15 +97,7 @@ function getSearchMap() {
     return [];
   });
 
-  ALL_FORM_FIELDS_CACHED = allFormFields;
   return allFormFields;
-}
-
-/**
- * @internal Used specifically for tests
- */
-export function setSearchMap(fields: FormSearchField[]) {
-  ALL_FORM_FIELDS_CACHED = fields;
 }
 
 interface Props {
@@ -137,16 +114,29 @@ interface Props {
 
 function FormSource({searchOptions, query, children}: Props) {
   const [fuzzy, setFuzzy] = useState<Fuse<FormSearchField> | null>(null);
+  const user = useUser();
+  const organization = useOrganization({allowNull: true});
+
+  // Build search context from current runtime state
+  const searchContext: FormSearchContext = useMemo(
+    () => ({
+      user,
+      organization,
+      // TODO: Get actual access set from organization membership/permissions
+      access: new Set(['org:write']),
+    }),
+    [user, organization]
+  );
 
   const createSearch = useCallback(async () => {
     setFuzzy(
-      await createFuzzySearch(getSearchMap(), {
+      await createFuzzySearch(getSearchMap(searchContext), {
         ...searchOptions,
         keys: ['title', 'description'],
         getFn: strGetFn,
       })
     );
-  }, [searchOptions]);
+  }, [searchOptions, searchContext]);
 
   useEffect(() => void createSearch(), [createSearch]);
 
