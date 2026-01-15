@@ -107,9 +107,11 @@ def store_coding_agent_states_to_seer(
 
 def _validate_and_get_integration(organization, integration_id: int):
     """Validate request and get the coding agent integration."""
+    integration_id_int = integration_id
+
     org_integration = integration_service.get_organization_integration(
         organization_id=organization.id,
-        integration_id=integration_id,
+        integration_id=integration_id_int,
     )
 
     if not org_integration or org_integration.status != ObjectStatus.ACTIVE:
@@ -162,25 +164,28 @@ def _extract_repos_from_root_cause(autofix_state: AutofixState) -> list[str]:
         return []
 
     cause = root_cause_step["causes"][0]
-    relevant_repos = cause.get("relevant_repos")
-    if not relevant_repos:
+
+    if "relevant_repos" not in cause:
         return []
 
-    return list(set(relevant_repos))
+    return list(set(cause["relevant_repos"])) or []
 
 
 def _extract_repos_from_solution(autofix_state: AutofixState) -> list[str]:
     """Extract repository names from autofix state solution."""
+    repos = set()
     solution_step = next((step for step in autofix_state.steps if step["key"] == "solution"), None)
 
     if not solution_step:
         return []
 
-    repos = set()
     for solution_item in solution_step["solution"]:
-        code_file = solution_item.get("relevant_code_file")
-        if code_file and code_file.get("repo_name"):
-            repos.add(code_file["repo_name"])
+        if (
+            solution_item["relevant_code_file"]
+            and "repo_name" in solution_item["relevant_code_file"]
+            and solution_item["relevant_code_file"]["repo_name"]
+        ):
+            repos.add(solution_item["relevant_code_file"]["repo_name"])
 
     return list(repos)
 
