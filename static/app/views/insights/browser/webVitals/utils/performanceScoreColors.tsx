@@ -30,7 +30,7 @@ export const makePerformanceScoreColors = (theme: Theme): PerformanceScoreColors
     },
     none: {
       light: theme.colors.gray100,
-      normal: theme.tokens.content.muted,
+      normal: theme.tokens.content.secondary,
       border: theme.tokens.border.secondary,
     },
   };
