@@ -24,6 +24,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {DATA_FORWARDING_DOCS_URL} from 'sentry/views/settings/organizationDataForwarding/util/types';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -44,22 +45,13 @@ function DataForwardingStats({organization, project}: DataForwardingStatsProps) 
     },
   };
 
-  const {
-    data: stats,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<TimeseriesValue[]>(
+  const {data: stats = [], isPending} = useApiQuery<TimeseriesValue[]>(
     [`/projects/${organization.slug}/${project.slug}/stats/`, options],
-    {staleTime: 0}
+    {staleTime: 0, retry: false}
   );
 
   if (isPending) {
     return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
   }
 
   const series: Series = {
@@ -151,19 +143,26 @@ export default function ProjectDataForwarding() {
                 }
               )}
             </TextBlock>
-            <ProjectPermissionAlert project={project} />
-
-            <Alert.Container>
-              <Alert variant="info">
-                {tct(
-                  `Sentry forwards [em:all applicable error events] to the provider, in
+            <TextBlock>
+              {tct(
+                `Sentry forwards [em:all applicable error events] to the provider, in
                 some cases this may be a significant volume of data.`,
+                {
+                  em: <strong />,
+                }
+              )}
+            </TextBlock>
+            <Alert.Container>
+              <Alert variant="warning">
+                {tct(
+                  'This project-level feature is deprecated, and will be replaced by organization-level [docs:Data Forwarding]. Existing configurations will be auto-migrated when the feature is available to your organization.',
                   {
-                    em: <strong />,
+                    docs: <ExternalLink href={DATA_FORWARDING_DOCS_URL} />,
                   }
                 )}
               </Alert>
             </Alert.Container>
+            <ProjectPermissionAlert project={project} />
 
             {!hasFeature && (
               <FeatureDisabled
