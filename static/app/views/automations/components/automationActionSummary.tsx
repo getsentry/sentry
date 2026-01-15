@@ -61,7 +61,6 @@ const ActionContainer = styled(Flex)`
 `;
 
 const ActionsList = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

@@ -7,6 +7,7 @@ import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   DashboardFilterKeys,
   DisplayType,
@@ -70,6 +71,8 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
   beforeEach(() => {
     setMockDate(new Date('2022-08-02'));
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(selection);
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -84,9 +87,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div />);
 
     render(
-      <ReleaseWidgetQueries widget={singleQueryWidget} selection={selection}>
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={singleQueryWidget}>{children}</ReleaseWidgetQueries>
     );
 
     expect(mock).toHaveBeenCalledTimes(1);
@@ -137,10 +138,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     ];
 
     render(
-      <ReleaseWidgetQueries
-        widget={{...singleQueryWidget, queries}}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -195,10 +193,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     ];
 
     render(
-      <ReleaseWidgetQueries
-        widget={{...singleQueryWidget, queries}}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -229,7 +224,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     render(
       <ReleaseWidgetQueries
         widget={singleQueryWidget}
-        selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {() => <div data-test-id="child" />}
@@ -273,9 +267,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     };
 
     render(
-      <ReleaseWidgetQueries widget={injectedOrderby} selection={selection}>
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={injectedOrderby}>{children}</ReleaseWidgetQueries>
     );
     expect(mock).toHaveBeenCalledTimes(1);
 
@@ -453,7 +445,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     render(
       <ReleaseWidgetQueries
         widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
-        selection={selection}
       >
         {children}
       </ReleaseWidgetQueries>
@@ -556,7 +547,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     render(
       <ReleaseWidgetQueries
         widget={{...singleQueryWidget, displayType: DisplayType.BIG_NUMBER}}
-        selection={selection}
       >
         {children}
       </ReleaseWidgetQueries>
@@ -603,7 +593,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
       ],
     });
     render(
-      <ReleaseWidgetQueries widget={multipleQueryWidget} selection={selection}>
+      <ReleaseWidgetQueries widget={multipleQueryWidget}>
         {() => <div data-test-id="child" />}
       </ReleaseWidgetQueries>
     );
@@ -661,9 +651,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div data-test-id="child" />);
 
     render(
-      <ReleaseWidgetQueries widget={multipleQueryWidget} selection={selection}>
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={multipleQueryWidget}>{children}</ReleaseWidgetQueries>
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -682,11 +670,13 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
       body: SessionsFieldFixture(`session.all`),
     });
 
+    PageFiltersStore.onInitializeUrlState({
+      ...selection,
+      datetime: {...selection.datetime, period: '14d'},
+    });
+
     render(
-      <ReleaseWidgetQueries
-        widget={{...singleQueryWidget, interval: '1m'}}
-        selection={{...selection, datetime: {...selection.datetime, period: '14d'}}}
-      >
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, interval: '1m'}}>
         {() => <div data-test-id="child" />}
       </ReleaseWidgetQueries>
     );
@@ -714,9 +704,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div />);
 
     const {rerender} = render(
-      <ReleaseWidgetQueries widget={singleQueryWidget} selection={selection}>
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={singleQueryWidget}>{children}</ReleaseWidgetQueries>
     );
 
     await waitFor(() => {
@@ -735,7 +723,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
             },
           ],
         }}
-        selection={selection}
       >
         {children}
       </ReleaseWidgetQueries>
@@ -757,7 +744,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const {rerender} = render(
       <ReleaseWidgetQueries
         widget={singleQueryWidget}
-        selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {children}
@@ -771,7 +757,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     rerender(
       <ReleaseWidgetQueries
         widget={singleQueryWidget}
-        selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {children}
@@ -818,9 +803,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div />);
 
     const {rerender} = render(
-      <ReleaseWidgetQueries widget={releasesWidget} selection={selection}>
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={releasesWidget}>{children}</ReleaseWidgetQueries>
     );
 
     await waitFor(() => {
@@ -840,7 +823,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
             },
           ],
         }}
-        selection={selection}
       >
         {children}
       </ReleaseWidgetQueries>
@@ -881,10 +863,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div />);
 
     render(
-      <ReleaseWidgetQueries
-        widget={{...singleQueryWidget, queries}}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}}>
         {children}
       </ReleaseWidgetQueries>
     );

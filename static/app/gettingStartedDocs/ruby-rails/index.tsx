@@ -4,6 +4,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
 import {logs} from 'sentry/gettingStartedDocs/ruby/logs';
+import {metrics} from 'sentry/gettingStartedDocs/ruby/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/ruby/profiling';
 
 import {crashReport} from './crashReport';
@@ -16,6 +17,9 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: profiling({frameworkPackage: 'sentry-rails'}),
   logsOnboarding: logs({
+    docsPlatform: 'rails',
+  }),
+  metricsOnboarding: metrics({
     docsPlatform: 'rails',
   }),
 };

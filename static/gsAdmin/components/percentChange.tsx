@@ -25,7 +25,7 @@ function PercentChange({current, prev}: Props) {
 }
 
 const Indicator = styled('span')<{value: number}>`
-  color: ${p => (p.value < 0 ? p.theme.red300 : p.theme.colors.green400)};
+  color: ${p => (p.value < 0 ? p.theme.colors.red400 : p.theme.colors.green400)};
 `;
 
 export default PercentChange;

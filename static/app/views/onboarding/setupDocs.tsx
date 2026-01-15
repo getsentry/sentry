@@ -1,11 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -38,7 +39,7 @@ function SetupDocs({recentCreatedProject: project}: StepProps) {
 
   return (
     <Fragment>
-      <Wrapper>
+      <Flex justify="center" margin="xl">
         <MainContent>
           <Fragment>
             <SetupIntroduction
@@ -61,7 +62,7 @@ function SetupDocs({recentCreatedProject: project}: StepProps) {
             )}
           </Fragment>
         </MainContent>
-      </Wrapper>
+      </Flex>
       <FirstEventFooter
         project={project}
         organization={organization}
@@ -88,13 +89,6 @@ function SetupDocs({recentCreatedProject: project}: StepProps) {
 }
 
 export default SetupDocs;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  margin: ${space(2)};
-  justify-content: center;
-`;
 
 const MainContent = styled('div')`
   max-width: 850px;
