@@ -200,9 +200,9 @@ function ToggleConsolePlatformsModal({
   }) => {
     setPendingRevocations(prev => {
       const next = new Map(prev);
-      const platforms = next.get(userId) ?? new Set<ConsolePlatform>();
-      platforms.add(platform);
-      next.set(userId, platforms);
+      const newPlatforms = new Set(prev.get(userId));
+      newPlatforms.add(platform);
+      next.set(userId, newPlatforms);
       return next;
     });
   };
