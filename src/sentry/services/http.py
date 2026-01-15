@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import MutableMapping
-from typing import Any, NoReturn
+from typing import Any
 
 from granian import Granian
 from granian.constants import Interfaces as GranianInterfaces
@@ -72,8 +72,11 @@ class SentryHTTPServer(Service):
             "log-format", '%(addr)s - [%(time)s] "%(method)s %(path)s %(scheme)s" %(status)d'
         )
 
+        # FIXME: while this was true with uwsgi, Granian allows logging customisation
+        #        through the stdlib `logging` module. Thus, it's now possible
+        #        to configure the logger to output json.
         # For machine logging, we are choosing to 100% disable logging
-        # from granian since it's currently not possible to get a nice json
+        # from uwsgi since it's currently not possible to get a nice json
         # logging out of uwsgi, so it's better to just opt out. There's
         # also an assumption that anyone operating at the scale of needing
         # machine formatted logs, they are also using nginx in front which
@@ -96,15 +99,15 @@ class SentryHTTPServer(Service):
         if env is None:
             env = os.environ
 
-        # Signal that we're running within uwsgi
-        env["SENTRY_RUNNING_UWSGI"] = "1" if settings.SENTRY_USE_UWSGI else "0"
+        # Signal that we're running within granian
+        env["SENTRY_RUNNING_GRANIAN"] = "1" if settings.SENTRY_USE_GRANIAN else "0"
 
         # This has already been validated inside __init__
         env["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
-    def run(self) -> NoReturn:
+    def run(self):
         self.prepare_environment()
-        if self.debug or os.environ.get("SENTRY_RUNNING_UWSGI") == "0":
+        if self.debug or os.environ.get("SENTRY_RUNNING_GRANIAN") == "0":
             from wsgiref.simple_server import make_server
 
             from sentry.wsgi import application

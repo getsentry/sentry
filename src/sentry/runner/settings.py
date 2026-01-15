@@ -103,6 +103,7 @@ def configure(
             )
         raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(yaml))
 
+    # NOTE: this should not be needed with Granian
     # Add autoreload for config.yml file if needed
     # if yaml is not None and os.path.exists(yaml):
     #    from sentry.utils.uwsgi import reload_on_change

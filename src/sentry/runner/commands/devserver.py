@@ -410,6 +410,7 @@ def devserver(
         else:
             server_overrides["log-format"] = "[%(time)s] %(method)s %(status)d %(path)s %(proto)s"
 
+        # FIXME: this is not available with Granian
         # Prevent logging of requests to specified endpoints.
         #
         # TODO: According to the docs, the final `log-drain` value is evaluated as a regex (and indeed,
@@ -431,9 +432,10 @@ def devserver(
             os.environ["SENTRY_REGION_SILO_PORT"] = str(server_port)
             os.environ["SENTRY_CONTROL_SILO_PORT"] = str(ports["server"] + 1)
             os.environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{server_port}"
-            os.environ["UWSGI_HTTP_SOCKET"] = f"127.0.0.1:{ports['region.server']}"
-            os.environ["UWSGI_WORKERS"] = "8"
-            os.environ["UWSGI_THREADS"] = "2"
+            server_port = int(ports["region.server"])
+            # TODO: recheck if we actually need to customise workers/threads
+            # os.environ["UWSGI_WORKERS"] = "8"
+            # os.environ["UWSGI_THREADS"] = "2"
 
         server = SentryHTTPServer(
             host=host,
@@ -442,7 +444,7 @@ def devserver(
             debug=debug_server,
         )
 
-        # If we don't need any other daemons, just launch a normal uwsgi webserver
+        # If we don't need any other daemons, just launch a normal webserver
         # and avoid dealing with subprocesses
         if not daemons and not silo:
             server.run()
@@ -458,7 +460,7 @@ def devserver(
             threading.Thread(target=server.run).start()
         else:
             # Make sure that the environment is prepared before honcho takes over
-            # This sets all the appropriate uwsgi env vars, etc
+            # This sets all the appropriate env vars, etc
             server.prepare_environment()
 
             if silo != "control":
@@ -486,9 +488,10 @@ def devserver(
                 "SENTRY_CONTROL_SILO_PORT": server_port,
                 "SENTRY_REGION_SILO_PORT": str(ports["region.server"]),
                 "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
-                "UWSGI_HTTP_SOCKET": f"127.0.0.1:{ports['server']}",
-                "UWSGI_WORKERS": "8",
-                "UWSGI_THREADS": "2",
+                "SENTRY_WEB_PORT": str(ports["server"]),
+                # TODO: recheck if we actually need to customise workers/threads
+                #"UWSGI_WORKERS": "8",
+                #"UWSGI_THREADS": "2",
             }
             merged_env = os.environ.copy()
             merged_env.update(control_environ)
