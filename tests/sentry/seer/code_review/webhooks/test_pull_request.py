@@ -296,13 +296,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             payload = call_kwargs["payload"]
             assert payload["request_type"] == RequestType.PR_CLOSED.value
 
-    def test_pull_request_opened_extracts_trigger_metadata(self) -> None:
-        """Test that opened PR events extract complete trigger metadata from PR user."""
+    def test_pull_request_opened_extracts_trigger_metadata_from_sender(self) -> None:
+        """Test that PR events prioritize sender (action trigger) over PR author."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "opened"
             event["repository"]["owner"]["login"] = "sentry-ecosystem"
-            # Ensure PR has complete user information
+            # Set both sender and PR author to verify sender is prioritized
+            event["sender"] = {"login": "collaborator", "id": 99999999}
             event["pull_request"]["user"] = {"login": "pr-author", "id": 12345678}
 
             self._send_webhook_event(
@@ -314,13 +315,36 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             payload = self.mock_seer.call_args[1]["payload"]
             config = payload["data"]["config"]
 
-            # Verify trigger metadata is extracted from PR user
+            # Verify sender is prioritized over PR author
             assert config["trigger"] == SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
-            assert config["trigger_user"] == "pr-author"
-            assert config["trigger_user_id"] == 12345678
+            assert config["trigger_user"] == "collaborator"
+            assert config["trigger_user_id"] == 99999999
             # PR events don't have comment metadata
             assert config["trigger_comment_id"] is None
             assert config["trigger_comment_type"] is None
+
+    def test_pull_request_falls_back_to_pr_author_when_no_sender(self) -> None:
+        """Test that PR events fall back to PR author when sender is missing."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "opened"
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
+            # Remove sender to test fallback behavior
+            event["sender"] = {}
+            event["pull_request"]["user"] = {"login": "pr-author", "id": 12345678}
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_called_once()
+            payload = self.mock_seer.call_args[1]["payload"]
+            config = payload["data"]["config"]
+
+            # Verify fallback to PR author when sender is empty
+            assert config["trigger_user"] == "pr-author"
+            assert config["trigger_user_id"] == 12345678
 
     def test_pull_request_synchronize_sets_correct_trigger(self) -> None:
         """Test that synchronize (new commits) action sets correct trigger type."""

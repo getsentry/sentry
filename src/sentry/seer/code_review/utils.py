@@ -289,9 +289,16 @@ def transform_pull_request_to_codegen_request(
     config["trigger"] = review_request_trigger.value
     config["trigger_comment_id"] = None
     config["trigger_comment_type"] = None
-    user = pull_request.get("user", {})
-    config["trigger_user"] = user.get("login")
-    config["trigger_user_id"] = user.get("id")
+
+    # Prioritize sender (person who triggered the action) over PR author
+    # This ensures correct attribution when someone other than the PR author
+    # triggers an event (e.g., collaborator pushes commits, admin closes PR
+    # or makes ready for review)
+    sender = event_payload.get("sender", {})
+    pr_user = pull_request.get("user", {})
+
+    config["trigger_user"] = sender.get("login") or pr_user.get("login")
+    config["trigger_user_id"] = sender.get("id") or pr_user.get("id")
     return payload
 
 
