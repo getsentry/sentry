@@ -18,6 +18,12 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_do
 
 from .organization_preprod_app_size_stats import OrganizationPreprodAppSizeStatsEndpoint
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
+from .organization_preprod_artifact_build_details import (
+    OrganizationPreprodArtifactBuildDetailsEndpoint,
+)
+from .organization_preprod_artifact_size_analysis import (
+    OrganizationPreprodArtifactSizeAnalysisEndpoint,
+)
 from .organization_preprod_list_builds import OrganizationPreprodListBuildsEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
@@ -137,6 +143,16 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/list-builds/$",
         OrganizationPreprodListBuildsEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-list-builds",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/build-details/$",
+        OrganizationPreprodArtifactBuildDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-build-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/size-analysis/$",
+        OrganizationPreprodArtifactSizeAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-size-analysis",
     ),
     # PR page
     re_path(
