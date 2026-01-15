@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Iterator
+from collections.abc import Callable, Generator
 from typing import Any
 from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
@@ -10,6 +10,8 @@ from django.http import HttpRequest, StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
+
+from sentry.hybridcloud.apigateway.proxy import BodyWithLength
 
 # TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
 uwsgi: Any = None
@@ -102,7 +104,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
 def get_raw_body(
     request: HttpRequest,
-) -> Generator[bytes] | ChunkedEncodingDecoder | body_with_length | None:
+) -> Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None:
     wsgi_input = request.META.get("wsgi.input")
     if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
         return wsgi_input
@@ -134,7 +136,7 @@ def get_raw_body(
         return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
 
     # wsgiref and the request has been already proxied through control silo
-    return body_with_length(request)
+    return BodyWithLength(request)
 
 
 def get_target_url(path: str) -> str:
@@ -146,22 +148,6 @@ def get_target_url(path: str) -> str:
     # It's responsibility of Objectstore to deal with them correctly
     target = base + "/" + path
     return target
-
-
-class body_with_length:
-    """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
-
-    def __init__(self, request: HttpRequest):
-        self.request = request
-
-    def __iter__(self) -> Iterator[bytes]:
-        return iter(self.request)
-
-    def __len__(self) -> int:
-        return int(self.request.headers.get("Content-Length", "0"))
-
-    def read(self, size: int | None = None) -> bytes:
-        return self.request.read(size)
 
 
 def stream_response(external_response: ExternalResponse) -> StreamingHttpResponse:

@@ -19,11 +19,7 @@ from requests.exceptions import Timeout
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.objectstore.endpoints.organization import (
-    ChunkedEncodingDecoder,
-    body_with_length,
-    get_raw_body,
-)
+from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.util import (
@@ -82,7 +78,7 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     return streamed_response
 
 
-class _body_with_length:
+class BodyWithLength:
     """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
 
     def __init__(self, request: HttpRequest):
@@ -210,13 +206,11 @@ def proxy_region_request(
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
-    data: (
-        Generator[bytes] | ChunkedEncodingDecoder | _body_with_length | body_with_length | None
-    ) = None
+    data: Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
         data = get_raw_body(request)
     else:
-        data = _body_with_length(request)
+        data = BodyWithLength(request)
 
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
