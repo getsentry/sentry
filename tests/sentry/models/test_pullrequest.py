@@ -86,7 +86,7 @@ class FindReferencedGroupsTest(TestCase):
             organization_id=group.organization.id,
             title="Fix n+1 query issue",
             message=f"Reduce insert # on /broadcasts/ by bulk inserting\n\n"
-            f"n+1 issue\nhttps://sentry.sentry.io/issues/{group.id}/",
+            f"Fixes n+1 issue\nhttps://sentry.sentry.io/issues/{group.id}/",
         )
 
         groups = pr.find_referenced_groups()

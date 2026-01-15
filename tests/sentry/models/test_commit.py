@@ -149,11 +149,12 @@ class FindReferencedGroupsTest(TestCase):
         assert group in groups
 
     def test_sentry_issue_url_without_fixes_keyword(self) -> None:
-        """Test that issue URLs work even without 'Fixes' keyword"""
+        """Test that issue URLs require 'Fixes' keyword, just like short IDs"""
         group = self.create_group()
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
+        # URL without "Fixes" keyword should NOT be detected
         commit = Commit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
@@ -162,8 +163,19 @@ class FindReferencedGroupsTest(TestCase):
         )
 
         groups = commit.find_referenced_groups()
-        assert len(groups) == 1
-        assert group in groups
+        assert len(groups) == 0
+
+        # But WITH "Fixes" it should work
+        commit2 = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Reduce insert # on /broadcasts/\n\nFixes n+1 issue\nhttps://sentry.sentry.io/issues/{group.id}/",
+        )
+
+        groups2 = commit2.find_referenced_groups()
+        assert len(groups2) == 1
+        assert group in groups2
 
     def test_sentry_issue_url_multiple(self) -> None:
         """Test multiple issue URLs in one message"""

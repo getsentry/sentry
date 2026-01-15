@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 _markdown_strip_re = re.compile(r"\[([^]]+)\]\([^)]+\)", re.I)
 
 _fixes_re = re.compile(
-    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+([A-Za-z0-9_\-\s\,]+)\b",
-    re.I,
+    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+(.+?)(?=\n|$)",
+    re.I | re.MULTILINE,
 )
 _short_id_re = re.compile(r"\b([A-Z0-9_-]+-[A-Z0-9]+)\b", re.I)
 
@@ -39,9 +39,14 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
 
     results = set()
 
-    # First, look for short IDs in "Fixes SENTRY-123" style references
+    # Look for issue references after "Fixes/Resolves/Closes" keywords
+    # This handles both short IDs (SENTRY-123) and Sentry URLs
     for fmatch in _fixes_re.finditer(text):
-        for smatch in _short_id_re.finditer(fmatch.group(1)):
+        # The captured group contains everything after the keyword
+        ref_text = fmatch.group(1)
+
+        # First, look for short IDs in "Fixes SENTRY-123" style references
+        for smatch in _short_id_re.finditer(ref_text):
             short_id = smatch.group(1)
             try:
                 group = Group.objects.by_qualified_short_id(
@@ -52,27 +57,26 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
             else:
                 results.add(group)
 
-    # Second, look for Sentry issue URLs in the entire text (not just after "Fixes")
-    # This allows users to just paste the issue URL without keywords
-    for url_match in _sentry_url_re.finditer(text):
-        issue_id = url_match.group(1)
+        # Second, look for Sentry issue URLs after "Fixes/Resolves/Closes"
+        for url_match in _sentry_url_re.finditer(ref_text):
+            issue_id = url_match.group(1)
 
-        # Try to determine if this is a short ID or numeric ID
-        if "-" in issue_id:
-            # This looks like a short ID (e.g., SENTRY-123)
-            try:
-                group = Group.objects.by_qualified_short_id(
-                    organization_id=org_id, short_id=issue_id
-                )
-                results.add(group)
-            except Group.DoesNotExist:
-                continue
-        else:
-            # This is a numeric ID
-            try:
-                group = Group.objects.get(id=int(issue_id), project__organization_id=org_id)
-                results.add(group)
-            except (Group.DoesNotExist, ValueError):
-                continue
+            # Try to determine if this is a short ID or numeric ID
+            if "-" in issue_id:
+                # This looks like a short ID (e.g., SENTRY-123)
+                try:
+                    group = Group.objects.by_qualified_short_id(
+                        organization_id=org_id, short_id=issue_id
+                    )
+                    results.add(group)
+                except Group.DoesNotExist:
+                    continue
+            else:
+                # This is a numeric ID
+                try:
+                    group = Group.objects.get(id=int(issue_id), project__organization_id=org_id)
+                    results.add(group)
+                except (Group.DoesNotExist, ValueError):
+                    continue
 
     return results
