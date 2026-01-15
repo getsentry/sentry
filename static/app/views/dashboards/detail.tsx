@@ -779,8 +779,10 @@ class DashboardDetail extends Component<Props, State> {
         // Persist the widgets through the route change to use location.state if we're
         // creating a new dashboard, otherwise the navigation may remount the component and
         // lose the widgets
-        state:
-          dashboardState === DashboardState.CREATE ? {widgets: newWidgets} : undefined,
+        ...(dashboardState === DashboardState.CREATE &&
+          defined(newWidgets) && {
+            state: {widgets: newWidgets},
+          }),
       }
     );
   };
