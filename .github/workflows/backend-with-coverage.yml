@@ -88,10 +88,10 @@ jobs:
       - name: Determine commit SHA
         id: commit-info
         run: |
-          # For PRs, use the base SHA (the merge target commit)
+          # For PRs, use the head SHA (the actual commit being tested)
           # For other events (workflow_dispatch, workflow_call), use github.sha
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            COMMIT_SHA="${{ github.event.pull_request.base.sha }}"
+            COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
           else
             COMMIT_SHA="${{ github.sha }}"
           fi
