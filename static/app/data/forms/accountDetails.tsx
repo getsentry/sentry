@@ -2,12 +2,15 @@ import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 
+/**
+ * Unified FormSearchContext type that includes all fields needed by any form factory.
+ * Individual form files may define their own subsets of this type.
+ */
 export type FormSearchContext = {
   access: Set<string>;
   organization: Organization | null;
   team: Team | null;
   user: User | null;
-  team?: Team | null;
 };
 
 export const route = '/settings/account/details/';

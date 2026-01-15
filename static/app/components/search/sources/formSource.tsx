@@ -1,8 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import type {Field, FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import type {Organization, Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
+import type {FormSearchContext} from 'sentry/data/forms/accountDetails';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,17 +9,6 @@ import {useUser} from 'sentry/utils/useUser';
 
 import type {ChildProps, Result, ResultItem} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
-
-/**
- * Unified FormSearchContext type that includes all fields needed by any form factory.
- * Individual form files may define their own subsets of this type.
- */
-export type FormSearchContext = {
-  access: Set<string>;
-  organization: Organization | null;
-  team: Team | null;
-  user: User | null;
-};
 
 export type FormSearchField = {
   description: React.ReactNode;
