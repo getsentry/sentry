@@ -2,6 +2,8 @@ import {Fragment, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -16,27 +18,27 @@ import type {
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import LoadingError from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   SchedulePreviewStatus,
   useMonitorsScheduleSampleBuckets,
 } from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {useMonitorsScheduleSampleWindow} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleWindow';
-import type { ScheduleType } from 'sentry/views/insights/crons/types';
-import { Alert } from '@sentry/scraps/alert';
+import type {ScheduleType} from 'sentry/views/insights/crons/types';
 
 type SchedulePreviewProps = {
-    tickStyle: TickStyle<SchedulePreviewStatus>;
-    statusToText: Record<SchedulePreviewStatus, string>;
-    statusPrecedent: SchedulePreviewStatus[];
-    scheduleType: ScheduleType;
-    scheduleCrontab: string;
-    scheduleIntervalValue: number;
-    scheduleIntervalUnit: string;
-    timezone: string;
-    failureIssueThreshold: number;
-    recoveryThreshold: number;
-    sticky?: boolean;
+  failureIssueThreshold: number;
+  recoveryThreshold: number;
+  scheduleCrontab: string;
+  scheduleIntervalUnit: string;
+  scheduleIntervalValue: number;
+  scheduleType: ScheduleType;
+  statusPrecedent: SchedulePreviewStatus[];
+  statusToText: Record<SchedulePreviewStatus, string>;
+  tickStyle: TickStyle<SchedulePreviewStatus>;
+  timezone: string;
+  isSticky?: boolean;
 };
 
 export function SchedulePreview({
@@ -50,7 +52,7 @@ export function SchedulePreview({
   tickStyle,
   statusToText,
   statusPrecedent,
-  sticky,
+  isSticky,
 }: SchedulePreviewProps) {
   const {
     data: sampleWindowData,
@@ -100,18 +102,29 @@ export function SchedulePreview({
   });
 
   if (errorSampleWindow || errorSampleBuckets) {
-    if (errorSampleWindow?.status === 400) {
-      const message = Object.values(errorSampleWindow.responseJSON ?? {}).join(', ');
-      return <Alert variant="warning">{t('No schedule preview available: %s', message)}</Alert>;
-    }
+    const badRequestError = [errorSampleWindow, errorSampleBuckets].find(
+      (error): error is RequestError => error?.status === 400
+    );
 
-    return <LoadingError message={t('Failed to load schedule preview')} />;
+    const message = badRequestError ? (
+      <Alert variant="warning">
+        {t('No schedule preview available. %s', getErrorMessage(badRequestError))}
+      </Alert>
+    ) : (
+      <LoadingError message={t('Failed to load schedule preview')} />
+    );
+
+    return (
+      <Container isSticky={isSticky}>
+        <ErrorContainer>{message}</ErrorContainer>
+      </Container>
+    );
   }
 
   const isLoading = isLoadingSampleWindow || isLoadingSampleBuckets;
 
   return (
-    <Container sticky={sticky}>
+    <Container isSticky={isSticky}>
       <TimelineWidthTracker ref={elementRef} />
       {isLoading ? (
         <TimeLineContainer>
@@ -119,10 +132,7 @@ export function SchedulePreview({
         </TimeLineContainer>
       ) : timeWindowConfig && sampleBucketsData ? (
         <Fragment>
-          <GridLineOverlay
-            showCursor
-            timeWindowConfig={timeWindowConfig}
-          />
+          <GridLineOverlay showCursor timeWindowConfig={timeWindowConfig} />
           <OpenPeriod
             failureThreshold={failureIssueThreshold}
             recoveryThreshold={recoveryThreshold}
@@ -147,16 +157,16 @@ export function SchedulePreview({
 }
 
 function OpenPeriod({
- failureThreshold,
- recoveryThreshold,
+  failureThreshold,
+  recoveryThreshold,
   statusPrecedent,
   bucketedData,
   timeWindowConfig,
 }: {
+  bucketedData: Array<CheckInBucket<SchedulePreviewStatus>>;
   failureThreshold: number;
   recoveryThreshold: number;
   statusPrecedent: SchedulePreviewStatus[];
-  bucketedData: Array<CheckInBucket<SchedulePreviewStatus>>;
   timeWindowConfig: TimeWindowConfig;
 }) {
   const {bucketPixels, underscanStartOffset} = timeWindowConfig.rollupConfig;
@@ -166,7 +176,10 @@ function OpenPeriod({
   // - the first OK bucket after that.
   let openBarStartIdx: number | null = null;
   for (let i = 0; i < bucketedData.length; i++) {
-    if (getBucketStatus(statusPrecedent, bucketedData[i]?.[1]) === SchedulePreviewStatus.ERROR) {
+    if (
+      getBucketStatus(statusPrecedent, bucketedData[i]?.[1]) ===
+      SchedulePreviewStatus.ERROR
+    ) {
       openBarStartIdx = i;
       break;
     }
@@ -175,9 +188,12 @@ function OpenPeriod({
   let openBarEndIdx: number | null = null;
   if (openBarStartIdx !== null) {
     for (let i = openBarStartIdx + 1; i < bucketedData.length; i++) {
-      if (getBucketStatus(statusPrecedent, bucketedData[i]?.[1]) === SchedulePreviewStatus.OK) {
-      openBarEndIdx = i;
-      break;
+      if (
+        getBucketStatus(statusPrecedent, bucketedData[i]?.[1]) ===
+        SchedulePreviewStatus.OK
+      ) {
+        openBarEndIdx = i;
+        break;
       }
     }
   }
@@ -194,21 +210,6 @@ function OpenPeriod({
   const right = openBarEndIdx * bucketPixels - underscanStartOffset;
   const width = right - left;
 
-  if (width <= 0) {
-    return null;
-  }
-
-  let subFailureCount = 0;
-  let subRecoveryCount = 0;
-  for (let i = 0; i < bucketedData.length; i++) {
-    const stats = bucketedData[i]?.[1];
-    if (!stats) {
-      continue;
-    }
-    subFailureCount += stats[SchedulePreviewStatus.SUB_FAILURE_ERROR] ?? 0;
-    subRecoveryCount += stats[SchedulePreviewStatus.SUB_RECOVERY_OK] ?? 0;
-  }
-
   return (
     <Fragment>
       <OpenPeriodBar style={{left, width}}>
@@ -218,14 +219,27 @@ function OpenPeriod({
         {failureThreshold} {tn('failed check-in', 'failed check-ins', failureThreshold)}
       </OpenPeriodCountLabel>
       <OpenPeriodCountLabel style={{left: right}}>
-        {recoveryThreshold} {tn('success check-in', 'success check-ins', recoveryThreshold)}
+        {recoveryThreshold}{' '}
+        {tn('success check-in', 'success check-ins', recoveryThreshold)}
       </OpenPeriodCountLabel>
     </Fragment>
   );
 }
 
-function getBucketStatus(statusPrecedent: SchedulePreviewStatus[], stats: Record<string, number> | undefined) {
-    return stats ? statusPrecedent.find(status => (stats[status] ?? 0) > 0) : undefined;
+function getBucketStatus(
+  statusPrecedent: SchedulePreviewStatus[],
+  stats: Record<string, number> | undefined
+) {
+  return stats ? statusPrecedent.find(status => (stats[status] ?? 0) > 0) : undefined;
+}
+
+function getErrorMessage(error: RequestError) {
+  return Object.entries(error.responseJSON ?? {})
+    .map(
+      ([key, value]) =>
+        `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`
+    )
+    .join(', ');
 }
 
 const TimelineWidthTracker = styled('div')`
@@ -288,7 +302,7 @@ const OpenPeriodCountLabel = styled('div')`
   text-align: center;
 `;
 
-const Container = styled('div')<{sticky?: boolean}>`
+const Container = styled('div')<{isSticky?: boolean}>`
   position: relative;
   width: 100%;
   height: 138px;
@@ -298,7 +312,7 @@ const Container = styled('div')<{sticky?: boolean}>`
   border-radius: ${p => p.theme.radius.md};
 
   ${p =>
-    p.sticky &&
+    p.isSticky &&
     css`
       position: sticky;
       top: 8px;
@@ -310,4 +324,14 @@ const Container = styled('div')<{sticky?: boolean}>`
        */
       box-shadow: 0 -8px 0 0 ${p.theme.tokens.background.primary};
     `}
+`;
+
+const ErrorContainer = styled('div')`
+  position: absolute;
+  margin: auto;
+  width: fit-content;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: ${p => p.theme.fontSize.lg};
 `;

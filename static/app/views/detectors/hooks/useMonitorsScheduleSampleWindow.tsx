@@ -10,13 +10,13 @@ export type ScheduleSampleWindowResponse = {
 };
 
 interface UseMonitorsScheduleSampleWindowOptions {
-  scheduleType: ScheduleType;
-  scheduleCrontab: string;
-  scheduleIntervalValue: number;
-  scheduleIntervalUnit: string;
-  timezone: string;
   failureIssueThreshold: number;
   recoveryThreshold: number;
+  scheduleCrontab: string;
+  scheduleIntervalUnit: string;
+  scheduleIntervalValue: number;
+  scheduleType: ScheduleType;
+  timezone: string;
 }
 
 export function useMonitorsScheduleSampleWindow({
@@ -56,13 +56,6 @@ export function useMonitorsScheduleSampleWindow({
     [`/organizations/${organization.slug}/monitors-schedule-window/`, {query}],
     {
       staleTime: 0,
-      enabled: !!(
-        scheduleType &&
-        (scheduleCrontab || (scheduleIntervalValue && scheduleIntervalUnit)) &&
-        timezone &&
-        failureIssueThreshold &&
-        recoveryThreshold
-      ),
       retry: false,
     }
   );

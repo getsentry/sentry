@@ -10,21 +10,21 @@ interface UseMonitorsScheduleSampleBucketsOptions {
    * The end timestamp of the sample window in seconds
    */
   end: number | undefined;
+  failureIssueThreshold: number;
   /**
    * The interval of the sample window in seconds
    */
   interval: number | undefined;
+  recoveryThreshold: number;
+  scheduleCrontab: string;
+  scheduleIntervalUnit: string;
+  scheduleIntervalValue: number;
+  scheduleType: ScheduleType;
   /**
    * The start timestamp of the sample window in seconds
    */
   start: number | undefined;
-  scheduleType: ScheduleType;
-  scheduleCrontab: string;
-  scheduleIntervalValue: number;
-  scheduleIntervalUnit: string;
   timezone: string;
-  failureIssueThreshold: number;
-  recoveryThreshold: number;
 }
 
 export enum SchedulePreviewStatus {
@@ -81,11 +81,7 @@ export function useMonitorsScheduleSampleBuckets({
     [`/organizations/${organization.slug}/monitors-schedule-buckets/`, {query}],
     {
       staleTime: 0,
-      enabled: !!(start && end && interval &&
-        scheduleType && (scheduleCrontab || (scheduleIntervalValue && scheduleIntervalUnit))
-        && timezone && failureIssueThreshold
-        && recoveryThreshold
-      ),
+      enabled: !!(start && end && interval),
       retry: false,
     }
   );
