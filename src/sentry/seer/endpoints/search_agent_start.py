@@ -98,6 +98,7 @@ def send_search_agent_start_request(
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(body),
         },
+        timeout=30,
     )
     response.raise_for_status()
     return response.json()
