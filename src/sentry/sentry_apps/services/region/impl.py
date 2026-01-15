@@ -354,7 +354,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
     def get_interaction_stats(
         self,
         *,
-        organization_id: int,
         sentry_app: RpcSentryApp,
         component_types: list[str],
         since: float,
@@ -364,13 +363,14 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         """
         Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ GET
         """
+
         start_dt = datetime.fromtimestamp(since, tz=timezone.utc)
         end_dt = datetime.fromtimestamp(until, tz=timezone.utc)
 
         tsdb_kwargs: dict[str, Any] = {
             "start": start_dt,
             "end": end_dt,
-            "tenant_ids": {"organization_id": organization_id},
+            "tenant_ids": {"organization_id": sentry_app.owner_id},
         }
         if resolution is not None:
             tsdb_kwargs["rollup"] = resolution

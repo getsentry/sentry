@@ -6,7 +6,7 @@
 import abc
 from typing import Any
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationIdAttribute
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation
 from sentry.sentry_apps.services.region.model import (
@@ -134,6 +134,22 @@ class SentryAppRegionService(RpcService):
         """Deletes all service hook projects for an installation."""
         pass
 
+    @regional_rpc_method(
+        ByOrganizationIdAttribute(parameter_name="sentry_app", attribute_name="owner_id")
+    )
+    @abc.abstractmethod
+    def get_interaction_stats(
+        self,
+        *,
+        sentry_app: RpcSentryApp,
+        component_types: list[str],
+        since: float,
+        until: float,
+        resolution: int | None = None,
+    ) -> RpcInteractionStatsResult:
+        """Gets TSDB stats for Sentry App views and component interactions."""
+        pass
+
     @regional_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def record_interaction(
@@ -145,21 +161,6 @@ class SentryAppRegionService(RpcService):
         component_type: str | None = None,
     ) -> RpcEmptyResult:
         """Records a TSDB metric for Sentry App interactions."""
-        pass
-
-    @regional_rpc_method(ByOrganizationId())
-    @abc.abstractmethod
-    def get_interaction_stats(
-        self,
-        *,
-        organization_id: int,
-        sentry_app: RpcSentryApp,
-        component_types: list[str],
-        since: float,
-        until: float,
-        resolution: int | None = None,
-    ) -> RpcInteractionStatsResult:
-        """Gets TSDB stats for Sentry App views and component interactions."""
         pass
 
 
