@@ -383,7 +383,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
           </Observer>
         </Configuration>
         {organization.features.includes('uptime-runtime-assertions') && (
-          <>
+          <React.Fragment>
             <AlertListItem>{t('Verification')}</AlertListItem>
             <ListItemSubText>
               {t(
@@ -399,7 +399,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
                 />
               </ConfigurationPanel>
             </Configuration>
-          </>
+          </React.Fragment>
         )}
         <AlertListItem>{t('Set thresholds')}</AlertListItem>
         <ListItemSubText>
