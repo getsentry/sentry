@@ -4,14 +4,15 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Member, Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 
 import {CronRulesEdit} from './rules/crons/edit';
 import IssueEditor from './rules/issue';
@@ -24,15 +25,12 @@ type RouteParams = {
   ruleId: string;
 };
 
-type Props = RouteComponentProps<RouteParams> & {
-  members: Member[] | undefined;
-  organization: Organization;
-  project: Project;
-};
-
-function ProjectAlertsEditor(props: Props) {
-  const {members, organization, project} = props;
+export default function ProjectAlertsEditor() {
+  const organization = useOrganization();
   const location = useLocation();
+  const params = useParams<RouteParams>();
+  const router = useRouter();
+  const {project, members} = useAlertBuilderOutlet();
 
   const [title, setTitle] = useState('');
 
@@ -84,7 +82,12 @@ function ProjectAlertsEditor(props: Props) {
           <Fragment>
             {alertType === CombinedAlertType.ISSUE && (
               <IssueEditor
-                {...props}
+                location={location}
+                params={params}
+                router={router}
+                routes={[]}
+                route={{}}
+                routeParams={params}
                 project={project}
                 onChangeTitle={setTitle}
                 userTeamIds={teams.map(({id}) => id)}
@@ -93,7 +96,13 @@ function ProjectAlertsEditor(props: Props) {
             )}
             {alertType === CombinedAlertType.METRIC && (
               <MetricRulesEdit
-                {...props}
+                location={location}
+                params={params}
+                router={router}
+                routes={[]}
+                route={{}}
+                routeParams={params}
+                organization={organization}
                 project={project}
                 onChangeTitle={setTitle}
                 userTeamIds={teams.map(({id}) => id)}
@@ -101,13 +110,23 @@ function ProjectAlertsEditor(props: Props) {
             )}
             {alertType === CombinedAlertType.UPTIME && (
               <UptimeRulesEdit
-                {...props}
+                location={location}
+                params={params}
+                router={router}
+                routes={[]}
+                route={{}}
+                routeParams={params}
+                organization={organization}
                 onChangeTitle={setTitle}
                 userTeamIds={teams.map(({id}) => id)}
               />
             )}
             {alertType === CombinedAlertType.CRONS && (
-              <CronRulesEdit {...props} project={project} onChangeTitle={setTitle} />
+              <CronRulesEdit
+                organization={organization}
+                project={project}
+                onChangeTitle={setTitle}
+              />
             )}
           </Fragment>
         )}
@@ -115,5 +134,3 @@ function ProjectAlertsEditor(props: Props) {
     </Fragment>
   );
 }
-
-export default ProjectAlertsEditor;
