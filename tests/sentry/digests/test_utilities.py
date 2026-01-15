@@ -462,24 +462,5 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         }
         assert_get_personalized_digests(self.project, digest, expected_result)
 
-    def test_simple_with_workflow_id_flag_off_fallback(self) -> None:
-        """
-        Test that when workflow_ids are present but the feature flag is off,
-        it falls back to using the linked AlertRule ID via AlertRuleWorkflow.
-        """
-        records = []
-        for event in self.team1_events + self.team2_events + self.user4_events:
-            records.extend(_get_records(self.project, (self.rule_with_workflow_id,), event))
-        digest = build_digest(self.project, sort_records(records))[0]
-
-        assert_rule_ids(digest, [self.rule_with_workflow_id.data["actions"][0]["workflow_id"]])
-
-        expected_result = {
-            self.user2.id: set(self.team2_events),
-            self.user3.id: set(self.team1_events + self.team2_events),
-            self.user4.id: set(self.user4_events),
-        }
-        assert_get_personalized_digests(self.project, digest, expected_result)
-
     def test_empty_records(self) -> None:
         assert build_digest(self.project, []) == DigestInfo({}, {}, {})
