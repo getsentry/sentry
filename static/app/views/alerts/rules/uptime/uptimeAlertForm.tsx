@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
@@ -383,7 +383,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
           </Observer>
         </Configuration>
         {organization.features.includes('uptime-runtime-assertions') && (
-          <React.Fragment>
+          <Fragment>
             <AlertListItem>{t('Verification')}</AlertListItem>
             <ListItemSubText>
               {t(
@@ -399,7 +399,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
                 />
               </ConfigurationPanel>
             </Configuration>
-          </React.Fragment>
+          </Fragment>
         )}
         <AlertListItem>{t('Set thresholds')}</AlertListItem>
         <ListItemSubText>
