@@ -511,7 +511,9 @@ const SelectedPill = styled('td')<{isSelected: boolean}>`
   height: 22px;
   border-radius: 2px;
   background: ${p =>
-    p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
+    p.isSelected
+      ? p.theme.tokens.graphics.accent.vibrant
+      : p.theme.tokens.graphics.neutral.moderate};
 `;
 
 const IconContainer = styled('span')`

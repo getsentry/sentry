@@ -59,7 +59,7 @@ export type ContentVariant =
 /**
  * Graphics/icon color variant.
  */
-export type GraphicsVariant = Exclude<SemanticVariant, 'neutral'> | 'muted';
+export type GraphicsVariant = SemanticVariant;
 
 /**
  * Border color variant.
