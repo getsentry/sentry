@@ -28,7 +28,8 @@ export function TypeBadge({
   if (
     defined(func) ||
     kind === FieldKind.FUNCTION ||
-    valueKind === FieldValueKind.FUNCTION
+    valueKind === FieldValueKind.FUNCTION ||
+    valueKind === FieldValueKind.NUMERIC_METRICS
   ) {
     return <Text variant="success">{t('f(x)')}</Text>;
   }
@@ -76,8 +77,7 @@ export function TypeBadge({
   if (
     kind === FieldKind.MEASUREMENT ||
     valueType === FieldValueType.NUMBER ||
-    valueKind === FieldValueKind.MEASUREMENT ||
-    valueKind === FieldValueKind.CUSTOM_MEASUREMENT
+    valueKind === FieldValueKind.METRICS
   ) {
     return <Text variant="warning">{t('number')}</Text>;
   }
@@ -86,7 +86,16 @@ export function TypeBadge({
     return <Text variant="accent">{t('string')}</Text>;
   }
 
-  if (valueKind === FieldValueKind.BREAKDOWN) {
+  if (
+    valueKind === FieldValueKind.FIELD ||
+    valueKind === FieldValueKind.BREAKDOWN ||
+    valueKind === FieldValueKind.MEASUREMENT ||
+    valueKind === FieldValueKind.CUSTOM_MEASUREMENT
+  ) {
+    if (label && deprecatedFields?.includes(label)) {
+      return <Text variant="danger">{t('deprecated')}</Text>;
+    }
+
     return <Text variant="accent">{t('field')}</Text>;
   }
 
@@ -94,11 +103,8 @@ export function TypeBadge({
     return <Text variant="warning">{t('tag')}</Text>;
   }
 
-  if (valueKind === FieldValueKind.FIELD) {
-    if (label && deprecatedFields?.includes(label)) {
-      return <Text variant="danger">{t('deprecated')}</Text>;
-    }
-    return <Text variant="success">{t('field')}</Text>;
+  if (valueKind === FieldValueKind.EQUATION) {
+    return <Text variant="muted">{t('equation')}</Text>;
   }
 
   if (isLogicFilter) {
