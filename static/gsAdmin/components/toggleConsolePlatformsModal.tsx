@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -32,12 +33,10 @@ type ConsolePlatform = ConsoleSdkInviteUser['platforms'][number];
 
 interface InviteRowProps {
   invite: ConsoleSdkInviteUser;
-  onRevoke: (params: {email: string; platform: ConsolePlatform; userId: string}) => void;
-  revokingPlatform: ConsolePlatform | null;
-  revokingUserId: string | null;
+  onRevoke: (params: {platform: ConsolePlatform; userId: string}) => void;
 }
 
-function InviteRow({invite, onRevoke, revokingPlatform, revokingUserId}: InviteRowProps) {
+function InviteRow({invite, onRevoke}: InviteRowProps) {
   const {email, platforms, user_id} = invite;
 
   return (
@@ -50,8 +49,6 @@ function InviteRow({invite, onRevoke, revokingPlatform, revokingUserId}: InviteR
       <SimpleTable.RowCell>
         <Flex gap="sm" wrap="wrap">
           {platforms.map(platform => {
-            const isPlatformRevoking =
-              revokingUserId === user_id && revokingPlatform === platform;
             const displayName =
               CONSOLE_PLATFORM_METADATA[platform]?.displayName ?? platform;
 
@@ -59,11 +56,7 @@ function InviteRow({invite, onRevoke, revokingPlatform, revokingUserId}: InviteR
               <Tag
                 key={platform}
                 variant="info"
-                onDismiss={() => {
-                  if (!isPlatformRevoking) {
-                    onRevoke({userId: user_id, email, platform});
-                  }
-                }}
+                onDismiss={() => onRevoke({userId: user_id, platform})}
               >
                 {displayName}
               </Tag>
@@ -80,9 +73,7 @@ interface InvitesTableProps {
   isError: boolean;
   isPending: boolean;
   onRefetch: () => void;
-  onRevoke: (params: {email: string; platform: ConsolePlatform; userId: string}) => void;
-  revokingPlatform: ConsolePlatform | null;
-  revokingUserId: string | null;
+  onRevoke: (params: {platform: ConsolePlatform; userId: string}) => void;
 }
 
 function InvitesTableContent({
@@ -91,8 +82,6 @@ function InvitesTableContent({
   isError,
   onRefetch,
   onRevoke,
-  revokingUserId,
-  revokingPlatform,
 }: InvitesTableProps) {
   if (isPending) {
     return (
@@ -115,13 +104,7 @@ function InvitesTableContent({
   }
 
   return invites.map(invite => (
-    <InviteRow
-      key={invite.user_id}
-      invite={invite}
-      onRevoke={onRevoke}
-      revokingUserId={revokingUserId}
-      revokingPlatform={revokingPlatform}
-    />
+    <InviteRow key={invite.user_id} invite={invite} onRevoke={onRevoke} />
   ));
 }
 
@@ -139,18 +122,30 @@ function ToggleConsolePlatformsModal({
 }: ToggleConsolePlatformsModalProps) {
   const {enabledConsolePlatforms = [], consoleSdkInviteQuota = 0} = organization;
 
+  const [pendingRevocations, setPendingRevocations] = useState(
+    new Map<string, Set<ConsolePlatform>>()
+  );
+
   const {
-    data: userIdentities = [],
+    data: userInvites = [],
     isPending: isInvitesFetchPending,
     isError: isInvitesFetchError,
     refetch: refetchInvites,
   } = useConsoleSdkInvites(organization.slug);
 
-  const {
-    mutate: revokeConsoleInvite,
-    isPending: isRevokePending,
-    variables: revokeVariables,
-  } = useRevokeConsoleSdkPlatformInvite();
+  // Filter out pending revocations from displayed invites
+  const displayedInvites = userInvites
+    .map(invite => {
+      const pendingForUser = pendingRevocations.get(invite.user_id);
+      if (!pendingForUser) {
+        return invite;
+      }
+      const filteredPlatforms = invite.platforms.filter(p => !pendingForUser.has(p));
+      return {...invite, platforms: filteredPlatforms};
+    })
+    .filter(invite => invite.platforms.length > 0);
+
+  const {mutateAsync: revokeConsoleInvites} = useRevokeConsoleSdkPlatformInvite();
 
   const {isPending: isUpdatePending, mutate: updateConsolePlatforms} = useMutation({
     mutationFn: (data: Record<string, boolean | number>) => {
@@ -174,8 +169,6 @@ function ToggleConsolePlatformsModal({
     },
     onSuccess: () => {
       addSuccessMessage(`Console platforms updated for ${organization.slug}`);
-      onSuccess();
-      closeModal();
     },
     onError: () => {
       addErrorMessage(`Failed to update console platforms for ${organization.slug}`);
@@ -184,24 +177,47 @@ function ToggleConsolePlatformsModal({
 
   const handleRevoke = ({
     userId,
-    email,
     platform,
   }: {
-    email: string;
     platform: ConsolePlatform;
     userId: string;
   }) => {
-    revokeConsoleInvite({
-      userId,
-      email,
-      platform,
-      orgSlug: organization.slug,
+    setPendingRevocations(prev => {
+      const next = new Map(prev);
+      const platforms = next.get(userId) ?? new Set<ConsolePlatform>();
+      platforms.add(platform);
+      next.set(userId, platforms);
+      return next;
     });
+  };
+
+  const handleSubmit = async (data: Record<string, boolean | number>) => {
+    const revocationPromises: Array<Promise<unknown>> = [];
+    pendingRevocations.forEach((platforms, userId) => {
+      if (platforms.size <= 0) {
+        return;
+      }
+      revocationPromises.push(
+        revokeConsoleInvites({
+          orgSlug: organization.slug,
+          userId,
+          platforms: Array.from(platforms),
+        })
+      );
+    });
+
+    if (revocationPromises.length > 0) {
+      await Promise.all(revocationPromises);
+    }
+
+    updateConsolePlatforms(data);
+    closeModal();
+    onSuccess();
   };
 
   return (
     <Form
-      onSubmit={data => updateConsolePlatforms(data as Record<string, boolean | number>)}
+      onSubmit={data => handleSubmit(data as Record<string, boolean | number>)}
       onCancel={closeModal}
       saveOnBlur={false}
       initialData={{
@@ -267,7 +283,7 @@ function ToggleConsolePlatformsModal({
               name: 'newConsoleSdkInviteQuota',
               type: 'number',
               label: 'GitHub Repo Invite Limit',
-              help: `Set the maximum number of GitHub users that can be invited to our console SDK repositories. Currently ${userIdentities?.length ?? 0} of ${consoleSdkInviteQuota} invites used.`,
+              help: `Set the maximum number of GitHub users that can be invited to our console SDK repositories. Currently ${userInvites?.length ?? 0} of ${consoleSdkInviteQuota} invites used.`,
               min: 0,
             }}
             flexibleControlStateSize
@@ -281,15 +297,11 @@ function ToggleConsolePlatformsModal({
             <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
           </SimpleTable.Header>
           <InvitesTableContent
-            invites={userIdentities}
+            invites={displayedInvites}
             isPending={isInvitesFetchPending}
             isError={isInvitesFetchError}
             onRefetch={refetchInvites}
             onRevoke={handleRevoke}
-            revokingUserId={isRevokePending ? (revokeVariables?.userId ?? null) : null}
-            revokingPlatform={
-              isRevokePending ? (revokeVariables?.platform ?? null) : null
-            }
           />
         </SimpleTableWithColumns>
       </Body>
