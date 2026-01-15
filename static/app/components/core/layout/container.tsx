@@ -157,12 +157,6 @@ type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
     as?: never;
     htmlFor?: never;
     ref?: never;
-    /**
-     * Deprecated in favor of the Container component API.
-     * If you have an is an unsupported use-case, please contact design engineering for support.
-     * @deprecated
-     */
-    style?: React.CSSProperties;
   } & Partial<
       Record<
         // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
@@ -172,7 +166,7 @@ type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
             React.HTMLAttributes<HTMLElementTagNameMap[T]>,
             HTMLElementTagNameMap[T]
           >,
-          'children' | 'style'
+          'children'
         >,
         never
       >
