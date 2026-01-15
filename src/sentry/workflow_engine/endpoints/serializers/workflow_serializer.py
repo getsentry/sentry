@@ -1,9 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import datetime
 from typing import Any
-
-from django.db.models import Max
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
@@ -12,8 +9,8 @@ from sentry.workflow_engine.models import (
     DetectorWorkflow,
     Workflow,
     WorkflowDataConditionGroup,
-    WorkflowFireHistory,
 )
+from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 
 
 @register(Workflow)
@@ -34,14 +31,7 @@ class WorkflowSerializer(Serializer):
             )
         }
 
-        last_triggered_map: dict[int, datetime] = dict(
-            WorkflowFireHistory.objects.filter(
-                workflow__in=item_list,
-            )
-            .values("workflow_id")
-            .annotate(last_triggered=Max("date_added"))
-            .values_list("workflow_id", "last_triggered")
-        )
+        last_triggered_map = get_last_fired_dates([w.id for w in item_list])
 
         wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))
         condition_groups = {wdcg.condition_group for wdcg in wdcg_list}
