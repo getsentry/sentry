@@ -49,7 +49,7 @@ class WorkflowValidator(CamelSnakeSerializer):
         """,
     )
     environment_id = serializers.IntegerField(
-        required=False, help_text="The environment for the alert to evaluate in"
+        required=False, help_text="The id of the environment for the alert to evaluate in"
     )
     triggers = BaseDataConditionGroupValidator(
         required=False,
