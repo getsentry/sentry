@@ -178,7 +178,9 @@ function RootAllocationCard({
                         }
                       >
                         &nbsp;
-                        <span style={{color: theme.red400, marginLeft: theme.space.md}}>
+                        <span
+                          style={{color: theme.colors.red500, marginLeft: theme.space.md}}
+                        >
                           {tct('([overCount] over)', {
                             overCount: bigNumFormatter(
                               rootAllocation.consumedQuantity -
