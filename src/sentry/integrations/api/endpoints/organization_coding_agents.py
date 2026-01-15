@@ -47,6 +47,10 @@ class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, o
     instruction = serializers.CharField(required=False, allow_blank=True, max_length=4096)
 
     def validate(self, data):
+        # integration_id: for org-installed integrations (e.g., Cursor) that have
+        #   an Integration model and org-wide credentials
+        # provider: for user-authenticated providers (e.g., GitHub Copilot) that
+        #   use per-user OAuth tokens instead of org-wide installation
         if not data.get("integration_id") and not data.get("provider"):
             raise serializers.ValidationError(
                 "Either 'integration_id' or 'provider' must be provided"
