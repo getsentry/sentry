@@ -58,7 +58,7 @@ export function SizeCompareMainContent() {
     parseAsBoolean.withDefault(true)
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const params = useParams() as {baseArtifactId?: string; headArtifactId?: string};
+  const params = useParams();
   const headArtifactId = params.headArtifactId;
   const baseArtifactId = params.baseArtifactId;
   const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
