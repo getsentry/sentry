@@ -160,7 +160,11 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
               projectId,
             };
 
-            return <Redirect to={trackRedirect(organizationId, generateRedirectRoute(routeProps))} />;
+            return (
+              <Redirect
+                to={trackRedirect(organizationId, generateRedirectRoute(routeProps))}
+              />
+            );
           }}
         </ProjectDetails>
       </Wrapper>
