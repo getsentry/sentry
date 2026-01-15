@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 
 import {StatusCheckRuleForm} from './statusCheckRuleForm';
 import type {StatusCheckFilter, StatusCheckRule} from './types';
-import {getMeasurementLabel, getMetricLabel} from './types';
+import {bytesToMB, getDisplayUnit, getMeasurementLabel, getMetricLabel} from './types';
 
 interface Props {
   onDelete: () => void;
@@ -29,7 +29,7 @@ function FilterSummary({filters}: {filters: StatusCheckFilter[]}) {
     <Text size="sm" variant="muted" as="div">
       {Object.entries(grouped).map(([groupKey, groupFilters], groupIdx) => {
         const {key, negated} = groupFilters[0]!;
-        const keyLabel = key.replace('build.', '');
+        const keyLabel = key;
         return (
           <Fragment key={groupKey}>
             {groupIdx > 0 && ' • '}
@@ -57,8 +57,9 @@ export function StatusCheckRuleItem({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const filters = parseFiltersForDisplay(rule.filterQuery);
 
-  const valueWithUnit =
-    rule.unit === '%' ? `${rule.value}%` : `${rule.value} ${rule.unit}`;
+  const displayUnit = getDisplayUnit(rule.measurement);
+  const displayValue = displayUnit === '%' ? rule.value : bytesToMB(rule.value);
+  const valueWithUnit = `${displayValue} ${displayUnit}`;
   const title = `${getMetricLabel(rule.metric)} • ${getMeasurementLabel(rule.measurement)} • ${valueWithUnit}`;
 
   return (
