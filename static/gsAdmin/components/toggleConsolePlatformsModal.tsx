@@ -233,11 +233,12 @@ function ToggleConsolePlatformsModal({
       })
       .catch(() => {
         addErrorMessage('Failed to update console SDK settings');
+      })
+      .finally(() => {
+        queryClient.invalidateQueries({
+          queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
+        });
       });
-
-    queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
-    });
   };
 
   return (
