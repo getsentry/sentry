@@ -8,6 +8,10 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  AGENT_INTEGRATION_LABELS,
+  AgentIntegration,
+} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 function getInstallSnippet({
   params,
@@ -341,248 +345,6 @@ export const getNodeAgentMonitoringOnboarding = ({
     },
   ],
   configure: params => {
-    const vercelContent: ContentBlock[] = [
-      {
-        type: 'text',
-        text: tct(
-          'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
-          {
-            code: <code />,
-            link: (
-              <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
-            ),
-          }
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: configFileName ? configFileName : 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [
-    // Add the Vercel AI SDK integration ${configFileName ? `to ${configFileName}` : ''}
-    Sentry.vercelAIIntegration({
-      recordInputs: true,
-      recordOutputs: true,
-    }),
-  ],
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  sendDefaultPii: true,
-});`,
-          },
-        ],
-      },
-      {
-        type: 'text',
-        text: tct(
-          'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
-          {
-            code: <code />,
-            link: (
-              <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
-            ),
-          }
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `const { generateText } = require('ai');
-const { openai } = require('@ai-sdk/openai');
-
-const result = await generateText({
-  model: openai("gpt-4o"),
-  prompt: "Tell me a joke",
-  experimental_telemetry: {
-    isEnabled: true,
-    recordInputs: true,
-    recordOutputs: true,
-  },
-});`,
-          },
-        ],
-      },
-    ];
-
-    const anthropicContent: ContentBlock[] = [
-      {
-        type: 'text',
-        text: tct(
-          'Add the [code:anthropicAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Anthropic SDK to capture spans for AI operations.',
-          {code: <code />}
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [
-    // Add the AnthropicAI integration
-    Sentry.anthropicAIIntegration({
-      recordInputs: true,
-      recordOutputs: true,
-    }),
-  ],
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  sendDefaultPii: true,
-});`,
-          },
-        ],
-      },
-    ];
-
-    const googleGenAIContent: ContentBlock[] = [
-      {
-        type: 'text',
-        text: tct(
-          'Add the [code:googleGenAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Google Gen AI SDK to capture spans for AI operations.',
-          {code: <code />}
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [
-    // Add the Google Gen AI integration
-    Sentry.googleGenAIIntegration({
-      recordInputs: true,
-      recordOutputs: true,
-    }),
-  ],
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  sendDefaultPii: true,
-});`,
-          },
-        ],
-      },
-    ];
-
-    const openaiContent: ContentBlock[] = [
-      {
-        type: 'text',
-        text: tct(
-          'Add the [code:openAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the OpenAI SDK to capture spans for AI operations.',
-          {code: <code />}
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [
-    // Add the OpenAI integration
-    Sentry.openAIIntegration({
-      recordInputs: true,
-      recordOutputs: true,
-    }),
-  ],
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  sendDefaultPii: true,
-});`,
-          },
-        ],
-      },
-    ];
-
-    const langchainContent: ContentBlock[] = [
-      {
-        type: 'text',
-        text: tct(
-          'Add the [code:langChainIntegration] to your [code:Sentry.init()] call. This integration automatically instruments LangChain to capture spans for AI operations.',
-          {code: <code />}
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [
-    // Add the LangChain integration
-    Sentry.langChainIntegration({
-      recordInputs: true,
-      recordOutputs: true,
-    }),
-  ],
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  sendDefaultPii: true,
-});`,
-          },
-        ],
-      },
-    ];
-
-    const langgraphContent: ContentBlock[] = [
-      {
-        type: 'text',
-        text: tct(
-          'Add the [code:langChainIntegration] to your [code:Sentry.init()] call. This integration automatically instruments LangGraph to capture spans for AI operations.',
-          {code: <code />}
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [
-    // Add the LangChain integration (also works for LangGraph)
-    Sentry.langChainIntegration({
-      recordInputs: true,
-      recordOutputs: true,
-    }),
-  ],
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  sendDefaultPii: true,
-});`,
-          },
-        ],
-      },
-    ];
-
     const manualContent: ContentBlock[] = [
       {
         type: 'text',
@@ -621,29 +383,80 @@ Sentry.init({
     ];
 
     const selected = (params.platformOptions as any)?.integration ?? 'vercel_ai';
-    let content: ContentBlock[] = manualContent;
-    if (selected === 'vercel_ai') {
-      content = vercelContent;
-    }
-    if (selected === 'anthropic') {
-      content = anthropicContent;
-    }
-    if (selected === 'openai') {
-      content = openaiContent;
-    }
-    if (selected === 'google_genai') {
-      content = googleGenAIContent;
-    }
-    if (selected === 'langchain') {
-      content = langchainContent;
-    }
-    if (selected === 'langgraph') {
-      content = langgraphContent;
-    }
+
+    const vercelAiExtraInstrumentation: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+          {
+            code: <code />,
+            link: (
+              <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+            ),
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `const { generateText } = require('ai');
+const { openai } = require('@ai-sdk/openai');
+
+const result = await generateText({
+  model: openai("gpt-4o"),
+  prompt: "Tell me a joke",
+  experimental_telemetry: {
+    isEnabled: true,
+    recordInputs: true,
+    recordOutputs: true,
+  },
+});`,
+          },
+        ],
+      },
+    ];
+
+    const notManualContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
+          {
+            integration:
+              AGENT_INTEGRATION_LABELS[selected as AgentIntegration] ?? selected,
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: configFileName ? configFileName : 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(packageName, importMode).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  // Add data like inputs and responses to/from LLMs and tools;
+  // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
+  sendDefaultPii: true,
+});`,
+          },
+        ],
+      },
+      ...(selected === AgentIntegration.VERCEL_AI ? vercelAiExtraInstrumentation : []),
+    ];
+
     return [
       {
         title: t('Configure'),
-        content,
+        content: selected === AgentIntegration.MANUAL ? manualContent : notManualContent,
       },
     ];
   },

@@ -58,39 +58,37 @@ If missing, add \`tracesSampleRate: 1.0\` / \`traces_sample_rate=1.0\` and \`sen
 
 Check in this order - **use the highest-level framework found** (e.g., if using Vercel AI SDK with OpenAI provider, use Vercel integration, not OpenAI):
 
-| Library (check in order) | JS Integration | Python Integration | Python Extra |
-|--------------------------|---------------|-------------------|--------------|
-| Vercel AI SDK | \`Sentry.vercelAIIntegration()\` | - | - |
-| LangGraph | \`Sentry.langGraphIntegration()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
-| LangChain | \`Sentry.langChainIntegration()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
-| OpenAI Agents | - | Auto-enabled | - |
-| Pydantic AI | - | Auto-enabled | \`sentry-sdk[pydantic_ai]\` |
-| LiteLLM | - | \`LiteLLMIntegration()\` | \`sentry-sdk[litellm]\` |
-| OpenAI | \`Sentry.openAIIntegration()\` | Auto-enabled | - |
-| Anthropic | \`Sentry.anthropicAIIntegration()\` | Auto-enabled | - |
-| Google GenAI | \`Sentry.googleGenAIIntegration()\` | \`GoogleGenAIIntegration()\` | \`sentry-sdk[google_genai]\` |
+| Library (check in order) | Node.js | Browser | Python Integration | Python Extra |
+|--------------------------|---------|---------|-------------------|--------------|
+| Vercel AI SDK | Auto-enabled (needs \`experimental_telemetry\`) | Not supported | - | - |
+| LangGraph | Auto-enabled | \`instrumentLangChainClient()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
+| LangChain | Auto-enabled | \`instrumentLangChainClient()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
+| OpenAI Agents | - | - | Auto-enabled | - |
+| Pydantic AI | - | - | Auto-enabled | \`sentry-sdk[pydantic_ai]\` |
+| LiteLLM | - | - | \`LiteLLMIntegration()\` | \`sentry-sdk[litellm]\` |
+| OpenAI | Auto-enabled | \`instrumentOpenAiClient()\` | Auto-enabled | - |
+| Anthropic | Auto-enabled | \`instrumentAnthropicAiClient()\` | Auto-enabled | - |
+| Google GenAI | Auto-enabled | \`instrumentGoogleGenAiClient()\` | \`GoogleGenAIIntegration()\` | \`sentry-sdk[google_genai]\` |
 
-**If supported library found → Step 3A**
-**If no supported library → Step 3B**
+**If supported library found → Step 3A** (Node.js: auto-enabled, Browser: wrap clients)
+**If no supported library → Step 3B** (Manual span instrumentation)
 
 ## 3A. Enable Automatic Integration
 
-### JavaScript
+### 3A-1: Node.js (Auto-enabled)
 
-Add to Sentry.init integrations array with \`recordInputs\` and \`recordOutputs\`:
+For Node.js applications (\`@sentry/node\`, \`@sentry/nestjs\`, etc.), AI integrations are **automatically enabled**. Just initialize Sentry with tracing:
 
 \`\`\`javascript
 import * as Sentry from "@sentry/node";
 
 Sentry.init({
   dsn: "...",
-  tracesSampleRate: 1.0,
-  sendDefaultPii: true,
-  integrations: [
-    Sentry.openAIIntegration({ recordInputs: true, recordOutputs: true }),
-    // OR other integration as needed
-  ],
+  tracesSampleRate: 1.0,  // Required for AI monitoring
+  sendDefaultPii: true,   // Required to capture inputs/outputs
 });
+
+// That's it! The SDK automatically instruments supported AI libraries
 \`\`\`
 
 **Vercel AI SDK Extra Step:** Pass \`experimental_telemetry\` with \`functionId\` to every call:
@@ -106,6 +104,83 @@ const result = await generateText({
   },
 });
 \`\`\`
+
+### 3A-2: Browser (Manual Client Wrapping)
+
+For browser applications (\`@sentry/browser\`, \`@sentry/react\`, etc.), you must **manually wrap each AI client** using helper functions.
+
+**Step 1:** Initialize Sentry with tracing:
+\`\`\`javascript
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: "...",
+  tracesSampleRate: 1.0,  // Required for AI monitoring
+  sendDefaultPii: true,   // Required to capture inputs/outputs
+});
+\`\`\`
+
+**Step 2:** Wrap your AI client instances with helper functions:
+
+**OpenAI:**
+\`\`\`javascript
+import OpenAI from "openai";
+
+const openai = new OpenAI();
+const client = Sentry.instrumentOpenAiClient(openai, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+
+// Use the wrapped client instead of the original
+const response = await client.chat.completions.create({
+  model: "gpt-4o",
+  messages: [{ role: "user", content: "Hello!" }],
+});
+\`\`\`
+
+**Anthropic:**
+\`\`\`javascript
+import Anthropic from "@anthropic-ai/sdk";
+
+const anthropic = new Anthropic();
+const client = Sentry.instrumentAnthropicAiClient(anthropic, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+
+const response = await client.messages.create({
+  model: "claude-3-5-sonnet-20241022",
+  max_tokens: 1024,
+  messages: [{ role: "user", content: "Hello!" }],
+});
+\`\`\`
+
+**Google Gen AI:**
+\`\`\`javascript
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(apiKey);
+const client = Sentry.instrumentGoogleGenAiClient(genAI, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+
+const model = client.getGenerativeModel({ model: "gemini-pro" });
+\`\`\`
+
+**LangChain/LangGraph:**
+\`\`\`javascript
+import { ChatOpenAI } from "@langchain/openai";
+
+const llm = new ChatOpenAI();
+const client = Sentry.instrumentLangChainClient(llm, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+\`\`\`
+
+**Important:** You must wrap EACH client instance separately. The helpers are not global integrations.
 
 ### Python
 

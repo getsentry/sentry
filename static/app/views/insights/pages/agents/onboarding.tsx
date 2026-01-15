@@ -41,6 +41,13 @@ import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboard
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
+import {
+  AGENT_INTEGRATION_LABELS,
+  AgentIntegration,
+  NODE_AGENT_INTEGRATIONS,
+  PYTHON_AGENT_INTEGRATIONS,
+} from './utils/agentIntegrations';
+
 // Full-stack JS frameworks that support Vercel AI SDK (they have server-side capabilities)
 const fullStackJsPlatforms = [
   'javascript-astro',
@@ -231,26 +238,19 @@ export function Onboarding() {
     integration: {
       label: t('Integration'),
       items: isPythonPlatform
-        ? [
-            {label: 'OpenAI SDK', value: 'openai'},
-            {label: 'OpenAI Agents SDK', value: 'openai_agents'},
-            {label: 'Anthropic SDK', value: 'anthropic'},
-            {label: 'Google Gen AI SDK', value: 'google_genai'},
-            {label: 'LangChain', value: 'langchain'},
-            {label: 'LangGraph', value: 'langgraph'},
-            {label: 'LiteLLM', value: 'litellm'},
-            {label: 'Pydantic AI', value: 'pydantic_ai'},
-            {label: 'Other', value: 'manual'},
-          ]
-        : [
-            ...(hasVercelAI ? [{label: 'Vercel AI SDK', value: 'vercel_ai'}] : []),
-            {label: 'OpenAI SDK', value: 'openai'},
-            {label: 'Anthropic SDK', value: 'anthropic'},
-            {label: 'Google Gen AI SDK', value: 'google_genai'},
-            {label: 'LangChain', value: 'langchain'},
-            {label: 'LangGraph', value: 'langgraph'},
-            {label: 'Other', value: 'manual'},
-          ],
+        ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
+            label: AGENT_INTEGRATION_LABELS[integration],
+            value: integration,
+          }))
+        : (hasVercelAI
+            ? NODE_AGENT_INTEGRATIONS
+            : NODE_AGENT_INTEGRATIONS.filter(
+                integration => integration !== AgentIntegration.VERCEL_AI
+              )
+          ).map(integration => ({
+            label: AGENT_INTEGRATION_LABELS[integration],
+            value: integration,
+          })),
     },
   };
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
