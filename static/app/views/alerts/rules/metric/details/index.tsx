@@ -312,7 +312,7 @@ export default function MetricAlertDetailsWrapper() {
   const location = useLocation();
   const {ruleId} = useParams<{ruleId: string}>();
   const organization = useOrganization();
-  const {projects, fetching} = useProjects();
+  const {projects, initiallyLoaded} = useProjects();
 
   return (
     <MetricAlertDetails
@@ -321,7 +321,7 @@ export default function MetricAlertDetailsWrapper() {
       organization={organization}
       ruleId={ruleId}
       projects={projects}
-      loadingProjects={fetching}
+      loadingProjects={!initiallyLoaded}
     />
   );
 }
