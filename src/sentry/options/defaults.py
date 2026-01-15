@@ -690,9 +690,17 @@ register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABL
 # enable verbose debug logging for overwatch webhook forwarding
 register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Control forwarding of GitHub webhook events to Overwatch
-register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# List of regions that should send directly to Seer (bypass Overwatch) per event type
+register(
+    "seer.code-review.direct-to-seer-regions.issue-comment",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.code-review.direct-to-seer-regions.pull-request",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of GitHub org names that should always send directly to Seer (bypass Overwatch)
 register(

@@ -14,7 +14,6 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     """Integration tests for GitHub pull_request webhook events."""
 
     OPTIONS_TO_SET = {
-        "github.webhook.pr": False,
         "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
     }
 
@@ -85,16 +84,6 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self._send_webhook_event(
                 GithubWebhookType.PULL_REQUEST,
                 orjson.dumps(event_with_unsupported_action),
-            )
-
-            self.mock_seer.assert_not_called()
-
-    def test_pull_request_skips_when_option_enabled(self) -> None:
-        """Test that PR events are skipped when github.webhook.pr option is True (kill switch)."""
-        with self.code_review_setup(options={"github.webhook.pr": True}), self.tasks():
-            self._send_webhook_event(
-                GithubWebhookType.PULL_REQUEST,
-                PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             )
 
             self.mock_seer.assert_not_called()
@@ -235,9 +224,38 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
 
     def test_pull_request_skips_non_whitelisted_github_org(self) -> None:
-        """Test that non-whitelisted GitHub organizations are skipped."""
-        # The option says to forward to Overwatch AND the org is not whitelisted, so we should skip Seer.
-        with self.code_review_setup({"github.webhook.pr": True}), self.tasks():
+        """Test that non-whitelisted GitHub organizations are skipped when region is not in direct-to-seer list."""
+        # "baxterthehacker" is the default and is not whitelisted; region "de" is not in the direct-to-seer list.
+        mock_region = MagicMock()
+        mock_region.name = "de"
+
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            patch("sentry.seer.code_review.utils.get_local_region", return_value=mock_region),
+        ):
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            assert event["repository"]["owner"]["login"] == "baxterthehacker"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_not_called()
+
+    def test_pull_request_processes_when_region_is_direct_to_seer(self) -> None:
+        """Test that non-whitelisted orgs are processed when region is in direct-to-seer list."""
+        mock_region = MagicMock()
+        mock_region.name = "test-region"
+
+        with (
+            self.code_review_setup(
+                options={"seer.code-review.direct-to-seer-regions.pull-request": ["test-region"]}
+            ),
+            self.tasks(),
+            patch("sentry.seer.code_review.utils.get_local_region", return_value=mock_region),
+        ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             # "baxterthehacker" is the default in the fixture and is not whitelisted
             assert event["repository"]["owner"]["login"] == "baxterthehacker"
@@ -247,4 +265,4 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 orjson.dumps(event),
             )
 
-            self.mock_seer.assert_not_called()
+            self.mock_seer.assert_called_once()

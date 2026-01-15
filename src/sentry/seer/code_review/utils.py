@@ -13,6 +13,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.types.region import get_local_region
 
 
 class RequestType(StrEnum):
@@ -60,21 +61,6 @@ def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint
     if github_event == GithubWebhookType.CHECK_RUN:
         return SeerEndpoint.PR_REVIEW_RERUN
     return SeerEndpoint.OVERWATCH_REQUEST
-
-
-def _get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
-    """
-    Get the option key for a given GitHub webhook type.
-
-    Args:
-        webhook_type: The GitHub webhook event type
-
-    Returns:
-        The option key string if the webhook type has an associated option, None otherwise
-    """
-    from .webhooks.config import WEBHOOK_TYPE_TO_OPTION_KEY
-
-    return WEBHOOK_TYPE_TO_OPTION_KEY.get(webhook_type)
 
 
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
@@ -311,13 +297,41 @@ def should_forward_to_seer(
     """
     Determine if we should proceed with the code review flow to Seer.
 
-    We will proceed if the GitHub org is in the direct-to-seer whitelist.
-    For CHECK_RUN events (no option key), we always proceed.
+    We will proceed if:
+    - The current region is in the direct-to-seer regions list for this event type
+    - The GitHub org is in the direct-to-seer whitelist
     """
-    if not should_forward_to_overwatch(github_event):
+    region_name = None
+    try:
+        local_region = get_local_region()
+        if local_region is not None:
+            region_name = getattr(local_region, "name", None)
+    except Exception:
+        region_name = None
+
+    if region_name is not None and is_region_direct_to_seer(github_event, region_name):
         return True
 
     return is_github_org_direct_to_seer(event_payload)
+
+
+def is_region_direct_to_seer(
+    github_event: GithubWebhookType | None, region_name: str | None
+) -> bool:
+    if region_name and github_event is not None:
+        return region_name in _direct_to_seer_regions(github_event)
+    return False
+
+
+def _direct_to_seer_regions(github_event: GithubWebhookType) -> list[str]:
+    """
+    Get the list of regions configured to send directly to Seer for this event type.
+    """
+    if github_event == GithubWebhookType.ISSUE_COMMENT:
+        return options.get("seer.code-review.direct-to-seer-regions.issue-comment") or []
+    elif github_event == GithubWebhookType.PULL_REQUEST:
+        return options.get("seer.code-review.direct-to-seer-regions.pull-request") or []
+    return []
 
 
 def is_github_org_direct_to_seer(event_payload: Mapping[str, Any]) -> bool:
@@ -332,27 +346,6 @@ def is_github_org_direct_to_seer(event_payload: Mapping[str, Any]) -> bool:
         return False
     github_org = owner.get("login")
     return github_org is not None and github_org in _direct_to_seer_gh_orgs()
-
-
-def should_forward_to_overwatch(github_event: GithubWebhookType) -> bool:
-    """
-    Determine if a GitHub webhook event should be forwarded to Overwatch.
-
-    - If there is no option key (i.e., _get_webhook_option_key returns None),
-      the event should NOT be forwarded to Overwatch (returns False).
-      This ensures events like CHECK_RUN are excluded from forwarding.
-    - If there is an option key, forwarding is controlled by the option value.
-
-    Args:
-        github_event: The GitHub webhook event type.
-
-    Returns:
-        bool: True if the event should be forwarded to Overwatch, False otherwise.
-    """
-    option_key = _get_webhook_option_key(github_event)
-    if option_key is None:
-        return False
-    return options.get(option_key)
 
 
 def _direct_to_seer_gh_orgs() -> list[str]:

@@ -15,7 +15,6 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     """Integration tests for GitHub issue_comment webhook events."""
 
     OPTIONS_TO_SET = {
-        "github.webhook.issue-comment": False,
         "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
     }
 
@@ -183,11 +182,19 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
 
     def test_skips_non_whitelisted_github_org(self) -> None:
-        """Test that non-whitelisted GitHub organizations are skipped."""
-        # The option says to forward to Overwatch AND the org is not whitelisted, so we should skip Seer.
-        with self.code_review_setup({"github.webhook.issue-comment": True}), self.tasks():
+        """Test that non-whitelisted GitHub organizations are skipped when region is not in direct-to-seer list."""
+        # "random-org" is not whitelisted; region "de" is not in the direct-to-seer list.
+        mock_region = MagicMock()
+        mock_region.name = "de"
+
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            patch("sentry.seer.code_review.utils.get_local_region", return_value=mock_region),
+        ):
             event = self._build_issue_comment_event(
-                f"Please {SENTRY_REVIEW_COMMAND} this PR", github_org="random-org"
+                f"Please {SENTRY_REVIEW_COMMAND} this PR",
+                github_org="random-org",
             )
 
             response = self._send_issue_comment_event(event)
@@ -195,3 +202,26 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_reaction.assert_not_called()
             self.mock_seer.assert_not_called()
+
+    def test_processes_when_region_is_direct_to_seer(self) -> None:
+        """Test that non-whitelisted orgs are processed when region is in direct-to-seer list."""
+        mock_region = MagicMock()
+        mock_region.name = "test-region"
+
+        with (
+            self.code_review_setup(
+                options={"seer.code-review.direct-to-seer-regions.issue-comment": ["test-region"]}
+            ),
+            self.tasks(),
+            patch("sentry.seer.code_review.utils.get_local_region", return_value=mock_region),
+        ):
+            # Use a non-whitelisted org
+            event = self._build_issue_comment_event(
+                f"Please {SENTRY_REVIEW_COMMAND} this PR", github_org="random-org"
+            )
+
+            response = self._send_issue_comment_event(event)
+            assert response.status_code == 204
+
+            self.mock_reaction.assert_called_once()
+            self.mock_seer.assert_called_once()

@@ -16,10 +16,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
-from sentry.seer.code_review.utils import is_github_org_direct_to_seer
-from sentry.seer.code_review.utils import (
-    should_forward_to_overwatch as should_forward_to_overwatch_for_event,
-)
+from sentry.seer.code_review.utils import is_github_org_direct_to_seer, is_region_direct_to_seer
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -27,6 +24,12 @@ from sentry.utils import metrics
 _INSTALLATION_EVENTS = {
     GithubWebhookType.INSTALLATION,
     GithubWebhookType.INSTALLATION_REPOSITORIES,
+}
+
+# Events that can be forwarded to Overwatch (subject to region-based direct-to-seer config)
+_OVERWATCH_FORWARDING_EVENTS = {
+    GithubWebhookType.PULL_REQUEST,
+    GithubWebhookType.ISSUE_COMMENT,
 }
 
 
@@ -50,27 +53,31 @@ class OverwatchGithubWebhookForwarder:
     def __init__(self, integration: Integration):
         self.integration = integration
 
-    def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
+    def is_event_forwardable(
+        self, headers: Mapping[str, str]
+    ) -> tuple[bool, GithubWebhookType | None]:
         event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
         if event_type is None:
-            return False
+            return False, None
         try:
             event_type_enum = GithubWebhookType(event_type)
         except ValueError:
-            return False
+            return False, None
         # Installation events are always forwarded
         is_installation = event_type_enum in _INSTALLATION_EVENTS
-        # Other events are controlled by options
-        should_forward = is_installation or should_forward_to_overwatch_for_event(event_type_enum)
+        # PR and issue_comment events can be forwarded (subject to region-based config)
+        is_forwardable = event_type_enum in _OVERWATCH_FORWARDING_EVENTS
+        should_forward = is_installation or is_forwardable
         verbose_log(
             "overwatch.debug.should_forward_to_overwatch.checked",
             extra={
                 "event_type": event_type,
                 "should_forward": should_forward,
                 "is_installation": is_installation,
+                "is_forwardable": is_forwardable,
             },
         )
-        return should_forward
+        return should_forward, event_type_enum
 
     def _get_org_summaries_by_region_for_integration(
         self, integration: Integration
@@ -149,12 +156,13 @@ class OverwatchGithubWebhookForwarder:
                 },
             )
 
-            if not orgs_by_region or not self.should_forward_to_overwatch(headers):
+            is_event_forwardable, event_type_enum = self.is_event_forwardable(headers)
+            if not orgs_by_region or not is_event_forwardable:
                 verbose_log(
                     "overwatch.debug.skipped_forwarding",
                     extra={
                         "orgs_by_region_empty": not orgs_by_region,
-                        "event_in_forward_list": self.should_forward_to_overwatch(headers),
+                        "event_in_forward_list": self.is_event_forwardable(headers),
                     },
                 )
                 return
@@ -179,6 +187,15 @@ class OverwatchGithubWebhookForwarder:
                     },
                 )
                 if region_name not in enabled_regions:
+                    continue
+
+                if is_region_direct_to_seer(event_type_enum, region_name):
+                    verbose_log(
+                        "overwatch.debug.region_direct_to_seer_skip",
+                        extra={
+                            "region_name": region_name,
+                        },
+                    )
                     continue
 
                 raw_app_id = headers.get(
