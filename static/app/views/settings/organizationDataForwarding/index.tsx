@@ -20,6 +20,7 @@ import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataFor
 import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
 import {useDataForwarders} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
+  DATA_FORWARDING_DOCS_URL,
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
@@ -109,7 +110,7 @@ export default function OrganizationDataForwarding() {
                 {
                   link: (
                     <ExternalLink
-                      href="https://docs.sentry.io/organization/integrations/data-forwarding/"
+                      href={DATA_FORWARDING_DOCS_URL}
                       onClick={() => {
                         trackAnalytics('data_forwarding.docs_link_clicked', {
                           organization,
