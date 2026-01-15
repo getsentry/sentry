@@ -105,7 +105,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
             if not isinstance(condition_result, int):
                 raise serializers.ValidationError(
-                    "condition_result must be a valid detector priority level integer"
+                    "condition_result must be an integer corresponding to a valid detector priority level"
                 )
 
             try:

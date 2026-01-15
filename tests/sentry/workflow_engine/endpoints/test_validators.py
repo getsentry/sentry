@@ -9,10 +9,7 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.metric_issue_detector import (
-    MetricIssueComparisonConditionValidator,
-    MetricIssueDetectorValidator,
-)
+from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -23,6 +20,9 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
     DataSourceCreator,
+)
+from sentry.workflow_engine.endpoints.validators.base.data_condition import (
+    BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
@@ -88,9 +88,8 @@ class TestBaseDataSourceValidator(TestCase):
         )
 
 
-class MockDataConditionValidator(MetricIssueComparisonConditionValidator):
-    supported_conditions = frozenset([Condition.GREATER_OR_EQUAL, Condition.LESS_OR_EQUAL])
-    supported_condition_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
+class MockDataConditionValidator(BaseDataConditionValidator):
+    pass
 
 
 class MockConditionGroupValidator(BaseDataConditionGroupValidator):
@@ -234,6 +233,32 @@ class DetectorValidatorTest(BaseValidatorTest):
             event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
+
+    def test_validate_invalid_condition_result(self) -> None:
+        invalid_condition_group = {
+            "id": self.data_condition_group.id,
+            "organizationId": self.organization.id,
+            "logicType": self.data_condition_group.logic_type,
+            "conditions": [
+                {
+                    "type": Condition.GREATER_OR_EQUAL,
+                    "comparison": 100,
+                    "condition_result": 1,
+                    "conditionGroupId": self.data_condition_group.id,
+                }
+            ],
+        }
+        validator = MockDetectorValidator(
+            data={
+                **self.valid_data,
+                "conditionGroup": invalid_condition_group,
+                "type": "uptime_domain_failure",
+            }
+        )
+        assert not validator.is_valid()
+        assert validator.errors.get("conditionGroup") == [
+            ErrorDetail(string="Invalid detector priority level: 1", code="invalid")
+        ], validator.errors
 
     def test_validate_type_unknown(self) -> None:
         validator = MockDetectorValidator(data={**self.valid_data, "type": "unknown_type"})
