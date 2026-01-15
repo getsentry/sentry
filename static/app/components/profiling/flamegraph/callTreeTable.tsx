@@ -66,7 +66,7 @@ export const CallTreeTable = styled('div')`
     }
 
     &[data-hovered='true']:not([tabindex='0']) {
-      background: ${p => p.theme.colors.surface300};
+      background: ${p => p.theme.tokens.background.tertiary};
     }
   }
 
@@ -231,7 +231,7 @@ export const CallTreeTableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${space(1)};
   border: none;
-  background-color: ${props => props.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   transition: background-color 100ms ease-in-out;
   line-height: 29px;
 

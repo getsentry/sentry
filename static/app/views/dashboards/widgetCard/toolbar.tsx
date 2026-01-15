@@ -118,7 +118,8 @@ const ToolbarPanel = styled('div')`
   justify-content: flex-end;
   align-items: flex-start;
 
-  background-color: ${p => color(p.theme.colors.surface400).alpha(0.7).string()};
+  background-color: ${p =>
+    color(p.theme.tokens.background.secondary).alpha(0.7).string()};
   border-radius: calc(${p => p.theme.radius.md} - 1px);
 `;
 

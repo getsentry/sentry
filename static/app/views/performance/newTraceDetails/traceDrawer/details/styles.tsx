@@ -786,7 +786,7 @@ const TableValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   margin: 2px;
 `;
 

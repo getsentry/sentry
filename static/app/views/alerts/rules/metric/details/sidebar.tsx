@@ -418,7 +418,7 @@ const TriggerActions = styled('div')`
 
 const TriggerText = styled('span')`
   display: block;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};

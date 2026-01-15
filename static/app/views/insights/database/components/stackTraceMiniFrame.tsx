@@ -89,7 +89,7 @@ const FrameContainer = styled('div')`
 
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
-  background: ${p => p.theme.colors.surface300};
+  background: ${p => p.theme.tokens.background.tertiary};
 `;
 
 const ProjectAvatarContainer = styled('div')`
