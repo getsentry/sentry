@@ -426,6 +426,11 @@ export default typescript.config([
     plugins: {'@sentry': sentryPlugin},
     rules: {
       '@sentry/no-static-translations': 'error',
+      // Enforce export default function/class to be inline with export keyword
+      // Options: 'statement' (default) | 'inline'
+      // - 'statement': Prefer `export default function foo() {}`
+      // - 'inline': Prefer `function foo() {}; export default foo;`
+      '@sentry/default-export-function-style': ['warn', 'statement'],
     },
   },
   {
