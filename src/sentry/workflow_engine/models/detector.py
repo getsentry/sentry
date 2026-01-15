@@ -146,8 +146,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 )
                 .select_related("workflow_condition_group")
                 .prefetch_related("workflow_condition_group__conditions")
-                .order_by("id")
                 .distinct()
+                .order_by("id")
             )
             cache.set(cache_key, detectors, cls.CACHE_TTL)
         return detectors

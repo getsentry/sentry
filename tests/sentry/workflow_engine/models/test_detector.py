@@ -194,15 +194,22 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector])
 
-        result = Detector.get_detectors_by_data_source("12345", "test")
+        with self.assertNumQueries(1):
+            result = Detector.get_detectors_by_data_source("12345", "test")
 
-        assert len(result) == 1
-        assert result[0].id == detector.id
+            assert len(result) == 1
+            assert result[0].id == detector.id
 
     def test_get_detectors_by_data_source__multiple_detectors(self) -> None:
-        detector1 = self.create_detector(project=self.project, name="Detector 1")
-        detector2 = self.create_detector(project=self.project, name="Detector 2")
-        detector3 = self.create_detector(project=self.project, name="Detector 3")
+        detector1 = self.create_detector(
+            project=self.project, name="Detector 1", type=MetricIssue.slug
+        )
+        detector2 = self.create_detector(
+            project=self.project, name="Detector 2", type=MetricIssue.slug
+        )
+        detector3 = self.create_detector(
+            project=self.project, name="Detector 3", type=MetricIssue.slug
+        )
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector1, detector2, detector3])
 
@@ -216,8 +223,12 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         assert result == []
 
     def test_get_detectors_by_data_source__filters_disabled(self) -> None:
-        detector1 = self.create_detector(project=self.project, name="Detector 1")
-        detector2 = self.create_detector(project=self.project, name="Detector 2", enabled=False)
+        detector1 = self.create_detector(
+            project=self.project, name="Detector 1", type=MetricIssue.slug
+        )
+        detector2 = self.create_detector(
+            project=self.project, name="Detector 2", type=MetricIssue.slug, enabled=False
+        )
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector1, detector2])
 
@@ -227,8 +238,12 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         assert result[0].id == detector1.id
 
     def test_get_detectors_by_data_source__cache_miss(self) -> None:
-        detector1 = self.create_detector(project=self.project, name="Detector 1")
-        detector2 = self.create_detector(project=self.project, name="Detector 2")
+        detector1 = self.create_detector(
+            project=self.project, name="Detector 1", type=MetricIssue.slug
+        )
+        detector2 = self.create_detector(
+            project=self.project, name="Detector 2", type=MetricIssue.slug
+        )
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector1, detector2])
 
