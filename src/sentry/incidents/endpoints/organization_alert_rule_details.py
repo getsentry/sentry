@@ -351,7 +351,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Metric Alert Rule for an Organization",
+        operation_id="(DEPRECATED) Retrieve a Metric Alert Rule for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             200: AlertRuleSerializer,
@@ -365,6 +365,10 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     @_check_project_access
     def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Fetch a Monitor](/api/alerts/fetch-a-monitor) instead.
+
+
         Return details on an individual metric alert rule.
 
         A metric alert rule is a configuration that defines the conditions for triggering an alert.
