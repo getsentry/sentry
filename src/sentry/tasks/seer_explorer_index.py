@@ -23,9 +23,8 @@ logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
 
 CACHE_KEY = "seer:explorer_index:last_run"
 
-# Explorer indexing constants
-EXPLORER_INDEX_PROJECTS_PER_BATCH = 100  # Projects per batch sent to seer
-EXPLORER_INDEX_RUN_FREQUENCY = timedelta(hours=24)  # runs daily
+EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
+EXPLORER_INDEX_RUN_FREQUENCY = timedelta(hours=24)
 # Use a larger prime number to spread indexing tasks throughout the day
 EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=127)
 
@@ -37,14 +36,12 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
     Yields:
         Tuple of (project_id, organization_id)
     """
-    # Get all active projects with their organization
     projects = Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization")
 
     for project in RangeQuerySetWrapper(
         projects,
         result_value_getter=lambda p: p.id,
     ):
-        # Check if the organization has seer-explorer feature enabled
         if features.has("organizations:seer-explorer-index", project.organization):
             yield project.id, project.organization_id
 
@@ -114,7 +111,6 @@ def dispatch_explorer_index_projects(
 
         yield project_id, org_id
 
-    # Dispatch remaining projects
     if batch:
         run_explorer_index_for_projects.apply_async(
             args=[batch, timestamp.isoformat()],
@@ -149,7 +145,6 @@ def run_explorer_index_for_projects(
     if not projects:
         return
 
-    # Build the request payload
     # The seer endpoint expects: {"projects": [{"org_id": int, "project_id": int}, ...]}
     project_list = [{"org_id": org_id, "project_id": project_id} for project_id, org_id in projects]
 
