@@ -48,7 +48,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders', async () => {
-    const {organization, routerProps} = initializeOrg();
+    const {organization} = initializeOrg();
     const incident = IncidentFixture();
     const rule = MetricRuleFixture({
       projects: [project.slug],
@@ -71,16 +71,15 @@ describe('MetricAlertDetails', () => {
       body: [incident],
     });
 
-    render(
-      <MetricAlertDetails
-        organization={organization}
-        {...routerProps}
-        params={{ruleId: rule.id}}
-      />,
-      {
-        organization,
-      }
-    );
+    render(<MetricAlertDetails />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
+        },
+        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
+      },
+    });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
     expect(screen.getByText('Change alert status to Resolved')).toBeInTheDocument();
@@ -98,7 +97,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders selected incident', async () => {
-    const {organization, router, routerProps} = initializeOrg();
+    const {organization} = initializeOrg();
     const rule = MetricRuleFixture({projects: [project.slug]});
     const incident = IncidentFixture();
     const promptResponse = {
@@ -127,17 +126,16 @@ describe('MetricAlertDetails', () => {
       body: [GroupFixture()],
     });
 
-    render(
-      <MetricAlertDetails
-        organization={organization}
-        {...routerProps}
-        location={{...router.location, query: {alert: incident.id}}}
-        params={{ruleId: rule.id}}
-      />,
-      {
-        organization,
-      }
-    );
+    render(<MetricAlertDetails />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
+          query: {alert: incident.id},
+        },
+        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
+      },
+    });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
     // Related issues
@@ -154,7 +152,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders mute button for metric alert', async () => {
-    const {organization, routerProps} = initializeOrg();
+    const {organization} = initializeOrg();
     const incident = IncidentFixture();
     const rule = MetricRuleFixture({
       projects: [project.slug],
@@ -185,16 +183,15 @@ describe('MetricAlertDetails', () => {
       method: 'DELETE',
     });
 
-    render(
-      <MetricAlertDetails
-        {...routerProps}
-        organization={organization}
-        params={{ruleId: rule.id}}
-      />,
-      {
-        organization,
-      }
-    );
+    render(<MetricAlertDetails />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
+        },
+        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
+      },
+    });
 
     expect(await screen.findByText('Mute for everyone')).toBeInTheDocument();
 
@@ -208,7 +205,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders open in discover button with dataset=errors for is:unresolved query', async () => {
-    const {organization, routerProps} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: {features: ['discover-basic']},
     });
     const rule = MetricRuleFixture({
@@ -230,16 +227,15 @@ describe('MetricAlertDetails', () => {
       body: [],
     });
 
-    render(
-      <MetricAlertDetails
-        organization={organization}
-        {...routerProps}
-        params={{ruleId: rule.id}}
-      />,
-      {
-        organization,
-      }
-    );
+    render(<MetricAlertDetails />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
+        },
+        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
+      },
+    });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
 
@@ -250,7 +246,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('disables duplicate button if deprecation flag is on', async () => {
-    const {organization, routerProps} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: {
         features: ['discover-basic', 'discover-saved-queries-deprecation'],
       },
@@ -277,16 +273,15 @@ describe('MetricAlertDetails', () => {
       body: [],
     });
 
-    render(
-      <MetricAlertDetails
-        organization={organization}
-        {...routerProps}
-        params={{ruleId: rule.id}}
-      />,
-      {
-        organization,
-      }
-    );
+    render(<MetricAlertDetails />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
+        },
+        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
+      },
+    });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
 
@@ -297,7 +292,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('uses SERVER_WEIGHTED extrapolation mode when alert has it configured', async () => {
-    const {organization, routerProps} = initializeOrg();
+    const {organization} = initializeOrg();
     const ruleWithExtrapolation = MetricRuleFixture({
       projects: [project.slug],
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
@@ -322,16 +317,15 @@ describe('MetricAlertDetails', () => {
       body: EventsStatsFixture(),
     });
 
-    render(
-      <MetricAlertDetails
-        organization={organization}
-        {...routerProps}
-        params={{ruleId: ruleWithExtrapolation.id}}
-      />,
-      {
-        organization,
-      }
-    );
+    render(<MetricAlertDetails />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${ruleWithExtrapolation.id}/`,
+        },
+        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
+      },
+    });
 
     expect(await screen.findByText(ruleWithExtrapolation.name)).toBeInTheDocument();
 
@@ -348,7 +342,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('uses NONE extrapolation mode when alert has it configured', async () => {
-    const {organization, routerProps} = initializeOrg();
+    const {organization} = initializeOrg();
     const ruleWithNoExtrapolation = MetricRuleFixture({
       projects: [project.slug],
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
@@ -373,16 +367,15 @@ describe('MetricAlertDetails', () => {
       body: EventsStatsFixture(),
     });
 
-    render(
-      <MetricAlertDetails
-        organization={organization}
-        {...routerProps}
-        params={{ruleId: ruleWithNoExtrapolation.id}}
-      />,
-      {
-        organization,
-      }
-    );
+    render(<MetricAlertDetails />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${ruleWithNoExtrapolation.id}/`,
+        },
+        route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
+      },
+    });
 
     expect(await screen.findByText(ruleWithNoExtrapolation.name)).toBeInTheDocument();
 
