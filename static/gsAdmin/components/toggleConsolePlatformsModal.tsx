@@ -352,7 +352,7 @@ const NumberFieldFromConfig = styled(FieldFromConfig)`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 1fr max-content;
+  grid-template-columns: 1fr 1fr;
 `;
 
 const StyledQuotaAlert = styled(Alert)`
