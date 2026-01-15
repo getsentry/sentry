@@ -1,18 +1,10 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import type {Field, FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
-
-import type {ChildProps, Result, ResultItem} from './types';
-import {makeResolvedTs, strGetFn} from './utils';
-
 // Import all form definitions
 import accountDetailsForm, {
-  createAccountDetailsForm,
   route as accountDetailsRoute,
+  createAccountDetailsForm,
   type FormSearchContext,
 } from 'sentry/data/forms/accountDetails';
 import accountEmailsForm, {
@@ -28,9 +20,7 @@ import accountPasswordForm, {
 import accountPreferencesForm, {
   route as accountPreferencesRoute,
 } from 'sentry/data/forms/accountPreferences';
-import cspReportsForm, {
-  route as cspReportsRoute,
-} from 'sentry/data/forms/cspReports';
+import cspReportsForm, {route as cspReportsRoute} from 'sentry/data/forms/cspReports';
 import inboundFiltersForm, {
   route as inboundFiltersRoute,
 } from 'sentry/data/forms/inboundFilters';
@@ -62,6 +52,13 @@ import projectSecurityAndPrivacyGroupsForm, {
 import userFeedbackForm, {
   route as userFeedbackRoute,
 } from 'sentry/data/forms/userFeedback';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+
+import type {ChildProps, Result, ResultItem} from './types';
+import {makeResolvedTs, strGetFn} from './utils';
 
 export type FormSearchField = {
   description: React.ReactNode;
@@ -107,9 +104,9 @@ function createSearchMap({
 
 type FormDefinition = {
   route: string;
-  formGroups?: readonly JsonFormObject[];
-  fields?: Record<string, Field>;
   factoryFn?: (context: FormSearchContext) => readonly JsonFormObject[];
+  fields?: Record<string, Field>;
+  formGroups?: readonly JsonFormObject[];
 };
 
 /**
