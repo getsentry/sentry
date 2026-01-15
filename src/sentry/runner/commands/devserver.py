@@ -432,7 +432,7 @@ def devserver(
             os.environ["SENTRY_REGION_SILO_PORT"] = str(server_port)
             os.environ["SENTRY_CONTROL_SILO_PORT"] = str(ports["server"] + 1)
             os.environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{server_port}"
-            server_port = int(ports["region.server"])
+            server_port = str(ports["region.server"])
             # TODO: recheck if we actually need to customise workers/threads
             # os.environ["UWSGI_WORKERS"] = "8"
             # os.environ["UWSGI_THREADS"] = "2"
