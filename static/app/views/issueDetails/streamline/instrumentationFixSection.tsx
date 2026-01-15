@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -23,7 +22,6 @@ import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
 import Placeholder from 'sentry/components/placeholder';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -115,9 +113,9 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
         sectionKey={SectionKey.INSTRUMENTATION_FIX}
         preventCollapse
       >
-        <PlaceholderStack>
+        <Flex direction="column" gap="md">
           <Placeholder height="10rem" />
-        </PlaceholderStack>
+        </Flex>
       </FoldSection>
     );
   }
@@ -154,7 +152,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
         />
       }
     >
-      <ContentContainer>
+      <Flex direction="column" gap="md">
         <AnimatePresence initial={false}>
           {orderedArtifactKeys.map(key => {
             const artifact = artifacts[key];
@@ -184,15 +182,16 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
 
         {/* Status card when processing */}
         <AnimatePresence initial={false}>
-          {runState.status === 'processing' && (
-            <ExplorerStatusCard
-              key="status_card"
-              status={runState.status}
-              loadingBlock={loadingBlock}
-              blocks={blocks}
-              onOpenChat={handleOpenChat}
-            />
-          )}
+          {runState.status === 'processing' ||
+            (runState.status === 'error' && (
+              <ExplorerStatusCard
+                key="status_card"
+                status={runState.status}
+                loadingBlock={loadingBlock}
+                blocks={blocks}
+                onOpenChat={handleOpenChat}
+              />
+            ))}
         </AnimatePresence>
 
         {/* Next step buttons when completed */}
@@ -209,19 +208,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
             isLoading={isPolling}
           />
         )}
-      </ContentContainer>
+      </Flex>
     </FoldSection>
   );
 }
-
-const ContentContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-const PlaceholderStack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
