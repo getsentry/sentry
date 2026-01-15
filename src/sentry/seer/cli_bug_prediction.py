@@ -55,12 +55,14 @@ def trigger_cli_bug_prediction(
         MaxRetryError: If max retries exceeded
         ValueError: If response is invalid
     """
-    body_dict = {
-        "repo_provider": repo_provider,
-        "repo_owner": repo_owner,
-        "repo_name": repo_name,
-        "repo_external_id": repo_external_id,
-        "base_commit_sha": base_commit_sha,
+    body_dict: dict[str, Any] = {
+        "repo": {
+            "provider": repo_provider,
+            "owner": repo_owner,
+            "name": repo_name,
+            "external_id": repo_external_id,
+            "base_commit_sha": base_commit_sha,
+        },
         "diff": diff,
         "organization_id": organization_id,
         "organization_slug": organization_slug,
@@ -100,16 +102,24 @@ def trigger_cli_bug_prediction(
         raise
 
     if response.status >= 400:
+        # Try to extract error message from Seer's response
+        error_detail = ""
+        try:
+            error_data = json.loads(response.data)
+            error_detail = error_data.get("detail", error_data.get("message", str(error_data)))
+        except (JSONDecodeError, TypeError):
+            error_detail = response.data.decode("utf-8") if response.data else "Unknown error"
+
         logger.error(
             "seer.cli_bug_prediction.trigger.error",
             extra={
                 "organization_id": organization_id,
                 "user_id": user_id,
                 "status_code": response.status,
-                "response_data": response.data,
+                "error_detail": error_detail,
             },
         )
-        raise ValueError(f"Seer returned error status: {response.status}")
+        raise ValueError(f"Seer error ({response.status}): {error_detail}")
 
     try:
         response_data = json.loads(response.data)
@@ -164,11 +174,11 @@ def get_cli_bug_prediction_status(run_id: int) -> dict[str, Any]:
     logger.debug("seer.cli_bug_prediction.status.check", extra={"run_id": run_id})
 
     try:
-        # Use POST with run_id in body for status check (Seer pattern)
-        response = make_signed_seer_api_request(
-            connection_pool=seer_cli_bug_prediction_connection_pool,
-            path=f"/v1/automation/codegen/cli-bug-prediction/{run_id}",
-            body=json.dumps({"run_id": run_id}).encode("utf-8"),
+        # Seer status endpoint uses GET method
+        response = seer_cli_bug_prediction_connection_pool.urlopen(
+            "GET",
+            f"/v1/automation/codegen/cli-bug-prediction/{run_id}",
+            headers={"content-type": "application/json;charset=utf-8"},
             timeout=5,
         )
     except (TimeoutError, MaxRetryError):

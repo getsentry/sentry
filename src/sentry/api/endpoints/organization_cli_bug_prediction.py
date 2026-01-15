@@ -100,16 +100,18 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
         commit_message = validated_data.get("commit_message")
 
         # Resolve repository
+        # Repository names in the database are stored as "owner/name" (e.g., "getsentry/sentry")
+        full_repo_name = f"{repo_data['owner']}/{repo_data['name']}"
         try:
             repository = self._resolve_repository(
                 organization=organization,
-                repo_name=repo_data["name"],
+                repo_name=full_repo_name,
                 repo_provider=repo_data["provider"],
             )
         except Repository.DoesNotExist:
             return Response(
                 {
-                    "detail": f"Repository {repo_data['owner']}/{repo_data['name']} not found. "
+                    "detail": f"Repository {full_repo_name} not found. "
                     "Please ensure the repository is connected to Sentry via an integration."
                 },
                 status=404,
@@ -159,15 +161,35 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "Code review service is temporarily unavailable"}, status=503
             )
-        except ValueError:
+        except ValueError as e:
             logger.exception(
                 "code_review_local.trigger.error",
                 extra={
                     "organization_id": organization.id,
                     "user_id": request.user.id,
+                    "error": str(e),
                 },
             )
+            # Include the error message from Seer if available
+            error_msg = str(e)
+            if "Seer error" in error_msg:
+                return Response({"detail": error_msg}, status=502)
             return Response({"detail": "Failed to start code review analysis"}, status=502)
+        except Exception as e:
+            # Catch-all for unexpected errors
+            logger.exception(
+                "code_review_local.trigger.unexpected_error",
+                extra={
+                    "organization_id": organization.id,
+                    "user_id": request.user.id,
+                    "error_type": type(e).__name__,
+                    "error": str(e),
+                },
+            )
+            return Response(
+                {"detail": f"Unexpected error during code review: {type(e).__name__}"},
+                status=500,
+            )
 
         run_id = trigger_response["run_id"]
 
@@ -262,8 +284,14 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
         Raises:
             Repository.DoesNotExist: If repository not found
         """
+        # Map simple provider names to integration provider names
+        # Repositories created via integrations use "integrations:github" format
+        provider_variants = [repo_provider]
+        if not repo_provider.startswith("integrations:"):
+            provider_variants.append(f"integrations:{repo_provider}")
+
         return Repository.objects.get(
-            organization_id=organization.id, name=repo_name, provider=repo_provider
+            organization_id=organization.id, name=repo_name, provider__in=provider_variants
         )
 
     def _poll_seer_for_results(
