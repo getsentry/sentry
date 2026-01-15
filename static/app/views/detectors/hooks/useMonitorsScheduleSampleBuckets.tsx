@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
-import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
@@ -82,7 +81,11 @@ export function useMonitorsScheduleSampleBuckets({
     [`/organizations/${organization.slug}/monitors-schedule-buckets/`, {query}],
     {
       staleTime: 0,
-      enabled: defined(start) && defined(end) && defined(interval),
+      enabled: !!(start && end && interval && 
+        scheduleType && (scheduleCrontab || (scheduleIntervalValue && scheduleIntervalUnit)) 
+        && timezone && failureIssueThreshold 
+        && recoveryThreshold
+      ),
       retry: false,
     }
   );

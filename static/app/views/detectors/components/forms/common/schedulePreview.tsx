@@ -23,6 +23,7 @@ import {
 } from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {useMonitorsScheduleSampleWindow} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleWindow';
 import type { ScheduleType } from 'sentry/views/insights/crons/types';
+import { Alert } from '@sentry/scraps/alert';
 
 type SchedulePreviewProps = {
     tickStyle: TickStyle<SchedulePreviewStatus>;
@@ -54,7 +55,7 @@ export function SchedulePreview({
   const {
     data: sampleWindowData,
     isLoading: isLoadingSampleWindow,
-    isError: isErrorSampleWindow,
+    error: errorSampleWindow,
   } = useMonitorsScheduleSampleWindow({
     scheduleType,
     scheduleCrontab,
@@ -84,7 +85,7 @@ export function SchedulePreview({
   const {
     data: sampleBucketsData,
     isLoading: isLoadingSampleBuckets,
-    isError: isErrorSampleBuckets,
+    error: errorSampleBuckets,
   } = useMonitorsScheduleSampleBuckets({
     scheduleType,
     scheduleCrontab,
@@ -98,12 +99,16 @@ export function SchedulePreview({
     interval: interval ?? undefined,
   });
 
-  const isError = isErrorSampleWindow || isErrorSampleBuckets;
-  const isLoading = isLoadingSampleWindow || isLoadingSampleBuckets;
+  if (errorSampleWindow || errorSampleBuckets) {
+    if (errorSampleWindow?.status === 400) {
+      const message = Object.values(errorSampleWindow.responseJSON ?? {}).join(', ');
+      return <Alert variant="warning">{t('No schedule preview available: %s', message)}</Alert>;
+    }
 
-  if (isError) {
     return <LoadingError message={t('Failed to load schedule preview')} />;
   }
+
+  const isLoading = isLoadingSampleWindow || isLoadingSampleBuckets;
 
   return (
     <Container sticky={sticky}>

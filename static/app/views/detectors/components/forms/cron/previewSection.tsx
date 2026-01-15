@@ -2,8 +2,9 @@ import type { TickStyle } from "sentry/components/checkInTimeline/types";
 import { SchedulePreviewStatus } from "sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets";
 import { t } from "sentry/locale";
 import { SchedulePreview } from "../common/schedulePreview";
-import { useCronDetectorFormField } from "./fields";
-import type { ScheduleType } from "sentry/views/insights/crons/types";
+import { CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE, CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD, CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT, DEFAULT_CRONTAB, useCronDetectorFormField, CRON_DEFAULT_RECOVERY_THRESHOLD, CRON_DEFAULT_TIMEZONE } from "./fields";
+import { ScheduleType } from "sentry/views/insights/crons/types";
+import { useDebouncedValue } from "sentry/utils/useDebouncedValue";
 
 const tickStyle: TickStyle<SchedulePreviewStatus> = theme => ({
   [SchedulePreviewStatus.ERROR]: {
@@ -40,14 +41,21 @@ export const statusPrecedent: SchedulePreviewStatus[] = [
   SchedulePreviewStatus.OK,
 ];
 
+const DEBOUNCE_DELAY = 200;
+
 export function PreviewSection() {
-  const scheduleType = useCronDetectorFormField('scheduleType');
-  const scheduleCrontab = useCronDetectorFormField('scheduleCrontab');
-  const scheduleIntervalValue = useCronDetectorFormField('scheduleIntervalValue');
-  const scheduleIntervalUnit = useCronDetectorFormField('scheduleIntervalUnit');
-  const timezone = useCronDetectorFormField('timezone');
-  const failureIssueThreshold = useCronDetectorFormField('failureIssueThreshold');
-  const recoveryThreshold = useCronDetectorFormField('recoveryThreshold');
+  const scheduleType = useCronDetectorFormField('scheduleType') ?? ScheduleType.CRONTAB;
+  const scheduleCrontab = useCronDetectorFormField('scheduleCrontab') ?? DEFAULT_CRONTAB;
+  const scheduleIntervalValue = useCronDetectorFormField('scheduleIntervalValue') ?? CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE;
+  const scheduleIntervalUnit = useCronDetectorFormField('scheduleIntervalUnit') ?? CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT;
+  const timezone = useCronDetectorFormField('timezone') ?? CRON_DEFAULT_TIMEZONE;
+  const failureIssueThreshold = useCronDetectorFormField('failureIssueThreshold') ?? CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD;
+  const recoveryThreshold = useCronDetectorFormField('recoveryThreshold') ?? CRON_DEFAULT_RECOVERY_THRESHOLD;
+
+  // Debouncing typed fields
+  const debouncedScheduleCrontab = useDebouncedValue(scheduleCrontab, DEBOUNCE_DELAY);
+  const debouncedFailureIssueThreshold = useDebouncedValue(failureIssueThreshold, DEBOUNCE_DELAY);
+  const debouncedRecoveryThreshold = useDebouncedValue(recoveryThreshold, DEBOUNCE_DELAY);
 
   return  (
     <SchedulePreview
@@ -56,12 +64,12 @@ export function PreviewSection() {
       statusToText={statusToText}
       statusPrecedent={statusPrecedent}
       scheduleType={scheduleType as ScheduleType}
-      scheduleCrontab={scheduleCrontab}
+      scheduleCrontab={debouncedScheduleCrontab}
       scheduleIntervalValue={scheduleIntervalValue}
       scheduleIntervalUnit={scheduleIntervalUnit}
       timezone={timezone}
-      failureIssueThreshold={failureIssueThreshold}
-      recoveryThreshold={recoveryThreshold}
+      failureIssueThreshold={debouncedFailureIssueThreshold}
+      recoveryThreshold={debouncedRecoveryThreshold}
     />
   );
 }

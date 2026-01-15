@@ -56,6 +56,13 @@ export function useMonitorsScheduleSampleWindow({
     [`/organizations/${organization.slug}/monitors-schedule-window/`, {query}],
     {
       staleTime: 0,
+      enabled: !!(
+        scheduleType && 
+        (scheduleCrontab || (scheduleIntervalValue && scheduleIntervalUnit)) && 
+        timezone && 
+        failureIssueThreshold && 
+        recoveryThreshold
+      ),
       retry: false,
     }
   );

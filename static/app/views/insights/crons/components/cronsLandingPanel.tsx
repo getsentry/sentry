@@ -50,7 +50,6 @@ export function CronsLandingPanel() {
 
   return (
     <OnboardingPanelHook>
-      <PreviewSection />
       <Panel>
         <BackButton
           icon={<IconChevron direction="left" />}
