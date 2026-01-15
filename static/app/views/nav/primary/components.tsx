@@ -443,7 +443,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   font-size: ${p => p.theme.fontSize.xs};
   background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;
