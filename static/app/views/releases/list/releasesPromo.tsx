@@ -5,7 +5,7 @@ import emailImage from 'sentry-images/spot/releases-tour-email.svg';
 import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
@@ -249,12 +249,12 @@ sentry-cli releases finalize "$VERSION"`;
             </Button>
           )}
           trigger={triggerProps => (
-            <SelectTrigger.Button
+            <OverlayTrigger.Button
               {...triggerProps}
               prefix={selectedApp ? t('Token From') : undefined}
             >
               {selectedApp ? triggerProps.children : t('Select Integration')}
-            </SelectTrigger.Button>
+            </OverlayTrigger.Button>
           )}
           onChange={option => {
             const app = apps.find(i => i.slug === option.value)!;

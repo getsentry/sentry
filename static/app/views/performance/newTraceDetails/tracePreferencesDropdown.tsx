@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
@@ -108,7 +108,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       multiple
       value={values}
       trigger={triggerProps => (
-        <SelectTrigger.IconButton
+        <OverlayTrigger.IconButton
           {...triggerProps}
           size="xs"
           aria-label={t('Trace Preferences')}

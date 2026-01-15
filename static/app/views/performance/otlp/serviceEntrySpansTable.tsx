@@ -3,8 +3,8 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -132,7 +132,7 @@ export function ServiceEntrySpansTable({
       <Header>
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
           )}
           value={selected.value}
           options={options}

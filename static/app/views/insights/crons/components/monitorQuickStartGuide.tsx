@@ -2,7 +2,7 @@ import {useState} from 'react';
 import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
@@ -244,7 +244,7 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
       </Text>
       <CompactSelect
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} prefix={t('Guide')} />
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
         )}
         searchable
         options={exampleOptions}

@@ -1,8 +1,8 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -440,7 +440,10 @@ export function HTTPSamplesPanel() {
                   options={HTTP_RESPONSE_CODE_CLASS_OPTIONS}
                   onChange={handleResponseCodeClassChange}
                   trigger={triggerProps => (
-                    <SelectTrigger.Button {...triggerProps} prefix={t('Response Code')} />
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      prefix={t('Response Code')}
+                    />
                   )}
                 />
               </Flex>

@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   CompositeSelect,
@@ -80,14 +80,14 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: P
     <CompositeSelect
       size={size}
       trigger={props => (
-        <SelectTrigger.Button
+        <OverlayTrigger.Button
           aria-label={t('Sort Cron Monitors')}
           icon={<IconSort />}
           prefix={t('Sort By')}
           {...props}
         >
           {`${label} \u2014 ${orderLabel}`}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     >
       <CompositeSelect.Region

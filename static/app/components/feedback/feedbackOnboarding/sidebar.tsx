@@ -5,8 +5,8 @@ import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -149,7 +149,10 @@ function SidebarContent() {
                 setCurrentProject(allProjects.find(p => p.id === opt.value))
               }
               trigger={triggerProps => (
-                <SelectTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={currentProject?.slug}
+                >
                   {currentProject ? (
                     <StyledIdBadge
                       project={currentProject}
@@ -160,7 +163,7 @@ function SidebarContent() {
                   ) : (
                     t('Select a project')
                   )}
-                </SelectTrigger.Button>
+                </OverlayTrigger.Button>
               )}
               options={projectSelectOptions}
               position="bottom-end"
@@ -270,9 +273,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                       <CompactSelect
                         size="xs"
                         trigger={triggerProps => (
-                          <SelectTrigger.Button {...triggerProps}>
+                          <OverlayTrigger.Button {...triggerProps}>
                             {jsFramework.label ?? triggerProps.children}
-                          </SelectTrigger.Button>
+                          </OverlayTrigger.Button>
                         )}
                         value={jsFramework.value}
                         onChange={setJsFramework}

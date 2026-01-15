@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -298,7 +298,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
           <ProjectPageFilter />
           <DropdownDataCategory
             trigger={triggerProps => (
-              <SelectTrigger.Button {...triggerProps} prefix={t('Category')} />
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
             )}
             value={this.dataCategory}
             options={options}

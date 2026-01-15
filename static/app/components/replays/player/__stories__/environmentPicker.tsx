@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import uniq from 'lodash/uniq';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useProjects from 'sentry/utils/useProjects';
@@ -34,7 +34,7 @@ export default function EnvironmentPicker({
       searchable
       size="xs"
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix="Environment" />
+        <OverlayTrigger.Button {...triggerProps} prefix="Environment" />
       )}
       value={environment}
     />

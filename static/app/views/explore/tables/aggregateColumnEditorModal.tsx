@@ -4,7 +4,7 @@ import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
@@ -310,7 +310,7 @@ function GroupBySelector({
       onChange={handleChange}
       searchable
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <OverlayTrigger.Button
           {...triggerProps}
           prefix={t('Group By')}
           style={{
@@ -318,7 +318,7 @@ function GroupBySelector({
           }}
         >
           {label}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     />
   );
@@ -407,7 +407,7 @@ function AggregateSelector({
         onChange={handleFunctionChange}
         searchable
         trigger={triggerProps => (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             {...triggerProps}
             prefix={t('Function')}
             style={{
@@ -427,7 +427,7 @@ function AggregateSelector({
             searchable
             disabled={argumentOptions.length === 1}
             trigger={triggerProps => (
-              <SelectTrigger.Button
+              <OverlayTrigger.Button
                 {...triggerProps}
                 style={{
                   width: '100%',
@@ -446,7 +446,7 @@ function AggregateSelector({
           searchable
           disabled
           trigger={triggerProps => (
-            <SelectTrigger.Button
+            <OverlayTrigger.Button
               {...triggerProps}
               style={{
                 width: '100%',

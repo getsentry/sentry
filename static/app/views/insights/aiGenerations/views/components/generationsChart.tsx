@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconClock} from 'sentry/icons/iconClock';
@@ -131,7 +131,7 @@ function ChartWidget({
         <Fragment>
           <CompactSelect
             trigger={triggerProps => (
-              <SelectTrigger.Button
+              <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconGraph type={chartTypeIconMap[chartType]} />}
                 borderless
@@ -148,7 +148,7 @@ function ChartWidget({
             value={interval}
             onChange={option => setInterval(option.value)}
             trigger={triggerProps => (
-              <SelectTrigger.Button
+              <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconClock />}
                 borderless

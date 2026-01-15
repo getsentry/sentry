@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -25,7 +25,7 @@ function RenderBlockingSelector({value}: {value?: string}) {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Blocking')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Blocking')} />
       )}
       options={options}
       value={value ?? ''}

@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -172,7 +172,7 @@ function AddMemberDropdown({
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps}>{t('Add Member')}</SelectTrigger.Button>
+        <OverlayTrigger.Button {...triggerProps}>{t('Add Member')}</OverlayTrigger.Button>
       )}
       searchPlaceholder={t('Search Members')}
       emptyMessage={t('No members')}

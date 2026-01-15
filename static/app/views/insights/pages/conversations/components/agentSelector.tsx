@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import {decodeList} from 'sentry/utils/queryString';
@@ -108,7 +108,7 @@ export function AgentSelector() {
         }
       }}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Agent')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Agent')} />
       )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);

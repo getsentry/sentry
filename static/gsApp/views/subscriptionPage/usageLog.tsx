@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import upperFirst from 'lodash/upperFirst';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -161,9 +161,9 @@ export default function UsageLog() {
             handleEventFilter(option?.value);
           }}
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} size="sm">
+            <OverlayTrigger.Button {...triggerProps} size="sm">
               {selectedEventName ? triggerProps.children : t('Select Action')}
-            </SelectTrigger.Button>
+            </OverlayTrigger.Button>
           )}
         />
         {isError ? (

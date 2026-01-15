@@ -2,7 +2,7 @@ import {Component, Fragment, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -297,7 +297,7 @@ class _TransactionsList extends Component<Props> {
         <div>
           <CompactSelect
             trigger={triggerProps => (
-              <SelectTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
             )}
             value={selected.value}
             options={options}

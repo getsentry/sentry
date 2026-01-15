@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
@@ -88,7 +88,7 @@ export function DropdownAddTeam({
       onChange={selection => onSelect(selection.value)}
       menuTitle={<Text size="sm">{t('Teams')}</Text>}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps}>{t('Add Team')}</SelectTrigger.Button>
+        <OverlayTrigger.Button {...triggerProps}>{t('Add Team')}</OverlayTrigger.Button>
       )}
       searchPlaceholder={t('Search Teams')}
       emptyMessage={t('No Teams')}

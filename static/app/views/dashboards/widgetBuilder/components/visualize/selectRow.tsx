@@ -2,7 +2,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';
@@ -406,7 +406,10 @@ export function SelectRow({
           setError?.({...error, queries: []});
         }}
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} aria-label={t('Aggregate Selection')} />
+          <OverlayTrigger.Button
+            {...triggerProps}
+            aria-label={t('Aggregate Selection')}
+          />
         )}
       />
       {hasColumnParameter && (
@@ -445,7 +448,7 @@ export function SelectRow({
               });
             }}
             trigger={triggerProps => (
-              <SelectTrigger.Button
+              <OverlayTrigger.Button
                 {...triggerProps}
                 aria-label={t('Column Selection')}
               />

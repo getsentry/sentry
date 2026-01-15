@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
@@ -232,7 +232,7 @@ function LaunchpadAdminPage() {
 
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} prefix="Region" />
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
           value={region ? region.url : undefined}
           options={regions.map((r: any) => ({

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {Badge} from 'sentry/components/core/badge';
@@ -109,7 +109,7 @@ function TeamFilter({
         return handleChangeFilter(opts.map(opt => opt.value));
       }}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} icon={triggerIcon}>
+        <OverlayTrigger.Button {...triggerProps} icon={triggerIcon}>
           {
             <Fragment>
               {triggerLabel}
@@ -118,7 +118,7 @@ function TeamFilter({
               )}
             </Fragment>
           }
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

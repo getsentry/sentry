@@ -3,7 +3,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
@@ -95,9 +95,9 @@ export function ToolbarGroupByDropdown({
         onChange={handleColumnChange}
         searchable
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} style={{width: '100%'}}>
+          <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
             {label}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         )}
         menuTitle="Group By"
         onSearch={onSearch}

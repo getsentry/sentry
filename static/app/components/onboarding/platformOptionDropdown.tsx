@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -31,9 +31,9 @@ function OptionControl({option, value, onChange, disabled}: OptionControlProps) 
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps}>
+        <OverlayTrigger.Button {...triggerProps}>
           {option.items.find(v => v.value === value)?.label ?? option.items[0]!.label}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
       value={value}
       onChange={onChange}

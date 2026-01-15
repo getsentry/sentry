@@ -4,7 +4,7 @@ import {mergeProps} from '@react-aria/utils';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
@@ -336,7 +336,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
           return restDropdownProps?.trigger ? (
             restDropdownProps.trigger(mergedProps, isOpen)
           ) : (
-            <SelectTrigger.Button {...mergedProps} />
+            <OverlayTrigger.Button {...mergedProps} />
           );
         }}
       />
@@ -366,7 +366,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
           return addDropdown?.trigger ? (
             addDropdown.trigger(mergedProps, isOpen)
           ) : (
-            <SelectTrigger.Button {...mergedProps} />
+            <OverlayTrigger.Button {...mergedProps} />
           );
         }}
       />

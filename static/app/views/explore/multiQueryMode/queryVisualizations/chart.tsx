@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -166,7 +166,7 @@ export function MultiQueryModeChart({
         >
           <CompactSelect
             trigger={triggerProps => (
-              <SelectTrigger.Button
+              <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconGraph type={visualizationType} />}
                 borderless
@@ -190,7 +190,7 @@ export function MultiQueryModeChart({
             value={interval}
             onChange={({value}) => setInterval(value)}
             trigger={triggerProps => (
-              <SelectTrigger.Button
+              <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconClock />}
                 borderless

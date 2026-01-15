@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -90,7 +90,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
     <CompactSelect
       style={{maxWidth: '200px'}}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Type')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
       )}
       options={options}
       value={value ?? ''}

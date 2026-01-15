@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -177,7 +177,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           options={TREND_FUNCTION_OPTIONS}
           onChange={onChangeTrendType}
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} borderless size="zero" />
+            <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
           )}
           offset={4}
         />

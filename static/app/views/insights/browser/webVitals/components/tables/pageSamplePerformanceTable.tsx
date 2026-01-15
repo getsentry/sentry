@@ -1,8 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -552,7 +552,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       <Flex marginBottom="xl" gap="md">
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} prefix={t('Web Vital')} />
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Web Vital')} />
           )}
           value={datatype}
           options={WEB_VITAL_DATATYPES.map(type => ({

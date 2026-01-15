@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -118,7 +118,7 @@ export function AssigneeSelector({
   );
 }
 
-const StyledTrigger = styled(SelectTrigger.Button)`
+const StyledTrigger = styled(OverlayTrigger.Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   border: none;
   padding: 0;

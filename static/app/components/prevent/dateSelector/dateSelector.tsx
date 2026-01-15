@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -51,7 +51,7 @@ export function DateSelector() {
           : t('Invalid Period');
 
         return (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             icon={<IconCalendar />}
             data-test-id="prevent-time-selector"
             {...triggerProps}
@@ -59,7 +59,7 @@ export function DateSelector() {
             <TriggerLabelWrap>
               <TriggerLabel>{defaultLabel}</TriggerLabel>
             </TriggerLabelWrap>
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         );
       }}
     />

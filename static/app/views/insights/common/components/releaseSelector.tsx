@@ -2,8 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -107,7 +107,7 @@ function SingleReleaseSelector({
   return (
     <StyledCompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <OverlayTrigger.Button
           {...triggerProps}
           icon={<IconReleases />}
           title={selectorValue}
@@ -115,7 +115,7 @@ function SingleReleaseSelector({
           aria-label={t('Filter Release')}
         >
           {triggerLabel}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
       menuTitle={t('Filter Release')}
       loading={isLoading}

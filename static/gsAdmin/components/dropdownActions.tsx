@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {IconNot} from 'sentry/icons';
@@ -87,9 +87,9 @@ function DropdownActions({actions, label}: Props) {
         });
       }}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} data-test-id="detail-actions">
+        <OverlayTrigger.Button {...triggerProps} data-test-id="detail-actions">
           {label}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

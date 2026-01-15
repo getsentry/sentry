@@ -18,6 +18,7 @@ import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
@@ -32,7 +33,6 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
-import {SelectTrigger, type SelectTriggerProps} from './trigger';
 import type {SelectKey, SelectOptionOrSection} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
@@ -49,7 +49,7 @@ function nextFrameCallback(cb: () => void) {
   }
 }
 
-interface SelectContextValue {
+interface ControlContextValue {
   overlayIsOpen: boolean;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -64,7 +64,7 @@ interface SelectContextValue {
   size?: FormSize;
 }
 
-export const SelectContext = createContext<SelectContextValue>({
+export const ControlContext = createContext<ControlContextValue>({
   overlayIsOpen: false,
   search: '',
 });
@@ -183,7 +183,7 @@ export interface ControlProps
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
    * won't work correctly.
    */
-  trigger?: (props: SelectTriggerProps, isOpen: boolean) => React.ReactNode;
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
   triggerId?: string;
 }
 
@@ -471,12 +471,12 @@ export function Control({
   );
 
   return (
-    <SelectContext value={contextValue}>
+    <ControlContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
           trigger(mergedTriggerProps, overlayIsOpen)
         ) : (
-          <SelectTrigger.Button {...mergedTriggerProps} />
+          <OverlayTrigger.Button {...mergedTriggerProps} />
         )}
         <StyledPositionWrapper
           visible={overlayIsOpen}
@@ -554,7 +554,7 @@ export function Control({
           )}
         </StyledPositionWrapper>
       </ControlWrap>
-    </SelectContext>
+    </ControlContext>
   );
 }
 

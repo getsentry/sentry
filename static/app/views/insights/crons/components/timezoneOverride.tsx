@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -49,7 +49,7 @@ export function TimezoneOverride({
       position="bottom-end"
       onChange={option => handleChange(option.value)}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Date Display')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Date Display')} />
       )}
       options={[
         {

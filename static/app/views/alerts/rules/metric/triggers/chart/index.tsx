@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
@@ -437,7 +437,7 @@ class TriggersChart extends PureComponent<Props, State> {
               onChange={opt => this.handleStatsPeriodChange(opt.value)}
               position="bottom-end"
               trigger={triggerProps => (
-                <SelectTrigger.Button
+                <OverlayTrigger.Button
                   {...triggerProps}
                   borderless
                   prefix={t('Display')}

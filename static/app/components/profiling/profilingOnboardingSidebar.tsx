@@ -2,8 +2,8 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -220,7 +220,7 @@ function SidebarContent() {
             value={currentProject?.id}
             onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
             trigger={triggerProps => (
-              <SelectTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
+              <OverlayTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
                 {currentProject ? (
                   <StyledIdBadge
                     project={currentProject}
@@ -231,7 +231,7 @@ function SidebarContent() {
                 ) : (
                   t('Select a project')
                 )}
-              </SelectTrigger.Button>
+              </OverlayTrigger.Button>
             )}
             options={projectSelectOptions}
             position="bottom-end"

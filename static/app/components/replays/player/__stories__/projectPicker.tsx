@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useProjects from 'sentry/utils/useProjects';
@@ -26,7 +26,7 @@ export default function ProjectPicker({
       searchable
       size="xs"
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix="Project" />
+        <OverlayTrigger.Button {...triggerProps} prefix="Project" />
       )}
       value={project}
     />

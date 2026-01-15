@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Access from 'sentry/components/acl/access';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -321,7 +321,7 @@ function RuleListRow({
                 value={assignee}
                 searchable
                 trigger={triggerProps => (
-                  <SelectTrigger.Button
+                  <OverlayTrigger.Button
                     {...triggerProps}
                     aria-label={
                       assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
@@ -330,7 +330,7 @@ function RuleListRow({
                     borderless
                   >
                     {avatarElement}
-                  </SelectTrigger.Button>
+                  </OverlayTrigger.Button>
                 )}
                 searchPlaceholder={t('Filter teams')}
                 onChange={handleOwnerChange}

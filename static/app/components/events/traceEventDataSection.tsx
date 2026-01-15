@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -502,7 +502,7 @@ export function TraceEventDataSection({
             )}
             <CompactSelect
               trigger={triggerProps => (
-                <SelectTrigger.Button
+                <OverlayTrigger.Button
                   {...triggerProps}
                   icon={<IconSort />}
                   size="xs"
@@ -522,7 +522,7 @@ export function TraceEventDataSection({
             />
             <CompactSelect
               trigger={triggerProps => (
-                <SelectTrigger.IconButton
+                <OverlayTrigger.IconButton
                   {...triggerProps}
                   icon={<IconEllipsis />}
                   size="xs"

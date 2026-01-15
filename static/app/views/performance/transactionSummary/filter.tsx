@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -68,7 +68,7 @@ function Filter(props: Props) {
         value={currentFilter}
         onChange={opt => onChangeFilter(opt?.value)}
         trigger={triggerProps => (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             {...triggerProps}
             icon={<IconFilter />}
             aria-label={t('Filter by operation')}
@@ -76,7 +76,7 @@ function Filter(props: Props) {
             {currentFilter === SpanOperationBreakdownFilter.NONE
               ? t('Filter')
               : currentFilter}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         )}
       />
     </GuideAnchor>

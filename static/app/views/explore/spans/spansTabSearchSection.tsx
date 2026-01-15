@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Container, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
@@ -255,7 +255,7 @@ function SpansTabCrossEventSearchBars() {
               value={crossEvent.type}
               disabled={maxCrossEventQueriesReached}
               trigger={triggerProps => (
-                <SelectTrigger.Button {...triggerProps} {...props} prefix={t('with')} />
+                <OverlayTrigger.Button {...triggerProps} {...props} prefix={t('with')} />
               )}
               options={[
                 {value: 'spans', label: t('Spans')},

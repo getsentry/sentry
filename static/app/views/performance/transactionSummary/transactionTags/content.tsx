@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -235,7 +235,7 @@ function InnerContent(
               onChangeAggregateColumn(opt.value);
             }}
             trigger={triggerProps => (
-              <SelectTrigger.Button {...triggerProps} prefix={t('X-Axis')} />
+              <OverlayTrigger.Button {...triggerProps} prefix={t('X-Axis')} />
             )}
           />
         </FilterActions>

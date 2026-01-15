@@ -1,8 +1,8 @@
 import {useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
@@ -329,7 +329,7 @@ export function MessageSpanSamplesPanel() {
                   options={TRACE_STATUS_SELECT_OPTIONS}
                   onChange={handleTraceStatusChange}
                   trigger={triggerProps => (
-                    <SelectTrigger.Button {...triggerProps} prefix={t('Status')} />
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
                   )}
                 />
                 {messageActorType === MessageActorType.CONSUMER && (
@@ -338,7 +338,7 @@ export function MessageSpanSamplesPanel() {
                     options={RETRY_COUNT_SELECT_OPTIONS}
                     onChange={handleRetryCountChange}
                     trigger={triggerProps => (
-                      <SelectTrigger.Button {...triggerProps} prefix={t('Retries')} />
+                      <OverlayTrigger.Button {...triggerProps} prefix={t('Retries')} />
                     )}
                   />
                 )}

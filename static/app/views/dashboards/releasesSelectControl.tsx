@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -107,7 +107,7 @@ function ReleasesSelectControl({
       }}
       value={activeReleases}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} icon={<IconReleases />}>
+        <OverlayTrigger.Button {...triggerProps} icon={<IconReleases />}>
           {
             <ButtonLabelWrapper>
               {triggerLabel}{' '}
@@ -116,7 +116,7 @@ function ReleasesSelectControl({
               )}
             </ButtonLabelWrapper>
           }
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
@@ -80,7 +80,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
       multiple
       searchable
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Group by')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Group by')} />
       )}
       options={enabledOptions}
       value={[...groupBys]}

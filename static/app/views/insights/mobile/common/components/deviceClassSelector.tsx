@@ -1,6 +1,6 @@
 import type {ComponentProps} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -41,7 +41,7 @@ export function DeviceClassSelector({
     <CompactSelect
       size={size}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Device Class')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Device Class')} />
       )}
       value={value}
       options={options ?? []}

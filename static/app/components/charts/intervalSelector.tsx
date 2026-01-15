@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
@@ -228,9 +228,9 @@ export default function IntervalSelector({
       position="bottom-end"
       menuWidth={200}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Interval')} borderless>
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Interval')} borderless>
           {interval}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
       disabled={false}
     />

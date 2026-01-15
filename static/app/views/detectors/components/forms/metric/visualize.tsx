@@ -1,7 +1,7 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -380,9 +380,9 @@ export function Visualize() {
           <StyledAggregateSelect
             searchable
             trigger={triggerProps => (
-              <SelectTrigger.Button {...triggerProps}>
+              <OverlayTrigger.Button {...triggerProps}>
                 {aggregate || t('Select aggregate')}
-              </SelectTrigger.Button>
+              </OverlayTrigger.Button>
             )}
             options={aggregateDropdownOptions}
             value={aggregate}
@@ -399,11 +399,11 @@ export function Visualize() {
                 <StyledVisualizeSelect
                   searchable
                   trigger={triggerProps => (
-                    <SelectTrigger.Button {...triggerProps}>
+                    <OverlayTrigger.Button {...triggerProps}>
                       {lockedOption
                         ? lockedOption.label
                         : parameters[index] || param.defaultValue || t('Select metric')}
-                    </SelectTrigger.Button>
+                    </OverlayTrigger.Button>
                   )}
                   options={lockedOption ? [lockedOption] : fieldOptionsDropdown}
                   value={
@@ -420,9 +420,9 @@ export function Visualize() {
                 <StyledVisualizeSelect
                   searchable
                   trigger={triggerProps => (
-                    <SelectTrigger.Button {...triggerProps}>
+                    <OverlayTrigger.Button {...triggerProps}>
                       {parameters[index] || param.defaultValue || t('Select value')}
-                    </SelectTrigger.Button>
+                    </OverlayTrigger.Button>
                   )}
                   options={param.options.map(option => ({
                     value: option.value,

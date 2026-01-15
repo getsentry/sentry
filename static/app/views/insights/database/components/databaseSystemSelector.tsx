@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -38,7 +38,7 @@ export function DatabaseSystemSelector() {
       }}
       options={options}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('System')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('System')} />
       )}
       loading={isLoading}
       disabled={isError || isLoading || options.length <= 1}

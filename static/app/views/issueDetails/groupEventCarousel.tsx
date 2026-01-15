@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
@@ -185,7 +185,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       options={eventNavDropdownOptions}
       value={selectedValue ? selectedValue : EventNavDropdownOption.CUSTOM}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps}>
+        <OverlayTrigger.Button {...triggerProps}>
           {selectedValue ? (
             selectedValue === EventNavDropdownOption.RECOMMENDED ? (
               t('Recommended')
@@ -198,7 +198,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               disabledAbsoluteTooltip
             />
           )}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
       menuWidth={232}
       onChange={selectedOption => {

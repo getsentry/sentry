@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -182,9 +182,9 @@ export function GithubInstallationSelect({
           options={selectOptions}
           value={installationID}
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps}>
+            <OverlayTrigger.Button {...triggerProps}>
               {installationID ? triggerProps.children : 'Choose Installation'}
-            </SelectTrigger.Button>
+            </OverlayTrigger.Button>
           )}
         />
         <ButtonContainer>

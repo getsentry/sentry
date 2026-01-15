@@ -2,9 +2,9 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
@@ -323,9 +323,9 @@ function NumericFilterSelector({
         </MenuBodyWrap>
       }
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps}>
+        <OverlayTrigger.Button {...triggerProps}>
           {filter.renderSelectorTrigger()}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
       menuFooter={
         hasStagedChanges

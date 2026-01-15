@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -279,7 +279,7 @@ function Search(props: Props) {
       </StyledSearchBarWrapper>
       <CompactSelect
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} prefix={t('Percentile')} />
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
         )}
         value={eventsDisplayFilterName}
         onChange={opt => onChangeEventsDisplayFilter(opt.value)}

@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -176,7 +176,7 @@ export function DomainSelector({
         }
       }}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={domainAlias} />
+        <OverlayTrigger.Button {...triggerProps} prefix={domainAlias} />
       )}
       onChange={newValue => {
         trackAnalytics('insight.general.select_domain_value', {

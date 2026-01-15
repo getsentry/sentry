@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading} from '@sentry/scraps/text';
 
 import {IconSiren} from 'sentry/icons';
@@ -8,7 +9,6 @@ import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
-import {SelectTrigger} from './trigger';
 import {CompactSelect} from './';
 
 const countryNameToCode = {
@@ -349,7 +349,9 @@ export default Storybook.story('CompactSelect', story => {
         <Storybook.Grid>
           <CompactSelect
             size="md"
-            trigger={props => <SelectTrigger.Button {...props} prefix={t('Character')} />}
+            trigger={props => (
+              <OverlayTrigger.Button {...props} prefix={t('Character')} />
+            )}
             value={values}
             onChange={handleValueChange}
             options={options}
@@ -359,7 +361,9 @@ export default Storybook.story('CompactSelect', story => {
           />
           <CompactSelect
             size="sm"
-            trigger={props => <SelectTrigger.Button {...props} prefix={t('Character')} />}
+            trigger={props => (
+              <OverlayTrigger.Button {...props} prefix={t('Character')} />
+            )}
             value={values}
             onChange={handleValueChange}
             options={options}
@@ -369,7 +373,9 @@ export default Storybook.story('CompactSelect', story => {
           />
           <CompactSelect
             size="xs"
-            trigger={props => <SelectTrigger.Button {...props} prefix={t('Character')} />}
+            trigger={props => (
+              <OverlayTrigger.Button {...props} prefix={t('Character')} />
+            )}
             value={values}
             onChange={handleValueChange}
             options={options}
@@ -396,19 +402,20 @@ export default Storybook.story('CompactSelect', story => {
     return (
       <Fragment>
         <p>
-          <code>CompactSelect</code> should always be triggered by a{' '}
-          <code>SelectTrigger</code>. By default, it will render a{' '}
-          <code>SelectTrigger.Button</code> for you, which is a{' '}
+          <code>CompactSelect</code> should always be triggered by an{' '}
+          <code>OverlayTrigger</code>. By default, it will render a{' '}
+          <code>OverlayTrigger.Button</code> for you, which is a{' '}
           <code>DropdownButton</code> under the hood. You can pass a custom trigger with
           the <code>trigger</code> prop.
         </p>
         <p>
           Note that <code>props</code> passed to the trigger need to be spread onto the
-          underlying <code>SelectTrigger</code>. Always use a <code>SelectTrigger</code>,
-          there will be type errors when you're trying to use other components.
+          underlying <code>OverlayTrigger</code>. Always use an{' '}
+          <code>OverlayTrigger</code>, there will be type errors when you're trying to use
+          other components.
         </p>
         <p>
-          <code>SelectTrigger</code> will inherit props like <code>size</code>,{' '}
+          <code>OverlayTrigger</code> will inherit props like <code>size</code>,{' '}
           <code>isOpen</code> and <code>disabled</code> from the{' '}
           <code>CompactSelect</code>, so you don't need to pass them manually.
         </p>
@@ -416,14 +423,14 @@ export default Storybook.story('CompactSelect', story => {
         <CompactSelect
           value={value}
           trigger={props => (
-            <SelectTrigger.Button
+            <OverlayTrigger.Button
               {...props}
               prefix="Status Code"
               priority="danger"
               icon={<IconSiren />}
             >
               {option ? `${option.label} (${option.details})` : 'None'}
-            </SelectTrigger.Button>
+            </OverlayTrigger.Button>
           )}
           onChange={newValue => {
             setValue(newValue.value);

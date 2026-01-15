@@ -1,7 +1,7 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -115,7 +115,7 @@ function RelocationForm() {
         </ul>
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} prefix="Region" />
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
           value={region.url}
           options={regions.map((r: any) => ({

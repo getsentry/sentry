@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -54,9 +54,9 @@ export function OwnerFilter({selectedOwners, onChangeFilter}: OwnerFilterProps) 
         return onChangeFilter(opts.map(opt => opt.value));
       }}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps}>
+        <OverlayTrigger.Button {...triggerProps}>
           {selectedOwners.length ? triggerProps.children : t('All Owners')}
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

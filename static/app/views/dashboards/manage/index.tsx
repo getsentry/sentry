@@ -4,7 +4,7 @@ import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -413,7 +413,7 @@ function ManageDashboards() {
         </SegmentedControl>
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} prefix={t('Sort By')} />
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
           )}
           value={activeSort!.value}
           options={sortOptions}

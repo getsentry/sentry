@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -29,7 +29,7 @@ export function StartTypeSelector() {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('App Start')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('App Start')} />
       )}
       value={value}
       options={options ?? []}

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
@@ -30,9 +30,9 @@ export function OurLogFilters({
     <StyledFiltersGrid>
       <CompactSelect
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} prefix={t('Log Level')}>
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Log Level')}>
             {selectValues.length === 0 ? t('Any') : triggerProps.children}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         )}
         multiple
         options={severityLevels}

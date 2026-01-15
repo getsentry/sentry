@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -127,7 +127,7 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
           value={selectedChart}
           onChange={handleChartChange}
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} borderless size="zero" />
+            <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
           )}
         />
       }

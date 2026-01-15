@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -86,7 +86,7 @@ export function SpanOpSelector({transaction, primaryRelease}: Props) {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Operation')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Operation')} />
       )}
       value={value}
       options={options ?? []}

@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
@@ -445,7 +445,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           </StyledButtonBar>
           <DropdownDataCategory
             trigger={triggerProps => (
-              <SelectTrigger.Button {...triggerProps} prefix={t('Category')} />
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
             )}
             value={selectedMetric}
             options={supportedCategories

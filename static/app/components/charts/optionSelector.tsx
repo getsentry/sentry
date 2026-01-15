@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {FeatureBadge} from 'sentry/components/core/badge';
 import type {
@@ -128,7 +128,7 @@ function OptionSelector({
       isOptionDisabled={isOptionDisabled}
       position="bottom-end"
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <OverlayTrigger.Button
           {...triggerProps}
           borderless
           prefix={

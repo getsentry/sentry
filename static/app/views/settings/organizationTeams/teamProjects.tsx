@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -127,9 +127,9 @@ export default function TeamProjects() {
               }}
               menuTitle={t('Projects')}
               trigger={triggerProps => (
-                <SelectTrigger.Button {...triggerProps}>
+                <OverlayTrigger.Button {...triggerProps}>
                   {t('Add Project')}
-                </SelectTrigger.Button>
+                </OverlayTrigger.Button>
               )}
               searchPlaceholder={t('Search Projects')}
               emptyMessage={t('No projects')}

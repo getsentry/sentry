@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -80,9 +80,9 @@ function FlamegraphOptionsMenu({
       </Button>
       <CompactSelect
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} icon={<IconSliders />} size="xs">
+          <OverlayTrigger.Button {...triggerProps} icon={<IconSliders />} size="xs">
             {t('Color Coding')}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         )}
         options={colorCodingOptions}
         position="bottom-end"

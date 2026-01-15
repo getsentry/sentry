@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -67,7 +67,7 @@ export default function FilterReleaseDropdown({
     <CompactSelect
       position="right"
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Filter')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} />
       )}
       value={filters}
       onChange={handleValueChange}

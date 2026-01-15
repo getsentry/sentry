@@ -3,10 +3,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
-import {
-  SelectTrigger,
-  type SelectTriggerProps,
-} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
@@ -142,7 +139,7 @@ export interface TimeRangeSelectorProps
    */
   start?: DateString;
   trigger?: (
-    props: SelectTriggerProps & {
+    props: TriggerProps & {
       desynced?: boolean;
     },
     isOpen: boolean
@@ -499,16 +496,16 @@ export function TimeRangeSelector({
 export function TimeRangeSelectTrigger({
   desynced,
   ...props
-}: SelectTriggerProps & {
+}: TriggerProps & {
   desynced?: boolean;
 }) {
   return (
-    <SelectTrigger.Button {...props}>
+    <OverlayTrigger.Button {...props}>
       <TriggerLabelWrap>
         <TriggerLabel>{props.children}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator />}
       </TriggerLabelWrap>
-    </SelectTrigger.Button>
+    </OverlayTrigger.Button>
   );
 }
 

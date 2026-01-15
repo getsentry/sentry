@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
@@ -23,9 +23,9 @@ function BreadcrumbFilters({
     <FiltersGrid>
       <CompactSelect
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} prefix={t('Type')}>
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Type')}>
             {type.length === 0 ? t('Any') : triggerProps.children}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         )}
         multiple
         options={breadcrumbTypes}

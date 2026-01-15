@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -79,7 +79,7 @@ export function TransactionSelector({
         }
       }}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Page')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Page')} />
       )}
       onChange={newValue => {
         trackAnalytics('insight.asset.filter_by_page', {

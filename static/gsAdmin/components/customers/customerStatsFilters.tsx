@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -109,7 +109,7 @@ export function CustomerStatsFilters({
     <Filters>
       <CompactSelect
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} prefix="Data Type" />
+          <OverlayTrigger.Button {...triggerProps} prefix="Data Type" />
         )}
         value={dataType}
         options={Object.entries(DATA_CATEGORY_INFO)

@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -130,7 +130,7 @@ export default class UserEmailLog extends Component<Props, State> {
     const emailSelector = (
       <CompactSelect
         trigger={triggerProps => (
-          <SelectTrigger.Button {...triggerProps} prefix="Results for" size="xs" />
+          <OverlayTrigger.Button {...triggerProps} prefix="Results for" size="xs" />
         )}
         value={activeEmail}
         options={user.emails.map(e => ({value: e.email, label: e.email}))}

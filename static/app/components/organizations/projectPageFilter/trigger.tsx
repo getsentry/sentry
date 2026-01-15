@@ -1,9 +1,6 @@
 import styled from '@emotion/styled';
 
-import {
-  SelectTrigger,
-  type SelectTriggerProps,
-} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
@@ -13,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
-interface ProjectPageFilterTriggerProps extends Omit<SelectTriggerProps, 'value'> {
+interface ProjectPageFilterTriggerProps extends Omit<TriggerProps, 'value'> {
   desynced: boolean;
   memberProjects: Project[];
   nonMemberProjects: Project[];
@@ -73,7 +70,7 @@ export function ProjectPageFilterTrigger({
       : value.length - projectsToShow.length;
 
   return (
-    <SelectTrigger.Button
+    <OverlayTrigger.Button
       {...props}
       data-test-id="page-filter-project-selector"
       icon={
@@ -93,7 +90,7 @@ export function ProjectPageFilterTrigger({
       {remainingCount > 0 && (
         <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
       )}
-    </SelectTrigger.Button>
+    </OverlayTrigger.Button>
   );
 }
 

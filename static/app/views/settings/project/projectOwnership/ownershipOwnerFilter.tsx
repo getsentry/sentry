@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Badge} from 'sentry/components/core/badge';
@@ -66,7 +66,7 @@ export function OwnershipOwnerFilter({
         return handleChangeFilter(opts.map(opt => opt.value));
       }}
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} icon={<IconUser />}>
+        <OverlayTrigger.Button {...triggerProps} icon={<IconUser />}>
           {
             <Fragment>
               {label}
@@ -75,7 +75,7 @@ export function OwnershipOwnerFilter({
               )}
             </Fragment>
           }
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

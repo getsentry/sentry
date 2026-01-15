@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
@@ -100,7 +100,7 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
         options={filterOptions}
         maxMenuHeight={400}
         trigger={props => (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             borderless
             showChevron={false}
             icon={<IconFilter />}
@@ -109,14 +109,14 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
             {...props}
           >
             {filters.length > 0 ? filters.length : ''}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         )}
       />
       <CompactSelect
         size="xs"
         position="bottom-end"
         trigger={props => (
-          <SelectTrigger.IconButton
+          <OverlayTrigger.IconButton
             borderless
             icon={<IconSort />}
             aria-label={t('Sort Breadcrumbs')}

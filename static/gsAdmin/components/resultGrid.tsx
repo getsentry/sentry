@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
@@ -58,7 +58,7 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={name} size="xs" />
+        <OverlayTrigger.Button {...triggerProps} prefix={name} size="xs" />
       )}
       value={value}
       onChange={opt => onFilter(opt.value)}
@@ -93,7 +93,7 @@ function SortBy({options, path, location, value, onSort = defaultOnSort}: SortBy
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <OverlayTrigger.Button
           {...triggerProps}
           icon={<IconList size="xs" />}
           prefix="Sort By"
@@ -471,7 +471,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
           {this.props.isRegional && (
             <CompactSelect
               trigger={triggerProps => (
-                <SelectTrigger.Button {...triggerProps} prefix="Region" />
+                <OverlayTrigger.Button {...triggerProps} prefix="Region" />
               )}
               value={this.state.region ? this.state.region.url : undefined}
               options={ConfigStore.get('regions').map((r: any) => ({

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -178,13 +178,13 @@ export function RepoSelector() {
           : t('Select Repo');
 
         return (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             icon={<IconRepository />}
             data-test-id="page-filter-prevent-repository-selector"
             {...triggerProps}
           >
             <TriggerLabel>{defaultLabel}</TriggerLabel>
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         );
       }}
     />

@@ -1,8 +1,8 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -227,7 +227,7 @@ function Chart({
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button
+            <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconGraph type={chartIcon} />}
               borderless
@@ -246,7 +246,7 @@ function Chart({
           value={interval}
           onChange={option => setInterval(option.value)}
           trigger={triggerProps => (
-            <SelectTrigger.Button
+            <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconClock />}
               borderless

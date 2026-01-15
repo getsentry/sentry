@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
@@ -294,7 +294,7 @@ export function WizardProjectSelection({
         searchable
         options={platformOptions}
         trigger={triggerProps => (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             {...triggerProps}
             icon={
               newProjectPlatform ? (
@@ -305,7 +305,7 @@ export function WizardProjectSelection({
             {newProjectPlatform
               ? platforms.find(p => p.id === newProjectPlatform)!.name
               : t('Select a platform')}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         )}
         onChange={({value}) => {
           setNewProjectPlatform(value as string);
@@ -337,7 +337,7 @@ export function WizardProjectSelection({
             searchable
             options={orgOptions}
             trigger={triggerProps => (
-              <SelectTrigger.Button
+              <OverlayTrigger.Button
                 {...triggerProps}
                 icon={
                   selectedOrg ? (
@@ -350,7 +350,7 @@ export function WizardProjectSelection({
                 ) : (
                   <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
                 )}
-              </SelectTrigger.Button>
+              </OverlayTrigger.Button>
             )}
             onChange={({value}) => {
               if (value !== selectedOrgId) {
@@ -379,7 +379,7 @@ export function WizardProjectSelection({
               searchable
               options={sortedProjectOptions}
               trigger={triggerProps => (
-                <SelectTrigger.Button
+                <OverlayTrigger.Button
                   {...triggerProps}
                   icon={
                     isCreateProjectSelected ? (
@@ -394,7 +394,7 @@ export function WizardProjectSelection({
                     : selectedProject?.slug || (
                         <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
                       )}
-                </SelectTrigger.Button>
+                </OverlayTrigger.Button>
               )}
               onChange={({value}) => {
                 setSelectedProjectId(value as string);
@@ -445,7 +445,7 @@ export function WizardProjectSelection({
                       })) || []
                     }
                     trigger={triggerProps => (
-                      <SelectTrigger.Button
+                      <OverlayTrigger.Button
                         {...triggerProps}
                         icon={
                           selectedTeam ? (
@@ -454,7 +454,7 @@ export function WizardProjectSelection({
                         }
                       >
                         {selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
-                      </SelectTrigger.Button>
+                      </OverlayTrigger.Button>
                     )}
                     onChange={({value}) => {
                       setNewProjectTeam(value as string);

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
@@ -47,10 +47,10 @@ export function SavedQueriesLandingContent() {
         </SearchBarContainer>
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} icon={<IconSort />} size="md">
+            <OverlayTrigger.Button {...triggerProps} icon={<IconSort />} size="md">
               {sortOptions.find(option => option.value === sort)?.label ??
                 triggerProps.children}
-            </SelectTrigger.Button>
+            </OverlayTrigger.Button>
           )}
           options={sortOptions}
           value={sort}

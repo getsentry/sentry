@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
@@ -406,7 +406,7 @@ export function MetricDetectorChart({
           value={selectedTimePeriod}
           onChange={opt => setSelectedTimePeriod(opt.value)}
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} borderless prefix={t('Display')} />
+            <OverlayTrigger.Button {...triggerProps} borderless prefix={t('Display')} />
           )}
         />
       </ChartFooter>

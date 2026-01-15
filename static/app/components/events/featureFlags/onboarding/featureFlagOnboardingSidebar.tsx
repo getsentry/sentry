@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -140,7 +140,10 @@ function SidebarContent() {
                 });
               }}
               trigger={triggerProps => (
-                <SelectTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={currentProject?.slug}
+                >
                   {currentProject ? (
                     <StyledIdBadge
                       project={currentProject}
@@ -151,7 +154,7 @@ function SidebarContent() {
                   ) : (
                     t('Select a project')
                   )}
-                </SelectTrigger.Button>
+                </OverlayTrigger.Button>
               )}
               options={projectSelectOptions}
               position="bottom-end"
@@ -230,9 +233,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   <CompactSelect
                     size="xs"
                     trigger={triggerProps => (
-                      <SelectTrigger.Button {...triggerProps}>
+                      <OverlayTrigger.Button {...triggerProps}>
                         {sdkProvider.label ?? triggerProps.children}
-                      </SelectTrigger.Button>
+                      </OverlayTrigger.Button>
                     )}
                     value={sdkProvider.value}
                     onChange={value => {

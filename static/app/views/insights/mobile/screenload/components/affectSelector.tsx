@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -23,7 +23,7 @@ export function AffectSelector({transaction}: {transaction?: string}) {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button {...triggerProps} prefix={t('Affects')} size="md" />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Affects')} size="md" />
       )}
       value={value}
       options={options}

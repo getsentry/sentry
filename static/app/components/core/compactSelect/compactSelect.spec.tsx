@@ -3,7 +3,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 
@@ -125,7 +125,7 @@ describe('CompactSelect', () => {
           onChange={() => {}}
           trigger={props => {
             // no type error here
-            return <SelectTrigger.Button {...props}>Trigger</SelectTrigger.Button>;
+            return <OverlayTrigger.Button {...props}>Trigger</OverlayTrigger.Button>;
           }}
           options={[
             {value: 'opt_one', label: 'Option One'},
@@ -142,7 +142,7 @@ describe('CompactSelect', () => {
           onChange={() => {}}
           trigger={props => {
             // @ts-expect-error TS2322: Type null is not assignable to type NonNullable<ReactNode>
-            return <SelectTrigger.Button {...props}>{null}</SelectTrigger.Button>;
+            return <OverlayTrigger.Button {...props}>{null}</OverlayTrigger.Button>;
           }}
           options={[]}
         />
@@ -152,8 +152,10 @@ describe('CompactSelect', () => {
           value=""
           onChange={() => {}}
           trigger={props => {
-            // @ts-expect-error TS2322: Type undefined is not assignable to type NonNullable<ReactNode>
-            return <SelectTrigger.Button {...props}>{undefined}</SelectTrigger.Button>;
+            return (
+              // @ts-expect-error TS2322: Type undefined is not assignable to type NonNullable<ReactNode>
+              <OverlayTrigger.Button {...props}>{undefined}</OverlayTrigger.Button>
+            );
           }}
           options={[]}
         />
@@ -405,7 +407,7 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} prefix="Prefix" />
+            <OverlayTrigger.Button {...triggerProps} prefix="Prefix" />
           )}
           value="opt_one"
           onChange={jest.fn()}
@@ -801,7 +803,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           grid
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} prefix="Prefix" />
+            <OverlayTrigger.Button {...triggerProps} prefix="Prefix" />
           )}
           value="opt_one"
           options={[

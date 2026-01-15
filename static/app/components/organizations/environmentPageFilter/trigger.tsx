@@ -1,9 +1,6 @@
 import styled from '@emotion/styled';
 
-import {
-  SelectTrigger,
-  type SelectTriggerProps,
-} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
@@ -11,8 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
-export interface EnvironmentPageFilterTriggerProps
-  extends Omit<SelectTriggerProps, 'value'> {
+export interface EnvironmentPageFilterTriggerProps extends Omit<TriggerProps, 'value'> {
   desynced: boolean;
   environments: string[];
   ready: boolean;
@@ -46,7 +42,7 @@ export function EnvironmentPageFilterTrigger({
   const remainingCount = isAllEnvironmentsSelected ? 0 : value.length - envsToShow.length;
 
   return (
-    <SelectTrigger.Button {...props} data-test-id="page-filter-environment-selector">
+    <OverlayTrigger.Button {...props} data-test-id="page-filter-environment-selector">
       <TriggerLabelWrap>
         <TriggerLabel>{ready ? readyLabel : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
@@ -54,7 +50,7 @@ export function EnvironmentPageFilterTrigger({
       {remainingCount > 0 && (
         <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
       )}
-    </SelectTrigger.Button>
+    </OverlayTrigger.Button>
   );
 }
 

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -111,7 +111,7 @@ export default function HomePage() {
       <RegionPanel>
         <CompactSelect
           trigger={triggerProps => (
-            <SelectTrigger.Button {...triggerProps} prefix="Region" />
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
           value={regionUrl}
           options={regions.map((r: any) => ({
