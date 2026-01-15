@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1018_encrypt_integration_metadata
+sentry: 1019_add_issued_grant_type_to_apitoken
 
 social_auth: 0003_social_auth_json_field
 
