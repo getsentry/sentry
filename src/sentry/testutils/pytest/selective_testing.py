@@ -44,7 +44,6 @@ def filter_items_by_coverage(
             )
 
             for context, bitblob in cur.fetchall():
-                # Check if test was executed
                 if any(b != 0 for b in bytes(bitblob)):
                     test_contexts.add(context)
 
@@ -56,18 +55,16 @@ def filter_items_by_coverage(
             test_file = context.split("::", 1)[0]
             affected_test_files.add(test_file)
 
-    except (sqlite3.Error, Exception) as e:
-        raise ValueError(f"Could not query coverage database: {e}")
+    except Exception as e:
+        raise ValueError(f"Could not query coverage database: {e}") from e
 
     config.get_terminal_writer().line(f"Found {len(affected_test_files)} affected test files")
     config.get_terminal_writer().line(f"Affected test files: {affected_test_files}")
 
-    # Filter items to only include tests from affected files
     selected_items = []
     discarded_items = []
 
     for item in items:
-        # Extract test file path from nodeid (e.g., 'tests/foo.py::TestClass::test_func')
         test_file = item.nodeid.split("::", 1)[0]
         if test_file in affected_test_files:
             selected_items.append(item)
