@@ -25,6 +25,16 @@ def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> 
     conn = sqlite3.connect(coverage_db_path)
     cur = conn.cursor()
 
+    # Verify required tables exist (need context tracking enabled)
+    tables = {
+        r[0] for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    }
+    if "line_bits" not in tables or "context" not in tables:
+        raise ValueError(
+            "Coverage database missing line_bits/context tables. "
+            "Coverage must be collected with --cov-context=test"
+        )
+
     test_contexts: set[str] = set()
 
     for file_path in changed_files:
