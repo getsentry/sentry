@@ -35,6 +35,7 @@ export const reasonToText: Record<
   [CheckStatusReason.TLS_ERROR]: _ => t('TLS Connection Error'),
   [CheckStatusReason.CONNECTION_ERROR]: _ => t('Connection Error'),
   [CheckStatusReason.REDIRECT_ERROR]: _ => t('Too Many Redirects'),
+  [CheckStatusReason.MISS_BACKFILL]: _ => t('No Data'),
 };
 
 export const tickStyle: TickStyle<CheckStatus> = theme => ({

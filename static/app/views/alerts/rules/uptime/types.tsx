@@ -62,6 +62,7 @@ export enum CheckStatusReason {
   TLS_ERROR = 'tls_error',
   CONNECTION_ERROR = 'connection_error',
   REDIRECT_ERROR = 'redirect_error',
+  MISS_BACKFILL = 'miss_backfill',
 }
 
 export enum CheckStatus {
