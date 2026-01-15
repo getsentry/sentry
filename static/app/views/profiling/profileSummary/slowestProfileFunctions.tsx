@@ -2,6 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Flex} from '@sentry/scraps/layout';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -112,7 +113,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
 
   return (
     <SlowestFunctionsContainer>
-      <SlowestFunctionsTitleContainer>
+      <Flex justify="between" align="center" marginBottom="md">
         <SlowestFunctionsTypeSelect
           value={functionType}
           options={SLOWEST_FUNCTION_OPTIONS}
@@ -127,7 +128,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           onCursor={handleFunctionsCursor}
           size="xs"
         />
-      </SlowestFunctionsTitleContainer>
+      </Flex>
       <SlowestFunctionsList>
         {functionsQuery.isPending ? (
           <SlowestFunctionsQueryState>
@@ -252,13 +253,6 @@ const SlowestFunctionsPagination = styled(Pagination)`
       height: 10px;
     }
   }
-`;
-
-const SlowestFunctionsTitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
 
 const SlowestFunctionsTypeSelect = styled(CompactSelect)`

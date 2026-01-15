@@ -882,6 +882,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Cooldown period (in seconds) between Snuba queries for groupsnooze user count validation. Value of 0 disables the debounce check.
+register(
+    "snuba.groupsnooze.user-counts-debounce-seconds",
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    type=Int,
+)
+
 # Kafka Publisher
 register(
     "kafka-publisher.raw-event-sample-rate",
@@ -3344,13 +3352,6 @@ register(
 )
 
 register(
-    "workflow_engine.exclude_issue_stream_detector",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3848,15 +3849,6 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Option to enable truncation of group IDs in Snuba query
-# when search filters are selective.
-register(
-    "snuba.search.truncate-group-ids-for-selective-filters-enabled",
-    type=Bool,
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organization slug allowlist to enable Autopilot for specific organizations.

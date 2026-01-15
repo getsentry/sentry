@@ -144,7 +144,11 @@ const StyledCompactSelect = styled(CompactSelect)`
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
   line-height: normal;
   position: relative;

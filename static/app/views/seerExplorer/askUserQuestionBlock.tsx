@@ -183,7 +183,7 @@ const OptionRow = styled('div')<{isSelected: boolean}>`
   transition: background-color 0.15s ease;
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

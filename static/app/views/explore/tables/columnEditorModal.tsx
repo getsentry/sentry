@@ -330,5 +330,9 @@ const TriggerLabel = styled('span')`
 `;
 
 const TriggerLabelText = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

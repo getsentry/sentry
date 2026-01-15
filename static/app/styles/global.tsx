@@ -24,7 +24,7 @@ const generateThemePrismVariables = (theme: Theme, blockBackground: string) => (
 
 const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   :root {
-    ${generateThemePrismVariables(theme, theme.backgroundSecondary)};
+    ${generateThemePrismVariables(theme, theme.tokens.background.secondary)};
   }
 
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
@@ -184,7 +184,11 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   `}
 
   abbr {
-    ${theme.tooltipUnderline()};
+    text-decoration: underline;
+    text-decoration-thickness: 0.75px;
+    text-underline-offset: 1.25px;
+    text-decoration-color: ${theme.tokens.content.secondary};
+    text-decoration-style: dotted;
   }
 
   a {
@@ -382,7 +386,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           color: ${theme.tokens.content.primary};
         }
         .rdrDayDisabled {
-          background-color: ${theme.backgroundSecondary};
+          background-color: ${theme.tokens.background.secondary};
           color: ${theme.tokens.content.disabled};
         }
         .rdrMonthAndYearPickers select {

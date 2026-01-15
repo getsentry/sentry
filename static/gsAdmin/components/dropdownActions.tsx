@@ -98,7 +98,7 @@ function DropdownActions({actions, label}: Props) {
 export default DropdownActions;
 
 const StyledIconNot = styled(IconNot)`
-  color: ${p => p.theme.red200};
+  color: ${p => p.theme.colors.red200};
   margin-left: ${space(0.5)};
   transform: translateY(2px);
 `;

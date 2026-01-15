@@ -178,8 +178,14 @@ export default function UsageLog() {
                   <Timeline.Item
                     key={entry.id}
                     colorConfig={{
-                      icon: index === 0 ? theme.active : theme.gray300,
-                      iconBorder: index === 0 ? theme.active : theme.gray300,
+                      icon:
+                        index === 0
+                          ? theme.tokens.interactive.link.accent.active
+                          : theme.colors.gray400,
+                      iconBorder:
+                        index === 0
+                          ? theme.tokens.interactive.link.accent.active
+                          : theme.colors.gray400,
                       title: theme.tokens.content.primary,
                     }}
                     icon={<IconCircleFill />}

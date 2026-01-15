@@ -2558,14 +2558,14 @@ class Factories:
         """Write a preprod size metric to EAP/Snuba for testing."""
         from sentry.preprod.eap.constants import PREPROD_NAMESPACE
         from sentry.search.eap.rpc_utils import anyvalue
-        from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
+        from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
 
         proto_timestamp = Timestamp()
         proto_timestamp.FromDatetime(timestamp)
 
         trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(preprod_artifact_id)).hex
         item_id_str = f"size_metric_{size_metric_id}"
-        item_id = int(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex, 16).to_bytes(16, "little")
+        item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
         attributes = {
             "preprod_artifact_id": anyvalue(preprod_artifact_id),
@@ -2643,15 +2643,13 @@ class Factories:
         state: int = PreprodArtifact.ArtifactState.PROCESSED,
         artifact_type: int | None = PreprodArtifact.ArtifactType.APK,
         app_id: str = "com.example.app",
-        app_name: str | None = None,
-        build_version: str | None = None,
-        build_number: int | None = None,
         commit_comparison: CommitComparison | None = None,
         file_id: int | None = None,
         installable_app_file_id: int | None = None,
         date_added: datetime | None = None,
         build_configuration: PreprodBuildConfiguration | None = None,
         extras: dict | None = None,
+        create_mobile_app_info: bool = True,
         **kwargs,
     ) -> PreprodArtifact:
         artifact = PreprodArtifact.objects.create(
@@ -2659,9 +2657,6 @@ class Factories:
             state=state,
             artifact_type=artifact_type,
             app_id=app_id,
-            app_name=app_name,
-            build_version=build_version,
-            build_number=build_number,
             commit_comparison=commit_comparison,
             file_id=file_id,
             installable_app_file_id=installable_app_file_id,
@@ -2672,21 +2667,42 @@ class Factories:
         if date_added is not None:
             artifact.update(date_added=date_added)
 
-        mobile_app_info_fields: dict[str, Any] = {}
-        if build_version is not None:
-            mobile_app_info_fields["build_version"] = build_version
-        if build_number is not None:
-            mobile_app_info_fields["build_number"] = build_number
-        if app_name is not None:
-            mobile_app_info_fields["app_name"] = app_name
-
-        if mobile_app_info_fields:
-            PreprodArtifactMobileAppInfo.objects.create(
+        build_version = kwargs.get("build_version", None)
+        build_number = kwargs.get("build_number", None)
+        app_name = kwargs.get("app_name", None)
+        app_icon_id = kwargs.get("app_icon_id", None)
+        if create_mobile_app_info and (build_version or build_number or app_name or app_icon_id):
+            Factories.create_preprod_artifact_mobile_app_info(
                 preprod_artifact=artifact,
-                **mobile_app_info_fields,
+                build_version=build_version,
+                build_number=build_number,
+                app_name=app_name,
+                app_icon_id=app_icon_id,
             )
 
         return artifact
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact_mobile_app_info(
+        preprod_artifact: PreprodArtifact,
+        build_version: str | None = None,
+        build_number: int | None = None,
+        app_name: str | None = None,
+        app_icon_id: str | None = None,
+        **kwargs,
+    ) -> PreprodArtifactMobileAppInfo:
+        obj, _ = PreprodArtifactMobileAppInfo.objects.update_or_create(
+            preprod_artifact=preprod_artifact,
+            defaults={
+                "build_version": build_version,
+                "build_number": build_number,
+                "app_name": app_name,
+                "app_icon_id": app_icon_id,
+                **kwargs,
+            },
+        )
+        return obj
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

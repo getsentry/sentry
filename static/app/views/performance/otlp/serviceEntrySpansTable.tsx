@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -137,7 +138,7 @@ export function ServiceEntrySpansTable({
           options={options}
           onChange={opt => handleDropdownChange(opt.value)}
         />
-        <HeaderButtonWrapper>
+        <Flex>
           {supportsInvestigationRule && (
             <InvestigationRuleWrapper>
               <InvestigationRuleCreation
@@ -156,7 +157,7 @@ export function ServiceEntrySpansTable({
               {t('View Sampled Events')}
             </Button>
           )}
-        </HeaderButtonWrapper>
+        </Flex>
         <CustomPagination
           pageLinks={pageLinks}
           onCursor={handleCursor}
@@ -299,10 +300,6 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
-`;
-
-const HeaderButtonWrapper = styled('div')`
-  display: flex;
 `;
 
 const InvestigationRuleWrapper = styled('div')`

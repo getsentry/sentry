@@ -1,4 +1,4 @@
-from sentry.issues.grouptype import PreprodDeltaGroupType
+from sentry.preprod.grouptype import PreprodDeltaGroupType
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.issues import artifact_to_tags, diff_to_occurrence
 from sentry.preprod.size_analysis.models import SizeMetricDiffItem
@@ -53,6 +53,12 @@ class DiffToOccurrenceTest(TestCase):
         assert event["tags"]["regression_kind"] == "install"
         assert event["tags"]["head.app_id"] == "com.example.app"
         assert event["tags"]["base.app_id"] == "com.example.app"
+        assert "head.app_name" not in event["tags"]
+        assert "base.app_name" not in event["tags"]
+        assert "head.build_version" not in event["tags"]
+        assert "base.build_version" not in event["tags"]
+        assert "head.build_number" not in event["tags"]
+        assert "base.build_number" not in event["tags"]
         assert len(occurrence.evidence_display) == 0
         assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
         assert occurrence.evidence_data["base_artifact_id"] == base_artifact.id
@@ -64,7 +70,19 @@ class DiffToOccurrenceTest(TestCase):
         project = self.create_project()
 
         head_artifact = self.create_preprod_artifact(project=project, app_id="com.example.app")
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=head_artifact,
+            build_version="1.2.3",
+            build_number=100,
+            app_name="Example App",
+        )
         base_artifact = self.create_preprod_artifact(project=project, app_id="com.example.app")
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=base_artifact,
+            build_version="1.2.2",
+            build_number=99,
+            app_name="Example App",
+        )
 
         head_metric = self.create_preprod_artifact_size_metrics(
             head_artifact,
@@ -106,6 +124,12 @@ class DiffToOccurrenceTest(TestCase):
         assert event["tags"]["regression_kind"] == "download"
         assert event["tags"]["head.app_id"] == "com.example.app"
         assert event["tags"]["base.app_id"] == "com.example.app"
+        assert event["tags"]["head.app_name"] == "Example App"
+        assert event["tags"]["base.app_name"] == "Example App"
+        assert event["tags"]["head.build_version"] == "1.2.3"
+        assert event["tags"]["base.build_version"] == "1.2.2"
+        assert event["tags"]["head.build_number"] == "100"
+        assert event["tags"]["base.build_number"] == "99"
         assert len(occurrence.evidence_display) == 0
         assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
         assert occurrence.evidence_data["base_artifact_id"] == base_artifact.id
@@ -120,9 +144,12 @@ class ArtifactToTagsTest(TestCase):
         artifact = self.create_preprod_artifact(
             project=project,
             app_id="com.example.app",
-            app_name="Example App",
+        )
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=artifact,
             build_version="1.2.3",
             build_number=456,
+            app_name="Example App",
         )
 
         tags = artifact_to_tags(artifact)

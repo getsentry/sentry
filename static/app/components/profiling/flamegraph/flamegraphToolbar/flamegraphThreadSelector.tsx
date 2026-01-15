@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Flex} from '@sentry/scraps/layout';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
@@ -133,10 +133,10 @@ interface ThreadLabelDetailsProps {
 
 function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
   return (
-    <DetailsContainer>
+    <Flex justify="between" gap="md">
       <div>{props.duration}</div>
       <div>{tn('%s sample', '%s samples', props.samples)}</div>
-    </DetailsContainer>
+    </Flex>
   );
 }
 
@@ -174,13 +174,6 @@ export function compareProfiles(activeThreadId?: number) {
     return a.name > b.name ? 1 : -1;
   };
 }
-
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;
 
 const StyledCompactSelect = styled(CompactSelect)`
   width: 14ch;

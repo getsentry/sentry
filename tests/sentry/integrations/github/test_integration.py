@@ -2186,3 +2186,28 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     "body": "**** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     I've changed it"
                 },
             )
+
+    @responses.activate
+    def test_get_debug_metadata(self) -> None:
+        installation = self.get_installation_helper()
+        metadata = installation.get_debug_metadata()
+
+        assert metadata == {
+            "account_type": "Organization",
+            "domain_name": "github.com/Test-Organization",
+            "permissions": {
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
+        }
+
+        del installation.model.metadata["permissions"]
+        metadata = installation.get_debug_metadata()
+        assert metadata == {
+            "account_type": "Organization",
+            "domain_name": "github.com/Test-Organization",
+            "permissions": None,
+        }

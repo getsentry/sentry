@@ -155,7 +155,7 @@ const PathWrapper = styled('div')`
   display: grid;
   margin: 0 -${space(4)} -${space(4)};
   grid-template-columns: 1fr 1fr;
-  border-top: 1px solid ${p => p.theme.gray200};
+  border-top: 1px solid ${p => p.theme.colors.gray200};
 `;
 
 const PathContainer = styled('div')`
@@ -165,7 +165,7 @@ const PathContainer = styled('div')`
   gap: ${space(1.5)};
 
   &:first-of-type {
-    border-right: 1px solid ${p => p.theme.gray200};
+    border-right: 1px solid ${p => p.theme.colors.gray200};
   }
 `;
 

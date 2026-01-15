@@ -427,7 +427,7 @@ function DynamicSamplingRulesTable({
 
 const ImpactIndicatorIcon = styled(IconArrow)<{impact: number}>`
   display: ${p => (p.impact === 0 ? 'none' : 'inline-block')};
-  color: ${p => (p.impact > 0 ? p.theme.green300 : p.theme.red300)};
+  color: ${p => (p.impact > 0 ? p.theme.green300 : p.theme.colors.red400)};
   transform: ${p => (p.impact > 0 ? 'rotate(45deg)' : 'rotate(135deg)')};
 `;
 
