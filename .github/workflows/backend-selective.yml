@@ -227,7 +227,9 @@ jobs:
           mode: backend-ci
 
       - name: Download coverage database artifact
+        id: download-coverage
         if: needs.prepare-selective-tests.outputs.has-coverage == 'true'
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: coverage-db-${{ github.run_id }}
@@ -235,10 +237,14 @@ jobs:
 
       - name: Find coverage file
         id: find-coverage-file
-        if: needs.prepare-selective-tests.outputs.has-coverage == 'true'
         run: |
-          COVERAGE_FILE=$(ls .coverage/.coverage.* 2>/dev/null | head -1 || true)
-          echo "coverage-file=$COVERAGE_FILE" >> "$GITHUB_OUTPUT"
+          if [[ -f .coverage/.coverage.combined ]]; then
+            echo "coverage-file=.coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
+            echo "Coverage file found, selective testing enabled"
+          else
+            echo "coverage-file=" >> "$GITHUB_OUTPUT"
+            echo "No coverage file found, running full test suite"
+          fi
 
       - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
