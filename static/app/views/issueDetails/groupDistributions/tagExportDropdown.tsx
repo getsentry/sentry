@@ -18,6 +18,7 @@ interface Props {
 
 export default function TagExportDropdown({tagKey, group, organization, project}: Props) {
   const [isExportDisabled, setIsExportDisabled] = useState(false);
+  const hasDiscoverQuery = organization.features.includes('discover-query');
   const handleDataExport = useDataExport({
     payload: {
       queryType: ExportQueryType.ISSUES_BY_TAG,
@@ -60,7 +61,10 @@ export default function TagExportDropdown({tagKey, group, organization, project}
             handleDataExport();
             setIsExportDisabled(true);
           },
-          disabled: isExportDisabled,
+          disabled: isExportDisabled || !hasDiscoverQuery,
+          tooltip: hasDiscoverQuery
+            ? undefined
+            : t('This feature is not available for your organization'),
         },
       ]}
     />
