@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Text} from 'sentry/components/core/text';
 
 import type {AskSeerStep} from './types';
@@ -218,17 +220,17 @@ export function AskSeerProgressBlocks({
         const normalizedKey = normalizeStepKey(step);
         const occurrence = countOccurrences(dedupedSteps, normalizedKey, idx);
         return (
-          <ProgressItem key={`${normalizedKey}-${idx}`}>
+          <Flex key={`${normalizedKey}-${idx}`} align="center" gap="sm">
             <CompletedDot />
             <Text variant="muted">{formatStep(step, false, occurrence)}</Text>
-          </ProgressItem>
+          </Flex>
         );
       })}
       {showCurrentStep && (
-        <ProgressItem>
+        <Flex align="center" gap="sm">
           <LoadingDot />
           <Text>{formatStep(currentStep, true, currentStepOccurrence)}</Text>
-        </ProgressItem>
+        </Flex>
       )}
     </ProgressContainer>
   );
@@ -240,12 +242,6 @@ const ProgressContainer = styled('div')`
   gap: 6px;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const ProgressItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const CompletedDot = styled('div')`
