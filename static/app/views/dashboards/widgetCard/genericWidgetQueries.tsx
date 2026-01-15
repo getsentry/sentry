@@ -26,6 +26,8 @@ import {
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
+import {useHookBasedWidgetQueries} from './useHookBasedWidgetQueries';
+
 export function getReferrer(displayType: DisplayType) {
   let referrer = '';
 
@@ -146,7 +148,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   // Always call the hook (hooks must be called unconditionally)
   // It will be disabled when hasHookApproach is false
-  const {useHookBasedWidgetQueries} = require('./useHookBasedWidgetQueries');
   const hookResults = useHookBasedWidgetQueries({
     config,
     widget,
