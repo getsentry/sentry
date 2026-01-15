@@ -47,7 +47,7 @@ export default Storybook.story('ReplayList', story => {
             onChange={setEnvironment}
           />
         </Flex>
-        <Flex style={{height: 500}}>
+        <Flex height={500}>
           <Flex direction="column" gap="md" flex="1">
             <ReplayList onSelect={setReplayId} queryResult={queryResult} />
           </Flex>
@@ -95,7 +95,7 @@ export default Storybook.story('ReplayList', story => {
                     onChange={setEnvironment}
                   />
                 </Flex>
-                <Flex style={{height: 500}}>
+                <Flex height={500}>
                   <Flex direction="column" gap="md" flex="1">
                     <ReplayList onSelect={setReplayId} queryResult={queryResult} />
                   </Flex>

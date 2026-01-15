@@ -764,7 +764,6 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
 }
 
 export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
-  const theme = useTheme();
   const organization = useOrganization();
   const clusterStats = useClusterStats(cluster.group_ids);
   const [stackTraceGroupId, setStackTraceGroupId] = useState<number>(
@@ -850,7 +849,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
       <DrawerContentBody>
         <Flex direction="column" minWidth={0}>
           <Container padding="2xl" borderBottom="muted">
-            <Flex direction="column" gap="xs" style={{marginBottom: theme.space.lg}}>
+            <Flex direction="column" gap="xs" marginBottom="lg">
               <Heading as="h2" size="lg">
                 {renderWithInlineCode(cluster.title)}
               </Heading>
@@ -923,7 +922,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
               )}
             </Flex>
 
-            <Flex wrap="wrap" gap="lg" style={{marginBottom: theme.space.lg}}>
+            <Flex wrap="wrap" gap="lg" marginBottom="lg">
               {cluster.error_type && (
                 <Flex gap="xs">
                   <Text size="sm" variant="muted">

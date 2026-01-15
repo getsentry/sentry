@@ -94,14 +94,14 @@ export default function FeedbackListPage() {
 
   const largeScreenView = (
     <Fragment>
-      <Stack style={{gridArea: 'list'}} gap="md">
+      <Stack area="list" gap="md">
         <FeedbackSummaryCategories />
         <Container>
           <FeedbackList onItemSelect={() => {}} />
         </Container>
       </Stack>
 
-      <Container style={{gridArea: 'details'}}>
+      <Container area="details">
         <AnalyticsArea name="details">
           <FeedbackItemLoader />
         </AnalyticsArea>
@@ -112,13 +112,13 @@ export default function FeedbackListPage() {
   const smallerScreenView = (
     <Fragment>
       {showItemPreview ? (
-        <Container style={{gridArea: 'content'}}>
+        <Container area="content">
           <AnalyticsArea name="details">
             <FeedbackItemLoader onBackToList={handleBackToList} />
           </AnalyticsArea>
         </Container>
       ) : (
-        <Stack style={{gridArea: 'content'}} gap="md">
+        <Stack area="content" gap="md">
           <FeedbackSummaryCategories />
           <Container>
             <FeedbackList onItemSelect={handleItemSelect} />

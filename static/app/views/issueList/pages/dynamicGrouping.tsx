@@ -708,12 +708,7 @@ function DynamicGrouping() {
     <PageFiltersContainer>
       <PageWrapper>
         <HeaderSection>
-          <Flex
-            align="center"
-            gap="md"
-            justify="between"
-            style={{marginBottom: space(2)}}
-          >
+          <Flex align="center" gap="md" justify="between" marginBottom="md">
             <Flex align="center" gap="md">
               <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
                 {t('Top Issues')}
@@ -736,7 +731,7 @@ function DynamicGrouping() {
             </Flex>
           </Flex>
 
-          <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
+          <Flex gap="sm" align="center" marginBottom="md">
             <ProjectPageFilter resetParamsOnChange={['cluster']} />
             {showDevTools && (
               <Button
@@ -781,7 +776,7 @@ function DynamicGrouping() {
                   {jsonError}
                 </Text>
               )}
-              <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
+              <Flex gap="sm" align="center" marginTop="lg">
                 <Checkbox
                   checked={disableFilters}
                   onChange={e => setDisableFilters(e.target.checked)}
@@ -792,7 +787,7 @@ function DynamicGrouping() {
                   {t('Disable filters and sorting')}
                 </Text>
               </Flex>
-              <Flex gap="sm" style={{marginTop: space(1)}}>
+              <Flex gap="sm" marginTop="md">
                 <Button size="sm" priority="primary" onClick={handleParseJson}>
                   {t('Parse and Load')}
                 </Button>
@@ -867,7 +862,7 @@ function DynamicGrouping() {
                             <FilterLabel disabled={filterByAssignedToMe}>
                               {t('Filter by teams')}
                             </FilterLabel>
-                            <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                            <Flex direction="column" gap="xs" paddingLeft="md">
                               {teamsInData.map(team => (
                                 <Flex key={team.id} gap="sm" align="center">
                                   <Checkbox
@@ -888,7 +883,7 @@ function DynamicGrouping() {
 
                         <Flex direction="column" gap="sm">
                           <FilterLabel>{t('Filter by status')}</FilterLabel>
-                          <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                          <Flex direction="column" gap="xs" paddingLeft="md">
                             <Flex gap="sm" align="center">
                               <Checkbox
                                 checked={filterByRegressed}

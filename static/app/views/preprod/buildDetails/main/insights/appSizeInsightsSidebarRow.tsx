@@ -130,7 +130,7 @@ export function AppSizeInsightsSidebarRow({
         <Text variant="primary" size="md" bold>
           {insight.name}
         </Text>
-        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
+        <Flex align="center" gap="sm" flexShrink={0}>
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
@@ -240,9 +240,7 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
       padding="xs sm"
       radius="sm"
       overflow="hidden"
-      style={{
-        minWidth: 0,
-      }}
+      minWidth={0}
     >
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
@@ -270,9 +268,7 @@ function DuplicateGroupFileRow({
         padding="xs sm"
         radius="sm"
         overflow="hidden"
-        style={{
-          minWidth: 0,
-        }}
+        minWidth={0}
       >
         <Text size="sm" ellipsis style={{flex: 1}} bold>
           {group.name}
@@ -360,17 +356,15 @@ function OptimizableImageFileRow({
         padding="xs sm"
         radius="sm"
         overflow="hidden"
-        style={{
-          minWidth: 0,
-        }}
+        minWidth={0}
       >
-        <Flex align="center" gap="xs" overflow="hidden" style={{minWidth: 0}}>
+        <Flex align="center" gap="xs" overflow="hidden" minWidth={0}>
           <Text size="sm" ellipsis style={{flex: 1}}>
             {file.path}
           </Text>
           {hasMetadata && (
             <Tooltip title={tooltipContent} isHoverable skipWrapper>
-              <Flex align="center" style={{flexShrink: 0}}>
+              <Flex align="center" flexShrink={0}>
                 <IconFlag size="xs" variant="muted" />
               </Flex>
             </Tooltip>

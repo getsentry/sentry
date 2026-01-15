@@ -188,7 +188,7 @@ export default function AutomationNewSettings() {
           </StyledBody>
         </Layout.Page>
         <StickyFooter>
-          <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <Observer>
               {() => (
                 <Button priority="primary" type="submit" disabled={model.isSaving}>

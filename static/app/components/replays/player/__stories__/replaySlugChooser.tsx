@@ -58,7 +58,7 @@ export default function ReplaySlugChooser({children}: Props) {
           <Hovercard
             body={
               <Flex direction="column" gap="md">
-                <Flex style={{height: '500px'}}>
+                <Flex height="500px">
                   <Flex direction="column" gap="md" flex="1">
                     <ReplayList onSelect={setReplaySlug} queryResult={queryResult} />
                   </Flex>

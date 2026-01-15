@@ -24,7 +24,9 @@ function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
         </Heading>
         <Container
           position="absolute"
-          style={{top: '50%', right: 0, transform: 'translateY(-50%)'}}
+          top="50%"
+          right={0}
+          style={{transform: 'translateY(-50%)'}}
         >
           <Button
             onClick={closeModal}

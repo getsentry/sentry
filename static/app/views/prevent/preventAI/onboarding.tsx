@@ -46,7 +46,7 @@ export function FeatureOverview() {
       <Text variant="muted" size="md">
         {t('AI Code Review helps you ship better code with new features:')}
       </Text>
-      <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
+      <Container as="ul" margin={0} style={{fontSize: '12px'}}>
         <li>
           <Text variant="muted" size="sm">
             {tct(
@@ -122,11 +122,13 @@ export default function PreventAIOnboarding() {
           <Text variant="primary" size="md">
             {t('AI Code Review is an AI agent that automates tasks in your PR:')}
           </Text>
-          <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
+          <Container as="ul" margin="0">
             <Container as="li">
-              {t(
-                'It reviews your pull requests, predicting errors and suggesting code fixes.'
-              )}
+              <Text size="sm">
+                {t(
+                  'It reviews your pull requests, predicting errors and suggesting code fixes.'
+                )}
+              </Text>
             </Container>
           </Container>
         </Flex>
@@ -140,12 +142,7 @@ export default function PreventAIOnboarding() {
         maxWidth="1000px"
       >
         <Flex direction="column" gap="2xl" maxWidth="600px">
-          <Flex
-            direction="column"
-            gap="lg"
-            padding="0 0 xl 0"
-            style={{borderBottom: `1px solid ${theme.tokens.border.primary}`}}
-          >
+          <Flex direction="column" gap="lg" padding="0 0 xl 0" borderBottom="primary">
             <Heading as="h1">{t('Setup AI Code Review')}</Heading>
             <Text variant="primary" size="sm">
               {t(
