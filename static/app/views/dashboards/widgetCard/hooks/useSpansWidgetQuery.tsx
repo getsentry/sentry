@@ -31,7 +31,6 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
-  isChartDisplayType,
 } from 'sentry/views/dashboards/utils';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -120,7 +119,7 @@ export function useSpansSeriesQuery(
           method: 'GET' as const,
           query: requestData,
         },
-      ] as ApiQueryKey;
+      ] satisfies ApiQueryKey;
     });
   }, [filteredWidget, organization, pageFilters, samplingMode]);
 
@@ -246,7 +245,7 @@ export function useSpansTableQuery(
           method: 'GET' as const,
           query: queryParams,
         },
-      ] as ApiQueryKey;
+      ] satisfies ApiQueryKey;
     });
   }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
 
@@ -278,16 +277,16 @@ export function useSpansTableQuery(
         return;
       }
 
-      // Transform the data
-      const transformedDataItem = SpansConfig.transformTable(
-        q.data,
-        filteredWidget.queries[0]!,
-        organization,
-        pageFilters
-      ) as TableDataWithTitle;
-      transformedDataItem.title = filteredWidget.queries[i]?.name ?? '';
+      const transformedDataItem: TableDataWithTitle = {
+        ...SpansConfig.transformTable(
+          q.data,
+          filteredWidget.queries[0]!,
+          organization,
+          pageFilters
+        ),
+        title: filteredWidget.queries[i]?.name ?? '',
+      };
 
-      // Apply field meta if available
       const meta = transformedDataItem.meta;
       const fieldMeta = filteredWidget.queries?.[i]?.fieldMeta;
       if (fieldMeta && meta) {
@@ -315,27 +314,4 @@ export function useSpansTableQuery(
   }, [queryResults, filteredWidget, organization, pageFilters]);
 
   return transformedData;
-}
-
-/**
- * Unified hook that routes to series or table query based on display type.
- * Returns fully transformed data ready for rendering.
- */
-export function useSpansWidgetQuery(
-  params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
-): GenericWidgetQueriesResult {
-  const isChart = isChartDisplayType(params.widget.displayType);
-
-  // Call both hooks (hooks must be called unconditionally)
-  const seriesResults = useSpansSeriesQuery({
-    ...params,
-    enabled: params.enabled && isChart,
-  });
-  const tableResults = useSpansTableQuery({
-    ...params,
-    enabled: params.enabled && !isChart,
-  });
-
-  // Return the appropriate results based on display type
-  return isChart ? seriesResults : tableResults;
 }
