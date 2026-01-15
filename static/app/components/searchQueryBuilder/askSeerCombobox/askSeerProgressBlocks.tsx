@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {Text} from 'sentry/components/core/text';
-import {space} from 'sentry/styles/space';
 
 import type {AskSeerStep} from './types';
 
@@ -23,32 +22,23 @@ interface StepLabel {
   loading: string;
 }
 
+// Shared labels for tag/field investigation steps
+const TAG_INVESTIGATION_LABELS: StepLabel[] = [
+  {loading: 'Investigating your tags...', completed: 'Investigated tags'},
+  {loading: 'Looking at more tags...', completed: 'Checked more tags'},
+  {loading: 'Checking additional tags...', completed: 'Found more tags'},
+];
+
 /**
  * Human-readable labels for step keys.
  * Maps the agent's step keys to user-friendly descriptions.
  * Array format allows for variation when steps repeat.
  */
 const STEP_LABELS: Record<string, StepLabel[]> = {
-  fetch_tag_values: [
-    {loading: 'Investigating your tags...', completed: 'Investigated tags'},
-    {loading: 'Looking at more tags...', completed: 'Checked more tags'},
-    {loading: 'Checking additional tags...', completed: 'Found more tags'},
-  ],
-  get_field_values: [
-    {loading: 'Investigating your tags...', completed: 'Investigated tags'},
-    {loading: 'Looking at more tags...', completed: 'Checked more tags'},
-    {loading: 'Checking additional tags...', completed: 'Found more tags'},
-  ],
-  get_tag_values: [
-    {loading: 'Investigating your tags...', completed: 'Investigated tags'},
-    {loading: 'Looking at more tags...', completed: 'Checked more tags'},
-    {loading: 'Checking additional tags...', completed: 'Found more tags'},
-  ],
-  get_errors_field_values: [
-    {loading: 'Investigating your tags...', completed: 'Investigated tags'},
-    {loading: 'Looking at more tags...', completed: 'Checked more tags'},
-    {loading: 'Checking additional tags...', completed: 'Found more tags'},
-  ],
+  fetch_tag_values: TAG_INVESTIGATION_LABELS,
+  get_field_values: TAG_INVESTIGATION_LABELS,
+  get_tag_values: TAG_INVESTIGATION_LABELS,
+  get_errors_field_values: TAG_INVESTIGATION_LABELS,
   test_query: [
     {loading: 'Testing your query...', completed: 'Tested query'},
     {loading: 'Trying another approach...', completed: 'Tried another approach'},
@@ -247,15 +237,15 @@ export function AskSeerProgressBlocks({
 const ProgressContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.75)};
-  padding: ${space(1.5)} ${space(2)};
+  gap: 6px;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ProgressItem = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 const CompletedDot = styled('div')`
