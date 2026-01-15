@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 
 import type {ResponseMeta} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
+import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
@@ -25,7 +26,7 @@ type Props = {
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   // Optional selection override for widget viewer modal zoom functionality
-  selection?: any;
+  selection?: PageFilters;
 };
 
 function IssueWidgetQueries({

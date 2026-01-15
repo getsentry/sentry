@@ -1,3 +1,4 @@
+import type {PageFilters} from 'sentry/types/core';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -36,7 +37,7 @@ type Props = {
   onDataFetched?: (results: OnDataFetchedProps) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   // Optional selection override for widget viewer modal zoom functionality
-  selection?: any;
+  selection?: PageFilters;
 };
 
 function WidgetQueriesWithOnDemandControl({

@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 
+import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -30,7 +31,7 @@ type TraceMetricsWidgetQueriesProps = {
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   // Optional selection override for widget viewer modal zoom functionality
-  selection?: any;
+  selection?: PageFilters;
 };
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {

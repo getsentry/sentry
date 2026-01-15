@@ -5,7 +5,9 @@ import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
@@ -51,7 +53,7 @@ interface ReleaseWidgetQueriesProps {
     timeseriesResults?: Series[];
   }) => void;
   // Optional selection override for widget viewer modal zoom functionality
-  selection?: any;
+  selection?: PageFilters;
 }
 
 export function derivedMetricsToField(field: string): string {
@@ -175,10 +177,12 @@ function customDidUpdateComparator(
   return (
     limit !== prevProps.limit ||
     !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
-    // Compare selection changes (if selection override is provided, compare it; otherwise hook handles it)
-    (selection !== undefined &&
-      prevProps.selection !== undefined &&
-      !isEqual(selection, prevProps.selection)) ||
+    // Compare selection changes - must check even when undefined since this custom comparator
+    // completely replaces the hook's default comparison logic. Use isSelectionEqual to ignore
+    // the utc field which has undefined/null/boolean inconsistency issues
+    (selection !== undefined && prevProps.selection !== undefined
+      ? !isSelectionEqual(selection, prevProps.selection)
+      : selection !== prevProps.selection) ||
     // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
     !isEqual(
       omit(widget, ignoredWidgetProps),

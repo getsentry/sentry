@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 import type {ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -99,7 +100,7 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   // Optional selection override - if not provided, usePageFilters hook will be used
   // This is needed for the widget viewer modal where local zoom state (modalSelection)
   // needs to override global PageFiltersStore
-  selection?: any;
+  selection?: PageFilters;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;

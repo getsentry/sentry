@@ -86,7 +86,6 @@ describe('add to dashboard modal', () => {
       ],
     };
 
-    // Initialize PageFiltersStore with defaultSelection for widget query hooks
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(defaultSelection);
 
