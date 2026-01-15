@@ -7,7 +7,7 @@ on:
       - reopened
       - edited
       - labeled
-    - unlabeled
+      - unlabeled
 permissions:
   contents: write
   pull-requests: write
