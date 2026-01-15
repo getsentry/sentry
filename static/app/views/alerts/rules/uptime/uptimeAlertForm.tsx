@@ -391,7 +391,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               return null;
             }
             return (
-              <>
+              <React.Fragment>
                 <AlertListItem>{t('Verification')}</AlertListItem>
                 <ListItemSubText>
                   {t(
@@ -407,7 +407,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
                     />
                   </ConfigurationPanel>
                 </Configuration>
-              </>
+              </React.Fragment>
             );
           }}
         </Observer>

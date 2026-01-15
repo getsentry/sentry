@@ -121,7 +121,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
 
     const payload = uptimeFormDataToEndpointPayload(formData);
 
-    expect(payload.dataSources[0].body).toBe(null);
+    expect(payload.dataSources[0].body).toBeNull();
   });
 
   it('includes non-empty body in payload', () => {
@@ -250,7 +250,7 @@ describe('uptimeSavedDetectorToFormData', () => {
 
     const formData = uptimeSavedDetectorToFormData(detector);
 
-    expect(formData.assertion).toBe(null);
+    expect(formData.assertion).toBeNull();
   });
 
   it('uses default values when data source is missing', () => {
