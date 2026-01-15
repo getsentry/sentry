@@ -24,23 +24,24 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
     def test_returns_projects_with_feature_flag(self):
         org1 = self.create_organization()
         org2 = self.create_organization()
+        org3 = self.create_organization()
+        org4 = self.create_organization()
 
         project1 = self.create_project(organization=org1)
         project2 = self.create_project(organization=org1)
         project3 = self.create_project(organization=org2)
+        project4 = self.create_project(organization=org3)
+        project5 = self.create_project(organization=org4)
 
-        def mock_features_has(feature_name, org, **kwargs):
-            return feature_name == "organizations:seer-explorer-index" and org.id == org1.id
-
-        with mock.patch(
-            "sentry.tasks.seer_explorer_index.features.has", side_effect=mock_features_has
-        ):
+        with self.feature({"organizations:seer-explorer-index": [org1.slug, org2.slug]}):
             result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
         assert project1.id in project_ids
         assert project2.id in project_ids
-        assert project3.id not in project_ids
+        assert project3.id in project_ids
+        assert project4.id not in project_ids
+        assert project5.id not in project_ids
         assert result[0] == (project1.id, org1.id)
 
     def test_excludes_inactive_projects(self):
@@ -50,7 +51,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
 
         inactive_project.update(status=ObjectStatus.PENDING_DELETION)
 
-        with mock.patch("sentry.tasks.seer_explorer_index.features.has", return_value=True):
+        with self.feature({"organizations:seer-explorer-index": [org.slug]}):
             result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
@@ -85,7 +86,7 @@ class TestScheduleExplorerIndex(TestCase):
         self.create_project(organization=org)
 
         with self.options({"seer.explorer_index.enable": True}):
-            with mock.patch("sentry.tasks.seer_explorer_index.features.has", return_value=True):
+            with self.feature({"organizations:seer-explorer-index": [org.slug]}):
                 with mock.patch(
                     "sentry.tasks.seer_explorer_index.dispatch_explorer_index_projects"
                 ) as mock_dispatch:
@@ -99,7 +100,7 @@ class TestScheduleExplorerIndex(TestCase):
         self.create_project(organization=org)
 
         with self.options({"seer.explorer_index.enable": True}):
-            with mock.patch("sentry.tasks.seer_explorer_index.features.has", return_value=True):
+            with self.feature({"organizations:seer-explorer-index": [org.slug]}):
                 with mock.patch(
                     "sentry.tasks.seer_explorer_index.dispatch_explorer_index_projects"
                 ) as mock_dispatch:

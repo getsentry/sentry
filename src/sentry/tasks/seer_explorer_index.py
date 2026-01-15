@@ -11,6 +11,7 @@ from django.utils import timezone as django_timezone
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
@@ -39,12 +40,52 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
     """
     projects = Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization")
 
+    feature_cache: dict[int, bool] = {}
+    orgs_to_check: dict[int, Organization] = {}
+    pending_projects: list[tuple[int, int]] = []
+    batch_size = 100
+
+    def check_pending_orgs():
+        if not orgs_to_check:
+            return
+
+        feature_results = features.batch_has_for_organizations(
+            "organizations:seer-explorer-index", list(orgs_to_check.values())
+        )
+
+        if feature_results:
+            for org_key, enabled in feature_results.items():
+                org_id = int(org_key.split(":")[-1])
+                feature_cache[org_id] = enabled
+        else:
+            for org_id, org in orgs_to_check.items():
+                feature_cache[org_id] = features.has("organizations:seer-explorer-index", org)
+
+        orgs_to_check.clear()
+
     for project in RangeQuerySetWrapper(
         projects,
         result_value_getter=lambda p: p.id,
     ):
-        if features.has("organizations:seer-explorer-index", project.organization):
-            yield project.id, project.organization_id
+        org_id = project.organization_id
+
+        if org_id not in feature_cache:
+            orgs_to_check[org_id] = project.organization
+
+            if len(orgs_to_check) >= batch_size:
+                check_pending_orgs()
+
+        if org_id in feature_cache:
+            if feature_cache[org_id]:
+                yield project.id, org_id
+        else:
+            pending_projects.append((project.id, org_id))
+
+    check_pending_orgs()
+
+    for project_id, org_id in pending_projects:
+        if feature_cache.get(org_id):
+            yield project_id, org_id
 
 
 @instrumented_task(
