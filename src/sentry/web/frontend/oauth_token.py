@@ -147,80 +147,14 @@ class OAuthTokenView(View):
             },
         )
 
-        # Device flow supports public clients per RFC 8628 §5.6.
+        # Device flow and refresh token support public clients per RFC 8628 §5.6.
         # Public clients only provide client_id to identify themselves.
         # If client_secret is provided, we still validate it for confidential clients.
-        if grant_type == GrantTypes.DEVICE_CODE:
-            if not client_id:
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason="missing client_id",
-                    status=401,
-                )
-
-            # Build query - validate secret only if provided (confidential client)
-            query = {"client_id": client_id}
-            if client_secret:
-                query["client_secret"] = client_secret
-
-            try:
-                application = ApiApplication.objects.get(**query)
-            except ApiApplication.DoesNotExist:
-                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
-                if client_secret:
-                    logger.warning(
-                        "Invalid client_id / secret pair",
-                        extra={"client_id": client_id},
-                    )
-                    reason = "invalid client_id or client_secret"
-                else:
-                    logger.warning("Invalid client_id", extra={"client_id": client_id})
-                    reason = "invalid client_id"
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason=reason,
-                    status=401,
-                )
-        elif grant_type == GrantTypes.REFRESH:
-            # Refresh token: client authentication depends on how the token was issued.
-            # Per RFC 6749 §6: "If the client type is confidential or the client was issued
-            # client credentials, the client MUST authenticate."
-            # We determine client type by checking the token's issued_grant_type.
-            if not client_id:
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason="missing client_id",
-                    status=401,
-                )
-
-            # Build query - validate secret only if provided
-            query: dict[str, str] = {"client_id": client_id}
-            if client_secret:
-                query["client_secret"] = client_secret
-
-            try:
-                application = ApiApplication.objects.get(**query)
-            except ApiApplication.DoesNotExist:
-                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
-                if client_secret:
-                    logger.warning(
-                        "Invalid client_id / secret pair",
-                        extra={"client_id": client_id},
-                    )
-                    reason = "invalid client_id or client_secret"
-                else:
-                    logger.warning("Invalid client_id", extra={"client_id": client_id})
-                    reason = "invalid client_id"
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason=reason,
-                    status=401,
-                )
-
+        if grant_type in (GrantTypes.DEVICE_CODE, GrantTypes.REFRESH):
+            application, error = self._authenticate_public_client(request, client_id, client_secret)
+            if error:
+                return error
+            assert application is not None  # Type narrowing: error check above guarantees this
             # For refresh_token, we need to verify the client authentication matches
             # how the token was issued. This check happens in get_refresh_token().
             # Pass whether client_secret was provided so we can enforce RFC 6749 §6.
@@ -412,6 +346,61 @@ class OAuthTokenView(View):
 
         # Neither header nor body provided credentials.
         return (None, None), None
+
+    def _authenticate_public_client(
+        self,
+        request: Request,
+        client_id: str | None,
+        client_secret: str | None,
+    ) -> tuple[ApiApplication | None, HttpResponse | None]:
+        """Authenticate a public client for device flow or refresh token grants.
+
+        Public clients (per RFC 8628 §5.6) only require client_id to identify
+        themselves. If client_secret is provided, it will be validated to support
+        confidential clients using these grant types.
+
+        Args:
+            request: The HTTP request (for error responses)
+            client_id: The client identifier (required)
+            client_secret: Optional client secret (validated if provided)
+
+        Returns:
+            (application, None) on success
+            (None, error_response) on failure
+        """
+        if not client_id:
+            return None, self.error(
+                request=request,
+                name="invalid_client",
+                reason="missing client_id",
+                status=401,
+            )
+
+        # Build query - validate secret only if provided (confidential client)
+        query: dict[str, str] = {"client_id": client_id}
+        if client_secret:
+            query["client_secret"] = client_secret
+
+        try:
+            application = ApiApplication.objects.get(**query)
+            return application, None
+        except ApiApplication.DoesNotExist:
+            metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+            if client_secret:
+                logger.warning(
+                    "Invalid client_id / secret pair",
+                    extra={"client_id": client_id},
+                )
+                reason = "invalid client_id or client_secret"
+            else:
+                logger.warning("Invalid client_id", extra={"client_id": client_id})
+                reason = "invalid client_id"
+            return None, self.error(
+                request=request,
+                name="invalid_client",
+                reason=reason,
+                status=401,
+            )
 
     def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
         code = request.POST.get("code")
