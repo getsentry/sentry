@@ -653,6 +653,7 @@ class TestEnsureDefaultDetectors(TestCase):
             mock_lock.assert_not_called()
 
     def test_ensure_default_detector__lock_fails(self) -> None:
+        project = self.create_project(create_default_detectors=False)
         with patch("sentry.workflow_engine.processors.detector.locks.get") as mock_lock:
             mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
             with pytest.raises(UnableToAcquireLockApiError):
