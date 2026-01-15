@@ -854,12 +854,11 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
               <Heading as="h2" size="lg">
                 {renderWithInlineCode(cluster.impact || cluster.title)}
               </Heading>
-              <Text size="sm" variant="muted">
-                {cluster.impact ? (
-                  <Fragment>{renderWithInlineCode(cluster.title)} </Fragment>
-                ) : null}
-                [CLUSTER-{cluster.cluster_id}]
-              </Text>
+              {cluster.impact ? (
+                <Text size="sm" variant="muted">
+                  {renderWithInlineCode(cluster.title)}
+                </Text>
+              ) : null}
             </Flex>
             <Flex wrap="wrap" align="center" gap="md">
               {relevancePercent !== null && (
