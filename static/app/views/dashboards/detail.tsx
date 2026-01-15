@@ -734,7 +734,7 @@ class DashboardDetail extends Component<Props, State> {
         newlyAddedWidget: mergedWidget,
       });
 
-      this.handleCloseWidgetBuilder();
+      this.handleCloseWidgetBuilder(newWidgets);
     } catch (error) {
       addErrorMessage(t('Failed to save widget'));
     }
@@ -759,8 +759,9 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleCloseWidgetBuilder = () => {
+  handleCloseWidgetBuilder = (newWidgets?: Widget[]) => {
     const {organization, navigate, location, params} = this.props;
+    const {dashboardState} = this.state;
 
     this.setState({
       isWidgetBuilderOpen: false,
@@ -772,7 +773,15 @@ class DashboardDetail extends Component<Props, State> {
         dashboardId: params.dashboardId,
         location,
       }),
-      {preventScrollReset: true}
+      {
+        preventScrollReset: true,
+
+        // Persist the widgets through the route change to use location.state if we're
+        // creating a new dashboard, otherwise the navigation may remount the component and
+        // lose the widgets
+        state:
+          dashboardState === DashboardState.CREATE ? {widgets: newWidgets} : undefined,
+      }
     );
   };
 
