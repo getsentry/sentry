@@ -26,8 +26,6 @@ import {
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-import {useHookBasedWidgetQueries} from './useHookBasedWidgetQueries';
-
 export function getReferrer(displayType: DisplayType) {
   let referrer = '';
 
@@ -146,32 +144,23 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     ? !!config.useSeriesQuery
     : !!config.useTableQuery;
 
-  // Always call the hook (hooks must be called unconditionally)
-  // It will be disabled when hasHookApproach is false
-  const hookResults = useHookBasedWidgetQueries({
-    config,
-    widget,
-    selection,
-    pageFilters: selection,
-    isChartDisplay,
-    dashboardFilters,
-    skipDashboardFilterParens,
-    onDemandControlContext,
-    mepSetting,
-    samplingMode,
-    disabled: disabled || !hasHookApproach, // Disable if not using hook approach
-    limit,
-    cursor,
-    afterFetchSeriesData,
-    afterFetchTableData,
-    onDataFetched,
-    onDataFetchStart,
-    queue,
-    propsLoading,
-    customDidUpdateComparator,
-    organization,
-    forceOnDemand,
-  });
+  // NEW APPROACH: Call hook directly if available
+  // Hook handles all data fetching, transformation, and returns final results
+  const hookResults = hasHookApproach
+    ? (isChartDisplay ? config.useSeriesQuery : config.useTableQuery)?.({
+        widget,
+        organization,
+        pageFilters: selection,
+        dashboardFilters,
+        skipDashboardFilterParens,
+        onDemandControlContext,
+        mepSetting,
+        samplingMode,
+        enabled: !disabled, // Hook controls fetching
+        limit,
+        cursor,
+      })
+    : null;
 
   // OLD APPROACH: Use existing Promise-based logic for non-migrated datasets
   // These hooks are only used when hasHookApproach is false
@@ -627,17 +616,19 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   // If using hook-based approach, return hook results
   // Otherwise, return old approach results
-  return hasHookApproach
-    ? hookResults
-    : {
-        loading,
-        tableResults,
-        timeseriesResults,
-        errorMessage,
-        pageLinks,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
-      };
+  if (hasHookApproach && hookResults) {
+    return hookResults as GenericWidgetQueriesResult;
+  }
+
+  return {
+    loading,
+    tableResults,
+    timeseriesResults,
+    errorMessage,
+    pageLinks,
+    timeseriesResultsTypes,
+    timeseriesResultsUnits,
+  };
 }
 
 export function cleanWidgetForRequest(widget: Widget): Widget {

@@ -20,7 +20,6 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {
   DashboardFilters,
   DisplayType,
@@ -110,6 +109,10 @@ export type WidgetQueryParams = {
    * Sampling mode for the queries.
    */
   samplingMode?: SamplingMode;
+  /**
+   * Skip adding parentheses around widget conditions when applying dashboard filters.
+   */
+  skipDashboardFilterParens?: boolean;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -323,20 +326,33 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
 
   /**
    * Hook-based approach for fetching series data (NEW).
-   * Returns raw API responses for all widget queries.
-   * Transforms are applied by the widget config after data is fetched.
+   * Returns fully transformed data ready for rendering (loading state, data, errors).
+   * This replaces getSeriesRequest when available.
    */
-  useSeriesQuery?: (
-    params: WidgetQueryParams
-  ) => Array<UseApiQueryResult<SeriesResponse, any>>;
+  useSeriesQuery?: (params: WidgetQueryParams) => {
+    loading: boolean;
+    confidence?: any;
+    errorMessage?: string;
+    isSampled?: boolean | null;
+    sampleCount?: number;
+    timeseriesResults?: Series[];
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
+  };
   /**
    * Hook-based approach for fetching table data (NEW).
-   * Returns raw API responses for all widget queries.
-   * Transforms are applied by the widget config after data is fetched.
+   * Returns fully transformed data ready for rendering (loading state, data, errors).
+   * This replaces getTableRequest when available.
    */
-  useTableQuery?: (
-    params: WidgetQueryParams
-  ) => Array<UseApiQueryResult<TableResponse, any>>;
+  useTableQuery?: (params: WidgetQueryParams) => {
+    loading: boolean;
+    confidence?: any;
+    errorMessage?: string;
+    isSampled?: boolean | null;
+    pageLinks?: string;
+    sampleCount?: number;
+    tableResults?: TableData[];
+  };
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(
