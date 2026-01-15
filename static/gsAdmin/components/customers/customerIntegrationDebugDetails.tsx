@@ -105,11 +105,11 @@ function CustomerIntegrationDebugDetails({orgId}: Props) {
             Object.keys(parentRow.integration.metadata).length > 0;
 
           if (!isExpanded || !hasMetadata) {
-            return [<td key="empty" colSpan={7} style={{padding: 0, height: 0}} />];
+            return [<td key="empty" colSpan={8} style={{padding: 0, height: 0}} />];
           }
 
           return [
-            <td key="metadata" colSpan={7}>
+            <td key="metadata" colSpan={8}>
               <Container>
                 <Heading as="h6">Integration Metadata</Heading>
                 <MetadataContent>
