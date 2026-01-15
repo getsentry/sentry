@@ -516,19 +516,19 @@ function AutofixSolutionDisplay({
     return (
       <SolutionContainer>
         <CustomSolutionPadding>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFixRef}>
                 <IconFix size="sm" variant="success" />
               </Flex>
               {t('Custom Solution')}
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
           </Content>
           <BottomDivider />
-          <BottomFooter>
+          <Flex justify="end" align="center" padding="xl 0 0 0" gap="lg">
             <div style={{flex: 1}} />
             <CopySolutionButton
               solution={solution}
@@ -536,7 +536,7 @@ function AutofixSolutionDisplay({
               event={event}
               rootCause={rootCause}
             />
-          </BottomFooter>
+          </Flex>
         </CustomSolutionPadding>
       </SolutionContainer>
     );
@@ -544,7 +544,7 @@ function AutofixSolutionDisplay({
 
   return (
     <SolutionContainer ref={containerRef}>
-      <HeaderWrapper>
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFixRef}>
             <IconFix size="md" variant="success" />
@@ -561,7 +561,7 @@ function AutofixSolutionDisplay({
             <IconChat />
           </Button>
         </HeaderText>
-      </HeaderWrapper>
+      </Flex>
       <AnimatePresence>
         {agentCommentThread && iconFixRef.current && (
           <AutofixHighlightPopup
@@ -594,7 +594,7 @@ function AutofixSolutionDisplay({
         />
       </Content>
       <BottomDivider />
-      <BottomFooter>
+      <Flex justify="end" align="center" padding="xl 0 0 0" gap="lg">
         <AddInstructionWrapper>
           <InstructionsInputWrapper onSubmit={handleFormSubmit}>
             <InstructionsInput
@@ -669,7 +669,7 @@ function AutofixSolutionDisplay({
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
         )}
-      </BottomFooter>
+      </Flex>
     </SolutionContainer>
   );
 }
@@ -711,14 +711,6 @@ const SolutionContainer = styled('div')`
 
 const Content = styled('div')`
   padding: ${space(1)} 0 0;
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const HeaderText = styled('div')`
@@ -772,14 +764,6 @@ const SubmitButton = styled(Button)`
 const BottomDivider = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.lg};
-`;
-
-const BottomFooter = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
-  padding: ${p => p.theme.space.xl} 0 0 0;
-  justify-content: flex-end;
 `;
 
 const AddInstructionWrapper = styled('div')`

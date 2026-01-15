@@ -13,6 +13,8 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -405,7 +407,7 @@ function AutofixHighlightPopupContent({
                     <FlippedReturnIcon />
                   </ReworkArrow>
                 </ReworkHeaderSection>
-                <HeaderRight>
+                <Flex align="center" paddingLeft="lg">
                   <Divider />
                   <ResolveButton
                     size="zero"
@@ -414,7 +416,7 @@ function AutofixHighlightPopupContent({
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
                   />
-                </HeaderRight>
+                </Flex>
               </motion.div>
             ) : (
               <motion.div
@@ -464,9 +466,9 @@ function AutofixHighlightPopupContent({
                 )}
                 <MessageContent>
                   {message.isLoading ? (
-                    <LoadingWrapper>
+                    <Flex align="center" marginTop="2xs" height="24px">
                       <LoadingIndicator mini size={12} />
-                    </LoadingWrapper>
+                    </Flex>
                   ) : (
                     <MarkedText text={message.content} inline />
                   )}
@@ -841,13 +843,6 @@ const CircularSeerIcon = styled('div')`
   }
 `;
 
-const LoadingWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 24px;
-  margin-top: ${space(0.25)};
-`;
-
 const ResolveButton = styled(Button)`
   margin-left: ${space(1)};
 `;
@@ -859,12 +854,6 @@ const ReworkHeaderSection = styled('div')`
   cursor: pointer;
   transition: opacity 0.2s ease;
   flex: 1;
-`;
-
-const HeaderRight = styled('div')`
-  display: flex;
-  align-items: center;
-  padding-left: ${p => p.theme.space.lg};
 `;
 
 const ReworkText = styled('span')`

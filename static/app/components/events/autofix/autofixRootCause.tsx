@@ -519,17 +519,17 @@ function AutofixRootCauseDisplay({
     return (
       <CausesContainer>
         <CustomRootCausePadding>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFocusRef}>
                 <IconFocus size="md" variant="promotion" />
               </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           <BottomDivider />
-          <BottomButtonContainer>
+          <Flex justify="end" align="center" paddingTop="xl" gap="md">
             <ButtonBar>
               <CopyRootCauseButton
                 customRootCause={rootCauseSelection.custom_root_cause}
@@ -543,7 +543,7 @@ function AutofixRootCauseDisplay({
                 runId={runId}
               />
             )}
-          </BottomButtonContainer>
+          </Flex>
         </CustomRootCausePadding>
       </CausesContainer>
     );
@@ -551,7 +551,7 @@ function AutofixRootCauseDisplay({
 
   return (
     <CausesContainer>
-      <HeaderWrapper>
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFocusRef}>
             <IconFocus size="md" variant="promotion" />
@@ -568,7 +568,7 @@ function AutofixRootCauseDisplay({
             <IconChat />
           </Button>
         </HeaderText>
-      </HeaderWrapper>
+      </Flex>
       <AnimatePresence>
         {agentCommentThread && iconFocusRef.current && (
           <AutofixHighlightPopup
@@ -600,7 +600,7 @@ function AutofixRootCauseDisplay({
         </Fragment>
       </Content>
       <BottomDivider />
-      <BottomButtonContainer>
+      <Flex justify="end" align="center" paddingTop="xl" gap="md">
         <SolutionInput
           autosize
           value={solutionText}
@@ -633,7 +633,7 @@ function AutofixRootCauseDisplay({
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="root_cause" groupId={groupId} runId={runId} />
         )}
-      </BottomButtonContainer>
+      </Flex>
     </CausesContainer>
   );
 }
@@ -687,14 +687,6 @@ const Content = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-`;
-
 const HeaderText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
@@ -718,14 +710,6 @@ const AnimationWrapper = styled(motion.div)`
 
 const BottomDivider = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const BottomButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: ${space(1)};
-  padding-top: ${p => p.theme.space.xl};
 `;
 
 const SolutionInput = styled(TextArea)`

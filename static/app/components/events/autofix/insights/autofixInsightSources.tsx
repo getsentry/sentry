@@ -2,6 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import type {InsightSources} from 'sentry/components/events/autofix/types';
 import {
@@ -167,7 +169,9 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
 
   return (
     <SourcesContainer>
-      <CardsContainer aria-label="Autofix Insight Sources">{sourceCards}</CardsContainer>
+      <Flex wrap="wrap" gap="xs" width="100%" aria-label="Autofix Insight Sources">
+        {sourceCards}
+      </Flex>
       {showThoughtsPopup &&
         sources?.thoughts &&
         document.body &&
@@ -199,13 +203,6 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
 const SourcesContainer = styled('div')`
   margin-top: -${space(1)};
   padding-bottom: ${space(1)};
-  width: 100%;
-`;
-
-const CardsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
   width: 100%;
 `;
 
