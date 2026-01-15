@@ -412,7 +412,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ POST
         """
         model = getattr(TSDBModel, tsdb_field, None)
-        key: int | str
 
         if model == TSDBModel.sentry_app_component_interacted:
             if component_type is None or component_type not in COMPONENT_TYPES:
@@ -425,8 +424,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                     ),
                 )
             key = self.get_component_interaction_key(sentry_app.slug, component_type)
+            tsdb.backend.incr(model, key)
         elif model == TSDBModel.sentry_app_viewed:
-            key = sentry_app.id
+            tsdb.backend.incr(model, sentry_app.id)
         else:
             return RpcEmptyResult(
                 success=False,
@@ -436,8 +436,5 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                     status_code=400,
                 ),
             )
-
-        # Timestamp is automatically created
-        tsdb.backend.incr(model, key)
 
         return RpcEmptyResult()
