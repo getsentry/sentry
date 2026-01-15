@@ -75,7 +75,6 @@ class PromptsActivityTest(APITestCase):
     def test_invalid_project(self) -> None:
         # Invalid project id
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -98,7 +97,6 @@ class PromptsActivityTest(APITestCase):
 
     def test_dismiss(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -135,7 +133,6 @@ class PromptsActivityTest(APITestCase):
         assert resp.status_code == 201, resp.content
 
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -147,7 +144,6 @@ class PromptsActivityTest(APITestCase):
 
     def test_snooze(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -173,7 +169,6 @@ class PromptsActivityTest(APITestCase):
 
     def test_visible(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -199,7 +194,6 @@ class PromptsActivityTest(APITestCase):
 
     def test_visible_after_dismiss(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -235,7 +229,6 @@ class PromptsActivityTest(APITestCase):
 
     def test_batched(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": ["releases", "alert_stream"],
         }
@@ -299,7 +292,6 @@ class PromptsActivityTest(APITestCase):
         resp = self.client.get(
             self.path,
             {
-                "organization_id": self.org.id,
                 "project_id": other_project.id,
                 "feature": "releases",
             },
@@ -308,3 +300,31 @@ class PromptsActivityTest(APITestCase):
         # Should return 404 to prevent ID enumeration
         assert resp.status_code == 404
         assert resp.data["detail"] == "Project not found"
+
+    def test_get_empty_project_id(self) -> None:
+        """Test that empty string project_id returns 400 instead of 500."""
+        resp = self.client.get(
+            self.path,
+            {
+                "project_id": "",
+                "feature": "releases",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == 'Missing required field "project_id"'
+
+    def test_put_empty_project_id(self) -> None:
+        """Test that empty string project_id in PUT returns 400 instead of 500."""
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": "",
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Invalid project_id"
