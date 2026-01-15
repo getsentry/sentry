@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
@@ -6,7 +6,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -20,7 +19,6 @@ export default function CreateDashboard() {
   const organization = useOrganization();
   const {templateId} = useParams<{templateId: string}>();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const template = templateId
     ? getDashboardTemplates(organization).find(
@@ -44,13 +42,6 @@ export default function CreateDashboard() {
     }
     return baseDashboard;
   });
-
-  // Clear location state after consuming it
-  useEffect(() => {
-    if (hasWidgetsToAdd) {
-      navigate(location.pathname, {replace: true, state: {}});
-    }
-  }, [hasWidgetsToAdd, navigate, location.pathname]);
 
   function renderDisabled() {
     return (
