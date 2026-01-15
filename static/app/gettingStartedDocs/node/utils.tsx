@@ -352,7 +352,8 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 const llm = new ChatOpenAI({
   modelName: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY,
+  // WARNING: Never expose API keys in browser code - use a backend proxy
+  apiKey: "YOUR_OPENAI_API_KEY",
 });
 
 const agent = createReactAgent({ llm, tools: [] });
@@ -426,7 +427,8 @@ const callbackHandler = Sentry.createLangChainCallbackHandler({
             code: `${getImport(packageName, importMode).join('\n')}
 import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenAI(process.env.API_KEY);
+// WARNING: Never expose API keys in browser code - use a backend proxy
+const genAI = new GoogleGenAI("YOUR_GOOGLE_API_KEY");
 const client = Sentry.instrumentGoogleGenAIClient(genAI, {
   recordInputs: true,
   recordOutputs: true,
