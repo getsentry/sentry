@@ -499,7 +499,7 @@ def get_all_tags_overview(
 
     assert tag_keys is not None
 
-    all_tags: list[dict] = []
+    all_tags: list[dict[str, Any]] = []
 
     KEYS_TO_EXCLUDE = {
         "release",
@@ -517,42 +517,47 @@ def get_all_tags_overview(
             continue
 
         # Calculate percentages for each tag value
-        tag_data = {
+        total_values = tag.count or 0
+        unique_values: int = getattr(tag, "values_seen", 0)
+        top_values_list: list[dict[str, Any]] = []
+        tag_data: dict[str, Any] = {
             "key": tag.key,
             "name": tagstore.backend.get_tag_key_label(tag.key),
-            "total_values": tag.count,
-            "unique_values": getattr(tag, "values_seen", 0),
-            "top_values": [],
+            "total_values": total_values,
+            "unique_values": unique_values,
         }
 
         if hasattr(tag, "top_values") and tag.top_values:
             # Calculate total from top values
-            top_values_total = sum(tag_value.times_seen for tag_value in tag.top_values)
+            top_values_total = sum(int(tag_value.times_seen or 0) for tag_value in tag.top_values)
 
             for tag_value in tag.top_values:
-                percentage = round((tag_value.times_seen / tag.count) * 100) if tag.count > 0 else 0
+                times_seen = int(tag_value.times_seen or 0)
+                percentage = str(
+                    round((times_seen / total_values) * 100) if total_values > 0 else 0
+                )
 
                 # Ensure no single value shows 100% when there are multiple values
-                has_multiple_values = len(tag.top_values) > 1 or top_values_total < tag.count
-                if has_multiple_values and percentage >= 100:
+                has_multiple_values = len(tag.top_values) > 1 or top_values_total < total_values
+                if has_multiple_values and int(percentage) >= 100:
                     percentage = ">99"
-                elif percentage < 1:
+                elif int(percentage) < 1:
                     percentage = "<1"
 
-                tag_data["top_values"].append(
+                top_values_list.append(
                     {
                         "value": tag_value.value,
-                        "count": tag_value.times_seen,
-                        "percentage": (
-                            f"{percentage}%" if isinstance(percentage, (int, float)) else percentage
-                        ),
+                        "count": times_seen,
+                        "percentage": f"{percentage}%",
                     }
                 )
 
             # Add "other" category if there are more values than the top values shown
-            if top_values_total < tag.count:
-                other_count = tag.count - top_values_total
-                other_percentage = round((other_count / tag.count) * 100) if tag.count > 0 else 0
+            if top_values_total < total_values:
+                other_count = total_values - top_values_total
+                other_percentage = (
+                    round((other_count / total_values) * 100) if total_values > 0 else 0
+                )
 
                 # Apply the same percentage formatting rules
                 if other_percentage < 1:
@@ -562,7 +567,7 @@ def get_all_tags_overview(
                 else:
                     other_percentage_str = f"{other_percentage}%"
 
-                tag_data["top_values"].append(
+                top_values_list.append(
                     {
                         "value": "other",
                         "count": other_count,
@@ -570,7 +575,8 @@ def get_all_tags_overview(
                     }
                 )
 
-        if tag_data["top_values"]:  # Only include tags that have values
+        if top_values_list:  # Only include tags that have values
+            tag_data["top_values"] = top_values_list
             all_tags.append(tag_data)
 
     logger.info(

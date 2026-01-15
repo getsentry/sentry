@@ -39,7 +39,6 @@ from sentry.seer.explorer.utils import (
     fetch_profile_data,
     get_group_date_range,
     get_retention_boundary,
-    get_timeseries_count_total,
 )
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -903,7 +902,6 @@ def _get_recommended_event(
 def get_group_tags_overview(
     group: Group,
     organization: Organization,
-    event_count: int,
     start: str | None = None,
     end: str | None = None,
 ) -> dict[str, Any] | None:
@@ -915,6 +913,7 @@ def get_group_tags_overview(
         # Use tagstore if no time range is provided (more efficient).
         return get_all_tags_overview(group)
 
+    # Query events-facets for the tag value counts.
     dataset = "errors" if group.issue_category == GroupCategory.ERROR else "issuePlatform"
 
     params = {
@@ -933,6 +932,19 @@ def get_group_tags_overview(
         path=f"/organizations/{organization.slug}/events-facets/",
         params=params,
     )
+
+    # Aggregate query for total event count in the time range.
+    count_result = execute_table_query(
+        org_id=organization.id,
+        dataset=dataset,
+        fields=["count()"],
+        query=f"issue:{group.qualified_short_id}",
+        project_ids=[group.project_id],
+        start=start,
+        end=end,
+        per_page=1,
+    )
+    event_count = count_result.get("data", [{}])[0].get("count()", 0)
 
     tag_keys: list[TagKey | GroupTagKey] = []
     for item in resp.data:
@@ -1010,14 +1022,14 @@ def get_issue_and_event_response(
             start=start,
             end=end,
         )
+
         if ts_result:
             timeseries, timeseries_stats_period, timeseries_interval = ts_result
         else:
             timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
-        event_count = get_timeseries_count_total(timeseries) if timeseries else 0
         try:
-            tags_overview = get_group_tags_overview(group, organization, event_count, start, end)
+            tags_overview = get_group_tags_overview(group, organization, start, end)
         except Exception:
             logger.exception(
                 "Failed to get tags overview for issue",

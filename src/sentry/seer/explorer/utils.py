@@ -486,11 +486,3 @@ def get_group_date_range(
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
     start = max(start, retention_boundary)
     return start, end
-
-
-def get_timeseries_count_total(timeseries_response: dict[str, Any]) -> int:
-    """Get the total sum of count() values from a timeseries response."""
-    if "count()" not in timeseries_response:
-        return 0
-    data = timeseries_response["count()"]["data"]
-    return sum(item[1][0]["count"] for item in data)
