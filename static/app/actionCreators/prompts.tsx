@@ -88,12 +88,14 @@ export async function promptsCheck(
   api: Client,
   params: PromptCheckParams
 ): Promise<PromptData> {
+  if (!params.organization) {
+    throw new Error('promptsCheck requires an organization');
+  }
   const query = {
     feature: params.feature,
-    organization_id: params.organization?.id,
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
-  const url = `/organizations/${params.organization?.slug}/prompts-activity/`;
+  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
   const response: PromptResponse = await api.requestPromise(url, {
     query,
   });
@@ -114,10 +116,7 @@ export const makePromptsCheckQueryKey = ({
   projectId,
 }: PromptCheckParams): ApiQueryKey => {
   const url = `/organizations/${organization?.slug}/prompts-activity/`;
-  return [
-    url,
-    {query: {feature, organization_id: organization?.id, project_id: projectId}},
-  ];
+  return [url, {query: {feature, project_id: projectId}}];
 };
 
 export function usePromptsCheck(
@@ -422,7 +421,6 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
 ): Promise<Record<T[number], PromptData>> {
   const query = {
     feature: features,
-    organization_id: params.organization.id,
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
   const url = `/organizations/${params.organization.slug}/prompts-activity/`;
