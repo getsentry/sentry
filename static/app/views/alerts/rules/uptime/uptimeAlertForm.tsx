@@ -382,35 +382,25 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             )}
           </Observer>
         </Configuration>
-        <Observer>
-          {() => {
-            const hasAssertionsFeature = organization.features.includes(
-              'uptime-runtime-assertions'
-            );
-            if (!hasAssertionsFeature) {
-              return null;
-            }
-            return (
-              <React.Fragment>
-                <AlertListItem>{t('Verification')}</AlertListItem>
-                <ListItemSubText>
-                  {t(
-                    'Define conditions that must be met for the check to be considered successful.'
-                  )}
-                </ListItemSubText>
-                <Configuration>
-                  <ConfigurationPanel>
-                    <UptimeAssertionsField
-                      name="assertion"
-                      label={t('Assertions')}
-                      flexibleControlStateSize
-                    />
-                  </ConfigurationPanel>
-                </Configuration>
-              </React.Fragment>
-            );
-          }}
-        </Observer>
+        {organization.features.includes('uptime-runtime-assertions') && (
+          <>
+            <AlertListItem>{t('Verification')}</AlertListItem>
+            <ListItemSubText>
+              {t(
+                'Define conditions that must be met for the check to be considered successful.'
+              )}
+            </ListItemSubText>
+            <Configuration>
+              <ConfigurationPanel>
+                <UptimeAssertionsField
+                  name="assertion"
+                  label={t('Assertions')}
+                  flexibleControlStateSize
+                />
+              </ConfigurationPanel>
+            </Configuration>
+          </>
+        )}
         <AlertListItem>{t('Set thresholds')}</AlertListItem>
         <ListItemSubText>
           {t('Configure when an issue is created or resolved.')}
