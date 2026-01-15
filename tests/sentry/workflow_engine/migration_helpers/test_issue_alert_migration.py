@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -69,7 +70,7 @@ class IssueAlertMigratorTest(TestCase):
                 "channel_id": "C01234567890",
             },
         ]
-        self.issue_alert_data = {
+        self.issue_alert_data: dict[str, Any] = {
             "conditions": self.rule_conditions,
             "actions": self.action_data,
             "action_match": "any",
