@@ -14,16 +14,18 @@ class CliBugPredictionIntegrationTest(APITestCase):
     These tests verify the full request-response cycle including polling logic.
     """
 
-    endpoint = "sentry-api-0-organization-cli-bug-prediction"
+    endpoint = "sentry-api-0-organization-code-review-local"
+    method = "post"
 
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
         self.repository = self.create_repo(
+            project=self.project,
             name="test-repo",
             provider="github",
             external_id="12345",
-            organization_id=self.organization.id,
         )
         self.valid_payload = {
             "repository": {
@@ -36,9 +38,9 @@ class CliBugPredictionIntegrationTest(APITestCase):
         }
         self.login_as(user=self.user)
 
-    @with_feature("organizations:cli-bug-prediction")
-    @patch("sentry.seer.cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.seer.cli_bug_prediction.get_cli_bug_prediction_status")
+    @with_feature("organizations:code-review-local")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
     def test_end_to_end_single_poll(self, mock_status, mock_trigger):
         """Test end-to-end flow with immediate completion"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
@@ -72,9 +74,9 @@ class CliBugPredictionIntegrationTest(APITestCase):
         assert response.data["status"] == "completed"
         assert len(response.data["predictions"]) == 1
 
-    @with_feature("organizations:cli-bug-prediction")
-    @patch("sentry.seer.cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.seer.cli_bug_prediction.get_cli_bug_prediction_status")
+    @with_feature("organizations:code-review-local")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
     @patch("time.sleep")
     def test_end_to_end_multiple_polls(self, mock_sleep, mock_status, mock_trigger):
         """Test end-to-end flow with multiple polling cycles"""
@@ -117,9 +119,9 @@ class CliBugPredictionIntegrationTest(APITestCase):
         assert response.data["status"] == "completed"
         assert response.data["predictions"][0]["severity"] == "high"
 
-    @with_feature("organizations:cli-bug-prediction")
-    @patch("sentry.seer.cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.seer.cli_bug_prediction.get_cli_bug_prediction_status")
+    @with_feature("organizations:code-review-local")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
     @patch("time.sleep")
     def test_status_check_network_error_recovery(self, mock_sleep, mock_status, mock_trigger):
         """Test that network errors during status check are retried"""
@@ -149,9 +151,9 @@ class CliBugPredictionIntegrationTest(APITestCase):
         # Verify we still got a successful response
         assert response.data["status"] == "completed"
 
-    @with_feature("organizations:cli-bug-prediction")
-    @patch("sentry.seer.cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.seer.cli_bug_prediction.get_cli_bug_prediction_status")
+    @with_feature("organizations:code-review-local")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
     def test_empty_predictions_response(self, mock_status, mock_trigger):
         """Test handling of completed status with no predictions"""
         mock_trigger.return_value = {"run_id": 999, "status": "pending"}
@@ -172,9 +174,9 @@ class CliBugPredictionIntegrationTest(APITestCase):
         assert response.data["predictions"] == []
         assert response.data["diagnostics"]["files_analyzed"] == 5
 
-    @with_feature("organizations:cli-bug-prediction")
-    @patch("sentry.seer.cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.seer.cli_bug_prediction.get_cli_bug_prediction_status")
+    @with_feature("organizations:code-review-local")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
     @patch("time.sleep")
     def test_multiple_predictions(self, mock_sleep, mock_status, mock_trigger):
         """Test handling of multiple predictions in response"""
@@ -219,9 +221,9 @@ class CliBugPredictionIntegrationTest(APITestCase):
         assert response.data["predictions"][1]["severity"] == "medium"
         assert response.data["predictions"][2]["severity"] == "low"
 
-    @with_feature("organizations:cli-bug-prediction")
-    @patch("sentry.seer.cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.seer.cli_bug_prediction.get_cli_bug_prediction_status")
+    @with_feature("organizations:code-review-local")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
     @patch("time.sleep")
     def test_seer_state_transition_pending_to_completed(
         self, mock_sleep, mock_status, mock_trigger
@@ -247,9 +249,9 @@ class CliBugPredictionIntegrationTest(APITestCase):
         assert mock_status.call_count == 2
         assert response.data["status"] == "completed"
 
-    @with_feature("organizations:cli-bug-prediction")
-    @patch("sentry.seer.cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.seer.cli_bug_prediction.get_cli_bug_prediction_status")
+    @with_feature("organizations:code-review-local")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
     @patch("time.sleep")
     def test_seer_state_transition_with_in_progress(self, mock_sleep, mock_status, mock_trigger):
         """Test state transition: pending -> in_progress -> completed"""
@@ -274,9 +276,9 @@ class CliBugPredictionIntegrationTest(APITestCase):
         assert mock_status.call_count == 3
         assert response.data["status"] == "completed"
 
-    @with_feature("organizations:cli-bug-prediction")
-    @patch("sentry.seer.cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.seer.cli_bug_prediction.get_cli_bug_prediction_status")
+    @with_feature("organizations:code-review-local")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
     def test_diagnostics_included_in_response(self, mock_status, mock_trigger):
         """Test that diagnostics are properly included in response"""
         mock_trigger.return_value = {"run_id": 444, "status": "pending"}

@@ -11,9 +11,7 @@ from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokensEndpoint
-from sentry.api.endpoints.organization_cli_bug_prediction import (
-    OrganizationCliBugPredictionEndpoint,
-)
+from sentry.api.endpoints.organization_cli_bug_prediction import OrganizationCodeReviewLocalEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
@@ -2402,9 +2400,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-autofix-automation-settings",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/bug-prediction/cli-review/$",
-        OrganizationCliBugPredictionEndpoint.as_view(),
-        name="sentry-api-0-organization-cli-bug-prediction",
+        r"^(?P<organization_id_or_slug>[^/]+)/code-review/local-review/$",
+        OrganizationCodeReviewLocalEndpoint.as_view(),
+        name="sentry-api-0-organization-code-review-local",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",

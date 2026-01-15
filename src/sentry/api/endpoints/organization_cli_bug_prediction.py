@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
+class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
     """
-    Handle CLI-initiated bug prediction requests.
+    Handle local code review requests from sentry-cli.
 
     Synchronously polls Seer and returns results.
     """
@@ -39,7 +39,7 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Trigger bug prediction for a git diff from sentry-cli.
+        Trigger local code review for a git diff from sentry-cli.
 
         This endpoint:
         1. Validates the request (diff size, file count, etc.)
@@ -50,22 +50,29 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
 
         Returns 200 with predictions on success, various error codes on failure.
         """
-        # Check feature flag
-        if not features.has("organizations:cli-bug-prediction", organization):
+        # Check if feature is globally enabled
+        if not settings.CODE_REVIEW_LOCAL_ENABLED:
             return Response(
-                {"detail": "CLI bug prediction is not enabled for this organization"},
+                {"detail": "Local code review is not enabled"},
+                status=503,
+            )
+
+        # Check feature flag
+        if not features.has("organizations:code-review-local", organization):
+            return Response(
+                {"detail": "Local code review is not enabled for this organization"},
                 status=403,
             )
 
         # Rate limiting
-        user_key = f"cli_bug_prediction:user:{request.user.id}"
-        org_key = f"cli_bug_prediction:org:{organization.id}"
+        user_key = f"code_review_local:user:{request.user.id}"
+        org_key = f"code_review_local:org:{organization.id}"
 
-        user_limit, user_window = settings.CLI_BUG_PREDICTION_USER_RATE_LIMIT
-        org_limit, org_window = settings.CLI_BUG_PREDICTION_ORG_RATE_LIMIT
+        user_limit, user_window = settings.CODE_REVIEW_LOCAL_USER_RATE_LIMIT
+        org_limit, org_window = settings.CODE_REVIEW_LOCAL_ORG_RATE_LIMIT
 
         if ratelimits.backend.is_limited(user_key, limit=user_limit, window=user_window):
-            metrics.incr("cli_bug_prediction.rate_limited", tags={"type": "user"})
+            metrics.incr("code_review_local.rate_limited", tags={"type": "user"})
             return Response(
                 {
                     "detail": f"Rate limit exceeded. Maximum {user_limit} requests per {user_window // 3600} hour(s) per user"
@@ -74,7 +81,7 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
             )
 
         if ratelimits.backend.is_limited(org_key, limit=org_limit, window=org_window):
-            metrics.incr("cli_bug_prediction.rate_limited", tags={"type": "org"})
+            metrics.incr("code_review_local.rate_limited", tags={"type": "org"})
             return Response(
                 {
                     "detail": f"Organization rate limit exceeded. Maximum {org_limit} requests per {org_window // 3600} hour(s)"
@@ -90,12 +97,7 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
         validated_data = serializer.validated_data
         repo_data = validated_data["repository"]
         diff = validated_data["diff"]
-        current_branch = validated_data.get("current_branch")
         commit_message = validated_data.get("commit_message")
-
-        # Record rate limits
-        ratelimits.backend.record(user_key, limit=user_limit, window=user_window)
-        ratelimits.backend.record(org_key, limit=org_limit, window=org_window)
 
         # Resolve repository
         try:
@@ -115,20 +117,23 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
 
         # Log request
         logger.info(
-            "cli_bug_prediction.request",
+            "code_review_local.request",
             extra={
                 "organization_id": organization.id,
                 "user_id": request.user.id,
                 "repository_id": repository.id,
                 "diff_size_bytes": len(diff),
-                "has_commit_message": commit_message is not None,
-                "has_current_branch": current_branch is not None,
             },
         )
 
-        metrics.incr("cli_bug_prediction.request", tags={"org": organization.slug})
+        metrics.incr("code_review_local.request", tags={"org": organization.slug})
 
         # Trigger Seer
+        # user.id is guaranteed to be non-None since this endpoint requires authentication
+        user_id = request.user.id
+        assert user_id is not None
+        user_name = request.user.username or getattr(request.user, "email", None) or str(user_id)
+
         try:
             trigger_response = trigger_cli_bug_prediction(
                 repo_provider=repo_data["provider"],
@@ -139,35 +144,35 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
                 diff=diff,
                 organization_id=organization.id,
                 organization_slug=organization.slug,
-                user_id=request.user.id,
-                user_name=request.user.username or request.user.email or str(request.user.id),
+                user_id=user_id,
+                user_name=user_name,
                 commit_message=commit_message,
             )
         except (UrllibTimeoutError, MaxRetryError):
             logger.exception(
-                "cli_bug_prediction.trigger.timeout",
+                "code_review_local.trigger.timeout",
                 extra={
                     "organization_id": organization.id,
                     "user_id": request.user.id,
                 },
             )
             return Response(
-                {"detail": "Bug prediction service is temporarily unavailable"}, status=503
+                {"detail": "Code review service is temporarily unavailable"}, status=503
             )
         except ValueError:
             logger.exception(
-                "cli_bug_prediction.trigger.error",
+                "code_review_local.trigger.error",
                 extra={
                     "organization_id": organization.id,
                     "user_id": request.user.id,
                 },
             )
-            return Response({"detail": "Failed to start bug prediction analysis"}, status=502)
+            return Response({"detail": "Failed to start code review analysis"}, status=502)
 
         run_id = trigger_response["run_id"]
 
         logger.info(
-            "cli_bug_prediction.seer_triggered",
+            "code_review_local.seer_triggered",
             extra={
                 "seer_run_id": run_id,
                 "organization_id": organization.id,
@@ -179,19 +184,19 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
         try:
             final_response = self._poll_seer_for_results(
                 run_id=run_id,
-                timeout_seconds=settings.CLI_BUG_PREDICTION_TIMEOUT,
-                poll_interval_seconds=settings.CLI_BUG_PREDICTION_POLL_INTERVAL,
+                timeout_seconds=settings.CODE_REVIEW_LOCAL_TIMEOUT,
+                poll_interval_seconds=settings.CODE_REVIEW_LOCAL_POLL_INTERVAL,
             )
         except TimeoutError:
             logger.exception(
-                "cli_bug_prediction.timeout",
+                "code_review_local.timeout",
                 extra={
                     "seer_run_id": run_id,
                     "organization_id": organization.id,
                     "user_id": request.user.id,
                 },
             )
-            metrics.incr("cli_bug_prediction.timeout")
+            metrics.incr("code_review_local.timeout")
             return Response(
                 {
                     "detail": "Analysis exceeded maximum processing time (10 minutes). Please try again with a smaller diff."
@@ -202,7 +207,7 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
             # Seer returned error status
             status_code, error_code, error_message = self._map_seer_error_to_response(str(e))
             logger.exception(
-                "cli_bug_prediction.seer_error",
+                "code_review_local.seer_error",
                 extra={
                     "seer_run_id": run_id,
                     "organization_id": organization.id,
@@ -210,7 +215,7 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
                     "mapped_status": status_code,
                 },
             )
-            metrics.incr("cli_bug_prediction.seer_error", tags={"error_code": error_code})
+            metrics.incr("code_review_local.seer_error", tags={"error_code": error_code})
             return Response({"detail": error_message}, status=status_code)
 
         # Success
@@ -218,7 +223,7 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
         diagnostics = final_response.get("diagnostics", {})
 
         logger.info(
-            "cli_bug_prediction.completed",
+            "code_review_local.completed",
             extra={
                 "seer_run_id": run_id,
                 "organization_id": organization.id,
@@ -228,8 +233,8 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
             },
         )
 
-        metrics.incr("cli_bug_prediction.completed", tags={"status": "success"})
-        metrics.incr("cli_bug_prediction.predictions", amount=len(predictions))
+        metrics.incr("code_review_local.completed", tags={"status": "success"})
+        metrics.incr("code_review_local.predictions", amount=len(predictions))
 
         response_data = {
             "status": final_response.get("status"),
@@ -289,7 +294,7 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
 
             attempt += 1
             logger.debug(
-                "cli_bug_prediction.polling",
+                "code_review_local.polling",
                 extra={
                     "seer_run_id": run_id,
                     "attempt": attempt,
@@ -302,7 +307,7 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
             except (UrllibTimeoutError, MaxRetryError):
                 # If status check times out, wait and retry
                 logger.warning(
-                    "cli_bug_prediction.poll.timeout",
+                    "code_review_local.poll.timeout",
                     extra={"seer_run_id": run_id, "attempt": attempt},
                 )
                 time.sleep(poll_interval_seconds)
@@ -362,4 +367,4 @@ class OrganizationCliBugPredictionEndpoint(OrganizationEndpoint):
             )
 
         # Default to bad gateway for unknown Seer errors
-        return (502, "bad_gateway", "Bug prediction service encountered an error")
+        return (502, "bad_gateway", "Code review service encountered an error")

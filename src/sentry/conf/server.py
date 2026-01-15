@@ -2855,12 +2855,12 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
-# CLI Bug Prediction
-CLI_BUG_PREDICTION_ENABLED = True
-CLI_BUG_PREDICTION_TIMEOUT = 600  # 10 minutes in seconds
-CLI_BUG_PREDICTION_POLL_INTERVAL = 2  # seconds between Seer polls
-CLI_BUG_PREDICTION_USER_RATE_LIMIT = (10, 3600)  # 10 per hour
-CLI_BUG_PREDICTION_ORG_RATE_LIMIT = (100, 3600)  # 100 per hour
+# Code Review Local (sentry-cli review command)
+CODE_REVIEW_LOCAL_ENABLED = True
+CODE_REVIEW_LOCAL_TIMEOUT = 600  # 10 minutes in seconds
+CODE_REVIEW_LOCAL_POLL_INTERVAL = 2  # seconds between Seer polls
+CODE_REVIEW_LOCAL_USER_RATE_LIMIT = (10, 3600)  # 10 per hour
+CODE_REVIEW_LOCAL_ORG_RATE_LIMIT = (100, 3600)  # 100 per hour
 
 # Used to validate RPC requests from the Overwatch service
 OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None

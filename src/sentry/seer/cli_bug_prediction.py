@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Connection pool for CLI bug prediction requests
 seer_cli_bug_prediction_connection_pool = connection_from_url(
     settings.SEER_DEFAULT_URL,
-    timeout=settings.CLI_BUG_PREDICTION_TIMEOUT,
+    timeout=settings.CODE_REVIEW_LOCAL_TIMEOUT,
 )
 
 
