@@ -11,7 +11,6 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
-import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
@@ -28,7 +27,6 @@ import type {
 } from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
-type TokensWithLegacy = Tokens & LegacyTokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -400,7 +398,7 @@ export interface SentryTheme
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
     neutral: string;
   };
-  tokens: TokensWithLegacy;
+  tokens: Tokens;
 }
 
 const ccl = color.categorical.light;
@@ -985,8 +983,6 @@ const lightThemeDefinition = {
   ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
   ...lightShadows,
-  // @TODO: remove backwards-compatability shim
-  tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
@@ -1022,8 +1018,6 @@ export const darkTheme: SentryTheme = {
   ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
   ...darkShadows,
-  // @TODO: remove backwards-compatability shim
-  tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
