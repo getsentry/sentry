@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
