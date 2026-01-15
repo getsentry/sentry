@@ -138,6 +138,43 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   // Use override selection if provided (for modal zoom), otherwise use hook
   const selection = propsSelection ?? hookPageFilters.selection;
 
+  // Check if new hook-based approach is available
+  const isChartDisplay = isChartDisplayType(widget.displayType);
+  const hasHookApproach = isChartDisplay
+    ? !!config.useSeriesQuery
+    : !!config.useTableQuery;
+
+  // Always call the hook (hooks must be called unconditionally)
+  // It will be disabled when hasHookApproach is false
+  const {useHookBasedWidgetQueries} = require('./useHookBasedWidgetQueries');
+  const hookResults = useHookBasedWidgetQueries({
+    config,
+    widget,
+    selection,
+    pageFilters: selection,
+    isChartDisplay,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    onDemandControlContext,
+    mepSetting,
+    samplingMode,
+    disabled: disabled || !hasHookApproach, // Disable if not using hook approach
+    limit,
+    cursor,
+    afterFetchSeriesData,
+    afterFetchTableData,
+    onDataFetched,
+    onDataFetchStart,
+    queue,
+    propsLoading,
+    customDidUpdateComparator,
+    organization,
+    props,
+    forceOnDemand,
+  });
+
+  // OLD APPROACH: Use existing Promise-based logic for non-migrated datasets
+  // These hooks are only used when hasHookApproach is false
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [timeseriesResults, setTimeseriesResults] = useState<Series[] | undefined>(
@@ -588,15 +625,19 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     props,
   ]);
 
-  return {
-    loading,
-    tableResults,
-    timeseriesResults,
-    errorMessage,
-    pageLinks,
-    timeseriesResultsTypes,
-    timeseriesResultsUnits,
-  };
+  // If using hook-based approach, return hook results
+  // Otherwise, return old approach results
+  return hasHookApproach
+    ? hookResults
+    : {
+        loading,
+        tableResults,
+        timeseriesResults,
+        errorMessage,
+        pageLinks,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits,
+      };
 }
 
 export function cleanWidgetForRequest(widget: Widget): Widget {

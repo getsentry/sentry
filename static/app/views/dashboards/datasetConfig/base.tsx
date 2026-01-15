@@ -20,6 +20,7 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {
   DashboardFilters,
   DisplayType,
@@ -63,6 +64,53 @@ export interface SearchBarData {
   getFilterKeys: () => TagCollection;
   getTagValues: GetTagValues;
 }
+
+/**
+ * Parameters passed to hook-based query methods (useSeriesQuery/useTableQuery).
+ * These hooks handle fetching data for all widget queries at once.
+ */
+export type WidgetQueryParams = {
+  /**
+   * Whether the queries should be enabled. Used for queue integration.
+   */
+  enabled: boolean;
+  /**
+   * The organization context.
+   */
+  organization: Organization;
+  /**
+   * Page filters (projects, environments, datetime).
+   */
+  pageFilters: PageFilters;
+  /**
+   * The widget configuration containing all queries.
+   */
+  widget: Widget;
+  /**
+   * Optional pagination cursor.
+   */
+  cursor?: string;
+  /**
+   * Dashboard-level filters to apply to queries.
+   */
+  dashboardFilters?: DashboardFilters;
+  /**
+   * Optional result limit.
+   */
+  limit?: number;
+  /**
+   * MEP (Metrics Enhanced Performance) setting.
+   */
+  mepSetting?: MEPState | null;
+  /**
+   * On-demand control context for query optimization.
+   */
+  onDemandControlContext?: OnDemandControlContext;
+  /**
+   * Sampling mode for the queries.
+   */
+  samplingMode?: SamplingMode;
+};
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
@@ -258,7 +306,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * to reset the orderby of the widget query.
    */
   handleOrderByReset?: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
-
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
@@ -273,6 +320,23 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * to retrieve tags and values for the search bar.
    */
   useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
+
+  /**
+   * Hook-based approach for fetching series data (NEW).
+   * Returns raw API responses for all widget queries.
+   * Transforms are applied by the widget config after data is fetched.
+   */
+  useSeriesQuery?: (
+    params: WidgetQueryParams
+  ) => Array<UseApiQueryResult<SeriesResponse, any>>;
+  /**
+   * Hook-based approach for fetching table data (NEW).
+   * Returns raw API responses for all widget queries.
+   * Transforms are applied by the widget config after data is fetched.
+   */
+  useTableQuery?: (
+    params: WidgetQueryParams
+  ) => Array<UseApiQueryResult<TableResponse, any>>;
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(

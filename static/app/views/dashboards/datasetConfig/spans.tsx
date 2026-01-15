@@ -66,6 +66,10 @@ import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/tra
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
 import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
+import {
+  useSpansSeriesQuery,
+  useSpansTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useSpansWidgetQuery';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -231,6 +235,8 @@ export const SpansConfig: DatasetConfig<
     );
   },
   getSeriesRequest,
+  useSeriesQuery: useSpansSeriesQuery,
+  useTableQuery: useSpansTableQuery,
   transformTable: transformEventsResponseToTable,
   transformSeries,
   filterAggregateParams,
