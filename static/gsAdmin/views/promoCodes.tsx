@@ -4,14 +4,11 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
 import PromoCodeModal from 'admin/components/promoCodes/promoCodeModal';
 import ResultGrid from 'admin/components/resultGrid';
 import titleCase from 'getsentry/utils/titleCase';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: any) => [
   <td key="code">
@@ -45,7 +42,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function PromoCodes(props: Props) {
+export default function PromoCodes() {
   return (
     <div>
       <PageHeader title="Promo Codes">
@@ -88,10 +85,7 @@ function PromoCodes(props: Props) {
           ['claims', 'Claims'],
         ]}
         defaultSort="date"
-        {...props}
       />
     </div>
   );
 }
-
-export default PromoCodes;

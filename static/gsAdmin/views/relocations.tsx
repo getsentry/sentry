@@ -2,15 +2,12 @@ import moment from 'moment-timezone';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
 import RelocationBadge from 'admin/components/relocationBadge';
 import ResultGrid from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import titleCase from 'getsentry/utils/titleCase';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: Relocation) => {
   return [
@@ -56,7 +53,7 @@ const getRow = (row: Relocation) => {
   ];
 };
 
-function Relocations(props: Props) {
+export default function Relocations() {
   return (
     <div>
       <PageHeader title="Relocations">
@@ -108,10 +105,7 @@ function Relocations(props: Props) {
               };
             });
         }}
-        {...props}
       />
     </div>
   );
 }
-
-export default Relocations;
