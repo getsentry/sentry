@@ -90,6 +90,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   issueSummary: {enabled: false},
   useOpenPeriodChecks: false,
   groupingInfo: {enabled: true},
+  instrumentationFixSection: {enabled: false},
 };
 
 const issueTypeConfig: Config = {
