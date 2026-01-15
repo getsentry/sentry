@@ -47,7 +47,7 @@ export function DebugNotificationsSidebar() {
 
 const CategoryDivider = styled('hr')`
   margin: 0 auto;
-  border-color: ${p => p.theme.tokens.border.muted};
+  border-color: ${p => p.theme.tokens.border.secondary};
   width: calc(100% - ${p => p.theme.space.xl});
 `;
 

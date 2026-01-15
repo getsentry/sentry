@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
-from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponseBase, HttpResponseRedirect
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from sentry import http
+from sentry import features, http
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -20,15 +20,20 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
+from sentry.integrations.github.issue_sync import GitHubIssueSyncSpec
 from sentry.integrations.github.issues import GitHubIssuesSpec
+from sentry.integrations.github.types import GitHubIssueStatus
 from sentry.integrations.github.utils import get_jwt, parse_github_blob_url
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
@@ -80,6 +85,18 @@ FEATURES = [
         Sentry bug to tracked issue or PR.
         """,
         IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically sync the status of Sentry issues to GitHub issues.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Automatically sync the assignment of Sentry issues to GitHub issues.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
     ),
     FeatureDescription(
         """
@@ -152,7 +169,7 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration
+    RepositoryIntegration, GitHubIssuesSpec, GitHubIssueSyncSpec, CommitContextIntegration
 ):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -265,6 +282,214 @@ class GitHubEnterpriseIntegration(
 
     def _get_debug_metadata_keys(self) -> list[str]:
         return ["domain_name", "installation_id", "account_type"]
+
+    def get_config_data(self):
+        config = self.org_integration.config
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
+        sync_status_forward = {}
+
+        for pm in project_mappings:
+            sync_status_forward[pm.external_id] = {
+                "on_unresolve": pm.unresolved_status,
+                "on_resolve": pm.resolved_status,
+            }
+        config["sync_status_forward"] = sync_status_forward
+        return config
+
+    def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
+        """
+        Return configuration options for the GitHub integration.
+        """
+        config: list[dict[str, Any]] = []
+
+        if features.has(
+            "organizations:integrations-github_enterprise-project-management", self.organization
+        ):
+            config.extend(
+                [
+                    {
+                        "name": self.inbound_status_key,
+                        "type": "boolean",
+                        "label": _("Sync GitHub Status to Sentry"),
+                        "help": _(
+                            "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
+                            "When a GitHub issue is reopened, unresolve its linked Sentry issue."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.inbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Github Assignment to Sentry"),
+                        "help": _(
+                            "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.outbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Assignment to GitHub"),
+                        "help": _(
+                            "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.resolution_strategy_key,
+                        "label": "Resolve",
+                        "type": "select",
+                        "placeholder": "Resolve",
+                        "choices": [
+                            ("resolve", "Resolve"),
+                            ("resolve_current_release", "Resolve in Current Release"),
+                            ("resolve_next_release", "Resolve in Next Release"),
+                        ],
+                        "help": _(
+                            "Select what action to take on Sentry Issue when GitHub ticket is marked Closed."
+                        ),
+                    },
+                    {
+                        "name": self.comment_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Comments to GitHub"),
+                        "help": _("Post comments from Sentry issues to linked GitHub issues"),
+                    },
+                ]
+            )
+
+        return config
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Return configuration options for the GitHub integration.
+        """
+        config = self._get_organization_config_default_values()
+
+        if features.has(
+            "organizations:integrations-github_enterprise-project-management", self.organization
+        ):
+
+            # Async lookup for integration external projects in the frontend
+            # Get currently configured external projects to display their labels
+            current_repo_items = []
+            external_projects = IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            )
+
+            if external_projects.exists():
+                # Use the stored external_id from IntegrationExternalProject
+                current_repo_items = [
+                    {"value": project.external_id, "label": project.external_id}
+                    for project in external_projects
+                ]
+
+            config.insert(
+                0,
+                {
+                    "name": self.outbound_status_key,
+                    "type": "choice_mapper",
+                    "label": _("Sync Sentry Status to Github"),
+                    "help": _(
+                        "When a Sentry issue changes status, change the status of the linked ticket in Github."
+                    ),
+                    "addButtonText": _("Add Github Project"),
+                    "addDropdown": {
+                        "emptyMessage": _("All projects configured"),
+                        "noResultsMessage": _("Could not find Github project"),
+                        "items": current_repo_items,
+                        "url": reverse(
+                            "sentry-integration-github-search",
+                            args=[self.organization.slug, self.model.id],
+                        ),
+                        "searchField": "repo",
+                    },
+                    "mappedSelectors": {
+                        "on_resolve": {"choices": GitHubIssueStatus.get_choices()},
+                        "on_unresolve": {"choices": GitHubIssueStatus.get_choices()},
+                    },
+                    "columnLabels": {
+                        "on_resolve": _("When resolved"),
+                        "on_unresolve": _("When unresolved"),
+                    },
+                    "mappedColumnLabel": _("Github Project"),
+                    "formatMessageValue": False,
+                },
+            )
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+
+        if not has_issue_sync:
+            for field in config:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return config
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        """
+        Update the configuration field for an organization integration.
+        """
+        if not self.org_integration:
+            return
+
+        config = self.org_integration.config
+
+        # Handle status sync configuration
+        if "sync_status_forward" in data:
+            project_mappings = data.pop("sync_status_forward")
+
+            if any(
+                not mapping["on_unresolve"] or not mapping["on_resolve"]
+                for mapping in project_mappings.values()
+            ):
+                raise IntegrationError("Resolve and unresolve status are required.")
+
+            data["sync_status_forward"] = bool(project_mappings)
+
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            ).delete()
+
+            for repo_id, statuses in project_mappings.items():
+                # For GitHub, we only support open/closed states
+                # Validate that the statuses are valid GitHub states
+                if statuses["on_resolve"] not in [
+                    GitHubIssueStatus.OPEN.value,
+                    GitHubIssueStatus.CLOSED.value,
+                ]:
+                    raise IntegrationError(
+                        f"Invalid resolve status: {statuses['on_resolve']}. Must be 'open' or 'closed'."
+                    )
+                if statuses["on_unresolve"] not in ["open", "closed"]:
+                    raise IntegrationError(
+                        f"Invalid unresolve status: {statuses['on_unresolve']}. Must be 'open' or 'closed'."
+                    )
+
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=repo_id,
+                    resolved_status=statuses["on_resolve"],
+                    unresolved_status=statuses["on_unresolve"],
+                )
+
+        config.update(data)
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
 
 class InstallationForm(forms.Form):
@@ -389,6 +614,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         [
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,
         ]

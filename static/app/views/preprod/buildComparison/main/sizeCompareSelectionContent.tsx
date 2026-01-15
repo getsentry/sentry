@@ -351,7 +351,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.colors.surface300};
+      background-color: ${p.theme.tokens.background.tertiary};
     `}
 `;
 

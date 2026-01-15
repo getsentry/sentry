@@ -294,7 +294,7 @@ def build_footer(
         key, value = get_rule_or_workflow_id(rules[0])
         match key:
             case "workflow_id":
-                rule_url = absolute_uri(create_link_to_workflow(group.organization.id, value))
+                rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))
             case "legacy_rule_id":
                 rule_url = build_rule_url(rules[0], group, project)
 

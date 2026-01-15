@@ -135,19 +135,30 @@ type ContainerPropsWithChildren<T extends ContainerElement = 'div'> =
   ContainerLayoutProps & {
     as?: T;
     children?: React.ReactNode;
+    htmlFor?: T extends 'label' ? string : never;
     ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
-  } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
+  } & React.DetailedHTMLProps<
+      React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+      HTMLElementTagNameMap[T]
+    >;
 
 type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
   ContainerLayoutProps & {
     children: (props: {className: string}) => React.ReactNode | undefined;
     as?: never;
+    htmlFor?: never;
     ref?: never;
   } & Partial<
       Record<
         // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
         // Therefore, we need to exclude it from the map, or the children will produce a never type.
-        Exclude<keyof React.HTMLAttributes<HTMLElementTagNameMap[T]>, 'children'>,
+        Exclude<
+          keyof React.DetailedHTMLProps<
+            React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+            HTMLElementTagNameMap[T]
+          >,
+          'children'
+        >,
         never
       >
     >;
@@ -251,7 +262,10 @@ export const Container = styled(
   ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
   ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
-  ${p => rc('background', p.background, p.theme, v => p.theme.tokens.background[v])};
+  ${p =>
+    rc('background', p.background, p.theme, v =>
+      v ? p.theme.tokens.background[v] : undefined
+    )};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 

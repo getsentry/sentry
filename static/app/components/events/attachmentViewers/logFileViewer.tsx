@@ -60,7 +60,7 @@ const SentryStyleAnsi = styled(Ansi)`
         color: ${p.theme.colors[`${themeColor}500`]};
       }
       .ansi-bright-${ansiColor}-fg {
-        color: ${p.theme.colors[`${themeColor}200`]};
+        color: ${p.theme.colors[`${themeColor}500`]};
       }`
     )}
 

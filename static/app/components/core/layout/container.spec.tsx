@@ -1,8 +1,9 @@
 import React, {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Container} from 'sentry/components/core/layout/container';
+import {Container, type ContainerProps} from 'sentry/components/core/layout/container';
 
 describe('Container', () => {
   it('renders children', () => {
@@ -47,6 +48,15 @@ describe('Container', () => {
         {props => <Child {...props} />}
       </Container>
     );
+  });
+
+  it('as=label props are correctly inferred', () => {
+    render(
+      <Container as="label" htmlFor="test-id">
+        Hello World
+      </Container>
+    );
+    expectTypeOf<ContainerProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('passes attributes to the underlying element', () => {

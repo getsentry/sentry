@@ -2,6 +2,8 @@ import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -218,7 +220,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         )}
         <Separator />
         <ProfilingDetailsListItem>
-          <LayoutSelectionContainer>
+          <Flex align="center" gap="2xs" height="100%">
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
                 priority="transparent"
@@ -249,7 +251,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
                 icon={<IconPanel direction="right" />}
               />
             </Tooltip>
-          </LayoutSelectionContainer>
+          </Flex>
         </ProfilingDetailsListItem>
       </ProfilingDetailsFrameTabs>
 
@@ -361,7 +363,7 @@ export const ProfilingDetailsFrameTabs = styled('ul')`
   padding: 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
-  background-color: ${props => props.theme.colors.surface300};
+  background-color: ${props => props.theme.tokens.background.tertiary};
   user-select: none;
   grid-area: tabs;
 `;
@@ -412,12 +414,5 @@ export const ProfilingDetailsListItem = styled('li')<{
 `;
 
 const StyledButton = Button;
-
-const LayoutSelectionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  gap: ${space(0.25)};
-`;
 
 export {FlamegraphDrawer};

@@ -49,7 +49,7 @@ class OpsgenieClient(ApiClient):
             # fetch the workflow_id from the rule.data
             workflow_id = get_key_from_rule_data(rule, "workflow_id")
             workflow_urls.append(
-                organization.absolute_url(create_link_to_workflow(organization.id, workflow_id))
+                organization.absolute_url(create_link_to_workflow(organization.slug, workflow_id))
             )
         return workflow_urls
 
