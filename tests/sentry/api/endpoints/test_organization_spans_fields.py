@@ -5,11 +5,11 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
+class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITestCase):
     view = "sentry-api-0-organization-spans-fields"
 
     def setUp(self) -> None:
@@ -142,6 +142,28 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
                 {"key": "measurements.lcp", "name": "measurements.lcp"},
                 {"key": "span.duration", "name": "span.duration"},
             ]
+
+    def test_boolean_attributes(self) -> None:
+        span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
+        span1["data"] = {
+            "is_feature_enabled": True,
+            "is_debug": False,
+        }
+        span2 = self.create_span(start_ts=before_now(days=0, minutes=10))
+        span2["data"] = {
+            "is_feature_enabled": False,
+            "is_production": True,
+        }
+        self.store_spans([span1, span2], is_eap=True)
+
+        response = self.do_request(
+            query={"dataset": "spans", "type": "boolean"},
+        )
+        assert response.status_code == 200, response.data
+        keys = {item["key"] for item in response.data}
+        assert "tags[is_feature_enabled,boolean]" in keys
+        assert "tags[is_debug,boolean]" in keys
+        assert "tags[is_production,boolean]" in keys
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
