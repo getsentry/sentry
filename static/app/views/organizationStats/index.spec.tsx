@@ -488,6 +488,64 @@ describe('OrganizationStats', () => {
     expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
   });
 
+  it('shows size analysis when billing feature flag is enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['size-analysis-billing'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(
+      screen.getByRole('option', {name: 'Size Analysis Uploads'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not show size analysis when billing feature flag is disabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: [],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(
+      screen.queryByRole('option', {name: 'Size Analysis Uploads'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows installable build when billing feature flag is enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['installable-build-billing'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.getByRole('option', {name: 'Build Distributions'})).toBeInTheDocument();
+  });
+
+  it('does not show installable build when billing feature flag is disabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: [],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(
+      screen.queryByRole('option', {name: 'Build Distributions'})
+    ).not.toBeInTheDocument();
+  });
+
   it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
     const newOrg = OrganizationFixture({
       features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
