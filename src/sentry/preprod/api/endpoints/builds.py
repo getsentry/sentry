@@ -98,6 +98,8 @@ FIELD_MAPPINGS: dict[str, str] = {
     "build_configuration": "build_configuration__name",
     "bundle_id": "app_id",
     "package_name": "app_id",
+    "build_version": "mobile_app_info__build_version",
+    "build_number": "mobile_app_info__build_number",
 }
 
 # Platform values map to artifact_type
@@ -132,9 +134,9 @@ def apply_filters(
                 continue
 
             search_query = (
-                Q(app_name__icontains=search_term)
+                Q(mobile_app_info__app_name__icontains=search_term)
                 | Q(app_id__icontains=search_term)
-                | Q(build_version__icontains=search_term)
+                | Q(mobile_app_info__build_version__icontains=search_term)
                 | Q(
                     commit_comparison__head_sha__icontains=search_term,
                     commit_comparison__organization_id=organization.id,
