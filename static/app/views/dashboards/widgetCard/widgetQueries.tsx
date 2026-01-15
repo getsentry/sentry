@@ -1,10 +1,8 @@
-import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
-  Organization,
 } from 'sentry/types/organization';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -17,24 +15,20 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import type {
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
-import GenericWidgetQueries from './genericWidgetQueries';
+import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
 
 type Props = {
-  api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  organization: Organization;
-  selection: PageFilters;
+  children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
@@ -42,15 +36,54 @@ type Props = {
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
-  queue?: WidgetQueryQueue;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: PageFilters;
 };
 
-function WidgetQueries({
-  api,
-  queue,
+function WidgetQueriesWithOnDemandControl({
   children,
-  organization,
+  widget,
+  dashboardFilters,
+  cursor,
+  limit,
+  onDataFetched,
+  onDataFetchStart,
   selection,
+  config,
+  afterFetchSeriesData,
+  afterFetchTableData,
+  mepSettingContext,
+  OnDemandControlContext,
+}: Omit<Props, 'onWidgetSplitDecision'> & {
+  OnDemandControlContext: any;
+  afterFetchSeriesData: (rawResults: SeriesResult) => void;
+  afterFetchTableData: (rawResults: TableResult) => void;
+  config: ReturnType<typeof getDatasetConfig>;
+  mepSettingContext: ReturnType<typeof useMEPSettingContext>;
+}) {
+  const props = useGenericWidgetQueries<SeriesResult, TableResult>({
+    config,
+    widget,
+    samplingMode:
+      widget.widgetType === WidgetType.SPANS ? SAMPLING_MODE.NORMAL : undefined,
+    cursor,
+    limit,
+    dashboardFilters,
+    onDataFetched,
+    onDataFetchStart,
+    selection,
+    afterFetchSeriesData,
+    afterFetchTableData,
+    mepSetting: mepSettingContext.metricSettingState,
+    onDemandControlContext: OnDemandControlContext,
+    ...OnDemandControlContext,
+  });
+
+  return children(props);
+}
+
+function WidgetQueries({
+  children,
   widget,
   dashboardFilters,
   cursor,
@@ -58,6 +91,7 @@ function WidgetQueries({
   onDataFetched,
   onWidgetSplitDecision,
   onDataFetchStart,
+  selection,
 }: Props) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
@@ -164,29 +198,22 @@ function WidgetQueries({
   return (
     <OnDemandControlConsumer>
       {OnDemandControlContext => (
-        <GenericWidgetQueries<SeriesResult, TableResult>
-          queue={queue}
-          config={config}
-          api={api}
-          organization={organization}
-          selection={selection}
+        <WidgetQueriesWithOnDemandControl
           widget={widget}
-          samplingMode={
-            widget.widgetType === WidgetType.SPANS ? SAMPLING_MODE.NORMAL : undefined
-          }
+          dashboardFilters={dashboardFilters}
           cursor={cursor}
           limit={limit}
-          dashboardFilters={dashboardFilters}
           onDataFetched={onDataFetched}
           onDataFetchStart={onDataFetchStart}
+          selection={selection}
+          config={config}
           afterFetchSeriesData={afterFetchSeriesData}
           afterFetchTableData={afterFetchTableData}
-          mepSetting={mepSettingContext.metricSettingState}
-          onDemandControlContext={OnDemandControlContext}
-          {...OnDemandControlContext}
+          mepSettingContext={mepSettingContext}
+          OnDemandControlContext={OnDemandControlContext}
         >
           {children}
-        </GenericWidgetQueries>
+        </WidgetQueriesWithOnDemandControl>
       )}
     </OnDemandControlConsumer>
   );
