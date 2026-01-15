@@ -15,8 +15,11 @@ export default function showNewSeer(organization: Organization) {
     return true;
   }
 
-  // Old seer plan
-  if (organization.features.includes('seer-added')) {
+  // Old seer plan or code-review-beta orgs
+  if (
+    organization.features.includes('seer-added') ||
+    organization.features.includes('code-review-beta')
+  ) {
     return false;
   }
 
