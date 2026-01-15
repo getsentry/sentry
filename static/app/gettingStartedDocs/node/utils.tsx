@@ -348,7 +348,6 @@ const getBrowserAgentMonitoringOnboardingConfiguration = ({
             code: `${getImport(packageName, importMode).join('\n')}
             import { ChatOpenAI } from "@langchain/openai";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 const llm = new ChatOpenAI({
   modelName: "gpt-4o",
@@ -817,7 +816,7 @@ const llm = new ChatOpenAI({
 
 const agent = createReactAgent({ llm, tools: [] });
 `
-    : ''
+    : 'const { HumanMessage, SystemMessage } = require("@langchain/core/messages");'
 }
 
 const result = await agent.invoke({
