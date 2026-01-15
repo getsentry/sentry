@@ -5,6 +5,7 @@ import type {User} from 'sentry/types/user';
 export type FormSearchContext = {
   access: Set<string>;
   organization: Organization | null;
+  team: Team | null;
   user: User | null;
   team?: Team | null;
 };

@@ -14,6 +14,7 @@ describe('FormSource', () => {
       user,
       organization,
       access: new Set(['org:write']),
+      team: null,
     };
 
     it('creates accountDetails form with userId field', () => {
