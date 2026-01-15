@@ -539,6 +539,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/sdk-deprecations/'
   | '/organizations/$organizationIdOrSlug/sdk-updates/'
   | '/organizations/$organizationIdOrSlug/sdks/'
+  | '/organizations/$organizationIdOrSlug/search-agent/start/'
+  | '/organizations/$organizationIdOrSlug/search-agent/state/$runId/'
   | '/organizations/$organizationIdOrSlug/search-agent/translate/'
   | '/organizations/$organizationIdOrSlug/searches/'
   | '/organizations/$organizationIdOrSlug/searches/$searchId/'
