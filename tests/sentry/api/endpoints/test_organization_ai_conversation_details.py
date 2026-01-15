@@ -187,6 +187,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Hello"}],
             response_text="Hi there!",
+            tokens=150,
+            cost=0.0025,
             user_id="user-123",
             user_email="test@example.com",
         )
@@ -217,8 +219,11 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert "transaction" in span
         assert "is_transaction" in span
         # Verify AI conversation attributes are included
+        assert span["gen_ai.operation.type"] == "ai_client"
         assert span["gen_ai.request.messages"] is not None
         assert span["gen_ai.response.text"] == "Hi there!"
+        assert span["gen_ai.usage.total_tokens"] == 150
+        assert span["gen_ai.cost.total_tokens"] == 0.0025
         # Verify user attributes are included
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
@@ -353,3 +358,33 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200, response.data
         assert len(response.data) == 1
         assert response.data[0]["gen_ai.conversation.id"] == conversation_id_2
+
+    def test_returns_tool_attributes(self) -> None:
+        """Test that tool spans include gen_ai.tool.name attribute"""
+        now = before_now(days=80).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            tool_name="search_database",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+
+        span = response.data[0]
+        assert span["span.op"] == "gen_ai.execute_tool"
+        assert span["gen_ai.operation.type"] == "tool"
+        assert span["gen_ai.tool.name"] == "search_database"

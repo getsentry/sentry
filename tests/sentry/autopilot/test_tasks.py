@@ -345,14 +345,20 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         prompt = mock_client_instance.start_run.call_args[0][0]
         assert "test-repo" in prompt
 
-        # Verify that an instrumentation issue was created
-        assert mock_create_issue.call_count == 1
-        call_kwargs = mock_create_issue.call_args[1]
-        assert call_kwargs["project_id"] == self.project.id
-        assert call_kwargs["detector_name"] == AutopilotDetectorName.MISSING_SDK_INTEGRATION
-        assert "Missing SDK Integrations" in call_kwargs["title"]
-        assert "anthropicIntegration" in call_kwargs["subtitle"]
-        assert "openaiIntegration" in call_kwargs["subtitle"]
+        # Verify that an instrumentation issue was created for each missing integration
+        assert mock_create_issue.call_count == 2
+
+        # Check that each integration got its own issue
+        call_args_list = [call[1] for call in mock_create_issue.call_args_list]
+        titles = [args["title"] for args in call_args_list]
+        assert "Missing SDK Integration: anthropicIntegration" in titles
+        assert "Missing SDK Integration: openaiIntegration" in titles
+
+        # Verify common attributes
+        for call_kwargs in call_args_list:
+            assert call_kwargs["project_id"] == self.project.id
+            assert call_kwargs["detector_name"] == AutopilotDetectorName.MISSING_SDK_INTEGRATION
+            assert call_kwargs["repository_name"] == "test-repo"
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")

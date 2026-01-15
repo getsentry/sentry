@@ -14,7 +14,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.autopilot.grouptype import InstrumentationIssueExperimentalGroupType
 from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -41,6 +41,7 @@ def create_instrumentation_issue(
     title: str,
     subtitle: str,
     description: str | None = None,
+    repository_name: str | None = None,
 ) -> None:
     detection_time = timezone.now()
     event_id = uuid.uuid4().hex
@@ -49,19 +50,30 @@ def create_instrumentation_issue(
     project = Project.objects.get_from_cache(id=project_id)
 
     evidence_data: dict[str, Any] = {}
+    evidence_display: list[IssueEvidence] = []
+
     if description:
         evidence_data["description"] = description
+        evidence_display.append(
+            IssueEvidence(name="Description", value=description, important=True)
+        )
+
+    if repository_name:
+        evidence_data["repository_name"] = repository_name
+        evidence_display.append(
+            IssueEvidence(name="Repository", value=repository_name, important=False)
+        )
 
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         project_id=project_id,
         event_id=event_id,
-        fingerprint=[detector_name],
+        fingerprint=[f"{detector_name}:{title}"],
         issue_title=title,
         subtitle=subtitle,
         resource_id=None,
         evidence_data=evidence_data,
-        evidence_display=[],
+        evidence_display=evidence_display,
         type=InstrumentationIssueExperimentalGroupType,
         detection_time=detection_time,
         culprit=detector_name,
@@ -397,16 +409,17 @@ If no missing integrations are found, return an empty array: `[]`"""
             },
         )
 
-        if missing_integrations:
-            integrations_list = ", ".join(missing_integrations)
+        for integration in missing_integrations:
             create_instrumentation_issue(
                 project_id=project.id,
                 detector_name=AutopilotDetectorName.MISSING_SDK_INTEGRATION,
-                title="Missing SDK Integrations Detected",
-                subtitle=f"Found {len(missing_integrations)} missing integration(s): {integrations_list}",
-                description=f"The following SDK integrations are available for your project but not configured: {integrations_list}. "
-                f"Adding these integrations can improve error tracking and provide better insights into your application's behavior. "
+                title=f"Missing SDK Integration: {integration}",
+                # TODO: Generate subtitle and description using AI
+                subtitle="Get better insights by enabling this integration",
+                description=f"The {integration} SDK integration is available for your project but not configured. "
+                f"Adding this integration can improve error tracking and provide better insights into your application's behavior. "
                 f"Learn more at: {integration_docs_url}",
+                repository_name=repo_name,
             )
 
         return missing_integrations
