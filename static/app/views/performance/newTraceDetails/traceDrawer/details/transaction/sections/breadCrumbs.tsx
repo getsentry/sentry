@@ -103,7 +103,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
             title={t('Filter')}
             {...props}
           >
-            {filters.length > 0 ? filters.length : null}
+            {filters.length > 0 ? filters.length : ''}
           </SelectTrigger.Button>
         )}
       />

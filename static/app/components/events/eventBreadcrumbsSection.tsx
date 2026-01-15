@@ -108,7 +108,7 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
             title={t('Filter')}
             {...props}
           >
-            {filters.length > 0 ? filters.length : null}
+            {filters.length > 0 ? filters.length : ''}
           </SelectTrigger.Button>
         )}
       />

@@ -1,5 +1,6 @@
 import {useId} from 'react';
 
+import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Text} from '@sentry/scraps/text';
 
@@ -42,12 +43,16 @@ export function AssertionOpStatusCode({
               });
             }}
             options={statusCodeOptions}
-            triggerProps={{
-              size: 'zero',
-              borderless: true,
-              showChevron: false,
-              children: <Text monospace>{selectedOption?.symbol ?? ''}</Text>,
-            }}
+            trigger={triggerProps => (
+              <SelectTrigger.Button
+                {...triggerProps}
+                size="zero"
+                borderless
+                showChevron={false}
+              >
+                <Text monospace>{selectedOption?.symbol ?? ''}</Text>
+              </SelectTrigger.Button>
+            )}
           />
         </InputGroup.LeadingItems>
         <InputGroup.Input
