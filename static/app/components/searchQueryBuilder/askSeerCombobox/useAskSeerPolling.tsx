@@ -18,10 +18,7 @@ const POLL_INTERVAL = 500; // Poll every 500ms, matching Seer Explorer
 /**
  * Generate the query key for polling the search agent state.
  */
-export const makeAskSeerQueryKey = (
-  orgSlug: string,
-  runId?: number
-): ApiQueryKey | null => {
+const makeAskSeerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey | null => {
   if (!runId) {
     return null;
   }
