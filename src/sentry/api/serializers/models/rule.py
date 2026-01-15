@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from functools import reduce
 from typing import Any, TypedDict
 
 from django.db.models import Max, Prefetch, Q, prefetch_related_objects
@@ -27,9 +26,9 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Workflow,
     WorkflowDataConditionGroup,
-    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
+from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 
 
 def generate_rule_label(project, rule, data):
@@ -217,20 +216,15 @@ class RuleSerializer(Serializer):
                     )
                 )
 
-                workflow_fire_results = (
-                    WorkflowFireHistory.objects.filter(workflow_id__in=workflow_rule_lookup.keys())
-                    .values("workflow_id")
-                    .annotate(date_added=Max("date_added"))
-                )
+                workflow_fire_dates = get_last_fired_dates(list(workflow_rule_lookup.keys()))
 
-                for wfh in workflow_fire_results:
-                    rule_id = workflow_rule_lookup.get(wfh["workflow_id"])
-                    if rule_id:
+                for workflow_id, last_fire in workflow_fire_dates.items():
+                    rule_id = workflow_rule_lookup.get(workflow_id)
+                    if rule_id and last_fire:
                         # Take the maximum date between RuleFireHistory and WorkflowFireHistory
                         existing_date = last_triggered_lookup.get(rule_id)
-                        new_date = wfh["date_added"]
-                        if (existing_date and new_date > existing_date) or not existing_date:
-                            last_triggered_lookup[rule_id] = new_date
+                        if (existing_date and last_fire > existing_date) or not existing_date:
+                            last_triggered_lookup[rule_id] = last_fire
 
             # Set the results
             for rule in item_list:
@@ -445,16 +439,8 @@ class WorkflowEngineRuleSerializer(Serializer):
         return all_conditions, all_filters
 
     def _fetch_workflow_last_triggered(self, item_list: Sequence[Workflow]) -> dict[int, datetime]:
-        result_qs = reduce(
-            lambda q1, q2: q1.union(q2),
-            [
-                WorkflowFireHistory.objects.filter(workflow=item)
-                .order_by("-date_added")
-                .values("workflow_id", "date_added")[:1]
-                for item in item_list
-            ],
-        )
-        return {wfh["workflow_id"]: wfh["date_added"] for wfh in result_qs}
+        results = get_last_fired_dates([w.id for w in item_list])
+        return {wf_id: date for wf_id, date in results.items() if date is not None}
 
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
         # Bulk fetch users that created workflows
