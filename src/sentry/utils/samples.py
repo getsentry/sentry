@@ -104,6 +104,9 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
     ).to_json()
 
 
+hard_code_it = "8e66c29fbd7949c5"
+
+
 def load_data(
     platform: str,
     default: str | None = None,
@@ -200,7 +203,7 @@ def load_data(
         if trace is None:
             trace = uuid4().hex
         if span_id is None:
-            span_id = uuid4().hex[:16]
+            span_id = hard_code_it
 
         for tag in data["tags"]:
             if tag[0] == "trace":

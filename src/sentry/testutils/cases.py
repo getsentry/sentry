@@ -3670,14 +3670,15 @@ class TraceAttachmentTestCase(BaseTestCase, TraceItemTestCase):
 class TraceTestCase(SpanTestCase):
     def setUp(self):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.root_span_ids = [uuid4().hex[:16] for _ in range(3)]
-        self.trace_id = uuid4().hex
+        self.root_span_ids = ["a531272b266e4c70", "911d0082ae684935", "4e3bbe6808554e44"]
+        self.trace_id = "17d32b0a62804686a97493306af9d2f5"
 
     def get_start_end_from_day_ago(self, milliseconds: int) -> tuple[datetime, datetime]:
         return self.day_ago, self.day_ago + timedelta(milliseconds=milliseconds)
 
     def create_event(
         self,
+        transaction_span_id: str,
         trace_id: str,
         transaction: str,
         spans: Sequence[dict[str, Any]],
@@ -3700,6 +3701,7 @@ class TraceTestCase(SpanTestCase):
             start = start_timestamp
         data = load_data(
             "transaction",
+            span_id=transaction_span_id,
             trace=trace_id,
             spans=spans,
             timestamp=end,

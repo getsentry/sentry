@@ -43,9 +43,25 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                 "trace_id": self.trace_id,
             },
         )
+        self.transaction_span_ids = [
+            "6b4dbecdfb5a4413",
+            "67b291a99f82485c",
+            "bb6435d08c574e21",
+            "b67f6be275f742ad",
+            "e7f38f9fd7914a4f",
+            "21e51c01dd334a8d",
+            "f66c9c2167c745d4",
+            "8fe916891a034d0d",
+            "b46ed413102c40f4",
+        ]
 
     def load_trace(self, is_eap=True):
+        root_txn_span_id = self.transaction_span_ids[0]
+        gen1_txn_span_ids = self.transaction_span_ids[1:4]
+        gen2_txn_span_ids = self.transaction_span_ids[4:7]
+        gen3_txn_span_id = self.transaction_span_ids[7]
         self.root_event = self.create_event(
+            transaction_span_id=root_txn_span_id,
             trace_id=self.trace_id,
             transaction="root",
             spans=[
@@ -76,10 +92,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         )
 
         # First Generation
-        self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen1_span_ids = ["9b725b4f93274804", "12bb6090f1d34cd7", "a22ed50709df49e1"]
         self.gen1_project = self.create_project(organization=self.organization)
         self.gen1_events = [
             self.create_event(
+                transaction_span_id=gen1_txn_span_ids[i],
                 trace_id=self.trace_id,
                 transaction=f"/transaction/gen1-{i}",
                 spans=[
@@ -102,7 +119,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         ]
 
         # Second Generation
-        self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen2_span_ids = ["5c8a3ae6412a4114", "0b804d8abb7542ab", "7e65390f24e242fc"]
         self.gen2_project = self.create_project(organization=self.organization)
 
         # Intentially pick a span id that starts with 0s
@@ -110,6 +127,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
 
         self.gen2_events = [
             self.create_event(
+                transaction_span_id=gen2_txn_span_ids[i],
                 trace_id=self.trace_id,
                 transaction=f"/transaction/gen2-{i}",
                 spans=[
@@ -136,6 +154,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         # Third generation
         self.gen3_project = self.create_project(organization=self.organization)
         self.gen3_event = self.create_event(
+            transaction_span_id=gen3_txn_span_id,
             trace_id=self.trace_id,
             transaction="/transaction/gen3-0",
             spans=[],

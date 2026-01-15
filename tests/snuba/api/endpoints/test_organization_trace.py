@@ -301,6 +301,7 @@ class OrganizationEventsTraceEndpointTest(
         data = response.data
         assert len(data) == 1
         self.assert_trace_data(data[0])
+        assert False
 
     def test_ignore_project_param(self) -> None:
         self.load_trace(is_eap=True)
