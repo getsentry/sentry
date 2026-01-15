@@ -50,18 +50,15 @@ export default function Create() {
   const router = useRouter();
   const {project, members} = useAlertBuilderOutlet();
   const hasMetricAlerts = organization.features.includes('incidents');
-  const {
-    aggregate,
-    dataset,
-    createFromDuplicate,
-    duplicateRuleId,
-    createFromDiscover,
-    query,
-    createFromWizard,
-  } = location?.query ?? {};
-  const eventTypes = location?.query?.eventTypes
-    ? (decodeScalar(location.query.eventTypes) as EventTypes)
-    : undefined;
+
+  const aggregate = decodeScalar(location.query.aggregate);
+  const dataset = decodeScalar(location.query.dataset) as Dataset | undefined;
+  const createFromDuplicate = decodeScalar(location.query.createFromDuplicate);
+  const duplicateRuleId = decodeScalar(location.query.duplicateRuleId);
+  const createFromDiscover = decodeScalar(location.query.createFromDiscover);
+  const query = decodeScalar(location.query.query);
+  const createFromWizard = decodeScalar(location.query.createFromWizard);
+  const eventTypes = decodeScalar(location.query.eventTypes) as EventTypes | undefined;
 
   const alertType = params.alertType || AlertRuleType.METRIC;
 
@@ -117,10 +114,10 @@ export default function Create() {
   useRouteAnalyticsEventNames('new_alert_rule.viewed', 'New Alert Rule: Viewed');
 
   const wizardTemplate: WizardRuleTemplate = {
-    aggregate: (aggregate as string | undefined) ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
-    dataset: (dataset as Dataset | undefined) ?? DEFAULT_WIZARD_TEMPLATE.dataset,
+    aggregate: aggregate ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
+    dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
     eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
-    query: (query as string | undefined) ?? DEFAULT_WIZARD_TEMPLATE.query,
+    query: query ?? DEFAULT_WIZARD_TEMPLATE.query,
   };
   const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
 
