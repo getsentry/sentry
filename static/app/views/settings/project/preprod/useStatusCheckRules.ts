@@ -7,6 +7,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {uniqueId} from 'sentry/utils/guid';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
 import {MEASUREMENT_OPTIONS, METRIC_OPTIONS, type StatusCheckRule} from './types';
@@ -125,7 +126,7 @@ export function useStatusCheckRules(project: Project) {
 
   const createEmptyRule = useCallback((): StatusCheckRule => {
     return {
-      id: crypto.randomUUID(),
+      id: uniqueId(),
       metric: DEFAULT_METRIC,
       measurement: DEFAULT_MEASUREMENT,
       value: 0,
