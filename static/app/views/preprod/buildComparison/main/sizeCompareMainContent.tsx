@@ -15,7 +15,9 @@ import {t} from 'sentry/locale';
 import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -56,11 +58,10 @@ export function SizeCompareMainContent() {
     parseAsBoolean.withDefault(true)
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const {baseArtifactId, headArtifactId, projectId} = useParams<{
-    baseArtifactId: string;
-    headArtifactId: string;
-    projectId: string;
-  }>();
+  const params = useParams() as {baseArtifactId?: string; headArtifactId?: string};
+  const headArtifactId = params.headArtifactId;
+  const baseArtifactId = params.baseArtifactId;
+  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
 
   const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
     useApiQuery<SizeComparisonApiResponse>(
@@ -110,7 +111,7 @@ export function SizeCompareMainContent() {
         getCompareBuildPath({
           organizationSlug: organization.slug,
           projectId,
-          headArtifactId,
+          headArtifactId: headArtifactId!,
           baseArtifactId,
         })
       );
@@ -186,8 +187,8 @@ export function SizeCompareMainContent() {
           priority="primary"
           onClick={() => {
             triggerComparison({
-              baseArtifactId,
-              headArtifactId,
+              baseArtifactId: baseArtifactId!,
+              headArtifactId: headArtifactId!,
             });
           }}
         >
@@ -226,8 +227,8 @@ export function SizeCompareMainContent() {
           priority="default"
           onClick={() => {
             triggerComparison({
-              baseArtifactId,
-              headArtifactId,
+              baseArtifactId: baseArtifactId!,
+              headArtifactId: headArtifactId!,
             });
           }}
         >
@@ -267,7 +268,7 @@ export function SizeCompareMainContent() {
             getCompareBuildPath({
               organizationSlug: organization.slug,
               projectId,
-              headArtifactId,
+              headArtifactId: headArtifactId!,
             })
           );
         }}

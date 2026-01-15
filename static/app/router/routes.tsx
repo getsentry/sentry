@@ -2489,16 +2489,47 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
+    // New routes (without projectId in path, using query param instead)
     {
-      path: ':artifactId/',
+      path: 'size/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
     },
     {
-      path: ':artifactId/install/',
+      path: 'install/:artifactId/',
       component: make(() => import('sentry/views/preprod/install/installPage')),
     },
     {
-      path: 'compare/',
+      path: 'size/compare/',
+      children: [
+        {
+          index: true,
+          component: errorHandler(RouteNotFound),
+        },
+        {
+          path: ':headArtifactId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+        {
+          path: ':headArtifactId/:baseArtifactId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+      ],
+    },
+    // Old routes (kept for backwards compatibility until backend switches)
+    {
+      path: ':projectId/:artifactId/',
+      component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
+    },
+    {
+      path: ':projectId/:artifactId/install/',
+      component: make(() => import('sentry/views/preprod/install/installPage')),
+    },
+    {
+      path: ':projectId/compare/',
       children: [
         {
           index: true,
@@ -2520,7 +2551,7 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const preprodRoutes: SentryRouteObject = {
-    path: '/preprod/:projectId/',
+    path: '/preprod/',
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,

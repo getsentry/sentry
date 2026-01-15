@@ -17,8 +17,10 @@ import {
   useMutation,
   type UseApiQueryResult,
 } from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -37,9 +39,9 @@ import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
 export default function BuildDetails() {
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
-  const params = useParams<{artifactId: string; projectId: string}>();
+  const params = useParams() as {artifactId: string};
   const artifactId = params.artifactId;
-  const projectId = params.projectId;
+  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({
     projectId,
     artifactId,

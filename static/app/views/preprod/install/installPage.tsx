@@ -5,7 +5,9 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
@@ -14,9 +16,9 @@ import {BuildInstallHeader} from 'sentry/views/preprod/install/buildInstallHeade
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export default function InstallPage() {
-  const params = useParams<{artifactId: string; projectId: string}>();
+  const params = useParams() as {artifactId: string};
   const artifactId = params.artifactId;
-  const projectId = params.projectId;
+  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const organization = useOrganization();
 
   const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
