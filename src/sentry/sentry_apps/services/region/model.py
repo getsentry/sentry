@@ -40,3 +40,13 @@ class RpcPlatformExternalIssueResult(RpcModel):
 class RpcEmptyResult(RpcModel):
     success: bool = True
     error: RpcSentryAppError | None = None
+
+
+class RpcServiceHookProject(RpcModel):
+    id: int
+    project_id: int
+
+
+class RpcServiceHookProjectsResult(RpcModel):
+    service_hook_projects: list[RpcServiceHookProject] = Field(default_factory=list)
+    error: RpcSentryAppError | None = None
