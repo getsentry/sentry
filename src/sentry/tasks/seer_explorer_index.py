@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
 
 import orjson
@@ -76,7 +76,7 @@ def schedule_explorer_index() -> None:
 
 
 def dispatch_explorer_index_projects(
-    all_projects: Generator[tuple[int, int]],
+    all_projects: Iterator[tuple[int, int]],
     timestamp: datetime,
 ) -> Generator[tuple[int, int]]:
     """
