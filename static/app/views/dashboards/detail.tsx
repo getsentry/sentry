@@ -760,13 +760,33 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleCloseWidgetBuilder = (newWidgets?: Widget[]) => {
-    const {organization, navigate, location, params} = this.props;
-    const {dashboardState} = this.state;
+    const {organization, navigate, location, params, dashboard} = this.props;
+    const {dashboardState, modifiedDashboard} = this.state;
 
     this.setState({
       isWidgetBuilderOpen: false,
       openWidgetTemplates: undefined,
     });
+
+    // Build the state to persist through the route change.
+    // This prevents losing data when the component remounts during navigation.
+    let navigationState: {dashboard?: DashboardDetails; widgets?: Widget[]} | undefined;
+
+    if (dashboardState === DashboardState.CREATE && defined(newWidgets)) {
+      // For new dashboards, persist the widgets
+      navigationState = {widgets: newWidgets};
+    } else if (dashboardState === DashboardState.VIEW && newWidgets) {
+      // For existing dashboards in view mode, persist the full dashboard with new widgets
+      // so it can be displayed immediately while the API update happens in the background
+      const currentDashboard = modifiedDashboard ?? dashboard;
+      navigationState = {
+        dashboard: {
+          ...currentDashboard,
+          widgets: newWidgets,
+        },
+      };
+    }
+
     navigate(
       getDashboardLocation({
         organization,
@@ -775,12 +795,7 @@ class DashboardDetail extends Component<Props, State> {
       }),
       {
         preventScrollReset: true,
-
-        // Persist the widgets through the route change to use location.state if we're
-        // creating a new dashboard, otherwise the navigation may remount the component and
-        // lose the widgets
-        state:
-          dashboardState === DashboardState.CREATE ? {widgets: newWidgets} : undefined,
+        state: navigationState,
       }
     );
   };
