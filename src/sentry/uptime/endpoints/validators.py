@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.fields import URLField
 
 from sentry import audit_log, quotas
-from sentry.api.fields import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -225,7 +225,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         default="active",
         help_text="Status of the uptime monitor. Disabled uptime monitors will not perform checks and do not count against the uptime monitor quota.",
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False,
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
