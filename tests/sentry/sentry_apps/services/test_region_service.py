@@ -234,36 +234,8 @@ class TestSentryAppRegionService(TestCase):
         assert all(hp.id is not None for hp in result.service_hook_projects)
 
     def test_set_service_hook_projects(self) -> None:
-        project2 = self.create_project(organization=self.org)
-        project3 = self.create_project(organization=self.org)
-
-        self.create_service_hook_project(project_id=self.project.id)
-
-        result = sentry_app_region_service.set_service_hook_projects(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            project_ids=[project2.id, project3.id],
-        )
-
-        assert result.error is None
-        assert {hp.project_id for hp in result.service_hook_projects} == {project2.id, project3.id}
-        assert all(hp.id is not None for hp in result.service_hook_projects)
-
-        with assume_test_silo_mode_of(ServiceHook):
-            hook = ServiceHook.objects.get(installation_id=self.install.id)
-            assert not ServiceHookProject.objects.filter(
-                service_hook_id=hook.id, project_id=self.project.id
-            ).exists()
-            assert ServiceHookProject.objects.filter(
-                service_hook_id=hook.id, project_id=project2.id
-            ).exists()
-            assert ServiceHookProject.objects.filter(
-                service_hook_id=hook.id, project_id=project3.id
-            ).exists()
-
-    def test_set_service_hook_projects_partial_overlap(self) -> None:
         """
-        Tests setting service hook projects when there's partial overlap between
+        Tests setting service hook projects with partial overlap between
         existing and new project IDs. Verifies that:
         - Projects only in old set (project) are removed
         - Projects in both sets (project2) are kept
