@@ -1,0 +1,225 @@
+from __future__ import annotations
+
+import logging
+from collections.abc import Generator, Iterator
+from datetime import datetime, timedelta
+
+import orjson
+import requests
+from django.conf import settings
+from django.utils import timezone as django_timezone
+
+from sentry import features, options
+from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.tasks.base import instrumented_task
+from sentry.tasks.statistical_detectors import compute_delay
+from sentry.taskworker.namespaces import seer_tasks
+from sentry.utils.cache import cache
+from sentry.utils.query import RangeQuerySetWrapper
+
+logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
+
+LAST_RUN_CACHE_KEY = "seer:explorer_index:last_run"
+LAST_RUN_CACHE_TIMEOUT = 24 * 60 * 60  # 24 hours
+
+EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
+EXPLORER_INDEX_RUN_FREQUENCY = timedelta(hours=24)
+# Use a larger prime number to spread indexing tasks throughout the day
+EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=127)
+
+
+def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
+    """
+    Get all active projects that belong to organizations with seer-explorer enabled.
+
+    Yields:
+        Tuple of (project_id, organization_id)
+    """
+    projects = Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization")
+
+    feature_cache: dict[int, bool] = {}
+    orgs_to_check: dict[int, Organization] = {}
+    pending_projects: list[tuple[int, int]] = []
+    batch_size = 100
+
+    def check_pending_orgs():
+        if not orgs_to_check:
+            return
+
+        feature_results = features.batch_has_for_organizations(
+            "organizations:seer-explorer-index", list(orgs_to_check.values())
+        )
+
+        if feature_results:
+            for org_key, enabled in feature_results.items():
+                org_id = int(org_key.split(":")[-1])
+                feature_cache[org_id] = enabled
+        else:
+            for org_id, org in orgs_to_check.items():
+                feature_cache[org_id] = features.has("organizations:seer-explorer-index", org)
+
+        orgs_to_check.clear()
+
+    for project in RangeQuerySetWrapper(
+        projects,
+        result_value_getter=lambda p: p.id,
+    ):
+        org_id = project.organization_id
+
+        if org_id not in feature_cache:
+            orgs_to_check[org_id] = project.organization
+
+            if len(orgs_to_check) >= batch_size:
+                check_pending_orgs()
+
+        if org_id in feature_cache:
+            if feature_cache[org_id]:
+                yield project.id, org_id
+        else:
+            pending_projects.append((project.id, org_id))
+
+    check_pending_orgs()
+
+    for project_id, org_id in pending_projects:
+        if feature_cache.get(org_id):
+            yield project_id, org_id
+
+
+@instrumented_task(
+    name="sentry.tasks.seer_explorer_index.schedule_explorer_index",
+    namespace=seer_tasks,
+    processing_deadline_duration=30,
+)
+def schedule_explorer_index() -> None:
+    """
+    Main periodic task that runs daily to schedule explorer indexing for active projects
+    in seer-enabled organizations. Spreads the load throughout the day.
+    """
+    if not options.get("seer.explorer_index.enable"):
+        return
+
+    last_run = cache.get(LAST_RUN_CACHE_KEY)
+    if last_run and last_run > django_timezone.now() - EXPLORER_INDEX_RUN_FREQUENCY:
+        return
+
+    cache.set(LAST_RUN_CACHE_KEY, django_timezone.now(), LAST_RUN_CACHE_TIMEOUT)
+
+    now = django_timezone.now()
+
+    projects = get_seer_explorer_enabled_projects()
+    projects = dispatch_explorer_index_projects(projects, now)
+
+    # Make sure to consume the generator
+    for _ in projects:
+        pass
+
+
+def dispatch_explorer_index_projects(
+    all_projects: Iterator[tuple[int, int]],
+    timestamp: datetime,
+) -> Generator[tuple[int, int]]:
+    """
+    Dispatch explorer indexing tasks for projects, batching them and spreading
+    the load throughout the day using countdown delays.
+
+    Args:
+        all_projects: Generator of (project_id, organization_id) tuples
+        timestamp: The timestamp when the dispatch started
+
+    Yields:
+        Each (project_id, organization_id) tuple as it's processed
+    """
+    batch: list[tuple[int, int]] = []
+    count = 0
+
+    for project_id, org_id in all_projects:
+        batch.append((project_id, org_id))
+        count += 1
+
+        if len(batch) >= EXPLORER_INDEX_PROJECTS_PER_BATCH:
+            run_explorer_index_for_projects.apply_async(
+                args=[batch, timestamp.isoformat()],
+                countdown=compute_delay(
+                    timestamp,
+                    (count - 1) // EXPLORER_INDEX_PROJECTS_PER_BATCH,
+                    duration=EXPLORER_INDEX_RUN_FREQUENCY,
+                    step=EXPLORER_INDEX_DISPATCH_STEP,
+                ),
+            )
+            batch = []
+
+        yield project_id, org_id
+
+    if batch:
+        run_explorer_index_for_projects.apply_async(
+            args=[batch, timestamp.isoformat()],
+            countdown=compute_delay(
+                timestamp,
+                (count - 1) // EXPLORER_INDEX_PROJECTS_PER_BATCH,
+                duration=EXPLORER_INDEX_RUN_FREQUENCY,
+                step=EXPLORER_INDEX_DISPATCH_STEP,
+            ),
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.seer_explorer_index.run_explorer_index_for_projects",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def run_explorer_index_for_projects(
+    projects: list[tuple[int, int]], start: str, *args, **kwargs
+) -> None:
+    """
+    Call the seer /v1/automation/explorer/index endpoint to schedule indexing tasks
+    for a batch of projects.
+
+    Args:
+        projects: List of (project_id, organization_id) tuples
+        start: ISO format timestamp string for when this batch was scheduled
+    """
+    if not options.get("seer.explorer_index.enable"):
+        return
+
+    if not projects:
+        return
+
+    project_list = [{"org_id": org_id, "project_id": project_id} for project_id, org_id in projects]
+    payload = {"projects": project_list}
+    body = orjson.dumps(payload)
+    path = "/v1/automation/explorer/index"
+
+    try:
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+    except requests.RequestException as e:
+        logger.exception(
+            "Failed to schedule explorer index tasks in seer",
+            extra={
+                "num_projects": len(projects),
+                "error": str(e),
+            },
+        )
+        raise
+
+    result = response.json()
+    scheduled_count = result.get("scheduled_count", 0)
+
+    logger.info(
+        "Successfully scheduled explorer index tasks in seer",
+        extra={
+            "scheduled_count": scheduled_count,
+            "requested_count": len(projects),
+        },
+    )
