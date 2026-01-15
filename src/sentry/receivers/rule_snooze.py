@@ -3,6 +3,7 @@ from django.db.models.signals import post_save, pre_delete
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
+from sentry.workflow_engine.models.detector import Detector
 
 
 def _update_workflow_engine_models(instance: RuleSnooze, is_enabled: bool) -> None:
@@ -23,8 +24,6 @@ def _update_workflow_engine_models(instance: RuleSnooze, is_enabled: bool) -> No
             detector.update(enabled=is_enabled)
 
             # Invalidate cache for all data sources associated with the detector
-            from sentry.workflow_engine.models.detector import Detector
-
             data_sources = detector.data_sources.values_list("source_id", "type")
             for source_id, source_type in data_sources:
                 cache_key = Detector._get_detectors_by_data_source_cache_key(source_id, source_type)
