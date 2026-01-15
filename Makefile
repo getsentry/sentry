@@ -136,7 +136,7 @@ test-python-ci:
 
 test-backend-ci-with-coverage:
 	@echo "--> Running CI Python tests with coverage"
-	COVERAGE_CORE=sysmon python3 -b -m pytest \
+	python3 -b -m pytest \
 		tests \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
