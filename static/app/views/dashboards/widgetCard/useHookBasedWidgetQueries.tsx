@@ -12,7 +12,6 @@ import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 
 import type {
   GenericWidgetQueriesResult,
@@ -26,7 +25,7 @@ type UseHookBasedWidgetQueriesProps<SeriesResponse, TableResponse> = {
   organization: any;
   pageFilters: PageFilters;
   props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>;
-  queue: WidgetQueryQueue | null;
+  queue: any; // ReactAsyncQueuer from @tanstack/react-pacer
   selection: PageFilters;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;
@@ -83,12 +82,10 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
   SeriesResponse,
   TableResponse
 >): GenericWidgetQueriesResult {
-  // State for controlling when queries execute (for queue integration)
-  const [queriesEnabled, setQueriesEnabled] = useState(false);
-  const enableQueriesRef = useRef(() => {
-    setQueriesEnabled(true);
-    return Promise.resolve();
-  });
+  // Ref to store refetch function for queue integration
+  const refetchRef = useRef<() => Promise<void>>(async () => {});
+  // Track if we've started fetching (for loading state)
+  const [hasFetched, setHasFetched] = useState(false);
 
   // Helper to apply dashboard filters
   const applyDashboardFilters = useCallback(
@@ -126,7 +123,7 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
       onDemandControlContext,
       mepSetting,
       samplingMode,
-      enabled: queriesEnabled && !disabled,
+      enabled: false, // Disable automatic fetching - we'll use refetch() instead
       limit,
       cursor,
     }),
@@ -138,28 +135,38 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
       onDemandControlContext,
       mepSetting,
       samplingMode,
-      queriesEnabled,
-      disabled,
       limit,
       cursor,
     ]
   );
 
   // Call both hooks unconditionally (hooks must be called in the same order every render)
-  // Only one will be enabled based on isChartDisplay
+  // Both are disabled - we'll use refetch() to trigger fetches manually
   const seriesQueryResults =
     config.useSeriesQuery?.({
       ...queryParams,
-      enabled: queryParams.enabled && isChartDisplay,
+      enabled: false, // Will be manually refetched
     }) ?? [];
   const tableQueryResults =
     config.useTableQuery?.({
       ...queryParams,
-      enabled: queryParams.enabled && !isChartDisplay,
+      enabled: false, // Will be manually refetched
     }) ?? [];
 
   // Use the appropriate results based on display type
   const queryResults = isChartDisplay ? seriesQueryResults : tableQueryResults;
+
+  // Update refetch ref with the current refetch functions
+  useEffect(() => {
+    refetchRef.current = async () => {
+      if (disabled) {
+        return;
+      }
+      setHasFetched(true);
+      // Refetch all queries in parallel
+      await Promise.all(queryResults.map(q => q.refetch()));
+    };
+  }, [queryResults, disabled]);
 
   // Aggregate loading and error states
   const isLoading = queryResults.some(q => q.isLoading);
@@ -300,9 +307,9 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
     if (!hasInitialFetchRef.current && !propsLoading) {
       hasInitialFetchRef.current = true;
       if (queue) {
-        queue.addItem({fetchDataRef: enableQueriesRef});
+        queue.addItem({fetchDataRef: refetchRef});
       } else {
-        setQueriesEnabled(true);
+        refetchRef.current();
       }
     }
   }, [queue, propsLoading]);
@@ -367,11 +374,10 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
           cursor !== prevProps.cursor
     ) {
       // Need to refetch
-      setQueriesEnabled(false);
       if (queue) {
-        queue.addItem({fetchDataRef: enableQueriesRef});
+        queue.addItem({fetchDataRef: refetchRef});
       } else {
-        setQueriesEnabled(true);
+        refetchRef.current();
       }
       prevPropsRef.current = props;
       prevSelectionRef.current = selection;
@@ -396,7 +402,7 @@ export function useHookBasedWidgetQueries<SeriesResponse, TableResponse>({
   }, [isLoading, onDataFetchStart]);
 
   return {
-    loading: isLoading || propsLoading || !queriesEnabled,
+    loading: isLoading || propsLoading || !hasFetched,
     errorMessage: hookErrorMessage,
     ...transformedData,
   };
