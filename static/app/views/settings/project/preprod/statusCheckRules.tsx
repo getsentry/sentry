@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import seerConfigBugSvg from 'sentry-images/spot/seer-config-bug-1.svg';
@@ -13,6 +13,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -23,6 +25,7 @@ import {useStatusCheckRules} from './useStatusCheckRules';
 export function StatusCheckRules() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const location = useLocation();
   const {data: repositories, isPending: isLoadingRepos} = useRepositories({
     orgSlug: organization.slug,
   });
@@ -31,11 +34,49 @@ export function StatusCheckRules() {
 
   const [newRuleId, setNewRuleId] = useState<string | null>(null);
 
+  const expandedRuleIds = useMemo(() => {
+    const expanded = location.query.expanded;
+    if (!expanded) {
+      return new Set<string>();
+    }
+    return new Set(Array.isArray(expanded) ? expanded : [expanded]);
+  }, [location.query.expanded]);
+
   const handleAddRule = () => {
     const newRule = createEmptyRule();
     addRule(newRule);
     setNewRuleId(newRule.id);
+    updateExpandedInUrl([...expandedRuleIds, newRule.id]);
   };
+
+  const updateExpandedInUrl = useCallback(
+    (expandedIds: string[]) => {
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          expanded: expandedIds,
+        },
+      });
+    },
+    [location.pathname, location.query]
+  );
+
+  const handleToggleExpanded = useCallback(
+    (ruleId: string, isExpanded: boolean) => {
+      const newExpanded = new Set(expandedRuleIds);
+      if (isExpanded) {
+        newExpanded.add(ruleId);
+      } else {
+        newExpanded.delete(ruleId);
+        if (ruleId === newRuleId) {
+          setNewRuleId(null);
+        }
+      }
+      updateExpandedInUrl([...newExpanded]);
+    },
+    [expandedRuleIds, newRuleId, updateExpandedInUrl]
+  );
 
   const hasRepositories = !isLoadingRepos && repositories && repositories.length > 0;
 
@@ -70,7 +111,10 @@ export function StatusCheckRules() {
                       <StatusCheckRuleItem
                         key={rule.id}
                         rule={rule}
-                        defaultExpanded={rule.id === newRuleId}
+                        isExpanded={rule.id === newRuleId || expandedRuleIds.has(rule.id)}
+                        onToggleExpanded={isExpanded =>
+                          handleToggleExpanded(rule.id, isExpanded)
+                        }
                         onSave={updated => {
                           updateRule(rule.id, updated);
                           if (rule.id === newRuleId) {
@@ -82,6 +126,9 @@ export function StatusCheckRules() {
                           if (rule.id === newRuleId) {
                             setNewRuleId(null);
                           }
+                          const newExpanded = new Set(expandedRuleIds);
+                          newExpanded.delete(rule.id);
+                          updateExpandedInUrl([...newExpanded]);
                         }}
                       />
                     ))}
