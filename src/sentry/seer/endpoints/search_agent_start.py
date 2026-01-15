@@ -168,16 +168,43 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
 
-        data = send_search_agent_start_request(
-            organization.id,
-            organization.slug,
-            project_ids,
-            natural_language_query,
-            strategy=strategy,
-            user_email=user_email,
-            timezone=timezone,
-            model_name=model_name,
-        )
+        try:
+            data = send_search_agent_start_request(
+                organization.id,
+                organization.slug,
+                project_ids,
+                natural_language_query,
+                strategy=strategy,
+                user_email=user_email,
+                timezone=timezone,
+                model_name=model_name,
+            )
 
-        # Return just the run_id for polling
-        return Response({"run_id": data.get("run_id")})
+            # Return just the run_id for polling
+            return Response({"run_id": data.get("run_id")})
+
+        except requests.HTTPError as e:
+            logger.exception(
+                "search_agent.start_error",
+                extra={
+                    "organization_id": organization.id,
+                    "project_ids": project_ids,
+                    "status_code": e.response.status_code if e.response is not None else None,
+                },
+            )
+            return Response(
+                {"detail": "Failed to start search agent"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        except Exception:
+            logger.exception(
+                "search_agent.start_error",
+                extra={
+                    "organization_id": organization.id,
+                    "project_ids": project_ids,
+                },
+            )
+            return Response(
+                {"detail": "Failed to start search agent"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
