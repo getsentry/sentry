@@ -699,6 +699,27 @@ class Quota(Service):
         """
         return True
 
+    def has_usage_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Check if organization has available quota for a usage-based category.
+
+        This is for categories with TallyType.USAGE (not SEAT-based). Unlike
+        has_available_reserved_budget (which is for cost-based Reserved Budgets
+        where reserved=-2), this checks usage-based quotas where reserved=N
+        means N events are allocated.
+
+        Use for usage-based categories like SIZE_ANALYSIS, INSTALLABLE_BUILD, and
+        similar categories that are not rate-limited in Relay.
+
+        Args:
+            org_id: The organization ID
+            data_category: The data category to check quota for
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
+        """
+        return True
+
     def record_seer_run(
         self,
         org_id: int,
