@@ -148,7 +148,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       label: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: theme.white,
+        color: theme.colors.white,
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
@@ -157,7 +157,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       },
       upperLabel: {
         show: true,
-        color: theme.white,
+        color: theme.colors.white,
         backgroundColor: 'transparent',
         height: 24,
         fontSize: 12,
@@ -239,7 +239,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
             fontSize: 12,
             fontWeight: 'bold',
             fontFamily: 'Rubik',
-            color: theme.white,
+            color: theme.colors.white,
           },
         },
       },

@@ -48,7 +48,7 @@ const TreemapControlButton = styled(Button)`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   height: 22px;
   min-height: 20px;
   max-height: 20px;
@@ -58,7 +58,7 @@ const TreemapControlButton = styled(Button)`
   box-shadow: ${p => p.theme.dropShadowMedium};
 
   &:hover {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
     background: rgba(0, 0, 0, 0.9);
   }
 `;

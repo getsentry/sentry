@@ -102,5 +102,5 @@ const StrengthLabel = styled('div')`
 `;
 
 const ScoreText = styled('strong')`
-  color: ${p => p.theme.black};
+  color: ${p => p.theme.colors.black};
 `;

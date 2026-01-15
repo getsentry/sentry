@@ -277,11 +277,11 @@ const StyledDropdownButton = styled(DropdownButton)`
 
 const TryNewButton = styled(Button)`
   background: linear-gradient(90deg, #3468d8, #248574);
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   &:hover,
   &:active,
   &:focus {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
   ::after {
     background: linear-gradient(90deg, #3468d8, #248574);
