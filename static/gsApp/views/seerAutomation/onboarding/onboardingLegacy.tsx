@@ -832,7 +832,7 @@ const ProjectName = styled('span')`
 
 const StepDescription = styled('div')`
   margin-bottom: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const HeaderText = styled('div')`
@@ -842,7 +842,7 @@ const HeaderText = styled('div')`
 const EmptyState = styled('div')`
   padding: ${space(2)};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const LoadingState = styled('div')`
@@ -851,7 +851,7 @@ const LoadingState = styled('div')`
   align-items: center;
   gap: ${space(1)};
   padding: ${space(3)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledGuidedSteps = styled(GuidedSteps)`
@@ -865,7 +865,8 @@ const ClickablePanelItem = styled(PanelItem)`
   padding-bottom: ${space(1)};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
@@ -878,7 +879,7 @@ const ScanActionWrapper = styled('div')`
 `;
 
 const EmptyProjectsMessage = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -907,7 +908,7 @@ const CustomizationList = styled('ul')`
 
   li {
     margin-bottom: ${space(1)};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 

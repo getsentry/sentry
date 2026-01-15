@@ -5,6 +5,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 
@@ -50,7 +52,7 @@ export const ListLabel = styled('p')`
   display: inline-block;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   white-space: nowrap;
   margin: ${space(0.5)} ${space(1.5)};
@@ -96,7 +98,7 @@ export const SectionTitle = styled('p')`
   display: inline-block;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   white-space: nowrap;
 
@@ -109,7 +111,7 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   margin: 0 -${space(0.5)} 0 ${space(2)};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   transition: opacity 0.1s;
 
   &:focus-visible {
@@ -150,19 +152,22 @@ export const SectionGroup = styled('ul')`
   padding: 0;
 `;
 
-export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 1em;
-  height: 1.4em;
-  padding-bottom: 1px;
-  pointer-events: none;
-`;
+export function LeadWrap(props: FlexProps) {
+  return (
+    <Flex
+      justify="center"
+      align="center"
+      minWidth="1em"
+      height="1.4em"
+      pointerEvents="none"
+      {...props}
+    />
+  );
+}
 
 export const EmptyMessage = styled('p')`
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(1)} ${space(1.5)} ${space(1.5)};
   margin: 0;
 
@@ -180,7 +185,7 @@ export const SizeLimitMessage = styled('li')`
   padding: ${space(0.75)} ${space(1)} 0;
 
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   list-style-type: none;
   white-space: nowrap;
   text-align: center;

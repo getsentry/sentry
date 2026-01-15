@@ -42,6 +42,7 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -122,7 +123,12 @@ export function SizeCompareSelectionContent({
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
+        getCompareBuildPath({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId: headBuildDetails.id,
+          baseArtifactId: selectedBaseBuild?.id,
+        })
       );
     },
     onError: error => {
@@ -167,7 +173,11 @@ export function SizeCompareSelectionContent({
             // Clear cursor when search query changes to avoid pagination issues
             if (cursor) {
               navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                getCompareBuildPath({
+                  organizationSlug: organization.slug,
+                  projectId,
+                  headArtifactId: headBuildDetails.id,
+                }),
                 {replace: true}
               );
             }
@@ -341,7 +351,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.colors.surface300};
+      background-color: ${p.theme.tokens.background.tertiary};
     `}
 `;
 
@@ -349,7 +359,7 @@ const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;

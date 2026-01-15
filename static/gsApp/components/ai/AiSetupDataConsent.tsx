@@ -325,7 +325,7 @@ const SingleCard = styled('div')`
 const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BulletList = styled('ul')`
@@ -337,14 +337,14 @@ const Paragraph = styled('p')`
 `;
 
 const TouchCustomerMessage = styled('p')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.tokens.content.promotion};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(2)};
 `;
 
 const LegalText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 
@@ -361,7 +361,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const ErrorText = styled('div')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const AddBudgetButton = styled(Button)`

@@ -8,7 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_index import (
-    AlertRuleIndexMixin,
+    AlertRuleFetchMixin,
     create_metric_alert,
 )
 from sentry.incidents.models.alert_rule import AlertRule
@@ -16,7 +16,7 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endp
 
 
 @region_silo_endpoint
-class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleIndexMixin):
+class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

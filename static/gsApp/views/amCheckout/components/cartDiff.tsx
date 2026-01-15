@@ -621,7 +621,7 @@ const Change = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.sm};
   font-family: ${p => p.theme.text.familyMono};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
 
   &::before {
@@ -645,17 +645,17 @@ const Added = styled(Change)<{prefersDarkMode?: boolean}>`
 `;
 
 const Removed = styled(Change)<{prefersDarkMode?: boolean}>`
-  background: ${p => p.theme.red100};
+  background: ${p => p.theme.colors.red100};
 
   span {
-    background: ${p => (p.prefersDarkMode ? p.theme.red400 : '#f7d4d3')};
+    background: ${p => (p.prefersDarkMode ? p.theme.colors.red500 : '#f7d4d3')};
   }
 `;
 
 const ChangedCategory = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ChangeSection = styled('div')`

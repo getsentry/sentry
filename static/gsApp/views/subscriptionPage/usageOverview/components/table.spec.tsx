@@ -1,3 +1,4 @@
+import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
@@ -5,12 +6,13 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
 describe('UsageOverviewTable', () => {
@@ -123,6 +125,12 @@ describe('UsageOverviewTable', () => {
 
   it('renders table and panel based on subscription state', async () => {
     subscription.onDemandMaxSpend = 100_00;
+    subscription.onDemandBudgets = {
+      enabled: true,
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 100_000,
+      onDemandSpendUsed: 0,
+    };
 
     subscription.categories.errors = {
       ...subscription.categories.errors!,
@@ -148,6 +156,21 @@ describe('UsageOverviewTable', () => {
       prepaid: UNLIMITED_RESERVED,
       usage: 500_000,
     };
+    subscription.productTrials = [
+      {
+        category: DataCategory.PROFILE_DURATION,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(10, 'days').format(),
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+      {
+        category: DataCategory.PROFILE_DURATION_UI,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'years').format(),
+      },
+    ];
     SubscriptionStore.set(organization.slug, subscription);
 
     render(
@@ -163,19 +186,37 @@ describe('UsageOverviewTable', () => {
     await screen.findByRole('columnheader', {name: 'Feature'});
 
     // Errors usage and gifted units
-    expect(screen.getByRole('cell', {name: '6K / 51K (1K gifted)'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '$10.00'})).toBeInTheDocument();
+    const errorsRow = screen.getByTestId('product-row-errors');
+    expect(
+      within(errorsRow).getByRole('cell', {name: '6K / 51K (1K gifted)'})
+    ).toBeInTheDocument();
+    expect(within(errorsRow).getByRole('cell', {name: '$10.00'})).toBeInTheDocument();
 
     // Attachments usage should be in the correct unit + above platform volume
-    expect(screen.getByRole('cell', {name: '500 MB / 25 GB'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '$6.00'})).toBeInTheDocument();
+    const attachmentsRow = screen.getByTestId('product-row-attachments');
+    expect(
+      within(attachmentsRow).getByRole('cell', {name: '500 MB / 25 GB'})
+    ).toBeInTheDocument();
+    expect(within(attachmentsRow).getByRole('cell', {name: '$6.00'})).toBeInTheDocument();
 
     // Reserved spans above platform volume
-    expect(screen.getByRole('cell', {name: '0 / 20M'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '$32.00'})).toBeInTheDocument();
+    const spansRow = screen.getByTestId('product-row-spans');
+    expect(within(spansRow).getByRole('cell', {name: '0 / 20M'})).toBeInTheDocument();
+    expect(within(spansRow).getByRole('cell', {name: '$32.00'})).toBeInTheDocument();
 
     // Unlimited usage for Replays
-    expect(screen.getByRole('cell', {name: 'Unlimited'})).toBeInTheDocument();
+    const replaysRow = screen.getByTestId('product-row-replays');
+    expect(within(replaysRow).getByRole('cell', {name: 'Unlimited'})).toBeInTheDocument();
+
+    // Active product trial for Continuous Profile Hours
+    const profileDurationRow = screen.getByTestId('product-row-profileDuration');
+    expect(within(profileDurationRow).getByText('20 days left')).toBeInTheDocument();
+
+    // Available product trial for Continuous Profile Hours UI
+    const profileDurationUIRow = screen.getByTestId('product-row-profileDurationUI');
+    expect(
+      within(profileDurationUIRow).getByRole('button', {name: 'Start trial'})
+    ).toBeInTheDocument();
   });
 
   it('renders table based on add-on state', async () => {
@@ -231,8 +272,10 @@ describe('UsageOverviewTable', () => {
     await screen.findByRole('columnheader', {name: 'Feature'});
 
     // issue fixes is unlimited
-    expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Unlimited'})).toBeInTheDocument();
+    const issueFixesRow = screen.getByTestId('product-row-seerAutofix');
+    expect(
+      within(issueFixesRow).getByRole('cell', {name: 'Unlimited'})
+    ).toBeInTheDocument();
 
     // issue scans is 0 so is not rendered
     expect(screen.queryByRole('cell', {name: 'Issue Scans'})).not.toBeInTheDocument();
@@ -270,8 +313,10 @@ describe('UsageOverviewTable', () => {
     await screen.findByRole('columnheader', {name: 'Feature'});
 
     // issue fixes is non-zero, non-unlimited
-    expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '0 / 100'})).toBeInTheDocument();
+    const issueFixesRow = screen.getByTestId('product-row-seerAutofix');
+    expect(
+      within(issueFixesRow).getByRole('cell', {name: '0 / 100'})
+    ).toBeInTheDocument();
 
     // issue scans is 0 so is not rendered
     expect(screen.queryByRole('cell', {name: 'Issue Scans'})).not.toBeInTheDocument();
@@ -309,9 +354,9 @@ describe('UsageOverviewTable', () => {
 
     await screen.findByRole('columnheader', {name: 'Feature'});
 
-    expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
+    const seerRow = screen.getByTestId('product-row-seer');
     expect(
-      screen.getByRole('cell', {name: '0 / 110 active contributors (10 gifted)'})
+      within(seerRow).getByRole('cell', {name: '0 / 110 active contributors (10 gifted)'})
     ).toBeInTheDocument();
   });
 
@@ -336,9 +381,11 @@ describe('UsageOverviewTable', () => {
     );
     await screen.findByRole('columnheader', {name: 'Feature'});
 
-    expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
+    const seerRow = screen.getByTestId('product-row-seer');
     // nullifies everything
-    expect(screen.getByRole('cell', {name: '0 active contributors'})).toBeInTheDocument();
+    expect(
+      within(seerRow).getByRole('cell', {name: '0 active contributors'})
+    ).toBeInTheDocument();
   });
 
   it('does not render data category with missing metric history', async () => {
@@ -358,5 +405,57 @@ describe('UsageOverviewTable', () => {
     await screen.findByRole('columnheader', {name: 'Feature'});
 
     expect(screen.queryByRole('cell', {name: 'Errors'})).not.toBeInTheDocument();
+  });
+
+  it('renders disabled product rows', async () => {
+    // both profiling categories are disabled because there is no PAYG
+    subscription.onDemandBudgets = {
+      enabled: true,
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 0,
+      onDemandSpendUsed: 0,
+    };
+    subscription.productTrials = [
+      {
+        category: DataCategory.PROFILE_DURATION,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(10, 'days').format(),
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+      {
+        category: DataCategory.PROFILE_DURATION_UI,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'years').format(),
+      },
+    ];
+
+    render(
+      <UsageOverviewTable
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    // even though PAYG is 0, profile duration is still considered enabled because there is an active product trial
+    const profileDurationRow = screen.getByTestId('product-row-profileDuration');
+    expect(within(profileDurationRow).getByText('20 days left')).toBeInTheDocument();
+    expect(within(profileDurationRow).getByText('Unlimited')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('product-row-disabled-profileDuration')
+    ).not.toBeInTheDocument();
+
+    const profileDurationUIRow = screen.getByTestId(
+      'product-row-disabled-profileDurationUI'
+    );
+    expect(
+      within(profileDurationUIRow).getByRole('button', {name: 'Start trial'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('product-row-profileDurationUI')).not.toBeInTheDocument();
   });
 });

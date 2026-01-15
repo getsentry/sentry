@@ -161,7 +161,7 @@ const EventItemsTitle = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSize.xs};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const YouAreHere = styled('div')`
@@ -188,7 +188,7 @@ const EventItemRoot = styled(Link)`
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
-    background-color: ${p => p.theme.colors.surface300};
+    background-color: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -200,12 +200,20 @@ const EventTitleWrapper = styled('div')`
 `;
 
 const EventTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const EventDescription = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   direction: rtl;
 `;
 

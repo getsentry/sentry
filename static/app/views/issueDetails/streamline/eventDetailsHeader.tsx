@@ -6,7 +6,10 @@ import {Flex, Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+} from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -161,17 +164,20 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         },
                       });
                     }}
-                    triggerProps={{
-                      children:
-                        period === defaultStatsPeriod &&
+                    trigger={triggerProps => (
+                      <TimeRangeSelectTrigger
+                        {...triggerProps}
+                        style={{
+                          padding: `${theme.space.md} ${theme.space.lg}`,
+                        }}
+                      >
+                        {period === defaultStatsPeriod &&
                         !defaultStatsPeriod.isMaxRetention &&
                         shouldShowSinceFirstSeenOption
                           ? t('Since First Seen')
-                          : undefined,
-                      style: {
-                        padding: `${theme.space.md} ${theme.space.lg}`,
-                      },
-                    }}
+                          : triggerProps.children}
+                      </TimeRangeSelectTrigger>
+                    )}
                   />
                 </PageFilterBar>
                 {searchBarEnabled && (
@@ -263,7 +269,7 @@ const DetailsContainer = styled('div')<{
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding-left: ${p => p.theme.space['2xl']};
   padding-right: ${p => p.theme.space['2xl']};
   padding-top: ${p => p.theme.space.lg};

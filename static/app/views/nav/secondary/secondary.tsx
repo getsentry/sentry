@@ -342,7 +342,11 @@ const SectionTitleCollapsible = styled(Button, {
 `;
 
 const SectionTitleLabelWrap = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
 `;
 
@@ -374,7 +378,7 @@ const Item = styled(Link)<ItemProps>`
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.tokens.component.link.muted.default};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
     p.layout === NavLayout.MOBILE
       ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
@@ -396,32 +400,40 @@ const Item = styled(Link)<ItemProps>`
     height: 20px;
     left: -${space(1.5)};
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
 
   &:hover {
-    color: ${p => p.theme.tokens.component.link.muted.default};
-    background-color: ${p => p.theme.colors.gray100};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.component.link.accent.default};
-    background-color: ${p => p.theme.colors.blue100};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
 
     &::before {
       opacity: 1;
     }
     /* Override the default hover styles */
     &:hover {
-      background-color: ${p => p.theme.colors.blue200};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
   }
 `;
 
 const ItemText = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`

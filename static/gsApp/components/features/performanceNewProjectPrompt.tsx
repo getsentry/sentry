@@ -67,7 +67,7 @@ const StyledAlert = styled(Alert)`
   margin-top: ${space(3)};
 
   ${StyledButton} svg {
-    color: ${p => p.theme.button.primary.color};
+    color: ${p => p.theme.colors.white};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {

@@ -77,7 +77,7 @@ export function AppSizeInsights({
         gap="2xs"
         css={theme => ({
           '& > :nth-child(odd)': {
-            backgroundColor: theme.backgroundSecondary,
+            backgroundColor: theme.tokens.background.secondary,
           },
         })}
       >

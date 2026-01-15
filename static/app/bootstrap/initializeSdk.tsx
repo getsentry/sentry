@@ -49,6 +49,14 @@ const IGNORED_SPANS_BY_DESCRIPTION = [
   'reload.getsentry.net',
 ];
 
+/**
+ * Check if the message is from the console banner in `static/app/bootstrap/printConsoleBanner.ts`.
+ * Used to filter it from both breadcrumbs and logs.
+ */
+function isConsoleBannerMessage(message: string | undefined): boolean {
+  return !!message?.includes('Hey, you opened the console!');
+}
+
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
@@ -178,11 +186,16 @@ export function initializeSdk(config: Config) {
     beforeBreadcrumb(crumb) {
       const isFetch = crumb.category === 'fetch' || crumb.category === 'xhr';
 
-      // Ignore
+      // Ignore fetch/xhr requests to certain hosts
       if (
         isFetch &&
         IGNORED_BREADCRUMB_FETCH_HOSTS.some(host => crumb.data?.url?.includes(host))
       ) {
+        return null;
+      }
+
+      // Ignore the console banner
+      if (crumb.category === 'console' && isConsoleBannerMessage(crumb.message)) {
         return null;
       }
 
@@ -315,8 +328,8 @@ export function addEndpointTagToRequestError(event: Event): void {
 }
 
 function isFilteredLog(log: Log): boolean {
-  // Ignore the console banner from `static/app/bootstrap/printConsoleBanner.ts`
-  if (log.message.includes('Hey, you opened the console!')) {
+  // Ignore the console banner
+  if (isConsoleBannerMessage(log.message)) {
     return true;
   }
 

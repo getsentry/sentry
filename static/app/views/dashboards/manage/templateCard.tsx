@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
 import {IconAdd, IconGeneric} from 'sentry/icons';
@@ -20,14 +22,14 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
 
   return (
     <StyledCard>
-      <Header>
+      <Flex gap="xl">
         <IconGeneric legacySize="48px" />
         <Title>
           {title}
           <Detail>{description}</Detail>
         </Title>
-      </Header>
-      <ButtonContainer>
+      </Flex>
+      <Flex wrap="wrap" gap="md">
         <DashboardCreateLimitWrapper>
           {({
             hasReachedDashboardLimit,
@@ -56,7 +58,7 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
         <StyledButton priority="primary" onClick={onPreview}>
           {t('Preview')}
         </StyledButton>
-      </ButtonContainer>
+      </Flex>
     </StyledCard>
   );
 }
@@ -64,11 +66,6 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
 const StyledCard = styled(Card)`
   gap: ${space(1)};
   padding: ${space(2)};
-`;
-
-const Header = styled('div')`
-  display: flex;
-  gap: ${space(2)};
 `;
 
 const Title = styled('div')`
@@ -80,13 +77,7 @@ const Title = styled('div')`
 const Detail = styled(Title)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledButton = styled(Button)`
