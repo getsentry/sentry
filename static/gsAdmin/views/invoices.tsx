@@ -64,7 +64,7 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
   </td>,
 ];
 
-function Invoices() {
+export default function Invoices() {
   return (
     <div>
       <PageHeader title="Invoices" />
@@ -156,5 +156,3 @@ function Invoices() {
     </div>
   );
 }
-
-export default Invoices;

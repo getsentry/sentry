@@ -7,7 +7,7 @@ const getRow = (row: any) => [
   <td key="permission">{row.permission}</td>,
 ];
 
-function BillingAdmins() {
+export default function BillingAdmins() {
   return (
     <div>
       <PageHeader title="Billing Admin Users" />
@@ -26,5 +26,3 @@ function BillingAdmins() {
     </div>
   );
 }
-
-export default BillingAdmins;

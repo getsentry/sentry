@@ -35,7 +35,7 @@ const getRow = (doc: DocIntegration) => [
   </td>,
 ];
 
-function DocIntegrations() {
+export default function DocIntegrations() {
   return (
     <div>
       <PageHeader title="Document Integrations">
@@ -78,5 +78,3 @@ const IntegrationName = styled('div')`
   align-items: center;
   gap: ${space(1)};
 `;
-
-export default DocIntegrations;

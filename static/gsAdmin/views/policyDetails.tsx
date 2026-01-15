@@ -19,9 +19,9 @@ import PolicyRevisionModal from 'admin/components/policies/policyRevisionModal';
 import PolicyRevisions from 'admin/components/policies/policyRevisions';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
-function PolicyDetails() {
+export default function PolicyDetails() {
   const api = useApi();
-  const {policySlug} = useParams() as {policySlug: string};
+  const {policySlug} = useParams();
 
   const {
     data: policy,
@@ -113,5 +113,3 @@ function PolicyDetails() {
     />
   );
 }
-
-export default PolicyDetails;

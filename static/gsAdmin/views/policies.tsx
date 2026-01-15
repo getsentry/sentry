@@ -23,7 +23,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function Policies() {
+export default function Policies() {
   const hasPermission = ConfigStore.get('user').permissions.has('policies.admin');
 
   return (
@@ -60,5 +60,3 @@ function Policies() {
     </div>
   );
 }
-
-export default Policies;

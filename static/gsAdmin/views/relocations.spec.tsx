@@ -135,7 +135,6 @@ describe('Relocations', () => {
   });
 
   it('renders', async () => {
-    // Router props no longer needed
     render(<Relocations />);
 
     expect(await screen.findByRole('heading', {name: 'Relocations'})).toBeInTheDocument();

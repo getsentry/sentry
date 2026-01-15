@@ -1,8 +1,8 @@
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {PolicyRevisionsFixture} from 'getsentry-test/fixtures/policyRevisions';
-// import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-// import PolicyDetails from 'admin/views/policyDetails';
+import PolicyDetails from 'admin/views/policyDetails';
 
 describe('PolicyDetails', () => {
   const revisions = PolicyRevisionsFixture();
@@ -21,27 +21,31 @@ describe('PolicyDetails', () => {
     });
   });
 
-  // TODO: Re-enable test after fixing useParams mock strategy
-  // Test was disabled during deprecatedRouteProps removal
-  // it('can update current version', async () => {
-  //   const updateMock = MockApiClient.addMockResponse({
-  //     url: `/policies/${policy.slug}/revisions/${revisions[0]!.version}/`,
-  //     method: 'PUT',
-  //   });
+  it('can update current version', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/policies/${policy.slug}/revisions/${revisions[0]!.version}/`,
+      method: 'PUT',
+    });
 
-  //   // TODO: Need to figure out proper way to pass params to useParams in tests
-  //   render(<PolicyDetails />);
+    render(<PolicyDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/_admin/policies/${policy.slug}/`,
+        },
+        route: '/_admin/policies/:policySlug/',
+      },
+    });
 
-  //   const buttons = await screen.findAllByText('Make current');
-  //   // Update current version
-  //   await userEvent.click(buttons[0]!);
+    const buttons = await screen.findAllByText('Make current');
+    // Update current version
+    await userEvent.click(buttons[0]!);
 
-  //   expect(updateMock).toHaveBeenCalledWith(
-  //     `/policies/${policy.slug}/revisions/${revisions[0]!.version}/`,
-  //     expect.objectContaining({
-  //       method: 'PUT',
-  //       data: {current: true},
-  //     })
-  //   );
-  // });
+    expect(updateMock).toHaveBeenCalledWith(
+      `/policies/${policy.slug}/revisions/${revisions[0]!.version}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {current: true},
+      })
+    );
+  });
 });

@@ -42,7 +42,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function PromoCodes() {
+export default function PromoCodes() {
   return (
     <div>
       <PageHeader title="Promo Codes">
@@ -89,5 +89,3 @@ function PromoCodes() {
     </div>
   );
 }
-
-export default PromoCodes;

@@ -86,7 +86,7 @@ function EditableOption({
   );
 }
 
-function Options() {
+export default function Options() {
   return (
     <div>
       <PageHeader title="Options" />
@@ -135,5 +135,3 @@ const modalCss = css`
 function isNum(input: any): input is number {
   return typeof input === 'number' && !isNaN(input);
 }
-
-export default Options;

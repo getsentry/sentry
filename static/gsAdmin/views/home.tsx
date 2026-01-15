@@ -12,7 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import DebounceSearch from 'admin/components/debounceSearch';
 import Overview from 'admin/views/overview';
 
-function HomePage() {
+export default function HomePage() {
   const navigate = useNavigate();
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);
@@ -194,5 +194,3 @@ const Warning = styled('div')`
   color: red;
   font-size: large;
 `;
-
-export default HomePage;

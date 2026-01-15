@@ -38,7 +38,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function SentryApps() {
+export default function SentryApps() {
   return (
     <div>
       <PageHeader title="Integration Platform Apps" />
@@ -68,5 +68,3 @@ const IntegrationName = styled('div')`
   align-items: center;
   gap: ${space(1)};
 `;
-
-export default SentryApps;

@@ -1,4 +1,3 @@
-// import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PromoCode as PromoCodeType} from 'admin/types';
@@ -25,8 +24,6 @@ function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
 
 describe('PromoCodes', () => {
   it('renders', async () => {
-    // Router props no longer needed
-
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
@@ -37,8 +34,6 @@ describe('PromoCodes', () => {
   });
 
   it('shows a promo code created by someone with an email', async () => {
-    // Router props no longer needed
-
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
@@ -51,8 +46,6 @@ describe('PromoCodes', () => {
   });
 
   it('shows a promo code created by someone without an email', async () => {
-    // Router props no longer needed
-
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',

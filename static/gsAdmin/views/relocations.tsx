@@ -53,7 +53,7 @@ const getRow = (row: Relocation) => {
   ];
 };
 
-function Relocations() {
+export default function Relocations() {
   return (
     <div>
       <PageHeader title="Relocations">
@@ -109,5 +109,3 @@ function Relocations() {
     </div>
   );
 }
-
-export default Relocations;

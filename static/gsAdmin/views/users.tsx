@@ -30,7 +30,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function Users() {
+export default function Users() {
   return (
     <div>
       <PageHeader title="Users" />
@@ -68,5 +68,3 @@ function Users() {
     </div>
   );
 }
-
-export default Users;

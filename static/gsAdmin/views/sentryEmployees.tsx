@@ -10,7 +10,7 @@ import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 import UserPermissionsModal from 'admin/components/users/userPermissionsModal';
 
-function SentryEmployees() {
+export default function SentryEmployees() {
   const gridColumns = [
     <th key="user">User</th>,
     <th key="email" style={{width: 100, textAlign: 'center'}}>
@@ -198,5 +198,3 @@ function SentryEmployees() {
     </div>
   );
 }
-
-export default SentryEmployees;
