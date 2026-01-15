@@ -471,7 +471,7 @@ const TopRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;

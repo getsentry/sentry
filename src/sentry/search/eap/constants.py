@@ -211,3 +211,9 @@ SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry._internal."]
 TIMESTAMP_PRECISE_ALIAS = "timestamp_precise"
 TIMESTAMP_ALIAS = "timestamp"
 TRACE_ALIAS = "trace"
+
+ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP = {
+    "number": AttributeKey.Type.TYPE_DOUBLE,
+    "boolean": AttributeKey.Type.TYPE_BOOLEAN,
+    "string": AttributeKey.Type.TYPE_STRING,
+}
