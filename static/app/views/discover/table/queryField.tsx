@@ -3,7 +3,6 @@ import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
 import type {ControlProps} from 'sentry/components/core/select';
@@ -25,7 +24,9 @@ import type {
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
 import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
+import type {FieldValueType} from 'sentry/utils/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import ArithmeticInput from './arithmeticInput';
 import type {FieldValue, FieldValueColumns} from './types';
@@ -594,41 +595,19 @@ class _QueryField extends Component<Props> {
     if (renderTagOverride) {
       return renderTagOverride(kind, label, meta);
     }
-    let text: string;
-    let tagVariant:
-      | Extract<TagProps['variant'], 'success' | 'info' | 'warning'>
-      | undefined;
 
-    switch (kind) {
-      case FieldValueKind.FUNCTION:
-        text = 'f(x)';
-        tagVariant = 'success';
-        break;
-      case FieldValueKind.CUSTOM_MEASUREMENT:
-      case FieldValueKind.MEASUREMENT:
-        text = 'field';
-        tagVariant = 'info';
-        break;
-      case FieldValueKind.BREAKDOWN:
-        text = 'field';
-        tagVariant = 'info';
-        break;
-      case FieldValueKind.TAG:
-        text = kind;
-        tagVariant = 'warning';
-        break;
-      case FieldValueKind.NUMERIC_METRICS:
-        text = 'f(x)';
-        tagVariant = 'success';
-        break;
-      case FieldValueKind.FIELD:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-        tagVariant = 'info';
-        break;
-      default:
-        text = kind;
+    let valueType: FieldValueType | undefined = meta?.name as FieldValueType;
+    if ('dataType' in meta) {
+      valueType = meta.dataType as FieldValueType;
     }
-    return <Tag variant={tagVariant ?? 'muted'}>{text}</Tag>;
+    return (
+      <TypeBadge
+        label={label}
+        valueKind={kind}
+        valueType={valueType}
+        deprecatedFields={DEPRECATED_FIELDS}
+      />
+    );
   }
 
   render() {
