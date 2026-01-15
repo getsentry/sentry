@@ -305,7 +305,6 @@ class TestSentryAppRegionService(TestCase):
 
     def test_record_interaction(self) -> None:
         result = sentry_app_region_service.record_interaction(
-            organization_id=self.org.id,
             sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_viewed",
         )
@@ -314,7 +313,6 @@ class TestSentryAppRegionService(TestCase):
         assert result.error is None
 
         result = sentry_app_region_service.record_interaction(
-            organization_id=self.org.id,
             sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_component_interacted",
             component_type="issue-link",
@@ -325,7 +323,6 @@ class TestSentryAppRegionService(TestCase):
 
     def test_record_interaction_error(self) -> None:
         result = sentry_app_region_service.record_interaction(
-            organization_id=self.org.id,
             sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="invalid_field",
         )
@@ -336,7 +333,6 @@ class TestSentryAppRegionService(TestCase):
         assert "tsdbField must be one of" in result.error.message
 
         result = sentry_app_region_service.record_interaction(
-            organization_id=self.org.id,
             sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_component_interacted",
         )
