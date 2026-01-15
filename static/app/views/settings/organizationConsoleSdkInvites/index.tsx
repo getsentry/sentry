@@ -5,6 +5,11 @@ import {Alert} from '@sentry/scraps/alert';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -18,6 +23,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -28,6 +34,7 @@ import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
   const user = useUser();
+  const queryClient = useQueryClient();
 
   const {
     data: invites,
@@ -35,7 +42,7 @@ export default function ConsoleSDKInvitesSettings() {
     isError,
     refetch,
   } = useConsoleSdkInvites(organization.slug);
-  const {mutate: revokePlatformInvite, isPending: isRevoking} =
+  const {mutateAsync: revokePlatformInvite, isPending: isRevoking} =
     useRevokeConsoleSdkPlatformInvite();
 
   const userHasConsoleAccess = (organization.enabledConsolePlatforms?.length ?? 0) > 0;
@@ -120,11 +127,29 @@ export default function ConsoleSDKInvitesSettings() {
                           if (isRevoking) {
                             return;
                           }
+                          addLoadingMessage(t('Revoking %s access...', displayName));
                           revokePlatformInvite({
                             userId: invite.user_id,
                             platforms: [platform],
                             orgSlug: organization.slug,
-                          });
+                          })
+                            .then(() => {
+                              addSuccessMessage(
+                                t('Successfully revoked %s access', displayName)
+                              );
+                            })
+                            .catch(() => {
+                              addErrorMessage(
+                                t('Failed to revoke %s access', displayName)
+                              );
+                            })
+                            .finally(() => {
+                              queryClient.invalidateQueries({
+                                queryKey: [
+                                  `/organizations/${organization.slug}/console-sdk-invites/`,
+                                ],
+                              });
+                            });
                         }}
                       >
                         {displayName}
