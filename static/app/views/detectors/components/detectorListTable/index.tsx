@@ -39,7 +39,6 @@ import {
 } from 'sentry/views/detectors/monitorViewContext';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
-import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 
 type DetectorListTableProps = {
   allResultsVisible: boolean;
@@ -144,7 +143,11 @@ function DetectorListTable({
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const {additionalColumns = [], renderVisualization} = useMonitorViewContext();
+  const {
+    additionalColumns = [],
+    renderVisualization,
+    renderTimelineOverlay,
+  } = useMonitorViewContext();
   const hasVisualization = defined(renderVisualization);
 
   return (
@@ -247,7 +250,7 @@ function DetectorListTable({
             allowZoom
             showCursor
             cursorOffsets={{right: 40}}
-            additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
+            additionalUi={renderTimelineOverlay?.({timeWindowConfig})}
             timeWindowConfig={timeWindowConfig}
             cursorOverlayAnchor="top"
             cursorOverlayAnchorOffset={10}

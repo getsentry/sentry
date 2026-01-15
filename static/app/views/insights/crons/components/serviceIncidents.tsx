@@ -110,7 +110,10 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
             </Fragment>
           }
         >
-          <IncidentIndicator css={position}>
+          <IncidentIndicator
+            css={position}
+            data-test-id="cron-service-incident-indicator"
+          >
             <StyledIconExclamation />
           </IncidentIndicator>
         </IncidentHovercard>

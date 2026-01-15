@@ -1,6 +1,8 @@
+import fetchMock from 'jest-fetch-mock';
 import {CronDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -12,7 +14,9 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {StatusPageComponent} from 'sentry/types/system';
 import CronDetectorsList from 'sentry/views/detectors/list/cron';
 
 describe('CronDetectorsList', () => {
@@ -26,7 +30,15 @@ describe('CronDetectorsList', () => {
     },
   };
 
+  afterEach(() => {
+    fetchMock.resetMocks();
+  });
+
   beforeEach(() => {
+    ConfigStore.set('statuspage', {
+      id: 'sentry',
+      api_host: 'status.sentry.io',
+    });
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
@@ -84,7 +96,7 @@ describe('CronDetectorsList', () => {
     expect(screen.getByRole('button', {name: 'Manual Setup'})).toBeInTheDocument();
   });
 
-  it('loads cron monitors, renders timeline, and updates on time selection', async () => {
+  it('loads cron monitors, renders timeline, displays service incidents, and updates on time selection', async () => {
     // Detectors list returns a single cron monitor
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
@@ -114,6 +126,40 @@ describe('CronDetectorsList', () => {
       },
     });
 
+    const incident = ServiceIncidentFixture({
+      id: 'incident-1',
+      name: 'Incident',
+      status: 'monitoring',
+      created_at: new Date(nowSec * 1000 - 3600 * 1000).toISOString(),
+      started_at: new Date(nowSec * 1000 - 3600 * 1000).toISOString(),
+      updated_at: new Date(nowSec * 1000).toISOString(),
+      shortlink: 'http://example.com',
+      components: [
+        {
+          id: StatusPageComponent.US_CRON_MONITORING,
+          name: 'Crons',
+          created_at: '',
+          description: '',
+          group: false,
+          group_id: '',
+          only_show_if_degraded: false,
+          page_id: '',
+          position: 1,
+          showcase: false,
+          start_date: '',
+          status: 'major_outage',
+          updated_at: '',
+        },
+      ],
+      incident_updates: [],
+    });
+
+    fetchMock.mockResponse(req =>
+      req.url.includes('status.sentry.io/api/v2/incidents.json')
+        ? Promise.resolve(JSON.stringify({incidents: [incident]}))
+        : Promise.reject({status: 404})
+    );
+
     const {router} = render(<CronDetectorsList />, {organization, initialRouterConfig});
 
     // Page header/title and detector row
@@ -131,6 +177,11 @@ describe('CronDetectorsList', () => {
 
     // Environment name
     expect(within(row).getByText('production')).toBeInTheDocument();
+
+    // Should render service incidents overlay
+    expect(
+      await screen.findByTestId('cron-service-incident-indicator')
+    ).toBeInTheDocument();
 
     // Timeline visualization should render ticks once stats load
     expect(await screen.findAllByTestId('monitor-checkin-tick')).not.toHaveLength(0);
