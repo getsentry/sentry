@@ -49,7 +49,7 @@ GroupSearchStrategy = Callable[
         SearchQueryPartial,
         Sequence[Any],
         Sequence[Any],
-        int,
+        Organization,
         list[int],
         Optional[Sequence[str]],
         Optional[Sequence[int]],
@@ -146,7 +146,7 @@ def _query_params_for_error(
     query_partial: SearchQueryPartial,
     selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
-    organization_id: int,
+    organization: Organization,
     project_ids: list[int],
     environments: Sequence[str] | None,
     group_ids: Sequence[int] | None,
@@ -160,7 +160,7 @@ def _query_params_for_error(
         "event.type",
         "!=",
         "transaction",
-        organization_id,
+        organization.id,
         project_ids,
         environments,
         conditions,
@@ -182,7 +182,7 @@ def _query_params_for_generic(
     query_partial: SearchQueryPartial,
     selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
-    organization_id: int,
+    organization: Organization,
     project_ids: list[int],
     environments: Sequence[str] | None,
     group_ids: Sequence[int] | None,
@@ -191,38 +191,35 @@ def _query_params_for_generic(
     actor: Any | None = None,
     categories: Sequence[GroupCategory] | None = None,
 ) -> SnubaQueryParams | None:
-    organization = Organization.objects.filter(id=organization_id).first()
-    if organization:
-        if categories is None:
-            logging.error("Category is required in _query_params_for_generic")
-            return None
+    if categories is None:
+        logging.error("Category is required in _query_params_for_generic")
+        return None
 
-        category_ids = {gc.value for gc in categories}
-        group_types = {
-            gt.type_id
-            for gt in grouptype.registry.get_visible(organization, actor)
-            if gt.category in category_ids
-        }
-        if not group_types:
-            return None
+    category_ids = {gc.value for gc in categories}
+    group_types = {
+        gt.type_id
+        for gt in grouptype.registry.get_visible(organization, actor)
+        if gt.category in category_ids
+    }
+    if not group_types:
+        return None
 
-        filters = {"occurrence_type_id": list(group_types), **filters}
-        if group_ids:
-            filters["group_id"] = sorted(group_ids)
+    filters = {"occurrence_type_id": list(group_types), **filters}
+    if group_ids:
+        filters["group_id"] = sorted(group_ids)
 
-        params = query_partial(
-            dataset=Dataset.IssuePlatform,
-            selected_columns=selected_columns,
-            filter_keys=filters,
-            conditions=conditions,
-            aggregations=aggregations,
-            condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=Dataset.IssuePlatform
-            ),
-        )
+    params = query_partial(
+        dataset=Dataset.IssuePlatform,
+        selected_columns=selected_columns,
+        filter_keys=filters,
+        conditions=conditions,
+        aggregations=aggregations,
+        condition_resolver=functools.partial(
+            snuba.get_snuba_column_name, dataset=Dataset.IssuePlatform
+        ),
+    )
 
-        return SnubaQueryParams(**params)
-    return None
+    return SnubaQueryParams(**params)
 
 
 def get_search_strategies() -> dict[int, GroupSearchStrategy]:
