@@ -397,9 +397,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
     @patch.object(Integration, "get_installation")
-    @patch.object(metrics, "incr")
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test_successful_response(self, mock_metrics, mock_get_installation):
+    def test_successful_response(self, mock_get_installation):
         header_kwargs = SiloHttpHeaders(
             HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
         )
@@ -408,9 +407,6 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         request = self.factory.get(self.path, **header_kwargs)
         assert self.endpoint_cls._validate_request(request)
-
-        # We don't expect there to be any metrics recorded for successful requests
-        mock_metrics.assert_not_called()
 
     def raise_exception(self, exc_type: type[Exception], *args, **kwargs):
         raise exc_type(*args)

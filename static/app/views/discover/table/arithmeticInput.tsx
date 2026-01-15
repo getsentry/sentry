@@ -296,7 +296,7 @@ const Container = styled('div')<{isOpen: boolean}>`
     p.isOpen ? `${p.theme.radius.md} ${p.theme.radius.md} 0 0` : p.theme.radius.md};
 
   .show-sidebar & {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -436,7 +436,7 @@ const DropdownTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
@@ -469,7 +469,11 @@ const DropdownItemTitleWrapper = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Info = styled('div')`

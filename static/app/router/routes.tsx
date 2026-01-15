@@ -2636,6 +2636,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/warnings')),
     },
     {
+      path: 'instrumentation/',
+      component: make(() => import('sentry/views/issueList/pages/instrumentation')),
+    },
+    {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
@@ -3072,14 +3076,15 @@ function buildRoutes(): RouteObject[] {
   };
 
   const appRoutes: SentryRouteObject = {
-    component: ({children}: {children: React.ReactNode}) => {
+    component: () => {
       return (
         <ProvideAriaRouter>
-          <ScrapsProviders>{children}</ScrapsProviders>
+          <ScrapsProviders>
+            <Outlet />
+          </ScrapsProviders>
         </ProvideAriaRouter>
       );
     },
-    deprecatedRouteProps: true,
     children: [
       experimentalSpaRoutes,
       {

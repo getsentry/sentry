@@ -2,6 +2,8 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 
@@ -18,12 +20,9 @@ const Z_INDEX_STICKY_HEADER = 2;
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
 
-export const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.md};
-`;
+export function Header(props: FlexProps<'div'>) {
+  return <Flex justify="between" align="center" marginBottom="md" {...props} />;
+}
 
 export const HeaderTitle = styled('h4')`
   margin: 0;
@@ -115,7 +114,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   grid-template-columns: subgrid;
   grid-column: 1/-1;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -322,7 +321,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.focus.default};
   }
 
   /**
@@ -336,7 +335,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
 `;

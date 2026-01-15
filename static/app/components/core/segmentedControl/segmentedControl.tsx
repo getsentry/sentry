@@ -41,7 +41,9 @@ function getTextColor({
   isDisabled?: boolean;
 }) {
   if (isSelected) {
-    return priority === 'default' ? theme.colors.blue500 : undefined;
+    return priority === 'default'
+      ? theme.tokens.interactive.chonky.embossed.neutral.content.accent
+      : undefined;
   }
 
   return theme.tokens.content.secondary;
@@ -328,7 +330,11 @@ const LabelWrap = styled('span')<{
 `;
 
 const VisibleLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   user-select: none;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-align: center;

@@ -3,6 +3,8 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {diffWords, type Change} from 'diff';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -589,10 +591,10 @@ function FileDiff({
       {!integratedStyle && (
         <FileHeader onClick={() => setIsExpanded(value => !value)}>
           <InteractionStateLayer />
-          <FileAddedRemoved>
+          <Flex align="center" gap="md">
             <FileAdded>+{file.added}</FileAdded>
             <FileRemoved>-{file.removed}</FileRemoved>
-          </FileAddedRemoved>
+          </Flex>
           <FileName title={file.path}>{file.path}</FileName>
           <Button
             icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
@@ -605,10 +607,10 @@ function FileDiff({
       )}
       {integratedStyle && (
         <FileHeader>
-          <FileAddedRemoved>
+          <Flex align="center" gap="md">
             <FileAdded>+{file.added}</FileAdded>
             <FileRemoved>-{file.removed}</FileRemoved>
-          </FileAddedRemoved>
+          </Flex>
           <FileName title={file.path}>{file.path}</FileName>
         </FileHeader>
       )}
@@ -650,7 +652,7 @@ export function AutofixDiff({
   }
 
   return (
-    <DiffsColumn>
+    <Stack gap="md">
       {diff.map(file => (
         <AutofixHighlightWrapper
           key={file.path}
@@ -674,15 +676,9 @@ export function AutofixDiff({
           />
         </AutofixHighlightWrapper>
       ))}
-    </DiffsColumn>
+    </Stack>
   );
 }
-
-const DiffsColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
@@ -706,15 +702,9 @@ const FileHeader = styled('div')`
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr auto;
   gap: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
-`;
-
-const FileAddedRemoved = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const FileAdded = styled('div')`
@@ -743,12 +733,12 @@ const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
 
 const HunkHeaderEmptySpace = styled('div')`
   grid-column: 1 / 3;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
   white-space: pre-wrap;
@@ -759,7 +749,7 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
   padding: ${space(0.25)} ${space(1)};
   user-select: none;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
@@ -819,8 +809,7 @@ const ButtonGroup = styled('div')`
 const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
-  background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.tokens.background.primary};
+  background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
   transition:
     background-color 0.2s ease-in-out,

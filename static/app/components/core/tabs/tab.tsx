@@ -35,8 +35,8 @@ const StyledTabWrap = styled('li', {
 }>`
   color: ${p =>
     p.selected
-      ? p.theme.tokens.component.link.accent.default
-      : p.theme.tokens.component.link.muted.default};
+      ? p.theme.tokens.interactive.link.accent.rest
+      : p.theme.tokens.interactive.link.neutral.rest};
   white-space: nowrap;
   cursor: pointer;
 
@@ -126,29 +126,30 @@ const innerWrapStyles = ({
   li:not([aria-disabled]):hover & {
     background-color: ${selected
       ? variant === 'floating'
-        ? theme.colors.blue200
-        : theme.colors.blue100
-      : theme.colors.gray100};
+        ? theme.tokens.interactive.transparent.accent.selected.background.hover
+        : theme.tokens.interactive.transparent.accent.selected.background.rest
+      : theme.tokens.interactive.transparent.neutral.background.hover};
     color: ${selected
-      ? theme.tokens.component.link.accent.hover
-      : theme.tokens.component.link.muted.hover};
+      ? theme.tokens.interactive.link.accent.hover
+      : theme.tokens.interactive.link.neutral.hover};
   }
 
   li:not([aria-disabled]):active & {
     background-color: ${selected
       ? variant === 'floating'
-        ? theme.colors.blue300
-        : theme.colors.blue200
-      : theme.colors.gray200};
+        ? theme.tokens.interactive.transparent.accent.selected.background.active
+        : theme.tokens.interactive.transparent.accent.selected.background.hover
+      : theme.tokens.interactive.transparent.neutral.background.active};
     color: ${selected
-      ? theme.tokens.component.link.accent.active
-      : theme.tokens.component.link.muted.active};
+      ? theme.tokens.interactive.link.accent.active
+      : theme.tokens.interactive.link.neutral.active};
   }
 
   ${variant === 'floating' &&
   selected &&
   css`
-    background-color: ${theme.colors.blue100};
+    background-color: ${theme.tokens.interactive.transparent.accent.selected.background
+      .rest};
   `}
 `;
 
@@ -159,7 +160,8 @@ const StyledTabSelectionIndicator = styled('div')<{
   position: absolute;
   border-radius: 1px;
   pointer-events: none;
-  background: ${p => (p.selected ? p.theme.colors.blue400 : 'transparent')};
+  background: ${p =>
+    p.selected ? p.theme.tokens.graphics.accent.vibrant : 'transparent'};
 
   li[aria-disabled] & {
     opacity: 0.6;

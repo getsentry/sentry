@@ -120,6 +120,9 @@ export function treeResultLocator<T>({
       case Token.KEY_EXPLICIT_STRING_TAG:
         nodeVisitor(token.key);
         break;
+      case Token.KEY_EXPLICIT_BOOLEAN_TAG:
+        nodeVisitor(token.key);
+        break;
       case Token.KEY_EXPLICIT_NUMBER_FLAG:
         nodeVisitor(token.key);
         break;
@@ -170,6 +173,7 @@ export const getKeyName = (
     | Token.KEY_SIMPLE
     | Token.KEY_EXPLICIT_TAG
     | Token.KEY_AGGREGATE
+    | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
     | Token.KEY_EXPLICIT_FLAG
@@ -188,6 +192,8 @@ export const getKeyName = (
       return aggregateWithArgs
         ? `${key.name.value}(${key.args ? key.args.text : ''})`
         : key.name.value;
+    case Token.KEY_EXPLICIT_BOOLEAN_TAG:
+      return key.text;
     case Token.KEY_EXPLICIT_NUMBER_TAG:
       return key.text;
     case Token.KEY_EXPLICIT_STRING_TAG:
@@ -214,6 +220,7 @@ export const getKeyLabel = (
     | Token.KEY_SIMPLE
     | Token.KEY_EXPLICIT_TAG
     | Token.KEY_AGGREGATE
+    | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
     | Token.KEY_EXPLICIT_FLAG
@@ -228,6 +235,8 @@ export const getKeyLabel = (
       return key.text;
     case Token.KEY_AGGREGATE:
       return key.name.value;
+    case Token.KEY_EXPLICIT_BOOLEAN_TAG:
+      return key.key.value;
     case Token.KEY_EXPLICIT_NUMBER_TAG:
       return key.key.value;
     case Token.KEY_EXPLICIT_STRING_TAG:
@@ -312,6 +321,8 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return token.text;
     case Token.KEY_EXPLICIT_TAG:
       return `${token.prefix}[${token.key.value}]`;
+    case Token.KEY_EXPLICIT_BOOLEAN_TAG:
+      return `${token.prefix}[${token.key.value},boolean]`;
     case Token.KEY_EXPLICIT_NUMBER_TAG:
       return `${token.prefix}[${token.key.value},number]`;
     case Token.KEY_EXPLICIT_STRING_TAG:

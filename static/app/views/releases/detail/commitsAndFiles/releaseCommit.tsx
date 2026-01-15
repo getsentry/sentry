@@ -159,10 +159,13 @@ const Meta = styled(TextOverflow)`
 `;
 
 const CommitContent = styled('div')`
-  display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const MetaWrapper = styled('div')`

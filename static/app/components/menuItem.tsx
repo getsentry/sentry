@@ -2,6 +2,8 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {LinkProps} from 'sentry/components/core/link';
 import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
@@ -122,7 +124,11 @@ function MenuItem({
     if (to) {
       return (
         <MenuLink to={to} {...linkProps} title={title} data-test-id="menu-item">
-          {icon && <MenuIcon>{icon}</MenuIcon>}
+          {icon && (
+            <Flex align="center" marginRight="md">
+              {icon}
+            </Flex>
+          )}
           {children}
         </MenuLink>
       );
@@ -131,7 +137,11 @@ function MenuItem({
     if (href) {
       return (
         <MenuAnchor {...linkProps} href={href} data-test-id="menu-item">
-          {icon && <MenuIcon>{icon}</MenuIcon>}
+          {icon && (
+            <Flex align="center" marginRight="md">
+              {icon}
+            </Flex>
+          )}
           {children}
         </MenuAnchor>
       );
@@ -139,7 +149,11 @@ function MenuItem({
 
     return (
       <MenuTarget role="button" {...linkProps} title={title} data-test-id="menu-item">
-        {icon && <MenuIcon>{icon}</MenuIcon>}
+        {icon && (
+          <Flex align="center" marginRight="md">
+            {icon}
+          </Flex>
+        )}
         {children}
       </MenuTarget>
     );
@@ -199,11 +213,11 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   if (props.isActive) {
     return css`
       ${common}
-      color: ${props.theme.white};
-      background: ${props.theme.active};
+      color: ${props.theme.colors.white};
+      background: ${props.theme.tokens.interactive.link.accent.active};
 
       &:hover {
-        background: ${props.theme.activeHover};
+        background: ${props.theme.tokens.interactive.link.accent.hover};
       }
     `;
   }
@@ -272,12 +286,6 @@ const MenuTarget = styled('span')<MenuListItemProps>`
   ${getListItemStyles}
   display: flex;
   align-items: center;
-`;
-
-const MenuIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(1)};
 `;
 
 const MenuLink = styled(Link, {shouldForwardProp})<MenuListItemProps>`

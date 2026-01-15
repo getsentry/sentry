@@ -1,6 +1,8 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import LoadingError from 'sentry/components/loadingError';
@@ -82,10 +84,10 @@ function Issue(props: IssueProps) {
           <TraceIcons.Icon event={props.issue} />
         </IconBackground>
       </IconWrapper>
-      <SummaryWrapper>
+      <Stack justify="left" width="100%" overflow="hidden">
         <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
         <EventOrGroupExtraDetails data={fetchedIssue} />
-      </SummaryWrapper>
+      </Stack>
     </StyledPanelItem>
   ) : isError ? (
     <LoadingError
@@ -108,7 +110,7 @@ const IconBackground = styled('div')`
   svg {
     width: 16px;
     height: 16px;
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
   }
 `;
 
@@ -171,14 +173,6 @@ const IconWrapper = styled('div')`
   }
 `;
 
-const SummaryWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  width: 100%;
-  justify-content: left;
-`;
-
 type IssueListProps = {
   issues: TraceTree.TraceIssue[];
   node: BaseNode;
@@ -204,25 +198,18 @@ export function IssueList({issues, node, organization}: IssueListProps) {
       </StyledPanel>
       {uniqueIssues.length > MAX_DISPLAYED_ISSUES_COUNT ? (
         <TraceDrawerComponents.IssuesLink node={node}>
-          <IssueLinkWrapper>
+          <Flex align="center" marginLeft="2xs" gap="xs">
             <IconOpen />
             {t(
               `Open %s more in Issues`,
               uniqueIssues.length - MAX_DISPLAYED_ISSUES_COUNT
             )}
-          </IssueLinkWrapper>
+          </Flex>
         </TraceDrawerComponents.IssuesLink>
       ) : null}
     </IssuesWrapper>
   );
 }
-
-const IssueLinkWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  margin-left: ${space(0.25)};
-`;
 
 const StyledPanel = styled(Panel)`
   container-type: inline-size;

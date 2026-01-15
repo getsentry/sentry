@@ -96,8 +96,11 @@ function ActionFilter({actionFilter, showDivider}: ActionFilterProps) {
         {tct('[if:If] [logicType] of these filters match', {
           if: <ConditionBadge />,
           logicType:
-            FILTER_MATCH_OPTIONS.find(choice => choice.value === actionFilter.logicType)
-              ?.label || actionFilter.logicType,
+            FILTER_MATCH_OPTIONS.find(
+              choice =>
+                choice.value === actionFilter.logicType ||
+                choice.alias === actionFilter.logicType
+            )?.label || actionFilter.logicType,
         })}
       </ConditionGroupHeader>
       {actionFilter.conditions.length > 0
@@ -168,7 +171,7 @@ const Panel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};

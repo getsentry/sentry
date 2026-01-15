@@ -215,10 +215,10 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   display: inline-block;
-  background-color: ${p => p.theme.colors.blue400};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSize.sm};
@@ -228,7 +228,7 @@ const Badge = styled('span')`
 
 const ConditionsBadge = styled('span')`
   display: block;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
@@ -239,5 +239,9 @@ const ConditionsBadge = styled('span')`
 `;
 
 const OverflowTableValue = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

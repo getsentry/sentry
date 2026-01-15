@@ -1,21 +1,20 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import DebounceSearch from 'admin/components/debounceSearch';
 import Overview from 'admin/views/overview';
 
-type Props = RouteComponentProps<unknown, unknown>;
-
-function HomePage(props: Props) {
+export default function HomePage() {
   const navigate = useNavigate();
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);
@@ -78,13 +77,13 @@ function HomePage(props: Props) {
   };
 
   if (oldSplash) {
-    return <Overview {...props} />;
+    return <Overview />;
   }
   return (
     <SplashWrapper>
-      <Header>
+      <Flex align="center" margin="3xl 0">
         <HeaderTitle>Welcome to the Admin Portal!</HeaderTitle>
-      </Header>
+      </Flex>
       <div>
         <strong>
           This is an internal tool meant to enable Sentry Employees (you!) to better
@@ -92,12 +91,12 @@ function HomePage(props: Props) {
         </strong>
         <div>If you have any questions, ask us in #discuss-admin</div>
       </div>
-      <Centered>
+      <Flex justify="center" margin="xl 0">
         <Warning>
           <strong>NOTE:</strong>&nbsp;
           <span>All actions are logged and audited</span>
         </Warning>
-      </Centered>
+      </Flex>
       <div>
         <SearchLabel>Users</SearchLabel>
         <DebounceSearch
@@ -168,11 +167,6 @@ const SplashWrapper = styled('div')`
   padding: ${space(3)};
 `;
 
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: ${space(4)} 0;
-`;
 const HeaderTitle = styled('h3')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
@@ -187,15 +181,7 @@ const SecondaryText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const Centered = styled('div')`
-  display: flex;
-  justify-content: center;
-  margin: ${space(2)} 0;
-`;
-
 const Warning = styled('div')`
   color: red;
   font-size: large;
 `;
-
-export default HomePage;

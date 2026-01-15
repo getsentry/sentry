@@ -28,9 +28,15 @@ type OrgDashboardsChildrenProps = {
 
 interface OrgDashboardsProps {
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
+  /**
+   * Initial dashboard state to use for optimistic updates.
+   * This is used when navigating from widget builder to show the new widget immediately
+   * since there are scenarios where the component fully remounts and loses its modified state.
+   */
+  initialDashboard?: DashboardDetails;
 }
 
-function OrgDashboards({children}: OrgDashboardsProps) {
+function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -40,9 +46,10 @@ function OrgDashboards({children}: OrgDashboardsProps) {
 
   const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
 
-  // The currently selected dashboard
+  // The currently selected dashboard. Use initialDashboard for optimistic updates
+  // when navigating from widget builder (passed via location.state).
   const [selectedDashboardState, setSelectedDashboardState] =
-    useState<DashboardDetails | null>(null);
+    useState<DashboardDetails | null>(initialDashboard ?? null);
 
   const {
     data: dashboards,

@@ -90,6 +90,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "installation_type"]
+
     def send_message(self, channel_id: str, message: str) -> None:
         client = self.get_client()
 
@@ -143,6 +146,24 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 text=renderable["text"],
                 thread_ts=thread_ts,
                 user=slack_user_id,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def update_message(
+        self,
+        *,
+        channel_id: str,
+        message_ts: str,
+        renderable: SlackRenderable,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_update(
+                channel=channel_id,
+                ts=message_ts,
+                text=renderable["text"],
+                blocks=renderable["blocks"],
             )
         except SlackApiError as e:
             translate_slack_api_error(e)

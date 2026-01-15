@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -42,7 +43,7 @@ export function EventUserFeedback({
         date={report.dateCreated}
         author={{type: 'user', user}}
         header={
-          <Items>
+          <Flex align="center" gap="md">
             <ActivityAuthor>{report.name}</ActivityAuthor>
             <CopyButton
               borderless
@@ -64,7 +65,7 @@ export function EventUserFeedback({
                 {t('View event')}
               </ViewEventLink>
             )}
-          </Items>
+          </Flex>
         }
       >
         <p
@@ -79,12 +80,6 @@ export function EventUserFeedback({
 
 const StyledActivityItem = styled(ActivityItem)`
   margin-bottom: 0;
-`;
-
-const Items = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const CopyButton = styled(Button)`

@@ -24,6 +24,7 @@ from rest_framework.request import Request
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     scope_map = {
+        "GET": ["org:read"],
         "POST": ["org:read"],
     }
 

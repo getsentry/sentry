@@ -351,7 +351,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.colors.surface300};
+      background-color: ${p.theme.tokens.background.tertiary};
     `}
 `;
 
@@ -359,7 +359,7 @@ const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;

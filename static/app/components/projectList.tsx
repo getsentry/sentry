@@ -2,9 +2,10 @@ import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -21,11 +22,11 @@ function DefaultCollapsedProjectsTooltip({
   projects: Array<Project | {slug: string}>;
 }) {
   return (
-    <CollapsedProjects>
+    <Stack gap="xs" width="200px">
       {projects.map(project => (
         <ProjectBadge key={project.slug} project={project} avatarSize={16} />
       ))}
-    </CollapsedProjects>
+    </Stack>
   );
 }
 export function ProjectList({
@@ -85,13 +86,6 @@ const ProjectListWrapper = styled('div')`
   flex-direction: row-reverse;
   justify-content: flex-end;
   padding-right: 8px;
-`;
-
-const CollapsedProjects = styled('div')`
-  width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
 `;
 
 const AvatarStyle = (p: any) => css`

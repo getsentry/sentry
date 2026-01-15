@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -90,14 +92,14 @@ function TagFacetsDistributionMeter({
   function renderSegments() {
     if (totalValues === 0) {
       return (
-        <SegmentBar>
+        <Flex overflow="hidden">
           <p>{t('No recent data.')}</p>
-        </SegmentBar>
+        </Flex>
       );
     }
 
     return (
-      <SegmentBar>
+      <Flex overflow="hidden">
         {topSegments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
@@ -141,7 +143,7 @@ function TagFacetsDistributionMeter({
             </div>
           );
         })}
-      </SegmentBar>
+      </Flex>
     );
   }
 
@@ -267,11 +269,6 @@ const TagHeader = styled('span')`
   cursor: pointer;
 `;
 
-const SegmentBar = styled('div')`
-  display: flex;
-  overflow: hidden;
-`;
-
 const Title = styled('div')`
   display: flex;
   font-size: ${p => p.theme.fontSize.md};
@@ -290,12 +287,14 @@ const TitleType = styled('div')`
 `;
 
 const TitleDescription = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
   color: ${p => p.theme.tokens.content.primary};
   text-align: right;
   font-size: ${p => p.theme.fontSize.md};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   align-self: center;
 `;
 
@@ -310,12 +309,12 @@ const OtherSegment = styled('span')<{color: string}>`
 
 const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
   &:hover {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
   display: block;
   width: 100%;
   height: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   outline: none;
   background-color: ${p => p.color};
   text-align: right;
@@ -369,7 +368,7 @@ const LegendText = styled('span')<{unfocus: boolean}>`
   text-overflow: ellipsis;
   transition: color 0.3s;
   color: ${p =>
-    p.unfocus ? p.theme.tokens.content.muted : p.theme.tokens.content.primary};
+    p.unfocus ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
 `;
 
 const LegendPercent = styled('span')`
@@ -381,7 +380,7 @@ const LegendPercent = styled('span')`
 `;
 
 const ExpandToggleButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;
 

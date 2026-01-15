@@ -4,6 +4,8 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -429,7 +431,11 @@ export function TourGuide({
                         )}
                         {title && <TitleRow>{title}</TitleRow>}
                         {description && <DescriptionRow>{description}</DescriptionRow>}
-                        {actions && <ActionRow>{actions}</ActionRow>}
+                        {actions && (
+                          <Flex justify="end" marginTop="md">
+                            {actions}
+                          </Flex>
+                        )}
                       </TourBody>
                     </TourOverlay>
                   )}
@@ -471,7 +477,7 @@ const TopRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
@@ -491,12 +497,6 @@ const DescriptionRow = styled('div')`
   line-height: 1.4;
   white-space: wrap;
   opacity: 0.9;
-`;
-
-const ActionRow = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(1)};
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
@@ -527,7 +527,7 @@ const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.radius.md};
-      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent.vibrant};
       ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
   }

@@ -674,6 +674,10 @@ function setUpMocks(
     url: `/organizations/${organization.slug}/projects/`,
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: `/customers/${organization.slug}/integrations/`,
+    body: [],
+  });
 }
 
 describe('Customer Details', () => {
@@ -730,7 +734,7 @@ describe('Customer Details', () => {
           {name: '2021-07-19T00:00:00Z', value: 1000},
           {name: '2021-07-20T00:00:00Z', value: 0},
         ],
-        color: theme.purple300,
+        color: theme.tokens.graphics.accent.vibrant,
       },
       {
         seriesName: 'Filtered (Server)',
@@ -841,7 +845,7 @@ describe('Customer Details', () => {
             ],
           },
         ],
-        color: theme.purple200,
+        color: theme.tokens.graphics.accent.moderate,
       },
       {
         seriesName: 'Over Quota',
@@ -869,12 +873,12 @@ describe('Customer Details', () => {
           {name: '2021-07-19T00:00:00Z', value: 2000},
           {name: '2021-07-20T00:00:00Z', value: 0},
         ],
-        color: theme.colors.pink200,
+        color: theme.tokens.graphics.promotion.moderate,
       },
       {
         seriesName: 'Discarded (Client)',
         data: [],
-        color: theme.yellow300,
+        color: theme.tokens.graphics.warning.vibrant,
       },
       {
         seriesName: 'Dropped (Server)',
@@ -1093,7 +1097,7 @@ describe('Customer Details', () => {
             ],
           },
         ],
-        color: theme.red300,
+        color: theme.tokens.graphics.danger.vibrant,
       },
     ]);
   });
