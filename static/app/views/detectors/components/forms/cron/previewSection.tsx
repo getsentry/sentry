@@ -43,7 +43,7 @@ const statusToText: Record<SchedulePreviewStatus, string> = {
   [SchedulePreviewStatus.SUB_RECOVERY_OK]: t('Okay (Sub-Threshold)'),
 };
 
-export const statusPrecedent: SchedulePreviewStatus[] = [
+const statusPrecedent: SchedulePreviewStatus[] = [
   SchedulePreviewStatus.SUB_FAILURE_ERROR,
   SchedulePreviewStatus.SUB_RECOVERY_OK,
   SchedulePreviewStatus.ERROR,
