@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.autopilot.tasks import (
+    AutopilotDetectorName,
     MissingSdkIntegrationsResult,
     run_missing_sdk_integration_detector_for_organization,
     run_sdk_update_detector_for_organization,
@@ -20,11 +21,14 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
         self.project2 = self.create_project(organization=self.organization)
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch(
         "sentry.autopilot.tasks.get_sdk_versions",
         return_value={"example.sdk": "1.4.0"},
     )
-    def test_simple(self, mock_index_state: mock.MagicMock) -> None:
+    def test_simple(
+        self, mock_get_sdk_versions: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -50,12 +54,24 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
             "needsUpdate": True,
         }
 
+        # Verify that an instrumentation issue was created
+        assert mock_create_issue.call_count == 1
+        call_kwargs = mock_create_issue.call_args[1]
+        assert call_kwargs["project_id"] == self.project.id
+        assert call_kwargs["detector_name"] == AutopilotDetectorName.SDK_UPDATE
+        assert "example.sdk" in call_kwargs["title"]
+        assert "1.0.0" in call_kwargs["subtitle"]
+        assert "1.4.0" in call_kwargs["subtitle"]
+
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch(
         "sentry.autopilot.tasks.get_sdk_versions",
         return_value={"example.sdk": "1.4.0"},
     )
-    def test_it_handles_multiple_projects(self, mock_index_state: mock.MagicMock) -> None:
+    def test_it_handles_multiple_projects(
+        self, mock_get_sdk_versions: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -99,12 +115,18 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
             "needsUpdate": True,
         }
 
+        # Verify that an instrumentation issue was created for each update
+        assert mock_create_issue.call_count == 2
+
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch(
         "sentry.autopilot.tasks.get_sdk_versions",
         return_value={"example.sdk": "1.4.0", "example.sdk2": "1.2.0"},
     )
-    def test_it_handles_multiple_sdks(self, mock_index_state: mock.MagicMock) -> None:
+    def test_it_handles_multiple_sdks(
+        self, mock_get_sdk_versions: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -148,12 +170,18 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
             "needsUpdate": True,
         }
 
+        # Verify that an instrumentation issue was created for each SDK
+        assert mock_create_issue.call_count == 2
+
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch(
         "sentry.autopilot.tasks.get_sdk_versions",
         return_value={"example.sdk": "1.0.5"},
     )
-    def test_it_ignores_patch_versions(self, mock_index_state: mock.MagicMock) -> None:
+    def test_it_ignores_patch_versions(
+        self, mock_get_sdk_versions: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -171,13 +199,18 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
             updates = run_sdk_update_detector_for_organization(self.organization)
 
         assert len(updates) == 0
+        # No instrumentation issue should be created
+        assert mock_create_issue.call_count == 0
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch(
         "sentry.autopilot.tasks.get_sdk_versions",
         return_value={"example.sdk": "1.0.5"},
     )
-    def test_it_ignores_unknown_sdks(self, mock_index_state: mock.MagicMock) -> None:
+    def test_it_ignores_unknown_sdks(
+        self, mock_get_sdk_versions: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -195,13 +228,18 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
             updates = run_sdk_update_detector_for_organization(self.organization)
 
         assert len(updates) == 0
+        # No instrumentation issue should be created
+        assert mock_create_issue.call_count == 0
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch(
         "sentry.autopilot.tasks.get_sdk_versions",
         return_value={"example.sdk": "1.0.5"},
     )
-    def test_it_ignores_invalid_sdk_versions(self, mock_index_state: mock.MagicMock) -> None:
+    def test_it_ignores_invalid_sdk_versions(
+        self, mock_get_sdk_versions: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -219,6 +257,8 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
             updates = run_sdk_update_detector_for_organization(self.organization)
 
         assert len(updates) == 0
+        # No instrumentation issue should be created
+        assert mock_create_issue.call_count == 0
 
 
 class TestRunMissingSdkIntegrationDetector(TestCase):
@@ -270,9 +310,10 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         assert mock_seer_client.called
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
     def test_calls_seer_explorer_for_project_with_mapping(
-        self, mock_seer_client: mock.MagicMock
+        self, mock_seer_client: mock.MagicMock, mock_create_issue: mock.MagicMock
     ) -> None:
         # Create a repository with code mapping for project1 only
         self._create_code_mapping(self.project, "test-repo")
@@ -304,6 +345,15 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         prompt = mock_client_instance.start_run.call_args[0][0]
         assert "test-repo" in prompt
 
+        # Verify that an instrumentation issue was created
+        assert mock_create_issue.call_count == 1
+        call_kwargs = mock_create_issue.call_args[1]
+        assert call_kwargs["project_id"] == self.project.id
+        assert call_kwargs["detector_name"] == AutopilotDetectorName.MISSING_SDK_INTEGRATION
+        assert "Missing SDK Integrations" in call_kwargs["title"]
+        assert "anthropicIntegration" in call_kwargs["subtitle"]
+        assert "openaiIntegration" in call_kwargs["subtitle"]
+
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
     def test_handles_seer_explorer_error_gracefully(self, mock_seer_client: mock.MagicMock) -> None:
@@ -332,8 +382,11 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    def test_uses_mapped_repo_name_in_prompt(self, mock_seer_client: mock.MagicMock) -> None:
+    def test_uses_mapped_repo_name_in_prompt(
+        self, mock_seer_client: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         # Create code mapping with specific repo name
         self._create_code_mapping(self.project, "my-frontend-app")
 
@@ -352,9 +405,15 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         prompt = mock_client_instance.start_run.call_args[0][0]
         assert "my-frontend-app" in prompt
 
+        # No instrumentation issue should be created when no missing integrations found
+        assert mock_create_issue.call_count == 0
+
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    def test_each_project_uses_its_own_mapped_repo(self, mock_seer_client: mock.MagicMock) -> None:
+    def test_each_project_uses_its_own_mapped_repo(
+        self, mock_seer_client: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         # Create different code mappings for each project
         self._create_code_mapping(self.project, "frontend-repo")
         self._create_code_mapping(self.project2, "backend-repo")
@@ -378,3 +437,6 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         prompts = [call[0][0] for call in mock_client_instance.start_run.call_args_list]
         repo_names_in_prompts = ["frontend-repo" in p or "backend-repo" in p for p in prompts]
         assert all(repo_names_in_prompts)
+
+        # No instrumentation issue should be created when no missing integrations found
+        assert mock_create_issue.call_count == 0
