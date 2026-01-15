@@ -182,7 +182,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         ?.slice() as string[];
 
       if (hasOther) {
-        color.push(theme.tokens.content.muted);
+        color.push(theme.tokens.content.secondary);
       }
 
       const series = stats
@@ -245,7 +245,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         .getColorPalette(stats.length - 1 - (hasOther ? 1 : 0))
         ?.slice() as string[];
       if (hasOther) {
-        color.push(theme.tokens.content.muted);
+        color.push(theme.tokens.content.secondary);
       }
 
       const series = stats
@@ -307,7 +307,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         .getColorPalette(stats.length - 1 - (hasOther ? 1 : 0))
         ?.slice() as string[] | undefined;
       if (hasOther) {
-        color?.push(theme.tokens.content.muted);
+        color?.push(theme.tokens.content.secondary);
       }
 
       const series = stats

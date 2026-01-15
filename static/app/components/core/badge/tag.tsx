@@ -75,7 +75,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
     case undefined:
     case 'muted':
       return {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         background: theme.colors.gray100,
       };
 

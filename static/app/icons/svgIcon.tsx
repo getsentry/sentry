@@ -13,7 +13,7 @@ export interface SVGIconProps extends Omit<React.SVGAttributes<SVGSVGElement>, '
   legacySize?: string;
   ref?: React.Ref<SVGSVGElement>;
   size?: IconSize;
-  variant?: ContentVariant;
+  variant?: ContentVariant | 'muted';
 }
 
 export function SvgIcon(props: SVGIconProps) {
@@ -35,7 +35,9 @@ export function SvgIcon(props: SVGIconProps) {
         iconProps.variant === 'warning'
           ? theme.tokens.graphics.warning.vibrant
           : iconProps.variant
-            ? theme.tokens.content[iconProps.variant]
+            ? theme.tokens.content[
+                iconProps.variant === 'muted' ? 'secondary' : iconProps.variant
+              ]
             : 'currentColor'
       }
       height={size}

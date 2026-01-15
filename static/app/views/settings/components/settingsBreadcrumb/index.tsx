@@ -81,7 +81,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
 export const CrumbLink = styled(RouterLink)`
   display: block;
 
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
   }

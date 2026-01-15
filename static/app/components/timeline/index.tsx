@@ -70,8 +70,8 @@ function Item({
 function makeDefaultColorConfig(theme: Theme) {
   return {
     title: theme.tokens.content.primary,
-    icon: theme.tokens.content.muted,
-    iconBorder: theme.tokens.content.muted,
+    icon: theme.tokens.content.secondary,
+    iconBorder: theme.tokens.content.secondary,
   };
 }
 

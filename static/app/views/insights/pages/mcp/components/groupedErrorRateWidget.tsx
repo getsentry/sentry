@@ -99,7 +99,9 @@ export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProp
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(ts, {
-              color: ts.meta.isOther ? theme.tokens.content.muted : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.content.secondary
+                : colorPalette[index],
             })
         ),
       }}

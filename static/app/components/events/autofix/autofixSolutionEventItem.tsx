@@ -52,12 +52,12 @@ function getEventColor(
       ? isActive
         ? theme.colors.green500
         : theme.tokens.content.primary
-      : theme.tokens.content.muted,
+      : theme.tokens.content.secondary,
     iconBorder: isSelected
       ? isActive
         ? theme.colors.green500
         : theme.tokens.content.primary
-      : theme.tokens.content.muted,
+      : theme.tokens.content.secondary,
   };
 }
 

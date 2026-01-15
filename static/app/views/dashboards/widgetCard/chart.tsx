@@ -237,7 +237,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : [];
   // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
   if (shouldColorOther) {
-    colors[colors.length] = theme.tokens.content.muted;
+    colors[colors.length] = theme.tokens.content.secondary;
   }
 
   // Create a list of series based on the order of the fields,
@@ -374,7 +374,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     },
     yAxis: {
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter: (value: number) => {
           if (timeseriesResultsTypes) {
             return axisLabelFormatterUsingAggregateOutputType(
