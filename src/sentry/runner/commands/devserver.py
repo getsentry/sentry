@@ -490,8 +490,8 @@ def devserver(
                 "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
                 "SENTRY_WEB_PORT": str(ports["server"]),
                 # TODO: recheck if we actually need to customise workers/threads
-                #"UWSGI_WORKERS": "8",
-                #"UWSGI_THREADS": "2",
+                # "UWSGI_WORKERS": "8",
+                # "UWSGI_THREADS": "2",
             }
             merged_env = os.environ.copy()
             merged_env.update(control_environ)
