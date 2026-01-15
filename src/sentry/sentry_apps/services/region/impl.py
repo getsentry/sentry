@@ -7,6 +7,7 @@ from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIs
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.region.model import (
     RpcEmptyResult,
@@ -14,6 +15,8 @@ from sentry.sentry_apps.services.region.model import (
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcSentryAppError,
+    RpcServiceHookProject,
+    RpcServiceHookProjectsResult,
 )
 from sentry.sentry_apps.services.region.service import SentryAppRegionService
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -199,5 +202,144 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             )
 
         deletions.exec_sync(platform_external_issue)
+
+        return RpcEmptyResult()
+
+    def get_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+    ) -> RpcServiceHookProjectsResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ GET
+        """
+        try:
+            hook = ServiceHook.objects.get(
+                installation_id=installation.id, organization_id=organization_id
+            )
+        except ServiceHook.DoesNotExist:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Service hook not found for installation",
+                    webhook_context={},
+                    status_code=404,
+                )
+            )
+
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by(
+            "project_id"
+        )
+
+        return RpcServiceHookProjectsResult(
+            service_hook_projects=[
+                RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
+            ],
+        )
+
+    def set_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        project_ids: list[int],
+    ) -> RpcServiceHookProjectsResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ POST
+        """
+        from django.db import router, transaction
+
+        if not project_ids:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Projects list cannot be empty",
+                    webhook_context={},
+                    status_code=400,
+                )
+            )
+
+        unique_project_ids = set(project_ids)
+        valid_project_count = Project.objects.filter(
+            organization_id=organization_id, id__in=unique_project_ids
+        ).count()
+        if valid_project_count != len(unique_project_ids):
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="One or more project IDs do not belong to the organization",
+                    webhook_context={},
+                    status_code=400,
+                )
+            )
+
+        try:
+            hook = ServiceHook.objects.get(
+                installation_id=installation.id, organization_id=organization_id
+            )
+        except ServiceHook.DoesNotExist:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Service hook not found for installation",
+                    webhook_context={},
+                    status_code=404,
+                )
+            )
+
+        new_project_ids = set(project_ids)
+
+        with transaction.atomic(router.db_for_write(ServiceHookProject)):
+            existing_project_ids = set(
+                ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
+                    "project_id", flat=True
+                )
+            )
+
+            projects_to_add = new_project_ids - existing_project_ids
+            projects_to_remove = existing_project_ids - new_project_ids
+
+            ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id__in=projects_to_remove
+            ).delete()
+
+            for project_id in projects_to_add:
+                ServiceHookProject.objects.create(
+                    project_id=project_id,
+                    service_hook_id=hook.id,
+                )
+
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by(
+            "project_id"
+        )
+
+        return RpcServiceHookProjectsResult(
+            service_hook_projects=[
+                RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
+            ],
+        )
+
+    def delete_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+    ) -> RpcEmptyResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ DELETE
+        """
+        try:
+            hook = ServiceHook.objects.get(
+                installation_id=installation.id, organization_id=organization_id
+            )
+        except ServiceHook.DoesNotExist:
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="Service hook not found for installation",
+                    webhook_context={},
+                    status_code=404,
+                ),
+            )
+
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
+        deletions.exec_sync_many(list(hook_projects))
 
         return RpcEmptyResult()
