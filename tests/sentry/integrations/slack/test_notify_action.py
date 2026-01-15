@@ -21,6 +21,7 @@ from sentry.testutils.helpers.analytics import (
 )
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import Action
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
@@ -90,7 +91,13 @@ class SlackNotifyActionTest(RuleTestCase):
     ) -> None:
         event = self.get_event()
 
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+        fake_rule = self.create_project_rule()
+        fake_rule.id = Action.objects.all().order_by("id").first().id
+
+        rule = self.get_rule(
+            data={"workspace": self.integration.id, "channel": "#my-channel"},
+            rule=fake_rule,
+        )
 
         results = list(rule.after(event=event))
         assert len(results) == 1
@@ -356,12 +363,15 @@ class SlackNotifyActionTest(RuleTestCase):
         ):
             event = self.get_event()
 
+            fake_rule = self.create_project_rule()
+            fake_rule.id = Action.objects.all().order_by("id").first().id
             rule = self.get_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-channel",
                     "channel_id": "123",
-                }
+                },
+                rule=fake_rule,
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"

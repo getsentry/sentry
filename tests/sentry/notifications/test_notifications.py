@@ -20,7 +20,6 @@ from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.rule import Rule
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
@@ -541,14 +540,7 @@ class ActivityNotificationTest(APITestCase):
             "targetIdentifier": str(self.user.id),
         }
         with assume_test_silo_mode(SiloMode.REGION):
-            Rule.objects.create(
-                project=self.project,
-                label="a rule",
-                data={
-                    "match": "all",
-                    "actions": [action_data],
-                },
-            )
+            self.create_project_rule(project=self.project, action_data=[action_data])
             min_ago = before_now(minutes=1).isoformat()
             event = self.store_event(
                 data={

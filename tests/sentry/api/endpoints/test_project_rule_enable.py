@@ -1,3 +1,4 @@
+from copy import deepcopy
 from unittest.mock import MagicMock, patch
 
 from rest_framework import status
@@ -75,13 +76,16 @@ class ProjectRuleEnableTestCase(APITestCase):
             }
         ]
         rule = self.create_project_rule(
-            project=self.project, action_data=actions, condition_data=conditions
+            project=self.project, action_data=deepcopy(actions), condition_data=conditions
         )
 
         rule2 = self.create_project_rule(
-            project=self.project, action_data=actions, condition_data=conditions
+            project=self.project, action_data=deepcopy(actions), condition_data=conditions
         )
         rule2.status = ObjectStatus.DISABLED
+        # remove workflow_id and rule_id
+        rule2.data["actions"][0].pop("workflow_id", None)
+        rule2.data["actions"][0].pop("legacy_rule_id", None)
         rule2.save()
 
         response = self.get_error_response(

@@ -15,7 +15,6 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
-from sentry.models.rule import Rule
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -115,7 +114,7 @@ MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPE
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(organization=self.organization)
-        self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
+        self.rule = self.create_project_rule(name="Issa Rule")
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
         )
@@ -346,12 +345,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         self, mock_record, safe_urlopen
     ):
         rule = self.create_project_rule(
-            action_data=[
-                {
-                    "sentryAppInstallationUuid": self.install.uuid,
-                    "legacy_rule_id": "123",
-                }
-            ]
+            action_data=[{"sentryAppInstallationUuid": self.install.uuid}]
         )
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
@@ -380,7 +374,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert payload["data"]["triggered_rule"] == rule.label
         assert payload["data"]["issue_alert"] == {
             # Use the legacy rule id
-            "id": 123,
+            "id": rule.data["actions"][0]["legacy_rule_id"],
             "title": rule.label,
             "sentry_app_id": self.sentry_app.id,
             "settings": settings,

@@ -8,7 +8,6 @@ from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
@@ -334,11 +333,7 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetType": ActionTargetType.MEMBER.value,
             "targetIdentifier": str(self.user.id),
         }
-        Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
-            project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
-        )
+        self.create_project_rule(action_data=[action_data])
 
         with self.tasks():
             post_process_group(
@@ -362,11 +357,7 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetType": ActionTargetType.ISSUE_OWNERS.value,
             "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
         }
-        Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
-            project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
-        )
+        self.create_project_rule(action_data=[action_data])
 
         with self.tasks():
             post_process_group(
@@ -388,13 +379,9 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": ActionTargetType.ISSUE_OWNERS.value,
-            "fallthroughType": FallthroughChoiceType.NO_ONE.value,
+            "fallthrough_type": FallthroughChoiceType.NO_ONE.value,
         }
-        Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
-            project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
-        )
+        self.create_project_rule(action_data=[action_data], condition_data=[self.condition_data])
 
         with self.tasks():
             post_process_group(
@@ -414,11 +401,7 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": ActionTargetType.ISSUE_OWNERS.value,
         }
-        Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
-            project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
-        )
+        self.create_project_rule(action_data=[action_data], condition_data=[self.condition_data])
 
         with self.tasks():
             post_process_group(
@@ -447,11 +430,7 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetType": ActionTargetType.MEMBER.value,
             "targetIdentifier": str(self.user.id),
         }
-        Rule.objects.filter(project=event.project).delete()
-        Rule.objects.create(
-            project=event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
-        )
+        self.create_project_rule(action_data=[action_data], condition_data=[self.condition_data])
 
         with (
             self.tasks(),
@@ -490,10 +469,8 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetType": ActionTargetType.TEAM.value,
             "targetIdentifier": str(team_workflow.id),
         }
-        Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
-            project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data, inject_workflow]},
+        self.create_project_rule(
+            action_data=[action_data, inject_workflow], condition_data=[self.condition_data]
         )
 
         with self.tasks():
