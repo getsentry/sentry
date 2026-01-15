@@ -49,7 +49,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
 
-export const fields: Record<string, Field> = {
+export const fields = {
   slug: {
     name: 'slug',
     type: 'string',

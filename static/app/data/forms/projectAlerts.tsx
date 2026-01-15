@@ -9,7 +9,7 @@ const formatMinutes = (value: number | '') => {
   return tn('%s minute', '%s minutes', value);
 };
 
-export const fields: Record<string, Field> = {
+export const fields = {
   subjectTemplate: {
     name: 'subjectTemplate',
     type: 'string',

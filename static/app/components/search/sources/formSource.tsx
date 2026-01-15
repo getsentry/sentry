@@ -160,12 +160,12 @@ const FORM_REGISTRY: FormDefinition[] = [
   {
     route: projectAlertsRoute,
     formGroups: [],
-    fields: projectAlertsFields,
+    fields: projectAlertsFields as Record<string, Field>,
   },
   {
     route: projectGeneralSettingsRoute,
     formGroups: [],
-    fields: projectGeneralSettingsFields,
+    fields: projectGeneralSettingsFields as Record<string, Field>,
   },
   {
     route: projectIssueGroupingRoute,
