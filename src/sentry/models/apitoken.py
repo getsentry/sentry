@@ -202,6 +202,12 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     hashed_refresh_token = models.CharField(max_length=128, unique=True, null=True)
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
+    # Track how the token was originally issued (e.g., "device_code", "authorization_code").
+    # Used to determine refresh behavior per RFC 6749 §6:
+    # - Tokens issued via device_code (public client per RFC 8628 §5.6) can refresh without client_secret
+    # - Tokens issued via authorization_code (confidential client) MUST provide client_secret for refresh
+    # Null for tokens created before this field was added (treated as confidential for backward compatibility).
+    issued_grant_type = models.CharField(max_length=50, null=True, blank=True)
 
     objects: ClassVar[ApiTokenManager] = ApiTokenManager(cache_fields=("token",))
 
@@ -439,6 +445,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                         user=grant.user,
                         scope_list=grant.get_scopes(),
                         scoping_organization_id=grant.organization_id,
+                        issued_grant_type="authorization_code",
                     )
 
                     # Remove the ApiGrant from the database to prevent reuse of the same
@@ -580,7 +587,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         self._default_flush = value
 
 
-def is_api_token_auth(auth: object) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:
+def is_api_token_auth(
+    auth: object,
+) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:
     """:returns True when an API token is hitting the API."""
     from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica

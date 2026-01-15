@@ -675,17 +675,23 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token_after.refresh_token == self.token.refresh_token
         assert token_after.expires_at == self.token.expires_at
 
-    def test_public_client_refresh_success(self) -> None:
-        """Public clients should be able to refresh tokens without client_secret.
+    def test_device_flow_token_refresh_without_secret(self) -> None:
+        """Device flow tokens can be refreshed without client_secret.
 
-        Per RFC 6749 §6: "If the client type is confidential or the client was
-        issued client credentials (or assigned other authentication requirements),
-        the client MUST authenticate"
+        Per RFC 8628 §5.6: "device clients... should be treated as public clients"
+        Per RFC 6749 §6: Public clients don't need to authenticate for refresh.
 
-        The inverse: public clients without credentials can refresh with just client_id.
-        This is essential for device flow clients (RFC 8628 §5.6) which are public clients.
+        Tokens issued via device_code grant can be refreshed with just client_id.
         """
         self.login_as(self.user)
+
+        # Create a token that was issued via device flow
+        device_flow_token = ApiToken.objects.create(
+            application=self.application,
+            user=self.user,
+            expires_at=timezone.now(),
+            issued_grant_type="device_code",
+        )
 
         # Request without client_secret (public client)
         resp = self.client.post(
@@ -693,8 +699,8 @@ class OAuthTokenRefreshTokenTest(TestCase):
             {
                 "grant_type": "refresh_token",
                 "client_id": self.application.client_id,
-                "refresh_token": self.token.refresh_token,
-                # No client_secret - this is a public client
+                "refresh_token": device_flow_token.refresh_token,
+                # No client_secret - this is a public client (device flow)
             },
         )
         assert resp.status_code == 200
@@ -705,12 +711,67 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert data["token_type"] == "Bearer"
 
         # Token should be refreshed
-        token2 = ApiToken.objects.get(id=self.token.id)
-        assert token2.token != self.token.token
-        assert token2.refresh_token != self.token.refresh_token
+        token2 = ApiToken.objects.get(id=device_flow_token.id)
+        assert token2.token != device_flow_token.token
+        assert token2.refresh_token != device_flow_token.refresh_token
+
+    def test_authorization_code_token_requires_secret_for_refresh(self) -> None:
+        """Authorization code tokens MUST provide client_secret for refresh.
+
+        Per RFC 6749 §6: "If the client type is confidential or the client was
+        issued client credentials, the client MUST authenticate."
+
+        Tokens issued via authorization_code are confidential client tokens.
+        """
+        self.login_as(self.user)
+
+        # Create a token that was issued via authorization_code (confidential client)
+        auth_code_token = ApiToken.objects.create(
+            application=self.application,
+            user=self.user,
+            expires_at=timezone.now(),
+            issued_grant_type="authorization_code",
+        )
+
+        # Try to refresh without client_secret
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "client_id": self.application.client_id,
+                "refresh_token": auth_code_token.refresh_token,
+                # No client_secret - should fail for confidential token
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_legacy_token_requires_secret_for_refresh(self) -> None:
+        """Legacy tokens (null issued_grant_type) require client_secret for refresh.
+
+        Tokens created before the issued_grant_type field was added are treated
+        as confidential client tokens for backward compatibility.
+        """
+        self.login_as(self.user)
+
+        # self.token has issued_grant_type=None (legacy token from setUp)
+        assert self.token.issued_grant_type is None
+
+        # Try to refresh without client_secret
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "client_id": self.application.client_id,
+                "refresh_token": self.token.refresh_token,
+                # No client_secret - should fail for legacy token
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_client"}
 
     def test_public_client_refresh_invalid_client_id(self) -> None:
-        """Public client with invalid client_id should return invalid_client."""
+        """Invalid client_id should return invalid_client."""
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -719,13 +780,12 @@ class OAuthTokenRefreshTokenTest(TestCase):
                 "grant_type": "refresh_token",
                 "client_id": "nonexistent_client_id",
                 "refresh_token": self.token.refresh_token,
-                # No client_secret - public client
             },
         )
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_client"}
 
-    def test_public_client_refresh_missing_client_id(self) -> None:
+    def test_refresh_missing_client_id(self) -> None:
         """Refresh without client_id should return invalid_client."""
         self.login_as(self.user)
 
@@ -734,19 +794,27 @@ class OAuthTokenRefreshTokenTest(TestCase):
             {
                 "grant_type": "refresh_token",
                 "refresh_token": self.token.refresh_token,
-                # No client_id or client_secret
+                # No client_id
             },
         )
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_client"}
 
-    def test_public_client_refresh_wrong_application(self) -> None:
+    def test_device_flow_token_wrong_application(self) -> None:
         """Refresh token from different application should return invalid_grant.
 
         Per RFC 6749 §6: "the refresh token is bound to the client to which it
         was issued"
         """
         self.login_as(self.user)
+
+        # Create a device flow token
+        device_flow_token = ApiToken.objects.create(
+            application=self.application,
+            user=self.user,
+            expires_at=timezone.now(),
+            issued_grant_type="device_code",
+        )
 
         # Create a different application
         other_app = ApiApplication.objects.create(
@@ -759,19 +827,17 @@ class OAuthTokenRefreshTokenTest(TestCase):
             {
                 "grant_type": "refresh_token",
                 "client_id": other_app.client_id,
-                "refresh_token": self.token.refresh_token,
-                # No client_secret - public client
+                "refresh_token": device_flow_token.refresh_token,
             },
         )
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
     def test_confidential_client_refresh_wrong_secret_rejected(self) -> None:
-        """When client_secret is provided for refresh, it must be valid.
+        """When client_secret is provided, it must be valid.
 
-        Even though refresh_token supports public clients, when a client provides
-        client_secret, we should validate it. This allows confidential clients to
-        use refresh with full credential validation.
+        Even for device flow tokens, if a client provides client_secret,
+        we validate it.
         """
         self.login_as(self.user)
 

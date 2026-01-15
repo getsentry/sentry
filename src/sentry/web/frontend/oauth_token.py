@@ -147,12 +147,10 @@ class OAuthTokenView(View):
             },
         )
 
-        # Device flow and refresh token support public clients:
-        # - Device flow: RFC 8628 §5.6 - device clients should be treated as public clients
-        # - Refresh token: RFC 6749 §6 - public clients can refresh without client credentials
+        # Device flow supports public clients per RFC 8628 §5.6.
         # Public clients only provide client_id to identify themselves.
         # If client_secret is provided, we still validate it for confidential clients.
-        if grant_type in (GrantTypes.DEVICE_CODE, GrantTypes.REFRESH):
+        if grant_type == GrantTypes.DEVICE_CODE:
             if not client_id:
                 return self.error(
                     request=request,
@@ -185,6 +183,47 @@ class OAuthTokenView(View):
                     reason=reason,
                     status=401,
                 )
+        elif grant_type == GrantTypes.REFRESH:
+            # Refresh token: client authentication depends on how the token was issued.
+            # Per RFC 6749 §6: "If the client type is confidential or the client was issued
+            # client credentials, the client MUST authenticate."
+            # We determine client type by checking the token's issued_grant_type.
+            if not client_id:
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="missing client_id",
+                    status=401,
+                )
+
+            # Build query - validate secret only if provided
+            query: dict[str, str] = {"client_id": client_id}
+            if client_secret:
+                query["client_secret"] = client_secret
+
+            try:
+                application = ApiApplication.objects.get(**query)
+            except ApiApplication.DoesNotExist:
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                if client_secret:
+                    logger.warning(
+                        "Invalid client_id / secret pair",
+                        extra={"client_id": client_id},
+                    )
+                    reason = "invalid client_id or client_secret"
+                else:
+                    logger.warning("Invalid client_id", extra={"client_id": client_id})
+                    reason = "invalid client_id"
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason=reason,
+                    status=401,
+                )
+
+            # For refresh_token, we need to verify the client authentication matches
+            # how the token was issued. This check happens in get_refresh_token().
+            # Pass whether client_secret was provided so we can enforce RFC 6749 §6.
         else:
             # authorization_code grant requires confidential client authentication
             if not client_id or not client_secret:
@@ -275,7 +314,11 @@ class OAuthTokenView(View):
         elif grant_type == GrantTypes.DEVICE_CODE:
             return self.handle_device_code_grant(request=request, application=application)
         else:
-            token_data = self.get_refresh_token(request=request, application=application)
+            token_data = self.get_refresh_token(
+                request=request,
+                application=application,
+                client_secret_provided=bool(client_secret),
+            )
         if "error" in token_data:
             return self.error(
                 request=request,
@@ -420,7 +463,12 @@ class OAuthTokenView(View):
 
         return token_data
 
-    def get_refresh_token(self, request: Request, application: ApiApplication) -> dict:
+    def get_refresh_token(
+        self,
+        request: Request,
+        application: ApiApplication,
+        client_secret_provided: bool = True,
+    ) -> dict:
         refresh_token_code = request.POST.get("refresh_token")
         scope = request.POST.get("scope")
 
@@ -437,6 +485,21 @@ class OAuthTokenView(View):
             )
         except ApiToken.DoesNotExist:
             return {"error": "invalid_grant", "reason": "invalid request"}
+
+        # RFC 6749 §6: "If the client type is confidential or the client was issued
+        # client credentials, the client MUST authenticate."
+        #
+        # Per RFC 8628 §5.6, device flow clients are public clients.
+        # Tokens issued via device_code can be refreshed without client_secret.
+        # All other tokens (authorization_code, or legacy null) require client_secret.
+        if not client_secret_provided:
+            if refresh_token.issued_grant_type != "device_code":
+                # Confidential client token - client_secret is required
+                return {
+                    "error": "invalid_client",
+                    "reason": "client_secret required for this token",
+                }
+
         refresh_token.refresh()
 
         return {"token": refresh_token}
@@ -589,6 +652,7 @@ class OAuthTokenView(View):
                         user_id=device_code.user.id,
                         scope_list=device_code.scope_list,
                         scoping_organization_id=device_code.organization_id,
+                        issued_grant_type="device_code",
                     )
 
                     # Delete the device code (one-time use)
