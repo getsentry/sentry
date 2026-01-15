@@ -1,9 +1,5 @@
-from sentry.integrations.github_copilot.integration import (
-    GithubCopilotAgentIntegration,
-    GithubCopilotAgentIntegrationProvider,
-)
+from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 
 __all__ = [
-    "GithubCopilotAgentIntegration",
-    "GithubCopilotAgentIntegrationProvider",
+    "GithubCopilotAgentClient",
 ]
