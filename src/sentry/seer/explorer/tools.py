@@ -920,7 +920,7 @@ def get_group_tags_overview(
         "query": f"issue:{group.qualified_short_id}",
         "dataset": dataset,
         "project": [group.project_id],
-        "per_page": 1000,
+        "per_page": 100,  # Max allowed by the endpoint.
     }
     if start:
         params["start"] = start
