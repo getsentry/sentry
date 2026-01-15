@@ -61,8 +61,8 @@ Check in this order - **use the highest-level framework found** (e.g., if using 
 | Library (check in order) | Node.js | Browser | Python Integration | Python Extra |
 |--------------------------|---------|---------|-------------------|--------------|
 | Vercel AI SDK | Auto-enabled (needs \`experimental_telemetry\`) | - | - | - |
-| LangGraph | Auto-enabled | \`instrumentLangChainClient()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
-| LangChain | Auto-enabled | \`instrumentLangChainClient()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
+| LangGraph | Auto-enabled | \`instrumentLangGraph()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
+| LangChain | Auto-enabled | \`createLangChainCallbackHandler()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
 | OpenAI Agents | - | - | Auto-enabled | - |
 | Pydantic AI | - | - | Auto-enabled | \`sentry-sdk[pydantic_ai]\` |
 | LiteLLM | - | - | \`LiteLLMIntegration()\` | \`sentry-sdk[litellm]\` |
@@ -168,12 +168,38 @@ const client = Sentry.instrumentGoogleGenAiClient(genAI, {
 const model = client.getGenerativeModel({ model: "gemini-pro" });
 \`\`\`
 
-**LangChain/LangGraph:**
+**LangChain:**
 \`\`\`javascript
 import { ChatOpenAI } from "@langchain/openai";
 
+// Create a callback handler
+const callbackHandler = Sentry.createLangChainCallbackHandler({
+  recordInputs: true,
+  recordOutputs: true,
+});
+
 const llm = new ChatOpenAI();
-const client = Sentry.instrumentLangChainClient(llm, {
+
+// Use the callback handler when invoking
+await llm.invoke("Tell me a joke", {
+  callbacks: [callbackHandler],
+});
+\`\`\`
+
+**LangGraph:**
+\`\`\`javascript
+import { ChatOpenAI } from "@langchain/openai";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+
+const llm = new ChatOpenAI({
+  modelName: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const agent = createReactAgent({ llm, tools: [] });
+
+// Instrument the agent
+Sentry.instrumentLangGraph(agent, {
   recordInputs: true,
   recordOutputs: true,
 });
