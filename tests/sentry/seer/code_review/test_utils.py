@@ -7,7 +7,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.code_review.utils import (
-    PrReviewTrigger,
+    SeerCodeReviewTrigger,
     _get_target_commit_sha,
     _get_trigger_metadata,
     transform_webhook_to_codegen_request,
@@ -199,7 +199,7 @@ class TestTransformWebhookToCodegenRequest:
         }
         assert result["data"]["config"] == {
             "features": {"bug_prediction": True},
-            "trigger": PrReviewTrigger.ON_READY_FOR_REVIEW.value,
+            "trigger": SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value,
         } | {k: v for k, v in result["data"]["config"].items() if k not in ("features", "trigger")}
 
     def test_issue_comment_on_pr(
@@ -232,7 +232,7 @@ class TestTransformWebhookToCodegenRequest:
         data = result["data"]
         config = data["config"]
         assert data["pr_id"] == 42
-        assert config["trigger"] == PrReviewTrigger.ON_COMMAND_PHRASE.value
+        assert config["trigger"] == SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"

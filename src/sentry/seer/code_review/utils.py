@@ -26,23 +26,23 @@ class RequestType(StrEnum):
     PR_CLOSED = "pr-closed"
 
 
+class ClientError(Exception):
+    "Non-retryable client error from Seer"
+
+    pass
+
+
 # XXX: This needs to be a shared enum with the Seer repository
 # In Seer, src/seer/automation/codegen/types.py:PrReviewTrigger
-class PrReviewTrigger(StrEnum):
+class SeerCodeReviewTrigger(StrEnum):
     UNKNOWN = "unknown"
     ON_COMMAND_PHRASE = "on_command_phrase"
     ON_READY_FOR_REVIEW = "on_ready_for_review"
     ON_NEW_COMMIT = "on_new_commit"
 
     @classmethod
-    def _missing_(cls: type[PrReviewTrigger], value: object) -> PrReviewTrigger:
+    def _missing_(cls: type[SeerCodeReviewTrigger], value: object) -> SeerCodeReviewTrigger:
         return cls.UNKNOWN
-
-
-class ClientError(Exception):
-    "Non-retryable client error from Seer"
-
-    pass
 
 
 # These values need to match the value defined in the Seer API.
@@ -216,16 +216,16 @@ def transform_webhook_to_codegen_request(
     if github_event == GithubWebhookType.PULL_REQUEST and github_event_action == "closed":
         request_type = RequestType.PR_CLOSED
 
-    review_request_trigger = PrReviewTrigger.UNKNOWN
+    review_request_trigger = SeerCodeReviewTrigger.UNKNOWN
     match github_event_action:
         case "opened" | "ready_for_review":
-            review_request_trigger = PrReviewTrigger.ON_READY_FOR_REVIEW
+            review_request_trigger = SeerCodeReviewTrigger.ON_READY_FOR_REVIEW
         case "synchronize":
-            review_request_trigger = PrReviewTrigger.ON_NEW_COMMIT
+            review_request_trigger = SeerCodeReviewTrigger.ON_NEW_COMMIT
 
     # We know that we only schedule a task if the comment contains the command phrase
     if github_event == GithubWebhookType.ISSUE_COMMENT:
-        review_request_trigger = PrReviewTrigger.ON_COMMAND_PHRASE
+        review_request_trigger = SeerCodeReviewTrigger.ON_COMMAND_PHRASE
 
     # Extract pull request number
     # Different event types have PR info in different locations

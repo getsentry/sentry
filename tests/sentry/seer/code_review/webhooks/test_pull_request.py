@@ -6,7 +6,7 @@ import pytest
 
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.utils import PrReviewTrigger, RequestType
+from sentry.seer.code_review.utils import RequestType, SeerCodeReviewTrigger
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 
@@ -266,7 +266,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
             payload = call_kwargs["payload"]
             assert payload["request_type"] == RequestType.PR_CLOSED.value
-            assert payload["data"]["config"]["trigger"] == PrReviewTrigger.UNKNOWN.value
+            assert payload["data"]["config"]["trigger"] == SeerCodeReviewTrigger.UNKNOWN.value
             assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
             assert payload["data"]["config"]["trigger_comment_id"] is None
             assert payload["data"]["config"]["trigger_comment_type"] is None
