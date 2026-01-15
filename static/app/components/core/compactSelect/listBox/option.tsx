@@ -7,7 +7,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
+import {LeadWrap} from 'sentry/components/core/compactSelect/styles';
 import {
   InnerWrap,
   MenuListItem,
@@ -73,14 +73,19 @@ export function ListBoxOption({
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
-    if (hideCheck && !leadingItems) {
+    const leading =
+      typeof leadingItems === 'function'
+        ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+        : leadingItems;
+
+    if (hideCheck && !leading) {
       return null;
     }
 
     return (
       <Fragment>
         {!hideCheck && (
-          <CheckWrap multiple={multiple} isSelected={isSelected} aria-hidden="true">
+          <LeadWrap aria-hidden="true">
             {multiple ? (
               <Checkbox
                 size={checkboxSize}
@@ -91,12 +96,12 @@ export function ListBoxOption({
             ) : (
               isSelected && <IconCheckmark size={checkboxSize} />
             )}
-          </CheckWrap>
+          </LeadWrap>
         )}
-        {leadingItems}
+        {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
       </Fragment>
     );
-  }, [multiple, isSelected, isDisabled, size, leadingItems, hideCheck]);
+  }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
 
   return (
     <StyledMenuListItem

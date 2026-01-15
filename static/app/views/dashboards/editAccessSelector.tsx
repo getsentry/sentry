@@ -13,7 +13,6 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
 import {InnerWrap, LeadingItems} from 'sentry/components/core/menuListItem';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -406,10 +405,6 @@ const StyledCompactSelect = styled(CompactSelect)`
 
   ${LeadingItems} {
     margin-top: 0;
-  }
-
-  ${CheckWrap} {
-    padding-bottom: 0;
   }
 `;
 
