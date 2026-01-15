@@ -30,7 +30,8 @@ interface OrgDashboardsProps {
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
   /**
    * Initial dashboard state to use for optimistic updates.
-   * This is used when navigating from widget builder to show the new widget immediately.
+   * This is used when navigating from widget builder to show the new widget immediately
+   * since there are scenarios where the component fully remounts and loses its modified state.
    */
   initialDashboard?: DashboardDetails;
 }
