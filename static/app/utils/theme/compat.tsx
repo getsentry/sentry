@@ -13,12 +13,8 @@ export function withLegacyTokens<T extends Record<string, any>>(
     ...tokens.background,
   } satisfies LegacyTokens['background'];
 
-  const graphics = {
-    ...tokens.graphics,
-  };
   return {
     ...tokens,
     background,
-    graphics,
   };
 }
