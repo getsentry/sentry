@@ -122,6 +122,17 @@ class TrustedIdentityProvider(Model):
         """Check if a client_id is allowed to use this IdP for ID-JAG."""
         if not self.allowed_client_ids:
             return True  # Empty list = all clients allowed
+        # Ensure allowed_client_ids is a list to prevent substring matching
+        if not isinstance(self.allowed_client_ids, list):
+            logger.warning(
+                "allowed_client_ids is not a list, rejecting client",
+                extra={
+                    "idp_id": self.id,
+                    "issuer": self.issuer,
+                    "type": type(self.allowed_client_ids).__name__,
+                },
+            )
+            return False
         return client_id in self.allowed_client_ids
 
     def get_audit_log_data(self) -> dict[str, Any]:
@@ -182,6 +193,19 @@ class TrustedIdentityProvider(Model):
             )
             raise JWKSFetchError(f"JWKS response from {self.jwks_uri} missing 'keys' field")
 
+        # Validate keys is a list
+        if not isinstance(jwks_data["keys"], list):
+            logger.warning(
+                "JWKS response from %s has invalid 'keys' field type",
+                self.jwks_uri,
+                extra={
+                    "idp_id": self.id,
+                    "issuer": self.issuer,
+                    "type": type(jwks_data["keys"]).__name__,
+                },
+            )
+            raise JWKSFetchError(f"JWKS response from {self.jwks_uri} 'keys' field must be a list")
+
         self.update_jwks_cache(jwks_data)
         return jwks_data
 
@@ -190,6 +214,7 @@ class TrustedIdentityProvider(Model):
         Get a public key from the cached JWKS by key ID (kid).
 
         Returns the key in PEM format suitable for JWT verification.
+        Supports both RSA (kty=RSA) and EC (kty=EC) key types.
         Raises KeyNotFoundError if the key is not found.
         """
         if not self.jwks_cache or "keys" not in self.jwks_cache:
@@ -197,15 +222,26 @@ class TrustedIdentityProvider(Model):
 
         for jwk in self.jwks_cache["keys"]:
             if jwk.get("kid") == kid:
-                # Convert JWK to PEM format
+                # Convert JWK to PEM format based on key type
                 try:
                     jwk_json = orjson.dumps(jwk).decode()
-                    return jwt.rsa_key_from_jwk(jwk_json)
+                    kty = jwk.get("kty", "RSA")
+                    if kty == "RSA":
+                        return jwt.rsa_key_from_jwk(jwk_json)
+                    elif kty == "EC":
+                        return jwt.ec_key_from_jwk(jwk_json)
+                    else:
+                        raise JWTValidationError(f"Unsupported key type '{kty}' for key ID '{kid}'")
                 except (ValueError, TypeError) as e:
                     logger.warning(
                         "Failed to convert JWK to PEM format for key %s",
                         kid,
-                        extra={"idp_id": self.id, "issuer": self.issuer, "kid": kid},
+                        extra={
+                            "idp_id": self.id,
+                            "issuer": self.issuer,
+                            "kid": kid,
+                            "kty": jwk.get("kty"),
+                        },
                         exc_info=True,
                     )
                     raise JWTValidationError(f"Invalid key format for key ID '{kid}': {e}") from e

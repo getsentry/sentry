@@ -1537,9 +1537,18 @@ class OAuthTokenJWTBearerTest(TestCase):
         )
 
     def _create_jwt(self, claims: dict, kid: str | None = None) -> str:
-        """Create a signed JWT for testing."""
+        """Create a signed JWT for testing.
+
+        Automatically adds 'exp' claim (1 hour from now) if not provided.
+        """
+        import time
+
+        full_claims = claims.copy()
+        if "exp" not in full_claims:
+            full_claims["exp"] = int(time.time()) + 3600  # 1 hour from now
+
         return self.jwt.encode(
-            claims,
+            full_claims,
             self.private_key_pem,
             algorithm="RS256",
             headers={"kid": kid or self.kid},
@@ -1674,6 +1683,36 @@ class OAuthTokenJWTBearerTest(TestCase):
         """JWT without email claim should return invalid_grant."""
         token = self._create_jwt(
             {"iss": self.issuer, "sub": "user@example.com", "aud": "http://testserver"}
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_missing_exp_claim(self) -> None:
+        """JWT without exp claim should return invalid_grant."""
+        # Create JWT without exp claim by explicitly setting exp=None
+        # The _create_jwt auto-adds exp, so we need to create the token manually
+        claims = {
+            "iss": self.issuer,
+            "sub": "user@example.com",
+            "email": self.user.email,
+            "aud": "http://testserver",
+        }
+        # Don't use _create_jwt since it adds exp automatically
+        token = self.jwt.encode(
+            claims,
+            self.private_key_pem,
+            algorithm="RS256",
+            headers={"kid": self.kid},
         )
 
         resp = self.client.post(

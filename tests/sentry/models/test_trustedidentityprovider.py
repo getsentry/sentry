@@ -5,7 +5,7 @@ import pytest
 import responses
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from django.db import IntegrityError
 from django.utils import timezone
 from jwt import algorithms as jwt_algorithms
@@ -54,6 +54,52 @@ def create_signed_jwt(private_key_pem: str, claims: dict, kid: str) -> str:
         claims,
         private_key_pem,
         algorithm="RS256",
+        headers={"kid": kid},
+    )
+
+
+def generate_ec_key_pair():
+    """Generate an EC P-256 key pair for testing. Returns (private_key, private_key_pem)."""
+    private_key = ec.generate_private_key(ec.SECP256R1(), backend=default_backend())
+    private_key_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("utf-8")
+    return private_key, private_key_pem
+
+
+def ec_private_key_to_jwk(private_key, kid: str) -> dict:
+    """Convert an EC private key to JWK format (public key only)."""
+    import base64
+
+    public_key = private_key.public_key()
+    public_numbers = public_key.public_numbers()
+
+    # Get the curve size in bytes for proper padding
+    curve_size = (public_key.curve.key_size + 7) // 8
+
+    # Convert coordinates to base64url-encoded bytes
+    x_bytes = public_numbers.x.to_bytes(curve_size, byteorder="big")
+    y_bytes = public_numbers.y.to_bytes(curve_size, byteorder="big")
+
+    return {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": base64.urlsafe_b64encode(x_bytes).rstrip(b"=").decode("ascii"),
+        "y": base64.urlsafe_b64encode(y_bytes).rstrip(b"=").decode("ascii"),
+        "kid": kid,
+        "use": "sig",
+        "alg": "ES256",
+    }
+
+
+def create_signed_ec_jwt(private_key_pem: str, claims: dict, kid: str) -> str:
+    """Create a signed JWT using ES256 algorithm for testing."""
+    return jwt.encode(
+        claims,
+        private_key_pem,
+        algorithm="ES256",
         headers={"kid": kid},
     )
 
@@ -468,6 +514,48 @@ class TrustedIdentityProviderJWKSTest(TestCase):
 
         assert "No JWKS cache available" in str(exc_info.value)
 
+    def test_get_public_key_ec_key(self) -> None:
+        """Test that EC keys (ES256/ES384/ES512) are supported."""
+        private_key, _ = generate_ec_key_pair()
+        jwk = ec_private_key_to_jwk(private_key, "ec-key-1")
+
+        idp = TrustedIdentityProvider.objects.create(
+            organization_id=self.organization.id,
+            issuer="https://acme.okta.com",
+            name="Acme Okta",
+            jwks_uri="https://acme.okta.com/.well-known/jwks.json",
+            jwks_cache={"keys": [jwk]},
+            jwks_cached_at=timezone.now(),
+        )
+
+        pem_key = idp.get_public_key("ec-key-1")
+
+        assert pem_key is not None
+        assert "BEGIN PUBLIC KEY" in pem_key
+
+    def test_get_public_key_unsupported_key_type(self) -> None:
+        """Test that unsupported key types are rejected."""
+        idp = TrustedIdentityProvider.objects.create(
+            organization_id=self.organization.id,
+            issuer="https://acme.okta.com",
+            name="Acme Okta",
+            jwks_uri="https://acme.okta.com/.well-known/jwks.json",
+            jwks_cache={
+                "keys": [
+                    {
+                        "kty": "OKP",  # Ed25519 - not supported
+                        "kid": "okp-key-1",
+                    }
+                ]
+            },
+            jwks_cached_at=timezone.now(),
+        )
+
+        with pytest.raises(JWTValidationError) as exc_info:
+            idp.get_public_key("okp-key-1")
+
+        assert "Unsupported key type 'OKP'" in str(exc_info.value)
+
 
 @control_silo_test
 class TrustedIdentityProviderJWTValidationTest(TestCase):
@@ -502,6 +590,33 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         assert result["sub"] == "user@example.com"
         assert result["iss"] == "https://acme.okta.com"
         assert result["aud"] == "sentry.io"
+
+    def test_validate_jwt_signature_ec_key(self) -> None:
+        """Test JWT validation with EC (ES256) key."""
+        ec_private_key, ec_private_key_pem = generate_ec_key_pair()
+        ec_kid = "ec-key-1"
+        ec_jwk = ec_private_key_to_jwk(ec_private_key, ec_kid)
+
+        idp = TrustedIdentityProvider.objects.create(
+            organization_id=self.organization.id,
+            issuer="https://acme.okta.com",
+            name="Acme Okta",
+            jwks_uri=self.jwks_uri,
+            jwks_cache={"keys": [ec_jwk]},
+            jwks_cached_at=timezone.now(),
+        )
+
+        claims = {
+            "sub": "user@example.com",
+            "iss": "https://acme.okta.com",
+            "aud": "sentry.io",
+        }
+        token = create_signed_ec_jwt(ec_private_key_pem, claims, ec_kid)
+
+        result = idp.validate_jwt_signature(token, audience="sentry.io")
+
+        assert result["sub"] == "user@example.com"
+        assert result["iss"] == "https://acme.okta.com"
 
     def test_validate_jwt_disabled_idp(self) -> None:
         idp = TrustedIdentityProvider.objects.create(

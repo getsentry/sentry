@@ -10,6 +10,10 @@ from collections.abc import Mapping
 from typing import Any
 
 import jwt as pyjwt
+from cryptography.hazmat.primitives.asymmetric.ec import (
+    EllipticCurvePrivateKey,
+    EllipticCurvePublicKey,
+)
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
@@ -137,3 +141,20 @@ def rsa_key_from_jwk(jwk: str) -> str:
         return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")
     else:
         raise ValueError("Unknown RSA JWK key")
+
+
+def ec_key_from_jwk(jwk: str) -> str:
+    """Returns an EC key from a serialised JWK.
+
+    This constructs an Elliptic Curve key from a JSON Web Key, the result can be used
+    as key to :func:`decode` for ES256/ES384/ES512 algorithms.
+
+    :param jwk: The JSON Web Key as encoded JSON.
+    """
+    key = pyjwt.algorithms.ECAlgorithm.from_jwk(jwk)
+    if isinstance(key, EllipticCurvePrivateKey):
+        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")
+    elif isinstance(key, EllipticCurvePublicKey):
+        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")
+    else:
+        raise ValueError("Unknown EC JWK key")

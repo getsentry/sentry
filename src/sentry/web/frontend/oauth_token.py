@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import time
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
@@ -779,12 +780,34 @@ class OAuthTokenView(View):
                 reason="assertion validation failed",
             )
 
+        # Require exp claim per RFC 7523
+        exp = claims.get("exp")
+        if not exp:
+            logger.warning(
+                "JWT bearer grant: missing exp claim",
+                extra={"client_id": application.client_id, "issuer": issuer},
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="assertion missing exp claim",
+            )
+
         # Replay prevention: check jti claim hasn't been used before
         jti = claims.get("jti")
         if jti:
             # Cache key includes issuer to prevent cross-IdP collisions
             jti_cache_key = f"oauth:jwt_bearer:jti:{issuer}:{jti}"
-            if cache.get(jti_cache_key):
+
+            # Calculate cache TTL based on JWT expiration (with small buffer)
+            # Use min of JWT remaining lifetime or 10 minutes
+            now = int(time.time())
+            jwt_ttl = max(0, exp - now) + 60  # Add 60s buffer for clock skew
+            cache_ttl = min(jwt_ttl, 600)  # Cap at 10 minutes
+
+            # Use atomic cache.add() to prevent race conditions
+            # add() returns False if key already exists (replay attack)
+            if not cache.add(jti_cache_key, True, timeout=cache_ttl):
                 logger.warning(
                     "JWT bearer grant: assertion already used (replay attempt)",
                     extra={
@@ -798,8 +821,6 @@ class OAuthTokenView(View):
                     name="invalid_grant",
                     reason="assertion already used",
                 )
-            # Mark jti as used - cache for 10 minutes (ID-JAGs should be short-lived)
-            cache.set(jti_cache_key, True, timeout=600)
 
         # Extract subject identifier using configured claim
         subject_claim = validated_idp.subject_claim
@@ -870,15 +891,21 @@ class OAuthTokenView(View):
             )
 
         # Determine scopes for the token
-        # Intersect: requested scopes ∩ IdP allowed scopes
+        # Intersect: requested scopes ∩ IdP allowed scopes ∩ application allowed scopes
         requested_scopes = set(requested_scope.split()) if requested_scope else set()
         idp_scopes = set(validated_idp.allowed_scopes) if validated_idp.allowed_scopes else None
+        app_scopes = set(application.scopes) if application.scopes else None
+
+        # Start with requested scopes (or empty if none requested)
+        final_scopes = requested_scopes
 
         # If IdP has scope restrictions, apply them
         if idp_scopes is not None:
-            final_scopes = requested_scopes & idp_scopes if requested_scopes else idp_scopes
-        else:
-            final_scopes = requested_scopes
+            final_scopes = final_scopes & idp_scopes if final_scopes else idp_scopes
+
+        # If application has scope restrictions, apply them
+        if app_scopes is not None:
+            final_scopes = final_scopes & app_scopes if final_scopes else app_scopes
 
         # Create the access token
         # Token is scoped to the IdP's organization
