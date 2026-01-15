@@ -147,6 +147,14 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
             completed_at=completed_at,
         )
     except Exception as e:
+        logger.exception(
+            "preprod.status_checks.create.failed",
+            extra={
+                "artifact_id": preprod_artifact.id,
+                "organization_id": preprod_artifact.project.organization_id,
+                "organization_slug": preprod_artifact.project.organization.slug,
+            },
+        )
         _update_posted_status_check(preprod_artifact, check_type="size", success=False, error=e)
         raise
 

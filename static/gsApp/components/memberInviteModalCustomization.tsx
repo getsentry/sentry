@@ -191,7 +191,7 @@ const TrialInfo = styled('div')<{status?: string}>`
 
   > :first-child {
     justify-self: center;
-    ${p => p.status === 'success' && `color: ${p.theme.green300}`};
+    ${p => p.status === 'success' && `color: ${p.theme.colors.green400}`};
   }
 `;
 

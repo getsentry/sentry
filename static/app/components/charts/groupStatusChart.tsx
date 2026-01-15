@@ -58,7 +58,7 @@ function GroupStatusChart({
 
     const marklineColor = theme.colors.gray400;
     const marklineLabelColor = theme.tokens.content.secondary;
-    const chartColor = theme.tokens.graphics.muted;
+    const chartColor = theme.tokens.graphics.neutral.moderate;
 
     const markLine = MarkLine({
       silent: true,

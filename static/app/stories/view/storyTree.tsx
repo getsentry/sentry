@@ -766,7 +766,7 @@ const FolderLink = styled(Link, {
     position: absolute;
     left: -8px;
     height: 20px;
-    background: ${p => p.theme.tokens.graphics.accent};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
     width: 4px;
     border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
