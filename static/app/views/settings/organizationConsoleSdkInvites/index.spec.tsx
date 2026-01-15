@@ -101,9 +101,9 @@ describe('ConsoleSDKInvitesSettings', () => {
         /Your organization does not have any console platforms enabled/
       )
     ).toBeInTheDocument();
-    expect(screen.getByText('PlayStation Partners')).toBeInTheDocument();
-    expect(screen.getByText('Nintendo Developer Portal')).toBeInTheDocument();
-    expect(screen.getByText('Microsoft GDK Middleware')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'PlayStation'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Nintendo Switch'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Xbox'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Request SDK Access'})).toBeDisabled();
   });
 
