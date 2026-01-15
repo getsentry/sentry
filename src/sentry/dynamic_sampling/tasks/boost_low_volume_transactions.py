@@ -48,7 +48,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -242,9 +242,9 @@ class FetchProjectTransactionTotals:
     def __init__(self, orgs: Sequence[int]):
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-        self.metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+        is_segment_string_id = indexer.resolve_shared_org("is_segment")
+        self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
+        self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
 
         self.org_ids = list(orgs)
         self.offset = 0
@@ -284,6 +284,7 @@ class FetchProjectTransactionTotals:
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                         Condition(Column("org_id"), Op.IN, self.org_ids),
+                        Condition(Column(self.is_segment_tag), Op.EQ, "true"),
                     ],
                     granularity=granularity,
                     orderby=[
@@ -298,7 +299,7 @@ class FetchProjectTransactionTotals:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": UseCaseID.SPANS.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
@@ -363,9 +364,9 @@ class FetchProjectTransactionVolumes:
         self.offset = 0
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-        self.metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+        is_segment_string_id = indexer.resolve_shared_org("is_segment")
+        self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
+        self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
         self.has_more_results = True
         self.cache: list[ProjectTransactions] = []
 
@@ -413,6 +414,7 @@ class FetchProjectTransactionVolumes:
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                         Condition(Column("org_id"), Op.IN, self.org_ids),
+                        Condition(Column(self.is_segment_tag), Op.EQ, "true"),
                     ],
                     granularity=granularity,
                     orderby=[
@@ -434,7 +436,7 @@ class FetchProjectTransactionVolumes:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": UseCaseID.SPANS.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
