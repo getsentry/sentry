@@ -42,7 +42,7 @@ function WidgetBuilderDatasetSelector() {
     label: t('Transactions'),
     disabled: isTransactionsDeprecated,
     details: isTransactionsDeprecated
-      ? t('No longer supported. Use the spans dataset.')
+      ? tctCode('No longer supported. Use the spans dataset with the [code:is_transaction:true] filter.')
       : t('Transactions from your application'),
   };
 
