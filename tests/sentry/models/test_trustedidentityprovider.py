@@ -199,12 +199,12 @@ class TrustedIdentityProviderTest(TestCase):
 
         idp.update_jwks_cache(jwks_data)
 
-        # Refresh from DB
-        idp.refresh_from_db()
+        # Refresh from DB - use fresh variable to avoid mypy type narrowing issues
+        updated_idp = TrustedIdentityProvider.objects.get(id=idp.id)
 
-        assert idp.jwks_cache == jwks_data
-        assert idp.jwks_cached_at is not None
-        assert idp.is_jwks_cache_valid() is True
+        assert updated_idp.jwks_cache == jwks_data
+        assert updated_idp.jwks_cached_at is not None
+        assert updated_idp.is_jwks_cache_valid() is True
 
     def test_is_client_allowed_empty_list(self) -> None:
         idp = TrustedIdentityProvider.objects.create(
