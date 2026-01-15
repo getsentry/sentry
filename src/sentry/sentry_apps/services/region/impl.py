@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any
 
 from sentry import deletions, tsdb
@@ -9,14 +10,17 @@ from sentry.sentry_apps.external_requests.select_requester import SelectRequeste
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.services.region.model import (
     RpcEmptyResult,
+    RpcInteractionStatsResult,
     RpcPlatformExternalIssue,
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcSentryAppError,
     RpcServiceHookProject,
     RpcServiceHookProjectsResult,
+    RpcTimeSeriesPoint,
 )
 from sentry.sentry_apps.services.region.service import SentryAppRegionService
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -347,12 +351,60 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
 
         return RpcEmptyResult()
 
+    def get_interaction_stats(
+        self,
+        *,
+        organization_id: int,
+        sentry_app: RpcSentryApp,
+        component_types: list[str],
+        since: float,
+        until: float,
+        resolution: int | None = None,
+    ) -> RpcInteractionStatsResult:
+        """
+        Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ GET
+        """
+        start_dt = datetime.fromtimestamp(since, tz=timezone.utc)
+        end_dt = datetime.fromtimestamp(until, tz=timezone.utc)
+
+        tsdb_kwargs: dict[str, Any] = {
+            "start": start_dt,
+            "end": end_dt,
+            "tenant_ids": {"organization_id": organization_id},
+        }
+        if resolution is not None:
+            tsdb_kwargs["rollup"] = resolution
+
+        views_data = tsdb.backend.get_range(
+            model=TSDBModel.sentry_app_viewed,
+            keys=[sentry_app.id],
+            **tsdb_kwargs,
+        ).get(sentry_app.id, [])
+        views = [RpcTimeSeriesPoint(time=t, count=c) for t, c in views_data]
+
+        component_keys = [
+            self.get_component_interaction_key(sentry_app.slug, ct) for ct in component_types
+        ]
+        component_data = tsdb.backend.get_range(
+            model=TSDBModel.sentry_app_component_interacted,
+            keys=component_keys,
+            **tsdb_kwargs,
+        )
+        component_interactions = {
+            key.split(":")[1]: [RpcTimeSeriesPoint(time=t, count=c) for t, c in value]
+            for key, value in component_data.items()
+        }
+
+        return RpcInteractionStatsResult(
+            views=views,
+            component_interactions=component_interactions,
+        )
+
     def record_interaction(
         self,
         *,
         organization_id: int,
-        sentry_app_id: int,
-        sentry_app_slug: str,
+        sentry_app: RpcSentryApp,
         tsdb_field: str,
         component_type: str | None = None,
     ) -> RpcEmptyResult:
@@ -371,9 +423,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                         status_code=400,
                     ),
                 )
-            key = f"{sentry_app_slug}:{component_type}"
+            key = self.get_component_interaction_key(sentry_app.slug, component_type)
         elif model == TSDBModel.sentry_app_viewed:
-            key = sentry_app_id
+            key = str(sentry_app.id)
         else:
             return RpcEmptyResult(
                 success=False,
@@ -384,6 +436,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 ),
             )
 
+        # Timestamp is automatically created
         tsdb.backend.incr(model, key)
 
         return RpcEmptyResult()

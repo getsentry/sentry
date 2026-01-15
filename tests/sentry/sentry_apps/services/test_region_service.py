@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import orjson
 import responses
 from django.utils.http import urlencode
@@ -8,6 +10,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProjec
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.region import sentry_app_region_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.users.services.user.serial import serialize_rpc_user
 
@@ -286,22 +289,34 @@ class TestSentryAppRegionService(TestCase):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert not ServiceHookProject.objects.filter(service_hook_id=hook.id).exists()
 
-    def test_record_interaction_sentry_app_viewed(self) -> None:
+    def test_get_interaction_stats(self) -> None:
+        now = before_now(days=1)
+        since = (now - timedelta(minutes=5)).timestamp()
+        result = sentry_app_region_service.get_interaction_stats(
+            organization_id=self.org.id,
+            sentry_app=self.rpc_installation.sentry_app,
+            component_types=["issue-link", "stacktrace-link"],
+            since=since,
+            until=now.timestamp(),
+        )
+
+        assert result.error is None
+        assert all(point.count == 0 for point in result.views)
+        assert set(result.component_interactions.keys()) == {"issue-link", "stacktrace-link"}
+
+    def test_record_interaction(self) -> None:
         result = sentry_app_region_service.record_interaction(
             organization_id=self.org.id,
-            sentry_app_id=self.sentry_app.id,
-            sentry_app_slug=self.sentry_app.slug,
+            sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_viewed",
         )
 
         assert result.success is True
         assert result.error is None
 
-    def test_record_interaction_component_interacted(self) -> None:
         result = sentry_app_region_service.record_interaction(
             organization_id=self.org.id,
-            sentry_app_id=self.sentry_app.id,
-            sentry_app_slug=self.sentry_app.slug,
+            sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_component_interacted",
             component_type="issue-link",
         )
@@ -309,11 +324,10 @@ class TestSentryAppRegionService(TestCase):
         assert result.success is True
         assert result.error is None
 
-    def test_record_interaction_invalid_tsdb_field(self) -> None:
+    def test_record_interaction_error(self) -> None:
         result = sentry_app_region_service.record_interaction(
             organization_id=self.org.id,
-            sentry_app_id=self.sentry_app.id,
-            sentry_app_slug=self.sentry_app.slug,
+            sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="invalid_field",
         )
 
@@ -322,15 +336,14 @@ class TestSentryAppRegionService(TestCase):
         assert result.error.status_code == 400
         assert "tsdbField must be one of" in result.error.message
 
-    def test_record_interaction_missing_component_type(self) -> None:
         result = sentry_app_region_service.record_interaction(
             organization_id=self.org.id,
-            sentry_app_id=self.sentry_app.id,
-            sentry_app_slug=self.sentry_app.slug,
+            sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_component_interacted",
         )
 
         assert result.success is False
         assert result.error is not None
         assert result.error.status_code == 400
+        assert "componentType is required" in result.error.message
         assert "componentType is required" in result.error.message
