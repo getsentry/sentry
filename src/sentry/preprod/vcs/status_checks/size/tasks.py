@@ -409,7 +409,7 @@ def _fetch_base_size_metrics(
     return result
 
 
-def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str | None]:
+def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
     """
     Extract build metadata from an artifact for filter matching.
 
@@ -419,7 +419,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str | N
     - app_id: The app ID (e.g., "com.example.app")
     - build_configuration: The build configuration name
     """
-    context: dict[str, str | None] = {}
+    context: dict[str, str] = {}
 
     if artifact.commit_comparison and artifact.commit_comparison.head_ref:
         context["git_head_ref"] = artifact.commit_comparison.head_ref
@@ -445,7 +445,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str | N
     return context
 
 
-def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str | None]) -> bool:
+def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bool:
     """
     Check if a rule's filters match the artifact's context.
 

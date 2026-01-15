@@ -40,9 +40,9 @@ export function getDisplayUnit(measurement: MeasurementType): string {
 }
 
 export function bytesToMB(bytes: number): number {
-  return bytes / (1024 * 1024);
+  return bytes / (1000 * 1000);
 }
 
 export function mbToBytes(mb: number): number {
-  return mb * 1024 * 1024;
+  return mb * 1000 * 1000;
 }
