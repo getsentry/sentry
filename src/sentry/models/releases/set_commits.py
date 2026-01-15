@@ -297,11 +297,11 @@ def create_commit_authors(commit_list, release):
             # Lowercase to match CommitAuthorManager.get_or_create behavior
             author_email = author_email.lower()
 
-        # Store normalized email back in data for later lookup
-        data["_normalized_email"] = author_email
+            # Store normalized email back in data for later lookup
+            data["_normalized_email"] = author_email
 
-        if author_email and author_email not in author_data_by_email:
-            author_data_by_email[author_email] = {"name": data.get("author_name")}
+            if author_email not in author_data_by_email:
+                author_data_by_email[author_email] = {"name": data.get("author_name")}
 
     if not author_data_by_email:
         # No authors to process, set all to None
