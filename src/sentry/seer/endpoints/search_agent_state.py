@@ -98,6 +98,12 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        if not settings.SEER_AUTOFIX_URL:
+            return Response(
+                {"detail": "Seer is not properly configured."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
         try:
             run_id_int = int(run_id)
         except ValueError:
