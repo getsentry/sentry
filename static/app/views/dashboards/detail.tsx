@@ -713,13 +713,19 @@ class DashboardDetail extends Component<Props, State> {
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
     const mergedWidget = assignTempId({...baseWidget, ...widget});
 
-    const newWidgets = defined(index)
-      ? [
-          ...currentDashboard.widgets.slice(0, index),
-          mergedWidget,
-          ...currentDashboard.widgets.slice(index + 1),
-        ]
-      : [...currentDashboard.widgets, mergedWidget];
+    // Always ensure added widgets in the save flow have a layout
+    // This sets the layout for the request, as well as the optimistic
+    // update on save
+    const newWidgets = assignDefaultLayout(
+      defined(index)
+        ? [
+            ...currentDashboard.widgets.slice(0, index),
+            mergedWidget,
+            ...currentDashboard.widgets.slice(index + 1),
+          ]
+        : [...currentDashboard.widgets, mergedWidget],
+      calculateColumnDepths(getDashboardLayout(currentDashboard.widgets))
+    );
 
     try {
       if (this.isEditingDashboard) {
