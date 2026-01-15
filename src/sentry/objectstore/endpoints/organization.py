@@ -11,7 +11,7 @@ from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.hybridcloud.apigateway.proxy import BodyWithLength
+from sentry.utils.http import BodyWithLength
 
 # TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
 uwsgi: Any = None

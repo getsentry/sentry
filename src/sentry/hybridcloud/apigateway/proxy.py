@@ -5,7 +5,7 @@ Utilities related to proxying a request to a region silo
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Iterator
+from collections.abc import Generator
 from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
@@ -35,6 +35,7 @@ from sentry.types.region import (
     get_region_for_organization,
 )
 from sentry.utils import metrics
+from sentry.utils.http import BodyWithLength
 
 logger = logging.getLogger(__name__)
 
@@ -76,22 +77,6 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
 
     streamed_response[PROXY_DIRECT_LOCATION_HEADER] = remote_url
     return streamed_response
-
-
-class BodyWithLength:
-    """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
-
-    def __init__(self, request: HttpRequest):
-        self.request = request
-
-    def __iter__(self) -> Iterator[bytes]:
-        return iter(self.request)
-
-    def __len__(self) -> int:
-        return int(self.request.headers.get("Content-Length", "0"))
-
-    def read(self, size: int | None = None) -> bytes:
-        return self.request.read(size)
 
 
 def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> HttpResponseBase:
