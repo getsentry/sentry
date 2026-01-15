@@ -1,3 +1,6 @@
+// TODO: Update tests for router context after deprecatedRouteProps removal
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 import {IncidentFixture} from 'sentry-fixture/incident';
 import {IncidentStatsFixture} from 'sentry-fixture/incidentStats';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';

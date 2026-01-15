@@ -1684,13 +1684,11 @@ function buildRoutes(): RouteObject[] {
         component: withDomainRequired(make(() => import('sentry/views/alerts'))),
         customerDomainOnlyRoute: true,
         children: alertChildRoutes(true),
-        deprecatedRouteProps: true,
       },
       {
         path: '/organizations/:orgId/alerts/',
         component: withDomainRedirect(make(() => import('sentry/views/alerts'))),
         children: alertChildRoutes(false),
-        deprecatedRouteProps: true,
       },
     ],
   };
@@ -2690,7 +2688,6 @@ function buildRoutes(): RouteObject[] {
       path: 'alerts/',
       component: make(() => import('sentry/views/alerts')),
       children: alertChildRoutes(true),
-      deprecatedRouteProps: true,
     },
     traceView,
   ];

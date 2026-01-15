@@ -17,9 +17,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -36,14 +36,10 @@ import {
 import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
-interface AlertWizardProps {
-  organization: Organization;
-  projectId: string;
-}
-
 const DEFAULT_ALERT_OPTION = 'issues';
 
-function AlertWizard({organization, projectId}: AlertWizardProps) {
+function AlertWizard() {
+  const organization = useOrganization();
   const location = useLocation();
   const params = useParams<{projectId?: string}>();
   const useMetricDetectorLimit =
@@ -57,7 +53,7 @@ function AlertWizard({organization, projectId}: AlertWizardProps) {
       ? alertOptionQuery
       : DEFAULT_ALERT_OPTION
   );
-  const projectSlug = params.projectId ?? projectId;
+  const projectSlug = params.projectId ?? '';
 
   const handleChangeAlertOption = (option: AlertType) => {
     setAlertOption(option);

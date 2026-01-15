@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import AlertWizard from 'sentry/views/alerts/wizard/index';
 
 describe('AlertWizard', () => {
-  const project = ProjectFixture();
+  // const project = ProjectFixture();
 
   beforeEach(() => {
     ConfigStore.init();
@@ -19,15 +18,12 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    const {router} = render(
-      <AlertWizard organization={organization} projectId={project.slug} />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/alerts/wizard/'},
-        },
-      }
-    );
+    const {router} = render(<AlertWizard />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/alerts/wizard/'},
+      },
+    });
 
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
     await userEvent.click(screen.getByText('Set Conditions'));
@@ -54,7 +50,7 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
     });
 
@@ -75,7 +71,7 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
     });
 
@@ -90,7 +86,7 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
     });
 
@@ -109,7 +105,7 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
     });
 
@@ -131,7 +127,7 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
     });
 
@@ -149,7 +145,7 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
     });
 
@@ -167,7 +163,7 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
     });
 

@@ -1,36 +1,45 @@
-import {cloneElement, Fragment, isValidElement, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
+import {Outlet, useOutletContext} from 'react-router-dom';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Member, Organization} from 'sentry/types/organization';
+import type {Member} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
-type Props = RouteComponentProps<RouteParams> & {
-  children: React.ReactNode;
+interface OutletContextWithAlerts {
   hasMetricAlerts: boolean;
-  organization: Organization;
-};
+  hasUptimeAlerts: boolean;
+}
 
-type RouteParams = {
-  projectId?: string;
-};
+export interface ProjectProviderChildProps {
+  members: Member[] | undefined;
+  project: Project;
+  projectId: string;
+}
 
-function AlertBuilderProjectProvider(props: Props) {
+function AlertBuilderProjectProvider() {
   const api = useApi();
   const isMountedRef = useIsMountedRef();
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = useParams<{projectId?: string}>();
+  const {hasMetricAlerts} = useOutletContext<OutletContextWithAlerts>();
   const [members, setMembers] = useState<Member[] | undefined>(undefined);
-  useScrollToTop({location: props.location});
+  useScrollToTop({location});
 
-  const {children, params, organization, ...other} = props;
-  const projectId = params.projectId || props.location.query.project;
+  const projectId = params.projectId || location.query.project;
   const useFirstProject = projectId === undefined;
 
   const {projects, initiallyLoaded, fetching, fetchError} = useProjects();
@@ -57,12 +66,11 @@ function AlertBuilderProjectProvider(props: Props) {
 
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
-    navigateTo(
+    navigate(
       makeAlertsPathname({
         path: '/wizard/',
         organization,
-      }) + `?referrer=${props.location.query.referrer}&project=:projectId`,
-      props.router
+      }) + `?referrer=${location.query.referrer}&project=:projectId`
     );
   }
 
@@ -78,18 +86,15 @@ function AlertBuilderProjectProvider(props: Props) {
   }
 
   return (
-    <Fragment>
-      {children && isValidElement(children)
-        ? cloneElement(children, {
-            ...other,
-            ...(children as any).props,
-            project,
-            projectId: useFirstProject ? project.slug : projectId,
-            organization,
-            members,
-          })
-        : children}
-    </Fragment>
+    <Outlet
+      context={{
+        project,
+        projectId: useFirstProject ? project.slug : projectId,
+        organization,
+        members,
+        hasMetricAlerts,
+      }}
+    />
   );
 }
 
