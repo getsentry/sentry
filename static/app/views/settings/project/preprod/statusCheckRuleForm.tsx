@@ -14,9 +14,11 @@ import type {TagCollection} from 'sentry/types/group';
 import {SectionLabel} from './statusCheckSharedComponents';
 import type {StatusCheckRule} from './types';
 import {
+  bytesToMB,
+  getDisplayUnit,
   getMeasurementLabel,
   getMetricLabel,
-  getUnitForMeasurement,
+  mbToBytes,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
 } from './types';
@@ -28,20 +30,20 @@ interface Props {
 }
 
 const FILTER_KEYS: TagCollection = {
-  'build.platform': {key: 'build.platform', name: 'Platform'},
-  'build.package_name': {key: 'build.package_name', name: 'Package Name'},
-  'build.build_configuration': {
-    key: 'build.build_configuration',
+  platform: {key: 'platform', name: 'Platform'},
+  app_id: {key: 'app_id', name: 'App ID'},
+  build_configuration: {
+    key: 'build_configuration',
     name: 'Build Configuration',
   },
-  'build.branch': {key: 'build.branch', name: 'Branch'},
+  git_head_ref: {key: 'git_head_ref', name: 'Branch'},
 };
 
 const getTagValues = (
   tag: {key: string; name: string},
   _searchQuery: string
 ): Promise<string[]> => {
-  if (tag.key === 'build.platform') {
+  if (tag.key === 'platform') {
     return Promise.resolve(['android', 'ios']);
   }
   return Promise.resolve([]);
@@ -50,19 +52,19 @@ const getTagValues = (
 export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   const [metric, setMetric] = useState(rule.metric);
   const [measurement, setMeasurement] = useState(rule.measurement);
-  const [value, setValue] = useState(rule.value);
+  const displayUnit = getDisplayUnit(measurement);
+  const initialDisplayValue = displayUnit === '%' ? rule.value : bytesToMB(rule.value);
+  const [displayValue, setDisplayValue] = useState(initialDisplayValue);
   const [filterQuery, setFilterQuery] = useState(rule.filterQuery ?? '');
 
-  const unit = getUnitForMeasurement(measurement);
-
   const handleSave = () => {
+    const valueInBytes = displayUnit === '%' ? displayValue : mbToBytes(displayValue);
     onSave({
       ...rule,
       filterQuery,
       measurement,
       metric,
-      unit,
-      value,
+      value: valueInBytes,
     });
   };
 
@@ -71,8 +73,9 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   }, []);
 
   const handleDelete = () => {
-    const valueWithUnit =
-      rule.unit === '%' ? `${rule.value}%` : `${rule.value} ${rule.unit}`;
+    const ruleDisplayValue =
+      getDisplayUnit(rule.measurement) === '%' ? rule.value : bytesToMB(rule.value);
+    const valueWithUnit = `${ruleDisplayValue} ${getDisplayUnit(rule.measurement)}`;
     const ruleDescription = `${getMetricLabel(rule.metric)} - ${getMeasurementLabel(rule.measurement)}`;
 
     openConfirmModal({
@@ -111,8 +114,12 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
         />
         <Text variant="muted">{t('is greater than')}</Text>
         <Flex align="center" gap="xs">
-          <StyledNumberInput value={value} onChange={v => setValue(v ?? 0)} min={0} />
-          <Text variant="muted">{unit}</Text>
+          <StyledNumberInput
+            value={displayValue}
+            onChange={v => setDisplayValue(v ?? 0)}
+            min={0}
+          />
+          <Text variant="muted">{displayUnit}</Text>
         </Flex>
       </Flex>
 
