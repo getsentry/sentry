@@ -2,6 +2,8 @@ import React, {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -147,7 +149,7 @@ export function AutofixInsightCard({
       {isEditing ? (
         <EditContainer>
           <form onSubmit={handleSubmit}>
-            <EditFormRow>
+            <Flex align="center" gap="md" width="100%">
               <EditInput
                 autosize
                 value={editText}
@@ -194,7 +196,7 @@ export function AutofixInsightCard({
                   {'\u23CE'}
                 </Button>
               </ButtonBar>
-            </EditFormRow>
+            </Flex>
           </form>
         </EditContainer>
       ) : (
@@ -215,7 +217,7 @@ export function AutofixInsightCard({
             />
           </AutofixHighlightWrapper>
 
-          <RightSection>
+          <Flex align="center" paddingRight="xs">
             {isExpandable && (
               <Button
                 size="zero"
@@ -243,7 +245,7 @@ export function AutofixInsightCard({
                 run_id: runId,
               }}
             />
-          </RightSection>
+          </Flex>
         </InsightCardRow>
       )}
 
@@ -377,21 +379,8 @@ const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const RightSection = styled('div')`
-  display: flex;
-  align-items: center;
-  padding-right: ${space(0.5)};
-`;
-
 const EditContainer = styled('div')`
   padding: ${space(1)};
-  width: 100%;
-`;
-
-const EditFormRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
   width: 100%;
 `;
 

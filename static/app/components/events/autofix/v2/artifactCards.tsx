@@ -207,12 +207,12 @@ function TreeRowWithDescription({
               <TreeBranchIcon />
             </Fragment>
           )}
-          <ImpactTreeKeyContainer>
+          <Flex align="center" gap="xs">
             <ImpactTreeKey as="div">
               <StyledMarkedText text={title} inline as="span" />
             </ImpactTreeKey>
             {showIcon && icon}
-          </ImpactTreeKeyContainer>
+          </Flex>
         </TreeKeyTrunk>
       </TreeRow>
 
@@ -293,7 +293,7 @@ function ImpactTreeRow({
               <TreeBranchIcon />
             </Fragment>
           )}
-          <ImpactTreeKeyContainer>
+          <Flex align="center" gap="xs">
             {isCollapsible && hasSubItems && (
               <IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />
             )}
@@ -301,7 +301,7 @@ function ImpactTreeRow({
               <StyledMarkedText text={impact.label} inline as="span" />
             </ImpactTreeKey>
             {getSeverityIcon()}
-          </ImpactTreeKeyContainer>
+          </Flex>
         </TreeKeyTrunk>
       </TreeRow>
 
@@ -734,7 +734,7 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
 
         return (
           <RepoSection key={repoName}>
-            <RepoHeader>
+            <Flex justify="between" align="center" marginBottom="xl">
               <RepoName>{repoName}</RepoName>
               {hasPR ? (
                 <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
@@ -749,7 +749,7 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
                   {isCreatingPR ? t('Creating PR...') : t('Create PR')}
                 </Button>
               ) : null}
-            </RepoHeader>
+            </Flex>
 
             <Flex direction="column" gap="sm">
               {repoPatches.map((patch, index) => (
@@ -997,12 +997,6 @@ const ImpactTreeKey = styled(TreeKey)`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const ImpactTreeKeyContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
 const TreeSubValue = styled(TreeValue)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
@@ -1021,13 +1015,6 @@ const RepoSection = styled('div')`
     padding-bottom: ${p => p.theme.space['2xl']};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
-`;
-
-const RepoHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const AnimatedCard = styled(motion.div)`

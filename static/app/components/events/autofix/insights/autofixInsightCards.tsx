@@ -2,6 +2,8 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -57,9 +59,9 @@ function AutofixInsightCardsDisplay({
       <VerticalLine />
       {insights.length > 0 ? (
         <InsightsCardContainer>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap">
             <HeaderText>{t('Reasoning')}</HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <Content>
             <Fragment>
               <AnimatePresence initial={hasMounted.current}>
@@ -125,13 +127,6 @@ function AutofixInsightCardsDisplay({
 export default function AutofixInsightCards(props: AutofixInsightCardsProps) {
   return <AutofixInsightCardsDisplay {...props} />;
 }
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-`;
 
 const HeaderText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};

@@ -376,12 +376,12 @@ function BlockComponent({
     >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         {block.message.role === 'user' ? (
-          <BlockRow>
+          <Flex align="start" width="100%">
             <BlockChevronIcon direction="right" size="sm" />
             <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
-          </BlockRow>
+          </Flex>
         ) : (
-          <BlockRow>
+          <Flex align="start" width="100%">
             <ResponseDot
               status={getToolStatus(block)}
               hasOnlyTools={!hasContent && hasTools}
@@ -433,7 +433,7 @@ function BlockComponent({
                       block.todos.length > 0;
 
                     return (
-                      <ToolCallWithTodos key={`${toolCall.function}-${idx}`}>
+                      <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
                         <ToolCallTextContainer>
                           {hasLink ? (
                             <ToolCallLink
@@ -472,13 +472,13 @@ function BlockComponent({
                         {showTodoList && (
                           <TodoListContent text={todosToMarkdown(block.todos!)} />
                         )}
-                      </ToolCallWithTodos>
+                      </Stack>
                     );
                   })}
                 </ToolCallStack>
               )}
             </BlockContentWrapper>
-          </BlockRow>
+          </Flex>
         )}
         {showActions && !isPolling && (
           <ActionButtonBar gap="xs">
@@ -510,12 +510,6 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
     p.isLast ? '1px solid transparent' : `1px solid ${p.theme.tokens.border.primary}`};
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
-`;
-
-const BlockRow = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
 `;
 
 const BlockChevronIcon = styled(IconChevron)`
@@ -629,12 +623,6 @@ const ToolCallStack = styled(Stack)`
   width: 100%;
   min-width: 0;
   padding-right: ${p => p.theme.space.lg};
-`;
-
-const ToolCallWithTodos = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const ToolCallTextContainer = styled('div')`
