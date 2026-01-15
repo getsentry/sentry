@@ -7,14 +7,8 @@ on:
   schedule:
     - cron: '0 * * * *'
 
-# Cancel in progress workflows on pull_requests.
-# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
-  # Optimization to not generate coverage if it already exists in GCS
+  # Skip generating coverage if already exists in GCS
   check-existing-coverage:
     name: check for existing coverage
     runs-on: ubuntu-24.04
@@ -141,14 +135,6 @@ jobs:
           version: '0.8.2'
           enable-cache: false
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13.1'
-
-      - name: Install coverage
-        run: uv pip install --system coverage[toml] covdefaults sentry-covdefaults-disable-branch-coverage
-
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
         with:
@@ -169,14 +155,13 @@ jobs:
       - name: Combine all coverage databases
         run: |
           set -euxo pipefail
-          coverage combine $(find .artifacts/all-coverage -name ".coverage" -type f)
+          uvx coverage combine $(find .artifacts/all-coverage -name ".coverage" -type f)
 
           if [[ ! -f .coverage ]]; then
             echo "Error: Combined coverage file was not created"
             exit 1
           fi
 
-          # Rename to combined
           mv .coverage ".coverage.combined"
 
       - name: Authenticate to Google Cloud
