@@ -362,6 +362,37 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             "tags[timestamp,string]",
         }
 
+    def test_boolean_attributes(self) -> None:
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "is_active": {"bool_value": True},
+                    "is_deleted": {"bool_value": False},
+                    "feature_enabled": True,  # Direct boolean value
+                },
+            ),
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "is_active": {"bool_value": False},
+                    "another_flag": False,  # Direct boolean value
+                },
+            ),
+        ]
+        self.store_ourlogs(logs)
+
+        response = self.do_request(query={"attributeType": "boolean"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert "tags[is_active,boolean]" in keys
+        assert "tags[is_deleted,boolean]" in keys
+        assert "tags[feature_enabled,boolean]" in keys
+        assert "tags[another_flag,boolean]" in keys
+
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
     OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase, SpanTestCase
@@ -789,6 +820,27 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "__sentry_internal_span_buffer_outcome" in attribute_names
         assert "__sentry_internal_test" in attribute_names
 
+    def test_boolean_attributes(self) -> None:
+        span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
+        span1["data"] = {
+            "is_feature_enabled": True,
+            "is_debug": False,
+        }
+        span2 = self.create_span(start_ts=before_now(days=0, minutes=10))
+        span2["data"] = {
+            "is_feature_enabled": False,
+            "is_production": True,
+        }
+        self.store_spans([span1, span2], is_eap=True)
+
+        response = self.do_request(query={"attributeType": "boolean"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert "tags[is_feature_enabled,boolean]" in keys
+        assert "tags[is_debug,boolean]" in keys
+        assert "tags[is_production,boolean]" in keys
+
 
 class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
     OrganizationTraceItemAttributesEndpointTestBase, TraceMetricsTestCase
@@ -920,6 +972,45 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
         # Verify number attributes are returned
         # Note: The exact keys depend on how the backend processes numeric attributes
         assert len(data) >= 0  # May be 0 if number attributes are handled differently
+
+    def test_trace_metrics_boolean_attributes(self) -> None:
+        """Test that we can retrieve boolean attributes from trace metrics"""
+        metrics = [
+            self.create_trace_metric(
+                metric_name="custom.metric",
+                metric_value=100.0,
+                metric_type="distribution",
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "is_enabled": True,
+                    "is_debug": False,
+                },
+            ),
+            self.create_trace_metric(
+                metric_name="another.metric",
+                metric_value=200.0,
+                metric_type="distribution",
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "is_enabled": False,
+                    "is_production": True,
+                },
+            ),
+        ]
+        self.store_trace_metrics(metrics)
+
+        response = self.do_request(query={"attributeType": "boolean"})
+
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        # Verify boolean attributes are returned with tags[name,boolean] format
+        attribute_keys = {item["key"] for item in data}
+        assert "tags[is_enabled,boolean]" in attribute_keys
+        assert "tags[is_debug,boolean]" in attribute_keys
+        assert "tags[is_production,boolean]" in attribute_keys
 
 
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):

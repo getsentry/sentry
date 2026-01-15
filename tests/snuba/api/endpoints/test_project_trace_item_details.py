@@ -75,7 +75,7 @@ class ProjectTraceItemDetailsEndpointTest(
 
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data["attributes"] == [
-            {"name": "bool_attr", "type": "bool", "value": True},
+            {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
             {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
             {
                 "name": "observed_timestamp",
@@ -131,7 +131,7 @@ class ProjectTraceItemDetailsEndpointTest(
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
-                {"name": "bool_attr", "type": "bool", "value": True},
+                {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
                 {
                     "name": "observed_timestamp",
@@ -331,7 +331,7 @@ class ProjectTraceItemDetailsEndpointTest(
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
-                {"name": "bool_attr", "type": "bool", "value": True},
+                {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
                 {
                     "name": "observed_timestamp",
