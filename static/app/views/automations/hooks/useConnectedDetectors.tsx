@@ -3,9 +3,11 @@ import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 export function useConnectedDetectors() {
   const detectorIds = useFormField<string[]>('detectorIds') ?? [];
-  const {data: detectors = []} = useDetectorsQuery(
+  const {data: detectors = [], isLoading} = useDetectorsQuery(
     {ids: detectorIds, includeIssueStreamDetectors: true},
-    {enabled: detectorIds.length > 0}
+    {
+      enabled: detectorIds.length > 0,
+    }
   );
-  return detectors;
+  return {connectedDetectors: detectors, isLoading};
 }
