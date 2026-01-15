@@ -20,7 +20,7 @@ interface UseMonitorsScheduleSampleBucketsOptions {
   start: number | undefined;
 }
 
-export enum PreviewStatus {
+export enum SchedulePreviewStatus {
   OK = 'ok',
   ERROR = 'error',
   SUB_FAILURE_ERROR = 'sub_failure_error',
@@ -79,7 +79,7 @@ export function useMonitorsScheduleSampleBuckets({
     timezone,
   ]);
 
-  return useApiQuery<Array<CheckInBucket<PreviewStatus>>>(
+  return useApiQuery<Array<CheckInBucket<SchedulePreviewStatus>>>(
     [`/organizations/${organization.slug}/monitors-schedule-buckets/`, {query}],
     {
       staleTime: 0,

@@ -24,7 +24,7 @@ MIN_THRESHOLD = 1
 DEFAULT_CHECKIN_MARGIN = 1
 
 # minimum number of padding ticks to be generated for a sample window
-SAMPLE_PADDING_TICKS_MIN_COUNT = 2
+SAMPLE_PADDING_TICKS_MIN_COUNT = 3
 
 # ratio of padding ticks to be generated for a sample window, relative to the total thresholds
 SAMPLE_PADDING_RATIO_OF_THRESHOLD = 1

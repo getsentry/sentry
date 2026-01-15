@@ -17,44 +17,44 @@ import LoadingError from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
-  PreviewStatus,
+  SchedulePreviewStatus,
   useMonitorsScheduleSampleBuckets,
 } from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {useMonitorsScheduleSampleWindow} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleWindow';
 
-const tickStyle: TickStyle<PreviewStatus> = theme => ({
-  [PreviewStatus.ERROR]: {
+const tickStyle: TickStyle<SchedulePreviewStatus> = theme => ({
+  [SchedulePreviewStatus.ERROR]: {
     labelColor: theme.colors.red500,
     tickColor: theme.colors.red400,
   },
-  [PreviewStatus.OK]: {
+  [SchedulePreviewStatus.OK]: {
     labelColor: theme.colors.green500,
     tickColor: theme.colors.green400,
   },
-  [PreviewStatus.SUB_FAILURE_ERROR]: {
+  [SchedulePreviewStatus.SUB_FAILURE_ERROR]: {
     labelColor: theme.colors.red500,
     tickColor: theme.colors.red400,
     hatchTick: theme.colors.red200,
   },
-  [PreviewStatus.SUB_RECOVERY_OK]: {
+  [SchedulePreviewStatus.SUB_RECOVERY_OK]: {
     labelColor: theme.colors.green500,
     tickColor: theme.colors.green400,
     hatchTick: theme.colors.green200,
   },
 });
 
-const statusToText: Record<PreviewStatus, string> = {
-  [PreviewStatus.OK]: t('Okay'),
-  [PreviewStatus.ERROR]: t('Failed'),
-  [PreviewStatus.SUB_FAILURE_ERROR]: t('Failed (Sub-Threshold)'),
-  [PreviewStatus.SUB_RECOVERY_OK]: t('Okay (Sub-Threshold)'),
+const statusToText: Record<SchedulePreviewStatus, string> = {
+  [SchedulePreviewStatus.OK]: t('Okay'),
+  [SchedulePreviewStatus.ERROR]: t('Failed'),
+  [SchedulePreviewStatus.SUB_FAILURE_ERROR]: t('Failed (Sub-Threshold)'),
+  [SchedulePreviewStatus.SUB_RECOVERY_OK]: t('Okay (Sub-Threshold)'),
 };
 
-export const statusPrecedent: PreviewStatus[] = [
-  PreviewStatus.SUB_FAILURE_ERROR,
-  PreviewStatus.SUB_RECOVERY_OK,
-  PreviewStatus.ERROR,
-  PreviewStatus.OK,
+export const statusPrecedent: SchedulePreviewStatus[] = [
+  SchedulePreviewStatus.SUB_FAILURE_ERROR,
+  SchedulePreviewStatus.SUB_RECOVERY_OK,
+  SchedulePreviewStatus.ERROR,
+  SchedulePreviewStatus.OK,
 ];
 
 export function Preview() {
@@ -122,7 +122,7 @@ export function Preview() {
           />
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
           <TimeLineContainer>
-            <CheckInTimeline<PreviewStatus>
+            <CheckInTimeline<SchedulePreviewStatus>
               bucketedData={sampleBucketsData}
               timeWindowConfig={timeWindowConfig}
               statusLabel={statusToText}
@@ -140,58 +140,33 @@ function OpenPeriod({
   bucketedData,
   timeWindowConfig,
 }: {
-  bucketedData: Array<CheckInBucket<PreviewStatus>>;
+  bucketedData: Array<CheckInBucket<SchedulePreviewStatus>>;
   timeWindowConfig: TimeWindowConfig;
 }) {
   const {bucketPixels, underscanStartOffset} = timeWindowConfig.rollupConfig;
-
-  let lastSubFailureIdx: number | null = null;
-  let lastSubRecoveryIdx: number | null = null;
 
   function getBucketStatus(stats?: Record<string, number>) {
     return stats ? statusPrecedent.find(status => (stats[status] ?? 0) > 0) : undefined;
   }
 
-  for (let i = bucketedData.length - 1; i >= 0; i--) {
-    const stats = bucketedData[i]?.[1];
-    const status = getBucketStatus(stats);
-    if (lastSubFailureIdx === null && status === PreviewStatus.SUB_FAILURE_ERROR) {
-      lastSubFailureIdx = i;
-    }
-    if (lastSubRecoveryIdx === null && status === PreviewStatus.SUB_RECOVERY_OK) {
-      lastSubRecoveryIdx = i;
-    }
-    if (lastSubFailureIdx !== null && lastSubRecoveryIdx !== null) {
-      break;
-    }
-  }
-
-  if (
-    lastSubFailureIdx === null ||
-    lastSubRecoveryIdx === null ||
-    lastSubRecoveryIdx < lastSubFailureIdx
-  ) {
-    return null;
-  }
-
-  // We want to draw the open period from:
-  // - the first ERROR bucket after the (sub-threshold) failure buckets, to
-  // - the first OK bucket after the (sub-threshold) recovery buckets.
+  // Draw the open period from:
+  // - the first ERROR bucket, to
+  // - the first OK bucket after that.
   let openBarStartIdx: number | null = null;
-  for (let i = lastSubFailureIdx + 1; i < bucketedData.length; i++) {
-    const status = getBucketStatus(bucketedData[i]?.[1]);
-    if (status === PreviewStatus.ERROR) {
+  for (let i = 0; i < bucketedData.length; i++) {
+    if (getBucketStatus(bucketedData[i]?.[1]) === SchedulePreviewStatus.ERROR) {
       openBarStartIdx = i;
       break;
     }
   }
 
   let openBarEndIdx: number | null = null;
-  for (let i = lastSubRecoveryIdx + 1; i < bucketedData.length; i++) {
-    const status = getBucketStatus(bucketedData[i]?.[1]);
-    if (status === PreviewStatus.OK) {
+  if (openBarStartIdx !== null) {
+    for (let i = openBarStartIdx + 1; i < bucketedData.length; i++) {
+      if (getBucketStatus(bucketedData[i]?.[1]) === SchedulePreviewStatus.OK) {
       openBarEndIdx = i;
       break;
+      }
     }
   }
 
@@ -219,8 +194,8 @@ function OpenPeriod({
     if (!stats) {
       continue;
     }
-    failureCount += stats[PreviewStatus.SUB_FAILURE_ERROR] ?? 0;
-    successCount += stats[PreviewStatus.SUB_RECOVERY_OK] ?? 0;
+    failureCount += stats[SchedulePreviewStatus.SUB_FAILURE_ERROR] ?? 0;
+    successCount += stats[SchedulePreviewStatus.SUB_RECOVERY_OK] ?? 0;
   }
 
   return (
