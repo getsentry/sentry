@@ -81,9 +81,9 @@ export function useMonitorsScheduleSampleBuckets({
     [`/organizations/${organization.slug}/monitors-schedule-buckets/`, {query}],
     {
       staleTime: 0,
-      enabled: !!(start && end && interval && 
-        scheduleType && (scheduleCrontab || (scheduleIntervalValue && scheduleIntervalUnit)) 
-        && timezone && failureIssueThreshold 
+      enabled: !!(start && end && interval &&
+        scheduleType && (scheduleCrontab || (scheduleIntervalValue && scheduleIntervalUnit))
+        && timezone && failureIssueThreshold
         && recoveryThreshold
       ),
       retry: false,

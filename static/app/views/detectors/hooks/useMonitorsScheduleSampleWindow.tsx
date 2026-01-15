@@ -57,10 +57,10 @@ export function useMonitorsScheduleSampleWindow({
     {
       staleTime: 0,
       enabled: !!(
-        scheduleType && 
-        (scheduleCrontab || (scheduleIntervalValue && scheduleIntervalUnit)) && 
-        timezone && 
-        failureIssueThreshold && 
+        scheduleType &&
+        (scheduleCrontab || (scheduleIntervalValue && scheduleIntervalUnit)) &&
+        timezone &&
+        failureIssueThreshold &&
         recoveryThreshold
       ),
       retry: false,
