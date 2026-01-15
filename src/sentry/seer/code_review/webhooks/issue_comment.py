@@ -22,7 +22,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha, should_forward_to_seer
+from ..utils import _get_target_commit_sha, should_forward_to_seer
 
 logger = logging.getLogger(__name__)
 
@@ -149,5 +149,4 @@ def handle_issue_comment_event(
             organization=organization,
             repo=repo,
             target_commit_sha=target_commit_sha,
-            trigger=SeerCodeReviewTrigger.ON_COMMAND_PHRASE,
         )
