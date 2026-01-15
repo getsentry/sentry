@@ -412,6 +412,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ POST
         """
         model = getattr(TSDBModel, tsdb_field, None)
+        key: int | str
 
         if model == TSDBModel.sentry_app_component_interacted:
             if component_type is None or component_type not in COMPONENT_TYPES:
