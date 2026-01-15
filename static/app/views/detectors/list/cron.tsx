@@ -39,6 +39,7 @@ import {
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import MonitorEnvironmentLabel from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
+import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import {
   platformGuides,
   type SupportedPlatform,
@@ -216,6 +217,9 @@ export default function CronDetectorsList() {
   const contextValue = useMemo<MonitorViewContextValue>(() => {
     return {
       additionalColumns: ADDITIONAL_COLUMNS,
+      renderTimelineOverlay: ({timeWindowConfig}) => (
+        <CronServiceIncidents timeWindowConfig={timeWindowConfig} />
+      ),
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (
