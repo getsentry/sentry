@@ -9,7 +9,7 @@ const formatMinutes = (value: number | '') => {
   return tn('%s minute', '%s minutes', value);
 };
 
-export const fields = {
+export const fields: Record<string, Field> = {
   subjectTemplate: {
     name: 'subjectTemplate',
     type: 'string',
@@ -43,4 +43,4 @@ export const fields = {
     help: t('Notifications will be delivered at least this often.'),
     formatLabel: formatMinutes,
   },
-} satisfies Record<string, Field>;
+};

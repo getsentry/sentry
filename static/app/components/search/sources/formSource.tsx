@@ -126,7 +126,7 @@ const FORM_REGISTRY: FormDefinition[] = [
   {
     route: accountNotificationSettingsRoute,
     formGroups: [],
-    fields: accountNotificationSettingsFields as Record<string, Field>,
+    fields: accountNotificationSettingsFields,
   },
   {
     route: accountPasswordRoute,
@@ -160,17 +160,17 @@ const FORM_REGISTRY: FormDefinition[] = [
   {
     route: projectAlertsRoute,
     formGroups: [],
-    fields: projectAlertsFields as Record<string, Field>,
+    fields: projectAlertsFields,
   },
   {
     route: projectGeneralSettingsRoute,
     formGroups: [],
-    fields: projectGeneralSettingsFields as Record<string, Field>,
+    fields: projectGeneralSettingsFields,
   },
   {
     route: projectIssueGroupingRoute,
     formGroups: [],
-    fields: projectIssueGroupingFields as Record<string, Field>,
+    fields: projectIssueGroupingFields,
   },
   {
     route: projectSecurityAndPrivacyGroupsRoute,
