@@ -17,11 +17,11 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
@@ -44,8 +44,8 @@ interface Props {
   api: Client;
   location: Location;
   organization: Organization;
-  params: {ruleId: string};
   projects: Project[];
+  ruleId: string;
   loadingProjects?: boolean;
 }
 
@@ -86,7 +86,7 @@ class MetricAlertDetails extends Component<Props, State> {
     if (
       !isEqual(prevQuery, nextQuery) ||
       prevProps.organization.slug !== this.props.organization.slug ||
-      prevProps.params.ruleId !== this.props.params.ruleId
+      prevProps.ruleId !== this.props.ruleId
     ) {
       this.fetchData();
       this.trackView();
@@ -94,11 +94,11 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   trackView() {
-    const {params, organization, location} = this.props;
+    const {ruleId, organization, location} = this.props;
 
     trackAnalytics('alert_rule_details.viewed', {
       organization,
-      rule_id: parseInt(params.ruleId, 10),
+      rule_id: parseInt(ruleId, 10),
       alert: (location.query.alert as string) ?? '',
       has_chartcuterie: organization.features
         .includes('metric-alert-chartcuterie')
@@ -192,12 +192,7 @@ class MetricAlertDetails extends Component<Props, State> {
   };
 
   fetchData = async () => {
-    const {
-      api,
-      organization,
-      params: {ruleId},
-      location,
-    } = this.props;
+    const {api, organization, ruleId, location} = this.props;
 
     this.setState({isLoading: true, hasError: false});
 
@@ -312,18 +307,21 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 }
 
-const MetricAlertDetailsWithData = withApi(withProjects(MetricAlertDetails));
-
 export default function MetricAlertDetailsWrapper() {
+  const api = useApi();
   const location = useLocation();
+  const {ruleId} = useParams<{ruleId: string}>();
   const organization = useOrganization();
-  const params = useParams<{ruleId: string}>();
+  const {projects, fetching} = useProjects();
 
   return (
-    <MetricAlertDetailsWithData
+    <MetricAlertDetails
+      api={api}
       location={location}
       organization={organization}
-      params={params}
+      ruleId={ruleId}
+      projects={projects}
+      loadingProjects={fetching}
     />
   );
 }
