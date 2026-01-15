@@ -147,10 +147,12 @@ class OAuthTokenView(View):
             },
         )
 
-        # Device flow supports public clients per RFC 8628 §5.6.
+        # Device flow and refresh token support public clients:
+        # - Device flow: RFC 8628 §5.6 - device clients should be treated as public clients
+        # - Refresh token: RFC 6749 §6 - public clients can refresh without client credentials
         # Public clients only provide client_id to identify themselves.
         # If client_secret is provided, we still validate it for confidential clients.
-        if grant_type == GrantTypes.DEVICE_CODE:
+        if grant_type in (GrantTypes.DEVICE_CODE, GrantTypes.REFRESH):
             if not client_id:
                 return self.error(
                     request=request,
@@ -184,7 +186,7 @@ class OAuthTokenView(View):
                     status=401,
                 )
         else:
-            # Other grant types require confidential client authentication
+            # authorization_code grant requires confidential client authentication
             if not client_id or not client_secret:
                 return self.error(
                     request=request,
