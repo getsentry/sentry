@@ -76,7 +76,7 @@ export function SchedulePreview({
         new Date(sampleWindowData.start * 1000),
         new Date(sampleWindowData.end * 1000),
         timelineWidth,
-        'UTC'
+        timezone
       )
     : undefined;
 
