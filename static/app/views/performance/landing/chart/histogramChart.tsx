@@ -95,7 +95,7 @@ export function Chart(props: ChartProps) {
   const yAxis = {
     type: 'value' as const,
     axisLabel: {
-      color: theme.tokens.content.muted,
+      color: theme.tokens.content.secondary,
       formatter: (value: number | string) => formatAbbreviatedNumber(value),
     },
   };

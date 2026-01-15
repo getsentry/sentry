@@ -371,7 +371,7 @@ const LegendText = styled('span')<{unfocus: boolean}>`
   text-overflow: ellipsis;
   transition: color 0.3s;
   color: ${p =>
-    p.unfocus ? p.theme.tokens.content.muted : p.theme.tokens.content.primary};
+    p.unfocus ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
 `;
 
 const LegendPercent = styled('span')`
@@ -383,7 +383,7 @@ const LegendPercent = styled('span')`
 `;
 
 const ExpandToggleButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;
 

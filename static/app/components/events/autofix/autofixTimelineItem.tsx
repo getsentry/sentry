@@ -40,8 +40,8 @@ function getEventColor(
 ): TimelineItemProps['colorConfig'] {
   return {
     title: theme.tokens.content.primary,
-    icon: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
-    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
+    icon: isActive ? theme.colors.pink400 : theme.tokens.content.secondary,
+    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.secondary,
   };
 }
 

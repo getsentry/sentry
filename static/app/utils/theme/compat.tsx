@@ -32,18 +32,6 @@ export interface LegacyTokens {
     secondary: string;
     tertiary: string;
   };
-  content: {
-    accent: string;
-    danger: string;
-    /**
-     * @deprecated Use `content.secondary` instead
-     */
-    muted: string;
-    primary: string;
-    promotion: string;
-    success: string;
-    warning: string;
-  };
   graphics: {
     /**
      * @deprecated Use `graphics.accent.vibrant` for the same color, or access `.muted`, `.moderate`, or `.vibrant` variants
@@ -79,10 +67,6 @@ export function withLegacyTokens<T extends Record<string, any>>(
     ...tokens.background,
   } satisfies LegacyTokens['background'];
 
-  const content = {
-    ...tokens.content,
-    muted: tokens.content.secondary,
-  } satisfies LegacyTokens['content'];
   const graphics = {
     ...tokens.graphics,
     muted: tokens.graphics.neutral.vibrant,
@@ -96,7 +80,6 @@ export function withLegacyTokens<T extends Record<string, any>>(
   return {
     ...tokens,
     background,
-    content,
     graphics,
   };
 }

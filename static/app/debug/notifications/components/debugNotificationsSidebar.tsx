@@ -64,7 +64,7 @@ const NotificationLinkButton = styled(LinkButton, {
   position: relative;
   display: block;
   color: ${p =>
-    p.active ? p.theme.tokens.content.success : p.theme.tokens.content.muted};
+    p.active ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   text-align: left;
   /* Undo some button styles */
