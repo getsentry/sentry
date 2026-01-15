@@ -108,17 +108,20 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p .coverage
-          gcloud storage cp "gs://sentry-coverage-data/${COVERAGE_SHA}/*" .coverage/ || true
 
-          # Find the coverage file (could be .coverage.* format)
-          COVERAGE_FILE=$(ls .coverage/.coverage.* 2>/dev/null | head -1 || true)
-          if [[ -z "$COVERAGE_FILE" ]]; then
-            echo "Warning: No coverage file found in downloaded data"
+          if ! gcloud storage cp "gs://sentry-coverage-data/${COVERAGE_SHA}/.coverage.combined" .coverage/; then
+            echo "Warning: Failed to download coverage file"
+            echo "coverage-file=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ ! -f .coverage/.coverage.combined ]]; then
+            echo "Warning: Coverage file not found after download"
             ls -la .coverage/ || true
             echo "coverage-file=" >> "$GITHUB_OUTPUT"
           else
-            echo "Downloaded coverage file: $COVERAGE_FILE"
-            echo "coverage-file=$COVERAGE_FILE" >> "$GITHUB_OUTPUT"
+            echo "Downloaded coverage file: .coverage/.coverage.combined"
+            echo "coverage-file=.coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Get changed files
