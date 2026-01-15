@@ -18,7 +18,8 @@ import accountDetailsForm, {
 import accountEmailsForm, {
   route as accountEmailsRoute,
 } from 'sentry/data/forms/accountEmails';
-import accountNotificationSettingsForm, {
+import {
+  fields as accountNotificationSettingsFields,
   route as accountNotificationSettingsRoute,
 } from 'sentry/data/forms/accountNotificationSettings';
 import accountPasswordForm, {
@@ -43,13 +44,16 @@ import organizationMembershipSettingsForm, {
 import organizationSecurityAndPrivacyGroupsForm, {
   route as organizationSecurityAndPrivacyGroupsRoute,
 } from 'sentry/data/forms/organizationSecurityAndPrivacyGroups';
-import projectAlertsForm, {
+import {
+  fields as projectAlertsFields,
   route as projectAlertsRoute,
 } from 'sentry/data/forms/projectAlerts';
-import projectGeneralSettingsForm, {
+import {
+  fields as projectGeneralSettingsFields,
   route as projectGeneralSettingsRoute,
 } from 'sentry/data/forms/projectGeneralSettings';
-import projectIssueGroupingForm, {
+import {
+  fields as projectIssueGroupingFields,
   route as projectIssueGroupingRoute,
 } from 'sentry/data/forms/projectIssueGrouping';
 import projectSecurityAndPrivacyGroupsForm, {
@@ -103,7 +107,7 @@ function createSearchMap({
 
 type FormDefinition = {
   route: string;
-  formGroups: readonly JsonFormObject[];
+  formGroups?: readonly JsonFormObject[];
   fields?: Record<string, Field>;
   factoryFn?: (context: FormSearchContext) => readonly JsonFormObject[];
 };
@@ -124,7 +128,8 @@ const FORM_REGISTRY: FormDefinition[] = [
   },
   {
     route: accountNotificationSettingsRoute,
-    formGroups: accountNotificationSettingsForm,
+    formGroups: [],
+    fields: accountNotificationSettingsFields as Record<string, Field>,
   },
   {
     route: accountPasswordRoute,
@@ -157,15 +162,18 @@ const FORM_REGISTRY: FormDefinition[] = [
   },
   {
     route: projectAlertsRoute,
-    formGroups: projectAlertsForm,
+    formGroups: [],
+    fields: projectAlertsFields as Record<string, Field>,
   },
   {
     route: projectGeneralSettingsRoute,
-    formGroups: projectGeneralSettingsForm,
+    formGroups: [],
+    fields: projectGeneralSettingsFields as Record<string, Field>,
   },
   {
     route: projectIssueGroupingRoute,
-    formGroups: projectIssueGroupingForm,
+    formGroups: [],
+    fields: projectIssueGroupingFields as Record<string, Field>,
   },
   {
     route: projectSecurityAndPrivacyGroupsRoute,
@@ -183,7 +191,7 @@ const FORM_REGISTRY: FormDefinition[] = [
  */
 function getSearchMap(searchContext: FormSearchContext): FormSearchField[] {
   const allFormFields: FormSearchField[] = FORM_REGISTRY.flatMap(formDef => {
-    let formGroups = formDef.formGroups;
+    let formGroups = formDef.formGroups ?? [];
 
     // If the form has a factory function, invoke it to get dynamic fields
     if (formDef.factoryFn) {
@@ -191,7 +199,7 @@ function getSearchMap(searchContext: FormSearchContext): FormSearchField[] {
         formGroups = formDef.factoryFn(searchContext);
       } catch {
         // If factory invocation fails, fall back to static form groups
-        formGroups = formDef.formGroups;
+        formGroups = formDef.formGroups ?? [];
       }
     }
 
