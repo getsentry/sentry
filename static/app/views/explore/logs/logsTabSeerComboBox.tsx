@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -263,8 +264,70 @@ export function LogsTabSeerComboBox() {
     !organization?.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
 
+  const usePollingEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+
+  // Get selected project IDs for the polling variant
+  const selectedProjectIds = useMemo(() => {
+    if (
+      pageFilters.selection.projects?.length > 0 &&
+      pageFilters.selection.projects?.[0] !== -1
+    ) {
+      return pageFilters.selection.projects;
+    }
+    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
+  }, [pageFilters.selection.projects, projects]);
+
+  // Transform the final_response from Seer to match the expected format
+  const transformResponse = useCallback(
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      const seerResponse = response as unknown as {
+        responses?: Array<{
+          end: string | null;
+          group_by: string[];
+          mode: string;
+          query: string;
+          sort: string;
+          start: string | null;
+          stats_period: string;
+        }>;
+      };
+
+      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
+        return seerResponse.responses.map(r => ({
+          query: r?.query ?? '',
+          sort: r?.sort ?? '',
+          groupBys: r?.group_by ?? [],
+          statsPeriod: r?.stats_period ?? '',
+          start: r?.start ?? null,
+          end: r?.end ?? null,
+          mode: r?.mode ?? 'samples',
+        }));
+      }
+
+      return [response];
+    },
+    []
+  );
+
   if (!areAiFeaturesAllowed) {
     return null;
+  }
+
+  if (usePollingEndpoint) {
+    return (
+      <AskSeerPollingComboBox<AskSeerSearchQuery>
+        initialQuery={initialSeerQuery}
+        projectIds={selectedProjectIds}
+        strategy="Logs"
+        applySeerSearchQuery={applySeerSearchQuery}
+        transformResponse={transformResponse}
+        analyticsSource="logs"
+        feedbackSource="logs_ai_query"
+        fallbackMutationOptions={logsTabAskSeerMutationOptions}
+      />
+    );
   }
 
   return (
