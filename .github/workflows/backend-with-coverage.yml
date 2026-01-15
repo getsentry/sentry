@@ -164,7 +164,8 @@ jobs:
       - name: Combine all coverage databases
         run: |
           set -euxo pipefail
-          uvx coverage combine $(find .artifacts/all-coverage -name ".coverage" -type f)
+          uvx --with covdefaults --with sentry-covdefaults-disable-branch-coverage \
+            coverage combine $(find .artifacts/all-coverage -name ".coverage" -type f)
 
           if [[ ! -f .coverage ]]; then
             echo "Error: Combined coverage file was not created"
