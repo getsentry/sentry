@@ -3076,14 +3076,15 @@ function buildRoutes(): RouteObject[] {
   };
 
   const appRoutes: SentryRouteObject = {
-    component: ({children}: {children: React.ReactNode}) => {
+    component: () => {
       return (
         <ProvideAriaRouter>
-          <ScrapsProviders>{children}</ScrapsProviders>
+          <ScrapsProviders>
+            <Outlet />
+          </ScrapsProviders>
         </ProvideAriaRouter>
       );
     },
-    deprecatedRouteProps: true,
     children: [
       experimentalSpaRoutes,
       {
