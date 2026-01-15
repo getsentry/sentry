@@ -182,16 +182,15 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
 
         {/* Status card when processing */}
         <AnimatePresence initial={false}>
-          {runState.status === 'processing' ||
-            (runState.status === 'error' && (
-              <ExplorerStatusCard
-                key="status_card"
-                status={runState.status}
-                loadingBlock={loadingBlock}
-                blocks={blocks}
-                onOpenChat={handleOpenChat}
-              />
-            ))}
+          {runState.status === 'processing' && (
+            <ExplorerStatusCard
+              key="status_card"
+              status={runState.status}
+              loadingBlock={loadingBlock}
+              blocks={blocks}
+              onOpenChat={handleOpenChat}
+            />
+          )}
         </AnimatePresence>
 
         {/* Next step buttons when completed */}
