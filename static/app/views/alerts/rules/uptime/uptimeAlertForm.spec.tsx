@@ -402,4 +402,106 @@ describe('Uptime Alert Form', () => {
     const pathName = input('Uptime rule name');
     expect(pathName).toHaveValue('Uptime check for example.com/with-path');
   });
+
+  it('sends assertion in create request when feature is enabled', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
+    });
+    OrganizationStore.onUpdate(orgWithAssertions);
+
+    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+    await screen.findByText('Configure Request');
+
+    // Verify the Verification section is shown
+    expect(screen.getByText('Verification')).toBeInTheDocument();
+
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Assertion');
+
+    const createMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Rule with Assertion',
+          url: 'http://example.com',
+          assertion: {root: {op: 'and', children: [], id: expect.any(String)}},
+        }),
+      })
+    );
+  });
+
+  it('does not show assertions when feature is disabled', async () => {
+    const orgWithoutAssertions = OrganizationFixture({
+      features: [],
+    });
+    OrganizationStore.onUpdate(orgWithoutAssertions);
+
+    render(<UptimeAlertForm />, {organization: orgWithoutAssertions});
+    await screen.findByText('Configure Request');
+
+    // Verify the Verification section is NOT shown
+    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
+  });
+
+  it('renders and updates assertion for existing rule', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
+    });
+    OrganizationStore.onUpdate(orgWithAssertions);
+
+    const assertion = {
+      root: {
+        op: 'and' as const,
+        children: [
+          {
+            id: 'test-1',
+            op: 'status_code_check' as const,
+            operator: {cmp: 'equals' as const},
+            value: 200,
+          },
+        ],
+        id: 'root-1',
+      },
+    };
+
+    const rule = UptimeRuleFixture({
+      name: 'Rule with Assertion',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+      assertion,
+    });
+
+    render(<UptimeAlertForm rule={rule} />, {organization: orgWithAssertions});
+    await screen.findByText('Verification');
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          assertion,
+        }),
+      })
+    );
+  });
 });
