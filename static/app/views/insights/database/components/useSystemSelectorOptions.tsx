@@ -2,6 +2,7 @@ import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {BASE_FILTERS} from 'sentry/views/insights/database/settings';
 import {
   DATABASE_SYSTEM_TO_LABEL,
   SupportedDatabaseSystem,
@@ -16,7 +17,7 @@ export function useSystemSelectorOptions() {
 
   const {data, isPending, isError} = useSpans(
     {
-      search: MutableSearch.fromQueryObject({'span.op': 'db'}),
+      search: MutableSearch.fromQueryObject(BASE_FILTERS),
 
       fields: [SpanFields.SPAN_SYSTEM, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
