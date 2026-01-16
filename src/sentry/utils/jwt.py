@@ -21,9 +21,17 @@ from cryptography.hazmat.primitives.serialization import (
     PrivateFormat,
     PublicFormat,
 )
-from jwt import DecodeError
+from jwt import DecodeError, ExpiredSignatureError, InvalidTokenError
 
-__all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
+__all__ = [
+    "peek_claims",
+    "decode",
+    "encode",
+    "authorization_header",
+    "DecodeError",
+    "ExpiredSignatureError",
+    "InvalidTokenError",
+]
 
 
 def peek_header(token: str) -> Any:

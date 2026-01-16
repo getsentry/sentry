@@ -675,7 +675,9 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         with pytest.raises(JWTValidationError) as exc_info:
             idp.validate_jwt_signature(token)
 
-        assert "signature validation failed" in str(exc_info.value)
+        # Error message contains either "signature" or "validation failed"
+        error_msg = str(exc_info.value).lower()
+        assert "signature" in error_msg or "validation failed" in error_msg
 
     def test_validate_jwt_missing_kid(self) -> None:
         idp = TrustedIdentityProvider.objects.create(
@@ -853,3 +855,50 @@ class TrustedIdentityProviderJWTValidationTest(TestCase):
         result = idp.validate_jwt_signature(token)
 
         assert result["sub"] == "user@example.com"
+
+    def test_validate_jwt_expired_token(self) -> None:
+        """Expired JWT should raise JWTValidationError with clear message."""
+        import time
+
+        idp = TrustedIdentityProvider.objects.create(
+            organization_id=self.organization.id,
+            issuer="https://acme.okta.com",
+            name="Acme Okta",
+            jwks_uri=self.jwks_uri,
+            jwks_cache={"keys": [self.jwk]},
+            jwks_cached_at=timezone.now(),
+        )
+
+        # Create an expired JWT (exp in the past)
+        claims = {
+            "sub": "user@example.com",
+            "exp": int(time.time()) - 3600,  # 1 hour ago
+        }
+        token = create_signed_jwt(self.private_key_pem, claims, self.kid)
+
+        with pytest.raises(JWTValidationError) as exc_info:
+            idp.validate_jwt_signature(token)
+
+        assert "expired" in str(exc_info.value).lower()
+
+    def test_validate_jwt_invalid_audience(self) -> None:
+        """JWT with wrong audience should raise JWTValidationError."""
+        idp = TrustedIdentityProvider.objects.create(
+            organization_id=self.organization.id,
+            issuer="https://acme.okta.com",
+            name="Acme Okta",
+            jwks_uri=self.jwks_uri,
+            jwks_cache={"keys": [self.jwk]},
+            jwks_cached_at=timezone.now(),
+        )
+
+        claims = {
+            "sub": "user@example.com",
+            "aud": "wrong-audience",
+        }
+        token = create_signed_jwt(self.private_key_pem, claims, self.kid)
+
+        with pytest.raises(JWTValidationError) as exc_info:
+            idp.validate_jwt_signature(token, audience="expected-audience")
+
+        assert "validation failed" in str(exc_info.value).lower()

@@ -2079,3 +2079,77 @@ class OAuthTokenJWTBearerTest(TestCase):
         )
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_expired_jwt_returns_invalid_grant(self) -> None:
+        """Expired JWT should return invalid_grant, not a 500 error."""
+        import time
+
+        # Create an expired JWT
+        claims = {
+            "iss": self.issuer,
+            "sub": "user@example.com",
+            "email": self.user.email,
+            "aud": "http://testserver",
+            "exp": int(time.time()) - 3600,  # Expired 1 hour ago
+        }
+        # Don't use _create_jwt since it auto-adds exp
+        token = self.jwt.encode(
+            claims,
+            self.private_key_pem,
+            algorithm="RS256",
+            headers={"kid": self.kid},
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        # Should return 400 invalid_grant, not 500 server error
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_application_scope_intersection(self) -> None:
+        """Token scopes should be intersection of requested, IdP allowed, and application scopes."""
+        # Configure IdP with allowed scopes
+        self.idp.allowed_scopes = ["org:read", "project:read", "event:read"]
+        self.idp.save()
+
+        # Configure application with restricted scopes
+        self.application.scopes = ["org:read", "project:read", "member:read"]
+        self.application.save()
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        # Request scopes that overlap with IdP and app
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "scope": "org:read project:read event:read member:read",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        # Final scopes = (requested) ∩ (IdP allowed) ∩ (app allowed)
+        # org:read: in all three ✓
+        # project:read: in all three ✓
+        # event:read: in IdP but not in app ✗
+        # member:read: in app but not in IdP ✗
+        scope_set = set(data["scope"].split())
+        assert scope_set == {"org:read", "project:read"}

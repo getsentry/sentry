@@ -339,12 +339,20 @@ class TrustedIdentityProvider(Model):
                 algorithms=[alg],
                 audience=audience or False,
             )
-        except jwt.DecodeError as e:
+        except jwt.ExpiredSignatureError as e:
             logger.warning(
-                "JWT signature validation failed",
+                "JWT validation failed: token expired",
+                extra={"idp_id": self.id, "issuer": self.issuer, "kid": kid, "algorithm": alg},
+            )
+            raise JWTValidationError("JWT has expired") from e
+        except jwt.InvalidTokenError as e:
+            # InvalidTokenError is the parent class for all JWT validation errors
+            # including DecodeError, InvalidAudienceError, InvalidClaimError, etc.
+            logger.warning(
+                "JWT validation failed",
                 extra={"idp_id": self.id, "issuer": self.issuer, "kid": kid, "algorithm": alg},
                 exc_info=True,
             )
-            raise JWTValidationError(f"JWT signature validation failed: {e}") from e
+            raise JWTValidationError(f"JWT validation failed: {e}") from e
 
         return claims
