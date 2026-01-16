@@ -683,21 +683,22 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_context_block(context_text)
 
-    def build_pre_footer_context_block(self, suggested_assignees: list[str]) -> SlackBlock | None:
+    def build_pre_footer_context_blocks(self, suggested_assignees: list[str]) -> list[SlackBlock]:
+        blocks = []
         summary_text: str | None = self.get_issue_summary_text()
         if self._is_compact and summary_text:
-            return self.get_context_block(summary_text)
+            blocks.append(self.get_context_block(summary_text))
 
         if not self._is_compact and len(suggested_assignees) > 0:
-            return self.get_suggested_assignees_block(suggested_assignees)
+            blocks.append(self.get_suggested_assignees_block(suggested_assignees))
 
         if not self._is_compact:
             # add suspect commit info
             suspect_commit_text = get_suspect_commit_text(self.group)
             if suspect_commit_text:
-                return self.get_context_block(suspect_commit_text)
+                blocks.append(self.get_context_block(suspect_commit_text))
 
-        return None
+        return blocks
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
         self.issue_summary = fetch_issue_summary(self.group)
@@ -849,8 +850,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
 
-        if pre_footer_context_block := self.build_pre_footer_context_block(suggested_assignees):
-            blocks.append(pre_footer_context_block)
+        if pre_footer_context_block := self.build_pre_footer_context_blocks(suggested_assignees):
+            blocks.extend(pre_footer_context_block)
 
         # add notes
         if self.notes:
