@@ -86,6 +86,8 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
+// Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
+const SHOULD_LAZY_COMPILATION = Boolean(env.LAZY_COMPILATION);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -292,7 +294,7 @@ const appConfig: Configuration = {
   // Disable lazy compilation for now to avoid crashes when new modules are loaded
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
-    imports: false,
+    imports: SHOULD_LAZY_COMPILATION,
     entries: false,
   },
   module: {
@@ -425,8 +427,7 @@ const appConfig: Configuration = {
      * The platformicons package uses dynamic require() to load SVG files:
      * require(`../${format === "lg" ? "svg_80x80" : "svg"}/${icon}.svg`)
      *
-     * This plugin tells rspack where to find those SVG files by providing
-     * proper context for the dynamic imports.
+     * This plugin tells rspack where to find those SVG files
      */
     new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
 
