@@ -351,7 +351,7 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt";
 
 const llm = new ChatOpenAI({
   modelName: "gpt-4o",
-  // WARNING: Never expose API keys in browser code - use a backend proxy
+  // WARNING: Never expose API keys in browser code
   apiKey: "YOUR_OPENAI_API_KEY",
 });
 
@@ -361,6 +361,17 @@ Sentry.instrumentLangGraph(agent, {
   recordInputs: true,
   recordOutputs: true,
 });
+
+const result = await agent.invoke({
+  messages: [
+    new SystemMessage("You are a helpful assistant."),
+    new HumanMessage("Tell me a joke")
+  ],
+});
+
+const messages = result.messages;
+const lastMessage = messages[messages.length - 1];
+const text = lastMessage.content;
             `,
           },
         ],
@@ -396,6 +407,21 @@ const callbackHandler = Sentry.createLangChainCallbackHandler({
   recordOutputs: true, // Optional: record output responses
 });
 
+const chatModel = new ChatOpenAI({
+  modelName: "gpt-4o",
+  // WARNING: Never expose API keys in browser code
+  apiKey: "YOUR_OPENAI_API_KEY",
+});
+
+const messages = [
+  new SystemMessage("You are a helpful assistant."),
+  new HumanMessage("Tell me a joke"),
+];
+
+const response = await chatModel.invoke(messages, {
+  callbacks: [callbackHandler],
+});
+const text = response.content;
             `,
           },
         ],
@@ -426,11 +452,15 @@ const callbackHandler = Sentry.createLangChainCallbackHandler({
             code: `${getImport(packageName, importMode).join('\n')}
 import { GoogleGenAI } from "@google/genai";
 
-// WARNING: Never expose API keys in browser code - use a backend proxy
+// WARNING: Never expose API keys in browser code
 const genAI = new GoogleGenAI("YOUR_GOOGLE_API_KEY");
 const client = Sentry.instrumentGoogleGenAIClient(genAI, {
   recordInputs: true,
   recordOutputs: true,
+});
+const response = await client.models.generateContent({
+  model: 'gemini-2.0-flash-001',
+  contents: 'Why is the sky blue?',
 });
             `,
           },
@@ -467,6 +497,9 @@ const client = Sentry.instrumentAnthropicAiClient(anthropic, {
   recordInputs: true,
   recordOutputs: true,
 });
+const msg = await client.messages.create({
+model: "claude-3-5-sonnet",
+messages: [{role: "user", content: "Tell me a joke"}],
             `,
           },
         ],
@@ -501,6 +534,10 @@ const openai = new OpenAI();
 const client = Sentry.instrumentOpenAiClient(openai, {
   recordInputs: true,
   recordOutputs: true,
+});
+const response = await client.responses.create({
+  model: "gpt-4o-mini",
+  input: "Tell me a joke",
 });
             `,
           },
@@ -680,14 +717,25 @@ Sentry.init({
   },
   verify: params => {
     const isNodePlatform = params.platformKey.startsWith('node');
-    const selected =
-      (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
+
     const content: ContentBlock[] = [
       {
         type: 'text',
         text: t('Verify that your instrumentation works by simply calling your LLM.'),
       },
     ];
+
+    if (!isNodePlatform) {
+      return [
+        {
+          type: StepType.VERIFY,
+          content,
+        },
+      ];
+    }
+
+    const selected =
+      (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
 
     if (selected === AgentIntegration.ANTHROPIC) {
       content.push({
@@ -697,14 +745,10 @@ Sentry.init({
             label: 'JavaScript',
             language: 'javascript',
             code: `
-${
-  isNodePlatform
-    ? `const Anthropic = require("anthropic");
-const anthropic = new Anthropic();`
-    : ''
-}
+const Anthropic = require("anthropic");
+const anthropic = new Anthropic();
 
-const msg = await ${isNodePlatform ? 'anthropic' : 'client'}.messages.create({
+const msg = await anthropic.messages.create({
 model: "claude-3-5-sonnet",
 messages: [{role: "user", content: "Tell me a joke"}],
 });`,
@@ -720,13 +764,8 @@ messages: [{role: "user", content: "Tell me a joke"}],
             label: 'JavaScript',
             language: 'javascript',
             code: `
-${
-  isNodePlatform
-    ? `
 const OpenAI = require("openai");
-const client = new OpenAI();`
-    : ''
-}
+const client = new OpenAI();
 
 const response = await client.responses.create({
   model: "gpt-4o-mini",
@@ -744,17 +783,11 @@ const response = await client.responses.create({
             label: 'JavaScript',
             language: 'javascript',
             code: `
-            ${
-              isNodePlatform
-                ? `
 const GoogleGenAI = require("@google/genai").GoogleGenAI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
-`
-                : ''
-            }
-const response = await ${isNodePlatform ? 'ai' : 'client'}.models.generateContent({
+const response = await ai.models.generateContent({
   model: 'gemini-2.0-flash-001',
   contents: 'Why is the sky blue?',
 });`,
@@ -783,13 +816,7 @@ const messages = [
   new HumanMessage("Tell me a joke"),
 ];
 
-const response = await chatModel.invoke(messages${
-              isNodePlatform
-                ? ''
-                : `, {
-  callbacks: [callbackHandler],
-}`
-            });
+const response = await chatModel.invoke(messages);
 const text = response.content;`,
           },
         ],
@@ -803,9 +830,7 @@ const text = response.content;`,
             label: 'JavaScript',
             language: 'javascript',
             code: `
-${
-  isNodePlatform
-    ? `const { ChatOpenAI } = require("@langchain/openai");
+const { ChatOpenAI } = require("@langchain/openai");
 const { createReactAgent } = require("@langchain/langgraph/prebuilt");
 const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
 
@@ -815,9 +840,6 @@ const llm = new ChatOpenAI({
 });
 
 const agent = createReactAgent({ llm, tools: [] });
-`
-    : 'const { HumanMessage, SystemMessage } = require("@langchain/core/messages");'
-}
 
 const result = await agent.invoke({
   messages: [
@@ -833,6 +855,7 @@ const text = lastMessage.content;`,
         ],
       });
     }
+
     return [
       {
         type: StepType.VERIFY,
