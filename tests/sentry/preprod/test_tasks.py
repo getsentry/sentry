@@ -2,13 +2,16 @@ from datetime import timedelta
 from hashlib import sha1
 from unittest.mock import patch
 
+import pytest
 import sentry_sdk
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
+from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
+from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -402,6 +405,77 @@ class CreatePreprodArtifactTest(TestCase):
 
         assert artifact is not None
         assert artifact.commit_comparison is None
+
+    def test_create_preprod_artifact_succeeds_with_both_quotas_available(self) -> None:
+        """Test that create_preprod_artifact succeeds when both quotas are available"""
+        content = b"test with both quotas"
+        total_checksum = sha1(content).hexdigest()
+
+        with patch("sentry.preprod.tasks.quotas.backend.has_usage_quota", return_value=True):
+            artifact = create_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=total_checksum,
+            )
+
+        assert artifact is not None
+
+    def test_create_preprod_artifact_succeeds_with_only_size_analysis_quota(self) -> None:
+        """Test that create_preprod_artifact succeeds when only SIZE_ANALYSIS quota is available"""
+        content = b"test with size analysis quota only"
+        total_checksum = sha1(content).hexdigest()
+
+        def quota_side_effect(org_id, data_category):
+            return data_category == DataCategory.SIZE_ANALYSIS
+
+        with patch(
+            "sentry.preprod.tasks.quotas.backend.has_usage_quota", side_effect=quota_side_effect
+        ):
+            artifact = create_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=total_checksum,
+            )
+
+        assert artifact is not None
+
+    def test_create_preprod_artifact_succeeds_with_only_installable_build_quota(self) -> None:
+        """Test that create_preprod_artifact succeeds when only INSTALLABLE_BUILD quota is available"""
+        content = b"test with installable build quota only"
+        total_checksum = sha1(content).hexdigest()
+
+        def quota_side_effect(org_id, data_category):
+            from sentry.constants import DataCategory
+
+            return data_category == DataCategory.INSTALLABLE_BUILD
+
+        with patch(
+            "sentry.preprod.tasks.quotas.backend.has_usage_quota", side_effect=quota_side_effect
+        ):
+            artifact = create_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=total_checksum,
+            )
+
+        assert artifact is not None
+
+    def test_create_preprod_artifact_raises_no_quota_exception(self) -> None:
+        """Test that create_preprod_artifact raises NoPreprodQuota when no quota is available"""
+        content = b"test with no quota"
+        total_checksum = sha1(content).hexdigest()
+
+        with patch("sentry.preprod.tasks.quotas.backend.has_usage_quota", return_value=False):
+            with pytest.raises(NoPreprodQuota):
+                create_preprod_artifact(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    checksum=total_checksum,
+                )
+
+        # Verify no artifact was created in the database
+        artifacts = PreprodArtifact.objects.filter(project=self.project)
+        assert len(artifacts) == 0
 
 
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
