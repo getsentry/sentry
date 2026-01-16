@@ -139,12 +139,159 @@ function transformPrompt(prompt: string) {
   }
 }
 
+/**
+ * Transforms messages from the new parts-based format to the standard content format.
+ * The new format uses a `parts` array with typed objects instead of a `content` field.
+ */
+function transformPartsMessages(messages: string): string | undefined {
+  try {
+    const parsed = JSON.parse(messages);
+    if (!Array.isArray(parsed)) {
+      return undefined;
+    }
+
+    const transformed = parsed.map((msg: any) => {
+      if (!msg.parts || !Array.isArray(msg.parts)) {
+        return msg; // Already in old format
+      }
+
+      // Concatenate all text parts
+      const textContent = msg.parts
+        .filter((p: any) => p.type === 'text')
+        .map((p: any) => p.content || p.text)
+        .filter(Boolean)
+        .join('\n');
+
+      // Handle different part types
+      const toolCalls = msg.parts.filter((p: any) => p.type === 'tool_call');
+      const toolResponses = msg.parts.filter((p: any) => p.type === 'tool_call_response');
+      const objectParts = msg.parts.filter((p: any) => p.type === 'object');
+
+      // Determine content: prefer text, then structured objects, then tool calls, then tool responses
+      let content: any = textContent || undefined;
+      if (!content && objectParts.length > 0) {
+        // Structured output - keep as object for JSON rendering
+        content = objectParts.length === 1 ? objectParts[0] : objectParts;
+      } else if (!content && toolCalls.length > 0) {
+        content = toolCalls;
+      } else if (!content && toolResponses.length > 0) {
+        content = toolResponses.map((r: any) => r.result).join('\n');
+      }
+
+      return {role: msg.role, content};
+    });
+
+    return JSON.stringify(transformed);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Gets AI input messages, checking attributes in priority order.
+ * Priority: gen_ai.input.messages > gen_ai.request.messages > ai.input_messages > ai.prompt
+ * Also handles gen_ai.system_instructions by prepending as a system message.
+ */
+function getAIInputMessages(
+  node: EapSpanNode | SpanNode | TransactionNode,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+): string | null {
+  const systemInstructions = getTraceNodeAttribute(
+    'gen_ai.system_instructions',
+    node,
+    event,
+    attributes
+  );
+
+  const inputMessages = getTraceNodeAttribute(
+    'gen_ai.input.messages',
+    node,
+    event,
+    attributes
+  );
+  if (inputMessages) {
+    const transformed =
+      transformPartsMessages(inputMessages.toString()) ?? inputMessages.toString();
+    return prependSystemInstructions(transformed, systemInstructions?.toString());
+  }
+
+  const requestMessages = getTraceNodeAttribute(
+    'gen_ai.request.messages',
+    node,
+    event,
+    attributes
+  );
+  if (requestMessages) {
+    return prependSystemInstructions(
+      requestMessages.toString(),
+      systemInstructions?.toString()
+    );
+  }
+
+  const legacyInputMessages = getTraceNodeAttribute(
+    'ai.input_messages',
+    node,
+    event,
+    attributes
+  );
+  if (legacyInputMessages) {
+    const transformed = transformInputMessages(legacyInputMessages.toString());
+    if (transformed) {
+      return prependSystemInstructions(transformed, systemInstructions?.toString());
+    }
+  }
+
+  const prompt = getTraceNodeAttribute('ai.prompt', node, event, attributes);
+  if (prompt) {
+    const transformed = transformPrompt(prompt.toString());
+    if (transformed) {
+      return prependSystemInstructions(transformed, systemInstructions?.toString());
+    }
+  }
+
+  if (systemInstructions) {
+    return JSON.stringify([{role: 'system', content: systemInstructions.toString()}]);
+  }
+
+  return null;
+}
+
+/**
+ * Prepends system instructions as a system role message to the messages array.
+ */
+function prependSystemInstructions(
+  messagesJson: string,
+  systemInstructions?: string
+): string {
+  if (!systemInstructions) {
+    return messagesJson;
+  }
+
+  try {
+    const messages = JSON.parse(messagesJson);
+    if (!Array.isArray(messages)) {
+      return messagesJson;
+    }
+
+    if (messages.length > 0 && messages[0].role === 'system') {
+      return messagesJson;
+    }
+
+    return JSON.stringify([{role: 'system', content: systemInstructions}, ...messages]);
+  } catch {
+    return messagesJson;
+  }
+}
+
 export function hasAIInputAttribute(
   node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
   return (
+    getTraceNodeAttribute('gen_ai.input.messages', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.system_instructions', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.embeddings.input', node, event, attributes) ||
@@ -195,25 +342,9 @@ export function AIInputSection({
     attributes
   );
 
-  let promptMessages = shouldRender
-    ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
+  const promptMessages = shouldRender
+    ? getAIInputMessages(node, attributes, event)
     : null;
-
-  if (!promptMessages && shouldRender) {
-    const inputMessages = getTraceNodeAttribute(
-      'ai.input_messages',
-      node,
-      event,
-      attributes
-    );
-    promptMessages = inputMessages && transformInputMessages(inputMessages.toString());
-  }
-  if (!promptMessages && shouldRender) {
-    const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
-    if (messages) {
-      promptMessages = transformPrompt(messages.toString());
-    }
-  }
 
   const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
 
