@@ -8,14 +8,46 @@ from typing import Any
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
+from sentry.projects.services.project.model import RpcProject
+from sentry.sentry_apps.utils.errors import (
+    SentryAppBaseError,
+    SentryAppErrorType,
+    SentryAppPublicErrorBody,
+)
 
 
 # XXX: Normally RPCs wouldn't return errors like this, but we need to surface these errors to Sentry
 # Apps and by moving operation into these services, we'd lose the helpful errors without this.
 class RpcSentryAppError(RpcModel):
-    message: str
-    webhook_context: dict[str, Any]
-    status_code: int | None = None
+    error_type: SentryAppErrorType = SentryAppErrorType.CLIENT
+    status_code: int = 400
+    message: str = ""
+    public_dict: SentryAppPublicErrorBody | None = None
+    public_context: dict[str, Any] | None = None
+    webhook_context: dict[str, Any] = Field(default_factory=dict)
+
+    @classmethod
+    def from_exc(cls, exception: SentryAppBaseError) -> "RpcSentryAppError":
+        return RpcSentryAppError(
+            error_type=exception.error_type,
+            status_code=exception.status_code,
+            message=exception.message,
+            public_dict=exception.to_public_dict(),
+            webhook_context=exception.webhook_context,
+        )
+
+    def get_public_dict(self) -> SentryAppPublicErrorBody:
+        """
+        Conceptually matches SentryAppBaseError.to_public_dict(), allows endpoints to
+        correctly create error responses without the raw Exception.
+        """
+        if self.public_dict:
+            return self.public_dict
+
+        public_dict: SentryAppPublicErrorBody = {"detail": self.message}
+        if self.public_context:
+            public_dict["context"] = self.public_context
+        return public_dict
 
 
 class RpcSelectRequesterResult(RpcModel):
@@ -25,8 +57,8 @@ class RpcSelectRequesterResult(RpcModel):
 
 
 class RpcPlatformExternalIssue(RpcModel):
-    id: str
-    issue_id: str
+    id: int
+    group_id: int
     service_type: str
     display_name: str
     web_url: str
@@ -48,6 +80,7 @@ class RpcServiceHookProject(RpcModel):
 
 
 class RpcServiceHookProjectsResult(RpcModel):
+    projects: list[RpcProject] = Field(default_factory=list)
     service_hook_projects: list[RpcServiceHookProject] = Field(default_factory=list)
     error: RpcSentryAppError | None = None
 
