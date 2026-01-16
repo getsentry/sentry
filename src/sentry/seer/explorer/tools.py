@@ -934,19 +934,6 @@ def _get_tags_overview(
         params=params,
     )
 
-    # Aggregate query for total event count in the time range.
-    count_result = execute_table_query(
-        org_id=organization.id,
-        dataset=dataset,
-        fields=["count()"],
-        query=f"issue:{group.qualified_short_id}",
-        project_ids=[group.project_id],
-        start=start,
-        end=end,
-        per_page=1,
-    )
-    event_count = (count_result or {}).get("data", [{}])[0].get("count()", 0)
-
     tag_keys: list[TagKey | GroupTagKey] = []
     for item in resp.data:
         key = item.get("key")
@@ -969,12 +956,27 @@ def _get_tags_overview(
                 )
             )
 
+        # Aggregate query for total events with the tag key in the time range.
+        # TODO: assess performance, parallelize or find an alternative
+        # As an estimate, could make a single query and no has filter
+        count_result = execute_table_query(
+            org_id=organization.id,
+            dataset=dataset,
+            fields=["count()"],
+            query=f"issue:{group.qualified_short_id} has:{key}",
+            project_ids=[group.project_id],
+            start=start,
+            end=end,
+            per_page=1,
+        )
+        total_count = (count_result or {}).get("data", [{}])[0].get("count()", 0)
+
         tag_keys.append(
             GroupTagKey(
                 group_id=group.id,
                 key=key,
                 values_seen=len(top_values),
-                count=event_count,
+                count=total_count,
                 top_values=top_values,
             )
         )
