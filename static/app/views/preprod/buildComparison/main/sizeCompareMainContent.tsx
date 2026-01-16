@@ -65,11 +65,11 @@ export function SizeCompareMainContent() {
   const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
     useApiQuery<SizeComparisonApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        `/organizations/${organization.slug}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
+        enabled: !!headArtifactId && !!baseArtifactId,
         refetchInterval: query => {
           const mainComparison = getMainComparison(query.state.data?.[0]);
           return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
@@ -80,6 +80,7 @@ export function SizeCompareMainContent() {
   const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
   // Query the comparison download endpoint to get detailed data
+  // Note: This endpoint uses size metric IDs and requires project scope
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
       `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
@@ -90,6 +91,7 @@ export function SizeCompareMainContent() {
         !!mainArtifactComparison?.head_size_metric_id &&
         !!mainArtifactComparison?.base_size_metric_id &&
         !!organization.slug &&
+        !!projectId &&
         !!baseArtifactId,
     }
   );
@@ -101,7 +103,7 @@ export function SizeCompareMainContent() {
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        url: `/organizations/${organization.slug}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
         method: 'POST',
       });
     },

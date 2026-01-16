@@ -24,7 +24,7 @@ interface InstallDetailsContentProps {
 }
 
 export function InstallDetailsContent({
-  projectId,
+  projectId: _projectId,
   artifactId,
   size = 'sm',
 }: InstallDetailsContentProps) {
@@ -42,7 +42,7 @@ export function InstallDetailsContent({
     refetch,
   } = useApiQuery<InstallDetailsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/install-details/`,
+      `/organizations/${organization.slug}/preprodartifacts/${artifactId}/install-details/`,
     ],
     {
       staleTime: 0,

@@ -115,7 +115,7 @@ export function SizeCompareSelectionContent({
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        `/organizations/${organization.slug}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
         {
           method: 'POST',
         }

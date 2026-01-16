@@ -44,7 +44,7 @@ export function useBuildDetailsActions({
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/delete/`,
+        url: `/organizations/${organization.slug}/preprodartifacts/${artifactId}/delete/`,
         method: 'DELETE',
       });
     },
@@ -108,7 +108,7 @@ export function useBuildDetailsActions({
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-status-checks/${artifactId}/`,
+        url: `/organizations/${organization.slug}/preprod-artifact/rerun-status-checks/${artifactId}/`,
         method: 'POST',
         data: {
           check_types: ['size'],
