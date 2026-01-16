@@ -234,6 +234,7 @@ function ToggleConsolePlatformsModal({
       })
       .catch(() => {
         addErrorMessage('Failed to update console SDK settings');
+        setPendingRevocations(new Map());
       })
       .finally(() => {
         queryClient.invalidateQueries({
