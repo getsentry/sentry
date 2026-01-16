@@ -158,3 +158,15 @@ class EventDatastore:
             {"release": self.event["release"].strip() if self.event.get("release") else None}
         ]
         return self._release
+
+
+def parse_fingerprint_entry_as_variable(entry: str) -> str | None:
+    """
+    Determine if the given fingerprint entry is a variable, and if it is, return its key (that is,
+    extract the variable name from a variable string of the form "{{ var_name }}"). If the given
+    entry isn't the correct form to be a variable, return None.
+    """
+    match = _fingerprint_var_re.match(entry)
+    if match is not None and match.end() == len(entry):
+        return match.group(1)
+    return None
