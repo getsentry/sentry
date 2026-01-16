@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, cast, overload
+from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -3175,12 +3175,6 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # of Codecov.
 # Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
-
-OVERWATCH_REGION_URLS: dict[str, str] = cast(
-    dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
-)
-OVERWATCH_REGION_URL: str | None = os.getenv("OVERWATCH_REGION_URL")
-OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

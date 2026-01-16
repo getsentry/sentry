@@ -14,10 +14,7 @@ from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     """Integration tests for GitHub issue_comment webhook events."""
 
-    OPTIONS_TO_SET = {
-        "github.webhook.issue-comment": False,
-        "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
-    }
+    OPTIONS_TO_SET: dict[str, object] = {}
 
     @pytest.fixture(autouse=True)
     def mock_github_api_calls(self) -> Generator[None]:
