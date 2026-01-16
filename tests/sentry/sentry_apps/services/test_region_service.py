@@ -121,7 +121,7 @@ class TestSentryAppRegionService(TestCase):
 
         assert result.error is None
         assert result.external_issue is not None
-        assert result.external_issue.issue_id == str(self.group.id)
+        assert result.external_issue.group_id == self.group.id
         assert result.external_issue.web_url == "https://example.com/project/issue-id"
         assert result.external_issue.display_name == "Projectname#issue-1"
 
@@ -168,7 +168,7 @@ class TestSentryAppRegionService(TestCase):
 
         assert result.error is None
         assert result.external_issue is not None
-        assert result.external_issue.issue_id == str(self.group.id)
+        assert result.external_issue.group_id == self.group.id
         assert result.external_issue.web_url == "https://example.com/project/issue-1"
         assert result.external_issue.display_name == "ProjectName#issue-1"
 
