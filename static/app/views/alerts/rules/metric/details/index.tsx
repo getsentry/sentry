@@ -19,6 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -309,4 +310,4 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 }
 
-export default withApi(withProjects(MetricAlertDetails));
+export default withApi(withOrganization(withProjects(MetricAlertDetails)));
