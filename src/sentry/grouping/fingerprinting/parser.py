@@ -8,8 +8,11 @@ from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
-from sentry.grouping.fingerprinting.rules import FingerprintRule, FingerprintWithAttributes
-from sentry.grouping.fingerprinting.types import FingerprintRuleAttributes
+from sentry.grouping.fingerprinting.rules import FingerprintRule
+from sentry.grouping.fingerprinting.types import (
+    FingerprintRuleAttributes,
+    FingerprintWithAttributes,
+)
 from sentry.grouping.utils import DEFAULT_FINGERPRINT_VARIABLE, is_default_fingerprint_var
 from sentry.utils.strings import unescape_string
 
