@@ -22,6 +22,7 @@ import {
   type QueryBuilderActions,
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
+  FieldDefinitionGetter,
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
@@ -29,8 +30,7 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -56,7 +56,7 @@ interface SearchQueryBuilderContextData {
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
   gaveSeerConsent: boolean;
-  getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
+  getFieldDefinition: FieldDefinitionGetter;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
@@ -107,7 +107,7 @@ export function SearchQueryBuilderProvider({
   enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter,
   filterKeys,
   filterKeyMenuWidth = 460,
   filterKeySections,
@@ -146,9 +146,11 @@ export function SearchQueryBuilderProvider({
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
+  const {getFieldDefinition: defaultFieldDefinitionGetter} = useFieldDefinitionGetter();
+
   const stableFieldDefinitionGetter = useMemo(
-    () => fieldDefinitionGetter,
-    [fieldDefinitionGetter]
+    () => fieldDefinitionGetter ?? defaultFieldDefinitionGetter,
+    [defaultFieldDefinitionGetter, fieldDefinitionGetter]
   );
 
   const stableFilterKeys = useMemo(() => filterKeys, [filterKeys]);
@@ -187,7 +189,7 @@ export function SearchQueryBuilderProvider({
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
-    getFieldDefinition: fieldDefinitionGetter,
+    getFieldDefinition: stableFieldDefinitionGetter,
     disabled,
     displayAskSeerFeedback,
     setDisplayAskSeerFeedback,
