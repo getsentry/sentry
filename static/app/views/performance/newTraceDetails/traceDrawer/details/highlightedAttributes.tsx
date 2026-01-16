@@ -34,6 +34,34 @@ function tryParseJson(value: string) {
   }
 }
 
+/**
+ * Gets AI tool definitions, checking attributes in priority order.
+ * Priority: gen_ai.tool.definitions > gen_ai.request.available_tools
+ */
+function getAIToolDefinitions(
+  attributes: Record<string, string | number | boolean>
+): any[] | null {
+  // 1. Check new format first (gen_ai.tool.definitions)
+  const toolDefinitions = attributes['gen_ai.tool.definitions'];
+  if (toolDefinitions) {
+    const parsed = tryParseJson(toolDefinitions.toString());
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  }
+
+  // 2. Fall back to current format (gen_ai.request.available_tools)
+  const availableTools = attributes['gen_ai.request.available_tools'];
+  if (availableTools) {
+    const parsed = tryParseJson(availableTools.toString());
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
 export function getHighlightedSpanAttributes({
   op,
   spanId,
@@ -170,14 +198,8 @@ function getAISpanAttributes({
     });
   }
 
-  const availableTools = attributes['gen_ai.request.available_tools'];
-  const toolsArray = tryParseJson(availableTools?.toString() || '');
-  if (
-    toolsArray &&
-    Array.isArray(toolsArray) &&
-    toolsArray.length > 0 &&
-    getIsAiAgentSpan(genAiOpType)
-  ) {
+  const toolsArray = getAIToolDefinitions(attributes);
+  if (toolsArray && toolsArray.length > 0 && getIsAiAgentSpan(genAiOpType)) {
     highlightedAttributes.push({
       name: t('Available Tools'),
       value: <HighlightedTools availableTools={toolsArray} spanId={spanId} />,

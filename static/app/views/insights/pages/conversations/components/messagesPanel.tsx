@@ -34,8 +34,9 @@ interface ConversationMessage {
 }
 
 interface RequestMessage {
-  content: string | Array<{text: string}>;
   role: string;
+  content?: string | Array<{text: string}>;
+  parts?: Array<{type: string; content?: string; text?: string}>;
 }
 
 // often injected into AI prompts to indicate the role of the message
@@ -110,10 +111,39 @@ function findToolCallsBetween(
     .filter((tc): tc is ToolCall => tc !== null);
 }
 
+/**
+ * Extracts text content from a message that may use the new parts format or old content format.
+ */
+function extractTextFromMessage(msg: RequestMessage): string | null {
+  // Try new parts format first
+  if (msg.parts && Array.isArray(msg.parts)) {
+    const textParts = msg.parts
+      .filter(p => p.type === 'text')
+      .map(p => p.content || p.text)
+      .filter(Boolean);
+    if (textParts.length > 0) {
+      return textParts.join('\n');
+    }
+  }
+
+  // Fall back to old content format
+  if (msg.content) {
+    return typeof msg.content === 'string' ? msg.content : (msg.content[0]?.text ?? null);
+  }
+
+  return null;
+}
+
 function parseUserContent(node: AITraceSpanNode): string | null {
-  const requestMessages = node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as
+  // 1. Check new format first (gen_ai.input.messages)
+  const inputMessages = node.attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES] as
     | string
     | undefined;
+
+  // 2. Fall back to current format (gen_ai.request.messages)
+  const requestMessages =
+    inputMessages ??
+    (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);
 
   if (!requestMessages) {
     return null;
@@ -121,19 +151,43 @@ function parseUserContent(node: AITraceSpanNode): string | null {
 
   try {
     const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
-    const userMessage = messagesArray.findLast(msg => msg.role === 'user' && msg.content);
-    if (!userMessage?.content) {
+    const userMessage = messagesArray.findLast(
+      msg => msg.role === 'user' && (msg.content || msg.parts)
+    );
+    if (!userMessage) {
       return null;
     }
-    return typeof userMessage.content === 'string'
-      ? userMessage.content
-      : (userMessage.content[0]?.text ?? null);
+    return extractTextFromMessage(userMessage);
   } catch {
     return requestMessages;
   }
 }
 
 function parseAssistantContent(node: AITraceSpanNode): string | null {
+  // 1. Check new format first (gen_ai.output.messages)
+  const outputMessages = node.attributes?.[SpanFields.GEN_AI_OUTPUT_MESSAGES] as
+    | string
+    | undefined;
+
+  if (outputMessages) {
+    try {
+      const messagesArray: RequestMessage[] = JSON.parse(outputMessages);
+      // Find the last assistant message
+      const assistantMessage = messagesArray.findLast(
+        msg => msg.role === 'assistant' && (msg.content || msg.parts)
+      );
+      if (assistantMessage) {
+        const content = extractTextFromMessage(assistantMessage);
+        if (content) {
+          return content;
+        }
+      }
+    } catch {
+      // If parsing fails, fall through to legacy attributes
+    }
+  }
+
+  // 2. Fall back to current format
   return (
     (node.attributes?.[SpanFields.GEN_AI_RESPONSE_TEXT] as string | undefined) ||
     (node.attributes?.[SpanFields.GEN_AI_RESPONSE_OBJECT] as string | undefined) ||
@@ -270,12 +324,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                 isSelected={isSelected}
                 onClick={() => handleMessageClick(message)}
               >
-                <MessageHeader
-                  align="center"
-                  gap="sm"
-                  padding="sm md"
-                  justify={message.role === 'assistant' ? 'end' : 'start'}
-                >
+                <MessageHeader justify={message.role === 'assistant' ? 'end' : 'start'}>
                   {message.role === 'user' ? (
                     <IconUser size="sm" />
                   ) : (
@@ -356,7 +405,12 @@ const ScrollableContent = styled(Flex)`
   overflow-x: hidden;
 `;
 
-const MessageHeader = styled(Flex)`
+const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  justify-content: ${p => (p.justify === 'end' ? 'flex-end' : 'flex-start')};
   background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
