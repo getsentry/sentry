@@ -335,7 +335,7 @@ export function useSendTestNotification(
       const message = typeof detail === 'string' ? detail : detail?.message;
 
       addErrorMessage(
-        message ?? tn('Notification failed', 'Notifications failed', variables.length)
+        message || tn('Notification failed', 'Notifications failed', variables.length)
       );
       options?.onError?.(error, variables, context);
     },
