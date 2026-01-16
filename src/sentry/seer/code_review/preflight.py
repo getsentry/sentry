@@ -9,6 +9,7 @@ from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_F
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewSettings, RepositorySettings
+from sentry.seer.code_review.billing import passes_code_review_billing_check
 
 
 class PreflightDenialReason(StrEnum):
@@ -79,8 +80,8 @@ class CodeReviewPreflightService:
         if self._is_seat_based_seer_plan_org():
             return None
 
-        # Beta orgs need the legacy toggle enabled
-        if self._is_code_review_beta_org():
+        # Beta orgs and those in the legacy usage-based plan need the legacy toggle enabled
+        if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
             if self._has_legacy_toggle_enabled():
                 return None
             return PreflightDenialReason.ORG_PR_REVIEW_LEGACY_TOGGLE_DISABLED
@@ -92,15 +93,16 @@ class CodeReviewPreflightService:
             if self._repo_settings is None or not self._repo_settings.enabled:
                 return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
             return None
-        elif self._is_code_review_beta_org():
-            # For beta orgs, all repos are considered enabled
+        elif self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
+            # For beta and legacy usage-based plan orgs, all repos are considered enabled
             return None
         else:
             return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     def _check_billing(self) -> PreflightDenialReason | None:
-        # TODO: Once we're ready to actually gate billing (when it's time for GA), uncomment this
-        """
+        if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
+            return None
+
         if self.integration_id is None or self.pr_author_external_id is None:
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
@@ -111,7 +113,6 @@ class CodeReviewPreflightService:
         )
         if not billing_ok:
             return PreflightDenialReason.BILLING_QUOTA_EXCEEDED
-        """
 
         return None
 
@@ -129,6 +130,9 @@ class CodeReviewPreflightService:
             "sentry:enable_pr_review_test_generation", False
         )
         return has_beta_flag or bool(has_legacy_opt_in)
+
+    def _is_legacy_usage_based_seer_plan_org(self) -> bool:
+        return features.has("organizations:seer-added", self.organization)
 
     def _has_legacy_toggle_enabled(self) -> bool:
         return bool(
