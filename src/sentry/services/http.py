@@ -50,6 +50,7 @@ class SentryHTTPServer(Service):
         host = host or settings.SENTRY_WEB_HOST
         port = port or int(os.environ.get("SENTRY_GRANIAN_PORT", "0")) or settings.SENTRY_WEB_PORT
         workers = workers or int(os.environ.get("SENTRY_GRANIAN_WORKERS", "1"))
+        reload = bool(os.environ.get("SENTRY_GRANIAN_RELOAD"))
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         if extra_options is not None:
@@ -64,9 +65,9 @@ class SentryHTTPServer(Service):
         options.setdefault("backlog", max(128, 64 * workers))
         options.setdefault("log-enabled", True)
         options.setdefault("proc-name", "sentry")
-        options.setdefault("reload", False)
-        options.setdefault("reload-ignore-worker-failure", False)
-        options.setdefault("workers-kill-timeout", 30)
+        options.setdefault("reload", reload)
+        options.setdefault("reload-ignore-worker-failure", reload)
+        options.setdefault("workers-kill-timeout", 3 if reload else 30)
         options.setdefault("reload-on-rss", 600)
         options.setdefault(
             "log-format", '%(addr)s - [%(time)s] "%(method)s %(path)s %(scheme)s" %(status)d'

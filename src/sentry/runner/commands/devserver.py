@@ -461,6 +461,8 @@ def devserver(
             # This sets all the appropriate env vars, etc
             server.prepare_environment()
             os.environ["SENTRY_GRANIAN_PORT"] = str(server_port)
+            if reload:
+                os.environ["SENTRY_GRANIAN_RELOAD"] = "1"
 
             if silo != "control":
                 daemons += [_get_daemon("server")]

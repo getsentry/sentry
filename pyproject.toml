@@ -35,7 +35,7 @@ dependencies = [
     "google-cloud-storage-transfer>=1.17.0",
     "google-crc32c>=1.6.0",
     "googleapis-common-protos>=1.63.2",
-    "granian[pname]>=2.6",
+    "granian[pname,reload]>=2.6",
     "grpc-google-iam-v1>=0.13.1",
     # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
     # See https://github.com/grpc/grpc/issues/23796 and
