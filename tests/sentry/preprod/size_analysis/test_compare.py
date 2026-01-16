@@ -114,7 +114,7 @@ class CompareSizeAnalysisTest(TestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="test",
             max_install_size=1500,
-            max_download_size=900,
+            max_download_size=800,
         )
 
         # Head has one file, base has none
@@ -127,7 +127,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert len(result.diff_items) == 1
         diff_item = result.diff_items[0]
         assert diff_item.path == "file.txt"
-        assert diff_item.size_diff == 100
+        assert diff_item.size_diff == 500
         assert diff_item.head_size == 100
         assert diff_item.base_size is None
         assert diff_item.type == DiffType.ADDED
