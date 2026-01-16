@@ -9,7 +9,7 @@ import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -53,9 +53,10 @@ export function ToolbarVisualizeDropdown({
   parsedFunction,
   label,
 }: ToolbarVisualizeDropdownProps) {
+  const {getFieldDefinition: defaultFieldDefinitionGetter} = useFieldDefinitionGetter();
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
-    ? getFieldDefinition(aggregateFunc, 'span')
+    ? defaultFieldDefinitionGetter(aggregateFunc, 'span')
     : undefined;
 
   return (

@@ -10,7 +10,7 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
@@ -29,9 +29,9 @@ export function ExploreParams({
   groupBys,
   className,
 }: SingleQueryProps & {className?: string}) {
+  const {getFieldDefinition} = useFieldDefinitionGetter();
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
   const containerRef = useRef<HTMLSpanElement>(null);
-
   const {width} = useDimensions({elementRef: containerRef});
   const [childWidths, setChildWidths] = useState<number[]>([]);
   const [containerWidth, setContainerWidth] = useState<number>(0);
@@ -93,9 +93,11 @@ export function ExploreParams({
       );
     });
   }
+
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, getFieldDefinition);
-  }, [query]);
+  }, [getFieldDefinition, query]);
+
   if (query) {
     tokens.push(
       <Flex as="span" wrap="wrap" gap="xs" overflow="hidden" key="filter">
