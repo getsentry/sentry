@@ -9,6 +9,7 @@ from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_F
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewSettings, RepositorySettings
+from sentry.seer.code_review.billing import passes_code_review_billing_check
 
 
 class PreflightDenialReason(StrEnum):
@@ -99,13 +100,11 @@ class CodeReviewPreflightService:
             return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     def _check_billing(self) -> PreflightDenialReason | None:
-        # TODO: Once we're ready to actually gate billing (when it's time for GA), uncomment this
-        """
-        if self.integration_id is None or self.pr_author_external_id is None:
-            return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
-
         if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
             return None
+
+        if self.integration_id is None or self.pr_author_external_id is None:
+            return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
         billing_ok = passes_code_review_billing_check(
             organization_id=self.organization.id,
@@ -114,7 +113,6 @@ class CodeReviewPreflightService:
         )
         if not billing_ok:
             return PreflightDenialReason.BILLING_QUOTA_EXCEEDED
-        """
 
         return None
 

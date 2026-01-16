@@ -372,12 +372,12 @@ class TestCodeReviewPreflightService(TestCase):
     # Billing tests
     # -------------------------------------------------------------------------
 
-
-# TODO: Uncomment these billing tests once we're ready to actually gate billing (when it's time for GA)
-"""
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_integration_id(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         service = CodeReviewPreflightService(
             organization=self.organization,
@@ -390,9 +390,12 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_external_identifier(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         service = CodeReviewPreflightService(
             organization=self.organization,
@@ -405,9 +408,12 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_contributor_does_not_exist(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         service = self._create_service()
         result = service.check()
@@ -416,11 +422,14 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
 
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_quota_check_fails(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = False
 
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         OrganizationContributors.objects.create(
             organization_id=self.organization.id,
@@ -433,5 +442,3 @@ class TestCodeReviewPreflightService(TestCase):
 
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
-
-"""
