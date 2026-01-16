@@ -92,8 +92,8 @@ class CodeReviewPreflightService:
             if self._repo_settings is None or not self._repo_settings.enabled:
                 return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
             return None
-        elif self._is_code_review_beta_org():
-            # For beta orgs, all repos are considered enabled
+        elif self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
+            # For beta and legacy usage-based plan orgs, all repos are considered enabled
             return None
         else:
             return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED

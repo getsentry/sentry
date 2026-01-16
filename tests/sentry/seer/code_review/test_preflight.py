@@ -119,6 +119,65 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason is None
 
     # -------------------------------------------------------------------------
+    # Seer-added (legacy usage-based) org tests
+    # -------------------------------------------------------------------------
+
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    def test_denied_when_seer_added_org_has_legacy_toggle_disabled(self) -> None:
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_PR_REVIEW_LEGACY_TOGGLE_DISABLED
+
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    def test_allowed_when_seer_added_org_has_legacy_toggle_enabled(self) -> None:
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        with patch(
+            "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
+            return_value=True,
+        ):
+            service = self._create_service()
+            result = service.check()
+
+        assert result.allowed is True
+        assert result.denial_reason is None
+
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    def test_seer_added_org_bypasses_repo_settings_check(self, mock_check_quota: MagicMock) -> None:
+        """Seer-added orgs don't need repo settings to be enabled."""
+        mock_check_quota.return_value = True
+
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        # Explicitly disable repo code review
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=False,
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        # Should still be allowed because seer-added orgs bypass repo settings
+        assert result.allowed is True
+        assert result.denial_reason is None
+
+    # -------------------------------------------------------------------------
     # Seat-based org tests
     # -------------------------------------------------------------------------
 
@@ -221,6 +280,93 @@ class TestCodeReviewPreflightService(TestCase):
 
         assert result.allowed is True
         assert result.settings is None
+
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    def test_returns_repo_settings_for_beta_org_with_repo_settings(
+        self, mock_check_quota: MagicMock
+    ) -> None:
+        """Beta orgs should return repo settings if they exist, even though they're not required."""
+        mock_check_quota.return_value = True
+
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is True
+        assert result.settings is not None
+        assert result.settings.enabled is True
+        assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
+
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    def test_beta_org_bypasses_repo_settings_check(self, mock_check_quota: MagicMock) -> None:
+        """Beta orgs don't need repo settings to be enabled."""
+        mock_check_quota.return_value = True
+
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        # Explicitly disable repo code review
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=False,
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        # Should still be allowed because beta orgs bypass repo settings
+        assert result.allowed is True
+        assert result.denial_reason is None
+
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    def test_returns_repo_settings_for_seer_added_org_with_repo_settings(
+        self, mock_check_quota: MagicMock
+    ) -> None:
+        """Seer-added orgs should return repo settings if they exist, even though they're not required."""
+        mock_check_quota.return_value = True
+
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_READY_FOR_REVIEW.value],
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is True
+        assert result.settings is not None
+        assert result.settings.enabled is True
+        assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
 
     # -------------------------------------------------------------------------
     # Billing tests
