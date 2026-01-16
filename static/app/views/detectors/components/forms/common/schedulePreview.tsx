@@ -1,8 +1,8 @@
 import {Fragment, useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout/container';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
@@ -15,16 +15,11 @@ import type {
   TickStyle,
   TimeWindowConfig,
 } from 'sentry/components/checkInTimeline/types';
-import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import LoadingError from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {useDimensions} from 'sentry/utils/useDimensions';
-import {
-  SchedulePreviewStatus,
-  useMonitorsScheduleSampleBuckets,
-} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
-import {useMonitorsScheduleSampleWindow} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleWindow';
+import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
+import {useMonitorsScheduleSamples} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
 import type {ScheduleType} from 'sentry/views/insights/crons/types';
 
 type SchedulePreviewProps = {
@@ -34,57 +29,47 @@ type SchedulePreviewProps = {
   scheduleIntervalUnit: string;
   scheduleIntervalValue: number;
   scheduleType: ScheduleType;
-  statusPrecedent: SchedulePreviewStatus[];
   statusToText: Record<SchedulePreviewStatus, string>;
-  tickStyle: TickStyle<SchedulePreviewStatus>;
   timezone: string;
-  isSticky?: boolean;
 };
 
-export function SchedulePreview({
-  tickStyle,
-  statusToText,
-  statusPrecedent,
-  isSticky,
-  ...detectorFields
-}: SchedulePreviewProps) {
-  const {
-    data: sampleWindowData,
-    isLoading: isLoadingSampleWindow,
-    error: errorSampleWindow,
-  } = useMonitorsScheduleSampleWindow({
+const statusPrecedent: SchedulePreviewStatus[] = [
+  SchedulePreviewStatus.SUB_FAILURE_ERROR,
+  SchedulePreviewStatus.SUB_RECOVERY_OK,
+  SchedulePreviewStatus.ERROR,
+  SchedulePreviewStatus.OK,
+];
+
+const tickStyle: TickStyle<SchedulePreviewStatus> = theme => ({
+  [SchedulePreviewStatus.ERROR]: {
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
+  },
+  [SchedulePreviewStatus.OK]: {
+    labelColor: theme.colors.green500,
+    tickColor: theme.colors.green400,
+  },
+  [SchedulePreviewStatus.SUB_FAILURE_ERROR]: {
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
+    hatchTick: theme.colors.red200,
+  },
+  [SchedulePreviewStatus.SUB_RECOVERY_OK]: {
+    labelColor: theme.colors.green500,
+    tickColor: theme.colors.green400,
+    hatchTick: theme.colors.green200,
+  },
+});
+
+export function SchedulePreview({statusToText, ...detectorFields}: SchedulePreviewProps) {
+  const timelineWidthTracker = useRef<HTMLDivElement>(null);
+  const {timeWindowConfig, samples, isLoading, errors} = useMonitorsScheduleSamples({
+    timeLineWidthTrackerRef: timelineWidthTracker,
     ...detectorFields,
   });
 
-  const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
-
-  const timeWindowConfig = sampleWindowData
-    ? getConfigFromTimeRange(
-        new Date(sampleWindowData.start * 1000),
-        new Date(sampleWindowData.end * 1000),
-        timelineWidth,
-        detectorFields.timezone
-      )
-    : undefined;
-
-  const start = timeWindowConfig?.start;
-  const end = timeWindowConfig?.end;
-  const interval = timeWindowConfig?.rollupConfig.interval;
-
-  const {
-    data: sampleBucketsData,
-    isLoading: isLoadingSampleBuckets,
-    error: errorSampleBuckets,
-  } = useMonitorsScheduleSampleBuckets({
-    start: start ? start.getTime() / 1000 : undefined,
-    end: end ? end.getTime() / 1000 : undefined,
-    interval: interval ?? undefined,
-    ...detectorFields,
-  });
-
-  if (errorSampleWindow || errorSampleBuckets) {
-    const badRequestError = [errorSampleWindow, errorSampleBuckets].find(
+  if (errors.length > 0) {
+    const badRequestError = errors.find(
       (error): error is RequestError => error?.status === 400
     );
 
@@ -97,58 +82,54 @@ export function SchedulePreview({
     );
 
     return (
-      <Container isSticky={isSticky}>
-        <ErrorContainer>{message}</ErrorContainer>
-      </Container>
+      <ContentWrapper timelineWidthTrackerRef={timelineWidthTracker}>
+        <ErrorContainer position="absolute" width="fit-content" top="50%" left="50%">
+          {message}
+        </ErrorContainer>
+      </ContentWrapper>
     );
   }
 
-  const isLoading = isLoadingSampleWindow || isLoadingSampleBuckets;
-
   return (
-    <Container isSticky={isSticky}>
-      <TimelineWidthTracker ref={elementRef} />
+    <ContentWrapper timelineWidthTrackerRef={timelineWidthTracker}>
       {isLoading ? (
-        <TimeLineContainer>
+        <Container position="absolute" width="100%" top="50px">
           <CheckInPlaceholder />
-        </TimeLineContainer>
-      ) : timeWindowConfig && sampleBucketsData ? (
+        </Container>
+      ) : timeWindowConfig && samples ? (
         <Fragment>
           <GridLineOverlay showCursor timeWindowConfig={timeWindowConfig} />
           <OpenPeriod
             failureThreshold={detectorFields.failureIssueThreshold}
             recoveryThreshold={detectorFields.recoveryThreshold}
-            statusPrecedent={statusPrecedent}
-            bucketedData={sampleBucketsData}
+            bucketedData={samples}
             timeWindowConfig={timeWindowConfig}
           />
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
-          <TimeLineContainer>
+          <Container position="absolute" width="100%" top="50px">
             <CheckInTimeline<SchedulePreviewStatus>
-              bucketedData={sampleBucketsData}
+              bucketedData={samples}
               timeWindowConfig={timeWindowConfig}
               statusLabel={statusToText}
               statusStyle={tickStyle}
               statusPrecedent={statusPrecedent}
             />
-          </TimeLineContainer>
+          </Container>
         </Fragment>
       ) : null}
-    </Container>
+    </ContentWrapper>
   );
 }
 
 function OpenPeriod({
   failureThreshold,
   recoveryThreshold,
-  statusPrecedent,
   bucketedData,
   timeWindowConfig,
 }: {
   bucketedData: Array<CheckInBucket<SchedulePreviewStatus>>;
   failureThreshold: number;
   recoveryThreshold: number;
-  statusPrecedent: SchedulePreviewStatus[];
   timeWindowConfig: TimeWindowConfig;
 }) {
   const {bucketPixels, underscanStartOffset} = timeWindowConfig.rollupConfig;
@@ -156,35 +137,21 @@ function OpenPeriod({
   // Draw the open period from:
   // - the first ERROR bucket, to
   // - the first OK bucket after that.
-  let openBarStartIdx: number | null = null;
-  for (let i = 0; i < bucketedData.length; i++) {
-    if (
-      getBucketStatus(statusPrecedent, bucketedData[i]?.[1]) ===
-      SchedulePreviewStatus.ERROR
-    ) {
-      openBarStartIdx = i;
-      break;
-    }
+  const openBarStartIdx = bucketedData.findIndex(
+    bucket => getBucketStatus(bucket?.[1]) === SchedulePreviewStatus.ERROR
+  );
+
+  if (openBarStartIdx === -1) {
+    return null;
   }
 
-  let openBarEndIdx: number | null = null;
-  if (openBarStartIdx !== null) {
-    for (let i = openBarStartIdx + 1; i < bucketedData.length; i++) {
-      if (
-        getBucketStatus(statusPrecedent, bucketedData[i]?.[1]) ===
-        SchedulePreviewStatus.OK
-      ) {
-        openBarEndIdx = i;
-        break;
-      }
-    }
-  }
+  const okAfterStartIdx = bucketedData
+    .slice(openBarStartIdx + 1)
+    .findIndex(bucket => getBucketStatus(bucket?.[1]) === SchedulePreviewStatus.OK);
+  const openBarEndIdx =
+    okAfterStartIdx === -1 ? -1 : openBarStartIdx + 1 + okAfterStartIdx;
 
-  if (
-    openBarStartIdx === null ||
-    openBarEndIdx === null ||
-    openBarEndIdx <= openBarStartIdx
-  ) {
+  if (openBarEndIdx === -1) {
     return null;
   }
 
@@ -208,10 +175,29 @@ function OpenPeriod({
   );
 }
 
-function getBucketStatus(
-  statusPrecedent: SchedulePreviewStatus[],
-  stats: Record<string, number> | undefined
-) {
+function ContentWrapper({
+  children,
+  timelineWidthTrackerRef,
+}: {
+  children: React.ReactNode;
+  timelineWidthTrackerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <StyledContainer
+      position="sticky"
+      width="100%"
+      height="138px"
+      background="primary"
+      border="primary"
+      radius="md"
+    >
+      <Container position="absolute" width="100%" ref={timelineWidthTrackerRef} />
+      {children}
+    </StyledContainer>
+  );
+}
+
+function getBucketStatus(stats: Record<string, number> | undefined) {
   return stats ? statusPrecedent.find(status => (stats[status] ?? 0) > 0) : undefined;
 }
 
@@ -223,17 +209,6 @@ function getErrorMessage(error: RequestError) {
     )
     .join(', ');
 }
-
-const TimelineWidthTracker = styled('div')`
-  position: absolute;
-  width: 100%;
-`;
-
-const TimeLineContainer = styled('div')`
-  position: absolute;
-  top: 50px;
-  width: 100%;
-`;
 
 const OpenPeriodBar = styled('div')`
   position: absolute;
@@ -268,7 +243,7 @@ const OpenPeriodBar = styled('div')`
 
 const OpenPeriodLabel = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  line-height: 1;
+  line-height: 1.4;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -284,36 +259,17 @@ const OpenPeriodCountLabel = styled('div')`
   text-align: center;
 `;
 
-const Container = styled('div')<{isSticky?: boolean}>`
-  position: relative;
-  width: 100%;
-  height: 138px;
-
-  background-color: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-
-  ${p =>
-    p.isSticky &&
-    css`
-      position: sticky;
-      top: 8px;
-      z-index: 1;
-
-      /*
-       * Prevent seeing content beneath in the uncovered strip above the sticky element.
-       * Use a solid, zero-blur shadow so we don't paint over the border.
-       */
-      box-shadow: 0 -8px 0 0 ${p.theme.tokens.background.primary};
-    `}
+const StyledContainer = styled(Container)`
+  top: 8px;
+  z-index: ${p => p.theme.zIndex.initial};
+  /*
+    * Prevent seeing content beneath in the uncovered strip above the sticky element.
+    * Use a solid, zero-blur shadow so we don't paint over the border.
+    */
+  box-shadow: 0 -8px 0 0 ${p => p.theme.tokens.background.primary};
 `;
 
-const ErrorContainer = styled('div')`
-  position: absolute;
-  margin: auto;
-  width: fit-content;
-  top: 50%;
-  left: 50%;
+const ErrorContainer = styled(Container)`
   transform: translate(-50%, -50%);
   font-size: ${p => p.theme.fontSize.lg};
 `;

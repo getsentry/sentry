@@ -41,6 +41,25 @@ interface CronDetectorFormData {
 
 type CronDetectorFormFieldName = keyof CronDetectorFormData;
 
+const DEFAULT_CRON_DETECTOR_FORM_DATA_MAP: Record<
+  CronDetectorFormFieldName,
+  CronDetectorFormData[CronDetectorFormFieldName]
+> = {
+  checkinMargin: CRON_DEFAULT_CHECKIN_MARGIN,
+  description: null,
+  failureIssueThreshold: CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
+  maxRuntime: CRON_DEFAULT_MAX_RUNTIME,
+  name: '',
+  owner: '',
+  projectId: '',
+  recoveryThreshold: CRON_DEFAULT_RECOVERY_THRESHOLD,
+  scheduleCrontab: DEFAULT_CRONTAB,
+  scheduleIntervalUnit: CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT,
+  scheduleIntervalValue: CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE,
+  scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
+  timezone: CRON_DEFAULT_TIMEZONE,
+  workflowIds: [],
+};
 /**
  * Small helper to automatically get the type of the form field.
  */
@@ -48,7 +67,7 @@ export function useCronDetectorFormField<T extends CronDetectorFormFieldName>(
   name: T
 ): CronDetectorFormData[T] {
   const value = useFormField(name);
-  return value;
+  return value || DEFAULT_CRON_DETECTOR_FORM_DATA_MAP[name];
 }
 
 export function cronFormDataToEndpointPayload(
