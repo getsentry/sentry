@@ -45,10 +45,13 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         result_value_getter=lambda p: p.id,
     ):
         if options.get("seer.explorer_index.killswitch.enable"):
+            logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return
 
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
             has_feature = features.has("organizations:seer-explorer-index", project.organization)
+            logger.info("organizations:seer-explorer-index flag not enabled, skipping")
+
         if has_feature:
             yield project.id, project.organization_id
 
@@ -63,11 +66,15 @@ def schedule_explorer_index() -> None:
     Main periodic task that runs daily to schedule explorer indexing for active projects
     in seer-enabled organizations. Spreads the load throughout the day.
     """
+    logger.info("Started schedule_explorer_index task")
+
     if not options.get("seer.explorer_index.enable"):
+        logger.info("seer.explorer_index.enable flag is disabled")
         return
 
     last_run = cache.get(LAST_RUN_CACHE_KEY)
     if last_run and last_run > django_timezone.now() - EXPLORER_INDEX_RUN_FREQUENCY:
+        logger.info("Index updated less than 24 hours ago, skiping")
         return
 
     cache.set(LAST_RUN_CACHE_KEY, django_timezone.now(), LAST_RUN_CACHE_TIMEOUT)
@@ -78,8 +85,16 @@ def schedule_explorer_index() -> None:
     projects = dispatch_explorer_index_projects(projects, now)
 
     # Make sure to consume the generator
+    scheduled_count = 0
     for _ in projects:
-        pass
+        scheduled_count += 1
+
+    logger.info(
+        "Successfully scheduled explorer index jobs for valid projects",
+        extra={
+            "scheduled_count": scheduled_count,
+        },
+    )
 
 
 def dispatch_explorer_index_projects(
@@ -114,6 +129,7 @@ def dispatch_explorer_index_projects(
                     step=EXPLORER_INDEX_DISPATCH_STEP,
                 ),
             )
+            logger.info("Successfully dispatched run_explorer_index_for_projects tasks in sentry")
             batch = []
 
         yield project_id, org_id
@@ -128,6 +144,7 @@ def dispatch_explorer_index_projects(
                 step=EXPLORER_INDEX_DISPATCH_STEP,
             ),
         )
+        logger.info("Successfully dispatched run_explorer_index_for_projects tasks in sentry")
 
 
 @instrumented_task(
