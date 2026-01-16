@@ -16,6 +16,7 @@ from sentry.grouping.enhancer import (
     get_enhancements_version,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.grouping.fingerprinting.types import FingerprintRuleJSON
 from sentry.grouping.strategies.base import GroupingContext
 from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from sentry.grouping.utils import (
@@ -42,7 +43,6 @@ from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.fingerprinting import FingerprintingConfig
-    from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
     from sentry.services.eventstore.models import Event
