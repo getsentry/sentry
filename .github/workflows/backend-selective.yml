@@ -19,6 +19,7 @@ jobs:
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    continue-on-error: true
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend_all }}
@@ -42,6 +43,7 @@ jobs:
     name: prepare selective tests
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    continue-on-error: true
     permissions:
       contents: read
       id-token: write
@@ -141,7 +143,6 @@ jobs:
         env:
           COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
           CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
-          IS_CI: true
         run: make compute-selected-tests
 
       - name: Upload coverage database artifact
@@ -167,6 +168,7 @@ jobs:
     name: calculate test shards
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    continue-on-error: true
     outputs:
       shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
       shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}

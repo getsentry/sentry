@@ -27,7 +27,6 @@ PYTEST_IGNORE_ARGS = [
 
 
 def collect_test_count():
-    """Collect test count, optionally filtering to selected test files."""
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
 
     if selected_tests_file:

@@ -168,7 +168,7 @@ compute-selected-tests:
 		--coverage-db "$(COVERAGE_DB)" \
 		--changed-files "$(CHANGED_FILES)" \
 		--output .artifacts/selected-tests.txt \
-		$(if $(IS_CI),--github-output,)
+		--github-output
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
