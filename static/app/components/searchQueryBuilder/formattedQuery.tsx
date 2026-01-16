@@ -24,7 +24,7 @@ import {
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export type FormattedQueryProps = {

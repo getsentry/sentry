@@ -10,8 +10,7 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {FieldKind} from 'sentry/utils/fields';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
+import {FieldKind, useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';

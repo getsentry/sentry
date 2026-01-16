@@ -9,7 +9,7 @@ import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,

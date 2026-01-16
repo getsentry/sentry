@@ -17,9 +17,9 @@ import {
   FieldKind,
   FieldValueType,
   prettifyTagKey,
+  useFieldDefinitionGetter,
   type FieldDefinition,
 } from 'sentry/utils/fields';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';

@@ -28,8 +28,7 @@ import {
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {prettifyTagKey} from 'sentry/utils/fields';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
+import {prettifyTagKey, useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';

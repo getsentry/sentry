@@ -1,10 +1,5 @@
-import {useCallback} from 'react';
-
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {FieldKind, getFieldDefinition} from './index';
 
 /**
  * Represents a single attribute mapping from the /attribute-mappings API.
@@ -46,47 +41,4 @@ export function useAttributeMappings(options?: {type?: string}) {
       staleTime: Infinity,
     }
   );
-}
-
-/**
- * Type definition for getFieldDefinition type parameter.
- */
-export type FieldDefinitionType =
-  | 'event'
-  | 'replay'
-  | 'replay_click'
-  | 'feedback'
-  | 'span'
-  | 'log'
-  | 'uptime'
-  | 'tracemetric';
-
-/**
- * React hook that provides a getter function for field definitions.
- * The getter uses attribute mappings to enhance field definitions with ATTRIBUTE_METADATA.
- *
- * If the API request fails or is pending, the getter falls back to the base
- * getFieldDefinition without mappings enhancement.
- *
- * @returns Object containing the getter function and loading/error states
- */
-export function useFieldDefinitionGetter(): {
-  getFieldDefinition: FieldDefinitionGetter;
-  isError: boolean;
-  isPending: boolean;
-} {
-  const {data, isPending, isError} = useAttributeMappings();
-
-  const getter: FieldDefinitionGetter = useCallback(
-    (key: string, type: FieldDefinitionType = 'event', kind?: FieldKind) => {
-      return getFieldDefinition(key, type, {kind, mappings: data?.data});
-    },
-    [data?.data]
-  );
-
-  return {
-    getFieldDefinition: getter,
-    isPending,
-    isError,
-  };
 }

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FieldKind} from 'sentry/utils/fields';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AttributeDetailsProps {

@@ -30,7 +30,7 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';

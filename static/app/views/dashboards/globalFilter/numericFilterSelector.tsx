@@ -16,7 +16,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';

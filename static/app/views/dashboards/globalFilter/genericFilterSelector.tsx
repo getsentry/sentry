@@ -1,5 +1,4 @@
-import {FieldValueType} from 'sentry/utils/fields';
-import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
+import {FieldValueType, useFieldDefinitionGetter} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import FilterSelector from 'sentry/views/dashboards/globalFilter/filterSelector';
 import NumericFilterSelector from 'sentry/views/dashboards/globalFilter/numericFilterSelector';

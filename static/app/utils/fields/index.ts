@@ -1,10 +1,14 @@
+import {useCallback} from 'react';
 import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {t, td} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useAttributeMappings} from './hooks';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -3411,7 +3415,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
   },
 };
 
-export const getFieldDefinition = (
+const getFieldDefinition = (
   key: string,
   type:
     | 'event'
@@ -3612,4 +3616,47 @@ export function classifyTagKey(key: string): FieldKind {
 export function prettifyTagKey(key: string): string {
   const result = key.match(TYPED_TAG_KEY_RE);
   return result?.[1] ?? key;
+}
+
+/**
+ * Type definition for getFieldDefinition type parameter.
+ */
+export type FieldDefinitionType =
+  | 'event'
+  | 'replay'
+  | 'replay_click'
+  | 'feedback'
+  | 'span'
+  | 'log'
+  | 'uptime'
+  | 'tracemetric';
+
+/**
+ * React hook that provides a getter function for field definitions.
+ * The getter uses attribute mappings to enhance field definitions with ATTRIBUTE_METADATA.
+ *
+ * If the API request fails or is pending, the getter falls back to the base
+ * getFieldDefinition without mappings enhancement.
+ *
+ * @returns Object containing the getter function and loading/error states
+ */
+export function useFieldDefinitionGetter(): {
+  getFieldDefinition: FieldDefinitionGetter;
+  isError: boolean;
+  isPending: boolean;
+} {
+  const {data, isPending, isError} = useAttributeMappings();
+
+  const getter: FieldDefinitionGetter = useCallback(
+    (key: string, type: FieldDefinitionType = 'event', kind?: FieldKind) => {
+      return getFieldDefinition(key, type, {kind, mappings: data?.data});
+    },
+    [data?.data]
+  );
+
+  return {
+    getFieldDefinition: getter,
+    isPending,
+    isError,
+  };
 }
