@@ -36,7 +36,7 @@ function getStatusText(blocks: Block[]): string {
 
     // Check for tool calls
     const toolStrings = getToolsStringFromBlock(block);
-    if (toolStrings.length > 0 && !block.loading) {
+    if (toolStrings.length > 0) {
       return toolStrings[toolStrings.length - 1] || t('Analyzing...');
     }
   }
