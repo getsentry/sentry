@@ -348,21 +348,19 @@ def _fetch_base_size_metrics(
         return {}
 
     # Collect all base_sha values we need to look up
-    base_sha_to_artifacts: dict[str, list[PreprodArtifact]] = {}
-    for artifact in artifacts:
-        if artifact.commit_comparison and artifact.commit_comparison.base_sha:
-            base_sha = artifact.commit_comparison.base_sha
-            if base_sha not in base_sha_to_artifacts:
-                base_sha_to_artifacts[base_sha] = []
-            base_sha_to_artifacts[base_sha].append(artifact)
+    base_shas: set[str] = {
+        artifact.commit_comparison.base_sha
+        for artifact in artifacts
+        if artifact.commit_comparison and artifact.commit_comparison.base_sha
+    }
 
-    if not base_sha_to_artifacts:
+    if not base_shas:
         return {}
 
     # Batch query: find all CommitComparisons where head_sha matches any base_sha
     base_commit_comparisons = list(
         CommitComparison.objects.filter(
-            head_sha__in=base_sha_to_artifacts.keys(),
+            head_sha__in=base_shas,
             organization_id=project.organization_id,
         ).order_by("head_sha", "date_added")
     )

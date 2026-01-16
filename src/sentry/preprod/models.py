@@ -242,7 +242,7 @@ class PreprodArtifact(DefaultFieldsModel):
             if self.app_id == app_id and self.artifact_type == artifact_type:
                 # Find the prefetched version of self to preserve prefetched relations
                 self_artifact = next((a for a in artifacts if a.id == self.id), None)
-                selected_artifacts.append(self_artifact if self_artifact else artifacts[0])
+                selected_artifacts.append(self_artifact or artifacts[0])
             else:
                 selected_artifacts.append(artifacts[0])
 
