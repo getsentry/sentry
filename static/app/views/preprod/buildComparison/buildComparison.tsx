@@ -8,7 +8,7 @@ import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,9 +25,14 @@ export default function BuildComparison() {
     baseArtifactId?: string;
     headArtifactId?: string;
   }>();
-  const {project: projectSlug} = useLocationQuery({fields: {project: decodeScalar}});
-  // Handle project as query param - take first value if array
-  const projectId = Array.isArray(projectSlug) ? projectSlug[0] : projectSlug;
+  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
+  // TODO(EME-725): Remove this once refactoring is complete and we don't need to extract projects from the URL.
+  if (projectIds.length !== 1) {
+    throw new Error(
+      `Expected exactly one project in query string but got ${projectIds.length}`
+    );
+  }
+  const projectId = projectIds[0]!;
 
   const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(

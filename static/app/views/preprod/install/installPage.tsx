@@ -5,7 +5,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,9 +17,14 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 
 export default function InstallPage() {
   const {artifactId} = useParams<{artifactId: string}>();
-  const {project: projectSlug} = useLocationQuery({fields: {project: decodeScalar}});
-  // Handle project as query param - take first value if array
-  const projectId = Array.isArray(projectSlug) ? projectSlug[0] : projectSlug;
+  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
+  // TODO(EME-725): Remove this once refactoring is complete and we don't need to extract projects from the URL.
+  if (projectIds.length !== 1) {
+    throw new Error(
+      `Expected exactly one project in query string but got ${projectIds.length}`
+    );
+  }
+  const projectId = projectIds[0]!;
   const organization = useOrganization();
 
   const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
