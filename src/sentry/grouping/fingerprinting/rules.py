@@ -7,19 +7,12 @@ from typing import NamedTuple, NotRequired, Self, TypedDict
 from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
 from sentry.grouping.fingerprinting.types import (
     FingerprintRuleAttributes,
+    FingerprintRuleConfig,
     FingerprintWithAttributes,
 )
 from sentry.grouping.fingerprinting.utils import EventDatastore
 
 logger = logging.getLogger("sentry.events.grouping")
-
-
-class FingerprintRuleConfig(TypedDict):
-    # Each matcher is a list of [<name of event attribute to match>, <value to match>]
-    matchers: list[list[str]]
-    fingerprint: list[str]
-    attributes: NotRequired[FingerprintRuleAttributes]
-    is_builtin: NotRequired[bool]
 
 
 # This is just `FingerprintRuleConfig` with an extra `text` entry and with `attributes` required
