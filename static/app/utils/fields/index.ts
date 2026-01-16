@@ -524,6 +524,75 @@ export interface FieldDefinition {
   values?: string[];
 }
 
+type AttributeMapping = {
+  internalName: string;
+  publicAlias: string;
+  searchType: string;
+  type: string;
+};
+
+type FieldDefinitionOptions = {
+  kind?: FieldKind;
+  mappings?: AttributeMapping[];
+};
+
+const conventionsFallbackLogCache = new Set<string>();
+
+function logConventionsFallback(options: {key: string; type: string; kind?: FieldKind}) {
+  const cacheKey = `${options.kind ?? ''}:${options.type}:${options.key}`;
+  if (conventionsFallbackLogCache.has(cacheKey)) {
+    return;
+  }
+
+  if (conventionsFallbackLogCache.size) {
+    conventionsFallbackLogCache.clear();
+  }
+  conventionsFallbackLogCache.add(cacheKey);
+
+  // console.info('Field definition fallback to conventions', {
+  //   key: options.key,
+  //   type: options.type,
+  //   kind: options.kind,
+  // });
+}
+
+function getFallbackValueTypeForKind(kind?: FieldKind): FieldValueType {
+  switch (kind) {
+    case FieldKind.MEASUREMENT:
+      return FieldValueType.NUMBER;
+    case FieldKind.TAG:
+      return FieldValueType.STRING;
+    case FieldKind.BOOLEAN:
+      return FieldValueType.BOOLEAN;
+    default:
+      return FieldValueType.STRING;
+  }
+}
+
+function getConventionsKey(key: string): string {
+  const tagKeyMatch = key.match(/^tags\[([^\],]+)(?:,[^\]]+)?\]$/);
+  return tagKeyMatch?.[1] ?? key;
+}
+
+export function getConventionsFallbackFieldDefinition(
+  key: string,
+  kind?: FieldKind
+): FieldDefinition | null {
+  const conventionsKey = getConventionsKey(key);
+  const metadata = ATTRIBUTE_METADATA[conventionsKey as keyof typeof ATTRIBUTE_METADATA];
+  if (!metadata?.brief) {
+    return null;
+  }
+
+  const resolvedKind = kind ?? FieldKind.FIELD;
+
+  return {
+    desc: td(ATTRIBUTE_METADATA[conventionsKey as keyof typeof ATTRIBUTE_METADATA].brief),
+    kind: resolvedKind,
+    valueType: getFallbackValueTypeForKind(resolvedKind),
+  };
+}
+
 type ColumnValidator = (field: {key: string; valueType: FieldValueType}) => boolean;
 
 function validateForNumericAggregate(
@@ -3353,38 +3422,75 @@ export const getFieldDefinition = (
     | 'log'
     | 'uptime'
     | 'tracemetric' = 'event',
-  kind?: FieldKind
+  kindOrOptions?: FieldKind | FieldDefinitionOptions
 ): FieldDefinition | null => {
+  const options =
+    kindOrOptions && typeof kindOrOptions === 'object' ? kindOrOptions : undefined;
+
+  const kind = options?.kind ?? (kindOrOptions as FieldKind | undefined);
+
+  const isInternalMappedKey = options?.mappings?.some(
+    mapping =>
+      mapping.internalName === key && mapping.publicAlias !== mapping.internalName
+  );
+  const shouldUseConventionsFallback = !isInternalMappedKey;
+
+  const conventionsFallback = shouldUseConventionsFallback
+    ? getConventionsFallbackFieldDefinition(key, kind)
+    : null;
+
+  if (conventionsFallback) {
+    logConventionsFallback({key, type, kind});
+  }
+
   switch (type) {
     case 'replay':
       if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         return REPLAY_FIELD_DEFINITIONS[key as keyof typeof REPLAY_FIELD_DEFINITIONS];
       }
+
       if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
         ];
       }
+
       if (REPLAY_TAP_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         return REPLAY_TAP_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_TAP_FIELD_DEFINITIONS
         ];
       }
+
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
+
+      if (conventionsFallback) {
+        return conventionsFallback;
+      }
+
       return null;
     case 'feedback':
       if (FEEDBACK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         return FEEDBACK_FIELD_DEFINITIONS[key as keyof typeof FEEDBACK_FIELD_DEFINITIONS];
       }
+
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
+
+      if (conventionsFallback) {
+        return conventionsFallback;
+      }
+
       return null;
     case 'span':
       if (SPAN_FIELD_DEFINITIONS[key]) {
         return SPAN_FIELD_DEFINITIONS[key];
+      }
+
+      if (conventionsFallback) {
+        return conventionsFallback;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3403,11 +3509,14 @@ export const getFieldDefinition = (
       }
 
       return null;
-
     case 'log':
       if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      if (conventionsFallback) {
+        return conventionsFallback;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3433,6 +3542,10 @@ export const getFieldDefinition = (
         return TRACEMETRIC_FIELD_DEFINITIONS[key];
       }
 
+      if (conventionsFallback) {
+        return conventionsFallback;
+      }
+
       // In EAP we have numeric tags that can be passed as parameters to
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
@@ -3456,6 +3569,11 @@ export const getFieldDefinition = (
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
+
+      if (conventionsFallback) {
+        return conventionsFallback;
+      }
+
       return null;
   }
 };
