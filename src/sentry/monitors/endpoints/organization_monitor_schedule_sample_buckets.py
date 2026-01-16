@@ -17,6 +17,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.monitors.constants import (
+    MAX_THRESHOLD,
     MIN_THRESHOLD,
     SAMPLE_OPEN_PERIOD_RATIO,
     SAMPLE_PADDING_RATIO_OF_THRESHOLD,
@@ -42,6 +43,15 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
     start = serializers.IntegerField(min_value=1)
     end = serializers.IntegerField(min_value=1)
     interval = serializers.IntegerField(min_value=1)
+
+    # TODO (Abdullah Khan): Move the default assignment to the base validator.
+    # Putting it here for now to avoid breaking critical paths.
+    failure_issue_threshold = serializers.IntegerField(
+        min_value=MIN_THRESHOLD, max_value=MAX_THRESHOLD, default=MIN_THRESHOLD
+    )
+    recovery_threshold = serializers.IntegerField(
+        min_value=MIN_THRESHOLD, max_value=MAX_THRESHOLD, default=MIN_THRESHOLD
+    )
 
 
 def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshold: int):
@@ -89,8 +99,8 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
 
         config = validator.validated_data
 
-        failure_threshold = config.get("failure_issue_threshold") or MIN_THRESHOLD
-        recovery_threshold = config.get("recovery_threshold") or MIN_THRESHOLD
+        failure_threshold = config.get("failure_issue_threshold")
+        recovery_threshold = config.get("recovery_threshold")
 
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")

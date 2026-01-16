@@ -7,6 +7,7 @@ from typing import cast
 
 from cronsim import CronSim
 from dateutil import rrule
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +17,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.monitors.constants import (
+    MAX_THRESHOLD,
     MIN_THRESHOLD,
     SAMPLE_OPEN_PERIOD_RATIO,
     SAMPLE_PADDING_RATIO_OF_THRESHOLD,
@@ -43,6 +45,17 @@ def _get_num_ticks(
     return padding_ticks * 2 + failure_threshold + open_period_ticks + recovery_threshold
 
 
+class SampleScheduleWindowConfigValidator(ConfigValidator):
+    # TODO (Abdullah Khan): Move the default assignment to the base validator.
+    # Putting it here for now to avoid breaking critical paths.
+    failure_issue_threshold = serializers.IntegerField(
+        min_value=MIN_THRESHOLD, max_value=MAX_THRESHOLD, default=MIN_THRESHOLD
+    )
+    recovery_threshold = serializers.IntegerField(
+        min_value=MIN_THRESHOLD, max_value=MAX_THRESHOLD, default=MIN_THRESHOLD
+    )
+
+
 @region_silo_endpoint
 class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
@@ -55,8 +68,8 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
 
         config = validator.validated_data
 
-        failure_threshold = config.get("failure_issue_threshold") or MIN_THRESHOLD
-        recovery_threshold = config.get("recovery_threshold") or MIN_THRESHOLD
+        failure_threshold = config.get("failure_issue_threshold")
+        recovery_threshold = config.get("recovery_threshold")
 
         num_ticks = _get_num_ticks(
             failure_threshold=failure_threshold,
