@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -287,7 +289,7 @@ function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null
 
   return (
     <PanelBody>
-      <SearchBar>
+      <Flex align="start" padding="md">
         {baseSampleRate > 0 && (
           <BaseSampleRateWrapper variant="info">
             Base sample rate: {Math.round(baseSampleRate * 100 * 10000) / 10000}%
@@ -301,7 +303,7 @@ function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null
           value={searchQuery}
           onChange={event => setSearchQuery(event.target.value?.toLowerCase())}
         />
-      </SearchBar>
+      </Flex>
       <DynamicSamplingRulesTable
         baseSampleRate={baseSampleRate}
         rules={rules}
@@ -374,7 +376,7 @@ function DynamicSamplingRulesTable({
       >
         {dynamicSamplingRules.map(row => (
           <Fragment key={row.id}>
-            <NameColumn>
+            <Stack gap="xs">
               {row.type}
               {defined(row.samplingValue.limit) && (
                 <NameColumnDetail data-test-id="limit">
@@ -398,9 +400,9 @@ function DynamicSamplingRulesTable({
                   </NameColumnDetail>
                 </div>
               )}
-            </NameColumn>
+            </Stack>
             <div>{row.formattedRateType}</div>
-            <ValueCell>
+            <Flex justify="end" paddingRight="3xl" gap="md">
               <Tooltip isHoverable title={row.samplingValue.value}>
                 {row.formattedRateValue}
               </Tooltip>
@@ -412,7 +414,7 @@ function DynamicSamplingRulesTable({
               >
                 <ImpactIndicatorIcon impact={row.impact} size="xs" />
               </Tooltip>
-            </ValueCell>
+            </Flex>
             <div>{row.target}</div>
           </Fragment>
         ))}
@@ -423,14 +425,8 @@ function DynamicSamplingRulesTable({
 
 const ImpactIndicatorIcon = styled(IconArrow)<{impact: number}>`
   display: ${p => (p.impact === 0 ? 'none' : 'inline-block')};
-  color: ${p => (p.impact > 0 ? p.theme.green300 : p.theme.red300)};
+  color: ${p => (p.impact > 0 ? p.theme.colors.green400 : p.theme.colors.red400)};
   transform: ${p => (p.impact > 0 ? 'rotate(45deg)' : 'rotate(135deg)')};
-`;
-
-const SearchBar = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  padding: ${space(1)};
 `;
 
 const PanelHeaderRight = styled('div')`
@@ -438,13 +434,6 @@ const PanelHeaderRight = styled('div')`
   align-items: center;
   gap: ${space(1)};
   text-transform: none;
-`;
-
-const ValueCell = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  gap: ${space(1)};
-  padding-right: ${space(4)};
 `;
 
 const BaseSampleRateWrapper = styled(Alert)`
@@ -460,12 +449,6 @@ const DSRulesTable = styled(PanelTable)`
   border: none;
   border-radius: 0 0 4px 4px;
   margin-bottom: 0;
-`;
-
-const NameColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
 `;
 
 const NameColumnDetail = styled('div')`

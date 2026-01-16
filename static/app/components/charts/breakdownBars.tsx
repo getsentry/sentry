@@ -86,7 +86,9 @@ const Label = styled('span')`
 const Bar = styled('div')<{active?: boolean}>`
   border-radius: 2px;
   background-color: ${p =>
-    p.active ? p.theme.colors.blue200 : p.theme.tokens.border.primary};
+    p.active
+      ? p.theme.tokens.background.transparent.accent.muted
+      : p.theme.tokens.border.primary};
   position: absolute;
   top: 0;
   left: 0;

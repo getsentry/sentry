@@ -7,14 +7,10 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {uniqueId} from 'sentry/utils/guid';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
-import {
-  getUnitForMeasurement,
-  MEASUREMENT_OPTIONS,
-  METRIC_OPTIONS,
-  type StatusCheckRule,
-} from './types';
+import {MEASUREMENT_OPTIONS, METRIC_OPTIONS, type StatusCheckRule} from './types';
 
 const ENABLED_KEY = 'sentry:preprod_size_status_checks_enabled';
 const RULES_KEY = 'sentry:preprod_size_status_checks_rules';
@@ -43,7 +39,6 @@ function parseRules(raw: unknown): StatusCheckRule[] {
         metric,
         measurement,
         value: typeof r.value === 'number' ? r.value : 0,
-        unit: getUnitForMeasurement(measurement),
         filterQuery: typeof r.filterQuery === 'string' ? r.filterQuery : '',
       };
     });
@@ -52,7 +47,7 @@ function parseRules(raw: unknown): StatusCheckRule[] {
 export function useStatusCheckRules(project: Project) {
   const updateProject = useUpdateProject(project);
 
-  const enabled = project.options?.[ENABLED_KEY] === true;
+  const enabled = project.options?.[ENABLED_KEY] !== false;
   const rulesJson = project.options?.[RULES_KEY];
   const rules: StatusCheckRule[] = useMemo(() => {
     if (typeof rulesJson !== 'string') {
@@ -131,11 +126,10 @@ export function useStatusCheckRules(project: Project) {
 
   const createEmptyRule = useCallback((): StatusCheckRule => {
     return {
-      id: crypto.randomUUID(),
+      id: uniqueId(),
       metric: DEFAULT_METRIC,
       measurement: DEFAULT_MEASUREMENT,
       value: 0,
-      unit: getUnitForMeasurement(DEFAULT_MEASUREMENT),
       filterQuery: '',
     };
   }, []);

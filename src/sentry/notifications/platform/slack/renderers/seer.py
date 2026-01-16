@@ -125,6 +125,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ),
             ),
         ]
+        extra_footer_mrkdwn: str | None = None
         if data.current_point == AutofixStoppingPoint.ROOT_CAUSE:
             current_stage_mrkdwn = ":mag:  *Root Cause Analysis*"
             action_elements.append(
@@ -140,17 +141,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif data.current_point == AutofixStoppingPoint.SOLUTION:
             current_stage_mrkdwn = ":test_tube:  *Proposed Solution*"
-            action_elements.append(
-                cls.render_autofix_button(
-                    data=SeerAutofixTrigger(
-                        organization_id=data.organization_id,
-                        project_id=data.project_id,
-                        group_id=data.group_id,
-                        run_id=data.run_id,
-                        stopping_point=AutofixStoppingPoint.CODE_CHANGES,
-                    )
-                )
-            )
+            extra_footer_mrkdwn = "_Seer is writing the code..._"
         elif data.current_point == AutofixStoppingPoint.CODE_CHANGES:
             current_stage_mrkdwn = ":pencil2:  *Code Change Suggestions*"
             for change in data.changes:
@@ -217,5 +208,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 )
             )
         blocks.append(ActionsBlock(elements=action_elements))
-        blocks.append(ContextBlock(elements=[MarkdownTextObject(text=f"Run ID: {data.run_id}")]))
+        footer_mrkdwn = f"Run ID: {data.run_id}"
+        if extra_footer_mrkdwn:
+            footer_mrkdwn += f", {extra_footer_mrkdwn}"
+        blocks.append(ContextBlock(elements=[MarkdownTextObject(text=footer_mrkdwn)]))
         return SlackRenderable(blocks=blocks, text="Seer Autofix Update")

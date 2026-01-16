@@ -207,12 +207,12 @@ function TreeRowWithDescription({
               <TreeBranchIcon />
             </Fragment>
           )}
-          <ImpactTreeKeyContainer>
+          <Flex align="center" gap="xs">
             <ImpactTreeKey as="div">
               <StyledMarkedText text={title} inline as="span" />
             </ImpactTreeKey>
             {showIcon && icon}
-          </ImpactTreeKeyContainer>
+          </Flex>
         </TreeKeyTrunk>
       </TreeRow>
 
@@ -293,7 +293,7 @@ function ImpactTreeRow({
               <TreeBranchIcon />
             </Fragment>
           )}
-          <ImpactTreeKeyContainer>
+          <Flex align="center" gap="xs">
             {isCollapsible && hasSubItems && (
               <IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />
             )}
@@ -301,7 +301,7 @@ function ImpactTreeRow({
               <StyledMarkedText text={impact.label} inline as="span" />
             </ImpactTreeKey>
             {getSeverityIcon()}
-          </ImpactTreeKeyContainer>
+          </Flex>
         </TreeKeyTrunk>
       </TreeRow>
 
@@ -734,7 +734,7 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
 
         return (
           <RepoSection key={repoName}>
-            <RepoHeader>
+            <Flex justify="between" align="center" marginBottom="xl">
               <RepoName>{repoName}</RepoName>
               {hasPR ? (
                 <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
@@ -749,7 +749,7 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
                   {isCreatingPR ? t('Creating PR...') : t('Create PR')}
                 </Button>
               ) : null}
-            </RepoHeader>
+            </Flex>
 
             <Flex direction="column" gap="sm">
               {repoPatches.map((patch, index) => (
@@ -815,9 +815,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
           <CodingAgentSection key={agent.id}>
             <Flex justify="between" align="center">
               <Flex direction="column" gap="xs">
-                <Text size="lg" bold>
-                  {agent.name}
-                </Text>
+                <Text size="lg">{agent.name}</Text>
                 <Text variant="muted" size="sm">
                   {getProviderDisplayName(agent.provider)}
                 </Text>
@@ -846,25 +844,29 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
 
             <Flex gap="md" justify="end">
               {agent.agent_url && (
-                <a href={agent.agent_url} target="_blank" rel="noopener noreferrer">
-                  <Button size="sm" icon={<IconOpen />}>
-                    {t('Open in Cursor')}
-                  </Button>
-                </a>
+                <Button
+                  size="sm"
+                  icon={<IconOpen />}
+                  onClick={() => {
+                    window.open(agent.agent_url, '_blank', 'noopener,noreferrer');
+                  }}
+                >
+                  {t('Open in Cursor')}
+                </Button>
               )}
               {agent.results
                 ?.filter(result => result.pr_url)
                 .map(result => (
-                  <a
+                  <Button
                     key={result.pr_url}
-                    href={result.pr_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    size="sm"
+                    icon={<IconOpen />}
+                    onClick={() => {
+                      window.open(result.pr_url, '_blank', 'noopener,noreferrer');
+                    }}
                   >
-                    <Button size="sm" icon={<IconOpen />} priority="primary">
-                      {t('View Pull Request')}
-                    </Button>
-                  </a>
+                    {t('View Pull Request')}
+                  </Button>
                 ))}
             </Flex>
           </CodingAgentSection>
@@ -915,7 +917,6 @@ const CodingAgentStatusTag = styled('span')<{
 
 const CodingAgentResultItem = styled('div')`
   padding: ${p => p.theme.space.md};
-  background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.radius.sm};
 `;
 
@@ -936,10 +937,10 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
   column-gap: ${p => p.theme.space.lg};
   grid-template-columns: subgrid;
   :nth-child(odd) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
   color: ${p => p.theme.tokens.content.secondary};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   ${p =>
     p.$isClickable &&
     `
@@ -996,12 +997,6 @@ const ImpactTreeKey = styled(TreeKey)`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const ImpactTreeKeyContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
 const TreeSubValue = styled(TreeValue)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
@@ -1020,13 +1015,6 @@ const RepoSection = styled('div')`
     padding-bottom: ${p => p.theme.space['2xl']};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
-`;
-
-const RepoHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const AnimatedCard = styled(motion.div)`

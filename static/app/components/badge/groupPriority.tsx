@@ -266,11 +266,19 @@ const InlinePlaceholder = styled(Placeholder)`
 
 const StyledFooter = styled(DropdownMenuFooter)`
   max-width: 230px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TruncatedFooterText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const LearnMoreWrapper = styled('div')`
@@ -284,7 +292,7 @@ const LearnMoreWrapper = styled('div')`
   overflow: hidden;
   background: linear-gradient(
     269.35deg,
-    ${p => p.theme.backgroundTertiary} 0.32%,
+    ${p => p.theme.tokens.background.tertiary} 0.32%,
     rgba(245, 243, 247, 0) 99.69%
   );
 

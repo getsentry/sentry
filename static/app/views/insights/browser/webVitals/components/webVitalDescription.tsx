@@ -176,7 +176,11 @@ const Value = styled('h2')`
 
 const WebVitalName = styled('h6')`
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const WebVitalScore = styled('div')`

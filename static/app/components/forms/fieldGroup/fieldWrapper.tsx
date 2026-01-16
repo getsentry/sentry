@@ -52,7 +52,7 @@ export const FieldWrapper = styled('div')<FieldWrapperProps>`
         display: block;
         position: absolute;
         inset: -1px;
-        border: 1px solid ${p.theme.colors.blue400};
+        border: 1px solid ${p.theme.tokens.focus.default};
         pointer-events: none;
       }
     `}

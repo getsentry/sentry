@@ -1,5 +1,6 @@
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -43,18 +44,13 @@ export function AdminNavigation() {
 export default function AdminLayout() {
   return (
     <SentryDocumentTitle noSuffix title={t('Sentry Admin')}>
-      <Page>
+      <Flex flexGrow={1}>
         <BreadcrumbProvider>
           <SettingsLayout>
             <Outlet />
           </SettingsLayout>
         </BreadcrumbProvider>
-      </Page>
+      </Flex>
     </SentryDocumentTitle>
   );
 }
-
-const Page = styled('div')`
-  display: flex;
-  flex-grow: 1;
-`;

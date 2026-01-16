@@ -6,7 +6,7 @@ import pytest
 
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.utils import RequestType
+from sentry.seer.code_review.utils import RequestType, SeerCodeReviewTrigger
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 
@@ -28,9 +28,10 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
 
         with patch(
-            "sentry.seer.code_review.utils.GitHubApiClient", return_value=mock_client_instance
-        ) as mock_api_client:
-            self.mock_api_client = mock_api_client
+            "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
+            mock_client_instance.get_pull_request,
+        ) as mock_get_pull_request:
+            self.mock_get_pull_request = mock_get_pull_request
             yield
 
     @pytest.fixture(autouse=True)
@@ -235,7 +236,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_pull_request_skips_non_whitelisted_github_org(self) -> None:
         """Test that non-whitelisted GitHub organizations are skipped."""
-        with self.code_review_setup(), self.tasks():
+        # The option says to forward to Overwatch AND the org is not whitelisted, so we should skip Seer.
+        with self.code_review_setup({"github.webhook.pr": True}), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             # "baxterthehacker" is the default in the fixture and is not whitelisted
             assert event["repository"]["owner"]["login"] == "baxterthehacker"
@@ -246,3 +248,25 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
 
             self.mock_seer.assert_not_called()
+
+    def test_pull_request_closed_action(self) -> None:
+        """Test that closed action triggers Seer request with pr-closed request type."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "closed"
+            event["repository"]["owner"]["login"] = "sentry-ecosystem"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_seer.assert_called_once()
+            call_kwargs = self.mock_seer.call_args[1]
+            assert call_kwargs["path"] == "/v1/automation/overwatch-request"
+            payload = call_kwargs["payload"]
+            assert payload["request_type"] == RequestType.PR_CLOSED.value
+            assert payload["data"]["config"]["trigger"] == SeerCodeReviewTrigger.UNKNOWN.value
+            assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
+            assert payload["data"]["config"]["trigger_comment_id"] is None
+            assert payload["data"]["config"]["trigger_comment_type"] is None

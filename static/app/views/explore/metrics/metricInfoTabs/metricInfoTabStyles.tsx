@@ -35,7 +35,7 @@ export const TransparentLoadingMask = styled('div')`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   opacity: 0.6;
   z-index: 1;
   display: flex;

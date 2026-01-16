@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -183,7 +183,7 @@ export function GithubInstallationSelect({
             children: installationID ? undefined : 'Choose Installation',
           }}
         />
-        <ButtonContainer>
+        <Stack alignSelf="flex-end" paddingTop="xl">
           {organization.features.includes('github-multi-org-upsell-modal') ? (
             <InstallButtonHook
               hasSCMMultiOrg={hasSCMMultiOrg}
@@ -194,7 +194,7 @@ export function GithubInstallationSelect({
           ) : (
             renderInstallationButtonOld()
           )}
-        </ButtonContainer>
+        </Stack>
       </StyledContainer>
     </Fragment>
   );
@@ -208,13 +208,6 @@ const StyledContainer = styled('div')`
   max-width: 600px;
   margin: 0 auto;
   margin-top: 10%;
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  align-self: flex-end;
-  padding-top: ${space(2)};
-  flex-direction: column;
 `;
 
 const StyledHeader = styled('h3')`

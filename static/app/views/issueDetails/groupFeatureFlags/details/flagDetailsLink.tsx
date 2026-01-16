@@ -34,7 +34,10 @@ export default function FlagDetailsLink({flag, children}: Props) {
 const StyledLink = styled(Link)`
   border-radius: ${p => p.theme.radius.md};
 
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 
   &:hover [data-underline-on-hover='true'] {

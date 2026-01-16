@@ -16,9 +16,21 @@ MAX_MARGIN = 40_320
 # lowering this may invalidate monitors + block check-ins
 MAX_THRESHOLD = 720
 
+# minimum value for failure issue + recovery thresholds
+MIN_THRESHOLD = 1
+
 # minimum value in minutes for monitor to not receive a check-in before
 # being marked as missed
 DEFAULT_CHECKIN_MARGIN = 1
+
+# minimum number of padding ticks to be generated for a sample window
+SAMPLE_PADDING_TICKS_MIN_COUNT = 2
+
+# ratio of padding ticks to be generated for a sample window, relative to the total thresholds
+SAMPLE_PADDING_RATIO_OF_THRESHOLD = 1
+
+# ratio of issue open period ticks to be generated for a sample window, relative to the total thresholds
+SAMPLE_OPEN_PERIOD_RATIO = 2
 
 
 class PermitCheckInStatus(Enum):
