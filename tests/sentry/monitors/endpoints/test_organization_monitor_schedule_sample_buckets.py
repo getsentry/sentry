@@ -326,3 +326,36 @@ class SampleScheduleBucketsTest(APITestCase):
             },
             status_code=400,
         )
+
+    @freeze_time("2023-10-26T12:32:25Z")
+    def test_empty_threshold_params_use_defaults(self) -> None:
+        """
+        Regression test for TypeError when threshold params are empty strings.
+
+        When threshold params are empty strings, EmptyIntegerField converts them
+        to None. The endpoint should fall back to MIN_THRESHOLD defaults.
+        """
+        start = int(datetime(2023, 10, 26, 12, 0, tzinfo=UTC).timestamp())
+        interval = 3600
+        # MIN_THRESHOLD=1 => total=2, padding=2, open=4, num_ticks=10
+        end = start + 9 * interval
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "schedule_type": "interval",
+                "schedule": [1, "hour"],
+                "failure_issue_threshold": "",
+                "recovery_threshold": "",
+                "start": start,
+                "end": end,
+                "interval": interval,
+            },
+        )
+
+        buckets = response.data
+        assert len(buckets) == 10
+        # Verify the endpoint returns valid data rather than raising TypeError
+        for bucket in buckets:
+            assert isinstance(bucket[0], int)
+            assert isinstance(bucket[1], dict)
