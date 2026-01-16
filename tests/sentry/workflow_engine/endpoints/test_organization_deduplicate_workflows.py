@@ -1,6 +1,6 @@
 from copy import deepcopy
 from random import randint
-from typing import TypedDict, Unpack
+from typing import Any, TypedDict, Unpack
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
@@ -24,7 +24,7 @@ class MockWorkflowConfig(TypedDict, total=False):
     action_filters: list[DataCondition] | None
     enabled: bool | None
     triggers: list[DataCondition] | None
-    config: dict | None
+    config: dict[str, Any] | None
     mock_actions: bool
     mock_action_filters: bool
     mock_triggers: bool
@@ -176,7 +176,7 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
         for default_config in DEFAULT_WORKFLOW_CONFIGS:
             self.mock_workflow(self.organization, **deepcopy(default_config))
 
-    def set_up_workflows(self, idx: int):
+    def set_up_workflows(self, idx: int) -> None:
         workflow_config = DUPLICATE_WORKFLOW_CONFIGS[idx]
         self.replication_count = randint(2, 5)
 
@@ -272,7 +272,7 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
         workflow.save()
         return workflow
 
-    def validate_org_workflows_deduped(self, duplicate_workflow_index: int):
+    def validate_org_workflows_deduped(self, duplicate_workflow_index: int) -> None:
         org = self.organization
         workflow_count = Workflow.objects.filter(organization=org).count()
         config = DUPLICATE_WORKFLOW_CONFIGS[duplicate_workflow_index]

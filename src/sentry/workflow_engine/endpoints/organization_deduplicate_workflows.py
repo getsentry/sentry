@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import router, transaction
 from django.db.models import Prefetch
 from rest_framework.request import Request
@@ -24,7 +26,7 @@ from sentry.workflow_engine.models.data_condition import DataCondition
 
 
 class WorkflowData:
-    def __init__(self, workflow: Workflow):
+    def __init__(self, workflow: Any):
         self.workflow = workflow
 
     def serialize(self) -> str:
@@ -63,9 +65,9 @@ class WorkflowData:
 
             # Sort conditions and actions for consistent hashing
             group_conditions.sort(
-                key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
+                key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))  # type: ignore[arg-type]
             )
-            group_actions.sort(key=lambda a: (a["type"], json.dumps(a["config"], sort_keys=True)))
+            group_actions.sort(key=lambda a: (a["type"], json.dumps(a["config"], sort_keys=True)))  # type: ignore[arg-type]
 
             action_groups.append(
                 {
@@ -76,9 +78,9 @@ class WorkflowData:
 
         # Sort trigger conditions and action groups for consistent hashing
         trigger_conditions.sort(
-            key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
+            key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))  # type: ignore[arg-type]
         )
-        action_groups.sort(key=lambda g: json.dumps(g, sort_keys=True))
+        action_groups.sort(key=lambda g: json.dumps(g, sort_keys=True))  # type: ignore[arg-type]
 
         workflow_data = {
             "action_groups": action_groups,
