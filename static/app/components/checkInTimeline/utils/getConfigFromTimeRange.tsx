@@ -40,8 +40,11 @@ const CLAMPED_MINUTE_RANGES = [
   60 * 12,
 ] as const;
 
-const ONE_HOUR_SECS = 60 * 60;
 const ONE_MINUTE_SECS = 60;
+const ONE_HOUR_SECS = ONE_MINUTE_SECS * 60;
+const ONE_DAY_SECS = ONE_HOUR_SECS * 24;
+const ONE_MONTH_SECS = ONE_DAY_SECS * 30;
+const ONE_YEAR_SECS = ONE_MONTH_SECS * 12;
 
 /**
  * Acceptable bucket intervals
@@ -50,17 +53,35 @@ const BUCKET_INTERVALS = [
   15,
   30,
   ONE_MINUTE_SECS,
+  // Minute intervals
   ONE_MINUTE_SECS * 2,
   ONE_MINUTE_SECS * 5,
   ONE_MINUTE_SECS * 10,
   ONE_MINUTE_SECS * 15,
   ONE_MINUTE_SECS * 30,
+  // Hour intervals
   ONE_HOUR_SECS,
   ONE_HOUR_SECS * 2,
   ONE_HOUR_SECS * 3,
   ONE_HOUR_SECS * 4,
   ONE_HOUR_SECS * 12,
-  ONE_HOUR_SECS * 24,
+  // Day intervals
+  ONE_DAY_SECS,
+  ONE_DAY_SECS * 2,
+  ONE_DAY_SECS * 3,
+  ONE_DAY_SECS * 7,
+  ONE_DAY_SECS * 14,
+  // Month intervals
+  ONE_MONTH_SECS,
+  ONE_MONTH_SECS * 2,
+  ONE_MONTH_SECS * 3,
+  ONE_MONTH_SECS * 6,
+  ONE_MONTH_SECS * 12,
+  // Year intervals
+  ONE_YEAR_SECS,
+  ONE_YEAR_SECS * 2,
+  ONE_YEAR_SECS * 3,
+  ONE_YEAR_SECS * 5,
 ] as const;
 
 /**
@@ -210,9 +231,21 @@ export function getConfigFromTimeRange(
   // buckets evenly). Calculations coorelating the container position should be
   // relative to the periodStart, which will be aligned at the pixel value of
   // the underscanWidth.
-  const underscanStart = moment(start)
+  const underscanStartRaw = moment(start)
     .subtract(rollupConfig.underscanBuckets * rollupConfig.interval, 'seconds')
     .toDate();
+  // In extreme cases (very large intervals and/or large underscan), the computed
+  // underscan start can fall before the unix epoch. If that happens, shift the
+  // entire time window forward by the same delta so the window width stays the
+  // same while staying within valid unix timestamps.
+  const minEpochMs = 1000; // 1s after epoch (0 is falsy in some enabled checks)
+  const shiftMs =
+    underscanStartRaw.getTime() < minEpochMs
+      ? minEpochMs - underscanStartRaw.getTime()
+      : 0;
+  const underscanStart = new Date(underscanStartRaw.getTime() + shiftMs);
+  const periodStart = new Date(start.getTime() + shiftMs);
+  const periodEnd = new Date(end.getTime() + shiftMs);
 
   // Display only the time (no date) when the start and end times are the same day
   const timeOnly =
@@ -242,8 +275,8 @@ export function getConfigFromTimeRange(
 
     return {
       start: underscanStart,
-      periodStart: start,
-      end,
+      periodStart,
+      end: periodEnd,
       elapsedMinutes,
       timelineWidth,
       rollupConfig,
@@ -259,8 +292,8 @@ export function getConfigFromTimeRange(
 
   return {
     start: underscanStart,
-    periodStart: start,
-    end,
+    periodStart,
+    end: periodEnd,
     elapsedMinutes,
     timelineWidth,
     rollupConfig,
