@@ -24,7 +24,7 @@ import {
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export type FormattedQueryProps = {
@@ -131,16 +131,23 @@ function QueryToken({token}: TokenProps) {
 export function FormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = defaultGetFieldDefinition,
+  fieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
+  const {getFieldDefinition: defaultFieldDefinitionGetter} = useFieldDefinitionGetter();
+
+  const stableFieldDefinitionGetter = useMemo(
+    () => fieldDefinitionGetter ?? defaultFieldDefinitionGetter,
+    [defaultFieldDefinitionGetter, fieldDefinitionGetter]
+  );
+
   const parsedQuery = useMemo(() => {
-    return parseQueryBuilderValue(query, fieldDefinitionGetter, {
+    return parseQueryBuilderValue(query, stableFieldDefinitionGetter, {
       filterKeys,
       filterKeyAliases,
     });
-  }, [fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
+  }, [filterKeyAliases, filterKeys, query, stableFieldDefinitionGetter]);
 
   if (!parsedQuery) {
     return <QueryWrapper className={className} />;
@@ -167,15 +174,22 @@ export function FormattedQuery({
 export function ProvidedFormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = defaultGetFieldDefinition,
+  fieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
   getFilterTokenWarning,
 }: FormattedQueryProps) {
+  const {getFieldDefinition: defaultFieldDefinitionGetter} = useFieldDefinitionGetter();
+
+  const stableFieldDefinitionGetter = useMemo(
+    () => fieldDefinitionGetter ?? defaultFieldDefinitionGetter,
+    [defaultFieldDefinitionGetter, fieldDefinitionGetter]
+  );
+
   return (
     <SearchQueryBuilderProvider
       filterKeys={filterKeys}
-      fieldDefinitionGetter={fieldDefinitionGetter}
+      fieldDefinitionGetter={stableFieldDefinitionGetter}
       getTagValues={() => Promise.resolve([])}
       initialQuery={query}
       searchSource="formatted_query"
@@ -184,7 +198,7 @@ export function ProvidedFormattedQuery({
       <FormattedQuery
         className={className}
         query={query}
-        fieldDefinitionGetter={fieldDefinitionGetter}
+        fieldDefinitionGetter={stableFieldDefinitionGetter}
         filterKeys={filterKeys}
         filterKeyAliases={filterKeyAliases}
       />
