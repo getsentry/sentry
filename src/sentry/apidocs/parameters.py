@@ -502,6 +502,7 @@ Available fields are:
 - `dateUpdated`
 - `connectedDetectors`
 - `actions`
+- `priorityDetector`
 
 Prefix with `-` to sort in descending order.
     """,
