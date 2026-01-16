@@ -581,7 +581,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_returns_enabled_with_default_triggers_when_pr_review_test_generation_enabled_and_beta_open(
+    def test_returns_enabled_with_default_triggers_when_pr_review_test_generation_enabled_and_beta_signup_open(
         self,
     ):
         org = self.create_organization()
@@ -595,7 +595,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         }
         auth = self._auth_header_for_get(url, params, "test-secret")
 
-        with self.options({"seer.code-review.is-beta-open": True}):
+        with self.options({"seer.code-review.is-beta-signup-open": True}):
             resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
 
         assert resp.status_code == 200
@@ -608,7 +608,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_returns_disabled_when_beta_closed_and_only_legacy_opt_in(self):
+    def test_returns_disabled_when_beta_signup_closed_and_only_legacy_opt_in(self):
         org = self.create_organization()
         org.update_option("sentry:enable_pr_review_test_generation", True)
 
@@ -620,7 +620,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         }
         auth = self._auth_header_for_get(url, params, "test-secret")
 
-        with self.options({"seer.code-review.is-beta-open": False}):
+        with self.options({"seer.code-review.is-beta-signup-open": False}):
             resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
 
         assert resp.status_code == 200
@@ -633,8 +633,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_returns_enabled_when_beta_closed_but_has_beta_flag(self):
-        """With beta closed, beta flag still grants access."""
+    def test_returns_enabled_when_beta_signup_closed_and_in_static_code_revoew_beta_list(self):
         org = self.create_organization()
         org.update_option("sentry:enable_pr_review_test_generation", True)
 
@@ -647,7 +646,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
 
         with (
-            self.options({"seer.code-review.is-beta-open": False}),
+            self.options({"seer.code-review.is-beta-signup-open": False}),
             self.feature({"organizations:code-review-beta": org}),
         ):
             resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)

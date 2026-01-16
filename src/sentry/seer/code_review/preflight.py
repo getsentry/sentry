@@ -128,7 +128,7 @@ class CodeReviewPreflightService:
         has_legacy_opt_in = self.organization.get_option(
             "sentry:enable_pr_review_test_generation", False
         )
-        if options.get("seer.code-review.is-beta-open"):
+        if options.get("seer.code-review.is-beta-signup-open"):
             return has_beta_flag or bool(has_legacy_opt_in)
 
         return has_beta_flag

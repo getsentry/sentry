@@ -205,7 +205,7 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
         if repo_settings is None:
             organization = Organization.objects.filter(id=sentry_org_id).first()
 
-            if options.get("seer.code-review.is-beta-open"):
+            if options.get("seer.code-review.is-beta-signup-open"):
                 if organization and (
                     features.has("organizations:code-review-beta", organization)
                     or bool(

@@ -124,7 +124,7 @@ class TestCodeReviewPreflightService(TestCase):
         """With beta closed, legacy opt-in alone does NOT grant access."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
-        with self.options({"seer.code-review.is-beta-open": False}):
+        with self.options({"seer.code-review.is-beta-signup-open": False}):
             service = self._create_service()
             result = service.check()
 
@@ -143,7 +143,7 @@ class TestCodeReviewPreflightService(TestCase):
         )
 
         with (
-            self.options({"seer.code-review.is-beta-open": False}),
+            self.options({"seer.code-review.is-beta-signup-open": False}),
             patch(
                 "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
                 return_value=True,
