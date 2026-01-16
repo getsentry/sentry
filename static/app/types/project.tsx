@@ -81,6 +81,10 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  preprodDistributionEnabledQuery?: string | null;
+  preprodSizeEnabledQuery?: string | null;
+  preprodSizeStatusChecksEnabled?: boolean;
+  preprodSizeStatusChecksRules?: unknown[];
   securityToken?: string;
   securityTokenHeader?: string;
   seerScannerAutomation?: boolean;
