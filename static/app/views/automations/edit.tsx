@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/core/layout';
@@ -18,6 +19,7 @@ import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -96,6 +98,7 @@ export default function AutomationEdit() {
 function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
@@ -139,29 +142,32 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
-      if (Object.keys(errors).length === 0) {
-        try {
-          formModel.setFormSaving();
-          const formData: NewAutomation = getNewAutomationData(
-            data as AutomationFormData,
-            state
-          );
-          const updatedData = {
-            id: automation.id,
-            ...formData,
-          };
-          const updatedAutomation = await updateAutomation(updatedData);
-          onSubmitSuccess(formModel?.getData() ?? data);
-          trackAnalytics('automation.updated', {
-            organization,
-            ...getAutomationAnalyticsPayload(updatedAutomation),
-          });
-          navigate(
-            makeAutomationDetailsPathname(organization.slug, updatedAutomation.id)
-          );
-        } catch (err) {
-          onSubmitError?.(err);
-        }
+      if (Object.keys(errors).length > 0) {
+        return;
+      }
+
+      try {
+        formModel.setFormSaving();
+        const newAutomationData: NewAutomation = await getNewAutomationData({
+          data: data as AutomationFormData,
+          state,
+          queryClient,
+          orgSlug: organization.slug,
+        });
+        const updatedData = {
+          id: automation.id,
+          ...newAutomationData,
+        };
+        const updatedAutomation = await updateAutomation(updatedData);
+        onSubmitSuccess(formModel?.getData() ?? data);
+        trackAnalytics('automation.updated', {
+          organization,
+          ...getAutomationAnalyticsPayload(updatedAutomation),
+        });
+        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+      } catch (e) {
+        Sentry.logger.warn('Edit alert failure', {error: e});
+        onSubmitError?.(e);
       }
     },
     [
@@ -171,6 +177,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       updateAutomation,
       organization,
       navigate,
+      queryClient,
     ]
   );
 

@@ -12,6 +12,7 @@ import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import {
@@ -105,6 +106,7 @@ export function AutomationBuilderDrawerForm({
   const organization = useOrganization();
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
+  const queryClient = useQueryClient();
 
   const {
     errors: automationBuilderErrors,
@@ -118,32 +120,39 @@ export function AutomationBuilderDrawerForm({
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
-      const newAutomationData = getNewAutomationData(data as AutomationFormData, state);
+      const formData = data as AutomationFormData;
 
-      if (Object.keys(errors).length === 0) {
-        try {
-          addLoadingMessage(t('Creating Alert...'));
-          formModel.setFormSaving();
-          const automation = await createAutomation(newAutomationData);
-          onSubmitSuccess(formModel.getData());
-          trackAnalytics('automation.created', {
-            organization,
-            ...getAutomationAnalyticsPayload(newAutomationData),
-            source: 'drawer',
-            success: true,
-          });
-          onSuccess?.(automation.id);
-          addSuccessMessage(t('Alert created'));
-        } catch (err) {
-          onSubmitError(err);
-          trackAnalytics('automation.created', {
-            organization,
-            ...getAutomationAnalyticsPayload(newAutomationData),
-            source: 'drawer',
-            success: false,
-          });
-        }
-      } else {
+      if (Object.keys(errors).length > 0) {
+        trackAnalytics('automation.created', {
+          organization,
+          ...getAutomationAnalyticsPayload(newAutomationData),
+          source: 'drawer',
+          success: false,
+        });
+        return;
+      }
+
+      try {
+        formModel.setFormSaving();
+        addLoadingMessage(t('Creating Alert...'));
+        const newAutomationData = await getNewAutomationData({
+          data: formData,
+          state,
+          queryClient,
+          orgSlug: organization.slug,
+        });
+        const automation = await createAutomation(newAutomationData);
+        onSubmitSuccess(formModel.getData());
+        trackAnalytics('automation.created', {
+          organization,
+          ...getAutomationAnalyticsPayload(newAutomationData),
+          source: 'drawer',
+          success: true,
+        });
+        onSuccess?.(automation.id);
+        addSuccessMessage(t('Alert created'));
+      } catch (err) {
+        onSubmitError(err);
         trackAnalytics('automation.created', {
           organization,
           ...getAutomationAnalyticsPayload(newAutomationData),
@@ -152,7 +161,14 @@ export function AutomationBuilderDrawerForm({
         });
       }
     },
-    [createAutomation, state, organization, onSuccess, setAutomationBuilderErrors]
+    [
+      state,
+      setAutomationBuilderErrors,
+      queryClient,
+      organization,
+      createAutomation,
+      onSuccess,
+    ]
   );
 
   return (

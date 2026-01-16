@@ -38,11 +38,6 @@ describe('EditConnectedMonitors', () => {
     name: 'Issue Stream Detector',
     projectId: project.id,
   });
-  const otherIssueStreamDetector = IssueStreamDetectorFixture({
-    id: '200',
-    name: 'Issue Stream Detector 2',
-    projectId: otherProject.id,
-  });
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -225,19 +220,7 @@ describe('EditConnectedMonitors', () => {
     ).toBeChecked();
   });
 
-  it('updates connected detector ids when project is selected', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      method: 'GET',
-      body: [otherIssueStreamDetector],
-      match: [
-        MockApiClient.matchQuery({
-          query: 'type:issue_stream',
-          project: [Number(otherProject.id)],
-        }),
-      ],
-    });
-
+  it('updates selected project ids in the form when a project is selected', async () => {
     const model = new FormModel();
     model.setInitialData({projectIds: [], detectorIds: []});
 
@@ -257,9 +240,9 @@ describe('EditConnectedMonitors', () => {
     // Select a project
     await userEvent.click(await screen.findByText(otherProject.slug));
 
-    // The onChange should be called with the selected project ID
+    // Form model should receive the selected project ID
     await waitFor(() => {
-      expect(setConnectedIds).toHaveBeenCalledWith([otherIssueStreamDetector.id]);
+      expect(model.getValue('projectIds')).toEqual([otherProject.id]);
     });
   });
 });

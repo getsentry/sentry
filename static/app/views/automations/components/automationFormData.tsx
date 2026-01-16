@@ -9,9 +9,11 @@ import type {
   DataConditionGroup,
   Subfilter,
 } from 'sentry/types/workflowEngine/dataConditions';
+import type {QueryClient} from 'sentry/utils/queryClient';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import {fetchIssueStreamDetectorIdsForProjects} from 'sentry/views/automations/utils/fetchIssueStreamDetectorIdsForProjects';
 
 export interface AutomationFormData {
   detectorIds: string[];
@@ -69,10 +71,27 @@ const stripDataConditionGroupId = (group: any) => {
   };
 };
 
-export function getNewAutomationData(
-  data: AutomationFormData,
-  state: AutomationBuilderState
-): NewAutomation {
+export async function getNewAutomationData({
+  data,
+  state,
+  queryClient,
+  orgSlug,
+}: {
+  data: AutomationFormData;
+  orgSlug: string;
+  queryClient: QueryClient;
+  state: AutomationBuilderState;
+}): Promise<NewAutomation> {
+  // If the user selected by project, we need to make fetch the corresponding issue stream detector IDs
+  const detectorIds =
+    data.projectIds?.length > 0
+      ? await fetchIssueStreamDetectorIdsForProjects({
+          queryClient,
+          orgSlug,
+          projectIds: data.projectIds ?? [],
+        })
+      : data.detectorIds;
+
   const result = {
     name: data.name || 'New Alert',
     triggers: stripDataConditionGroupId(state.triggers),
@@ -81,7 +100,7 @@ export function getNewAutomationData(
     config: {
       frequency: data.frequency ?? undefined,
     },
-    detectorIds: data.detectorIds,
+    detectorIds,
     enabled: data.enabled,
   };
   return result;

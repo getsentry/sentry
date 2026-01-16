@@ -1,10 +1,8 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
@@ -22,13 +20,7 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
-import {
-  fetchDataQuery,
-  getApiQueryData,
-  setApiQueryData,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -309,8 +301,6 @@ function EditConnectedMonitorsContent({
   setConnectedIds,
 }: ContentProps) {
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
   const {form} = useContext(FormContext);
 
   const handleModeChange = useCallback(
@@ -321,44 +311,13 @@ function EditConnectedMonitorsContent({
     },
     [form, setConnectedIds]
   );
-
   const handleProjectChange = useCallback(
-    async (projectIds: string[]) => {
+    (projectIds: string[]) => {
       if (!projectIds.length) {
         setConnectedIds([]);
-        return;
-      }
-
-      try {
-        // When a project is selected, we need to find the corresponding issue stream detectors
-        // to save to the workflow's `detectorIds` field.
-        const [detectors] = await queryClient.fetchQuery({
-          queryKey: makeDetectorListQueryKey({
-            orgSlug: organization.slug,
-            query: 'type:issue_stream',
-            includeIssueStreamDetectors: true,
-            projects: projectIds.map(Number),
-          }),
-          queryFn: fetchDataQuery<Detector[]>,
-          staleTime: 0,
-        });
-
-        setConnectedIds(
-          projectIds
-            .map(projectId => detectors.find(d => d.projectId === projectId)?.id)
-            .filter(defined)
-        );
-      } catch (error) {
-        Sentry.captureException(error);
-        addErrorMessage(
-          t(
-            'Something went wrong while changing the project selection. Please refresh in a few seconds and try again.'
-          )
-        );
-        return;
       }
     },
-    [organization.slug, queryClient, setConnectedIds]
+    [setConnectedIds]
   );
 
   return (
