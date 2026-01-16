@@ -237,7 +237,7 @@ jobs:
         id: run_backend_tests
         run: |
           if [[ "${{ needs.prepare-selective-tests.outputs.has-selected-tests }}" == "true" && -f .artifacts/selected-tests.txt ]]; then
-            make test-python-ci-selective SELECTED_TESTS_FILE=.artifacts/selected-tests.txt
+            make test-backend-ci-selective SELECTED_TESTS_FILE=.artifacts/selected-tests.txt
           else
             make test-python-ci
           fi
