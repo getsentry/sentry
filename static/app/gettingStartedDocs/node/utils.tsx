@@ -498,8 +498,9 @@ const client = Sentry.instrumentAnthropicAiClient(anthropic, {
   recordOutputs: true,
 });
 const msg = await client.messages.create({
-model: "claude-3-5-sonnet",
-messages: [{role: "user", content: "Tell me a joke"}],
+ model: "claude-3-5-sonnet",
+ messages: [{role: "user", content: "Tell me a joke"}],
+});
             `,
           },
         ],
