@@ -92,6 +92,19 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         access: Access = self.context["access"]
         identifier = attrs.get("target_identifier")
 
+        # Validate that target_identifier is an integer for USER and TEAM target types
+        if target_type in (
+            AlertRuleTriggerAction.TargetType.USER,
+            AlertRuleTriggerAction.TargetType.TEAM,
+        ):
+            if identifier is not None:
+                try:
+                    int(identifier)
+                except (ValueError, TypeError):
+                    raise serializers.ValidationError(
+                        {"target_identifier": "Must be a valid integer for user or team targets"}
+                    )
+
         if type is not None:
             type_info = AlertRuleTriggerAction.get_registered_factory(type)
             if target_type not in type_info.supported_target_types:
