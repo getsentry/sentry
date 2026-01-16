@@ -2,6 +2,7 @@ from copy import deepcopy
 from random import randint
 from typing import TypedDict, Unpack
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.rules import MatchType
 from sentry.testutils.cases import APITestCase
@@ -53,12 +54,6 @@ DEFAULT_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
         # workflow only has actions
         "mock_triggers": False,
         "mock_action_filters": False,
-    },
-    {
-        # All workflows are duplicated in this org
-        "mock_triggers": False,
-        "mock_action_filters": False,
-        "mock_actions": False,
     },
     {
         "enabled": False,
@@ -213,7 +208,7 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
         )
 
         # connect the workflow to shared detector
-        detector = self.create_detector()
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
         self.create_detector_workflow(detector=detector, workflow=workflow)
 
         # create a mock connection to legacy table using shared alert rule
@@ -337,8 +332,7 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
             remaining_dcga.count() == all_dcga_in_org.count()
         ), f"Found orphaned DataConditionGroupAction objects in org {org.name}"
 
-    def test_deduplication__multiple_triggers(self) -> None:
-        idx = 0
+    def run_configuration(self, idx: int) -> None:
         self.set_up_workflows(idx)
         try:
             self.get_success_response(self.organization.slug, status_code=200)
@@ -347,5 +341,39 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
             e.args = (f"Configuration {idx} failed. {str(e)}",)
             raise
 
-    def test_many_workflows(self) -> None:
-        pass
+    def test_deduplication__multiple_triggers(self) -> None:
+        self.run_configuration(idx=0)
+
+    def test_deduplication__multiple_action_filters(self) -> None:
+        self.run_configuration(idx=1)
+
+    def test_deduplication__multiple_actions(self) -> None:
+        self.run_configuration(idx=2)
+
+    def test_deduplication__triggers_and_action_filters(self) -> None:
+        self.run_configuration(idx=3)
+
+    def test_deduplication__many_of_all(self) -> None:
+        self.run_configuration(idx=4)
+
+    def test_deduplication__all_duplicated(self) -> None:
+        self.run_configuration(idx=5)
+
+    # default workflow configurations after this point
+    def test_deduplication__default(self) -> None:
+        self.run_configuration(idx=6)
+
+    def test_deduplication__triggers_only(self) -> None:
+        self.run_configuration(idx=7)
+
+    def test_deduplication__no_actions(self) -> None:
+        self.run_configuration(idx=8)
+
+    def test_deduplication__only_action_filters(self) -> None:
+        self.run_configuration(idx=9)
+
+    def test_deduplication__only_actions(self) -> None:
+        self.run_configuration(idx=10)
+
+    def test_deduplication__disabled(self) -> None:
+        self.run_configuration(idx=11)
