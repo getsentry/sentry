@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import * as Sentry from '@sentry/react';
 
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {t, td} from 'sentry/locale';
@@ -553,11 +554,13 @@ function logConventionsFallback(options: {key: string; type: string; kind?: Fiel
   }
   conventionsFallbackLogCache.add(cacheKey);
 
-  // console.info('Field definition fallback to conventions', {
-  //   key: options.key,
-  //   type: options.type,
-  //   kind: options.kind,
-  // });
+  // Want to track and see how "popular" these conventions are and what fields we're
+  // missing mappings for in the UI codebase.
+  Sentry.logger.info('Field definition fallback to conventions', {
+    key: options.key,
+    type: options.type,
+    kind: options.kind,
+  });
 }
 
 function getFallbackValueTypeForKind(kind?: FieldKind): FieldValueType {
