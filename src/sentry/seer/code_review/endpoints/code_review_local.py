@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
 from urllib3.exceptions import TimeoutError as UrllibTimeoutError
 
-from sentry import features, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -50,45 +49,6 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
 
         Returns 200 with predictions on success, various error codes on failure.
         """
-        # Check if feature is globally enabled
-        if not settings.CODE_REVIEW_LOCAL_ENABLED:
-            return Response(
-                {"detail": "Local code review is not enabled"},
-                status=503,
-            )
-
-        # Check feature flag
-        if not features.has("organizations:code-review-local", organization):
-            return Response(
-                {"detail": "Local code review is not enabled for this organization"},
-                status=403,
-            )
-
-        # Rate limiting
-        user_key = f"code_review_local:user:{request.user.id}"
-        org_key = f"code_review_local:org:{organization.id}"
-
-        user_limit, user_window = settings.CODE_REVIEW_LOCAL_USER_RATE_LIMIT
-        org_limit, org_window = settings.CODE_REVIEW_LOCAL_ORG_RATE_LIMIT
-
-        if ratelimits.backend.is_limited(user_key, limit=user_limit, window=user_window):
-            metrics.incr("code_review_local.rate_limited", tags={"type": "user"})
-            return Response(
-                {
-                    "detail": f"Rate limit exceeded. Maximum {user_limit} requests per {user_window // 3600} hour(s) per user"
-                },
-                status=429,
-            )
-
-        if ratelimits.backend.is_limited(org_key, limit=org_limit, window=org_window):
-            metrics.incr("code_review_local.rate_limited", tags={"type": "org"})
-            return Response(
-                {
-                    "detail": f"Organization rate limit exceeded. Maximum {org_limit} requests per {org_window // 3600} hour(s)"
-                },
-                status=429,
-            )
-
         # Validate request
         serializer = CodeReviewLocalRequestSerializer(data=request.data)
         if not serializer.is_valid():
