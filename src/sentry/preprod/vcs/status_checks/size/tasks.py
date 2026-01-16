@@ -188,13 +188,17 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
             completed_at=completed_at,
         )
     except Exception as e:
+        extra: dict[str, Any] = {
+            "artifact_id": preprod_artifact.id,
+            "organization_id": preprod_artifact.project.organization_id,
+            "organization_slug": preprod_artifact.project.organization.slug,
+            "error_type": type(e).__name__,
+        }
+        if isinstance(e, ApiError):
+            extra["status_code"] = e.code
         logger.exception(
             "preprod.status_checks.create.failed",
-            extra={
-                "artifact_id": preprod_artifact.id,
-                "organization_id": preprod_artifact.project.organization_id,
-                "organization_slug": preprod_artifact.project.organization.slug,
-            },
+            extra=extra,
         )
         _update_posted_status_check(preprod_artifact, check_type="size", success=False, error=e)
         raise
@@ -206,6 +210,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
                 "artifact_id": preprod_artifact.id,
                 "organization_id": preprod_artifact.project.organization_id,
                 "organization_slug": preprod_artifact.project.organization.slug,
+                "error_type": "null_check_id",
             },
         )
         _update_posted_status_check(preprod_artifact, check_type="size", success=False)
