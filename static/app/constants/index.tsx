@@ -660,6 +660,30 @@ export const DATA_CATEGORY_INFO = {
       `/settings/${organization.slug}/seer/`,
     formatting: DEFAULT_COUNT_FORMATTING,
   },
+  [DataCategoryExact.SIZE_ANALYSIS]: {
+    name: DataCategoryExact.SIZE_ANALYSIS,
+    plural: DataCategory.SIZE_ANALYSIS,
+    singular: 'sizeAnalysis',
+    displayName: 'size analysis upload',
+    titleName: t('Size Analysis Uploads'),
+    productName: t('Size Analysis Upload'),
+    uid: 35,
+    isBilledCategory: false,
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
+    formatting: DEFAULT_COUNT_FORMATTING,
+  },
+  [DataCategoryExact.INSTALLABLE_BUILD]: {
+    name: DataCategoryExact.INSTALLABLE_BUILD,
+    plural: DataCategory.INSTALLABLE_BUILD,
+    singular: 'installableBuild',
+    displayName: 'build distribution',
+    titleName: t('Build Distributions'),
+    productName: t('Build Distribution'),
+    uid: 36,
+    isBilledCategory: false,
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
+    formatting: DEFAULT_COUNT_FORMATTING,
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // SmartSearchBar settings
