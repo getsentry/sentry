@@ -28,6 +28,7 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
+import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -330,35 +331,14 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Returns transformed data, raw responses for callbacks, and refetch function.
    * This replaces getSeriesRequest when available.
    */
-  useSeriesQuery?: (params: WidgetQueryParams) => {
-    loading: boolean;
-    refetch: () => Promise<void>;
-    confidence?: any;
-    errorMessage?: string;
-    isSampled?: boolean | null;
-    rawData?: SeriesResponse[];
-    sampleCount?: number;
-    timeseriesResults?: Series[];
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    timeseriesResultsUnits?: Record<string, DataUnit>;
-  };
+  useSeriesQuery?: (params: WidgetQueryParams) => GenericWidgetQueriesResult;
   /**
    * Hook-based approach for fetching table data (NEW).
    * Queries are disabled by default - refetch() must be called to fetch.
    * Returns transformed data, raw responses for callbacks, and refetch function.
    * This replaces getTableRequest when available.
    */
-  useTableQuery?: (params: WidgetQueryParams) => {
-    loading: boolean;
-    refetch: () => Promise<void>;
-    confidence?: any;
-    errorMessage?: string;
-    isSampled?: boolean | null;
-    pageLinks?: string;
-    rawData?: TableResponse[];
-    sampleCount?: number;
-    tableResults?: TableData[];
-  };
+  useTableQuery?: (params: WidgetQueryParams) => GenericWidgetQueriesResult;
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(

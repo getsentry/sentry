@@ -60,6 +60,14 @@ export type GenericWidgetQueriesResult = {
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
+  /**
+   * Raw API response data, used for callbacks in hook-based approach.
+   */
+  rawData?: any[];
+  /**
+   * Refetch function for hook-based approach.
+   */
+  refetch?: () => Promise<void>;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -734,7 +742,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   // If using hook-based approach, return hook results
   // Otherwise, return old approach results
   if (hasHookApproach && hookResults) {
-    return hookResults as GenericWidgetQueriesResult;
+    return hookResults;
   }
 
   return {
