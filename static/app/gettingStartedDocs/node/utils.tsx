@@ -347,8 +347,9 @@ const getBrowserAgentMonitoringOnboardingConfiguration = ({
             label: 'JavaScript',
             language: 'javascript',
             code: `${getImport(packageName, importMode).join('\n')}
-            import { ChatOpenAI } from "@langchain/openai";
+import { ChatOpenAI } from "@langchain/openai";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 const llm = new ChatOpenAI({
   modelName: "gpt-4o",
@@ -401,6 +402,9 @@ const text = lastMessage.content;
             label: 'JavaScript',
             language: 'javascript',
             code: `${getImport(packageName, importMode).join('\n')}
+import { ChatOpenAI } from "@langchain/openai";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+
 
 // Create a LangChain callback handler
 const callbackHandler = Sentry.createLangChainCallbackHandler({
