@@ -330,7 +330,7 @@ class JiraPluginTest(TestCase):
         self._setup_autocomplete_jira()
         responses.add(
             responses.GET,
-            "https://getsentry.atlassian.net/rest/api/2/search/",
+            "https://getsentry.atlassian.net/rest/api/3/search/jql",
             json={"issues": [issue_response]},
         )
 
