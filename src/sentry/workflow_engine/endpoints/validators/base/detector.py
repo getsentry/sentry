@@ -14,6 +14,12 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    CONDITION_GROUP_HELP_TEXT,
+    DATA_SOURCES_HELP_TEXT,
+    DETECTOR_CONFIG_HELP_TEXT,
+    OWNER_HELP_TEXT,
+)
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
@@ -55,248 +61,20 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     type = serializers.CharField(help_text="The type of monitor - `metric_issue`.")
     data_sources = serializers.ListField(
         required=False,
-        help_text="""
-            The data sources for the monitor to use based on what you want to measure.
-
-            **Number of Errors Metric Monitor**
-            ```json
-                [
-                    {
-                        "aggregate": "count()",
-                        "dataset" : "events",
-                        "environment": "prod",
-                        "eventTypes": ["default", "error"],
-                        "query": "is:unresolved",
-                        "queryType": 0,
-                        "timeWindow": 3600,
-                    },
-                ],
-            ```
-
-            **Users Experiencing Errors Metric Monitor**
-            ```json
-                [
-                    {
-                        "aggregate": "count_unique(tags[sentry:user])",
-                        "dataset" : "events",
-                        "environment": "prod",
-                        "eventTypes": ["default", "error"],
-                        "query": "is:unresolved",
-                        "queryType": 0,
-                        "timeWindow": 3600,
-                    },
-                ],
-            ```
-
-
-            **Throughput Metric Monitor**
-            ```json
-                [
-                    {
-                        "aggregate":"count(span.duration)",
-                        "dataset":"events_analytics_platform",
-                        "environment":"prod",
-                        "eventTypes":["trace_item_span"]
-                        "query":"",
-                        "queryType":1,
-                        "timeWindow":3600,
-                        "extrapolationMode":"unknown",
-                    },
-                ],
-            ```
-
-            **Duration Metric Monitor**
-            ```json
-                [
-                    {
-                        "aggregate":"p95(span.duration)",
-                        "dataset":"events_analytics_platform",
-                        "environment":"prod",
-                        "eventTypes":["trace_item_span"]
-                        "query":"",
-                        "queryType":1,
-                        "timeWindow":3600,
-                        "extrapolationMode":"unknown",
-                    },
-                ],
-            ```
-
-            **Failure Rate Metric Monitor**
-            ```json
-                [
-                    {
-                        "aggregate":"failure_rate()",
-                        "dataset":"events_analytics_platform",
-                        "environment":"prod",
-                        "eventTypes":["trace_item_span"]
-                        "query":"",
-                        "queryType":1,
-                        "timeWindow":3600,
-                        "extrapolationMode":"unknown",
-                    },
-                ],
-            ```
-
-            **Largest Contentful Paint Metric Monitor**
-            ```json
-                [
-                    {
-                        "aggregate":"p95(measurements.lcp)",
-                        "dataset":"events_analytics_platform",
-                        "environment":"prod",
-                        "eventTypes":["trace_item_span"]
-                        "query":"",
-                        "queryType":1,
-                        "timeWindow":3600,
-                        "extrapolationMode":"unknown",
-                    },
-                ],
-            ```
-        """,
+        help_text=DATA_SOURCES_HELP_TEXT,
     )
     config = serializers.JSONField(
         default=dict,
-        help_text="""
-            The issue detection type configuration.
-
-
-            - `detectionType`
-                - `static`: Threshold based monitor
-                - `percent`: Change based monitor
-                - `dynamic`: Dynamic monitor
-            - `comparisonDelta`: If selecting a **change** detection type, the comparison delta is the time period at which to compare against in minutes.
-            For example, a value of 3600 compares the metric tracked against data 1 hour ago.
-                - 300: 5 minutes
-                - 900: 15 minutes
-                - 3600: 1 hour
-                - 86400: 1 day
-                - 604800: 1 week
-                - 2592000: 1 month
-
-            **Threshold**
-            ```json
-            {
-                "detectionType": "static",
-            }
-            ```
-            **Change**
-            ```json
-            {
-                "detectionType": "percent",
-                "comparisonDelta": 3600,
-            }
-            ```
-            **Dynamic**
-            ```json
-            {
-                "detectionType": "dynamic",
-            }
-            ```
-        """,
+        help_text=DETECTOR_CONFIG_HELP_TEXT,
     )
     condition_group = BaseDataConditionGroupValidator(
         required=False,
-        help_text="""
-            Issue detection configuration for when to create an issue and at what priority level.
-
-
-            - `logicType`: `any`
-            - `type`: Any of `gt` (greater than), `lte` (less than or equal), or `anomaly_detection` (dynamic)
-            - `comparison`: Any positive integer. This is threshold that must be crossed for the monitor to create an issue, e.g. "Create a metric issue when there are more than 5 unresolved error events".
-                - If creating a **dynamic** monitor, see the options below.
-                    - `seasonality`: `auto`
-                    - `sensitivity`: Level of responsiveness. Options are one of `low`, `medium`, or `high`
-                    - `thresholdType`: If you want to be alerted to anomalies that are moving above, below, or in both directions in relation to your threshold.
-                        - 0: Above
-                        - 1: Below
-                        - 2: Above and below
-
-            - `conditionResult`: The issue state change when the threshold is crossed.
-                - 75: high priority
-                - 50: low priority
-                - 0: resolved
-
-
-            **Threshold and Change Monitor**
-            ```json
-                "logicType": "any",
-                "conditions": [
-                    {
-                        "type": "gt",
-                        "comparison": 10,
-                        "conditionResult": 75
-                    },
-                    {
-                        "type": "lte",
-                        "comparison": 10,
-                        "conditionResult": 0
-                    }
-                ],
-                "actions": []
-            ```
-
-            **Threshold Monitor with Medium Priority**
-            ```json
-                "logicType": "any",
-                "conditions": [
-                    {
-                        type: "gt",
-                        comparison: 5,
-                        conditionResult: 75
-                    },
-                    {
-                        type: "gt",
-                        comparison: 2,
-                        conditionResult: 50
-                    },
-                    {
-                        type: "lte",
-                        comparison: 2,
-                        conditionResult: 0
-                    }
-                ],
-                "actions": []
-            ```
-
-            **Dynamic Monitor**
-            ```json
-                "logicType": "any",
-                "conditions": [
-                    {
-                        "type": "anomaly_detection",
-                        "comparison": {
-                            "seasonality": "auto",
-                            "sensitivity": "medium",
-                            "thresholdType": 2
-                        },
-                        "conditionResult": 75
-                    }
-                ],
-                "actions": []
-            ```
-        """,
+        help_text=CONDITION_GROUP_HELP_TEXT,
     )
     owner = OwnerActorField(
         required=False,
         allow_null=True,
-        help_text="""
-            The user or team who owns the monitor.
-
-            **User**
-            ```json
-                "type": "user",
-                "id": "12345",
-                "name": "Jane Doe",
-                "email": "jane.doe@sentry.io"
-            ```
-
-            **Team**
-            ```json
-                "type": "team",
-                "id": "123456789",
-                "name": "example-team"
-            ```
-        """,
+        help_text=OWNER_HELP_TEXT,
     )
     description = serializers.CharField(
         required=False,
