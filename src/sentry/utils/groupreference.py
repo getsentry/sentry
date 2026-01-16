@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 _markdown_strip_re = re.compile(r"\[([^]]+)\]\([^)]+\)", re.I)
 
 _fixes_re = re.compile(
-    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+(.+?)(?=\n|$)",
-    re.I | re.MULTILINE,
+    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+(.+?)(?=\n\n|\Z)",
+    re.I | re.DOTALL,
 )
 _short_id_re = re.compile(r"\b([A-Z0-9_-]+-[A-Z0-9]+)\b", re.I)
 
