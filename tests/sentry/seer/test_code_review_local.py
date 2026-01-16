@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry.seer.cli_bug_prediction import get_cli_bug_prediction_status, trigger_cli_bug_prediction
+from sentry.seer.code_review_local import get_code_review_local_status, trigger_code_review_local
 from sentry.utils import json
 
 
@@ -18,7 +18,7 @@ def mock_connection_pool():
 
 
 @pytest.mark.django_db
-class TestTriggerCliBugPrediction:
+class TestTriggerCodeReviewLocal:
     def test_trigger_success(self, mock_connection_pool):
         """Test successful trigger of CLI bug prediction"""
         # Mock successful response
@@ -28,10 +28,10 @@ class TestTriggerCliBugPrediction:
         mock_connection_pool.urlopen.return_value = mock_response
 
         with patch(
-            "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+            "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
             mock_connection_pool,
         ):
-            result = trigger_cli_bug_prediction(
+            result = trigger_code_review_local(
                 repo_provider="github",
                 repo_owner="getsentry",
                 repo_name="sentry",
@@ -55,10 +55,10 @@ class TestTriggerCliBugPrediction:
         mock_connection_pool.urlopen.return_value = mock_response
 
         with patch(
-            "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+            "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
             mock_connection_pool,
         ):
-            result = trigger_cli_bug_prediction(
+            result = trigger_code_review_local(
                 repo_provider="github",
                 repo_owner="getsentry",
                 repo_name="sentry",
@@ -80,12 +80,12 @@ class TestTriggerCliBugPrediction:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(TimeoutError),
         ):
-            trigger_cli_bug_prediction(
+            trigger_code_review_local(
                 repo_provider="github",
                 repo_owner="getsentry",
                 repo_name="sentry",
@@ -106,12 +106,12 @@ class TestTriggerCliBugPrediction:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(MaxRetryError),
         ):
-            trigger_cli_bug_prediction(
+            trigger_code_review_local(
                 repo_provider="github",
                 repo_owner="getsentry",
                 repo_name="sentry",
@@ -133,12 +133,12 @@ class TestTriggerCliBugPrediction:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
-            pytest.raises(ValueError, match="Seer returned error status: 500"),
+            pytest.raises(ValueError, match="Seer error \\(500\\): Internal server error"),
         ):
-            trigger_cli_bug_prediction(
+            trigger_code_review_local(
                 repo_provider="github",
                 repo_owner="getsentry",
                 repo_name="sentry",
@@ -160,12 +160,12 @@ class TestTriggerCliBugPrediction:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(ValueError, match="Invalid JSON response from Seer"),
         ):
-            trigger_cli_bug_prediction(
+            trigger_code_review_local(
                 repo_provider="github",
                 repo_owner="getsentry",
                 repo_name="sentry",
@@ -187,12 +187,12 @@ class TestTriggerCliBugPrediction:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(ValueError, match="Missing run_id in Seer response"),
         ):
-            trigger_cli_bug_prediction(
+            trigger_code_review_local(
                 repo_provider="github",
                 repo_owner="getsentry",
                 repo_name="sentry",
@@ -207,7 +207,7 @@ class TestTriggerCliBugPrediction:
 
 
 @pytest.mark.django_db
-class TestGetCliBugPredictionStatus:
+class TestGetCodeReviewLocalStatus:
     def test_status_pending(self, mock_connection_pool):
         """Test getting pending status"""
         mock_response = Mock()
@@ -216,10 +216,10 @@ class TestGetCliBugPredictionStatus:
         mock_connection_pool.urlopen.return_value = mock_response
 
         with patch(
-            "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+            "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
             mock_connection_pool,
         ):
-            result = get_cli_bug_prediction_status(run_id=123)
+            result = get_code_review_local_status(run_id=123)
 
         assert result["status"] == "pending"
         assert result["run_id"] == 123
@@ -247,10 +247,10 @@ class TestGetCliBugPredictionStatus:
         mock_connection_pool.urlopen.return_value = mock_response
 
         with patch(
-            "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+            "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
             mock_connection_pool,
         ):
-            result = get_cli_bug_prediction_status(run_id=123)
+            result = get_code_review_local_status(run_id=123)
 
         assert result["status"] == "completed"
         assert len(result["predictions"]) == 1
@@ -263,12 +263,12 @@ class TestGetCliBugPredictionStatus:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(TimeoutError),
         ):
-            get_cli_bug_prediction_status(run_id=123)
+            get_code_review_local_status(run_id=123)
 
     def test_status_max_retry_error(self, mock_connection_pool):
         """Test max retry error handling for status check"""
@@ -278,12 +278,12 @@ class TestGetCliBugPredictionStatus:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(MaxRetryError),
         ):
-            get_cli_bug_prediction_status(run_id=123)
+            get_code_review_local_status(run_id=123)
 
     def test_status_error_response(self, mock_connection_pool):
         """Test handling of error status codes for status check"""
@@ -294,12 +294,12 @@ class TestGetCliBugPredictionStatus:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(ValueError, match="Seer returned error status: 404"),
         ):
-            get_cli_bug_prediction_status(run_id=123)
+            get_code_review_local_status(run_id=123)
 
     def test_status_invalid_json_response(self, mock_connection_pool):
         """Test handling of invalid JSON in status response"""
@@ -310,12 +310,12 @@ class TestGetCliBugPredictionStatus:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(ValueError, match="Invalid JSON response from Seer"),
         ):
-            get_cli_bug_prediction_status(run_id=123)
+            get_code_review_local_status(run_id=123)
 
     def test_status_missing_status_field(self, mock_connection_pool):
         """Test handling of response missing status field"""
@@ -326,9 +326,9 @@ class TestGetCliBugPredictionStatus:
 
         with (
             patch(
-                "sentry.seer.cli_bug_prediction.seer_cli_bug_prediction_connection_pool",
+                "sentry.seer.code_review_local.seer_cli_bug_prediction_connection_pool",
                 mock_connection_pool,
             ),
             pytest.raises(ValueError, match="Missing status in Seer response"),
         ):
-            get_cli_bug_prediction_status(run_id=123)
+            get_code_review_local_status(run_id=123)

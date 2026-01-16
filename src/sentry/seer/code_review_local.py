@@ -18,7 +18,7 @@ seer_cli_bug_prediction_connection_pool = connection_from_url(
 )
 
 
-def trigger_cli_bug_prediction(
+def trigger_code_review_local(
     repo_provider: str,
     repo_owner: str,
     repo_name: str,
@@ -156,12 +156,12 @@ def trigger_cli_bug_prediction(
     return response_data
 
 
-def get_cli_bug_prediction_status(run_id: int) -> dict[str, Any]:
+def get_code_review_local_status(run_id: int) -> dict[str, Any]:
     """
     Get the status of a CLI bug prediction run.
 
     Args:
-        run_id: The Seer run ID from trigger_cli_bug_prediction
+        run_id: The Seer run ID from trigger_code_review_local
 
     Returns:
         dict with "status" key and optionally "predictions" and "diagnostics"

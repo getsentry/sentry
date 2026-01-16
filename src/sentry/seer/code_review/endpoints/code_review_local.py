@@ -12,12 +12,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
-from sentry.api.serializers.rest_framework.cli_bug_prediction import (
-    CliBugPredictionRequestSerializer,
-)
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.cli_bug_prediction import get_cli_bug_prediction_status, trigger_cli_bug_prediction
+from sentry.seer.code_review.endpoints.serializers.code_review_local import (
+    CodeReviewLocalRequestSerializer,
+)
+from sentry.seer.code_review_local import get_code_review_local_status, trigger_code_review_local
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
             )
 
         # Validate request
-        serializer = CliBugPredictionRequestSerializer(data=request.data)
+        serializer = CodeReviewLocalRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
 
@@ -137,7 +137,7 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
         user_name = request.user.username or getattr(request.user, "email", None) or str(user_id)
 
         try:
-            trigger_response = trigger_cli_bug_prediction(
+            trigger_response = trigger_code_review_local(
                 repo_provider=repo_data["provider"],
                 repo_owner=repo_data["owner"],
                 repo_name=repo_data["name"],
@@ -291,7 +291,9 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
             provider_variants.append(f"integrations:{repo_provider}")
 
         return Repository.objects.get(
-            organization_id=organization.id, name=repo_name, provider__in=provider_variants
+            organization_id=organization.id,
+            name=repo_name,
+            provider__in=provider_variants,
         )
 
     def _poll_seer_for_results(
@@ -331,7 +333,7 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
             )
 
             try:
-                response = get_cli_bug_prediction_status(run_id)
+                response = get_code_review_local_status(run_id)
             except (UrllibTimeoutError, MaxRetryError):
                 # If status check times out, wait and retry
                 logger.warning(

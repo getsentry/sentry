@@ -16,7 +16,7 @@ class RepositoryInfoSerializer(serializers.Serializer):
         return value
 
 
-class CliBugPredictionRequestSerializer(serializers.Serializer):
+class CodeReviewLocalRequestSerializer(serializers.Serializer):
     repository = RepositoryInfoSerializer(required=True)
     diff = serializers.CharField(required=True, max_length=500_000)
     current_branch = serializers.CharField(required=False, max_length=255)

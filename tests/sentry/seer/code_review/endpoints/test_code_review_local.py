@@ -8,7 +8,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 @pytest.mark.django_db
-class OrganizationCliBugPredictionTest(APITestCase):
+class OrganizationCodeReviewLocalTest(APITestCase):
     endpoint = "sentry-api-0-organization-code-review-local"
     method = "post"
 
@@ -18,7 +18,7 @@ class OrganizationCliBugPredictionTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.repository = self.create_repo(
             project=self.project,
-            name="test-repo",
+            name="getsentry/test-repo",
             provider="github",
             external_id="12345",
         )
@@ -36,8 +36,8 @@ class OrganizationCliBugPredictionTest(APITestCase):
         self.login_as(user=self.user)
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.get_code_review_local_status")
     def test_happy_path(self, mock_status, mock_trigger):
         """Test successful prediction request"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
@@ -176,7 +176,7 @@ class OrganizationCliBugPredictionTest(APITestCase):
         assert "not found" in response.data["detail"]
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
     def test_seer_trigger_timeout(self, mock_trigger):
         """Test handling of Seer trigger timeout"""
         from urllib3.exceptions import TimeoutError
@@ -192,7 +192,7 @@ class OrganizationCliBugPredictionTest(APITestCase):
         assert "unavailable" in response.data["detail"]
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
     def test_seer_trigger_error(self, mock_trigger):
         """Test handling of Seer trigger error"""
         mock_trigger.side_effect = ValueError("Seer error")
@@ -203,12 +203,12 @@ class OrganizationCliBugPredictionTest(APITestCase):
             status_code=502,
         )
 
-        assert "Failed" in response.data["detail"]
+        assert "error" in response.data["detail"].lower()
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.time")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.get_code_review_local_status")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.time")
     def test_seer_polling_timeout(self, mock_time_module, mock_status, mock_trigger):
         """Test handling of polling timeout"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
@@ -234,8 +234,8 @@ class OrganizationCliBugPredictionTest(APITestCase):
         assert "exceeded maximum processing time" in response.data["detail"]
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.get_code_review_local_status")
     def test_seer_error_base_commit_not_found(self, mock_status, mock_trigger):
         """Test mapping of base commit not found error"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
@@ -253,8 +253,8 @@ class OrganizationCliBugPredictionTest(APITestCase):
         assert "pushed to the remote" in response.data["detail"]
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.get_code_review_local_status")
     def test_seer_error_diff_too_large(self, mock_status, mock_trigger):
         """Test mapping of diff too large error"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
@@ -272,8 +272,8 @@ class OrganizationCliBugPredictionTest(APITestCase):
         assert "500KB" in response.data["detail"]
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.get_code_review_local_status")
     def test_seer_error_too_many_files(self, mock_status, mock_trigger):
         """Test mapping of too many files error"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
@@ -291,8 +291,8 @@ class OrganizationCliBugPredictionTest(APITestCase):
         assert "50 files" in response.data["detail"]
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.get_code_review_local_status")
     def test_seer_error_clone_failed(self, mock_status, mock_trigger):
         """Test mapping of repository clone failed error"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
@@ -310,8 +310,8 @@ class OrganizationCliBugPredictionTest(APITestCase):
         assert "permissions" in response.data["detail"]
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.get_code_review_local_status")
     def test_seer_error_unknown(self, mock_status, mock_trigger):
         """Test mapping of unknown Seer error"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
@@ -358,8 +358,8 @@ class OrganizationCliBugPredictionTest(APITestCase):
         assert "Organization rate limit exceeded" in response.data["detail"]
 
     @with_feature("organizations:code-review-local")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.trigger_cli_bug_prediction")
-    @patch("sentry.api.endpoints.organization_cli_bug_prediction.get_cli_bug_prediction_status")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.trigger_code_review_local")
+    @patch("sentry.seer.code_review.endpoints.code_review_local.get_code_review_local_status")
     def test_optional_fields(self, mock_status, mock_trigger):
         """Test that optional fields are not required"""
         mock_trigger.return_value = {"run_id": 123, "status": "pending"}
