@@ -168,7 +168,8 @@ function ToggleConsolePlatformsModal({
     })
     .filter(invite => invite.platforms.length > 0);
 
-  const {mutateAsync: revokeConsoleInvites} = useRevokeConsoleSdkPlatformInvite();
+  const {isPending: isRevokePending, mutateAsync: revokeConsoleInvites} =
+    useRevokeConsoleSdkPlatformInvite();
 
   const queryClient = useQueryClient();
 
@@ -255,7 +256,7 @@ function ToggleConsolePlatformsModal({
         newConsoleSdkInviteQuota: consoleSdkInviteQuota,
       }}
       submitLabel="Save"
-      submitDisabled={isUpdatePending}
+      submitDisabled={isUpdatePending || isRevokePending}
     >
       <Header closeButton>
         <Flex align="center" gap="xl">
