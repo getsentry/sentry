@@ -296,8 +296,13 @@ def _is_eligible_for_code_review(
     1. Organization IS in code-review-beta cohort (always forward), OR
     2. Repository has code review explicitly enabled AND contributor has a seat
     """
-    if features.has("organizations:code-review-beta", organization):
-        return True
+    if features.has("organizations:code-review-beta", organization) or features.has(
+        "organizations:seer-added", organization
+    ):
+        pr_test_generation_enabled = organization.get_option(
+            "sentry:enable_pr_review_test_generation", False
+        )
+        return pr_test_generation_enabled
 
     # Check if code review is enabled for this repository
     code_review_enabled = RepositorySettings.objects.filter(
