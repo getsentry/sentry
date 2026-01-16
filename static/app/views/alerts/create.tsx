@@ -16,6 +16,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
@@ -48,6 +49,7 @@ export default function Create() {
   const location = useLocation();
   const params = useParams<RouteParams>();
   const router = useRouter();
+  const routes = useRoutes();
   const {project, members} = useAlertBuilderOutlet();
   const hasMetricAlerts = organization.features.includes('incidents');
 
@@ -182,7 +184,7 @@ export default function Create() {
                 location={location}
                 params={params}
                 router={router}
-                routes={[]}
+                routes={routes}
                 route={{}}
                 routeParams={params}
                 project={project}
@@ -197,7 +199,7 @@ export default function Create() {
                   location={location}
                   params={params}
                   router={router}
-                  routes={[]}
+                  routes={routes}
                   route={{}}
                   routeParams={params}
                   project={project}
@@ -211,7 +213,7 @@ export default function Create() {
                   location={location}
                   params={params}
                   router={router}
-                  routes={[]}
+                  routes={routes}
                   route={{}}
                   routeParams={params}
                   organization={organization}

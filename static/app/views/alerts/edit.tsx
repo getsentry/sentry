@@ -10,6 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
@@ -30,6 +31,7 @@ export default function ProjectAlertsEditor() {
   const location = useLocation();
   const params = useParams<RouteParams>();
   const router = useRouter();
+  const routes = useRoutes();
   const {project, members} = useAlertBuilderOutlet();
 
   const [title, setTitle] = useState('');
@@ -85,7 +87,7 @@ export default function ProjectAlertsEditor() {
                 location={location}
                 params={params}
                 router={router}
-                routes={[]}
+                routes={routes}
                 route={{}}
                 routeParams={params}
                 project={project}
@@ -99,7 +101,7 @@ export default function ProjectAlertsEditor() {
                 location={location}
                 params={params}
                 router={router}
-                routes={[]}
+                routes={routes}
                 route={{}}
                 routeParams={params}
                 organization={organization}
@@ -113,7 +115,7 @@ export default function ProjectAlertsEditor() {
                 location={location}
                 params={params}
                 router={router}
-                routes={[]}
+                routes={routes}
                 route={{}}
                 routeParams={params}
                 organization={organization}
