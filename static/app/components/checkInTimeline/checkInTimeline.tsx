@@ -47,7 +47,7 @@ interface CheckInTimelineProps<Status extends string>
    * Extra props to pass to the Tooltip component,
    * Title is determined by the CheckInTooltip component
    */
-  tooltipProps?: Omit<TooltipProps, 'title'>;
+  tooltipProps?: Omit<TooltipProps, 'title' | 'skipWrapper'>;
 }
 
 export function CheckInTimeline<Status extends string>({
