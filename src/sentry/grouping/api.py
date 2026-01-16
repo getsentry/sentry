@@ -17,14 +17,14 @@ from sentry.grouping.enhancer import (
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting.types import FingerprintInfo
-from sentry.grouping.fingerprinting.utils import get_fingerprint_type, is_default_fingerprint_var
-from sentry.grouping.strategies.base import GroupingContext
-from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
-from sentry.grouping.utils import (
-    expand_title_template,
-    hash_from_values,
+from sentry.grouping.fingerprinting.utils import (
+    get_fingerprint_type,
+    is_default_fingerprint_var,
     resolve_fingerprint_values,
 )
+from sentry.grouping.strategies.base import GroupingContext
+from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
+from sentry.grouping.utils import expand_title_template, hash_from_values
 from sentry.grouping.variants import (
     BaseVariant,
     ChecksumVariant,

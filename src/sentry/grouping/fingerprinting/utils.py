@@ -275,3 +275,29 @@ def resolve_fingerprint_variable(
             if use_legacy_unknown_variable_handling
             else "<unrecognized-variable-%s>" % variable_key
         )
+
+
+def resolve_fingerprint_values(
+    fingerprint: list[str], event_data: NodeData, use_legacy_unknown_variable_handling: bool = False
+) -> list[str]:
+    def _resolve_single_entry(entry: str) -> str:
+        variable_key = parse_fingerprint_entry_as_variable(entry)
+        if variable_key == "default":  # entry is some variation of `{{ default }}`
+            return DEFAULT_FINGERPRINT_VARIABLE
+        if variable_key is None:  # entry isn't a variable
+            return entry
+
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
+        # `resolve_fingerprint_variable`
+        resolved_value = resolve_fingerprint_variable(
+            variable_key, event_data, use_legacy_unknown_variable_handling
+        )
+
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove this
+        if resolved_value is None:  # variable wasn't recognized
+            return entry
+        return resolved_value
+
+    return [_resolve_single_entry(entry) for entry in fingerprint]

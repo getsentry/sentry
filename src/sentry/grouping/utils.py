@@ -8,13 +8,7 @@ from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
-from sentry.db.models.fields.node import NodeData
-from sentry.grouping.fingerprinting.utils import (
-    DEFAULT_FINGERPRINT_VARIABLE,
-    _fingerprint_var_re,
-    parse_fingerprint_entry_as_variable,
-    resolve_fingerprint_variable,
-)
+from sentry.grouping.fingerprinting.utils import _fingerprint_var_re, resolve_fingerprint_variable
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
@@ -45,32 +39,6 @@ def bool_from_string(value: str) -> bool | None:
             return False
 
     return None
-
-
-def resolve_fingerprint_values(
-    fingerprint: list[str], event_data: NodeData, use_legacy_unknown_variable_handling: bool = False
-) -> list[str]:
-    def _resolve_single_entry(entry: str) -> str:
-        variable_key = parse_fingerprint_entry_as_variable(entry)
-        if variable_key == "default":  # entry is some variation of `{{ default }}`
-            return DEFAULT_FINGERPRINT_VARIABLE
-        if variable_key is None:  # entry isn't a variable
-            return entry
-
-        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
-        # `resolve_fingerprint_variable`
-        resolved_value = resolve_fingerprint_variable(
-            variable_key, event_data, use_legacy_unknown_variable_handling
-        )
-
-        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove this
-        if resolved_value is None:  # variable wasn't recognized
-            return entry
-        return resolved_value
-
-    return [_resolve_single_entry(entry) for entry in fingerprint]
 
 
 def expand_title_template(
