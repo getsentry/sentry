@@ -26,7 +26,7 @@ LAST_RUN_CACHE_KEY = "seer:explorer_index:last_run"
 LAST_RUN_CACHE_TIMEOUT = 24 * 60 * 60  # 24 hours
 
 EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
-EXPLORER_INDEX_RUN_FREQUENCY = timedelta(hours=24)
+EXPLORER_INDEX_RUN_FREQUENCY = timedelta(minutes=50)
 # Use a larger prime number to spread indexing tasks throughout the day
 EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=127)
 
