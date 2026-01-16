@@ -2863,7 +2863,6 @@ function buildRoutes(): RouteObject[] {
           ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
         )
       ),
-      deprecatedRouteProps: true,
     },
   ];
   const legacyOrgRedirects: SentryRouteObject = {
