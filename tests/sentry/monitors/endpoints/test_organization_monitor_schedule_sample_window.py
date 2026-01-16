@@ -163,3 +163,26 @@ class SampleScheduleWindowTest(APITestCase):
             },
             status_code=400,
         )
+
+    @freeze_time("2023-10-26T12:32:25Z")
+    def test_empty_threshold_params_use_defaults(self) -> None:
+        """
+        Regression test for SENTRY-5GX7.
+
+        When threshold params are empty strings, EmptyIntegerField converts them
+        to None. The endpoint should fall back to MIN_THRESHOLD defaults.
+        """
+        # MIN_THRESHOLD=1, so: failure=1, recovery=1 => total=2, padding=2, open=4, num_ticks=10
+        expected_start = int(datetime(2023, 10, 26, 13, 0, tzinfo=UTC).timestamp())
+        expected_end = expected_start + int(timedelta(hours=9).total_seconds())
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "schedule_type": "crontab",
+                "schedule": "0 * * * *",
+                "failure_issue_threshold": "",
+                "recovery_threshold": "",
+            },
+        )
+        assert response.data == {"start": expected_start, "end": expected_end}
