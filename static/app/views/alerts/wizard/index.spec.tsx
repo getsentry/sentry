@@ -8,6 +8,12 @@ import AlertWizard from 'sentry/views/alerts/wizard/index';
 
 describe('AlertWizard', () => {
   const project = ProjectFixture();
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/alerts/wizard/',
+      query: {project: project.slug},
+    },
+  };
 
   beforeEach(() => {
     ConfigStore.init();
@@ -19,15 +25,11 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    const {router} = render(
-      <AlertWizard organization={organization} projectId={project.slug} />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/alerts/wizard/'},
-        },
-      }
-    );
+    const {router} = render(<AlertWizard />, {
+      organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
+    });
 
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
     await userEvent.click(screen.getByText('Set Conditions'));
@@ -54,8 +56,10 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
     });
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -75,8 +79,10 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
     });
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -90,8 +96,10 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
     });
 
     expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();
@@ -109,8 +117,10 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
     });
 
     await userEvent.click(screen.getByText('Throughput'));
@@ -131,8 +141,10 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
     });
 
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
@@ -149,8 +161,10 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
     });
 
     expect(screen.getAllByText('Logs')).toHaveLength(2);
@@ -167,8 +181,10 @@ describe('AlertWizard', () => {
       access: ['org:write', 'alerts:write'],
     });
 
-    render(<AlertWizard organization={organization} projectId={project.slug} />, {
+    render(<AlertWizard />, {
       organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
     });
 
     await userEvent.click(screen.getByText('Throughput'));
