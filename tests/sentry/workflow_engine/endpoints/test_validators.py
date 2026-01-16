@@ -234,7 +234,7 @@ class DetectorValidatorTest(BaseValidatorTest):
             data=detector.get_audit_log_data(),
         )
 
-    def test_validate_invalid_condition_result(self) -> None:
+    def test_validate_invalid_condition_result__invalid_int(self) -> None:
         invalid_condition_group = {
             "id": self.data_condition_group.id,
             "organizationId": self.organization.id,
@@ -258,6 +258,35 @@ class DetectorValidatorTest(BaseValidatorTest):
         assert not validator.is_valid()
         assert validator.errors.get("conditionGroup") == [
             ErrorDetail(string="Invalid detector priority level: 1", code="invalid")
+        ], validator.errors
+
+    def test_validate_invalid_condition_result__invalid_type(self) -> None:
+        invalid_condition_group = {
+            "id": self.data_condition_group.id,
+            "organizationId": self.organization.id,
+            "logicType": self.data_condition_group.logic_type,
+            "conditions": [
+                {
+                    "type": Condition.GREATER_OR_EQUAL,
+                    "comparison": 100,
+                    "condition_result": "high",
+                    "conditionGroupId": self.data_condition_group.id,
+                }
+            ],
+        }
+        validator = MockDetectorValidator(
+            data={
+                **self.valid_data,
+                "conditionGroup": invalid_condition_group,
+                "type": "uptime_domain_failure",
+            }
+        )
+        assert not validator.is_valid()
+        assert validator.errors.get("conditionGroup") == [
+            ErrorDetail(
+                string="condition_result must be an integer corresponding to a valid detector priority level",
+                code="invalid",
+            )
         ], validator.errors
 
     def test_validate_type_unknown(self) -> None:
