@@ -7,6 +7,8 @@ import {Item, Section} from '@react-stately/collections';
 import {useListState, type ListState} from '@react-stately/list';
 import type {CollectionChildren, KeyboardEvent, Node} from '@react-types/shared';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {
   Token,
@@ -165,7 +167,16 @@ function ArgumentsGridList({
   });
 
   return (
-    <ArgumentsGridWrapper {...gridProps} ref={ref}>
+    <Flex
+      justify="start"
+      wrap="wrap"
+      flexGrow={0}
+      flexShrink={1}
+      height="100%"
+      position="relative"
+      {...gridProps}
+      ref={ref}
+    >
       {[...state.collection].map((item, index) => {
         const attribute = item.value;
 
@@ -195,7 +206,7 @@ function ArgumentsGridList({
           </BaseGridCell>
         );
       })}
-    </ArgumentsGridWrapper>
+    </Flex>
   );
 }
 
@@ -744,16 +755,6 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   &[aria-selected='true'] {
     background-color: ${p => p.theme.colors.gray100};
   }
-`;
-
-const ArgumentsGridWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  position: relative;
-  height: 100%;
-  flex-shrink: 1;
-  flex-grow: 0;
 `;
 
 const ArgumentGridCell = styled('div')`

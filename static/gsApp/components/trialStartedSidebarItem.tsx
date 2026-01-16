@@ -140,18 +140,18 @@ function TrialStartedSidebarItem({
       animate={animate}
       variants={{
         initial: {
-          backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
+          backgroundImage: `linear-gradient(-45deg, ${theme.tokens.background.accent.vibrant} 0%, transparent 0%)`,
         },
         started: {
-          backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 100%, transparent 0%)`,
+          backgroundImage: `linear-gradient(-45deg, ${theme.tokens.background.accent.vibrant} 100%, transparent 0%)`,
 
           // We flip the gradient direction so that on dismiss we can animate in the
           // opposite direction.
           transitionEnd: {
-            backgroundImage: `linear-gradient(45deg, ${theme.purple400} 100%, transparent 0%)`,
+            backgroundImage: `linear-gradient(45deg, ${theme.tokens.background.accent.vibrant} 100%, transparent 0%)`,
           },
 
-          color: theme.button.primary.color,
+          color: theme.colors.white,
 
           transition: testableTransition({
             duration: 0.35,
@@ -159,7 +159,7 @@ function TrialStartedSidebarItem({
           }),
         },
         dismissed: {
-          backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
+          backgroundImage: `linear-gradient(-45deg, ${theme.tokens.background.accent.vibrant} 0%, transparent 0%)`,
         },
       }}
     >
@@ -177,11 +177,11 @@ const startedStyle = (theme: Theme) => css`
   }
 
   &:hover a {
-    color: ${theme.button.primary.color};
+    color: ${theme.colors.white};
   }
 
   &:hover {
-    box-shadow: 0 0 8px ${theme.purple400};
+    box-shadow: 0 0 8px ${theme.tokens.background.accent.vibrant};
   }
 `;
 

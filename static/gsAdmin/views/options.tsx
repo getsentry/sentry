@@ -2,17 +2,15 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconEdit, IconStack} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import EditAdminOptionModal from 'admin/components/editAdminOptionModal';
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 export interface SerializedOption {
   fieldType: 'bool' | 'rate';
@@ -45,21 +43,21 @@ function EditableOption({
     <Fragment>
       <td key="name">
         {row.groupingInfo ? (
-          <GroupNameContainer>
+          <Flex as="span" align="center" gap="md">
             {row.groupingInfo.name} <IconStack size="xs" />
-          </GroupNameContainer>
+          </Flex>
         ) : (
           row.name
         )}
       </td>
       <td key="value">
         {row.groupingInfo ? null : (
-          <OptionContainer>
+          <Flex justify="end" align="center" gap="md">
             {row.fieldType === 'rate' && isNum(row.value) ? (
               <FormattedValue>{`(${row.value * 100}%)`}</FormattedValue>
             ) : null}
             <span>{JSON.stringify(row.value)}</span>
-          </OptionContainer>
+          </Flex>
         )}
       </td>
       <td key="edit">
@@ -89,7 +87,7 @@ function EditableOption({
   );
 }
 
-function Options(props: Props) {
+export default function Options() {
   return (
     <div>
       <PageHeader title="Options" />
@@ -107,28 +105,14 @@ function Options(props: Props) {
         ]}
         columnsForRow={getRow}
         hasSearch
-        {...props}
       />
     </div>
   );
 }
 
-const OptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${space(1)};
-`;
-
 const FormattedValue = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   opacity: 0.5;
-`;
-
-const GroupNameContainer = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const modalCss = css`
@@ -139,5 +123,3 @@ const modalCss = css`
 function isNum(input: any): input is number {
   return typeof input === 'number' && !isNaN(input);
 }
-
-export default Options;

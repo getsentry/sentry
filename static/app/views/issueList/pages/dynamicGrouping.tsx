@@ -7,6 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -15,12 +16,8 @@ import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
-import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -47,9 +44,7 @@ import {t, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -63,7 +58,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {
   ClusterDetailDrawer,
-  renderWithInlineCode,
   useClusterStats,
   type ClusterSummary,
 } from 'sentry/views/issueList/pages/topIssuesDrawer';
@@ -99,91 +93,6 @@ interface TopIssuesResponse {
   last_updated?: string;
 }
 
-function CompactIssuePreview({group}: {group: Group}) {
-  const {subtitle} = getTitle(group);
-
-  const items = [
-    group.project ? (
-      <ProjectBadge project={group.project} avatarSize={12} hideName disableLink />
-    ) : null,
-    group.isUnhandled ? <UnhandledTag /> : null,
-    group.count ? (
-      <Text size="xs" bold>
-        {tn('%s event', '%s events', group.count)}
-      </Text>
-    ) : null,
-    group.firstSeen || group.lastSeen ? (
-      <TimesTag lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
-    ) : null,
-  ].filter(Boolean);
-
-  return (
-    <Flex direction="column" gap="xs">
-      <IssueTitle>
-        <EventOrGroupTitle data={group} withStackTracePreview />
-      </IssueTitle>
-      <IssueMessage
-        data={group}
-        level={group.level}
-        message={getMessage(group)}
-        type={group.type}
-      />
-      {subtitle && (
-        <Text size="sm" variant="muted" ellipsis>
-          {subtitle}
-        </Text>
-      )}
-      {items.length > 0 && (
-        <Flex wrap="wrap" gap="sm" align="center">
-          {items.map((item, i) => (
-            <Fragment key={i}>
-              {item}
-              {i < items.length - 1 ? <MetaSeparator /> : null}
-            </Fragment>
-          ))}
-        </Flex>
-      )}
-    </Flex>
-  );
-}
-
-function ClusterIssues({groupIds}: {groupIds: number[]}) {
-  const organization = useOrganization();
-  const previewGroupIds = groupIds.slice(0, 3);
-
-  const {data: groups, isPending} = useApiQuery<Group[]>(
-    [
-      `/organizations/${organization.slug}/issues/`,
-      {
-        query: {
-          group: previewGroupIds,
-          query: `issue.id:[${previewGroupIds.join(',')}]`,
-        },
-      },
-    ],
-    {
-      staleTime: 60000,
-    }
-  );
-
-  if (isPending || !groups || groups.length === 0) {
-    return null;
-  }
-
-  return (
-    <Flex direction="column" gap="sm">
-      {groups.map(group => (
-        <IssuePreviewLink
-          key={group.id}
-          to={`/organizations/${organization.slug}/issues/${group.id}/`}
-        >
-          <CompactIssuePreview group={group} />
-        </IssuePreviewLink>
-      ))}
-    </Flex>
-  );
-}
-
 interface ClusterCardProps {
   cluster: ClusterSummary;
   onDismiss: (clusterId: number) => void;
@@ -200,10 +109,8 @@ function ClusterCard({
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const [activeTab, setActiveTab] = useState<'summary' | 'root-cause' | 'issues'>(
-    'summary'
-  );
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
   const {projects: allProjects} = useLegacyStore(ProjectsStore);
@@ -301,6 +208,16 @@ function ClusterCard({
       },
     });
   }, [onDismiss, cluster.cluster_id]);
+
+  const handleOpenDetails = useCallback(() => {
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {...location.query, cluster: String(cluster.cluster_id)},
+      },
+      {preventScrollReset: true}
+    );
+  }, [navigate, location.pathname, location.query, cluster.cluster_id]);
 
   const allTags = useMemo(() => {
     return [
@@ -438,58 +355,31 @@ function ClusterCard({
         </StatsRow>
       </CardHeader>
 
-      <TabSection>
-        <TabBar>
-          <Tab isActive={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
-            {t('Summary')}
-          </Tab>
-          <Tab
-            isActive={activeTab === 'root-cause'}
-            onClick={() => setActiveTab('root-cause')}
-          >
-            {t('Root Cause')}
-          </Tab>
-          <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
-            {t('Preview Issues')}
-          </Tab>
-        </TabBar>
-        <TabContent>
-          {activeTab === 'summary' && (
-            <Flex direction="column" gap="md">
-              <StructuredInfo>
-                {cluster.error_type && (
-                  <InfoRow>
-                    <InfoLabel>{t('Error')}</InfoLabel>
-                    <InfoValue>{cluster.error_type}</InfoValue>
-                  </InfoRow>
-                )}
-                {cluster.location && (
-                  <InfoRow>
-                    <InfoLabel>{t('Location')}</InfoLabel>
-                    <InfoValue>{cluster.location}</InfoValue>
-                  </InfoRow>
-                )}
-              </StructuredInfo>
-              {allTags.length > 0 && (
-                <TagsContainer>
-                  {allTags.map(tag => (
-                    <TagPill key={tag}>{tag}</TagPill>
-                  ))}
-                </TagsContainer>
-              )}
-            </Flex>
+      <CardBody>
+        <Flex direction="column" gap="md">
+          <StructuredInfo>
+            {cluster.error_type && (
+              <InfoRow>
+                <InfoLabel>{t('Error')}</InfoLabel>
+                <InfoValue>{cluster.error_type}</InfoValue>
+              </InfoRow>
+            )}
+            {cluster.location && (
+              <InfoRow>
+                <InfoLabel>{t('Location')}</InfoLabel>
+                <InfoValue>{cluster.location}</InfoValue>
+              </InfoRow>
+            )}
+          </StructuredInfo>
+          {allTags.length > 0 && (
+            <TagsContainer>
+              {allTags.map(tag => (
+                <TagPill key={tag}>{tag}</TagPill>
+              ))}
+            </TagsContainer>
           )}
-          {activeTab === 'root-cause' &&
-            (cluster.summary ? (
-              <DescriptionText>{renderWithInlineCode(cluster.summary)}</DescriptionText>
-            ) : (
-              <Text size="sm" variant="muted">
-                {t('No root cause analysis available')}
-              </Text>
-            ))}
-          {activeTab === 'issues' && <ClusterIssues groupIds={cluster.group_ids} />}
-        </TabContent>
-      </TabSection>
+        </Flex>
+      </CardBody>
 
       <CardFooter>
         {clusterProjects.length > 0 && (
@@ -559,13 +449,9 @@ function ClusterCard({
               position="bottom-end"
             />
           </ButtonBar>
-          <Link
-            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
-          >
-            <Button size="sm">
-              {t('View All Issues') + ` (${cluster.group_ids.length})`}
-            </Button>
-          </Link>
+          <Button size="sm" onClick={handleOpenDetails}>
+            {t('View Details')}
+          </Button>
           <DropdownMenu
             items={[
               {
@@ -777,7 +663,16 @@ function DynamicGrouping() {
       );
     }
 
-    return result.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+    return result.sort((a, b) => {
+      // Sort clusters with >1 group before clusters with exactly 1 group
+      const aHasMultipleGroups = a.group_ids.length > 1 ? 1 : 0;
+      const bHasMultipleGroups = b.group_ids.length > 1 ? 1 : 0;
+      if (bHasMultipleGroups !== aHasMultipleGroups) {
+        return bHasMultipleGroups - aHasMultipleGroups;
+      }
+      // Within the same category, sort by fixability_score descending
+      return (b.fixability_score ?? 0) - (a.fixability_score ?? 0);
+    });
   }, [
     clusterData,
     isUsingCustomData,
@@ -821,8 +716,9 @@ function DynamicGrouping() {
           >
             <Flex align="center" gap="md">
               <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-                {t('Top Issues (Experimental)')}
+                {t('Top Issues')}
               </ClickableHeading>
+              <FeatureBadge type="experimental" />
               {isUsingCustomData && (
                 <CustomDataBadge>
                   <Text size="xs" bold>
@@ -841,7 +737,7 @@ function DynamicGrouping() {
           </Flex>
 
           <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
-            <ProjectPageFilter />
+            <ProjectPageFilter resetParamsOnChange={['cluster']} />
             {showDevTools && (
               <Button
                 size="sm"
@@ -1080,7 +976,7 @@ const PageWrapper = styled('div')`
 
 const HeaderSection = styled('div')`
   padding: ${space(4)} ${space(4)} ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const ClickableHeading = styled(Heading)`
@@ -1091,7 +987,7 @@ const ClickableHeading = styled(Heading)`
 const CardsSection = styled('div')`
   flex: 1;
   padding: ${space(2)} ${space(4)} ${space(4)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const CardsGrid = styled('div')`
@@ -1127,13 +1023,13 @@ const CardContainer = styled('div')`
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
-    border-color: ${p => p.theme.colors.blue200};
+    border-color: ${p => p.theme.tokens.border.accent.moderate};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
 
 const CardHeader = styled('div')`
-  padding: ${space(3)} ${space(3)} ${space(2)};
+  padding: ${space(3)} ${space(3)} 0;
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
@@ -1215,18 +1111,18 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
     switch (p.color) {
       case 'purple':
         return `
-          background: ${p.theme.colors.blue100};
-          color: ${p.theme.colors.blue400};
+          background: ${p.theme.tokens.background.transparent.accent.muted};
+          color: ${p.theme.tokens.content.accent};
         `;
       case 'yellow':
         return `
-          background: ${p.theme.colors.yellow100};
-          color: ${p.theme.colors.yellow400};
+          background: ${p.theme.tokens.background.transparent.warning.muted};
+          color: ${p.theme.tokens.content.warning};
         `;
       case 'red':
         return `
-          background: ${p.theme.colors.red100};
-          color: ${p.theme.colors.red400};
+          background: ${p.theme.tokens.background.transparent.danger.muted};
+          color: ${p.theme.tokens.content.danger};
         `;
       default:
         return '';
@@ -1234,50 +1130,7 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   }}
 `;
 
-const TabSection = styled('div')`
-  position: relative;
-  z-index: 1;
-`;
-
-const TabBar = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(3)} 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const Tab = styled('button')<{isActive: boolean}>`
-  background: none;
-  border: none;
-  padding: ${space(1)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: 500;
-  color: ${p =>
-    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
-  cursor: pointer;
-  position: relative;
-  margin-bottom: -1px;
-
-  ${p =>
-    p.isActive &&
-    `
-    &::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 2px;
-      background: ${p.theme.colors.blue400};
-    }
-  `}
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
-  }
-`;
-
-const TabContent = styled('div')`
+const CardBody = styled('div')`
   padding: ${space(2)} ${space(3)};
 `;
 
@@ -1309,57 +1162,6 @@ const SeerDropdownTrigger = styled(Button)`
   border-left: 1px solid rgba(255, 255, 255, 0.15);
 `;
 
-const IssuePreviewLink = styled(Link)`
-  display: block;
-  padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-
-  &:hover {
-    border-color: ${p => p.theme.colors.blue400};
-    background: ${p => p.theme.tokens.background.primary};
-  }
-`;
-
-const IssueTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: 600;
-  color: ${p => p.theme.tokens.content.primary};
-  line-height: 1.4;
-  ${p => p.theme.overflowEllipsis};
-
-  em {
-    font-size: ${p => p.theme.fontSize.sm};
-    font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const IssueMessage = styled(EventMessage)`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  opacity: 0.9;
-`;
-
-const MetaSeparator = styled('div')`
-  height: 10px;
-  width: 1px;
-  background-color: ${p => p.theme.tokens.border.secondary};
-`;
-
-const DescriptionText = styled('p')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  line-height: 1.5;
-`;
-
 const StructuredInfo = styled('div')`
   display: flex;
   flex-direction: column;
@@ -1377,7 +1179,7 @@ const TagPill = styled('span')`
   padding: ${space(0.25)} ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.tokens.content.secondary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
@@ -1412,7 +1214,7 @@ const ShowMoreButton = styled('button')`
   width: 100%;
   margin-top: ${space(3)};
   padding: ${space(2)} ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.secondary};
@@ -1424,8 +1226,8 @@ const ShowMoreButton = styled('button')`
     color 0.15s ease;
 
   &:hover {
-    background: ${p => p.theme.backgroundTertiary};
-    border-color: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.tertiary};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -1433,7 +1235,7 @@ const ShowMoreButton = styled('button')`
 const JsonInputContainer = styled('div')`
   margin-bottom: ${space(2)};
   padding: ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;

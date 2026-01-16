@@ -40,8 +40,8 @@ function getEventColor(
 ): TimelineItemProps['colorConfig'] {
   return {
     title: theme.tokens.content.primary,
-    icon: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
-    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
+    icon: isActive ? theme.colors.pink400 : theme.tokens.content.secondary,
+    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.secondary,
   };
 }
 
@@ -177,7 +177,13 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 

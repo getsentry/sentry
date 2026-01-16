@@ -51,12 +51,15 @@ type SemanticVariant =
 /**
  * Content/text color variant.
  */
-export type ContentVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'muted';
+export type ContentVariant =
+  | Exclude<SemanticVariant, 'neutral'>
+  | 'primary'
+  | 'secondary';
 
 /**
  * Graphics/icon color variant.
  */
-export type GraphicsVariant = Exclude<SemanticVariant, 'neutral'> | 'muted';
+export type GraphicsVariant = SemanticVariant;
 
 /**
  * Border color variant.
@@ -108,19 +111,6 @@ export type LevelVariant =
   | 'fatal'
   | 'default'
   | 'unknown';
-
-/**
- * Button style variant.
- *
- * Note: 'disabled' is a state, not a variant, but is included for backwards compatibility.
- */
-export type ButtonVariant =
-  | 'default'
-  | 'primary'
-  | 'danger'
-  | 'link'
-  | 'disabled'
-  | 'transparent';
 
 // -----------------------------------------------------------------------------
 // Internal types

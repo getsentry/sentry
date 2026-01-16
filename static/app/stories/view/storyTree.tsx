@@ -114,10 +114,9 @@ type ComponentSubcategory =
   | 'layout'
   | 'buttons'
   | 'forms'
-  | 'pickers'
   | 'navigation'
-  | 'status-feedback'
-  | 'data-display'
+  | 'status'
+  | 'display'
   | 'overlays'
   | 'utilities'
   | 'shared';
@@ -139,7 +138,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
 > = {
   layout: {
     label: 'Layout',
-    components: ['composition', 'container', 'flex', 'grid', 'stack'],
+    components: ['composition', 'container', 'disclosure', 'flex', 'grid', 'stack'],
   },
   typography: {
     label: 'Typography',
@@ -160,11 +159,6 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
       'radio',
       'switch',
       'slider',
-    ],
-  },
-  pickers: {
-    label: 'Pickers',
-    components: [
       'select',
       'multiselect',
       'compactselect',
@@ -174,13 +168,13 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   navigation: {
     label: 'Navigation',
-    components: ['link', 'tabs', 'menulistitem', 'disclosure'],
+    components: ['link', 'tabs', 'menulistitem'],
   },
-  'status-feedback': {
+  status: {
     label: 'Status & Feedback',
-    components: ['alert', 'badge', 'toast'],
+    components: ['alert', 'badge', 'tag', 'toast'],
   },
-  'data-display': {
+  display: {
     label: 'Data Display',
     components: ['avatar', 'image', 'codeblock'],
   },
@@ -211,10 +205,9 @@ const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
   'typography',
   'buttons',
   'forms',
-  'pickers',
   'navigation',
-  'status-feedback',
-  'data-display',
+  'status',
+  'display',
   'overlays',
   'utilities',
   'shared',
@@ -719,7 +712,7 @@ const FolderName = styled('div')`
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.md};
   padding-right: ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   position: relative;
 
@@ -748,14 +741,17 @@ const FolderLink = styled(Link, {
   align-items: center;
   gap: ${p => p.theme.space.xs};
   color: ${p =>
-    p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.muted};
+    p.active
+      ? p.theme.tokens.interactive.link.accent.rest
+      : p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p => p.theme.space.md};
   padding-left: ${p => p.theme.space.sm};
   position: relative;
   transition: none;
 
   &:before {
-    background: ${p => p.theme.colors.blue100};
+    background: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     content: '';
     inset: 0 ${p => p.theme.space.md} 0 -${p => p.theme.space['2xs']};
     position: absolute;
@@ -770,7 +766,7 @@ const FolderLink = styled(Link, {
     position: absolute;
     left: -8px;
     height: 20px;
-    background: ${p => p.theme.tokens.graphics.accent};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
     width: 4px;
     border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
@@ -779,20 +775,30 @@ const FolderLink = styled(Link, {
 
   &:hover {
     color: ${p =>
-      p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
+      p.active
+        ? p.theme.tokens.interactive.link.accent.hover
+        : p.theme.tokens.interactive.link.neutral.hover};
 
     &:before {
-      background: ${p => (p.active ? p.theme.colors.blue100 : p.theme.colors.gray100)};
+      background: ${p =>
+        p.active
+          ? p.theme.tokens.interactive.transparent.accent.selected.background.hover
+          : p.theme.tokens.interactive.transparent.neutral.background.hover};
       opacity: 1;
     }
   }
 
   &:active {
     color: ${p =>
-      p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
+      p.active
+        ? p.theme.tokens.interactive.link.accent.active
+        : p.theme.tokens.interactive.link.neutral.active};
 
     &:before {
-      background: ${p => (p.active ? p.theme.colors.blue200 : p.theme.colors.gray200)};
+      background: ${p =>
+        p.active
+          ? p.theme.tokens.interactive.transparent.accent.selected.background.active
+          : p.theme.tokens.interactive.transparent.neutral.background.active};
       opacity: 1;
     }
   }

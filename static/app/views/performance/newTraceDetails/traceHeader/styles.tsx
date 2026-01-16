@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack, type StackProps} from '@sentry/scraps/layout';
+
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 
@@ -22,10 +24,9 @@ const HeaderRow = styled('div')`
   }
 `;
 
-const HeaderContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
+function HeaderContent(props: StackProps<'div'>) {
+  return <Stack {...props} />;
+}
 
 const StyledBreak = styled('hr')`
   margin: ${space(1)} 0;

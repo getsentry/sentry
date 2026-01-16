@@ -742,7 +742,8 @@ export function ProductUsageChart({
           markLine: MarkLine({
             silent: true,
             lineStyle: {
-              color: !isCumulative || isUnlimitedQuota ? 'transparent' : theme.gray300,
+              color:
+                !isCumulative || isUnlimitedQuota ? 'transparent' : theme.colors.gray400,
               type: 'dashed',
             },
             data: [{yAxis: isCumulative ? yAxisQuotaLine : 0}],
@@ -754,7 +755,7 @@ export function ProductUsageChart({
                 displayMode === 'usage'
                   ? t(`Plan Quota (%s)`, yAxisQuotaLineLabel)
                   : t('Max Spend'),
-              color: theme.tokens.content.muted,
+              color: theme.tokens.content.secondary,
               backgroundColor: theme.tokens.background.primary,
               borderRadius: 2,
               padding: 2,

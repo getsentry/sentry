@@ -70,8 +70,8 @@ function Item({
 function makeDefaultColorConfig(theme: Theme) {
   return {
     title: theme.tokens.content.primary,
-    icon: theme.tokens.content.muted,
-    iconBorder: theme.tokens.content.muted,
+    icon: theme.tokens.content.secondary,
+    iconBorder: theme.tokens.content.secondary,
   };
 }
 
@@ -144,7 +144,7 @@ const Data = styled('div')`
   margin: ${space(0.75)} 0 0 -${space(0.75)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   position: relative;
   &:only-child {
     margin-top: 0;

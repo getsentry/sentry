@@ -213,6 +213,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_stats.py                      @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_timeseries.py                 @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/data-browsing
+src/sentry/api/endpoints/organization_attribute_mappings.py                 @getsentry/data-browsing
 
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
@@ -225,6 +226,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/data-browsing
+tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @getsentry/data-browsing
 
 /src/sentry/api/serializers/snuba.py                                        @getsentry/data-browsing
 
@@ -664,8 +666,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 
 # Taskbroker workers
-/src/sentry/taskworker/                                       @getsentry/taskbroker
-/tests/sentry/taskworker/                                     @getsentry/taskbroker
+/src/sentry/taskworker/                                       @getsentry/streaming-platform
+/tests/sentry/taskworker/                                     @getsentry/streaming-platform
 
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx

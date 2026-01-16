@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ExternalLink} from 'sentry/components/core/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
@@ -12,7 +14,7 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
     <CheckLegend>
       <CheckLegendItem>
         <CheckIndicator status={CheckStatus.SUCCESS} />
-        <LegendText>
+        <Flex align="center" gap="md">
           {statusToText[CheckStatus.SUCCESS]}
           <QuestionTooltip
             isHoverable
@@ -26,11 +28,11 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
               }
             )}
           />
-        </LegendText>
+        </Flex>
       </CheckLegendItem>
       <CheckLegendItem>
         <CheckIndicator status={CheckStatus.FAILURE} />
-        <LegendText>
+        <Flex align="center" gap="md">
           {statusToText[CheckStatus.FAILURE]}
           <QuestionTooltip
             isHoverable
@@ -44,11 +46,11 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
               }
             )}
           />
-        </LegendText>
+        </Flex>
       </CheckLegendItem>
       <CheckLegendItem>
         <CheckIndicator status={CheckStatus.FAILURE_INCIDENT} />
-        <LegendText>
+        <Flex align="center" gap="md">
           {statusToText[CheckStatus.FAILURE_INCIDENT]}
           <QuestionTooltip
             isHoverable
@@ -62,12 +64,12 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
               }
             )}
           />
-        </LegendText>
+        </Flex>
       </CheckLegendItem>
       {showMissedLegend && (
         <CheckLegendItem>
           <CheckIndicator status={CheckStatus.MISSED_WINDOW} />
-          <LegendText>
+          <Flex align="center" gap="md">
             {statusToText[CheckStatus.MISSED_WINDOW]}
             <QuestionTooltip
               isHoverable
@@ -81,7 +83,7 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
                 }
               )}
             />
-          </LegendText>
+          </Flex>
         </CheckLegendItem>
       )}
     </CheckLegend>
@@ -101,10 +103,4 @@ const CheckLegendItem = styled('li')`
   grid-template-columns: subgrid;
   align-items: center;
   grid-column: 1 / -1;
-`;
-
-const LegendText = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;

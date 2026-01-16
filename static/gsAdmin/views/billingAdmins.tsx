@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -9,9 +7,7 @@ const getRow = (row: any) => [
   <td key="permission">{row.permission}</td>,
 ];
 
-type Props = RouteComponentProps<unknown, unknown>;
-
-function BillingAdmins(props: Props) {
+export default function BillingAdmins() {
   return (
     <div>
       <PageHeader title="Billing Admin Users" />
@@ -26,10 +22,7 @@ function BillingAdmins(props: Props) {
           <th key="permission">Permission</th>,
         ]}
         columnsForRow={getRow}
-        {...props}
       />
     </div>
   );
 }
-
-export default BillingAdmins;

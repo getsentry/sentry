@@ -14,18 +14,15 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
 
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
-    record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha
-from .config import get_direct_to_seer_gh_orgs
+from ..utils import _get_target_commit_sha, should_forward_to_seer
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +93,6 @@ def handle_issue_comment_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
-    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -131,7 +127,7 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
 
-    if github_org in get_direct_to_seer_gh_orgs():
+    if should_forward_to_seer(github_event, event):
         if comment_id:
             _add_eyes_reaction_to_comment(
                 github_event,
@@ -153,6 +149,4 @@ def handle_issue_comment_event(
             organization=organization,
             repo=repo,
             target_commit_sha=target_commit_sha,
-            trigger=CodeReviewTrigger.ON_COMMAND_PHRASE,
         )
-        record_webhook_enqueued(github_event, github_event_action)

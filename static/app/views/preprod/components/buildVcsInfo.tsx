@@ -13,7 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formatBuildName,
-  getBaseBuildUrl,
+  getBaseBuildPath,
 } from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   getBranchUrl,
@@ -87,11 +87,14 @@ export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
                 );
                 const baseBuildUrl =
                   buildDetailsData.base_artifact_id && projectId
-                    ? getBaseBuildUrl({
-                        baseArtifactId: buildDetailsData.base_artifact_id,
-                        organizationSlug: organization.slug,
-                        projectId,
-                      })
+                    ? getBaseBuildPath(
+                        {
+                          baseArtifactId: buildDetailsData.base_artifact_id,
+                          organizationSlug: organization.slug,
+                          projectId,
+                        },
+                        'size'
+                      )
                     : null;
                 if (!baseBuildUrl || !buildName) {
                   return '-';

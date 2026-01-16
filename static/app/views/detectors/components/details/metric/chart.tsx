@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
+import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,6 +29,7 @@ import {
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
@@ -193,9 +195,9 @@ export function useMetricDetectorChart({
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
+      aggregate,
       conditions: detector.conditionGroup?.conditions,
       detectionType,
-      aggregate,
       comparisonSeries,
     });
 
@@ -249,7 +251,11 @@ export function useMetricDetectorChart({
     usePageDate: true,
   });
 
-  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
+  const {maxValue, minValue} = useDetectorChartAxisBounds({
+    series,
+    thresholdMaxValue,
+    aggregate,
+  });
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
@@ -271,19 +277,33 @@ export function useMetricDetectorChart({
     });
 
     const isPercentage = outputType === 'percentage';
-    // For percentage aggregates, use fixed max of 1 (100%) and calculated min
-    const yAxisMax = isPercentage ? 1 : maxValue > 0 ? maxValue : undefined;
-    // Start charts at 0 for non-percentage aggregates
-    const yAxisMin = isPercentage ? minValue : 0;
+    // Use calculated max/min values from data and thresholds for appropriate scaling
+    const yAxisMax = maxValue > 0 ? maxValue : undefined;
+    const yAxisMin = minValue;
+
+    // For percentages, use 2 decimal places
+    const customFormatter = (value: number): string => {
+      if (isPercentage) {
+        return axisLabelFormatterUsingAggregateOutputType(
+          value,
+          outputType,
+          true,
+          undefined,
+          undefined,
+          2
+        );
+      }
+      return formatYAxisLabel(value);
+    };
 
     const mainYAxis: YAXisComponentOption = {
       max: yAxisMax,
       min: yAxisMin,
       axisLabel: {
-        // Show max label for percentage (100%) but hide for other types to avoid arbitrary values
+        // Show max label for percentage but hide for other types to avoid arbitrary values
         showMaxLabel: isPercentage,
         // Format the axis labels with units
-        formatter: formatYAxisLabel,
+        formatter: customFormatter,
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -386,6 +406,11 @@ function OpenInButton({detector}: OpenInButtonProps) {
   const location = useLocation();
   const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
 
+  const isUsingMigratedExtrapolationMode = useIsMigratedExtrapolation({
+    dataset: getDetectorDataset(snubaQuery?.dataset, snubaQuery?.eventTypes),
+    extrapolationMode: snubaQuery?.extrapolationMode,
+  });
+
   if (!snubaQuery) {
     return null;
   }
@@ -404,9 +429,20 @@ function OpenInButton({detector}: OpenInButtonProps) {
     return null;
   }
 
+  const disabledTooltip = isUsingMigratedExtrapolationMode
+    ? t(
+        'This detector cannot be opened in Explore until you update thresholds and resave.'
+      )
+    : undefined;
+
   return (
     <Feature features="visibility-explore-view">
-      <LinkButton size="xs" to={destination.to}>
+      <LinkButton
+        size="xs"
+        to={destination.to}
+        disabled={isUsingMigratedExtrapolationMode}
+        title={disabledTooltip}
+      >
         {destination.buttonText}
       </LinkButton>
     </Feature>

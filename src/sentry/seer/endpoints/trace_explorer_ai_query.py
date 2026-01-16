@@ -62,8 +62,7 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    @staticmethod
-    def post(request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Request to translate a natural language query into a sentry EQS query.
         """
@@ -73,17 +72,26 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        project_ids = [int(x) for x in request.data.get("project_ids", [])]
+        raw_project_ids = request.data.get("project_ids", [])
         natural_language_query = request.data.get("natural_language_query")
         limit = request.data.get("limit", 1)
 
-        if len(project_ids) == 0 or not natural_language_query:
+        # Validate required parameters before calling get_projects()
+        if len(raw_project_ids) == 0 or not natural_language_query:
             return Response(
                 {
                     "detail": "Missing one or more required parameters: project_ids, natural_language_query"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Validate project access after confirming valid input
+        projects = self.get_projects(
+            request=request,
+            organization=organization,
+            project_ids={int(x) for x in raw_project_ids},
+        )
+        project_ids = [p.id for p in projects]
 
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(

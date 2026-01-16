@@ -10,6 +10,8 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
@@ -220,7 +222,9 @@ export function GuidedSteps({
 
   return (
     <GuidedStepsContext value={value}>
-      <StepsWrapper className={className}>{children}</StepsWrapper>
+      <Stack gap="xl" background="primary" className={className}>
+        {children}
+      </Stack>
     </GuidedStepsContext>
   );
 }
@@ -231,13 +235,6 @@ const StepButtonsWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   margin-top: ${space(1.5)};
-`;
-
-const StepsWrapper = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
 
 const StepWrapper = styled('div')`
@@ -269,8 +266,10 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   line-height: 34px;
   border-radius: 50%;
   background: ${p =>
-    p.isActive ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
-  color: ${p => p.theme.white};
+    p.isActive
+      ? p.theme.tokens.graphics.accent.vibrant
+      : p.theme.tokens.graphics.neutral.moderate};
+  color: ${p => p.theme.colors.white};
   border: 4px solid ${p => p.theme.tokens.background.primary};
 `;
 

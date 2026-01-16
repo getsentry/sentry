@@ -61,7 +61,10 @@ import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {
+  getMetricDetectorSuffix,
+  getStaticDetectorThresholdPlaceholder,
+} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
@@ -223,6 +226,7 @@ function PriorityRow({
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
   const thresholdSuffix = getMetricDetectorSuffix(detectionType, aggregate);
+  const thresholdPlaceholder = getStaticDetectorThresholdPlaceholder(aggregate);
   const isHigh = priority === 'high';
   const isStatic = detectionType === 'static';
 
@@ -284,7 +288,7 @@ function PriorityRow({
               flexibleControlStateSize
               inline={false}
               hideLabel
-              placeholder="0"
+              placeholder={thresholdPlaceholder}
               name={thresholdFieldName}
               suffix={thresholdSuffix}
               required={isHigh}
@@ -790,6 +794,6 @@ const PriorityLabel = styled('span')`
 `;
 
 const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
   margin-left: ${space(0.25)};
 `;

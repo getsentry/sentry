@@ -1,6 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
@@ -35,11 +37,11 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
         showUnderline={false}
         disabled={isSupportedProvider}
       >
-        <RepoHeader>
-          <RepoInfoWrapper>
+        <Flex justify="between" align="center" padding="md lg">
+          <Flex justify="between" align="center" width="100%">
             <RepoName>{repo.name}</RepoName>
 
-            <SelectionWrapper>
+            <Flex align="center" gap="md">
               <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
 
               <StyledCheckbox
@@ -48,9 +50,9 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
                 readOnly
                 disabled={!isSupportedProvider}
               />
-            </SelectionWrapper>
-          </RepoInfoWrapper>
-        </RepoHeader>
+            </Flex>
+          </Flex>
+        </Flex>
       </Tooltip>
     </RepoListItemContainer>
   );
@@ -69,7 +71,13 @@ const RepoListItemContainer = styled('div')<{
   padding-left: ${space(1.5)};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   ${p =>
@@ -81,21 +89,6 @@ const RepoListItemContainer = styled('div')<{
         background-color: ${p.theme.colors.surface200};
       }
     `}
-`;
-
-const RepoHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${space(1)} ${space(1.5)};
-`;
-
-const RepoInfoWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
-  justify-content: space-between;
 `;
 
 const RepoName = styled('div')`
@@ -110,10 +103,4 @@ const RepoProvider = styled('div')`
 
 const StyledCheckbox = styled(Checkbox)`
   margin: 0;
-`;
-
-const SelectionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;

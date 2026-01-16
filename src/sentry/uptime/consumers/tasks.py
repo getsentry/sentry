@@ -25,7 +25,7 @@ from sentry.workflow_engine.models.detector import Detector
 logger = logging.getLogger(__name__)
 
 # 7 attempts over 180 seconds
-BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30]
+BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30, 30, 30, 30, 30]
 
 
 @instrumented_task(
@@ -97,7 +97,6 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
         cluster.zrem(backlog_key, result_json)
         metrics.incr("uptime.backlog.removed", amount=1, sample_rate=1.0, tags=metric_tags)
         expected_next_ms += subscription_interval_ms
-        last_update_ms = result["scheduled_check_time_ms"]
         processed_count += 1
 
     # If we've hit max attempts process all remaining with backfill
@@ -119,6 +118,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
                 "uptime_region": result["region"],
                 "host_provider": host_provider,
             }
+            last_update_ms = int(cluster.get(last_update_key) or 0)
             create_backfill_misses(
                 detector,
                 subscription,

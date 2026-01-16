@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Input} from 'sentry/components/core/input';
@@ -79,9 +79,9 @@ function AskUserQuestionBlock({
                   exit={{opacity: 0, x: -20}}
                   transition={{duration: 0.12, ease: 'easeOut'}}
                 >
-                  <QuestionContainer>
+                  <Stack gap="lg">
                     <Text>{currentQuestion.question}</Text>
-                    <OptionsContainer>
+                    <Stack gap="sm">
                       {currentQuestion.options.map((option, index) => (
                         <OptionRow
                           key={index}
@@ -127,8 +127,8 @@ function AskUserQuestionBlock({
                           />
                         </CustomInputWrapper>
                       </OptionRow>
-                    </OptionsContainer>
-                  </QuestionContainer>
+                    </Stack>
+                  </Stack>
                 </motion.div>
               </AnimatePresence>
             </BlockContentWrapper>
@@ -161,18 +161,6 @@ const BlockContentWrapper = styled('div')`
   padding: ${p => p.theme.space.xl};
 `;
 
-const QuestionContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-`;
-
-const OptionsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-`;
-
 const OptionRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   align-items: center;
@@ -183,7 +171,7 @@ const OptionRow = styled('div')<{isSelected: boolean}>`
   transition: background-color 0.15s ease;
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

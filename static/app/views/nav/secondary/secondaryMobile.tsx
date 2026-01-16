@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,9 +31,9 @@ export function SecondaryMobile({handleClickBack}: Props) {
           {activeGroup ? PRIMARY_NAV_GROUP_CONFIG[activeGroup].label : ''}
         </HeaderLabel>
       </GroupHeader>
-      <MobileSecondaryNav>
+      <Stack justify="between" align="stretch" overflowY="auto" area="content">
         <SecondaryNavContent group={activeGroup} />
-      </MobileSecondaryNav>
+      </Stack>
     </SecondaryMobileWrapper>
   );
 }
@@ -52,21 +54,12 @@ const GroupHeader = styled('h2')`
   position: sticky;
   top: 0;
   z-index: 1;
-  background: ${p => p.theme.colors.surface300};
+  background: ${p => p.theme.tokens.background.tertiary};
   display: flex;
   align-items: center;
   padding: ${space(2)} ${space(1)};
   gap: ${space(1)};
   margin: 0;
-`;
-
-const MobileSecondaryNav = styled('div')`
-  grid-area: content;
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  flex-direction: column;
-  overflow-y: auto;
 `;
 
 const HeaderLabel = styled('div')`

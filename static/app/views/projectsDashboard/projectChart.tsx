@@ -58,12 +58,12 @@ export function ProjectChart({
       xAxisIndex: 1,
       yAxisIndex: 1,
       itemStyle: {
-        color: theme.chart.neutral,
+        color: theme.tokens.dataviz.semantic.neutral,
         opacity: 0.8,
       },
       emphasis: {
         itemStyle: {
-          color: theme.chart.neutral,
+          color: theme.tokens.dataviz.semantic.neutral,
           opacity: 1.0,
         },
       },
@@ -84,12 +84,12 @@ export function ProjectChart({
       xAxisIndex: 0,
       yAxisIndex: 0,
       itemStyle: {
-        color: theme.colors.blue400,
+        color: theme.tokens.dataviz.semantic.accent,
         opacity: 0.6,
       },
       emphasis: {
         itemStyle: {
-          color: theme.colors.blue400,
+          color: theme.tokens.dataviz.semantic.accent,
           opacity: 0.8,
         },
       },
@@ -162,12 +162,12 @@ export function ProjectChart({
         margin: 2,
         showMaxLabel: true,
         showMinLabel: false,
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         fontFamily: theme.text.family,
         inside: true,
         lineHeight: 12,
         formatter: (value: number) => axisLabelFormatter(value, 'number', true),
-        textBorderColor: theme.backgroundSecondary,
+        textBorderColor: theme.tokens.border.secondary,
         textBorderWidth: 1,
       },
       splitLine: {

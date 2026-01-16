@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge/badge';
+import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -9,7 +9,6 @@ import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
@@ -91,7 +90,7 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   return (
     <Fragment>
-      <SamplesTableHeader>
+      <Flex justify="between" marginBottom="md">
         <Tabs value={props.tab} onChange={props.setTab} size="sm">
           <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
@@ -126,7 +125,7 @@ export function ExploreTables(props: ExploreTablesProps) {
             </Button>
           </Tooltip>
         )}
-      </SamplesTableHeader>
+      </Flex>
       {props.tab === Tab.SPAN && <SpansTable {...props} />}
       {props.tab === Tab.TRACE && <TracesTable {...props} />}
       {props.tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
@@ -134,10 +133,3 @@ export function ExploreTables(props: ExploreTablesProps) {
     </Fragment>
   );
 }
-
-const SamplesTableHeader = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;

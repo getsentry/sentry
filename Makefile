@@ -105,7 +105,7 @@ test-cli: create-db
 
 test-js-build:
 	@echo "--> Running type check"
-	@pnpm run tsc -p config/tsconfig.build.json
+	@pnpm run tsc -p tsconfig.json
 	@echo "--> Building static assets"
 	@NODE_ENV=production pnpm run build-profile > .artifacts/webpack-stats.json
 
@@ -127,6 +127,23 @@ test-python-ci:
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
+		--json-report \
+		--json-report-file=".artifacts/pytest.json" \
+		--json-report-omit=log \
+		--junit-xml=.artifacts/pytest.junit.xml \
+		-o junit_suite_name=pytest
+	@echo ""
+
+test-backend-ci-with-coverage:
+	@echo "--> Running CI Python tests with coverage"
+	python3 -b -m pytest \
+		tests \
+		--ignore tests/acceptance \
+		--ignore tests/apidocs \
+		--ignore tests/js \
+		--ignore tests/tools \
+		--cov . \
+		--cov-context=test \
 		--json-report \
 		--json-report-file=".artifacts/pytest.json" \
 		--json-report-omit=log \

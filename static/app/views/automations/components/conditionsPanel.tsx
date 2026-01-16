@@ -32,22 +32,26 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
     <Panel>
       <ConditionGroupWrapper>
         <ConditionGroupHeader>
-          {tct(
-            '[when:When] an issue event is captured and [logicType] of the following occur',
-            {
-              when: <ConditionBadge />,
-              logicType:
-                TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers?.logicType)
-                  ?.label || t('any'),
-            }
-          )}
+          {triggers?.conditions && triggers.conditions.length > 0
+            ? tct(
+                '[when:When] an issue event is captured and [logicType] of the following occur',
+                {
+                  when: <ConditionBadge />,
+                  logicType:
+                    TRIGGER_MATCH_OPTIONS.find(
+                      choice => choice.value === triggers?.logicType
+                    )?.label || t('any'),
+                }
+              )
+            : tct('[when:When] an issue event is captured', {
+                when: <ConditionBadge />,
+              })}
         </ConditionGroupHeader>
         {triggers?.conditions?.map((trigger, index) => (
           <div key={index}>
             <DataConditionDetails condition={trigger} />
           </div>
         ))}
-        {(!triggers || triggers.conditions.length === 0) && t('An event is captured')}
       </ConditionGroupWrapper>
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
@@ -92,8 +96,11 @@ function ActionFilter({actionFilter, showDivider}: ActionFilterProps) {
         {tct('[if:If] [logicType] of these filters match', {
           if: <ConditionBadge />,
           logicType:
-            FILTER_MATCH_OPTIONS.find(choice => choice.value === actionFilter.logicType)
-              ?.label || actionFilter.logicType,
+            FILTER_MATCH_OPTIONS.find(
+              choice =>
+                choice.value === actionFilter.logicType ||
+                choice.alias === actionFilter.logicType
+            )?.label || actionFilter.logicType,
         })}
       </ConditionGroupHeader>
       {actionFilter.conditions.length > 0
@@ -164,7 +171,7 @@ const Panel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};

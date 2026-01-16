@@ -156,7 +156,7 @@ const Title = styled('h3')`
 
 const Subheader = styled('p')`
   text-transform: uppercase;
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.tokens.content.promotion};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   margin-bottom: ${space(1)};
@@ -181,7 +181,7 @@ const ConsentHeader = styled('p')`
 `;
 
 const ConsentInfo = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding-top: ${space(1.5)};
   padding-bottom: ${space(1.5)};
@@ -228,7 +228,7 @@ const LearnMore = styled(ExternalLink)`
 
   &:hover {
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.blue200};
+    text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 `;
 
@@ -251,7 +251,7 @@ const ImageHeader = styled('div')`
 const Divider = styled('hr')`
   width: 95%;
   height: 1px;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.colors.gray100};
   border: none;
   margin-top: ${space(1.5)};
   margin-bottom: ${space(1.5)};

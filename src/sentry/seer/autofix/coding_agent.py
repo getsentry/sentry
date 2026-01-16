@@ -248,7 +248,11 @@ def _launch_agents_for_repos(
             "There are no repos in the Seer state to launch coding agents with, make sure you have repos connected to Seer and rerun this Issue Fix."
         )
 
-    prompt = get_coding_agent_prompt(run_id, trigger_source, instruction)
+    short_id = None
+    if autofix_state and auto_create_pr:
+        short_id = autofix_state.request.issue.get("short_id")
+
+    prompt = get_coding_agent_prompt(run_id, trigger_source, instruction, short_id)
 
     if not prompt:
         raise APIException("Issue fetching prompt to send to coding agents.")
@@ -301,10 +305,18 @@ def _launch_agents_for_repos(
                     "repo_name": repo_name,
                 },
             )
+            error_message = str(e)
+            if isinstance(e, ApiError):
+                url_part = f" ({e.url})" if e.url else ""
+                if e.code == 401:
+                    error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
+                else:
+                    error_message = f"Failed to make request to coding agent{url_part}. {e.code} Error: {e.text}"
+
             failures.append(
                 {
                     "repo_name": repo_name,
-                    "error_message": str(e),
+                    "error_message": error_message,
                 }
             )
             continue

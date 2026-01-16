@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Literal
 
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.db.models import QuerySet
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -175,43 +175,6 @@ def perform_bulk_detector_workflow_operations(
             event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
             data=detector_workflow.get_audit_log_data(),
         )
-
-
-class DetectorWorkflowValidator(CamelSnakeSerializer):
-    detector_id = serializers.IntegerField(required=True)
-    workflow_id = serializers.IntegerField(required=True)
-
-    def create(self, validated_data):
-        with transaction.atomic(router.db_for_write(DetectorWorkflow)):
-            try:
-                detector = Detector.objects.get(
-                    project__organization=self.context["organization"],
-                    id=validated_data["detector_id"],
-                )
-                if not can_edit_detector_workflow_connections(detector, self.context["request"]):
-                    raise PermissionDenied
-                workflow = Workflow.objects.get(
-                    organization=self.context["organization"], id=validated_data["workflow_id"]
-                )
-            except (Detector.DoesNotExist, Workflow.DoesNotExist) as e:
-                raise serializers.ValidationError(str(e))
-
-            try:
-                detector_workflow = DetectorWorkflow.objects.create(
-                    detector=detector, workflow=workflow
-                )
-            except IntegrityError as e:
-                raise serializers.ValidationError(str(e))
-
-            create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
-                target_object=detector_workflow.id,
-                event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
-                data=detector_workflow.get_audit_log_data(),
-            )
-
-        return detector_workflow
 
 
 class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
 
 import {Text} from 'sentry/components/core/text';
 import {IconSeer} from 'sentry/icons';
@@ -132,12 +132,9 @@ const PanelContent = styled('div')`
   overflow: hidden;
 `;
 
-export const BlocksContainer = styled('div')`
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-`;
+export function BlocksContainer(props: StackProps<'div'>) {
+  return <Stack flex="1" overflowY="auto" {...props} />;
+}
 
 const MinimizedOverlay = styled(motion.div)`
   position: absolute;
@@ -163,7 +160,7 @@ const MinimizedOverlay = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${p => p.theme.colors.blue200};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-radius: inherit;
     z-index: -1;
     pointer-events: none;

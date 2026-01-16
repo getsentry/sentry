@@ -336,5 +336,5 @@ const TabListOverflowWrap = StyledTabListOverflowWrap;
 const OverflowMenuTrigger = styled(SelectTrigger.IconButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
-  color: ${p => p.theme.tokens.component.link.muted.default};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 `;

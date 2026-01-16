@@ -46,7 +46,7 @@ const COLOR_MAP = {
   blue: 'blue',
   yellow: 'yellow',
   magenta: 'pink',
-  cyan: 'purple',
+  cyan: 'blue',
 } as const;
 
 const SentryStyleAnsi = styled(Ansi)`
@@ -54,23 +54,23 @@ const SentryStyleAnsi = styled(Ansi)`
     Object.entries(COLOR_MAP).map(
       ([ansiColor, themeColor]) => `
       .ansi-${ansiColor}-bg {
-        background-color: ${p.theme[`${themeColor}400`]};
+        background-color: ${p.theme.colors[`${themeColor}500`]};
       }
       .ansi-${ansiColor}-fg {
-        color: ${p.theme[`${themeColor}400`]};
+        color: ${p.theme.colors[`${themeColor}500`]};
       }
       .ansi-bright-${ansiColor}-fg {
-        color: ${p.theme[`${themeColor}200`]};
+        color: ${p.theme.colors[`${themeColor}200`]};
       }`
     )}
 
   .ansi-black-fg,
   .ansi-bright-black-fg {
-    color: ${p => p.theme.black};
+    color: ${p => p.theme.colors.black};
   }
   .ansi-white-fg,
   .ansi-bright-white-fg {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
 `;
 

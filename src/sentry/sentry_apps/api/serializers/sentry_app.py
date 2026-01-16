@@ -14,6 +14,7 @@ from sentry.hybridcloud.services.organization_mapping import organization_mappin
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
     SentryAppAvatarSerializer as ResponseSentryAppAvatarSerializer,
 )
@@ -83,6 +84,19 @@ class SentryAppSerializer(Serializer):
         user_orgs = user_service.get_organizations(user_id=user.id)
         user_org_ids = {uo.id for uo in user_orgs}
 
+        # Fetch organization contexts for unique owner_ids where user is a member.
+        # This deduplicates the calls - typically all items share the same owner_id
+        # (e.g., OrganizationSentryAppsEndpoint filters by single org), so this
+        # reduces N calls to 1.
+        owner_contexts: dict[int, RpcUserOrganizationContext] = {}
+        unique_owner_ids = {i.owner_id for i in item_list if i.owner_id in user_org_ids}
+        for owner_id in unique_owner_ids:
+            owner_context = organization_service.get_organization_by_id(
+                id=owner_id, user_id=user.id
+            )
+            if owner_context:
+                owner_contexts[owner_id] = owner_context
+
         return {
             item: {
                 "features": app_feature_attrs.get(item.id, set()),
@@ -90,6 +104,7 @@ class SentryAppSerializer(Serializer):
                 "owner": organizations.get(item.owner_id, None),
                 "application": applications.get(item.application_id, None),
                 "user_org_ids": user_org_ids,
+                "owner_context": owner_contexts.get(item.owner_id, None),
             }
             for item in item_list
         }
@@ -138,6 +153,7 @@ class SentryAppSerializer(Serializer):
 
         owner = attrs["owner"]
         user_org_ids = attrs["user_org_ids"]
+        owner_context = attrs["owner_context"]
 
         if owner:
             # TODO(schew2381): Check if superuser needs this for Sentry Apps in the UI.
@@ -147,11 +163,7 @@ class SentryAppSerializer(Serializer):
             if elevated_user or owner.id in user_org_ids:
                 is_secret_visible = obj.date_added > timezone.now() - timedelta(minutes=5)
 
-                owner_context = organization_service.get_organization_by_id(
-                    id=owner.id, user_id=user.id
-                )
-
-                assert obj.application, "Sentry App must have an associated ApiApplication"
+                assert application, "Sentry App must have an associated ApiApplication"
 
                 client_secret = MASKED_VALUE
                 if elevated_user or (
@@ -160,11 +172,11 @@ class SentryAppSerializer(Serializer):
                     and "org:write" in owner_context.member.scopes
                     and obj.show_auth_info(owner_context.member)
                 ):
-                    client_secret = obj.application.client_secret
+                    client_secret = application.client_secret
 
                 data.update(
                     {
-                        "clientId": obj.application.client_id,
+                        "clientId": application.client_id,
                         "clientSecret": client_secret if is_secret_visible else None,
                         "owner": {"id": owner.id, "slug": owner.slug},
                     }

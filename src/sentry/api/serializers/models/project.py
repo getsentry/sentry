@@ -1169,12 +1169,16 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
             ),
             "sentry:preprod_size_status_checks_enabled": options.get(
-                "sentry:preprod_size_status_checks_enabled", False
+                "sentry:preprod_size_status_checks_enabled", True
             ),
             "sentry:preprod_size_status_checks_rules": options.get(
                 "sentry:preprod_size_status_checks_rules"
             ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
+            "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),
+            "sentry:preprod_distribution_enabled_query": options.get(
+                "sentry:preprod_distribution_enabled_query"
+            ),
         }
 
     def get_value_with_default(self, attrs, key):

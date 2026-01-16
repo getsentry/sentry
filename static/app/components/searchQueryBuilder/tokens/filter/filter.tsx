@@ -5,6 +5,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {DateTime} from 'sentry/components/dateTime';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -74,7 +76,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const maxItems = size === 'small' ? 1 : 3;
 
       return (
-        <FilterValueList>
+        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
@@ -86,7 +88,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
             </Fragment>
           ))}
           {items.length > maxItems && <span>+{items.length - maxItems}</span>}
-        </FilterValueList>
+        </Flex>
       );
     }
     case Token.VALUE_ISO_8601_DATE: {
@@ -293,14 +295,14 @@ const FilterValueGridCell = styled(BaseGridCell)`
 
 const ValueButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
   max-width: 400px;
 
   :focus {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
@@ -308,13 +310,13 @@ const ValueButton = styled(UnstyledButton)`
 
 const ValueEditing = styled('div')`
   padding: 0 ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   max-width: 100%;
 
   :focus-within {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
@@ -332,26 +334,24 @@ const DeleteButton = styled(UnstyledButton)`
   }
 `;
 
-const FilterValueList = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: ${p => p.theme.space.xs};
-  max-width: 400px;
-`;
-
 const FilterValueOr = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FilterMultiValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 110px;
   width: min-content;
 `;
 
 const FilterValueSingleTruncatedValue = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 100%;
   width: min-content;
 `;

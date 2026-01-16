@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timezone
+
+from django.db.models import OuterRef, Subquery
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.services.eventstore.models import GroupEvent
@@ -10,6 +13,7 @@ from sentry.workflow_engine.models import (
     Action,
     DataCondition,
     DataConditionGroup,
+    Workflow,
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
@@ -71,3 +75,30 @@ def create_workflow_fire_histories(
         for workflow_id in workflow_ids
     ]
     return WorkflowFireHistory.objects.bulk_create(fire_histories)
+
+
+def get_last_fired_dates(workflow_ids: Sequence[int]) -> dict[int, datetime | None]:
+    """
+    Efficiently retrieves the last fire date for each workflow id.
+
+    Returns a dict mapping workflow_id to last fire date. If a workflow has never
+    fired, its value will be None. If a workflow_id doesn't exist, it will not
+    appear in the returned dict.
+    """
+    if not workflow_ids:
+        return {}
+
+    # Uses a correlated subquery with LIMIT 1 to leverage the (workflow, date_added)
+    # index, avoiding a full index scan that MAX() + GROUP BY would require.
+    latest_fire_subquery = (
+        WorkflowFireHistory.objects.filter(workflow_id=OuterRef("id"))
+        .order_by("-date_added")
+        .values("date_added")[:1]
+    )
+
+    results = (
+        Workflow.objects.filter(id__in=workflow_ids)
+        .annotate(last_fire=Subquery(latest_fire_subquery))
+        .values_list("id", "last_fire")
+    )
+    return {wf_id: last_fire for wf_id, last_fire in results}
