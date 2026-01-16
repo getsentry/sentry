@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable, Mapping
 from hashlib import md5
 from re import Match
@@ -10,6 +9,7 @@ from uuid import UUID
 from django.utils.encoding import force_bytes
 
 from sentry.db.models.fields.node import NodeData
+from sentry.grouping.fingerprinting.utils import _fingerprint_var_re
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
 from sentry.utils.safe import get_path
 
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
 
 
-_fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
 DEFAULT_FINGERPRINT_VARIABLE = "{{ default }}"
 
 
