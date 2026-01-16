@@ -28,6 +28,10 @@ describe('QueryFilterBuilder', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders a dataset-specific query filter bar', async () => {

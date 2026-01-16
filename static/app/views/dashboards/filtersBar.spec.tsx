@@ -26,6 +26,11 @@ describe('FiltersBar', () => {
     organization = OrganizationFixture({
       features: ['dashboards-basic', 'dashboards-edit', 'dashboards-global-filters'],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

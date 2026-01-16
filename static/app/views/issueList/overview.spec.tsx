@@ -128,6 +128,10 @@ describe('IssueList', () => {
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
 
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],

@@ -82,6 +82,10 @@ describe('SpansSearchBar', () => {
       url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
 
     mockSpanTags({type: 'string', mockedTags: []});
     mockSpanTagValues({type: 'string', tagKey: 'span.op', mockedValues: []});

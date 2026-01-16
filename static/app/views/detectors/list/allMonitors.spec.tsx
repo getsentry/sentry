@@ -39,6 +39,10 @@ describe('DetectorsList', () => {
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
@@ -294,6 +298,10 @@ describe('DetectorsList', () => {
             enabled: true,
           }),
         ],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/attribute-mappings/',
+        body: {data: []},
       });
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });

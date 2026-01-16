@@ -32,6 +32,10 @@ describe('UptimeDetectorsList', () => {
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
 
     // Ensure a project is selected for queries
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));

@@ -135,6 +135,10 @@ describe('Dashboards > Dashboard', () => {
       method: 'GET',
       body: TagsFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('fetches tags', () => {

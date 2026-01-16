@@ -44,6 +44,10 @@ describe('Incident Rules Create', () => {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders', async () => {

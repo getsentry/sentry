@@ -38,6 +38,13 @@ const numberTags: TagCollection = {
 };
 
 describe('ColumnEditorModal', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 

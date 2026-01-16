@@ -52,6 +52,10 @@ describe('Uptime Overview', () => {
       url: '/organizations/org-slug/teams/',
       body: [team],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders', async () => {

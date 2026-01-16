@@ -146,6 +146,10 @@ describe('Performance > TransactionSummary', () => {
       url: '/organizations/org-slug/events-facets-performance/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
     // Events Mock totals for the sidebar and other summary data
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

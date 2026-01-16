@@ -153,6 +153,10 @@ describe('Dashboards > Detail', () => {
         url: '/organizations/org-slug/measurements-meta/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/attribute-mappings/',
+        body: {data: []},
+      });
     });
 
     afterEach(() => {
@@ -169,6 +173,10 @@ describe('Dashboards > Detail', () => {
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/attribute-mappings/',
         body: {data: []},
       });
       MockApiClient.addMockResponse({
@@ -431,6 +439,10 @@ describe('Dashboards > Detail', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/measurements-meta/',
         body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/attribute-mappings/',
+        body: {data: []},
       });
 
       mockScrollIntoView = jest.fn();

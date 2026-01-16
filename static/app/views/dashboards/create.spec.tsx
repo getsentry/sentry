@@ -57,6 +57,10 @@ describe('Dashboards > CreateDashboard', () => {
       url: '/organizations/org-slug/users/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
 
     mockPOST = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',

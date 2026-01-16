@@ -25,6 +25,13 @@ describe('FilterSelector', () => {
     getTagValues: () => Promise.resolve(['chrome', 'firefox', 'safari']),
   };
 
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
   it('renders all filter values', async () => {
     render(
       <FilterSelector

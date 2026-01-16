@@ -161,6 +161,10 @@ describe('Performance Transaction Events Content', () => {
       url: `/organizations/org-slug/tags/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
     initialData = initializeData();
     eventView = EventView.fromNewQueryWithLocation(
       {

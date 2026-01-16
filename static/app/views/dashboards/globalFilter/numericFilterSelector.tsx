@@ -16,6 +16,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
@@ -24,7 +25,7 @@ import {
   NumericFilterSelectorTrigger,
 } from 'sentry/views/dashboards/globalFilter/numericFilterSelectorTrigger';
 import {
-  getFieldDefinitionForDataset,
+  getFieldType,
   isValidNumericFilterValue,
   newNumericFilterQuery,
   parseFilterValue,
@@ -68,17 +69,19 @@ function useNativeOperatorFilter(
 ): NumericFilterState {
   // Initial values of the filter
   const globalFilterValue = globalFilterToken?.value?.text ?? '';
+  const {getFieldDefinition} = useFieldDefinitionGetter();
   const operatorInfo = useMemo(
     () =>
       globalFilterToken &&
       getOperatorInfo({
         filterToken: globalFilterToken,
-        fieldDefinition: getFieldDefinitionForDataset(
-          globalFilter.tag,
-          globalFilter.dataset
+        fieldDefinition: getFieldDefinition(
+          globalFilter.tag.key,
+          getFieldType(globalFilter.dataset),
+          globalFilter.tag.kind
         ),
       }),
-    [globalFilterToken, globalFilter.tag, globalFilter.dataset]
+    [getFieldDefinition, globalFilter.dataset, globalFilter.tag, globalFilterToken]
   );
   const globalFilterOperator = operatorInfo?.operator ?? TermOperator.EQUAL;
 
@@ -115,7 +118,12 @@ function useNativeOperatorFilter(
 
   const isValidValue =
     !!globalFilterToken &&
-    isValidNumericFilterValue(stagedFilterValue, globalFilterToken, globalFilter);
+    isValidNumericFilterValue(
+      stagedFilterValue,
+      globalFilterToken,
+      globalFilter,
+      getFieldDefinition
+    );
 
   const buildFilterQuery = () => {
     if (!globalFilterToken) return '';
@@ -124,7 +132,8 @@ function useNativeOperatorFilter(
       stagedFilterValue,
       stagedFilterOperator,
       globalFilterToken,
-      globalFilter
+      globalFilter,
+      getFieldDefinition
     );
   };
 
@@ -210,19 +219,23 @@ function NumericFilterSelector({
     () => globalFilter.value.split(FILTER_QUERY_SEPARATOR),
     [globalFilter]
   );
-
+  const {getFieldDefinition} = useFieldDefinitionGetter();
   const isNativeOperator = globalFilterQueries.length === 1;
   const [stagedIsNativeOperator, setStagedIsNativeOperator] = useState(isNativeOperator);
 
   const nativeFilterToken = useMemo(() => {
     if (isNativeOperator) {
       const firstQuery = globalFilterQueries[0] ?? '';
-      const tokens = parseFilterValue(firstQuery, globalFilter);
+      const tokens = parseFilterValue(firstQuery, globalFilter, getFieldDefinition);
       return tokens?.[0];
     }
-    const tokens = parseFilterValue(`${globalFilter.tag.key}:>100`, globalFilter);
+    const tokens = parseFilterValue(
+      `${globalFilter.tag.key}:>100`,
+      globalFilter,
+      getFieldDefinition
+    );
     return tokens?.[0];
-  }, [globalFilter, globalFilterQueries, isNativeOperator]);
+  }, [getFieldDefinition, globalFilter, globalFilterQueries, isNativeOperator]);
 
   const betweenFilterTokens = useMemo(() => {
     const defaultBetweenQueries = [
@@ -236,16 +249,18 @@ function NumericFilterSelector({
       return [];
     }
     // Parse queries separately to avoid token location issues
-    const lowerBoundToken = parseFilterValue(lowerBoundQuery, {
-      ...globalFilter,
-      value: lowerBoundQuery,
-    });
-    const upperBoundToken = parseFilterValue(upperBoundQuery, {
-      ...globalFilter,
-      value: upperBoundQuery,
-    });
+    const lowerBoundToken = parseFilterValue(
+      lowerBoundQuery,
+      {...globalFilter, value: lowerBoundQuery},
+      getFieldDefinition
+    );
+    const upperBoundToken = parseFilterValue(
+      upperBoundQuery,
+      {...globalFilter, value: upperBoundQuery},
+      getFieldDefinition
+    );
     return [...lowerBoundToken, ...upperBoundToken];
-  }, [globalFilter, globalFilterQueries]);
+  }, [getFieldDefinition, globalFilter, globalFilterQueries]);
 
   const nativeFilter = useNativeOperatorFilter(nativeFilterToken, globalFilter);
   const betweenFilter = useBetweenOperatorFilter(betweenFilterTokens, globalFilter);

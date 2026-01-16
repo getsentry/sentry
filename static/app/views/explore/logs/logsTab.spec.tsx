@@ -169,6 +169,11 @@ describe('LogsTabContent', () => {
       method: 'GET',
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('should call APIs as expected', async () => {

@@ -56,6 +56,11 @@ describe('RuleConditionsForm', () => {
       url: '/projects/org-slug/project-slug/environments/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

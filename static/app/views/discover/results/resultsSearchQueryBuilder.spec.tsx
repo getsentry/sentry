@@ -25,6 +25,10 @@ describe('ResultsSearchQueryBuilder', () => {
       url: `/organizations/org-slug/tags/`,
       body: [{key: 'transaction', name: 'transaction', kind: FieldKind.FIELD}],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('does not show function tags in has: dropdown', async () => {

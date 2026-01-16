@@ -60,6 +60,10 @@ describe('EventGraph', () => {
       url: `/organizations/${organization.slug}/events/`,
       body: {data: [{'count_unique(user)': 21}]},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('displays allows toggling data sets', async () => {

@@ -106,6 +106,11 @@ describe('HTTPSamplesPanel', () => {
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterAll(() => {

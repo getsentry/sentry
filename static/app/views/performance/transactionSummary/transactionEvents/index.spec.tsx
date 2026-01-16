@@ -145,6 +145,10 @@ const setupMockApiResponeses = () => {
     url: `/organizations/org-slug/tags/`,
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/attribute-mappings/',
+    body: {data: []},
+  });
 };
 
 const initializeData = (settings?: InitializeDataSettings) => {

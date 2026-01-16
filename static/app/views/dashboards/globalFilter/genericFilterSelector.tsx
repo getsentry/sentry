@@ -1,9 +1,11 @@
 import {FieldValueType} from 'sentry/utils/fields';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import FilterSelector from 'sentry/views/dashboards/globalFilter/filterSelector';
 import NumericFilterSelector from 'sentry/views/dashboards/globalFilter/numericFilterSelector';
-import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
+
+import {getFieldType} from './utils';
 
 export type GenericFilterSelectorProps = {
   globalFilter: GlobalFilter;
@@ -13,26 +15,23 @@ export type GenericFilterSelectorProps = {
   disableRemoveFilter?: boolean;
 };
 
-function getFilterSelector(
-  globalFilter: GlobalFilter
-): React.ComponentType<GenericFilterSelectorProps> {
-  const fieldDefinition = getFieldDefinitionForDataset(
-    globalFilter.tag,
-    globalFilter.dataset
+function GenericFilterSelector({globalFilter, ...props}: GenericFilterSelectorProps) {
+  const {getFieldDefinition} = useFieldDefinitionGetter();
+
+  const fieldDefinition = getFieldDefinition(
+    globalFilter.tag.key,
+    getFieldType(globalFilter.dataset),
+    globalFilter.tag.kind
   );
+
   switch (fieldDefinition?.valueType) {
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:
-      return NumericFilterSelector;
+      return <NumericFilterSelector globalFilter={globalFilter} {...props} />;
     case FieldValueType.STRING:
     default:
-      return FilterSelector;
+      return <FilterSelector globalFilter={globalFilter} {...props} />;
   }
-}
-
-function GenericFilterSelector({globalFilter, ...props}: GenericFilterSelectorProps) {
-  const FilterSelectorForType = getFilterSelector(globalFilter);
-  return <FilterSelectorForType globalFilter={globalFilter} {...props} />;
 }
 
 export default GenericFilterSelector;

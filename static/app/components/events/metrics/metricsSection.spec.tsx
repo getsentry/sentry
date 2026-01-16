@@ -124,6 +124,11 @@ describe('MetricsSection', () => {
       match: [MockApiClient.matchQuery({dataset: 'ourlogs'})],
       body: {data: [], meta: {}},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

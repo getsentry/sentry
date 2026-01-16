@@ -64,6 +64,13 @@ const numberTags: TagCollection = {
 };
 
 describe('AggregateColumnEditorModal', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 

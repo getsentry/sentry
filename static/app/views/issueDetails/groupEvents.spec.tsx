@@ -113,6 +113,11 @@ describe('groupEvents', () => {
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: group,
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

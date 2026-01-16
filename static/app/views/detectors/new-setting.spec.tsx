@@ -88,6 +88,10 @@ describe('DetectorEdit', () => {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   describe('Metric Detector', () => {

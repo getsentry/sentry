@@ -21,14 +21,18 @@ function Component({traceSlug}: {traceSlug: string}) {
 }
 
 describe('TraceViewLogsSection', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
   it('renders empty logs', async () => {
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
     });
     render(<Component traceSlug={TRACE_SLUG} />, {organization});
 

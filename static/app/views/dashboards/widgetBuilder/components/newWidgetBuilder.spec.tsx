@@ -93,6 +93,11 @@ describe('NewWidgetBuilder', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());

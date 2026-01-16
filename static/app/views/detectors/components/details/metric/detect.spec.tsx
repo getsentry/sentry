@@ -8,6 +8,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {MetricDetectorDetailsDetect} from './detect';
 
 describe('MetricDetectorDetailsDetect', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
   it('renders dataset, visualize, where, interval, and threshold', () => {
     const detector = MetricDetectorFixture();
 

@@ -7,7 +7,11 @@ describe('ProjectDetail > ProjectFilters', () => {
   const tagValueLoader = jest.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+
     tagValueLoader.mockResolvedValue([
       {
         count: null,
@@ -18,6 +22,11 @@ describe('ProjectDetail > ProjectFilters', () => {
         value: 'sentry@0.5.3',
       },
     ]);
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('recommends semver search tag', async () => {

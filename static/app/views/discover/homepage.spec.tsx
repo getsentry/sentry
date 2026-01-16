@@ -90,6 +90,10 @@ describe('Discover > Homepage', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('fetches from the homepage URL and renders fields, async page filters, async and chart information', async () => {

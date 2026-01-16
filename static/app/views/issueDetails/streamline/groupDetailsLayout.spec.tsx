@@ -102,6 +102,10 @@ describe('GroupDetailsLayout', () => {
       url: '/projects/org-slug/project-slug/',
       body: [project],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders children, can collapse sidebar', async () => {

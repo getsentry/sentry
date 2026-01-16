@@ -50,6 +50,10 @@ describe('ErrorDetectorDetails', () => {
       url: `/organizations/org-slug/workflows/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   describe('Resolve section', () => {
