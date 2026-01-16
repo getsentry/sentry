@@ -73,9 +73,10 @@ export default function InvoiceDetails() {
   const handleClose = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/close/`,
+        `/_admin/cells/${region}/invoices/${invoiceId}/close/`,
         {
           method: 'PUT',
+          host: regionInfo ? regionInfo.url : '',
         }
       );
       updateCache(updatedInvoice);
