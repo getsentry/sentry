@@ -4,6 +4,7 @@ from typing import Any
 from sentry import deletions, tsdb
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.projects.services.project.serial import serialize_project
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
@@ -108,8 +109,8 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
 
         return RpcPlatformExternalIssueResult(
             external_issue=RpcPlatformExternalIssue(
-                id=str(external_issue.id),
-                issue_id=str(external_issue.group_id),
+                id=external_issue.id,
+                group_id=external_issue.group_id,
                 service_type=external_issue.service_type,
                 display_name=external_issue.display_name,
                 web_url=external_issue.web_url,
@@ -155,8 +156,8 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
 
         return RpcPlatformExternalIssueResult(
             external_issue=RpcPlatformExternalIssue(
-                id=str(external_issue.id),
-                issue_id=str(external_issue.group_id),
+                id=external_issue.id,
+                group_id=external_issue.group_id,
                 service_type=external_issue.service_type,
                 display_name=external_issue.display_name,
                 web_url=external_issue.web_url,
@@ -216,8 +217,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by(
             "project_id"
         )
-
+        projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
         return RpcServiceHookProjectsResult(
+            projects=[serialize_project(p) for p in projects],
             service_hook_projects=[
                 RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
             ],
@@ -292,8 +294,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by(
             "project_id"
         )
-
+        projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
         return RpcServiceHookProjectsResult(
+            projects=[serialize_project(p) for p in projects],
             service_hook_projects=[
                 RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
             ],

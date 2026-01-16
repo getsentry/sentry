@@ -8,6 +8,7 @@ from typing import Any
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
+from sentry.projects.services.project.model import RpcProject
 from sentry.sentry_apps.utils.errors import (
     SentryAppBaseError,
     SentryAppErrorType,
@@ -56,8 +57,8 @@ class RpcSelectRequesterResult(RpcModel):
 
 
 class RpcPlatformExternalIssue(RpcModel):
-    id: str
-    issue_id: str
+    id: int
+    group_id: int
     service_type: str
     display_name: str
     web_url: str
@@ -79,6 +80,7 @@ class RpcServiceHookProject(RpcModel):
 
 
 class RpcServiceHookProjectsResult(RpcModel):
+    projects: list[RpcProject] = Field(default_factory=list)
     service_hook_projects: list[RpcServiceHookProject] = Field(default_factory=list)
     error: RpcSentryAppError | None = None
 
