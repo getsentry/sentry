@@ -12,6 +12,7 @@ from sentry.db.models.fields.node import NodeData
 from sentry.grouping.fingerprinting.utils import (
     DEFAULT_FINGERPRINT_VARIABLE,
     _fingerprint_var_re,
+    is_default_fingerprint_var,
     parse_fingerprint_entry_as_variable,
 )
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
@@ -19,10 +20,6 @@ from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
-
-
-def is_default_fingerprint_var(value: str) -> bool:
-    return parse_fingerprint_entry_as_variable(value) == "default"
 
 
 def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:

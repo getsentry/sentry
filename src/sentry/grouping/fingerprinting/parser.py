@@ -13,8 +13,10 @@ from sentry.grouping.fingerprinting.types import (
     FingerprintRuleAttributes,
     FingerprintWithAttributes,
 )
-from sentry.grouping.fingerprinting.utils import DEFAULT_FINGERPRINT_VARIABLE
-from sentry.grouping.utils import is_default_fingerprint_var
+from sentry.grouping.fingerprinting.utils import (
+    DEFAULT_FINGERPRINT_VARIABLE,
+    is_default_fingerprint_var,
+)
 from sentry.utils.strings import unescape_string
 
 logger = logging.getLogger("sentry.events.grouping")

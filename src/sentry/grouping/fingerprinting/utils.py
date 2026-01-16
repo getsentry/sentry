@@ -170,3 +170,7 @@ def parse_fingerprint_entry_as_variable(entry: str) -> str | None:
     if match is not None and match.end() == len(entry):
         return match.group(1)
     return None
+
+
+def is_default_fingerprint_var(value: str) -> bool:
+    return parse_fingerprint_entry_as_variable(value) == "default"
