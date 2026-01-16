@@ -113,6 +113,7 @@ export function SchedulePreview({statusToText, ...detectorFields}: SchedulePrevi
               statusLabel={statusToText}
               statusStyle={tickStyle}
               statusPrecedent={statusPrecedent}
+              tooltipProps={{maxWidth: 500}}
             />
           </Container>
         </Fragment>
