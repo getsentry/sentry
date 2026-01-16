@@ -15,7 +15,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 logger = logging.getLogger("sentry.events.grouping")
 
-_fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
+FINGERPRINT_VARIABLE_REGEX = re.compile(r"\{\{\s*(\S+)\s*\}\}")
 DEFAULT_FINGERPRINT_VARIABLE = "{{ default }}"
 
 
@@ -168,7 +168,7 @@ def parse_fingerprint_entry_as_variable(entry: str) -> str | None:
     extract the variable name from a variable string of the form "{{ var_name }}"). If the given
     entry isn't the correct form to be a variable, return None.
     """
-    match = _fingerprint_var_re.match(entry)
+    match = FINGERPRINT_VARIABLE_REGEX.match(entry)
     if match is not None and match.end() == len(entry):
         return match.group(1)
     return None
@@ -322,4 +322,4 @@ def expand_title_template(
         # If the variable can't be resolved, return it as is
         return match.group(0)
 
-    return _fingerprint_var_re.sub(_handle_match, template)
+    return FINGERPRINT_VARIABLE_REGEX.sub(_handle_match, template)
