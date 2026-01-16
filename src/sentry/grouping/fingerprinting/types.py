@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import NamedTuple, NotRequired, TypedDict
+from typing import TYPE_CHECKING, NamedTuple, NotRequired, TypedDict
+
+if TYPE_CHECKING:
+    from sentry.grouping.fingerprinting.rules import FingerprintRule
 
 
 class FingerprintRuleAttributes(TypedDict):
@@ -30,3 +33,9 @@ class FingerprintRuleJSON(TypedDict):
     fingerprint: list[str]
     attributes: FingerprintRuleAttributes
     is_builtin: NotRequired[bool]
+
+
+class FingerprintRuleMatch(NamedTuple):
+    matched_rule: FingerprintRule
+    fingerprint: list[str]
+    attributes: FingerprintRuleAttributes

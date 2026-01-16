@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import NamedTuple, Self
+from typing import Self
 
 from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
 from sentry.grouping.fingerprinting.types import (
@@ -14,12 +14,6 @@ from sentry.grouping.fingerprinting.types import (
 from sentry.grouping.fingerprinting.utils import EventDatastore
 
 logger = logging.getLogger("sentry.events.grouping")
-
-
-class FingerprintRuleMatch(NamedTuple):
-    matched_rule: FingerprintRule
-    fingerprint: list[str]
-    attributes: FingerprintRuleAttributes
 
 
 class FingerprintRule:
