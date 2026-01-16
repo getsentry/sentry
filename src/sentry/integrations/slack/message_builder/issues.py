@@ -659,7 +659,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         text = description_text.lstrip(" ")
         # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
-        return self.get_text_block(description_text) if text else None
+        return self.get_text_block(text) if text else None
 
     def build_group_context_block(self, suggested_assignees: list[str]) -> SlackBlock | None:
         """Combine stats (events, users, state, first seen) with suggested assignees in one context block."""
@@ -677,6 +677,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             suggested_text = ", ".join(truncated_assignees)
             context_text += f"   Suggested: {suggested_text}"
 
+        context_text = context_text.strip()
         if not context_text:
             return None
 
