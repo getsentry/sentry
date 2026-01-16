@@ -29,7 +29,6 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
@@ -1527,7 +1526,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 },
             ],
         )
-        IssueAlertMigrator(rule, user_id=self.user.id).run()
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
         workflow = alert_rule_workflow.workflow
@@ -1548,11 +1546,3 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
-
-    def test_dual_delete_workflow_engine_no_migrated_models(self) -> None:
-        rule = self.create_project_rule(self.project)
-        self.get_success_response(
-            self.organization.slug, rule.project.slug, rule.id, status_code=202
-        )
-
-        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
