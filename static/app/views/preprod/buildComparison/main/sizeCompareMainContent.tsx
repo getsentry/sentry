@@ -62,7 +62,7 @@ export function SizeCompareMainContent() {
   const headArtifactId = params.headArtifactId;
   const baseArtifactId = params.baseArtifactId;
   const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
-  // TODO(EME-725): Remove this once refactoring is complete and we don't need to extract projects from the URL.
+  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
   if (projectIds.length !== 1) {
     throw new Error(
       `Expected exactly one project in query string but got ${projectIds.length}`
