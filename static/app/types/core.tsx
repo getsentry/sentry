@@ -99,6 +99,8 @@ export enum DataCategory {
   PREVENT_REVIEW = 'preventReviews',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRICS = 'traceMetrics',
+  SIZE_ANALYSIS = 'sizeAnalyses',
+  INSTALLABLE_BUILD = 'installableBuilds',
 }
 
 /**
@@ -131,6 +133,8 @@ export enum DataCategoryExact {
   SEER_USER = 'seer_user',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRIC = 'trace_metric',
+  SIZE_ANALYSIS = 'size_analysis',
+  INSTALLABLE_BUILD = 'installable_build',
 }
 
 /**
