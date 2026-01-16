@@ -138,6 +138,42 @@ preprod_organization_urlpatterns = [
         OrganizationPreprodListBuildsEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-list-builds",
     ),
+    # Organization-scoped preprod artifact endpoints (project is derived from artifact)
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/build-details/$",
+        ProjectPreprodBuildDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-build-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/install-details/$",
+        ProjectPreprodInstallDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-install-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/delete/$",
+        ProjectPreprodArtifactDeleteEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-delete",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size-analysis/$",
+        ProjectPreprodArtifactSizeAnalysisDownloadEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-size-analysis-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/$",
+        ProjectPreprodArtifactSizeAnalysisCompareEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-size-analysis-compare",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod-artifact/rerun-analysis/(?P<head_artifact_id>[^/]+)/$",
+        PreprodArtifactRerunAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-rerun-analysis",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod-artifact/rerun-status-checks/(?P<head_artifact_id>[^/]+)/$",
+        PreprodArtifactRerunStatusChecksEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-rerun-status-checks",
+    ),
     # PR page
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-details/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
