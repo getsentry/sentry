@@ -706,8 +706,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Prevent
 /src/sentry/prevent/                                      @getsentry/coding-workflows
-/src/sentry/overwatch/                                    @getsentry/coding-workflows
-/src/sentry/overwatch_webhooks/                           @getsentry/coding-workflows
 /static/app/components/prevent/                           @getsentry/coding-workflows
 /static/app/views/prevent/                                @getsentry/coding-workflows
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows
