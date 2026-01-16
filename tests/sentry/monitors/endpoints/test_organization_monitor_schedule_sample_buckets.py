@@ -326,3 +326,36 @@ class SampleScheduleBucketsTest(APITestCase):
             },
             status_code=400,
         )
+
+    @freeze_time("2023-10-26T12:32:25Z")
+    def test_empty_thresholds_use_default(self) -> None:
+        """Test that empty threshold query params (None values) use MIN_THRESHOLD default."""
+        # When failure_issue_threshold and recovery_threshold are empty strings,
+        # they become None in validated_data. The fix ensures MIN_THRESHOLD is used.
+        # MIN_THRESHOLD=1, so we should get proper tick statuses without TypeError
+        
+        start = int(datetime(2023, 10, 26, 13, 0, tzinfo=UTC).timestamp())
+        interval = 3600
+        end = start + 9 * interval  # 10 ticks total (MIN_THRESHOLD=1 for both)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "schedule_type": "crontab",
+                "schedule": "0 * * * *",  # every hour
+                "failure_issue_threshold": "",  # empty string becomes None
+                "recovery_threshold": "",  # empty string becomes None
+                "start": start,
+                "end": end,
+                "interval": interval,
+            },
+        )
+
+        buckets = response.data
+        assert len(buckets) == 10
+        
+        # Verify we get valid bucket data (proves no TypeError occurred)
+        for bucket in buckets:
+            assert len(bucket) == 2
+            assert isinstance(bucket[0], int)
+            assert isinstance(bucket[1], dict)

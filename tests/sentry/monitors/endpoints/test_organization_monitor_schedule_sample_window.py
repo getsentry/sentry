@@ -163,3 +163,26 @@ class SampleScheduleWindowTest(APITestCase):
             },
             status_code=400,
         )
+
+    @freeze_time("2023-10-26T12:32:25Z")
+    def test_empty_thresholds_use_default(self) -> None:
+        """Test that empty threshold query params (None values) use MIN_THRESHOLD default."""
+        # When failure_issue_threshold and recovery_threshold are empty strings,
+        # they become None in validated_data. The fix ensures MIN_THRESHOLD is used.
+        # MIN_THRESHOLD=1, so total=2, padding=2, open=4, num_ticks=10
+        
+        # date.now() rounded to the start of the hour
+        expected_start = int(datetime(2023, 10, 26, 13, 0, tzinfo=UTC).timestamp())
+        # end is expected_start + 9 hours (10 ticks - 1)
+        expected_end = expected_start + int(timedelta(hours=9).total_seconds())
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "schedule_type": "crontab",
+                "schedule": "0 * * * *",  # every hour
+                "failure_issue_threshold": "",  # empty string becomes None
+                "recovery_threshold": "",  # empty string becomes None
+            },
+        )
+        assert response.data == {"start": expected_start, "end": expected_end}
