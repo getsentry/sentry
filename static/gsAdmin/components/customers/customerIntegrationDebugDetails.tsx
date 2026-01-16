@@ -16,7 +16,7 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
 };
 
 type IntegrationRow = {
-  dateAdded: string;
+  dateAdded: string | null;
   gracePeriodEnd: string | null;
   id: number;
   integration: {
