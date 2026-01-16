@@ -19,7 +19,7 @@ describe('User Details', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/users/${mockUser.id}/customers/`,
+      url: `/_admin/cells/us/users/${mockUser.id}/customers/`,
       body: [{}],
     });
 
