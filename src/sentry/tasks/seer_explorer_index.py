@@ -50,10 +50,11 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
 
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
             has_feature = features.has("organizations:seer-explorer-index", project.organization)
-            logger.info("organizations:seer-explorer-index flag not enabled, skipping")
 
         if has_feature:
             yield project.id, project.organization_id
+        else:
+            logger.info("organizations:seer-explorer-index flag not enabled, skipping")
 
 
 @instrumented_task(
