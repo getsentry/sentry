@@ -99,8 +99,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason is None
 
     @with_feature("organizations:gen-ai-features")
-    def test_allowed_when_org_is_legacy_opt_in_without_beta_flag(self) -> None:
-        """With beta open (default), legacy opt-in alone grants access."""
+    def test_allowed_when_org_is_legacy_opt_in_without_beta_flag_and_beta_signup_open(self) -> None:
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
         OrganizationContributors.objects.create(
@@ -109,9 +108,12 @@ class TestCodeReviewPreflightService(TestCase):
             external_identifier=self.external_identifier,
         )
 
-        with patch(
-            "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
-            return_value=True,
+        with (
+            patch(
+                "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            self.options({"seer.code-review.is-beta-signup-open": True}),
         ):
             service = self._create_service()
             result = service.check()
@@ -120,8 +122,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason is None
 
     @with_feature("organizations:gen-ai-features")
-    def test_denied_when_beta_closed_and_only_legacy_opt_in(self) -> None:
-        """With beta closed, legacy opt-in alone does NOT grant access."""
+    def test_denied_when_beta_signup_closed_and_only_legacy_opt_in(self) -> None:
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
         with self.options({"seer.code-review.is-beta-signup-open": False}):
@@ -132,8 +133,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
-    def test_allowed_when_beta_closed_but_has_beta_flag(self) -> None:
-        """With beta closed, beta flag still grants access."""
+    def test_allowed_when_beta_signup_closed_but_has_beta_flag(self) -> None:
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
         OrganizationContributors.objects.create(
