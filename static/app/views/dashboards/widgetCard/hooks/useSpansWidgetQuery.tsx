@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
@@ -131,16 +131,10 @@ export function useSpansSeriesQuery(
     retry: false,
   });
 
-  // Store queryResults in a ref so refetch always uses the latest
-  const queryResultsRef = useRef(queryResults);
-  useEffect(() => {
-    queryResultsRef.current = queryResults;
-  }, [queryResults]);
-
   // Refetch function to trigger all queries
   const refetch = useCallback(async () => {
-    await Promise.all(queryResultsRef.current.map(q => q?.refetch()));
-  }, []);
+    await Promise.all(queryResults.map(q => q?.refetch()));
+  }, [queryResults]);
 
   // Transform data after all queries complete
   const transformedData = useMemo(() => {
@@ -291,16 +285,10 @@ export function useSpansTableQuery(
     retry: false,
   });
 
-  // Store queryResults in a ref so refetch always uses the latest
-  const queryResultsRef = useRef(queryResults);
-  useEffect(() => {
-    queryResultsRef.current = queryResults;
-  }, [queryResults]);
-
   // Refetch function to trigger all queries
   const refetch = useCallback(async () => {
-    await Promise.all(queryResultsRef.current.map(q => q?.refetch()));
-  }, []);
+    await Promise.all(queryResults.map(q => q?.refetch()));
+  }, [queryResults]);
 
   // Transform data after all queries complete
   const transformedData = useMemo(() => {
