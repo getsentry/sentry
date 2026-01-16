@@ -102,12 +102,12 @@ class FindReferencedGroupsTest(TestCase):
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
-        # Test URL with org slug format
+        # Test URL with org slug format (URL on same line as Fixes)
         commit = Commit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=f"Fixes n+1 query\n\nhttps://sentry.io/organizations/test-org/issues/{group.id}/",
+            message=f"Fixes https://sentry.io/organizations/test-org/issues/{group.id}/",
         )
 
         groups = commit.find_referenced_groups()
@@ -124,7 +124,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=f"Fix n+1 issue\n\nhttps://sentry.sentry.io/issues/{group.id}/",
+            message=f"Fix n+1 issue\nhttps://sentry.sentry.io/issues/{group.id}/",
         )
 
         groups = commit.find_referenced_groups()
@@ -141,7 +141,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=f"Fix bug\n\nhttps://sentry.io/organizations/test-org/issues/{group.qualified_short_id}/",
+            message=f"Fixes https://sentry.io/organizations/test-org/issues/{group.qualified_short_id}/",
         )
 
         groups = commit.find_referenced_groups()
@@ -188,7 +188,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group1.organization.id,
-            message=f"Fix multiple issues\n\n"
+            message=f"Fixes multiple issues\n"
             f"https://sentry.io/organizations/test-org/issues/{group1.id}/\n"
             f"https://sentry.sentry.io/issues/{group2.id}/",
         )
@@ -209,8 +209,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group1.organization.id,
-            message=f"Fix issues\n\n"
-            f"Fixes {group1.qualified_short_id}\n"
+            message=f"Fixes {group1.qualified_short_id} and\n"
             f"https://sentry.io/organizations/test-org/issues/{group2.id}/",
         )
 

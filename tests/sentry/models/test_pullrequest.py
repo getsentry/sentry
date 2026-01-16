@@ -109,8 +109,7 @@ class FindReferencedGroupsTest(TestCase):
             repository_id=repo.id,
             organization_id=group.organization.id,
             title="Fix the bug",
-            message=f"This fixes the issue\n\n"
-            f"https://sentry.io/organizations/test-org/issues/{group.qualified_short_id}/",
+            message=f"Fixes https://sentry.io/organizations/test-org/issues/{group.qualified_short_id}/",
         )
 
         groups = pr.find_referenced_groups()
