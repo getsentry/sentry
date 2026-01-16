@@ -16,9 +16,6 @@ PYTEST_BASE_ARGS = [
     "pytest",
     "--collect-only",
     "--quiet",
-]
-
-PYTEST_IGNORE_ARGS = [
     "--ignore=tests/acceptance",
     "--ignore=tests/apidocs",
     "--ignore=tests/js",
@@ -45,7 +42,7 @@ def collect_test_count():
         print(f"Counting tests in {len(selected_files)} selected files", file=sys.stderr)
         pytest_args = PYTEST_BASE_ARGS + selected_files
     else:
-        pytest_args = PYTEST_BASE_ARGS + ["tests"] + PYTEST_IGNORE_ARGS
+        pytest_args = PYTEST_BASE_ARGS + ["tests"]
 
     try:
         result = subprocess.run(
