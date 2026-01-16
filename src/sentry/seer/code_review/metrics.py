@@ -16,7 +16,6 @@ class WebhookFilteredReason(StrEnum):
     NOT_PR_COMMENT = "not_pr_comment"  # issue_comment not on a PR
     # Not a supported action, e.g., check_run not rerequested
     UNSUPPORTED_ACTION = "unsupported_action"
-    DRAFT_PR = "draft_pr"  # PR is in draft state (except for closed actions)
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
 
@@ -38,7 +37,6 @@ class CodeReviewErrorType(StrEnum):
     # Errors from pull_request webhook
     MISSING_PULL_REQUEST = "missing_pull_request"
     UNSUPPORTED_ACTION = "unsupported_action"
-    DRAFT_PR = "draft_pr"
 
     # Errors from issue_comment webhook
     MISSING_INTEGRATION = "missing_integration"
