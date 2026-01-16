@@ -23,11 +23,6 @@ export default function showNewSeer(organization: Organization) {
     return false;
   }
 
-  // code-review-beta group
-  if (organization.features.includes('code-review-beta')) {
-    return false;
-  }
-
   // This is the launch flag
   if (
     organization.features.includes('seer-user-billing') &&
