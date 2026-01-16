@@ -228,7 +228,6 @@ jobs:
 
       - name: Download selected tests artifact
         if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
-        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: selected-tests-${{ github.run_id }}
@@ -237,7 +236,7 @@ jobs:
       - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
         run: |
-          if [[ "${{ needs.prepare-selective-tests.outputs.has-selected-tests }}" == "true" && -f .artifacts/selected-tests.txt ]]; then
+          if [[ "${{ needs.prepare-selective-tests.outputs.has-selected-tests }}" == "true" ]]; then
             make test-backend-ci-selective SELECTED_TESTS_FILE=.artifacts/selected-tests.txt
           else
             make test-python-ci
