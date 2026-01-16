@@ -11,7 +11,7 @@ from rest_framework.exceptions import AuthenticationFailed, ParseError, Permissi
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -204,15 +204,25 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
 
         if repo_settings is None:
             organization = Organization.objects.filter(id=sentry_org_id).first()
-            if organization and (
-                features.has("organizations:code-review-beta", organization)
-                or bool(
-                    organization.get_option(
-                        "sentry:enable_pr_review_test_generation",
-                        False,
+
+            if options.get("seer.code-review.is-beta-open"):
+                if organization and (
+                    features.has("organizations:code-review-beta", organization)
+                    or bool(
+                        organization.get_option(
+                            "sentry:enable_pr_review_test_generation",
+                            False,
+                        )
                     )
-                )
-            ):
+                ):
+                    return Response(
+                        {
+                            "enabledCodeReview": True,
+                            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
+                        }
+                    )
+
+            if organization and (features.has("organizations:code-review-beta", organization)):
                 return Response(
                     {
                         "enabledCodeReview": True,

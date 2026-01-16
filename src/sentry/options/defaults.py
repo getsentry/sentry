@@ -698,6 +698,12 @@ register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "seer.code-review.direct-to-seer-enabled-gh-orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+# When True, the code review beta is still open and orgs can opt in to it
+register(
+    "seer.code-review.is-beta-open",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)

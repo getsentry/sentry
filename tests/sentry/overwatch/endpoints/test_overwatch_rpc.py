@@ -581,7 +581,9 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_returns_enabled_with_default_triggers_when_pr_review_test_generation_enabled(self):
+    def test_returns_enabled_with_default_triggers_when_pr_review_test_generation_enabled_and_beta_open(
+        self,
+    ):
         org = self.create_organization()
         org.update_option("sentry:enable_pr_review_test_generation", True)
 
@@ -593,7 +595,62 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         }
         auth = self._auth_header_for_get(url, params, "test-secret")
 
-        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        with self.options({"seer.code-review.is-beta-open": True}):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+
+        assert resp.status_code == 200
+        assert resp.data == {
+            "enabledCodeReview": True,
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
+        }
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_disabled_when_beta_closed_and_only_legacy_opt_in(self):
+        org = self.create_organization()
+        org.update_option("sentry:enable_pr_review_test_generation", True)
+
+        url = reverse("sentry-api-0-code-review-repo-settings")
+        params = {
+            "sentryOrgId": str(org.id),
+            "externalRepoId": "nonexistent-repo-id",
+            "provider": "integrations:github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+
+        with self.options({"seer.code-review.is-beta-open": False}):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+
+        assert resp.status_code == 200
+        assert resp.data == {
+            "enabledCodeReview": False,
+            "codeReviewTriggers": [],
+        }
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_enabled_when_beta_closed_but_has_beta_flag(self):
+        """With beta closed, beta flag still grants access."""
+        org = self.create_organization()
+        org.update_option("sentry:enable_pr_review_test_generation", True)
+
+        url = reverse("sentry-api-0-code-review-repo-settings")
+        params = {
+            "sentryOrgId": str(org.id),
+            "externalRepoId": "nonexistent-repo-id",
+            "provider": "integrations:github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+
+        with (
+            self.options({"seer.code-review.is-beta-open": False}),
+            self.feature({"organizations:code-review-beta": org}),
+        ):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
 
         assert resp.status_code == 200
         assert resp.data == {

@@ -100,6 +100,7 @@ class TestCodeReviewPreflightService(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     def test_allowed_when_org_is_legacy_opt_in_without_beta_flag(self) -> None:
+        """With beta open (default), legacy opt-in alone grants access."""
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
         OrganizationContributors.objects.create(
@@ -111,6 +112,42 @@ class TestCodeReviewPreflightService(TestCase):
         with patch(
             "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
             return_value=True,
+        ):
+            service = self._create_service()
+            result = service.check()
+
+        assert result.allowed is True
+        assert result.denial_reason is None
+
+    @with_feature("organizations:gen-ai-features")
+    def test_denied_when_beta_closed_and_only_legacy_opt_in(self) -> None:
+        """With beta closed, legacy opt-in alone does NOT grant access."""
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        with self.options({"seer.code-review.is-beta-open": False}):
+            service = self._create_service()
+            result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
+
+    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    def test_allowed_when_beta_closed_but_has_beta_flag(self) -> None:
+        """With beta closed, beta flag still grants access."""
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        with (
+            self.options({"seer.code-review.is-beta-open": False}),
+            patch(
+                "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
         ):
             service = self._create_service()
             result = service.check()
