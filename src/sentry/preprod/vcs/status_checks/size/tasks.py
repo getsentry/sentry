@@ -63,7 +63,7 @@ preprod_artifact_search_config = SearchConfig.create_from(
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=60,
     retry=Retry(times=3, ignore=(IntegrationConfigurationError,)),
     silo_mode=SiloMode.REGION,
 )

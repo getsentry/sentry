@@ -222,10 +222,15 @@ class PreprodArtifact(DefaultFieldsModel):
         if not self.commit_comparison:
             return []
 
-        all_artifacts = PreprodArtifact.objects.filter(
-            commit_comparison=self.commit_comparison,
-            project__organization_id=self.project.organization_id,
-        ).order_by("app_id", "artifact_type", "date_added")
+        all_artifacts = (
+            PreprodArtifact.objects.filter(
+                commit_comparison=self.commit_comparison,
+                project__organization_id=self.project.organization_id,
+            )
+            .select_related("build_configuration", "commit_comparison")
+            .prefetch_related("mobile_app_info")
+            .order_by("app_id", "artifact_type", "date_added")
+        )
 
         artifacts_by_key = defaultdict(list)
         for artifact in all_artifacts:
