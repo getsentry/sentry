@@ -442,13 +442,13 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         await fetchTableData(fetchID);
       }
     } catch (err: any) {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && queryFetchIDRef.current === fetchID) {
         setErrorMessage(
           err?.responseJSON?.detail || err?.message || t('An unknown error occurred.')
         );
       }
     } finally {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && queryFetchIDRef.current === fetchID) {
         setLoading(false);
       }
     }
