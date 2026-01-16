@@ -47,28 +47,52 @@ function parseRules(raw: unknown): StatusCheckRule[] {
 export function useStatusCheckRules(project: Project) {
   const updateProject = useUpdateProject(project);
 
-  const enabled = project.options?.[ENABLED_KEY] !== false;
-  const rulesJson = project.options?.[RULES_KEY];
+  // Check top-level field first (optimistic update), fallback to options (server response)
+  const enabled =
+    project.preprodSizeStatusChecksEnabled ?? project.options?.[ENABLED_KEY] !== false;
+
+  const rulesRaw = project.preprodSizeStatusChecksRules ?? project.options?.[RULES_KEY];
   const rules: StatusCheckRule[] = useMemo(() => {
-    if (typeof rulesJson !== 'string') {
+    if (Array.isArray(rulesRaw)) {
+      return parseRules(rulesRaw);
+    }
+    if (typeof rulesRaw !== 'string') {
       return [];
     }
     try {
-      return parseRules(JSON.parse(rulesJson));
+      return parseRules(JSON.parse(rulesRaw));
     } catch {
       return [];
     }
-  }, [rulesJson]);
+  }, [rulesRaw]);
 
   const config = {enabled, rules};
 
-  const updateConfig = useCallback(
-    (newOptions: Record<string, string | boolean>, successMessage?: string) => {
+  const setEnabled = useCallback(
+    (value: boolean) => {
       addLoadingMessage(t('Saving...'));
       updateProject.mutate(
+        {preprodSizeStatusChecksEnabled: value},
         {
-          options: newOptions,
-        },
+          onSuccess: () => {
+            addSuccessMessage(
+              value ? t('Status checks enabled.') : t('Status checks disabled.')
+            );
+          },
+          onError: () => {
+            addErrorMessage(t('Failed to save changes. Please try again.'));
+          },
+        }
+      );
+    },
+    [updateProject]
+  );
+
+  const saveRules = useCallback(
+    (newRules: StatusCheckRule[], successMessage?: string) => {
+      addLoadingMessage(t('Saving...'));
+      updateProject.mutate(
+        {preprodSizeStatusChecksRules: newRules as unknown[]},
         {
           onSuccess: () => {
             if (successMessage) {
@@ -82,23 +106,6 @@ export function useStatusCheckRules(project: Project) {
       );
     },
     [updateProject]
-  );
-
-  const setEnabled = useCallback(
-    (value: boolean) => {
-      updateConfig(
-        {[ENABLED_KEY]: value},
-        value ? t('Status checks enabled.') : t('Status checks disabled.')
-      );
-    },
-    [updateConfig]
-  );
-
-  const saveRules = useCallback(
-    (newRules: StatusCheckRule[], successMessage?: string) => {
-      updateConfig({[RULES_KEY]: JSON.stringify(newRules)}, successMessage);
-    },
-    [updateConfig]
   );
 
   const addRule = useCallback(
