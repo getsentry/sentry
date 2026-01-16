@@ -64,7 +64,7 @@ preprod_artifact_search_config = SearchConfig.create_from(
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    retry=Retry(times=3, ignore=(IntegrationConfigurationError,)),
+    retry=Retry(times=3, delay=60, ignore=(IntegrationConfigurationError,)),
     silo_mode=SiloMode.REGION,
 )
 def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) -> None:
