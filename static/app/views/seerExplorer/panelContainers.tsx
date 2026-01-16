@@ -83,10 +83,8 @@ function PanelContainers({
             transformOrigin: 'bottom right',
           }}
           transition={{
-            type: 'spring',
-            stiffness: 400,
-            damping: 30,
-            mass: 1,
+            duration: 0.2,
+            ease: [0.4, 0, 0.2, 1],
           }}
         >
           <PanelContent ref={ref} data-seer-explorer-root="">
