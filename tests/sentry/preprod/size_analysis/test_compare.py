@@ -114,7 +114,7 @@ class CompareSizeAnalysisTest(TestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="test",
             max_install_size=1500,
-            max_download_size=800,
+            max_download_size=900,
         )
 
         # Head has one file, base has none

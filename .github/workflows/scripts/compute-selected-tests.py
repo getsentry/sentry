@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-Compute selected tests based on coverage data and changed files.
-
-This script queries a coverage database to find which test files cover
-the changed source files, outputting the list for selective test runs.
-"""
 from __future__ import annotations
 
 import argparse
@@ -13,13 +7,10 @@ import sqlite3
 import sys
 from pathlib import Path
 
-PYTEST_IGNORED_FILES = [
-    "sentry/testutils/pytest/sentry.py",
-]
+PYTEST_IGNORED_FILES = ["sentry/testutils/pytest/sentry.py", "pyproject.toml"]
 
 
 def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> set[str]:
-    """Query coverage DB to find test files that cover the changed source files."""
     affected_test_files: set[str] = set()
 
     conn = sqlite3.connect(coverage_db_path)

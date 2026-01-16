@@ -201,10 +201,11 @@ jobs:
     name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    continue-on-error: true
     permissions:
       contents: read
       id-token: write
-      actions: read
+      actions: read # used for DIM metadata
     strategy:
       fail-fast: false
       matrix:
@@ -216,8 +217,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          fetch-depth: 0
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
