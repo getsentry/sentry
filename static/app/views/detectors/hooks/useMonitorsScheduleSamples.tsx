@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -14,14 +14,13 @@ interface UseMonitorsScheduleSamplesOptions {
   scheduleIntervalUnit: string;
   scheduleIntervalValue: number;
   scheduleType: ScheduleType;
-  timeLineWidthTrackerRef: React.RefObject<HTMLDivElement | null>;
   timezone: string;
 }
 
 export function useMonitorsScheduleSamples({
-  timeLineWidthTrackerRef,
   ...detectorFields
 }: UseMonitorsScheduleSamplesOptions) {
+  const timeLineWidthTrackerRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({
     elementRef: timeLineWidthTrackerRef,
   });
@@ -30,9 +29,7 @@ export function useMonitorsScheduleSamples({
     data: sampleWindowData,
     isLoading: isLoadingSampleWindow,
     error: errorSampleWindow,
-  } = useMonitorsScheduleSampleWindow({
-    ...detectorFields,
-  });
+  } = useMonitorsScheduleSampleWindow(detectorFields);
 
   const timeWindowConfig = sampleWindowData
     ? getConfigFromTimeRange(
@@ -61,6 +58,7 @@ export function useMonitorsScheduleSamples({
   const result = useMemo(() => {
     return {
       timeWindowConfig,
+      timeLineWidthTrackerRef,
       samples: sampleBucketsData,
       isLoading: isLoadingSampleWindow || isLoadingSampleBuckets,
       errors: [errorSampleWindow, errorSampleBuckets].filter(error => error !== null),
@@ -69,6 +67,7 @@ export function useMonitorsScheduleSamples({
     sampleBucketsData,
     isLoadingSampleWindow,
     isLoadingSampleBuckets,
+    timeLineWidthTrackerRef,
     errorSampleWindow,
     errorSampleBuckets,
     timeWindowConfig,

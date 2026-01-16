@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
@@ -30,27 +28,18 @@ export function useMonitorsScheduleSampleWindow({
 }: UseMonitorsScheduleSampleWindowOptions) {
   const organization = useOrganization();
 
-  const query = useMemo(
-    () => ({
-      failure_issue_threshold: failureIssueThreshold,
-      recovery_threshold: recoveryThreshold,
-      schedule_type: scheduleType,
-      timezone,
-      schedule:
-        scheduleType === ScheduleType.INTERVAL
-          ? [scheduleIntervalValue, scheduleIntervalUnit]
-          : scheduleCrontab,
-    }),
-    [
-      failureIssueThreshold,
-      recoveryThreshold,
-      scheduleCrontab,
-      scheduleIntervalUnit,
-      scheduleIntervalValue,
-      scheduleType,
-      timezone,
-    ]
-  );
+  const schedule =
+    scheduleType === ScheduleType.INTERVAL
+      ? [scheduleIntervalValue, scheduleIntervalUnit]
+      : scheduleCrontab;
+
+  const query = {
+    failure_issue_threshold: failureIssueThreshold,
+    recovery_threshold: recoveryThreshold,
+    schedule_type: scheduleType,
+    timezone,
+    schedule,
+  };
 
   return useApiQuery<ScheduleSampleWindowResponse>(
     [`/organizations/${organization.slug}/monitors-schedule-window/`, {query}],

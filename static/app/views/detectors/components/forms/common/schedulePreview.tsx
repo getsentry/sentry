@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -62,11 +62,8 @@ const tickStyle: TickStyle<SchedulePreviewStatus> = theme => ({
 });
 
 export function SchedulePreview({statusToText, ...detectorFields}: SchedulePreviewProps) {
-  const timelineWidthTracker = useRef<HTMLDivElement>(null);
-  const {timeWindowConfig, samples, isLoading, errors} = useMonitorsScheduleSamples({
-    timeLineWidthTrackerRef: timelineWidthTracker,
-    ...detectorFields,
-  });
+  const {timeLineWidthTrackerRef, timeWindowConfig, samples, isLoading, errors} =
+    useMonitorsScheduleSamples(detectorFields);
 
   if (errors.length > 0) {
     const badRequestError = errors.find(
@@ -82,7 +79,7 @@ export function SchedulePreview({statusToText, ...detectorFields}: SchedulePrevi
     );
 
     return (
-      <ContentWrapper timelineWidthTrackerRef={timelineWidthTracker}>
+      <ContentWrapper timelineWidthTrackerRef={timeLineWidthTrackerRef}>
         <ErrorContainer position="absolute" width="fit-content" top="50%" left="50%">
           {message}
         </ErrorContainer>
@@ -91,7 +88,7 @@ export function SchedulePreview({statusToText, ...detectorFields}: SchedulePrevi
   }
 
   return (
-    <ContentWrapper timelineWidthTrackerRef={timelineWidthTracker}>
+    <ContentWrapper timelineWidthTrackerRef={timeLineWidthTrackerRef}>
       {isLoading ? (
         <Container position="absolute" width="100%" top="50px">
           <CheckInPlaceholder />
