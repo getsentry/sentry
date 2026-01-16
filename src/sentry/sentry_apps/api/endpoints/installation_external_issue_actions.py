@@ -64,7 +64,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         result = sentry_app_region_service.create_issue_link(
             organization_id=installation.organization_id,
             installation=installation,
-            group_id=group_id,
+            group_id=int(group_id),
             action=action,
             fields=data,
             uri=uri,

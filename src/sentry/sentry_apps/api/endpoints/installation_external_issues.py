@@ -36,14 +36,15 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        group_id = data.pop("issueId")
-        if not group_id:
-            return Response({"detail": "issueId is required"}, status=400)
+        try:
+            group_id = int(data.pop("issueId"))
+        except Exception:
+            return Response({"detail": "issueId is required, and must be an integer"}, status=400)
 
         result = sentry_app_region_service.create_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
-            group_id=int(group_id),
+            group_id=group_id,
             web_url=data["webUrl"],
             project=data["project"],
             identifier=data["identifier"],

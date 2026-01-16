@@ -67,7 +67,6 @@ class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
         component_type = request.data.get("componentType")
 
         result = sentry_app_region_service.record_interaction(
-            organization_id=sentry_app.owner_id,
             sentry_app=sentry_app,
             tsdb_field=tsdb_field,
             component_type=component_type,
