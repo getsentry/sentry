@@ -8,7 +8,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
@@ -30,7 +29,12 @@ import {
   type QueryFieldValue,
   type ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {
+  classifyTagKey,
+  FieldKind,
+  FieldValueType,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
@@ -1016,54 +1020,14 @@ function Visualize({error, setError}: VisualizeProps) {
 export default Visualize;
 
 function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
-  if (dataType) {
-    switch (dataType) {
-      case 'boolean':
-      case 'date':
-      case 'string':
-        return <Tag variant="info">{t('string')}</Tag>;
-      case 'duration':
-      case 'integer':
-      case 'percentage':
-      case 'number':
-        return <Tag variant="success">{t('number')}</Tag>;
-      default:
-        return <Tag variant="muted">{dataType}</Tag>;
-    }
-  }
-  let text: string | undefined, tagVariant: TagProps['variant'] | undefined;
-
-  switch (kind) {
-    case FieldValueKind.FUNCTION:
-      text = 'f(x)';
-      tagVariant = 'warning';
-      break;
-    case FieldValueKind.CUSTOM_MEASUREMENT:
-    case FieldValueKind.MEASUREMENT:
-      text = 'field';
-      tagVariant = 'info';
-      break;
-    case FieldValueKind.BREAKDOWN:
-      text = 'field';
-      tagVariant = 'info';
-      break;
-    case FieldValueKind.TAG:
-      text = kind;
-      tagVariant = 'warning';
-      break;
-    case FieldValueKind.NUMERIC_METRICS:
-      text = 'f(x)';
-      tagVariant = 'warning';
-      break;
-    case FieldValueKind.FIELD:
-      text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-      tagVariant = 'info';
-      break;
-    default:
-      text = kind;
-  }
-
-  return <Tag variant={tagVariant ?? 'muted'}>{text}</Tag>;
+  return (
+    <TypeBadge
+      label={label}
+      valueKind={kind}
+      valueType={dataType as FieldValueType}
+      deprecatedFields={DEPRECATED_FIELDS}
+    />
+  );
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{
