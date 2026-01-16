@@ -7,7 +7,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-PYTEST_IGNORED_FILES = ["sentry/testutils/pytest/sentry.py", "pyproject.toml"]
+PYTEST_IGNORED_FILES = ["sentry/testutils/pytest/sentry.py", "pyproject.toml", "Makefile"]
 
 
 def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> set[str]:
