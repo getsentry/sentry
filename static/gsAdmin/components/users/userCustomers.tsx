@@ -22,6 +22,7 @@ function UserCustomers({userId}: Props) {
       panelTitle="Organization Membership"
       path={`/_admin/users/${userId}/`}
       endpoint={`/users/${userId}/customers/`}
+      isCellScoped
       hasSearch={false}
       sortOptions={undefined}
       filters={undefined}
