@@ -51,11 +51,11 @@ export default function BuildDetails() {
   const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
+        `/organizations/${organization.slug}/preprodartifacts/${artifactId}/build-details/`,
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!artifactId,
+        enabled: !!artifactId,
         refetchInterval: query => {
           const data = query.state.data;
           const sizeInfo = data?.[0]?.size_info;
@@ -70,11 +70,11 @@ export default function BuildDetails() {
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/size-analysis/`,
+        `/organizations/${organization.slug}/files/preprodartifacts/${artifactId}/size-analysis/`,
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!artifactId,
+        enabled: !!artifactId,
       }
     );
 
