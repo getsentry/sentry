@@ -59,14 +59,17 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
         diff = validated_data["diff"]
         commit_message = validated_data.get("commit_message")
 
+        # Parse repository name (already in "owner/repo" format)
+        full_repo_name = repo_data["name"]
+        owner, repo_name = full_repo_name.split("/")
+        provider = "github"  # GitHub-only for PoC
+
         # Resolve repository
-        # Repository names in the database are stored as "owner/name" (e.g., "getsentry/sentry")
-        full_repo_name = f"{repo_data['owner']}/{repo_data['name']}"
         try:
             repository = self._resolve_repository(
                 organization=organization,
                 repo_name=full_repo_name,
-                repo_provider=repo_data["provider"],
+                repo_provider=provider,
             )
         except Repository.DoesNotExist:
             return Response(
@@ -98,9 +101,9 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
 
         try:
             trigger_response = trigger_code_review_local(
-                repo_provider=repo_data["provider"],
-                repo_owner=repo_data["owner"],
-                repo_name=repo_data["name"],
+                repo_provider=provider,
+                repo_owner=owner,
+                repo_name=repo_name,
                 repo_external_id=repository.external_id or "",
                 base_commit_sha=repo_data["base_commit_sha"],
                 diff=diff,
