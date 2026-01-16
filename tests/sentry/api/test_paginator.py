@@ -816,7 +816,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 1
-        assert page2_results[0].id == 3
+        assert page2_results[0].id == alert_rule_ids[2]
 
         prev_cursor = result.prev
         result = list(paginator.get_result(limit=5, cursor=prev_cursor))
