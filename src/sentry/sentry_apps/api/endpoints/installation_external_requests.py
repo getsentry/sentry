@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -37,4 +38,7 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         if result.error:
             return self.respond_rpc_sentry_app_error(result.error)
 
-        return Response({"choices": result.choices, "defaultValue": result.default_value})
+        response_data: dict[str, Any] = {"choices": result.choices}
+        if result.default_value is not None:
+            response_data["defaultValue"] = result.default_value
+        return Response(response_data)
