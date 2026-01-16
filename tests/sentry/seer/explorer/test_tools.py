@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
-from sentry.constants import ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -21,6 +21,7 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
+    get_attribute_breakdown_comparison,
     get_baseline_tag_distribution,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
@@ -33,6 +34,7 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import (
     APITestCase,
     APITransactionTestCase,
@@ -40,6 +42,7 @@ from sentry.testutils.cases import (
     ReplaysSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    TestCase,
     TraceMetricsTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
@@ -2732,3 +2735,55 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, Sear
         # This verifies that we ARE querying both datasets and combining results
         assert dist_dict.get(("browser", "Safari")) == 4
         assert dist_dict.get(("os", "Mac")) == 4
+
+
+class TestGetAttributeBreakdownComparison(TestCase):
+    @patch("sentry.seer.explorer.tools.client")
+    def test_attr_comparison_calls_endpoint(self, mock_client: Mock) -> None:
+        organization = self.create_organization()
+        mock_client.get.return_value = Mock(data={"rankedAttributes": []})
+
+        range_start = "2024-01-01T00:00:33.1234"
+        range_end = "2024-01-01T00:01:59.9999"
+
+        result = get_attribute_breakdown_comparison(
+            organization_id=organization.id,
+            dataset="spans",
+            aggregate_function="count(span.duration)",
+            range_start=range_start,
+            range_end=range_end,
+            query="transaction:api",
+        )
+
+        assert result == {"rankedAttributes": []}
+
+        assert mock_client.get.call_args is not None
+        kwargs = mock_client.get.call_args.kwargs
+        assert (
+            kwargs["path"] == f"/organizations/{organization.slug}/trace-items/attributes/ranked/"
+        )
+        params: dict[str, Any] = kwargs["params"]
+        assert params["project"] == [ALL_ACCESS_PROJECT_ID]
+        assert "projectSlug" not in params
+        assert params["function"] == "count(span.duration)"
+        assert params["query_2"] == "transaction:api"
+
+        # Rounds to  minute precision
+        assert (
+            params["query_1"]
+            == "transaction:api timestamp:>=2024-01-01T00:00:00 timestamp:<=2024-01-01T00:01:00"
+        )
+        assert params["sampling"] == "NORMAL"
+        assert params["above"] == 1
+        assert params["referrer"] == Referrer.SEER_EXPLORER_TOOLS
+
+    def test_attr_comparison_rejects_same_minute_range(self) -> None:
+        organization = self.create_organization()
+        with pytest.raises(ValueError):
+            get_attribute_breakdown_comparison(
+                organization_id=organization.id,
+                dataset="spans",
+                aggregate_function="count(span.duration)",
+                range_start="2024-01-01T00:00:00",
+                range_end="2024-01-01T00:00:30",
+            )

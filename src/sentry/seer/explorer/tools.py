@@ -1614,3 +1614,74 @@ def get_baseline_tag_distribution(
     ]
 
     return {"baseline_tag_distribution": baseline_distribution}
+
+
+def get_attribute_breakdown_comparison(
+    *,
+    organization_id: int,
+    dataset: str,
+    aggregate_function: str,
+    range_start: str,
+    range_end: str,
+    query: str | None = "",
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+) -> dict[str, Any] | None:
+    """
+    Fetch ranked attribute breakdowns for a selected time window (minute precision) vs baseline.
+
+    Mirrors the frontend useAttributeBreakdownComparison hook by building two queries
+    (selected window and baseline) and forwarding them to /trace-items/attributes/ranked/.
+    """
+    range_start_dt = datetime.fromisoformat(range_start)
+    range_end_dt = datetime.fromisoformat(range_end)
+    if (range_start_dt.timestamp() // 60) >= (range_end_dt.timestamp() // 60):
+        raise ValueError("range_start must be before range_end (minute precision)")
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "get_attribute_breakdown_comparison: Organization not found",
+            extra={"organization_id": organization_id},
+        )
+        return {"rankedAttributes": []}
+
+    if not project_ids and not project_slugs:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
+    # Note if both project_ids and project_slugs are provided, the API request will 400.
+
+    # Build the suspect query by adding a time filter (minute precision).
+    base_query = (query or "").strip()
+    range_start_str = range_start_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    range_end_str = range_end_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    query_1 = (
+        f"{base_query} timestamp:>={range_start_str} timestamp:<={range_end_str}"
+        if base_query
+        else ""
+    )
+    query_2 = base_query
+
+    params: dict[str, Any] = {
+        "project": project_ids,
+        "projectSlug": project_slugs,
+        "dataset": dataset,
+        "function": aggregate_function,
+        "query_1": query_1,
+        "query_2": query_2,
+        "above": 1,
+        "sampling": sampling_mode,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
+    }
+
+    params = {k: v for k, v in params.items() if v is not None}
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/trace-items/attributes/ranked/",
+        params=params,
+    )
+
+    return cast(dict[str, Any], resp.data)
