@@ -69,6 +69,7 @@ from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndp
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
+from sentry.api.endpoints.synapse.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
@@ -547,6 +548,8 @@ from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpo
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
+from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
+from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
@@ -2369,6 +2372,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-search-agent-translate",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/search-agent/start/$",
+        SearchAgentStartEndpoint.as_view(),
+        name="sentry-api-0-search-agent-start",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/search-agent/state/(?P<run_id>[^/]+)/$",
+        SearchAgentStateEndpoint.as_view(),
+        name="sentry-api-0-search-agent-state",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?:(?P<run_id>[^/]+)/)?$",
         OrganizationSeerExplorerChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat",
@@ -3600,6 +3613,12 @@ INTERNAL_URLS = [
         r"^demo/email-capture/$",
         EmailCaptureEndpoint.as_view(),
         name="sentry-demo-mode-email-capture",
+    ),
+    # Cell routing endpoints
+    re_path(
+        r"^org-cell-mappings/$",
+        OrgCellMappingsEndpoint.as_view(),
+        name="sentry-api-0-org-cell-mappings",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,

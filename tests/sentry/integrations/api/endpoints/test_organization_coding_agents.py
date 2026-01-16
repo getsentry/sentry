@@ -593,7 +593,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             assert response.data["failed_count"] >= 0
 
             # Verify prompt was called with default trigger_source and no instruction
-            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, None)
+            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, None, None)
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -1012,7 +1012,7 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             assert response.data["failed_count"] >= 0
 
             # Verify prompt was called with root_cause trigger_source and no instruction
-            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.ROOT_CAUSE, None)
+            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.ROOT_CAUSE, None, None)
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -1090,7 +1090,7 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is True
-            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.ROOT_CAUSE, None)
+            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.ROOT_CAUSE, None, None)
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -1162,7 +1162,7 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             assert response.data["success"] is True
             assert response.data["launched_count"] >= 0
             assert response.data["failed_count"] >= 0
-            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.ROOT_CAUSE, None)
+            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.ROOT_CAUSE, None, None)
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -1211,7 +1211,7 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             assert response.data["failed_count"] >= 0
 
             # Verify prompt was called with solution trigger_source and no instruction
-            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, None)
+            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, None, None)
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -1346,7 +1346,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
 
             # Verify prompt was called with the instruction
             mock_get_prompt.assert_called_with(
-                123, AutofixTriggerSource.SOLUTION, "Use TypeScript instead of JavaScript"
+                123, AutofixTriggerSource.SOLUTION, "Use TypeScript instead of JavaScript", None
             )
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
@@ -1394,7 +1394,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
             assert response.data["success"] is True
 
             # CharField trims whitespace by default, so blank instruction becomes empty string
-            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, "")
+            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, "", None)
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -1441,7 +1441,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
             assert response.data["success"] is True
 
             # Verify prompt was called with empty string instruction
-            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, "")
+            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, "", None)
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -1491,7 +1491,9 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
             assert response.data["success"] is True
 
             # Verify prompt was called with the long instruction
-            mock_get_prompt.assert_called_with(123, AutofixTriggerSource.SOLUTION, long_instruction)
+            mock_get_prompt.assert_called_with(
+                123, AutofixTriggerSource.SOLUTION, long_instruction, None
+            )
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch(
@@ -1574,5 +1576,5 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
 
             # Verify prompt was called with both trigger_source and instruction
             mock_get_prompt.assert_called_with(
-                123, AutofixTriggerSource.ROOT_CAUSE, "Focus on the database queries"
+                123, AutofixTriggerSource.ROOT_CAUSE, "Focus on the database queries", None
             )
