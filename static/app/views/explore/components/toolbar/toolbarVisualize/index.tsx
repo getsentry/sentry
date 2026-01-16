@@ -41,6 +41,9 @@ interface ToolbarVisualizeDropdownProps {
   onDelete: () => void;
   parsedFunction: ParsedFunction | null;
   label?: ReactNode;
+  loading?: boolean;
+  onClose?: () => void;
+  onSearch?: (search: string) => void;
 }
 
 export function ToolbarVisualizeDropdown({
@@ -50,8 +53,11 @@ export function ToolbarVisualizeDropdown({
   onChangeAggregate,
   onChangeArgument,
   onDelete,
+  onSearch,
+  onClose,
   parsedFunction,
   label,
+  loading,
 }: ToolbarVisualizeDropdownProps) {
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
@@ -66,6 +72,9 @@ export function ToolbarVisualizeDropdown({
         options={aggregateOptions}
         value={parsedFunction?.name ?? ''}
         onChange={onChangeAggregate}
+        onSearch={onSearch}
+        onClose={onClose}
+        loading={loading}
       />
       {aggregateDefinition?.parameters?.map((param, index) => {
         return (
@@ -76,6 +85,9 @@ export function ToolbarVisualizeDropdown({
             value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => onChangeArgument(index, option)}
             disabled={fieldOptions.length === 1}
+            onSearch={onSearch}
+            onClose={onClose}
+            loading={loading}
           />
         );
       })}
@@ -86,6 +98,9 @@ export function ToolbarVisualizeDropdown({
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => onChangeArgument(0, option)}
           disabled
+          onSearch={onSearch}
+          onClose={onClose}
+          loading={loading}
         />
       )}
       {canDelete ? (
