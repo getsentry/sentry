@@ -158,7 +158,7 @@ function transformPartsMessages(messages: string): string | undefined {
       // Concatenate all text parts
       const textContent = msg.parts
         .filter((p: any) => p.type === 'text')
-        .map((p: any) => p.content)
+        .map((p: any) => p.content || p.text)
         .filter(Boolean)
         .join('\n');
 

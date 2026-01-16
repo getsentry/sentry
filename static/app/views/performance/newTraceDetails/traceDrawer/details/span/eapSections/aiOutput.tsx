@@ -59,9 +59,13 @@ function extractFromOutputMessages(outputMessages: string): AIOutputData {
     const objectParts: any[] = [];
 
     for (const msg of parsed) {
+      if (msg.role !== 'assistant') {
+        continue;
+      }
+
       if (!msg.parts || !Array.isArray(msg.parts)) {
         // Old format - extract content directly
-        if (msg.content && msg.role === 'assistant') {
+        if (msg.content) {
           if (typeof msg.content === 'string') {
             textParts.push(msg.content);
           } else if (typeof msg.content === 'object') {
@@ -73,8 +77,8 @@ function extractFromOutputMessages(outputMessages: string): AIOutputData {
 
       // New parts-based format
       for (const part of msg.parts) {
-        if (part.type === 'text' && part.content) {
-          textParts.push(part.content);
+        if (part.type === 'text' && (part.content || part.text)) {
+          textParts.push(part.content || part.text);
         } else if (part.type === 'tool_call') {
           toolCallParts.push(part);
         } else if (part.type === 'object') {
