@@ -62,7 +62,7 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CRONS
 
     def get(self, request: Request, organization: Organization) -> Response:
-        validator = ConfigValidator(data=request.GET)
+        validator = SampleScheduleWindowConfigValidator(data=request.GET)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
