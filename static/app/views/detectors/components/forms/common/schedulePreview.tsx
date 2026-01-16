@@ -214,7 +214,7 @@ const OpenPeriodBar = styled('div')`
   position: absolute;
   top: 78px;
   height: 18px;
-  background: ${p => p.theme.colors.red600};
+  background: ${p => p.theme.colors.red400};
   color: ${p => p.theme.colors.white};
   display: flex;
   align-items: center;
@@ -229,7 +229,7 @@ const OpenPeriodBar = styled('div')`
     top: 0;
     bottom: -8px;
     width: 2px;
-    background: ${p => p.theme.colors.red600};
+    background: ${p => p.theme.colors.red400};
   }
 
   /* Start/end boundary markers */
