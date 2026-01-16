@@ -308,6 +308,7 @@ class FetchProjectTransactionTotals:
 
         # Use the span metric with is_segment filter or the transaction metric
         self.use_span_metric = use_span_metric
+        self.is_segment_tag: str | None
         if self.use_span_metric:
             is_segment_string_id = indexer.resolve_shared_org("is_segment")
             self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
@@ -456,6 +457,7 @@ class FetchProjectTransactionVolumes:
 
         # Use the span metric with is_segment filter or the transaction metric
         self.use_span_metric = use_span_metric
+        self.is_segment_tag: str | None
         if self.use_span_metric:
             is_segment_string_id = indexer.resolve_shared_org("is_segment")
             self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
