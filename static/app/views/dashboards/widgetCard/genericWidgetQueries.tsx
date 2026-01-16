@@ -144,8 +144,8 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     ? !!config.useSeriesQuery
     : !!config.useTableQuery;
 
-  // NEW APPROACH: Call hook directly if available
-  // Hook handles all data fetching, transformation, and returns final results
+  // NEW APPROACH: Call hook with queries disabled by default
+  // Hook sets up queries but doesn't fetch - we control timing via refetch()
   const hookResults = hasHookApproach
     ? (isChartDisplay ? config.useSeriesQuery : config.useTableQuery)?.({
         widget,
@@ -156,11 +156,110 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         onDemandControlContext,
         mepSetting,
         samplingMode,
-        enabled: !disabled, // Hook controls fetching
+        enabled: false, // Always disabled - we trigger via refetch()
         limit,
         cursor,
       })
     : null;
+
+  // Track previous raw data to detect when new data arrives after refetch
+  const prevRawDataRef = useRef<any[] | undefined>(undefined);
+
+  // Fetch function for hook-based approach - just triggers refetch
+  const fetchDataHook = useCallback(async () => {
+    if (!hookResults?.refetch) {
+      return;
+    }
+
+    onDataFetchStart?.();
+
+    try {
+      // Call refetch to trigger the queries
+      // Hook will update with new data automatically via React Query
+      await hookResults.refetch();
+    } catch (err) {
+      // Error handling is managed by the hook itself
+    }
+  }, [hookResults, onDataFetchStart]);
+
+  // Watch for when hook data changes and call callbacks
+  useEffect(() => {
+    if (!hasHookApproach || !hookResults?.rawData) {
+      return;
+    }
+
+    // Only process if this is new data (not initial mount)
+    if (hookResults.rawData === prevRawDataRef.current) {
+      return;
+    }
+
+    prevRawDataRef.current = hookResults.rawData;
+
+    // Call afterFetch callbacks with raw data
+    if (isChartDisplay) {
+      hookResults.rawData.forEach(data => {
+        afterFetchSeriesData?.(data as SeriesResponse);
+      });
+
+      // Call onDataFetched with transformed results
+      onDataFetched?.({
+        timeseriesResults: (hookResults as any).timeseriesResults,
+        timeseriesResultsTypes: (hookResults as any).timeseriesResultsTypes,
+        timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
+      });
+    } else {
+      hookResults.rawData.forEach((data, index) => {
+        const result = afterFetchTableData?.(data as TableResponse);
+        // Merge any additional data from callback into onDataFetched
+        if (result && index === hookResults.rawData!.length - 1) {
+          onDataFetched?.({
+            tableResults: (hookResults as any).tableResults,
+            pageLinks: (hookResults as any).pageLinks,
+            ...result,
+          });
+        }
+      });
+
+      // Call onDataFetched if we haven't already
+      if (!afterFetchTableData) {
+        onDataFetched?.({
+          tableResults: (hookResults as any).tableResults,
+          pageLinks: (hookResults as any).pageLinks,
+        });
+      }
+    }
+  }, [
+    hasHookApproach,
+    hookResults,
+    isChartDisplay,
+    afterFetchSeriesData,
+    afterFetchTableData,
+    onDataFetched,
+  ]);
+
+  // Ref to store the latest fetchDataHook function for the queue
+  const fetchDataHookRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
+  useEffect(() => {
+    if (hasHookApproach && fetchDataHook) {
+      fetchDataHookRef.current = fetchDataHook;
+    }
+  }, [hasHookApproach, fetchDataHook]);
+
+  const fetchDataHookWithQueue = useCallback(() => {
+    if (!hasHookApproach || !hookResults) {
+      return;
+    }
+
+    if (queue) {
+      // Use queue for hook-based approach
+      queue.addItem({fetchDataRef: fetchDataHookRef});
+      return;
+    }
+
+    // No queue - call directly
+    fetchDataHook();
+  }, [hasHookApproach, hookResults, queue, fetchDataHook]);
 
   // OLD APPROACH: Use existing Promise-based logic for non-migrated datasets
   // These hooks are only used when hasHookApproach is false
@@ -512,9 +611,20 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     if (!propsLoading && isMountedRef.current && !hasInitialFetchRef.current) {
       hasInitialFetchRef.current = true;
       prevPropsRef.current = props;
-      fetchDataWithQueueIfAvailable();
+      // Use hook-based fetch if available, otherwise use old approach
+      if (hasHookApproach) {
+        fetchDataHookWithQueue();
+      } else {
+        fetchDataWithQueueIfAvailable();
+      }
     }
-  }, [propsLoading, fetchDataWithQueueIfAvailable, props]);
+  }, [
+    propsLoading,
+    fetchDataWithQueueIfAvailable,
+    fetchDataHookWithQueue,
+    hasHookApproach,
+    props,
+  ]);
 
   useEffect(() => {
     const prevProps = prevPropsRef.current;
@@ -573,7 +683,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
           !isSelectionEqual(selection, prevSelectionRef.current) ||
           cursor !== prevProps.cursor
     ) {
-      fetchDataWithQueueIfAvailable();
+      // Use hook-based fetch if available, otherwise use old approach
+      if (hasHookApproach) {
+        fetchDataHookWithQueue();
+      } else {
+        fetchDataWithQueueIfAvailable();
+      }
       prevPropsRef.current = props;
       prevSelectionRef.current = selection;
       return;
@@ -611,6 +726,8 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     loading,
     rawResults,
     fetchDataWithQueueIfAvailable,
+    fetchDataHookWithQueue,
+    hasHookApproach,
     props,
   ]);
 

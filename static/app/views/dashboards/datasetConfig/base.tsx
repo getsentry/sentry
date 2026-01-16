@@ -326,14 +326,17 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
 
   /**
    * Hook-based approach for fetching series data (NEW).
-   * Returns fully transformed data ready for rendering (loading state, data, errors).
+   * Queries are disabled by default - refetch() must be called to fetch.
+   * Returns transformed data, raw responses for callbacks, and refetch function.
    * This replaces getSeriesRequest when available.
    */
   useSeriesQuery?: (params: WidgetQueryParams) => {
     loading: boolean;
+    refetch: () => Promise<void>;
     confidence?: any;
     errorMessage?: string;
     isSampled?: boolean | null;
+    rawData?: SeriesResponse[];
     sampleCount?: number;
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -341,15 +344,18 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   };
   /**
    * Hook-based approach for fetching table data (NEW).
-   * Returns fully transformed data ready for rendering (loading state, data, errors).
+   * Queries are disabled by default - refetch() must be called to fetch.
+   * Returns transformed data, raw responses for callbacks, and refetch function.
    * This replaces getTableRequest when available.
    */
   useTableQuery?: (params: WidgetQueryParams) => {
     loading: boolean;
+    refetch: () => Promise<void>;
     confidence?: any;
     errorMessage?: string;
     isSampled?: boolean | null;
     pageLinks?: string;
+    rawData?: TableResponse[];
     sampleCount?: number;
     tableResults?: TableData[];
   };

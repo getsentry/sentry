@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
@@ -74,16 +74,20 @@ function applyDashboardFilters(
 
 /**
  * Hook for fetching Spans widget series data (charts) using React Query.
- * Handles all widget queries in parallel, transforms data, and returns final results.
+ * Queries are disabled by default - use refetch() to trigger fetching.
+ * This allows genericWidgetQueries to control timing with queue/callbacks.
  */
 export function useSpansSeriesQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
-): GenericWidgetQueriesResult {
+): GenericWidgetQueriesResult & {
+  refetch: () => Promise<void>;
+  rawData?: SpansSeriesResponse[];
+} {
   const {
     widget,
     organization,
     pageFilters,
-    enabled,
+    enabled = false, // Disabled by default
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
@@ -123,12 +127,17 @@ export function useSpansSeriesQuery(
     });
   }, [filteredWidget, organization, pageFilters, samplingMode]);
 
-  // Use useApiQueries to fetch all queries in parallel
+  // Use useApiQueries to fetch all queries in parallel (disabled by default)
   const queryResults = useApiQueries<SpansSeriesResponse>(queryKeys, {
     staleTime: 0,
     enabled,
     retry: false,
   });
+
+  // Refetch function to trigger all queries
+  const refetch = useCallback(async () => {
+    await Promise.all(queryResults.map(q => q?.refetch()));
+  }, [queryResults]);
 
   // Transform data after all queries complete
   const transformedData = useMemo(() => {
@@ -140,17 +149,22 @@ export function useSpansSeriesQuery(
       return {
         loading: isLoading || !queryResults.length,
         errorMessage,
+        refetch,
       };
     }
 
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
+    const rawData: SpansSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q || !q.data) {
         return;
       }
+
+      // Store raw data for callbacks
+      rawData[requestIndex] = q.data;
 
       // Transform the data
       const transformedResult = SpansConfig.transformSeries!(
@@ -174,24 +188,30 @@ export function useSpansSeriesQuery(
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
+      rawData,
+      refetch,
     };
-  }, [queryResults, filteredWidget, organization]);
+  }, [queryResults, filteredWidget, organization, refetch]);
 
   return transformedData;
 }
 
 /**
  * Hook for fetching Spans widget table data using React Query.
- * Handles all widget queries in parallel, transforms data, and returns final results.
+ * Queries are disabled by default - use refetch() to trigger fetching.
+ * This allows genericWidgetQueries to control timing with queue/callbacks.
  */
 export function useSpansTableQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
-): GenericWidgetQueriesResult {
+): GenericWidgetQueriesResult & {
+  refetch: () => Promise<void>;
+  rawData?: SpansTableResponse[];
+} {
   const {
     widget,
     organization,
     pageFilters,
-    enabled,
+    enabled = false, // Disabled by default
     samplingMode,
     cursor,
     limit,
@@ -249,12 +269,17 @@ export function useSpansTableQuery(
     });
   }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
 
-  // Use useApiQueries to fetch all queries in parallel
+  // Use useApiQueries to fetch all queries in parallel (disabled by default)
   const queryResults = useApiQueries<SpansTableResponse>(queryKeys, {
     staleTime: 0,
     enabled,
     retry: false,
   });
+
+  // Refetch function to trigger all queries
+  const refetch = useCallback(async () => {
+    await Promise.all(queryResults.map(q => q?.refetch()));
+  }, [queryResults]);
 
   // Transform data after all queries complete
   const transformedData = useMemo(() => {
@@ -266,16 +291,21 @@ export function useSpansTableQuery(
       return {
         loading: isLoading || !queryResults.length,
         errorMessage,
+        refetch,
       };
     }
 
     const tableResults: TableDataWithTitle[] = [];
+    const rawData: SpansTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
       if (!q || !q.data) {
         return;
       }
+
+      // Store raw data for callbacks
+      rawData[i] = q.data;
 
       const transformedDataItem: TableDataWithTitle = {
         ...SpansConfig.transformTable(
@@ -310,8 +340,10 @@ export function useSpansTableQuery(
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
+      rawData,
+      refetch,
     };
-  }, [queryResults, filteredWidget, organization, pageFilters]);
+  }, [queryResults, filteredWidget, organization, pageFilters, refetch]);
 
   return transformedData;
 }
