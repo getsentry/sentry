@@ -3,8 +3,6 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from __future__ import annotations
-
 from typing import Any
 
 from pydantic.fields import Field
@@ -27,7 +25,7 @@ class RpcSentryAppError(RpcModel):
     webhook_context: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
-    def from_exc(cls, exception: SentryAppBaseError) -> RpcSentryAppError:
+    def from_exc(cls, exception: SentryAppBaseError) -> "RpcSentryAppError":
         return RpcSentryAppError(
             error_type=exception.error_type,
             status_code=exception.status_code,
