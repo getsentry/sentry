@@ -133,7 +133,7 @@ def deduplicate_workflows(organization: Organization):
         .distinct()
     )
     workflow_dedupe_hash: dict[str, list[int]] = {}
-    # workflows is filtering incorrectly
+
     for workflow in workflows:
         workflow_data = WorkflowData(workflow)
         workflow_hash = workflow_data.serialize()
