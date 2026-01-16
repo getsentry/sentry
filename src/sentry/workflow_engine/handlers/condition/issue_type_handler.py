@@ -4,8 +4,9 @@ from django.utils.functional import classproperty
 
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType, InvalidGroupTypeError
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.registry import condition_handler_registry
+
+# from sentry.workflow_engine.models.data_condition import Condition
+# from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
@@ -13,7 +14,6 @@ def get_all_valid_type_ids() -> list[int]:
     return list(grouptype.registry.get_all_group_type_ids())
 
 
-@condition_handler_registry.register(Condition.ISSUE_TYPE)
 class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
