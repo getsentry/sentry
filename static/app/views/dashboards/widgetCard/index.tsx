@@ -21,7 +21,7 @@ import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -507,6 +507,8 @@ function useConflictingFilterWarning({
   dashboardFilters: DashboardFilters | undefined;
   widget: Widget;
 }) {
+  const {getFieldDefinition} = useFieldDefinitionGetter();
+
   const conflictingFilterKeys = useMemo(() => {
     if (!dashboardFilters) return [];
 
@@ -526,7 +528,7 @@ function useConflictingFilterWarning({
 
     const widgetFilterKeySet = new Set(widgetFilterKeys);
     return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
-  }, [widget.queries, widget.widgetType, dashboardFilters]);
+  }, [dashboardFilters, getFieldDefinition, widget.queries, widget.widgetType]);
 
   if (conflictingFilterKeys.length > 0) {
     return tct('[strong:Filter conflicts:] [filters]', {
