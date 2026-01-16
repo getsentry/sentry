@@ -19,11 +19,13 @@ import {
   prettifyTagKey,
   type FieldDefinition,
 } from 'sentry/utils/fields';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields/hooks';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
-import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
+
+import {getFieldType} from './utils';
 
 export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ERRORS, t('Errors')],
@@ -51,7 +53,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
   const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
-
+  const {getFieldDefinition} = useFieldDefinitionGetter();
   // Dataset selection before showing filter keys
   const datasetOptions = useMemo(() => {
     return Array.from(DATASET_CHOICES.entries()).map(([widgetType, label]) => ({
@@ -77,7 +79,11 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
   // Get filter keys for the selected dataset
   const filterKeyOptions = selectedDataset
     ? Object.entries(filterKeys).flatMap(([_, tag]) => {
-        const fieldDefinition = getFieldDefinitionForDataset(tag, selectedDataset);
+        const fieldDefinition = getFieldDefinition(
+          tag.key,
+          getFieldType(selectedDataset),
+          tag.kind
+        );
         const valueType = fieldDefinition?.valueType;
         if (valueType && UNSUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
           return [];

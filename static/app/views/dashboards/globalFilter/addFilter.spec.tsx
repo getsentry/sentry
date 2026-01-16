@@ -7,6 +7,13 @@ import AddFilter, {DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/a
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 describe('AddFilter', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
   // Mock filter keys returned by the search bar data provider
   const mockFilterKeys: TagCollection = {
     'browser.name': {
