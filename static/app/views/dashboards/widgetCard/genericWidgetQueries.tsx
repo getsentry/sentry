@@ -60,14 +60,6 @@ export type GenericWidgetQueriesResult = {
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
-  /**
-   * Raw API response data, used for callbacks in hook-based approach.
-   */
-  rawData?: any[];
-  /**
-   * Refetch function for hook-based approach.
-   */
-  refetch?: () => Promise<void>;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -80,8 +72,16 @@ export type GenericWidgetQueriesResult = {
  * Result type for hook-based queries.
  * Hooks MUST always return refetch and rawData for queue/callback integration.
  */
-export type HookWidgetQueryResult = GenericWidgetQueriesResult &
-  Required<Pick<GenericWidgetQueriesResult, 'refetch' | 'rawData'>>;
+export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
+  /**
+   * Raw API response data, used for callbacks.
+   */
+  rawData: any[];
+  /**
+   * Refetch function for re-triggering queries.
+   */
+  refetch: () => Promise<void>;
+};
 
 export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
