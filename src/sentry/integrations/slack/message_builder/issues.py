@@ -607,27 +607,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             suggested_assignee_text += assignee + ", "
         return self.get_context_block(suggested_assignee_text[:-2])  # get rid of comma at the end
 
-    def get_group_context_block(self, suggested_assignees: list[str]) -> SlackBlock | None:
-        """Combine stats (events, users, state, first seen) with suggested assignees in one context block."""
-        if not self._is_compact:
-            # add event count, user count, substate, first seen
-            context = get_context(self.group, self.rules)
-            if context:
-                return self.get_context_block(context)
-            return None
-
-        context_text = get_context(self.group, self.rules)
-
-        if suggested_assignees:
-            truncated_assignees = suggested_assignees[:MAX_SUGGESTED_ASSIGNEES]
-            suggested_text = ", ".join(truncated_assignees)
-            context_text += f"   Suggested: {suggested_text}"
-
-        if not context_text:
-            return None
-
-        return self.get_context_block(context_text)
-
     def get_footer(self) -> SlackBlock:
         # This link does not contain user input (it's a static label and a url), must not escape it.
         replay_link = build_attachment_replay_link(
@@ -681,6 +660,27 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         text = description_text.lstrip(" ")
         # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
         return self.get_text_block(description_text) if text else None
+
+    def build_group_context_block(self, suggested_assignees: list[str]) -> SlackBlock | None:
+        """Combine stats (events, users, state, first seen) with suggested assignees in one context block."""
+        if not self._is_compact:
+            # add event count, user count, substate, first seen
+            context = get_context(self.group, self.rules)
+            if context:
+                return self.get_context_block(context)
+            return None
+
+        context_text = get_context(self.group, self.rules)
+
+        if suggested_assignees:
+            truncated_assignees = suggested_assignees[:MAX_SUGGESTED_ASSIGNEES]
+            suggested_text = ", ".join(truncated_assignees)
+            context_text += f"   Suggested: {suggested_text}"
+
+        if not context_text:
+            return None
+
+        return self.get_context_block(context_text)
 
     def build_pre_footer_context_block(self, suggested_assignees: list[str]) -> SlackBlock | None:
         summary_text: str | None = self.get_issue_summary_text()
@@ -803,7 +803,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 self.group.project, event_for_tags, assignee
             )
 
-        if group_context_block := self.get_group_context_block(
+        if group_context_block := self.build_group_context_block(
             suggested_assignees=suggested_assignees
         ):
             blocks.append(group_context_block)
