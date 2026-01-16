@@ -364,7 +364,11 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                     "preprod_artifact_id": head_artifact.id,
                     "artifact_type": head_artifact.artifact_type,
                     "app_id": head_artifact.app_id,
-                    "build_configuration": head_artifact.build_configuration.name if head_artifact.build_configuration else None,
+                    "build_configuration": (
+                        head_artifact.build_configuration.name
+                        if head_artifact.build_configuration
+                        else None
+                    ),
                     "project_id": project.id,
                     "organization_id": project.organization_id,
                     "organization_slug": project.organization.slug,
