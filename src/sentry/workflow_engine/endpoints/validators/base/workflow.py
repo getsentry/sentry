@@ -5,7 +5,7 @@ from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry import audit_log, features
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer, EnvironmentField
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
@@ -39,7 +39,16 @@ class WorkflowValidator(CamelSnakeSerializer):
     config = serializers.JSONField(
         required=False,
         help_text="""
-        Typically the frequency at which the alert will fire, in minutes
+        Typically the frequency at which the alert will fire, in minutes.
+
+        - 0 minutes
+        - 5 minutes
+        - 10 minutes
+        - 30 minutes
+        - 60 minutes
+        - 180 minutes: 3 hours
+        - 720 minutes: 12 hours
+        - 1440: 24 hours
 
         ```json
             {
@@ -48,12 +57,12 @@ class WorkflowValidator(CamelSnakeSerializer):
         ```
         """,
     )
-    environment_id = serializers.IntegerField(
-        required=False, help_text="The id of the environment for the alert to evaluate in"
+    environment = EnvironmentField(
+        required=False, help_text="The name of the environment for the alert to evaluate in"
     )
     triggers = BaseDataConditionGroupValidator(
         required=False,
-        help_text="""The conditions on which the alert will trigger
+        help_text="""The conditions on which the alert will trigger. See available options below.
         ```json
             "triggers": {
                 "id": "1234567",
@@ -92,127 +101,16 @@ class WorkflowValidator(CamelSnakeSerializer):
     )
     action_filters = serializers.ListField(
         required=False,
-        help_text="""The filters before the action will fire
+        help_text="""The filters to run before the action will fire and the action(s) to fire.
+
+        Below is a basic example. See below for all other options.
+
         ```json
             "actionFilters": [
                 {
-                    "id": "123456",
-                    "organizationId": "1",
                     "logicType": "any-short",
                     "conditions": [
                         {
-                            "id": "1",
-                            "type": "age_comparison",
-                            "comparison": {
-                                "time": "minute",
-                                "value": 10,
-                                "comparisonType": "older"
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "2",
-                            "type": "assigned_to",
-                            "comparison": {
-                                "targetType": "Member",
-                                "targetIdentifier": 232692
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "3",
-                            "type": "issue_category",
-                            "comparison": {
-                                "value": 1
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "4",
-                            "type": "issue_occurrences",
-                            "comparison": {
-                                "value": 10
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "5",
-                            "type": "issue_priority_deescalating",
-                            "comparison": true,
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "6",
-                            "type": "issue_priority_greater_or_equal",
-                            "comparison": 75,
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "7",
-                            "type": "event_unique_user_frequency_count",
-                            "comparison": {
-                                "value": 100,
-                                "filters": [],
-                                "interval": "1h"
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "8",
-                            "type": "event_frequency_count",
-                            "comparison": {
-                                "value": 100,
-                                "interval": "1h"
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "9",
-                            "type": "percent_sessions_count",
-                            "comparison": {
-                                "value": 10,
-                                "interval": "1h"
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "10",
-                            "type": "event_attribute",
-                            "comparison": {
-                                "match": "co",
-                                "value": "bar",
-                                "attribute": "message"
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "11",
-                            "type": "tagged_event",
-                            "comparison": {
-                                "key": "level",
-                                "match": "eq",
-                                "value": "error"
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "12",
-                            "type": "latest_release",
-                            "comparison": true,
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "10479291",
-                            "type": "latest_adopted_release",
-                            "comparison": {
-                                "environment": "58451",
-                                "ageComparison": "older",
-                                "releaseAgeType": "oldest"
-                            },
-                            "conditionResult": true
-                        },
-                        {
-                            "id": "13",
                             "type": "level",
                             "comparison": {
                                 "level": 50,
@@ -237,6 +135,318 @@ class WorkflowValidator(CamelSnakeSerializer):
                     ]
                 }
             ]
+        ```
+
+        ## Conditions
+
+        **Issue Age**
+        `time`: One of `minute`, `hour`, `day`, or `week`.
+        `value`: A positive integer.
+        `comparisonType`: One of `older` or `newer`.
+        ```json
+            {
+                "type": "age_comparison",
+                "comparison": {
+                    "time": "minute",
+                    "value": 10,
+                    "comparisonType": "older"
+                },
+                "conditionResult": true
+            }
+
+        ```
+
+        **Issue Assignment**
+        `targetType`: Who the issue is assigned to
+            - `NoOne`: Unassigned
+            - `Member`: Assigned to a user
+            - `Team`: Assigned to a team
+        `targetIdentifier`: The ID of the user or team from the `targetType`. Enter "" if `targetType` is `NoOne`.
+        ```json
+            {
+                "type": "assigned_to",
+                "comparison": {
+                    "targetType": "Member",
+                    "targetIdentifier": 123456
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Issue Category**
+        `value`: The issue category to filter to.
+            - 1: Error issues
+            - 6: Feedback issues
+            - 10: Outage issues
+            - 11: Metric issues
+            - 12: DB Query issues
+            - 13: HTTP Client issues
+            - 14: Front end issues
+            - 15: Mobile issues
+        ```json
+            {
+                "type": "issue_category",
+                "comparison": {
+                    "value": 1
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Issue Frequency**
+        `value`: A positive integer representing how many times the issue hasto happen before the alert will fire.
+        ```json
+            {
+                "type": "issue_occurrences",
+                "comparison": {
+                    "value": 10
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **De-escalation**
+        ```json
+            {
+                "type": "issue_priority_deescalating",
+                "comparison": true,
+                "conditionResult": true
+            }
+        ```
+
+        **Issue Priority**
+        `comparison`: The priority the issue must be for the alert to fire.
+            - 75: High priority
+            - 50: Medium priority
+            - 25: Low priority
+        ```json
+            {
+                "type": "issue_priority_greater_or_equal",
+                "comparison": 75,
+                "conditionResult": true
+            }
+        ```
+
+        **Number of Users Affected**
+        `value`: A positive integer representing the number of users affected before the alert will fire
+        `filters`: A list of additional sub-filters to evaluate before the alert will fire.
+        `interval`: The time period in which to evaluate the value. e.g. Number of users affected by an issue is more than {value} in {interval}.
+            - `1min`: 1 minute
+            - `5min`: 5 minutes
+            - `15min`: 15 minutes
+            - `1hr`: 1 hour
+            - `1d`: 1 day
+            - `1w`: 1 week
+            - `30d`: 30 days
+        ```json
+            {
+                "type": "event_unique_user_frequency_count",
+                "comparison": {
+                    "value": 100,
+                    "filters": [{"key": "foo", "match": "eq", "value": "bar"}],
+                    "interval": "1h"
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Number of Events**
+        `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
+        `interval`: The time period in which to evaluate the value. e.g. Number of events in an issue is more than {value} in {interval}.
+            - `1min`: 1 minute
+            - `5min`: 5 minutes
+            - `15min`: 15 minutes
+            - `1hr`: 1 hour
+            - `1d`: 1 day
+            - `1w`: 1 week
+            - `30d`: 30 days
+        ```json
+            {
+                "type": "event_frequency_count",
+                "comparison": {
+                    "value": 100,
+                    "interval": "1h"
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Percent of Events**
+        `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
+        `interval`: The time period in which to evaluate the value. e.g. Number of events in an issue is {comparisonInterval} percent higher {value} compared to {interval}.
+            - `1min`: 1 minute
+            - `5min`: 5 minutes
+            - `15min`: 15 minutes
+            - `1hr`: 1 hour
+            - `1d`: 1 day
+            - `1w`: 1 week
+            - `30d`: 30 days
+        `comparisonInterval`: The time period to compare against. See `interval` for options.
+        ```json
+            {
+                "type": "event_frequency_percent",
+                "comparison": {
+                    "value": 100,
+                    "interval": "1h",
+                    "comparisonInterval": "1w"
+                },
+                "conditionResult": true
+            }
+
+        ```
+
+        **Percentage of Sessions Affected Count**
+        `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
+        `interval`: The time period in which to evaluate the value. e.g. Percentage of sessions affected by an issue is more than {value} in {interval}.
+            - `1min`: 1 minute
+            - `5min`: 5 minutes
+            - `15min`: 15 minutes
+            - `1hr`: 1 hour
+            - `1d`: 1 day
+            - `1w`: 1 week
+            - `30d`: 30 days
+        ```json
+            {
+                "type": "percent_sessions_count",
+                "comparison": {
+                    "value": 10,
+                    "interval": "1h"
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Percentage of Sessions Affected Percent**
+        `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
+        `interval`: The time period in which to evaluate the value. e.g. Percentage of sessions affected by an issue is {comparisonInterval} percent higher {value} compared to {interval}.
+            - `1min`: 1 minute
+            - `5min`: 5 minutes
+            - `15min`: 15 minutes
+            - `1hr`: 1 hour
+            - `1d`: 1 day
+            - `1w`: 1 week
+            - `30d`: 30 days
+        `comparisonInterval`: The time period to compare against. See `interval` for options.
+        ```json
+            {
+                "type": "percent_sessions_percent",
+                "comparison": {
+                    "value": 10,
+                    "interval": "1h"
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Event Attribute**
+        The event's `attribute` value `match` `value`
+
+        `attribute`: The event attribute to match on. Valid values are: `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crash_type`, `app.in_foreground`.
+        `match`: The comparison operator
+            - `co`: Contains
+            - `nc`: Does not contain
+            - `eq`: Equals
+            - `ne`: Does not equal
+            - `sw`: Starts with
+            - `ew`: Ends with
+            - `is`: Is set
+            - `ns`: Is not set
+        `value`: A string. Not required when match is `is` or `ns`.
+
+        ```json
+            {
+                "type": "event_attribute",
+                "comparison": {
+                    "match": "co",
+                    "value": "bar",
+                    "attribute": "message"
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Tagged Event**
+        The event's tags `key` match `value`
+        `key`: The tag value
+        `match`: The comparison operator
+            - `co`: Contains
+            - `nc`: Does not contain
+            - `eq`: Equals
+            - `ne`: Does not equal
+            - `sw`: Starts with
+            - `ew`: Ends with
+            - `is`: Is set
+            - `ns`: Is not set
+        `value`: A string. Not required when match is `is` or `ns`.
+
+        ```json
+            {
+                "type": "tagged_event",
+                "comparison": {
+                    "key": "level",
+                    "match": "eq",
+                    "value": "error"
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Latest Release**
+        The event is from the latest release
+
+        ```json
+            {
+                "type": "latest_release",
+                "comparison": true,
+                "conditionResult": true
+            }
+        ```
+
+        **Release Age**
+        ```json
+            {
+                "type": "latest_adopted_release",
+                "comparison": {
+                    "environment": "12345",
+                    "ageComparison": "older",
+                    "releaseAgeType": "oldest"
+                },
+                "conditionResult": true
+            }
+        ```
+
+        **Event Level**
+        The event's level is `match` `level`
+        `match`: The comparison operator
+            - `eq`: Equal
+            - `gte`: Greater than or equal
+            - `lte`: Less than or equal
+        `level`: The event level
+            - 50: Fatal
+            - 40: Error
+            - 30: Warning
+            - 20: Info
+            - 10: Debug
+            - 0: Sample
+
+        ```json
+            {
+                "type": "level",
+                "comparison": {
+                    "level": 50,
+                    "match": "eq"
+                },
+                "conditionResult": true
+            }
+        ```
+
+        ## Actions
+
+        **Notify on Preferred Channel**
+        ```json
+        {
+         # TODO fill this out
+        }
         ```
         """,
     )
