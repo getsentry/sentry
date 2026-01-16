@@ -5,7 +5,7 @@ Utilities related to proxying a request to a region silo
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Iterator
+from collections.abc import Generator
 from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
@@ -19,6 +19,7 @@ from requests.exceptions import Timeout
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.util import (
@@ -34,6 +35,7 @@ from sentry.types.region import (
     get_region_for_organization,
 )
 from sentry.utils import metrics
+from sentry.utils.http import BodyWithLength
 
 logger = logging.getLogger(__name__)
 
@@ -75,22 +77,6 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
 
     streamed_response[PROXY_DIRECT_LOCATION_HEADER] = remote_url
     return streamed_response
-
-
-class _body_with_length:
-    """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
-
-    def __init__(self, request: HttpRequest):
-        self.request = request
-
-    def __iter__(self) -> Iterator[bytes]:
-        return iter(self.request)
-
-    def __len__(self) -> int:
-        return int(self.request.headers.get("Content-Length", "0"))
-
-    def read(self, size: int | None = None) -> bytes:
-        return self.request.read(size)
 
 
 def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> HttpResponseBase:
@@ -205,6 +191,12 @@ def proxy_region_request(
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
+    data: Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
+    if url_name == "sentry-api-0-organization-objectstore":
+        data = get_raw_body(request)
+    else:
+        data = BodyWithLength(request)
+
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
             resp = external_request(
@@ -212,7 +204,7 @@ def proxy_region_request(
                 url=target_url,
                 headers=header_dict,
                 params=dict(query_params) if query_params is not None else None,
-                data=_body_with_length(request),
+                data=data,
                 stream=True,
                 timeout=timeout,
                 # By default, external_request will resolve any redirects for any verb except for HEAD.
