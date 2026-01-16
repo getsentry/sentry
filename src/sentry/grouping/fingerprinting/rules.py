@@ -5,13 +5,10 @@ from collections.abc import Sequence
 from typing import NamedTuple, NotRequired, Self, TypedDict
 
 from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
+from sentry.grouping.fingerprinting.types import FingerprintRuleAttributes
 from sentry.grouping.fingerprinting.utils import EventDatastore
 
 logger = logging.getLogger("sentry.events.grouping")
-
-
-class FingerprintRuleAttributes(TypedDict):
-    title: NotRequired[str]
 
 
 class FingerprintWithAttributes(NamedTuple):
