@@ -7,7 +7,15 @@ import sqlite3
 import sys
 from pathlib import Path
 
-PYTEST_IGNORED_FILES = ["sentry/testutils/pytest/sentry.py", "pyproject.toml", "Makefile"]
+# Files that, if changed, should trigger the full test suite (can't determine affected tests)
+FULL_SUITE_TRIGGER_FILES = ["sentry/testutils/pytest/sentry.py", "pyproject.toml", "Makefile"]
+
+
+def should_run_full_suite(changed_files: list[str]) -> bool:
+    for file_path in changed_files:
+        if any(file_path.endswith(trigger) for trigger in FULL_SUITE_TRIGGER_FILES):
+            return True
+    return False
 
 
 def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> set[str]:
@@ -29,9 +37,6 @@ def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> 
     test_contexts: set[str] = set()
 
     for file_path in changed_files:
-        if any(file_path.endswith(ignored_file) for ignored_file in PYTEST_IGNORED_FILES):
-            continue
-
         cleaned_file_path = file_path
         if cleaned_file_path.startswith("/src"):
             cleaned_file_path = cleaned_file_path[len("/src") :]
@@ -80,8 +85,14 @@ def main() -> int:
 
     changed_files = [f.strip() for f in args.changed_files.split() if f.strip()]
     if not changed_files:
-        print("No changed files provided, selecting all tests")
+        print("No changed files provided, running full test suite")
         affected_test_files: set[str] = set()
+    elif should_run_full_suite(changed_files):
+        triggered_by = [
+            f for f in changed_files if any(f.endswith(t) for t in FULL_SUITE_TRIGGER_FILES)
+        ]
+        print(f"Full test suite triggered by: {', '.join(triggered_by)}")
+        affected_test_files = set()
     else:
         print(f"Computing selected tests for {len(changed_files)} changed files...")
         try:
