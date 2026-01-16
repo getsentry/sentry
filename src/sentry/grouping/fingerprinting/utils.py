@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
@@ -174,3 +174,26 @@ def parse_fingerprint_entry_as_variable(entry: str) -> str | None:
 
 def is_default_fingerprint_var(value: str) -> bool:
     return parse_fingerprint_entry_as_variable(value) == "default"
+
+
+def get_fingerprint_type(
+    fingerprint: list[str] | None,
+) -> Literal["default", "hybrid", "custom"] | None:
+    """
+    Examine a fingerprint to determine if it's custom, hybrid, or the default fingerprint.
+
+    Accepts (and then returns) None for convenience, so the fingerprint's existence doesn't have to
+    be separately checked.
+    """
+    if not fingerprint:
+        return None
+
+    return (
+        "default"
+        if len(fingerprint) == 1 and is_default_fingerprint_var(fingerprint[0])
+        else (
+            "hybrid"
+            if any(is_default_fingerprint_var(entry) for entry in fingerprint)
+            else "custom"
+        )
+    )

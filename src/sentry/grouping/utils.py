@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from hashlib import md5
 from re import Match
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from django.utils.encoding import force_bytes
@@ -12,7 +12,6 @@ from sentry.db.models.fields.node import NodeData
 from sentry.grouping.fingerprinting.utils import (
     DEFAULT_FINGERPRINT_VARIABLE,
     _fingerprint_var_re,
-    is_default_fingerprint_var,
     parse_fingerprint_entry_as_variable,
 )
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
@@ -32,29 +31,6 @@ def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingCompon
     for value in values:
         result.update(force_bytes(value, errors="replace"))
     return result.hexdigest()
-
-
-def get_fingerprint_type(
-    fingerprint: list[str] | None,
-) -> Literal["default", "hybrid", "custom"] | None:
-    """
-    Examine a fingerprint to determine if it's custom, hybrid, or the default fingerprint.
-
-    Accepts (and then returns) None for convenience, so the fingerprint's existence doesn't have to
-    be separately checked.
-    """
-    if not fingerprint:
-        return None
-
-    return (
-        "default"
-        if len(fingerprint) == 1 and is_default_fingerprint_var(fingerprint[0])
-        else (
-            "hybrid"
-            if any(is_default_fingerprint_var(entry) for entry in fingerprint)
-            else "custom"
-        )
-    )
 
 
 def bool_from_string(value: str) -> bool | None:
