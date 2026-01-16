@@ -382,7 +382,7 @@ def _fetch_base_size_metrics(
 
     # Build lookup key -> base artifact
     # Key: (commit_comparison_id, app_id, artifact_type, build_configuration_id)
-    base_artifact_lookup: dict[tuple, PreprodArtifact] = {}
+    base_artifact_lookup = {}
     for ba in base_artifacts_qs:
         key = (ba.commit_comparison_id, ba.app_id, ba.artifact_type, ba.build_configuration_id)
         if key not in base_artifact_lookup:
@@ -420,9 +420,9 @@ def _fetch_base_size_metrics(
     # Map head artifact IDs to their base metrics
     result: dict[int, PreprodArtifactSizeMetrics] = {}
     for head_artifact_id, base_artifact in base_artifact_map.items():
-        metrics = base_metrics_lookup.get(base_artifact.id)
-        if metrics:
-            result[head_artifact_id] = metrics
+        base_metrics = base_metrics_lookup.get(base_artifact.id)
+        if base_metrics:
+            result[head_artifact_id] = base_metrics
 
     return result
 
