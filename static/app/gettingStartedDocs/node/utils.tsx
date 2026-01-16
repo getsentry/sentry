@@ -454,10 +454,12 @@ import { GoogleGenAI } from "@google/genai";
 
 // WARNING: Never expose API keys in browser code
 const genAI = new GoogleGenAI("YOUR_GOOGLE_API_KEY");
+
 const client = Sentry.instrumentGoogleGenAIClient(genAI, {
   recordInputs: true,
   recordOutputs: true,
 });
+
 const response = await client.models.generateContent({
   model: 'gemini-2.0-flash-001',
   contents: 'Why is the sky blue?',
@@ -493,10 +495,12 @@ const response = await client.models.generateContent({
 import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic();
+
 const client = Sentry.instrumentAnthropicAiClient(anthropic, {
   recordInputs: true,
   recordOutputs: true,
 });
+
 const msg = await client.messages.create({
  model: "claude-3-5-sonnet",
  messages: [{role: "user", content: "Tell me a joke"}],
@@ -532,10 +536,12 @@ const msg = await client.messages.create({
 import OpenAI from "openai";
 
 const openai = new OpenAI();
+
 const client = Sentry.instrumentOpenAiClient(openai, {
   recordInputs: true,
   recordOutputs: true,
 });
+
 const response = await client.responses.create({
   model: "gpt-4o-mini",
   input: "Tell me a joke",
