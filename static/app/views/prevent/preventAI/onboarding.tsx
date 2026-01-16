@@ -153,9 +153,6 @@ export default function PreventAIOnboarding() {
               )}
             </Text>
           </Flex>
-
-          {tct('Say [bold:hello]!', {bold: <Text bold>bonjour</Text>})}
-
           <Flex direction="column" gap="xl">
             <OnboardingStep
               step={1}
