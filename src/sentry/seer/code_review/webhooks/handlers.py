@@ -82,4 +82,5 @@ def handle_webhook_event(
         organization=organization,
         repo=repo,
         integration=integration,
+        settings=preflight.settings,
     )

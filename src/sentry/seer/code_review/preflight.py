@@ -8,7 +8,19 @@ from sentry import features
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewSettings, RepositorySettings
+from sentry.models.repositorysettings import (
+    CodeReviewSettings,
+    CodeReviewTrigger,
+    RepositorySettings,
+)
+
+DEFAULT_ENABLED_CODE_REVIEW_SETTINGS = CodeReviewSettings(
+    enabled=True,
+    triggers=[
+        CodeReviewTrigger.ON_NEW_COMMIT,
+        CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    ],
+)
 
 
 class PreflightDenialReason(StrEnum):
@@ -58,7 +70,11 @@ class CodeReviewPreflightService:
             if denial_reason is not None:
                 return CodeReviewPreflightResult(allowed=False, denial_reason=denial_reason)
 
-        return CodeReviewPreflightResult(allowed=True, settings=self._repo_settings)
+        settings: CodeReviewSettings | None = self._repo_settings
+        if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
+            settings = DEFAULT_ENABLED_CODE_REVIEW_SETTINGS
+
+        return CodeReviewPreflightResult(allowed=True, settings=settings)
 
     # -------------------------------------------------------------------------
     # Checks - each returns denial reason or None if valid
@@ -129,6 +145,9 @@ class CodeReviewPreflightService:
             "sentry:enable_pr_review_test_generation", False
         )
         return has_beta_flag or bool(has_legacy_opt_in)
+
+    def _is_legacy_usage_based_seer_plan_org(self) -> bool:
+        return features.has("organizations:seer-added", self.organization)
 
     def _has_legacy_toggle_enabled(self) -> bool:
         return bool(

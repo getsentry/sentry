@@ -14,6 +14,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
 
 from ..metrics import (
     CodeReviewErrorType,
@@ -71,6 +72,19 @@ WHITELISTED_ACTIONS = {
     PullRequestAction.SYNCHRONIZE,
 }
 
+# Actions that require trigger settings to be checked before forwarding
+ACTIONS_REQUIRING_TRIGGER_CHECK = {
+    PullRequestAction.OPENED,
+    PullRequestAction.READY_FOR_REVIEW,
+    PullRequestAction.SYNCHRONIZE,
+}
+
+ACTION_TO_TRIGGER: dict[PullRequestAction, CodeReviewTrigger] = {
+    PullRequestAction.OPENED: CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    PullRequestAction.READY_FOR_REVIEW: CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    PullRequestAction.SYNCHRONIZE: CodeReviewTrigger.ON_NEW_COMMIT,
+}
+
 
 def handle_pull_request_event(
     *,
@@ -79,6 +93,7 @@ def handle_pull_request_event(
     organization: Organization,
     repo: Repository,
     integration: RpcIntegration | None = None,
+    settings: CodeReviewSettings | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -120,6 +135,19 @@ def handle_pull_request_event(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
+
+    if action in ACTIONS_REQUIRING_TRIGGER_CHECK:
+        trigger = ACTION_TO_TRIGGER.get(action)
+        if trigger is None or settings is None:
+            record_webhook_filtered(
+                github_event, action_value, WebhookFilteredReason.TRIGGER_NOT_FOUND
+            )
+            return
+        if trigger not in settings.triggers:
+            record_webhook_filtered(
+                github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED
+            )
+            return
 
     if pull_request.get("draft") is True:
         return
