@@ -154,10 +154,10 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
     def test_fetch_project_transaction_totals_uses_transaction_metric_by_default(self) -> None:
         """
         Verify that FetchProjectTransactionTotals uses the transaction count per root metric
-        by default (when feature flag is disabled).
+        by default (when use_span_metric=False).
         """
         orgs = self.org_ids
-        fetcher = FetchProjectTransactionTotals(orgs)
+        fetcher = FetchProjectTransactionTotals(orgs, use_span_metric=False)
 
         # Verify metric_id is resolved from TransactionMRI.COUNT_PER_ROOT_PROJECT
         expected_metric_id = indexer.resolve_shared_org(
@@ -170,10 +170,12 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
     def test_fetch_project_transaction_volumes_uses_transaction_metric_by_default(self) -> None:
         """
         Verify that FetchProjectTransactionVolumes uses the transaction count per root metric
-        by default (when feature flag is disabled).
+        by default (when use_span_metric=False).
         """
         orgs = self.org_ids
-        fetcher = FetchProjectTransactionVolumes(orgs, large_transactions=True, max_transactions=3)
+        fetcher = FetchProjectTransactionVolumes(
+            orgs, large_transactions=True, max_transactions=3, use_span_metric=False
+        )
 
         # Verify metric_id is resolved from TransactionMRI.COUNT_PER_ROOT_PROJECT
         expected_metric_id = indexer.resolve_shared_org(
@@ -186,50 +188,40 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
     def test_fetch_project_transaction_totals_uses_span_metric_when_enabled(self) -> None:
         """
         Verify that FetchProjectTransactionTotals uses the span count per root metric
-        with is_segment tag when the feature flag is enabled.
+        with is_segment tag when use_span_metric=True.
         """
-        with self.options(
-            {"dynamic-sampling.prioritise_transactions.use_span_count_per_root": True}
-        ):
-            orgs = self.org_ids
-            fetcher = FetchProjectTransactionTotals(orgs)
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionTotals(orgs, use_span_metric=True)
 
-            # Verify metric_id is resolved from SpanMRI.COUNT_PER_ROOT_PROJECT
-            expected_metric_id = indexer.resolve_shared_org(
-                str(SpanMRI.COUNT_PER_ROOT_PROJECT.value)
-            )
-            assert fetcher.metric_id == expected_metric_id
-            assert fetcher.use_span_metric is True
+        # Verify metric_id is resolved from SpanMRI.COUNT_PER_ROOT_PROJECT
+        expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        assert fetcher.metric_id == expected_metric_id
+        assert fetcher.use_span_metric is True
 
-            # Verify is_segment tag is set up
-            is_segment_string_id = indexer.resolve_shared_org("is_segment")
-            expected_is_segment_tag = f"tags_raw[{is_segment_string_id}]"
-            assert fetcher.is_segment_tag == expected_is_segment_tag
+        # Verify is_segment tag is set up
+        is_segment_string_id = indexer.resolve_shared_org("is_segment")
+        expected_is_segment_tag = f"tags_raw[{is_segment_string_id}]"
+        assert fetcher.is_segment_tag == expected_is_segment_tag
 
     def test_fetch_project_transaction_volumes_uses_span_metric_when_enabled(self) -> None:
         """
         Verify that FetchProjectTransactionVolumes uses the span count per root metric
-        with is_segment tag when the feature flag is enabled.
+        with is_segment tag when use_span_metric=True.
         """
-        with self.options(
-            {"dynamic-sampling.prioritise_transactions.use_span_count_per_root": True}
-        ):
-            orgs = self.org_ids
-            fetcher = FetchProjectTransactionVolumes(
-                orgs, large_transactions=True, max_transactions=3
-            )
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionVolumes(
+            orgs, large_transactions=True, max_transactions=3, use_span_metric=True
+        )
 
-            # Verify metric_id is resolved from SpanMRI.COUNT_PER_ROOT_PROJECT
-            expected_metric_id = indexer.resolve_shared_org(
-                str(SpanMRI.COUNT_PER_ROOT_PROJECT.value)
-            )
-            assert fetcher.metric_id == expected_metric_id
-            assert fetcher.use_span_metric is True
+        # Verify metric_id is resolved from SpanMRI.COUNT_PER_ROOT_PROJECT
+        expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        assert fetcher.metric_id == expected_metric_id
+        assert fetcher.use_span_metric is True
 
-            # Verify is_segment tag is set up
-            is_segment_string_id = indexer.resolve_shared_org("is_segment")
-            expected_is_segment_tag = f"tags_raw[{is_segment_string_id}]"
-            assert fetcher.is_segment_tag == expected_is_segment_tag
+        # Verify is_segment tag is set up
+        is_segment_string_id = indexer.resolve_shared_org("is_segment")
+        expected_is_segment_tag = f"tags_raw[{is_segment_string_id}]"
+        assert fetcher.is_segment_tag == expected_is_segment_tag
 
     @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
     def test_fetch_project_transaction_totals_query_includes_is_segment_filter_when_enabled(
@@ -240,27 +232,24 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         """
         mock_raw_snql_query.return_value = {"data": []}
 
-        with self.options(
-            {"dynamic-sampling.prioritise_transactions.use_span_count_per_root": True}
-        ):
-            orgs = self.org_ids
-            fetcher = FetchProjectTransactionTotals(orgs)
-            # Trigger the query
-            try:
-                next(fetcher)
-            except StopIteration:
-                pass
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionTotals(orgs, use_span_metric=True)
+        # Trigger the query
+        try:
+            next(fetcher)
+        except StopIteration:
+            pass
 
-            # Verify raw_snql_query was called
-            assert mock_raw_snql_query.called
-            call_args = mock_raw_snql_query.call_args
-            request = call_args[0][0]
+        # Verify raw_snql_query was called
+        assert mock_raw_snql_query.called
+        call_args = mock_raw_snql_query.call_args
+        request = call_args[0][0]
 
-            # Check the query includes is_segment filter (using indexed ID)
-            query_str = str(request.query)
-            is_segment_id = indexer.resolve_shared_org("is_segment")
-            assert f"tags_raw[{is_segment_id}]" in query_str
-            assert "'true'" in query_str
+        # Check the query includes is_segment filter (using indexed ID)
+        query_str = str(request.query)
+        is_segment_id = indexer.resolve_shared_org("is_segment")
+        assert f"tags_raw[{is_segment_id}]" in query_str
+        assert "'true'" in query_str
 
     @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
     def test_fetch_project_transaction_totals_query_excludes_is_segment_filter_when_disabled(
@@ -272,7 +261,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         mock_raw_snql_query.return_value = {"data": []}
 
         orgs = self.org_ids
-        fetcher = FetchProjectTransactionTotals(orgs)
+        fetcher = FetchProjectTransactionTotals(orgs, use_span_metric=False)
         # Trigger the query
         try:
             next(fetcher)
@@ -298,29 +287,26 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         """
         mock_raw_snql_query.return_value = {"data": []}
 
-        with self.options(
-            {"dynamic-sampling.prioritise_transactions.use_span_count_per_root": True}
-        ):
-            orgs = self.org_ids
-            fetcher = FetchProjectTransactionVolumes(
-                orgs, large_transactions=True, max_transactions=3
-            )
-            # Trigger the query
-            try:
-                next(fetcher)
-            except StopIteration:
-                pass
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionVolumes(
+            orgs, large_transactions=True, max_transactions=3, use_span_metric=True
+        )
+        # Trigger the query
+        try:
+            next(fetcher)
+        except StopIteration:
+            pass
 
-            # Verify raw_snql_query was called
-            assert mock_raw_snql_query.called
-            call_args = mock_raw_snql_query.call_args
-            request = call_args[0][0]
+        # Verify raw_snql_query was called
+        assert mock_raw_snql_query.called
+        call_args = mock_raw_snql_query.call_args
+        request = call_args[0][0]
 
-            # Check the query includes is_segment filter (using indexed ID)
-            query_str = str(request.query)
-            is_segment_id = indexer.resolve_shared_org("is_segment")
-            assert f"tags_raw[{is_segment_id}]" in query_str
-            assert "'true'" in query_str
+        # Check the query includes is_segment filter (using indexed ID)
+        query_str = str(request.query)
+        is_segment_id = indexer.resolve_shared_org("is_segment")
+        assert f"tags_raw[{is_segment_id}]" in query_str
+        assert "'true'" in query_str
 
     @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
     def test_fetch_project_transaction_volumes_query_excludes_is_segment_filter_when_disabled(
@@ -332,7 +318,9 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         mock_raw_snql_query.return_value = {"data": []}
 
         orgs = self.org_ids
-        fetcher = FetchProjectTransactionVolumes(orgs, large_transactions=True, max_transactions=3)
+        fetcher = FetchProjectTransactionVolumes(
+            orgs, large_transactions=True, max_transactions=3, use_span_metric=False
+        )
         # Trigger the query
         try:
             next(fetcher)

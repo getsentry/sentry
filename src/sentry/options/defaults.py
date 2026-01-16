@@ -2243,16 +2243,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When enabled, the boost low volume transactions task uses the span count per root metric
-# (c:spans/count_per_root_project@none) with is_segment=true filter instead of the transaction
-# count per root metric (c:transactions/count_per_root_project@none). This allows for a gradual
-# rollout of the metric migration.
-register(
-    "dynamic-sampling.prioritise_transactions.use_span_count_per_root",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_BOOL,
-)
-
 # Enables a feature flag check in dynamic sampling tasks that switches
 # organizations between transactions and spans for rebalancing. This check is
 # expensive, so it can be disabled using this option.
