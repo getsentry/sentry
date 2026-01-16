@@ -21,10 +21,15 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/analytics');
 
-function getRouteConfig(organization: Organization, rule: MetricRule) {
+function getRouteConfig(
+  organization: Organization,
+  rule: MetricRule,
+  query?: Record<string, string>
+) {
   return {
     location: {
       pathname: `/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`,
+      query,
     },
     route: '/organizations/:orgId/alerts/rules/details/:ruleId/',
   };
@@ -134,7 +139,7 @@ describe('MetricAlertDetails', () => {
 
     render(<MetricAlertDetails />, {
       organization,
-      initialRouterConfig: getRouteConfig(organization, rule),
+      initialRouterConfig: getRouteConfig(organization, rule, {alert: incident.id}),
     });
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
