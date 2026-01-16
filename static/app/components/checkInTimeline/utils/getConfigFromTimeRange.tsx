@@ -23,6 +23,11 @@ const TIMELABEL_WIDTH_DATE = 110;
 const TIMELABEL_WIDTH_TIME = 100;
 
 /**
+ * One second after epoch
+ */
+const MINIMUM_UNIX_TIMESTAMP_SECONDS = 1000;
+
+/**
  * Acceptable minute durations between time labels. These will be used to
  * computed the timeMarkerInterval of the TimeWindow when the start and end
  * times fit into these buckets.
@@ -82,6 +87,7 @@ const BUCKET_INTERVALS = [
   ONE_YEAR_SECS * 2,
   ONE_YEAR_SECS * 3,
   ONE_YEAR_SECS * 5,
+  ONE_YEAR_SECS * 10,
 ] as const;
 
 /**
@@ -234,15 +240,16 @@ export function getConfigFromTimeRange(
   const underscanStartRaw = moment(start)
     .subtract(rollupConfig.underscanBuckets * rollupConfig.interval, 'seconds')
     .toDate();
+
   // In extreme cases (very large intervals and/or large underscan), the computed
   // underscan start can fall before the unix epoch. If that happens, shift the
   // entire time window forward by the same delta so the window width stays the
   // same while staying within valid unix timestamps.
-  const minEpochMs = 1000; // 1s after epoch (0 is falsy in some enabled checks)
   const shiftMs =
-    underscanStartRaw.getTime() < minEpochMs
-      ? minEpochMs - underscanStartRaw.getTime()
+    underscanStartRaw.getTime() < MINIMUM_UNIX_TIMESTAMP_SECONDS
+      ? MINIMUM_UNIX_TIMESTAMP_SECONDS - underscanStartRaw.getTime()
       : 0;
+
   const underscanStart = new Date(underscanStartRaw.getTime() + shiftMs);
   const periodStart = new Date(start.getTime() + shiftMs);
   const periodEnd = new Date(end.getTime() + shiftMs);
