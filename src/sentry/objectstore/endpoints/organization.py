@@ -94,7 +94,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
             request.method,
             url=target_url,
             headers=headers,
-            data=get_raw_body(request._request),
+            data=request._request.body or get_raw_body(request._request),
             params=dict(request.GET) if request.GET else None,
             stream=True,
             allow_redirects=False,
