@@ -89,8 +89,8 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
 
         config = validator.validated_data
 
-        failure_threshold = config.get("failure_issue_threshold", MIN_THRESHOLD)
-        recovery_threshold = config.get("recovery_threshold", MIN_THRESHOLD)
+        failure_threshold = config.get("failure_issue_threshold") or MIN_THRESHOLD
+        recovery_threshold = config.get("recovery_threshold") or MIN_THRESHOLD
 
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")

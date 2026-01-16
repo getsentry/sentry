@@ -54,8 +54,8 @@ class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         config = validator.validated_data
-        failure_threshold = config.get("failure_issue_threshold", MIN_THRESHOLD)
-        recovery_threshold = config.get("recovery_threshold", MIN_THRESHOLD)
+        failure_threshold = config.get("failure_issue_threshold") or MIN_THRESHOLD
+        recovery_threshold = config.get("recovery_threshold") or MIN_THRESHOLD
 
         num_ticks = _get_num_ticks(
             failure_threshold=failure_threshold,
