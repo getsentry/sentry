@@ -70,6 +70,29 @@ class TraceExplorerAIQueryTest(APITestCase):
 
     @patch("sentry.seer.endpoints.trace_explorer_ai_query.send_translate_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_empty_project_ids_with_valid_query(self, mock_send_request) -> None:
+        """Test that empty project_ids list is rejected even with valid query."""
+        mock_send_request.return_value = {
+            "responses": [],
+            "unsupported_reason": None,
+        }
+
+        response = self.client.post(
+            self.url,
+            data={
+                "project_ids": [],
+                "natural_language_query": "Find slow transactions",
+            },
+            format="json",
+        )
+
+        # Should return 400 because project_ids is empty
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Missing one or more required parameters" in response.data["detail"]
+        mock_send_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.trace_explorer_ai_query.send_translate_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
     def test_cross_organization_access_denied(self, mock_send_request) -> None:
         """
         Test that a user from one organization cannot query projects from another organization.
