@@ -40,7 +40,7 @@ function QuotaAlert() {
   const quota = useFormField<string | number>('newConsoleSdkInviteQuota');
 
   const hasEnabledPlatform = playstation || nintendoSwitch || xbox;
-  const isQuotaZero = quota === 0 || quota === '0';
+  const isQuotaZero = quota === 0 || quota === '0' || quota === '';
 
   if (!hasEnabledPlatform || !isQuotaZero) {
     return null;
@@ -173,7 +173,7 @@ function ToggleConsolePlatformsModal({
   const queryClient = useQueryClient();
 
   const {isPending: isUpdatePending, mutateAsync: updateConsolePlatforms} = useMutation({
-    mutationFn: (data: Record<string, boolean | number>) => {
+    mutationFn: (data: Record<string, boolean | number | string>) => {
       const {newConsoleSdkInviteQuota, ...platforms} = data;
       return fetchMutation({
         method: 'PUT',
@@ -185,7 +185,8 @@ function ToggleConsolePlatformsModal({
             }
             return acc;
           }, [] as string[]),
-          consoleSdkInviteQuota: newConsoleSdkInviteQuota,
+          consoleSdkInviteQuota:
+            newConsoleSdkInviteQuota === '' ? 0 : newConsoleSdkInviteQuota,
         },
       });
     },
@@ -269,11 +270,7 @@ function ToggleConsolePlatformsModal({
           Toggle consoles to allow users in this organization to create console projects
           and view private setup instructions.
         </p>
-        <div
-          css={css`
-            margin: 0 -${space(4)};
-          `}
-        >
+        <div>
           <StyledFieldFromConfig
             field={{
               name: 'playstation',
