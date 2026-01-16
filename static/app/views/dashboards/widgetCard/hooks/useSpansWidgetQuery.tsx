@@ -32,7 +32,7 @@ import {
   dashboardFiltersToString,
   eventViewFromWidget,
 } from 'sentry/views/dashboards/utils';
-import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
 type SpansSeriesResponse =
@@ -79,10 +79,7 @@ function applyDashboardFilters(
  */
 export function useSpansSeriesQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
-): GenericWidgetQueriesResult & {
-  refetch: () => Promise<void>;
-  rawData?: SpansSeriesResponse[];
-} {
+): HookWidgetQueryResult {
   const {
     widget,
     organization,
@@ -149,6 +146,7 @@ export function useSpansSeriesQuery(
       return {
         loading: isLoading || !queryResults.length,
         errorMessage,
+        rawData: [],
         refetch,
       };
     }
@@ -178,8 +176,22 @@ export function useSpansSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      // Get result types and units (these are optional in the config)
-      // For spans, these methods don't exist, so we skip them
+      // Get result types and units from config
+      const resultTypes = SpansConfig.getSeriesResultType?.(
+        q.data,
+        filteredWidget.queries[requestIndex]!
+      );
+      const resultUnits = SpansConfig.getSeriesResultUnit?.(
+        q.data,
+        filteredWidget.queries[requestIndex]!
+      );
+
+      if (resultTypes) {
+        Object.assign(timeseriesResultsTypes, resultTypes);
+      }
+      if (resultUnits) {
+        Object.assign(timeseriesResultsUnits, resultUnits);
+      }
     });
 
     return {
@@ -203,10 +215,7 @@ export function useSpansSeriesQuery(
  */
 export function useSpansTableQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
-): GenericWidgetQueriesResult & {
-  refetch: () => Promise<void>;
-  rawData?: SpansTableResponse[];
-} {
+): HookWidgetQueryResult {
   const {
     widget,
     organization,
@@ -291,6 +300,7 @@ export function useSpansTableQuery(
       return {
         loading: isLoading || !queryResults.length,
         errorMessage,
+        rawData: [],
         refetch,
       };
     }

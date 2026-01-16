@@ -76,6 +76,13 @@ export type GenericWidgetQueriesResult = {
   totalCount?: string;
 };
 
+/**
+ * Result type for hook-based queries.
+ * Hooks MUST always return refetch and rawData for queue/callback integration.
+ */
+export type HookWidgetQueryResult = GenericWidgetQueriesResult &
+  Required<Pick<GenericWidgetQueriesResult, 'refetch' | 'rawData'>>;
+
 export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
   widget: Widget;
@@ -205,7 +212,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
     // Call afterFetch callbacks with raw data
     if (isChartDisplay) {
-      hookResults.rawData.forEach(data => {
+      hookResults.rawData.forEach((data: any) => {
         afterFetchSeriesData?.(data as SeriesResponse);
       });
 
@@ -216,10 +223,10 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
       });
     } else {
-      hookResults.rawData.forEach((data, index) => {
+      hookResults.rawData.forEach((data: any, index: number) => {
         const result = afterFetchTableData?.(data as TableResponse);
         // Merge any additional data from callback into onDataFetched
-        if (result && index === hookResults.rawData!.length - 1) {
+        if (result && index === hookResults.rawData.length - 1) {
           onDataFetched?.({
             tableResults: (hookResults as any).tableResults,
             pageLinks: (hookResults as any).pageLinks,
