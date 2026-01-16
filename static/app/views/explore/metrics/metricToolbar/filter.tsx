@@ -31,13 +31,13 @@ export function Filter({traceMetric}: FilterProps) {
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
-    traceItemType: TraceItemDataset.TRACEMETRICS,
+    dataset: TraceItemDataset.TRACEMETRICS,
     type: 'number',
     enabled: Boolean(traceMetricFilter),
     query: traceMetricFilter,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
-    traceItemType: TraceItemDataset.TRACEMETRICS,
+    dataset: TraceItemDataset.TRACEMETRICS,
     type: 'string',
     enabled: Boolean(traceMetricFilter),
     query: traceMetricFilter,

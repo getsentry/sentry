@@ -92,7 +92,7 @@ function TraceMetricsSearchBar({
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.TRACEMETRICS,
+    dataset: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
     query: createTraceMetricFilter(traceMetric),
   };
@@ -140,7 +140,7 @@ function useTraceMetricsSearchBarDataProvider(
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.TRACEMETRICS,
+    dataset: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
     query: createTraceMetricFilter(traceMetric),
   };

@@ -95,11 +95,7 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
   }
 
   return (
-    <TraceItemAttributeProvider
-      traceItemType={traceItemType}
-      enabled={enabled}
-      query={query}
-    >
+    <TraceItemAttributeProvider dataset={traceItemType} enabled={enabled} query={query}>
       {children}
     </TraceItemAttributeProvider>
   );

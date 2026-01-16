@@ -34,14 +34,14 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
 
   const {attributes: numberTags, isLoading: numberTagsLoading} =
     useTraceItemAttributeKeys({
-      traceItemType: TraceItemDataset.TRACEMETRICS,
+      dataset: TraceItemDataset.TRACEMETRICS,
       type: 'number',
       enabled: Boolean(traceMetricFilter),
       query: traceMetricFilter,
     });
   const {attributes: stringTags, isLoading: stringTagsLoading} =
     useTraceItemAttributeKeys({
-      traceItemType: TraceItemDataset.TRACEMETRICS,
+      dataset: TraceItemDataset.TRACEMETRICS,
       type: 'string',
       enabled: Boolean(traceMetricFilter),
       query: traceMetricFilter,

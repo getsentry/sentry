@@ -11,7 +11,7 @@ export interface UseTraceItemAttributeBaseProps {
   /**
    * The trace item type supported by the endpoint, currently only supports LOGS.
    */
-  traceItemType: TraceItemDataset;
+  dataset: TraceItemDataset;
   /**
    * The attribute type supported by the endpoint, currently only supports string and number.
    */

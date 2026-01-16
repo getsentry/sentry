@@ -62,7 +62,7 @@ export default function OurLogs() {
       }}
     >
       <LogsPageDataProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+        <TraceItemAttributeProvider dataset={TraceItemDataset.LOGS} enabled>
           <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
         </TraceItemAttributeProvider>
       </LogsPageDataProvider>

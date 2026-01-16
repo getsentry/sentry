@@ -89,7 +89,7 @@ export function useTraceItemSearchQueryBuilderProps({
   const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
-    traceItemType: itemType,
+    dataset: itemType,
     type: 'string',
     projectIds: projects,
   });

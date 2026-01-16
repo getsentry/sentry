@@ -34,8 +34,8 @@ const TraceItemAttributeContext = createContext<
 >(undefined);
 
 type TraceItemAttributeConfig = {
+  dataset: TraceItemDataset;
   enabled: boolean;
-  traceItemType: TraceItemDataset;
   projects?: Project[];
   query?: string;
   search?: string;
@@ -47,14 +47,14 @@ type TraceItemAttributeProviderProps = {
 
 export function TraceItemAttributeProvider({
   children,
-  traceItemType,
+  dataset,
   enabled,
   projects,
   search,
   query,
 }: TraceItemAttributeProviderProps) {
   const typedAttributesResult = useTraceItemAttributeConfig({
-    traceItemType,
+    dataset,
     enabled,
     projects,
     search,
@@ -69,7 +69,7 @@ export function TraceItemAttributeProvider({
 }
 
 function useTraceItemAttributeConfig({
-  traceItemType,
+  dataset,
   enabled,
   projects,
   search,
@@ -79,7 +79,7 @@ function useTraceItemAttributeConfig({
     useTraceItemAttributeKeys({
       enabled,
       type: 'number',
-      traceItemType,
+      dataset,
       projects,
       search,
       query,
@@ -89,14 +89,14 @@ function useTraceItemAttributeConfig({
     useTraceItemAttributeKeys({
       enabled,
       type: 'string',
-      traceItemType,
+      dataset,
       projects,
       search,
       query,
     });
 
   const allNumberAttributes = useMemo(() => {
-    const measurements = getDefaultNumberAttributes(traceItemType).map(measurement => [
+    const measurements = getDefaultNumberAttributes(dataset).map(measurement => [
       measurement,
       {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
     ]);
@@ -111,10 +111,10 @@ function useTraceItemAttributeConfig({
       attributes: {...numberAttributes, ...Object.fromEntries(measurements)},
       secondaryAliases,
     };
-  }, [numberAttributes, traceItemType]);
+  }, [numberAttributes, dataset]);
 
   const allStringAttributes = useMemo(() => {
-    const tags = getDefaultStringAttributes(traceItemType).map(tag => [
+    const tags = getDefaultStringAttributes(dataset).map(tag => [
       tag,
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
@@ -128,7 +128,7 @@ function useTraceItemAttributeConfig({
       attributes: {...stringAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [stringAttributes, traceItemType]);
+  }, [stringAttributes, dataset]);
 
   return useMemo(
     () => ({

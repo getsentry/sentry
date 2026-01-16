@@ -82,7 +82,7 @@ function ToolbarGroupByItem({
   return (
     <TraceItemAttributeProvider
       enabled
-      traceItemType={TraceItemDataset.SPANS}
+      dataset={TraceItemDataset.SPANS}
       search={debouncedSearch}
     >
       <ToolbarGroupByItemContent

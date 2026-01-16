@@ -33,19 +33,19 @@ function traceItemAttributeValuesQueryKey({
   search,
   projectIds,
   datetime,
-  traceItemType,
+  dataset,
   type = 'string',
 }: {
   attributeKey: string;
+  dataset: TraceItemDataset;
   orgSlug: string;
-  traceItemType: TraceItemDataset;
   datetime?: PageFilters['datetime'];
   projectIds?: number[];
   search?: string;
   type?: 'string' | 'number';
 }): ApiQueryKey {
   const query: Record<string, string | string[] | number[]> = {
-    itemType: traceItemType,
+    dataset,
     attributeType: type,
   };
 
@@ -76,7 +76,7 @@ function traceItemAttributeValuesQueryKey({
  * This is designed to be used with the organization_trace_item_attributes endpoint.
  */
 export function useGetTraceItemAttributeValues({
-  traceItemType,
+  dataset,
   projectIds,
   datetime,
   type = 'string',
@@ -99,7 +99,7 @@ export function useGetTraceItemAttributeValues({
         search: queryString,
         projectIds: projectIds ?? selection.projects,
         datetime: datetime ?? selection.datetime,
-        traceItemType,
+        dataset,
         type,
       });
 
@@ -123,7 +123,7 @@ export function useGetTraceItemAttributeValues({
       selection.projects,
       selection.datetime,
       datetime,
-      traceItemType,
+      dataset,
     ]
   );
 

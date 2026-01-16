@@ -72,7 +72,7 @@ export function DataScrubbing({
   const traceItemAttributeStringsResult = useTraceItemAttributeKeys({
     enabled: traceItemDatasetsEnabled,
     type: 'string',
-    traceItemType: TraceItemDataset.LOGS,
+    dataset: TraceItemDataset.LOGS,
     projects: project ? [project] : undefined,
   });
   const attributeResults: AttributeResults = useMemo(
