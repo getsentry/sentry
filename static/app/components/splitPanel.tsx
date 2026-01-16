@@ -1,6 +1,8 @@
 import {createContext, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -158,14 +160,18 @@ function SplitPanel(props: SplitPanelProps) {
           orientation="columns"
           size={sizePct}
         >
-          <Panel>{a.content}</Panel>
+          <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+            {a.content}
+          </Stack>
           <SplitDivider
             data-is-held={isHeld}
             data-slide-direction="leftright"
             onDoubleClick={onDoubleClick}
             onMouseDown={handleMouseDown}
           />
-          <Panel>{b}</Panel>
+          <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+            {b}
+          </Stack>
         </SplitPanelContainer>
       </SplitPanelContext>
     );
@@ -179,14 +185,18 @@ function SplitPanel(props: SplitPanelProps) {
         size={sizePct}
         className={isHeld ? 'disable-iframe-pointer' : undefined}
       >
-        <Panel>{a.content}</Panel>
+        <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+          {a.content}
+        </Stack>
         <SplitDivider
           data-is-held={isHeld}
           data-slide-direction="updown"
           onDoubleClick={onDoubleClick}
           onMouseDown={handleMouseDown}
         />
-        <Panel>{b}</Panel>
+        <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+          {b}
+        </Stack>
       </SplitPanelContainer>
     </SplitPanelContext>
   );
@@ -211,15 +221,6 @@ const SplitPanelContainer = styled('div')<{
   &&.disable-iframe-pointer iframe {
     pointer-events: none !important;
   }
-`;
-
-const Panel = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  min-height: 0;
-  min-width: 0;
 `;
 
 export default SplitPanel;

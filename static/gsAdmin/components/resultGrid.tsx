@@ -2,6 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -491,7 +493,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
             />
           )}
           {hasSearch && (
-            <SearchBar>
+            <Flex align="center" gap="xs" width="100%">
               <SearchInput
                 type="text"
                 placeholder="Search"
@@ -507,7 +509,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
                 size="sm"
                 aria-label="Search"
               />
-            </SearchBar>
+            </Flex>
           )}
         </SortSearchForm>
         {Object.keys(ensuredFilters).length > 0 && (
@@ -564,13 +566,6 @@ const FilterList = styled('div')`
   > div > button + div {
     z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
   }
-`;
-
-const SearchBar = styled('div')`
-  width: 100%;
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
 `;
 
 export const SearchInput = styled(Input)`

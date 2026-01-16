@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -123,10 +125,10 @@ export function AddAutofixRepoModal({
           </InputGroup>
         </SearchContainer>
         {isFetchingRepositories ? (
-          <LoadingContainer>
+          <Stack justify="center" align="center" padding="3xl" gap="xl" width="100%">
             <StyledLoadingIndicator size={36} />
             <LoadingMessage>{t('Loading repositories...')}</LoadingMessage>
-          </LoadingContainer>
+          </Stack>
         ) : filteredModalRepositories.length === 0 ? (
           <EmptyMessage>
             {modalSearchQuery.trim() && unselectedRepositories.length > 0
@@ -169,7 +171,7 @@ export function AddAutofixRepoModal({
         )}
       </Body>
       <Footer>
-        <FooterRow>
+        <Flex justify="between" align="center" width="100%">
           <div>
             {tct(
               "Don't see the repo you want? [manageRepositoriesLink:Manage repositories here.]",
@@ -195,18 +197,11 @@ export function AddAutofixRepoModal({
                 )
               : t('Done')}
           </Button>
-        </FooterRow>
+        </Flex>
       </Footer>
     </Fragment>
   );
 }
-
-const FooterRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-`;
 
 const ModalReposContainer = styled('div')`
   height: 35vh;
@@ -231,16 +226,6 @@ const EmptyMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: ${space(4)};
-  width: 100%;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

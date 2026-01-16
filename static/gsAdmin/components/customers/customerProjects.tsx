@@ -1,11 +1,11 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {IconProject} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -37,7 +37,7 @@ function CustomerProjects({orgId}: Props) {
       ]}
       columnsForRow={(row: any) => [
         <td key="name">
-          <ProjectName>
+          <Flex align="center" gap="md">
             <PlatformIcon size={16} platform={row.platform ?? 'other'} />
             <LinkButton
               external
@@ -50,7 +50,7 @@ function CustomerProjects({orgId}: Props) {
             <Link to={`/_admin/customers/${orgId}/projects/${row.slug}/`}>
               {row.slug}
             </Link>
-          </ProjectName>
+          </Flex>
         </td>,
         <td key="status" style={{textAlign: 'center'}}>
           {row.status}
@@ -65,11 +65,5 @@ function CustomerProjects({orgId}: Props) {
     />
   );
 }
-
-const ProjectName = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 export default CustomerProjects;

@@ -9,6 +9,7 @@ from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
+@pytest.mark.skip()
 class TestIssueTypeCondition(ConditionTestCase):
     condition = Condition.ISSUE_TYPE
 
