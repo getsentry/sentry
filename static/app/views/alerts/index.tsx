@@ -1,23 +1,12 @@
-import {cloneElement, isValidElement} from 'react';
+import {Outlet} from 'react-router-dom';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Redirect from 'sentry/components/redirect';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
-type Props = {
-  children: React.ReactNode;
-};
-
-function AlertsContainer({children}: Props) {
+export default function AlertsContainer() {
   const organization = useOrganization();
-
-  const content =
-    children && isValidElement(children)
-      ? cloneElement<any>(children, {
-          organization,
-        })
-      : children;
 
   const redirectPath = useRedirectNavV2Routes({
     oldPathPrefix: '/alerts/',
@@ -28,7 +17,9 @@ function AlertsContainer({children}: Props) {
     return <Redirect to={redirectPath} />;
   }
 
-  return <NoProjectMessage organization={organization}>{content}</NoProjectMessage>;
+  return (
+    <NoProjectMessage organization={organization}>
+      <Outlet />
+    </NoProjectMessage>
+  );
 }
-
-export default AlertsContainer;
