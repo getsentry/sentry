@@ -6,6 +6,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
@@ -585,7 +586,6 @@ export const getNodeAgentMonitoringOnboarding = ({
     },
   ],
   configure: params => {
-    const isNodePlatform = params.platformKey.startsWith('node');
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
 
@@ -635,6 +635,10 @@ export const getNodeAgentMonitoringOnboarding = ({
       ];
     }
 
+    const isNodeOrMetaPlatform =
+      params.platformKey.startsWith('node') ||
+      javascriptMetaFrameworks.includes(params.platformKey);
+
     const vercelAiExtraInstrumentation: ContentBlock[] = [
       {
         type: 'text',
@@ -674,7 +678,7 @@ const result = await generateText({
     const nonManualContent: ContentBlock[] = [
       {
         type: 'text',
-        text: isNodePlatform
+        text: isNodeOrMetaPlatform
           ? tct(
               'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
               {
@@ -709,7 +713,7 @@ Sentry.init({
     return [
       {
         title: t('Configure'),
-        content: isNodePlatform
+        content: isNodeOrMetaPlatform
           ? nonManualContent
           : [
               ...nonManualContent,
@@ -723,7 +727,9 @@ Sentry.init({
     ];
   },
   verify: params => {
-    const isNodePlatform = params.platformKey.startsWith('node');
+    const isNodePlatform =
+      params.platformKey.startsWith('node') ||
+      javascriptMetaFrameworks.includes(params.platformKey as any);
 
     const content: ContentBlock[] = [
       {

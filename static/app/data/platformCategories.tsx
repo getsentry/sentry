@@ -773,7 +773,7 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);
 
-export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+export const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-astro',
   'javascript-nextjs',
   'javascript-nuxt',
@@ -782,6 +782,10 @@ export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
+] as const;
+
+export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...javascriptMetaFrameworks,
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);
