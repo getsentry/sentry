@@ -72,9 +72,6 @@ export function ToolbarVisualizeDropdown({
         options={aggregateOptions}
         value={parsedFunction?.name ?? ''}
         onChange={onChangeAggregate}
-        onSearch={onSearch}
-        onClose={onClose}
-        loading={loading}
       />
       {aggregateDefinition?.parameters?.map((param, index) => {
         return (
