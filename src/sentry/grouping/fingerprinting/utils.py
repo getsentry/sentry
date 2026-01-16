@@ -301,3 +301,25 @@ def resolve_fingerprint_values(
         return resolved_value
 
     return [_resolve_single_entry(entry) for entry in fingerprint]
+
+
+def expand_title_template(
+    template: str, event_data: Mapping[str, Any], use_legacy_unknown_variable_handling: bool = False
+) -> str:
+    def _handle_match(match: re.Match[str]) -> str:
+        variable_key = match.group(1)
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
+        # `resolve_fingerprint_variable`
+        resolved_value = resolve_fingerprint_variable(
+            variable_key, event_data, use_legacy_unknown_variable_handling
+        )
+
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove this
+        if resolved_value is not None:
+            return resolved_value
+        # If the variable can't be resolved, return it as is
+        return match.group(0)
+
+    return _fingerprint_var_re.sub(_handle_match, template)
