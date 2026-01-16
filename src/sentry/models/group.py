@@ -604,7 +604,7 @@ class GroupManager(BaseManager["Group"]):
                 id__in=group_ids,
                 project_id__in=project_ids,
                 project__organization=organization,
-            )
+            ).select_related("project")
         }
 
 
