@@ -163,25 +163,4 @@ describe('getConfigFromTimeRange', () => {
       timezone,
     });
   });
-
-  it('shifts the time window forward when underscan would fall before epoch', () => {
-    // Start at the Unix epoch so that any underscan pushes the start < 0.
-    const start = new Date(0);
-    const end = new Date(60_000);
-    const config = getConfigFromTimeRange(start, end, 101, timezone);
-
-    // Underscan start is clamped to "one second after epoch" (1000ms).
-    expect(config.start.getTime()).toBe(1000);
-
-    // The entire window is shifted forward by a constant delta, preserving duration.
-    const shiftMs = config.periodStart.getTime() - start.getTime();
-    expect(shiftMs).toBeGreaterThan(0);
-    expect(config.periodStart.getTime()).toBe(start.getTime() + shiftMs);
-    expect(config.end.getTime()).toBe(end.getTime() + shiftMs);
-
-    // The duration of the window is preserved.
-    expect(config.end.getTime() - config.periodStart.getTime()).toBe(
-      end.getTime() - start.getTime()
-    );
-  });
 });

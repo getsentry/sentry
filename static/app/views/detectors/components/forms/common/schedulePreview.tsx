@@ -75,7 +75,9 @@ export function SchedulePreview({statusToText, ...detectorFields}: SchedulePrevi
 
     const message = badRequestError ? (
       <Alert variant="warning">
-        {t('No schedule preview available. %s', getErrorMessage(badRequestError))}
+        {t(
+          'No preview available. The provided schedule is invalid, or the thresholds are incompatible with it.'
+        )}
       </Alert>
     ) : (
       <LoadingError message={t('Failed to load schedule preview')} />
@@ -200,15 +202,6 @@ function ContentWrapper({
 
 function getBucketStatus(stats: Record<string, number> | undefined) {
   return stats ? statusPrecedent.find(status => (stats[status] ?? 0) > 0) : undefined;
-}
-
-function getErrorMessage(error: RequestError) {
-  return Object.entries(error.responseJSON ?? {})
-    .map(
-      ([key, value]) =>
-        `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`
-    )
-    .join(', ');
 }
 
 const OpenPeriodBar = styled('div')`

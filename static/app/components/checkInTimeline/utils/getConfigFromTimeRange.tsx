@@ -23,11 +23,6 @@ const TIMELABEL_WIDTH_DATE = 110;
 const TIMELABEL_WIDTH_TIME = 100;
 
 /**
- * One second after epoch
- */
-const MINIMUM_UNIX_TIMESTAMP_MS = 1000;
-
-/**
  * Acceptable minute durations between time labels. These will be used to
  * computed the timeMarkerInterval of the TimeWindow when the start and end
  * times fit into these buckets.
@@ -236,26 +231,13 @@ export function getConfigFromTimeRange(
   // buckets evenly). Calculations coorelating the container position should be
   // relative to the periodStart, which will be aligned at the pixel value of
   // the underscanWidth.
-  const underscanStartRaw = moment(start)
+  const underscanStart = moment(start)
     .subtract(rollupConfig.underscanBuckets * rollupConfig.interval, 'seconds')
     .toDate();
 
-  // In extreme cases (very large intervals and/or large underscan), the computed
-  // underscan start can fall before the unix epoch. If that happens, shift the
-  // entire time window forward by the same delta so the window width stays the
-  // same while staying within valid unix timestamps.
-  const shiftMs =
-    underscanStartRaw.getTime() < MINIMUM_UNIX_TIMESTAMP_MS
-      ? MINIMUM_UNIX_TIMESTAMP_MS - underscanStartRaw.getTime()
-      : 0;
-
-  const underscanStart = new Date(underscanStartRaw.getTime() + shiftMs);
-  const periodStart = new Date(start.getTime() + shiftMs);
-  const periodEnd = new Date(end.getTime() + shiftMs);
-
   // Display only the time (no date) when the start and end times are the same day
   const timeOnly =
-    elapsedMinutes <= ONE_HOUR_SECS * 24 && periodStart.getDate() === periodEnd.getDate();
+    elapsedMinutes <= ONE_HOUR_SECS * 24 && start.getDate() === end.getDate();
 
   // When one pixel represents less than at least one minute we also want to
   // display second values on our labels.
@@ -281,8 +263,8 @@ export function getConfigFromTimeRange(
 
     return {
       start: underscanStart,
-      periodStart,
-      end: periodEnd,
+      periodStart: start,
+      end,
       elapsedMinutes,
       timelineWidth,
       rollupConfig,
@@ -298,8 +280,8 @@ export function getConfigFromTimeRange(
 
   return {
     start: underscanStart,
-    periodStart,
-    end: periodEnd,
+    periodStart: start,
+    end,
     elapsedMinutes,
     timelineWidth,
     rollupConfig,
