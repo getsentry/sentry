@@ -47,8 +47,9 @@ function parseRules(raw: unknown): StatusCheckRule[] {
 export function useStatusCheckRules(project: Project) {
   const updateProject = useUpdateProject(project);
 
+  // Check top-level field first (optimistic update), fallback to options (server response)
   const enabled =
-    project.preprodSizeStatusChecksEnabled ?? project.options?.[ENABLED_KEY] ?? true;
+    project.preprodSizeStatusChecksEnabled ?? project.options?.[ENABLED_KEY] !== false;
 
   const rulesRaw = project.preprodSizeStatusChecksRules ?? project.options?.[RULES_KEY];
   const rules: StatusCheckRule[] = useMemo(() => {
