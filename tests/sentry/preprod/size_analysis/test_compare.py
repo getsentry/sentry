@@ -127,7 +127,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert len(result.diff_items) == 1
         diff_item = result.diff_items[0]
         assert diff_item.path == "file.txt"
-        assert diff_item.size_diff == 500
+        assert diff_item.size_diff == 100
         assert diff_item.head_size == 100
         assert diff_item.base_size is None
         assert diff_item.type == DiffType.ADDED

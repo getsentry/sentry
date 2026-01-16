@@ -1,4 +1,4 @@
-name: backend (selective)
+name: '[NOT REQUIRED] backend (selective)'
 
 on:
   pull_request:
@@ -198,7 +198,7 @@ jobs:
   backend-test-selective:
     if: needs.files-changed.outputs.backend == 'true'
     needs: [files-changed, prepare-selective-tests, calculate-shards]
-    name: backend test
+    name: backend tests
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     continue-on-error: true
