@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import logging
+import uuid
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
@@ -147,72 +149,84 @@ class OAuthTokenView(View):
             },
         )
 
-        # Device flow supports public clients per RFC 8628 §5.6.
-        # Public clients only provide client_id to identify themselves.
-        # If client_secret is provided, we still validate it for confidential clients.
-        if grant_type == GrantTypes.DEVICE_CODE:
-            if not client_id:
+        # Client authentication logic:
+        # - Public clients (RFC 6749 §2.1): Only provide client_id, no secret
+        # - Confidential clients: Provide client_id + client_secret
+        #
+        # Public clients are supported for:
+        # - Device flow (RFC 8628 §5.6)
+        # - Refresh token with rotation (RFC 9700 §4.14.2)
+        #
+        # We first look up the application by client_id to determine if it's public,
+        # then validate the secret only if the application is confidential.
+
+        if not client_id:
+            return self.error(
+                request=request,
+                name="invalid_client",
+                reason="missing client_id",
+                status=401,
+            )
+
+        try:
+            application = ApiApplication.objects.get(client_id=client_id)
+        except ApiApplication.DoesNotExist:
+            metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+            logger.warning("Invalid client_id", extra={"client_id": client_id})
+            return self.error(
+                request=request,
+                name="invalid_client",
+                reason="invalid client_id",
+                status=401,
+            )
+
+        # Determine if this is a public or confidential client
+        is_public_client = application.is_public
+
+        # For confidential clients, validate the secret
+        if not is_public_client:
+            if not client_secret:
+                # Confidential client must provide secret
                 return self.error(
                     request=request,
                     name="invalid_client",
-                    reason="missing client_id",
+                    reason="missing client_secret",
                     status=401,
                 )
-
-            # Build query - validate secret only if provided (confidential client)
-            query = {"client_id": client_id}
-            if client_secret:
-                query["client_secret"] = client_secret
-
-            try:
-                application = ApiApplication.objects.get(**query)
-            except ApiApplication.DoesNotExist:
+            if application.client_secret != client_secret:
                 metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
-                if client_secret:
-                    logger.warning(
-                        "Invalid client_id / secret pair",
-                        extra={"client_id": client_id},
-                    )
-                    reason = "invalid client_id or client_secret"
-                else:
-                    logger.warning("Invalid client_id", extra={"client_id": client_id})
-                    reason = "invalid client_id"
+                logger.warning(
+                    "Invalid client_secret",
+                    extra={"client_id": client_id},
+                )
                 return self.error(
                     request=request,
                     name="invalid_client",
-                    reason=reason,
+                    reason="invalid client_secret",
                     status=401,
                 )
         else:
-            # Other grant types require confidential client authentication
-            if not client_id or not client_secret:
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason="missing client credentials",
-                    status=401,
+            # Public client - log if they provided a secret (shouldn't happen)
+            if client_secret:
+                logger.info(
+                    "Public client provided client_secret (ignored)",
+                    extra={"client_id": client_id},
                 )
 
-            try:
-                # Note: We don't filter by status here to distinguish between invalid
-                # credentials (unknown client) and inactive applications. This allows
-                # proper grant cleanup per RFC 6749 §10.5 and clearer metrics.
-                application = ApiApplication.objects.get(
-                    client_id=client_id,
-                    client_secret=client_secret,
-                )
-            except ApiApplication.DoesNotExist:
-                metrics.incr(
-                    "oauth_token.post.invalid",
-                    sample_rate=1.0,
-                )
-                logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason="invalid client_id or client_secret",
-                    status=401,
-                )
+        # Public clients can only use certain grant types
+        if is_public_client and grant_type == GrantTypes.AUTHORIZATION:
+            # Authorization code for public clients requires PKCE (validated in from_grant)
+            # This is allowed - PKCE provides the security
+            pass
+        elif is_public_client and grant_type not in [
+            GrantTypes.DEVICE_CODE,
+            GrantTypes.REFRESH,
+        ]:
+            return self.error(
+                request=request,
+                name="unauthorized_client",
+                reason="public clients cannot use this grant type",
+            )
 
         # Check application status separately from credential validation.
         # This preserves metric clarity and provides consistent error handling.
@@ -272,8 +286,15 @@ class OAuthTokenView(View):
             token_data = self.get_access_tokens(request=request, application=application)
         elif grant_type == GrantTypes.DEVICE_CODE:
             return self.handle_device_code_grant(request=request, application=application)
+        elif grant_type == GrantTypes.REFRESH:
+            # Public clients use token rotation (RFC 9700 §4.14.2)
+            if is_public_client:
+                return self.handle_public_client_refresh(request=request, application=application)
+            else:
+                token_data = self.get_refresh_token(request=request, application=application)
         else:
-            token_data = self.get_refresh_token(request=request, application=application)
+            # Should not reach here due to earlier grant_type validation
+            return self.error(request=request, name="unsupported_grant_type")
         if "error" in token_data:
             return self.error(
                 request=request,
@@ -581,12 +602,15 @@ class OAuthTokenView(View):
                 # are atomic. This prevents duplicate tokens if delete fails after
                 # token creation succeeds.
                 with transaction.atomic(router.db_for_write(ApiToken)):
-                    # Create the access token
+                    # Create the access token with a token family for rotation tracking.
+                    # Public clients (device flow) use refresh token rotation (RFC 9700 §4.14.2),
+                    # so we initialize the family here to enable replay detection.
                     token = ApiToken.objects.create(
                         application=application,
                         user_id=device_code.user.id,
                         scope_list=device_code.scope_list,
                         scoping_organization_id=device_code.organization_id,
+                        token_family_id=uuid.uuid4(),
                     )
 
                     # Delete the device code (one-time use)
@@ -649,3 +673,158 @@ class OAuthTokenView(View):
             json.dumps(token_information),
             content_type="application/json",
         )
+
+    def handle_public_client_refresh(
+        self, request: Request, application: ApiApplication
+    ) -> HttpResponse:
+        """
+        Handle refresh token for public clients with rotation (RFC 9700 §4.14.2).
+
+        Security model:
+        - Each refresh issues a new refresh token and invalidates the old one
+        - If an old (rotated) refresh token is reused, the entire token family is revoked
+        - This detects token theft: attacker and legitimate client will collide
+
+        The token family groups all tokens descended from the same original authorization.
+        When replay is detected, revoking the family ensures both the attacker's and the
+        legitimate client's tokens are invalidated, forcing re-authorization.
+        """
+        refresh_token_code = request.POST.get("refresh_token")
+
+        if not refresh_token_code:
+            return self.error(
+                request=request,
+                name="invalid_request",
+                reason="missing refresh_token",
+            )
+
+        # Scope changes not supported
+        if request.POST.get("scope"):
+            return self.error(
+                request=request,
+                name="invalid_request",
+                reason="scope changes not supported",
+            )
+
+        # Hash the incoming refresh token for secure lookup
+        hashed_refresh = hashlib.sha256(refresh_token_code.encode()).hexdigest()
+
+        # Try to find the token by its hashed refresh token
+        try:
+            old_token = ApiToken.objects.get(
+                application=application,
+                hashed_refresh_token=hashed_refresh,
+            )
+        except ApiToken.DoesNotExist:
+            # Token not found - check if this is a replay of a rotated-out token
+            # (i.e., someone is using a refresh token that was already exchanged)
+            replayed_token = ApiToken.objects.filter(
+                application=application,
+                previous_refresh_token_hash=hashed_refresh,
+            ).first()
+
+            if replayed_token and replayed_token.token_family_id:
+                # REPLAY ATTACK DETECTED - revoke entire token family
+                self._revoke_token_family(
+                    replayed_token.token_family_id,
+                    reason="replay_of_rotated_token",
+                )
+                return self.error(
+                    request=request,
+                    name="invalid_grant",
+                    reason="token reuse detected",
+                )
+
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="invalid refresh_token",
+            )
+
+        # Check if this token's refresh capability is still active
+        # (False means it was already rotated - replay attack)
+        if old_token.is_refresh_token_active is False:
+            if old_token.token_family_id:
+                self._revoke_token_family(
+                    old_token.token_family_id,
+                    reason="inactive_token_reuse",
+                )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="token reuse detected",
+            )
+
+        # Assign family ID if this is a legacy token (first rotation)
+        # This enables lazy migration of existing tokens to the rotation system
+        family_id = old_token.token_family_id or uuid.uuid4()
+
+        # Perform atomic rotation: invalidate old, create new
+        with transaction.atomic(router.db_for_write(ApiToken)):
+            # Mark old token's refresh capability as used
+            old_token.is_refresh_token_active = False
+            old_token.token_family_id = family_id  # Ensure family is set
+            old_token.save(update_fields=["is_refresh_token_active", "token_family_id"])
+
+            # Create new token in the same family
+            new_token = ApiToken.objects.create(
+                application=application,
+                user=old_token.user,
+                scope_list=old_token.get_scopes(),
+                scoping_organization_id=old_token.scoping_organization_id,
+                token_family_id=family_id,
+                previous_refresh_token_hash=old_token.hashed_refresh_token,
+            )
+
+        metrics.incr("oauth.public_client_refresh_rotated", sample_rate=1.0)
+        logger.info(
+            "oauth.refresh-token-rotated",
+            extra={
+                "family_id": str(family_id),
+                "old_token_id": old_token.id,
+                "new_token_id": new_token.id,
+                "application_id": application.id,
+                "user_id": old_token.user_id,
+            },
+        )
+
+        return self.process_token_details(token=new_token)
+
+    def _revoke_token_family(self, family_id: uuid.UUID, reason: str) -> int:
+        """
+        Revoke all tokens in a family due to a security event (e.g., replay attack).
+
+        Per RFC 9700 §4.14.2, when refresh token reuse is detected, the authorization
+        server cannot determine which party (attacker or legitimate client) has the
+        valid token, so it revokes the entire family to stop the attack.
+
+        Args:
+            family_id: UUID of the token family to revoke
+            reason: Why the family is being revoked (for logging/metrics)
+
+        Returns:
+            Number of tokens deleted
+        """
+        if family_id is None:
+            return 0
+
+        # Use unguarded_write because deleting tokens triggers SET_NULL on
+        # SentryAppInstallation.api_token, which is a cross-model write
+        with unguarded_write(using=router.db_for_write(ApiToken)):
+            count, _ = ApiToken.objects.filter(token_family_id=family_id).delete()
+
+        metrics.incr(
+            "oauth.token_family_revoked",
+            sample_rate=1.0,
+            tags={"reason": reason},
+        )
+        logger.warning(
+            "oauth.token-family-revoked",
+            extra={
+                "family_id": str(family_id),
+                "tokens_revoked": count,
+                "reason": reason,
+            },
+        )
+
+        return count
