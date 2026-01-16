@@ -39,3 +39,8 @@ class FingerprintRuleMatch(NamedTuple):
     matched_rule: FingerprintRule
     fingerprint: list[str]
     attributes: FingerprintRuleAttributes
+
+
+class FingerprintInfo(TypedDict):
+    client_fingerprint: NotRequired[list[str]]
+    matched_rule: NotRequired[FingerprintRuleJSON]
