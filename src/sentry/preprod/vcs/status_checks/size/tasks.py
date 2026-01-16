@@ -344,29 +344,87 @@ def _fetch_base_size_metrics(
     Returns a map of {head_artifact_id: base_main_size_metrics} for artifacts that have
     base artifacts with matching build configurations. Only returns the main artifact metrics.
     """
-    base_artifact_map: dict[int, PreprodArtifact] = {}
+    if not artifacts:
+        return {}
 
+    # Collect all base_sha values we need to look up
+    base_sha_to_artifacts: dict[str, list[PreprodArtifact]] = {}
     for artifact in artifacts:
-        base_artifact = artifact.get_base_artifact_for_commit().first()
+        if artifact.commit_comparison and artifact.commit_comparison.base_sha:
+            base_sha = artifact.commit_comparison.base_sha
+            if base_sha not in base_sha_to_artifacts:
+                base_sha_to_artifacts[base_sha] = []
+            base_sha_to_artifacts[base_sha].append(artifact)
+
+    if not base_sha_to_artifacts:
+        return {}
+
+    # Batch query: find all CommitComparisons where head_sha matches any base_sha
+    base_commit_comparisons = list(
+        CommitComparison.objects.filter(
+            head_sha__in=base_sha_to_artifacts.keys(),
+            organization_id=project.organization_id,
+        ).order_by("head_sha", "date_added")
+    )
+
+    if not base_commit_comparisons:
+        return {}
+
+    # Build map of base_sha -> first (oldest) commit comparison
+    base_sha_to_commit_comparison: dict[str, CommitComparison] = {}
+    for cc in base_commit_comparisons:
+        if cc.head_sha not in base_sha_to_commit_comparison:
+            base_sha_to_commit_comparison[cc.head_sha] = cc
+
+    # Batch query all potential base artifacts for matching commit comparisons
+    base_artifacts_qs = PreprodArtifact.objects.filter(
+        commit_comparison__in=base_sha_to_commit_comparison.values(),
+        project__organization_id=project.organization_id,
+    ).select_related("commit_comparison")
+
+    # Build lookup key -> base artifact
+    # Key: (commit_comparison_id, app_id, artifact_type, build_configuration_id)
+    base_artifact_lookup: dict[tuple, PreprodArtifact] = {}
+    for ba in base_artifacts_qs:
+        key = (ba.commit_comparison_id, ba.app_id, ba.artifact_type, ba.build_configuration_id)
+        if key not in base_artifact_lookup:
+            base_artifact_lookup[key] = ba
+
+    # Map head artifacts to their base artifacts
+    base_artifact_map: dict[int, PreprodArtifact] = {}
+    for artifact in artifacts:
+        if not artifact.commit_comparison or not artifact.commit_comparison.base_sha:
+            continue
+        base_sha = artifact.commit_comparison.base_sha
+        base_cc = base_sha_to_commit_comparison.get(base_sha)
+        if not base_cc:
+            continue
+        key = (base_cc.id, artifact.app_id, artifact.artifact_type, artifact.build_configuration_id)
+        base_artifact = base_artifact_lookup.get(key)
         if base_artifact:
             base_artifact_map[artifact.id] = base_artifact
 
     if not base_artifact_map:
         return {}
 
-    base_artifact_ids = list(base_artifact_map.values())
+    # Batch fetch size metrics for all base artifacts
     base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact_id__in=[ba.id for ba in base_artifact_ids],
+        preprod_artifact_id__in=[ba.id for ba in base_artifact_map.values()],
         preprod_artifact__project__organization_id=project.organization_id,
         metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
     ).select_related("preprod_artifact")
 
+    # Build base_artifact_id -> metrics lookup
+    base_metrics_lookup: dict[int, PreprodArtifactSizeMetrics] = {}
+    for metrics in base_size_metrics_qs:
+        base_metrics_lookup[metrics.preprod_artifact_id] = metrics
+
+    # Map head artifact IDs to their base metrics
     result: dict[int, PreprodArtifactSizeMetrics] = {}
     for head_artifact_id, base_artifact in base_artifact_map.items():
-        for metrics in base_size_metrics_qs:
-            if metrics.preprod_artifact_id == base_artifact.id:
-                result[head_artifact_id] = metrics
-                break
+        metrics = base_metrics_lookup.get(base_artifact.id)
+        if metrics:
+            result[head_artifact_id] = metrics
 
     return result
 
