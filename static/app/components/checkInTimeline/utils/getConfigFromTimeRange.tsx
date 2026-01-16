@@ -25,7 +25,7 @@ const TIMELABEL_WIDTH_TIME = 100;
 /**
  * One second after epoch
  */
-const MINIMUM_UNIX_TIMESTAMP_SECONDS = 1000;
+const MINIMUM_UNIX_TIMESTAMP_MS = 1000;
 
 /**
  * Acceptable minute durations between time labels. These will be used to
@@ -81,7 +81,6 @@ const BUCKET_INTERVALS = [
   ONE_MONTH_SECS * 2,
   ONE_MONTH_SECS * 3,
   ONE_MONTH_SECS * 6,
-  ONE_MONTH_SECS * 12,
   // Year intervals
   ONE_YEAR_SECS,
   ONE_YEAR_SECS * 2,
@@ -246,8 +245,8 @@ export function getConfigFromTimeRange(
   // entire time window forward by the same delta so the window width stays the
   // same while staying within valid unix timestamps.
   const shiftMs =
-    underscanStartRaw.getTime() < MINIMUM_UNIX_TIMESTAMP_SECONDS
-      ? MINIMUM_UNIX_TIMESTAMP_SECONDS - underscanStartRaw.getTime()
+    underscanStartRaw.getTime() < MINIMUM_UNIX_TIMESTAMP_MS
+      ? MINIMUM_UNIX_TIMESTAMP_MS - underscanStartRaw.getTime()
       : 0;
 
   const underscanStart = new Date(underscanStartRaw.getTime() + shiftMs);
@@ -256,7 +255,7 @@ export function getConfigFromTimeRange(
 
   // Display only the time (no date) when the start and end times are the same day
   const timeOnly =
-    elapsedMinutes <= ONE_HOUR_SECS * 24 && start.getDate() === end.getDate();
+    elapsedMinutes <= ONE_HOUR_SECS * 24 && periodStart.getDate() === periodEnd.getDate();
 
   // When one pixel represents less than at least one minute we also want to
   // display second values on our labels.
