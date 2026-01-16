@@ -139,7 +139,22 @@ export function useSpansSeriesQuery(
 
   // Refetch function to trigger all queries
   const refetch = useCallback(async () => {
-    await Promise.all(queryResultsRef.current.map(q => q?.refetch()));
+    const results = queryResultsRef.current;
+    if (!results || results.length === 0) {
+      // eslint-disable-next-line no-console
+      console.error('[useSpansSeriesQuery] No query results to refetch');
+      return;
+    }
+
+    const refetchPromises = results.map(q => q?.refetch).filter(Boolean);
+
+    if (refetchPromises.length === 0) {
+      // eslint-disable-next-line no-console
+      console.error('[useSpansSeriesQuery] No refetch functions available');
+      return;
+    }
+
+    await Promise.all(refetchPromises.map(fn => fn()));
   }, []);
 
   // Transform data after all queries complete
@@ -299,7 +314,22 @@ export function useSpansTableQuery(
 
   // Refetch function to trigger all queries
   const refetch = useCallback(async () => {
-    await Promise.all(queryResultsRef.current.map(q => q?.refetch()));
+    const results = queryResultsRef.current;
+    if (!results || results.length === 0) {
+      // eslint-disable-next-line no-console
+      console.error('[useSpansTableQuery] No query results to refetch');
+      return;
+    }
+
+    const refetchPromises = results.map(q => q?.refetch).filter(Boolean);
+
+    if (refetchPromises.length === 0) {
+      // eslint-disable-next-line no-console
+      console.error('[useSpansTableQuery] No refetch functions available');
+      return;
+    }
+
+    await Promise.all(refetchPromises.map(fn => fn()));
   }, []);
 
   // Transform data after all queries complete
