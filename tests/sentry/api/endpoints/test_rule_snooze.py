@@ -5,7 +5,6 @@ from typing import Any
 
 from sentry import audit_log
 from sentry.audit_log.services.log.service import log_rpc_service
-from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -14,9 +13,8 @@ from sentry.types.actor import Actor
 
 class BaseRuleSnoozeTest(APITestCase):
     def setUp(self) -> None:
-        self.issue_alert_rule = Rule.objects.create(
-            label="test rule",
-            project=self.project,
+        self.issue_alert_rule = self.create_project_rule(
+            name="test rule",
             owner_team_id=self.team.id,
         )
         self.metric_alert_rule = self.create_alert_rule(
@@ -259,10 +257,8 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
     def test_user_can_mute_issue_alert_for_self(self) -> None:
         """Test that if a user doesn't belong to the team that can edit an issue alert rule, they can still mute it for just themselves."""
         other_team = self.create_team()
-        other_issue_alert_rule = Rule.objects.create(
-            label="test rule",
-            project=self.project,
-            owner_team_id=other_team.id,
+        other_issue_alert_rule = self.create_project_rule(
+            name="test rule", owner_team_id=other_team.id
         )
         self.get_success_response(
             self.organization.slug,
@@ -275,9 +271,8 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_user_can_mute_unassigned_issue_alert(self) -> None:
         """Test that if an issue alert rule's owner is unassigned, the user can mute it."""
-        other_issue_alert_rule = Rule.objects.create(
+        other_issue_alert_rule = self.create_project_rule(
             label="test rule",
-            project=self.project,
         )
         self.get_success_response(
             self.organization.slug,

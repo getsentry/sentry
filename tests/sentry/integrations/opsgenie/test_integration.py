@@ -285,16 +285,14 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         plugin2.set_option("alert_url", "https://api.opsgenie.com/v2/alerts/", project2)
         plugin2.set_option("api_key", "456-key", project2)
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+        self.create_project_rule(
+            name="rule",
+            action_data=[ALERT_LEGACY_INTEGRATIONS],
         )
 
-        Rule.objects.create(
-            label="rule2",
-            project=project2,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+        self.create_project_rule(
+            name="rule2",
+            action_data=[ALERT_LEGACY_INTEGRATIONS],
         )
 
         with self.tasks():
@@ -400,10 +398,9 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             }
             org_integration.save()
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+        self.create_project_rule(
+            name="rule",
+            action_data=[ALERT_LEGACY_INTEGRATIONS],
         )
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
@@ -447,16 +444,14 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             org_integration.config = {"team_table": []}
             org_integration.save()
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+        self.create_project_rule(
+            name="rule",
+            action_data=[ALERT_LEGACY_INTEGRATIONS],
         )
 
-        Rule.objects.create(
-            label="rule2",
-            project=self.project,
-            data={"match": "all", "actions": []},
+        self.create_project_rule(
+            name="rule2",
+            action_data=[],
         )
 
         with self.tasks():
@@ -507,20 +502,16 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             }
             org_integration.save()
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={
-                "match": "all",
-                "actions": [
-                    ALERT_LEGACY_INTEGRATIONS,
-                    {
-                        "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                        "account": self.integration.id,
-                        "team": str(self.organization_integration.id) + "-pikachu",
-                    },
-                ],
-            },
+        self.create_project_rule(
+            name="rule",
+            action_data=[
+                ALERT_LEGACY_INTEGRATIONS,
+                {
+                    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                    "account": self.integration.id,
+                    "team": str(self.organization_integration.id) + "-pikachu",
+                },
+            ],
         )
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
@@ -564,10 +555,9 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             org_integration.config = {"team_table": []}
             org_integration.save()
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS_WITH_NAME]},
+        self.create_project_rule(
+            name="rule",
+            action_data=[ALERT_LEGACY_INTEGRATIONS_WITH_NAME],
         )
 
         with self.tasks():
