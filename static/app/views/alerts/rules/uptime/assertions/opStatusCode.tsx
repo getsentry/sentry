@@ -1,4 +1,4 @@
-import {useId} from 'react';
+import {useId, type ChangeEventHandler, type FocusEventHandler} from 'react';
 
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Text} from '@sentry/scraps/text';
@@ -28,6 +28,29 @@ export function AssertionOpStatusCode({
   );
   const selectedOption = statusCodeOptions.find(opt => opt.value === value.operator.cmp);
 
+  const handleInputChange: ChangeEventHandler<HTMLInputElement> = e => {
+    const rawValue = e.target.value;
+    // Only allow digits, up to 3 characters
+    if (!/^\d*$/.test(rawValue) || rawValue.length > 3) {
+      return;
+    }
+    const newValue = parseInt(rawValue, 10);
+    onChange({...value, value: newValue});
+  };
+
+  const handleInputBlur: FocusEventHandler<HTMLInputElement> = e => {
+    const newValue = parseInt(e.target.value, 10);
+    // Clamp status code to valid HTTP range (100-599) on blur
+    if (isNaN(newValue)) {
+      onChange({...value, value: 100});
+    } else {
+      const clampedValue = Math.max(100, Math.min(599, newValue));
+      if (clampedValue !== value.value) {
+        onChange({...value, value: clampedValue});
+      }
+    }
+  };
+
   return (
     <OpContainer label={t('Status Code')} onRemove={onRemove} inputId={inputId}>
       <InputGroup>
@@ -52,18 +75,12 @@ export function AssertionOpStatusCode({
         </InputGroup.LeadingItems>
         <InputGroup.Input
           id={inputId}
-          type="number"
-          value={value.value}
-          min={100}
-          max={599}
-          onChange={e => {
-            const newValue = parseInt(e.target.value, 10);
-            if (!isNaN(newValue)) {
-              // Clamp status code to valid HTTP range (100-599)
-              const clampedValue = Math.max(100, Math.min(599, newValue));
-              onChange({...value, value: clampedValue});
-            }
-          }}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={isNaN(value.value) ? '' : value.value}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
           placeholder="code"
           monospace
           width="100%"
