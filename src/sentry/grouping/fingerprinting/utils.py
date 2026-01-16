@@ -14,6 +14,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 logger = logging.getLogger("sentry.events.grouping")
 
 _fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
+DEFAULT_FINGERPRINT_VARIABLE = "{{ default }}"
 
 
 class _MessageInfo(TypedDict):
