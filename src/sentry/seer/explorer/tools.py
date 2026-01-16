@@ -899,7 +899,7 @@ def _get_recommended_event(
     return fallback_event
 
 
-def get_group_tags_overview(
+def _get_tags_overview(
     group: Group,
     organization: Organization,
     start: str | None = None,
@@ -1030,7 +1030,7 @@ def get_issue_and_event_response(
             timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
         try:
-            tags_overview = get_group_tags_overview(group, organization, start, end)
+            tags_overview = _get_tags_overview(group, organization, start, end)
         except Exception:
             logger.exception(
                 "Failed to get tags overview for issue",

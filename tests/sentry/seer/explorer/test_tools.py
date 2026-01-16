@@ -19,11 +19,11 @@ from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     _get_recommended_event,
+    _get_tags_overview,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
-    get_group_tags_overview,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
     get_log_attributes_for_trace,
@@ -1081,7 +1081,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         mock_get_overview.return_value = {"tags_overview": [{"hello": "world"}]}
         mock_execute_table_query.return_value = {"data": [{"count()": 51}]}
 
-        result = get_group_tags_overview(group, organization, start=start, end=end)
+        result = _get_tags_overview(group, organization, start=start, end=end)
 
         # Verify events-facets results are correctly passed to autofix util.
         assert result == mock_get_overview.return_value
@@ -1143,7 +1143,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         mock_client_get.return_value = SimpleNamespace(data=facets_response)
         mock_get_overview.return_value = {"tags_overview": []}
 
-        get_group_tags_overview(group, organization)
+        _get_tags_overview(group, organization)
 
         mock_client_get.assert_not_called()
         mock_get_overview.assert_called_once()
@@ -1174,7 +1174,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
 
         start = _get_utc_iso_without_timezone(datetime.now(UTC) - timedelta(days=1))
         end = _get_utc_iso_without_timezone(datetime.now(UTC))
-        get_group_tags_overview(group, organization, start=start, end=end)
+        _get_tags_overview(group, organization, start=start, end=end)
 
         # Verify events-facets and execute_table_query are called with issuePlatform dataset.
         mock_client_get.assert_called_once()
@@ -1248,7 +1248,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         end = now.isoformat()
 
         with self.feature({"organizations:discover-basic": True}):
-            result = get_group_tags_overview(group, organization, start=start, end=end)
+            result = _get_tags_overview(group, organization, start=start, end=end)
 
         assert result is not None
         overview = result["tags_overview"]
@@ -1270,7 +1270,7 @@ class TestGetGroupTagsOverview(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
 
         with self.feature({"organizations:discover-basic": True}):
-            result = get_group_tags_overview(group, organization)
+            result = _get_tags_overview(group, organization)
 
         assert result is not None
         assert result["tags_overview"] == []
@@ -1282,7 +1282,7 @@ class TestGetIssueAndEventDetailsV2(
     """Integration tests for the get_issue_and_event_details RPC."""
 
     @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def _test_get_ie_details_from_issue_id(
         self,
         mock_get_tags,
@@ -1421,7 +1421,7 @@ class TestGetIssueAndEventDetailsV2(
         )
 
     @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def test_get_ie_details_from_issue_id_no_valid_events(
         self,
         mock_get_tags,
@@ -1471,7 +1471,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["event_id"] == event_dict["id"]
 
     @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def test_get_ie_details_from_issue_id_single_event(
         self,
         mock_get_tags,
@@ -1536,7 +1536,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["event_id"] == event_dict["id"]
 
     @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def _test_get_ie_details_from_event_id(
         self,
         mock_get_tags,
@@ -1609,7 +1609,7 @@ class TestGetIssueAndEventDetailsV2(
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
     """Unit tests for the util that derives a response from an event and group."""
 
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def test_get_ie_response_tags_exception(self, mock_get_tags):
         mock_get_tags.side_effect = Exception("Test exception")
         """Test other fields are returned with null tags_overview when tag util fails."""
@@ -1632,7 +1632,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         assert isinstance(result.get("issue"), dict)
         _IssueMetadata.parse_obj(result.get("issue", {}))
 
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def test_get_ie_response_with_assigned_user(
         self,
         mock_get_tags,
@@ -1659,7 +1659,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         assert md.assignedTo.email == self.user.email
         assert md.assignedTo.name == self.user.get_display_name()
 
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def test_get_ie_response_with_assigned_team(self, mock_get_tags):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -1685,7 +1685,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
         assert md.assignedTo.email is None
 
     @patch("sentry.seer.explorer.tools.client")
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def test_get_ie_response_timeseries_no_start_end(
         self,
         mock_get_tags,
@@ -1754,7 +1754,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
             group.delete()
 
     @patch("sentry.seer.explorer.tools.client")
-    @patch("sentry.seer.explorer.tools.get_group_tags_overview")
+    @patch("sentry.seer.explorer.tools._get_tags_overview")
     def test_get_ie_response_timeseries_with_start_end(
         self,
         mock_get_tags,
