@@ -204,7 +204,6 @@ function getAIInputMessages(
     attributes
   );
 
-  // 1. Check new format first (gen_ai.input.messages)
   const inputMessages = getTraceNodeAttribute(
     'gen_ai.input.messages',
     node,
@@ -217,7 +216,6 @@ function getAIInputMessages(
     return prependSystemInstructions(transformed, systemInstructions?.toString());
   }
 
-  // 2. Check current format (gen_ai.request.messages)
   const requestMessages = getTraceNodeAttribute(
     'gen_ai.request.messages',
     node,
@@ -231,7 +229,6 @@ function getAIInputMessages(
     );
   }
 
-  // 3. Check legacy format (ai.input_messages)
   const legacyInputMessages = getTraceNodeAttribute(
     'ai.input_messages',
     node,
@@ -245,7 +242,6 @@ function getAIInputMessages(
     }
   }
 
-  // 4. Check oldest legacy format (ai.prompt)
   const prompt = getTraceNodeAttribute('ai.prompt', node, event, attributes);
   if (prompt) {
     const transformed = transformPrompt(prompt.toString());
@@ -254,7 +250,6 @@ function getAIInputMessages(
     }
   }
 
-  // If we only have system instructions, create a messages array with just that
   if (systemInstructions) {
     return JSON.stringify([{role: 'system', content: systemInstructions.toString()}]);
   }
@@ -279,12 +274,10 @@ function prependSystemInstructions(
       return messagesJson;
     }
 
-    // Check if there's already a system message at the start
     if (messages.length > 0 && messages[0].role === 'system') {
       return messagesJson;
     }
 
-    // Prepend the system instructions
     return JSON.stringify([{role: 'system', content: systemInstructions}, ...messages]);
   } catch {
     return messagesJson;

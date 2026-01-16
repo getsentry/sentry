@@ -95,7 +95,7 @@ function extractFromOutputMessages(outputMessages: string): AIOutputData {
       );
     }
   } catch {
-    // If parsing fails, return empty result
+    // Parsing failed, return empty result
   }
 
   return result;
@@ -110,7 +110,6 @@ function getAIOutputData(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): AIOutputData {
-  // 1. Check new format first (gen_ai.output.messages)
   const outputMessages = getTraceNodeAttribute(
     'gen_ai.output.messages',
     node,
@@ -119,13 +118,11 @@ function getAIOutputData(
   );
   if (outputMessages) {
     const extracted = extractFromOutputMessages(outputMessages.toString());
-    // If we extracted anything from the new format, use it
     if (extracted.responseText || extracted.responseObject || extracted.toolCalls) {
       return extracted;
     }
   }
 
-  // 2. Fall back to current format
   const responseText = getTraceNodeAttribute(
     'gen_ai.response.text',
     node,

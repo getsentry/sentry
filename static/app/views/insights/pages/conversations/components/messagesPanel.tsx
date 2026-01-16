@@ -115,7 +115,6 @@ function findToolCallsBetween(
  * Extracts text content from a message that may use the new parts format or old content format.
  */
 function extractTextFromMessage(msg: RequestMessage): string | null {
-  // Try new parts format first
   if (msg.parts && Array.isArray(msg.parts)) {
     const textParts = msg.parts
       .filter(p => p.type === 'text')
@@ -126,7 +125,6 @@ function extractTextFromMessage(msg: RequestMessage): string | null {
     }
   }
 
-  // Fall back to old content format
   if (msg.content) {
     return typeof msg.content === 'string' ? msg.content : (msg.content[0]?.text ?? null);
   }
@@ -135,12 +133,10 @@ function extractTextFromMessage(msg: RequestMessage): string | null {
 }
 
 function parseUserContent(node: AITraceSpanNode): string | null {
-  // 1. Check new format first (gen_ai.input.messages)
   const inputMessages = node.attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES] as
     | string
     | undefined;
 
-  // 2. Fall back to current format (gen_ai.request.messages)
   const requestMessages =
     inputMessages ??
     (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);
@@ -164,7 +160,6 @@ function parseUserContent(node: AITraceSpanNode): string | null {
 }
 
 function parseAssistantContent(node: AITraceSpanNode): string | null {
-  // 1. Check new format first (gen_ai.output.messages)
   const outputMessages = node.attributes?.[SpanFields.GEN_AI_OUTPUT_MESSAGES] as
     | string
     | undefined;
@@ -172,7 +167,6 @@ function parseAssistantContent(node: AITraceSpanNode): string | null {
   if (outputMessages) {
     try {
       const messagesArray: RequestMessage[] = JSON.parse(outputMessages);
-      // Find the last assistant message
       const assistantMessage = messagesArray.findLast(
         msg => msg.role === 'assistant' && (msg.content || msg.parts)
       );
@@ -183,11 +177,10 @@ function parseAssistantContent(node: AITraceSpanNode): string | null {
         }
       }
     } catch {
-      // If parsing fails, fall through to legacy attributes
+      // Parsing failed, fall through to legacy attributes
     }
   }
 
-  // 2. Fall back to current format
   return (
     (node.attributes?.[SpanFields.GEN_AI_RESPONSE_TEXT] as string | undefined) ||
     (node.attributes?.[SpanFields.GEN_AI_RESPONSE_OBJECT] as string | undefined) ||

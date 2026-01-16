@@ -41,7 +41,6 @@ function tryParseJson(value: string) {
 function getAIToolDefinitions(
   attributes: Record<string, string | number | boolean>
 ): any[] | null {
-  // 1. Check new format first (gen_ai.tool.definitions)
   const toolDefinitions = attributes['gen_ai.tool.definitions'];
   if (toolDefinitions) {
     const parsed = tryParseJson(toolDefinitions.toString());
@@ -50,7 +49,6 @@ function getAIToolDefinitions(
     }
   }
 
-  // 2. Fall back to current format (gen_ai.request.available_tools)
   const availableTools = attributes['gen_ai.request.available_tools'];
   if (availableTools) {
     const parsed = tryParseJson(availableTools.toString());
