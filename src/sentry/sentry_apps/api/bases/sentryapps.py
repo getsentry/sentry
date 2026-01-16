@@ -99,7 +99,7 @@ class IntegrationPlatformEndpoint(Endpoint):
         """
         Surfaces errors from the region-side Sentry App RPC to the client.
         """
-        response_body = rpc_error.public_dict or {}
+        response_body = rpc_error.get_public_dict()
         status_code = rpc_error.status_code or 500
         response = Response(response_body, status=status_code)
         response.exception = True

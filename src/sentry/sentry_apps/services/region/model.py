@@ -22,6 +22,7 @@ class RpcSentryAppError(RpcModel):
     status_code: int = 400
     message: str = ""
     public_dict: SentryAppPublicErrorBody | None = None
+    public_context: dict[str, Any] | None = None
     webhook_context: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
@@ -33,6 +34,19 @@ class RpcSentryAppError(RpcModel):
             public_dict=exception.to_public_dict(),
             webhook_context=exception.webhook_context,
         )
+
+    def get_public_dict(self) -> SentryAppPublicErrorBody:
+        """
+        Conceptually matches SentryAppBaseError.to_public_dict(), allows endpoints to
+        correctly create error responses without the raw Exception.
+        """
+        if self.public_dict:
+            return self.public_dict
+
+        public_dict: SentryAppPublicErrorBody = {"detail": self.message}
+        if self.public_context:
+            public_dict["context"] = self.public_context
+        return public_dict
 
 
 class RpcSelectRequesterResult(RpcModel):
