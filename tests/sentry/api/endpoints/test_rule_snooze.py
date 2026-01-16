@@ -9,6 +9,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 
 
 class BaseRuleSnoozeTest(APITestCase):
@@ -271,9 +272,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_user_can_mute_unassigned_issue_alert(self) -> None:
         """Test that if an issue alert rule's owner is unassigned, the user can mute it."""
-        other_issue_alert_rule = self.create_project_rule(
-            label="test rule",
-        )
+        other_issue_alert_rule = self.create_project_rule(name="test rule")
         self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -306,9 +305,6 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_create_snooze_disables_workflow(self) -> None:
         """Test that creating a rule snooze for everyone disables the workflow"""
-        workflow = self.create_workflow()
-        self.create_alert_rule_workflow(rule_id=self.issue_alert_rule.id, workflow=workflow)
-
         # Create snooze for everyone
         # This should cause the workflow to be disabled
         with outbox_runner():
@@ -321,7 +317,9 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
             )
 
         # Verify workflow is disabled
-        workflow.refresh_from_db()
+        workflow = Workflow.objects.get(
+            id=AlertRuleWorkflow.objects.get(rule_id=self.issue_alert_rule.id).workflow_id
+        )
         assert workflow.enabled is False
 
     def test_create_user_snooze_does_not_disable_workflow(self) -> None:
@@ -405,9 +403,6 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
         # Create a snooze for everyone
         self.snooze_rule(owner_id=self.user.id, rule=self.issue_alert_rule)
 
-        workflow = self.create_workflow(enabled=False)
-        self.create_alert_rule_workflow(rule_id=self.issue_alert_rule.id, workflow=workflow)
-
         with outbox_runner():
             self.get_success_response(
                 self.organization.slug,
@@ -416,8 +411,9 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
                 status_code=204,
             )
 
-        # Verify workflow is re-enabled
-        workflow.refresh_from_db()
+        workflow = Workflow.objects.get(
+            id=AlertRuleWorkflow.objects.get(rule_id=self.issue_alert_rule.id).workflow_id
+        )
         assert workflow.enabled is True
 
     def test_delete_user_snooze_does_not_enable_workflow(self) -> None:

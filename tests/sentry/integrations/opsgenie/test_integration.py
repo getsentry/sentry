@@ -293,6 +293,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.create_project_rule(
             name="rule2",
             action_data=[ALERT_LEGACY_INTEGRATIONS],
+            project=project2,
         )
 
         with self.tasks():
@@ -449,10 +450,12 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             action_data=[ALERT_LEGACY_INTEGRATIONS],
         )
 
-        self.create_project_rule(
+        rule2 = self.create_project_rule(
             name="rule2",
-            action_data=[],
+            action_data=[{}],
         )
+        rule2.data["actions"] = []
+        rule2.save()
 
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
