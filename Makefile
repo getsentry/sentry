@@ -134,6 +134,23 @@ test-python-ci:
 		-o junit_suite_name=pytest
 	@echo ""
 
+test-backend-ci-with-coverage:
+	@echo "--> Running CI Python tests with coverage"
+	python3 -b -m pytest \
+		tests \
+		--ignore tests/acceptance \
+		--ignore tests/apidocs \
+		--ignore tests/js \
+		--ignore tests/tools \
+		--cov . \
+		--cov-context=test \
+		--json-report \
+		--json-report-file=".artifacts/pytest.json" \
+		--json-report-omit=log \
+		--junit-xml=.artifacts/pytest.junit.xml \
+		-o junit_suite_name=pytest
+	@echo ""
+
 # it's not possible to change settings.DATABASE after django startup, so
 # unfortunately these tests must be run in a separate pytest process. References:
 #   * https://docs.djangoproject.com/en/4.2/topics/testing/tools/#overriding-settings
