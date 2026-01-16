@@ -237,12 +237,25 @@ def handle_owner_assignment(job):
     project, group = event.project, event.group
 
     assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
-    assignees_exists = cache.get(assignee_key)
+    assignee_cache_value = cache.get(assignee_key)
+
+    # Debounce assignee existence check if ownership rules haven't changed since the last time assignee was checked
+    assignees_exists = None
+    if assignee_cache_value is not None:
+        # Cache stores (value, timestamp) tuple for timestamp-based invalidation
+        if isinstance(assignee_cache_value, tuple):
+            cached_assignee_exists, assignee_debounce_time = assignee_cache_value
+            ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+            if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
+                assignees_exists = cached_assignee_exists
+        else:  # TODO(shashank): for backwards compatibility, remove this and the above tuple check once rolled out for 24hrs
+            assignees_exists = assignee_cache_value
+
     if assignees_exists is None:
         assignees_exists = group.assignee_set.exists()
         cache.set(
             assignee_key,
-            assignees_exists,
+            (assignees_exists, timezone.now().timestamp()),
             (ASSIGNEE_EXISTS_DURATION if assignees_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
         )
 

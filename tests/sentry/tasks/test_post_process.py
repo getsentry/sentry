@@ -1334,8 +1334,12 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         user_3 = self.create_user()
         self.create_team_membership(self.team, user=user_3)
 
-        # Set assignee_exists cache to self.user
-        cache.set(ASSIGNEE_EXISTS_KEY(event.group_id), self.user, ASSIGNEE_EXISTS_DURATION)
+        # Set assignee_exists cache (should be invalidated when ownership changes)
+        cache.set(
+            ASSIGNEE_EXISTS_KEY(event.group_id),
+            (True, timezone.now().timestamp()),
+            ASSIGNEE_EXISTS_DURATION,
+        )
         # De-assign group assignees
         GroupAssignee.objects.deassign(event.group, self.user)
         assert event.group.assignee_set.first() is None
@@ -1375,7 +1379,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        cache.set(ASSIGNEE_EXISTS_KEY(event.group.id), True)
+        cache.set(ASSIGNEE_EXISTS_KEY(event.group.id), (True, timezone.now().timestamp()))
         cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group.id), timezone.now().timestamp())
 
         self.call_post_process_group(
@@ -1455,7 +1459,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
     @patch("sentry.utils.metrics.incr")
-    def test_no_debounce_when_ownership_changes(self, mock_incr: MagicMock) -> None:
+    def test_no_issue_owners_debounce_when_ownership_changes(self, mock_incr: MagicMock) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1531,6 +1535,114 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
+
+    @patch("sentry.utils.metrics.incr")
+    def test_debounces_assignee_existence_check(self, mock_incr: MagicMock) -> None:
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event.group, self.user)
+
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert assignee_cache_value is None
+
+        # First event: should check DB, find assignee exists, cache result with timestamp
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert assignee_cache_value is not None
+        assert isinstance(assignee_cache_value, tuple)
+        cached_assignee_exists, cached_timestamp = assignee_cache_value
+        assert cached_assignee_exists is True
+        assert isinstance(cached_timestamp, float)
+
+        # Should return early due to assignee existing
+        mock_incr.assert_any_call(
+            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_no_assignee_exists_debounce_when_ownership_changes(self, mock_incr: MagicMock) -> None:
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event.group, self.user)
+
+        old_timestamp = timezone.now().timestamp()
+        cache.set(
+            ASSIGNEE_EXISTS_KEY(event.group_id),
+            (True, old_timestamp),
+            ASSIGNEE_EXISTS_DURATION,
+        )
+
+        # Simulate ownership rules changing
+        GroupOwner.set_project_ownership_version(self.project.id)
+
+        mock_incr.reset_mock()
+
+        # Process event: cache should be invalidated because ownership changed after cache timestamp
+        # The code should re-query DB, find assignee exists, and return early
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        new_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert new_cache_value is not None
+        new_assignee_exists, new_timestamp = new_cache_value
+        assert new_assignee_exists is True
+        assert new_timestamp > old_timestamp
+
+    @patch("sentry.utils.metrics.incr")
+    def test_debounces_assignee_existence_check_when_ownership_older(
+        self, mock_incr: MagicMock
+    ) -> None:
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event.group, self.user)
+
+        # Ownership changed in the past (before cache is set)
+        GroupOwner.set_project_ownership_version(self.project.id)
+
+        cache.set(
+            ASSIGNEE_EXISTS_KEY(event.group_id),
+            (True, timezone.now().timestamp()),
+            ASSIGNEE_EXISTS_DURATION,
+        )
+
+        mock_incr.reset_mock()
+
+        # Process event: cache should be valid because ownership change is older than cache timestamp
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        mock_incr.assert_any_call(
+            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
+        )
 
     @patch("sentry.utils.metrics.incr")
     def test_issue_owners_should_ratelimit(self, mock_incr: MagicMock) -> None:
