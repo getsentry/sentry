@@ -72,8 +72,11 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        raw_project_ids = request.data.get("project_ids", [])
         projects = self.get_projects(
-            request=request, organization=organization, project_ids=request.data.get("project_ids")
+            request=request,
+            organization=organization,
+            project_ids={int(x) for x in raw_project_ids} if raw_project_ids else None,
         )
         project_ids = [p.id for p in projects]
         natural_language_query = request.data.get("natural_language_query")
