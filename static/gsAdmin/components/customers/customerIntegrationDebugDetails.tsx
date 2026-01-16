@@ -63,7 +63,7 @@ function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
       path={`/_admin/customers/${orgId}/`}
       endpoint={`/customers/${orgId}/integrations/`}
       method="GET"
-      defaultParams={{per_page: 25}}
+      defaultParams={{per_page: 10}}
       useQueryString={false}
       rowsFromData={(data: IntegrationRow[]) => {
         const transformedRows: any[] = [];
