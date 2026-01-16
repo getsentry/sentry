@@ -225,32 +225,22 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Download coverage database artifact
-        id: download-coverage
-        if: needs.prepare-selective-tests.outputs.has-coverage == 'true'
+      - name: Download selected tests artifact
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: coverage-db-${{ github.run_id }}
-          path: .coverage/
-
-      - name: Find coverage file
-        id: find-coverage-file
-        run: |
-          if [[ -f .coverage/.coverage.combined ]]; then
-            echo "coverage-file=.coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
-            echo "Coverage file found, selective testing enabled"
-          else
-            echo "coverage-file=" >> "$GITHUB_OUTPUT"
-            echo "No coverage file found, running full test suite"
-          fi
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
 
       - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
-        run: make test-python-ci
-        env:
-          CHANGED_FILES: ${{ needs.prepare-selective-tests.outputs.changed-files }}
-          COVERAGE_DB_PATH: ${{ steps.find-coverage-file.outputs.coverage-file }}
+        run: |
+          if [[ "${{ needs.prepare-selective-tests.outputs.has-selected-tests }}" == "true" && -f .artifacts/selected-tests.txt ]]; then
+            make test-python-ci-selective SELECTED_TESTS_FILE=.artifacts/selected-tests.txt
+          else
+            make test-python-ci
+          fi
 
       - name: Inspect failure
         if: failure()

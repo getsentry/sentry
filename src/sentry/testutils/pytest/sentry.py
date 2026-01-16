@@ -399,39 +399,6 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, we need to select tests based on group and group strategy"""
 
-    # Selective test filtering based on coverage data
-    # If COVERAGE_DB_PATH and CHANGED_FILES are set, filter to tests that cover those files
-    coverage_db_path = os.environ.get("COVERAGE_DB_PATH")
-    changed_files_str = os.environ.get("CHANGED_FILES")
-
-    if coverage_db_path and changed_files_str:
-        from sentry.testutils.pytest.selective_testing import filter_items_by_coverage
-
-        changed_files = [f.strip() for f in changed_files_str.split() if f.strip()]
-
-        if changed_files:
-            original_count = len(items)
-            try:
-                selected_items, deselected_items, _ = filter_items_by_coverage(
-                    config=config,
-                    items=items,
-                    changed_files=changed_files,
-                    coverage_db_path=coverage_db_path,
-                )
-
-                items[:] = selected_items
-
-                if deselected_items:
-                    config.hook.pytest_deselected(items=deselected_items)
-
-                config.get_terminal_writer().line(
-                    f"Selective testing: {len(items)}/{original_count} tests selected based on coverage"
-                )
-            except ValueError as e:
-                config.get_terminal_writer().line(
-                    f"Warning: Selective testing failed ({e}), running all tests"
-                )
-
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
