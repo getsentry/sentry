@@ -62,8 +62,7 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    @staticmethod
-    def post(request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Request to translate a natural language query into a sentry EQS query.
         """
@@ -73,7 +72,10 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        project_ids = [int(x) for x in request.data.get("project_ids", [])]
+        projects = self.get_projects(
+            request=request, organization=organization, project_ids=request.data.get("project_ids")
+        )
+        project_ids = [p.id for p in projects]
         natural_language_query = request.data.get("natural_language_query")
         limit = request.data.get("limit", 1)
 
