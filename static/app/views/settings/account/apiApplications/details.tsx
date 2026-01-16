@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -19,6 +20,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import ConfigStore from 'sentry/stores/configStore';
 import type {ApiApplication} from 'sentry/types/user';
 import {
@@ -98,7 +100,26 @@ function ApiApplicationsDetails() {
 
   return (
     <SentryDocumentTitle title={PAGE_TITLE}>
-      <SettingsPageHeader title={PAGE_TITLE} />
+      <SettingsPageHeader
+        title={
+          <TitleWithTag>
+            {PAGE_TITLE}
+            <Tag type={app.isPublic ? 'info' : 'default'}>
+              {app.isPublic ? t('Public Client') : t('Confidential Client')}
+            </Tag>
+          </TitleWithTag>
+        }
+      />
+
+      {app.isPublic && (
+        <Alert.Container>
+          <Alert type="info" showIcon>
+            {t(
+              'This is a public client, designed for CLIs, native apps, or SPAs. It uses PKCE for authorization and refresh token rotation for security instead of a client secret.'
+            )}
+          </Alert>
+        </Alert.Container>
+      )}
 
       <Form
         apiMethod="PUT"
@@ -118,33 +139,35 @@ function ApiApplicationsDetails() {
               {({value}: any) => <TextCopyInput>{value}</TextCopyInput>}
             </FormField>
 
-            <FormField
-              name="clientSecret"
-              label={t('Client Secret')}
-              help={t(`Your secret is only available briefly after application creation. Make
-                  sure to save this value!`)}
-              flexibleControlStateSize
-            >
-              {({value}: any) =>
-                value ? (
-                  <TextCopyInput>{value}</TextCopyInput>
-                ) : (
-                  <ClientSecret>
-                    <HiddenSecret>{t('hidden')}</HiddenSecret>
-                    <Confirm
-                      onConfirm={rotateClientSecret}
-                      message={t(
-                        'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
-                      )}
-                    >
-                      <Button size="xs" priority="danger">
-                        {t('Rotate client secret')}
-                      </Button>
-                    </Confirm>
-                  </ClientSecret>
-                )
-              }
-            </FormField>
+            {!app.isPublic && (
+              <FormField
+                name="clientSecret"
+                label={t('Client Secret')}
+                help={t(`Your secret is only available briefly after application creation. Make
+                    sure to save this value!`)}
+                flexibleControlStateSize
+              >
+                {({value}: any) =>
+                  value ? (
+                    <TextCopyInput>{value}</TextCopyInput>
+                  ) : (
+                    <ClientSecret>
+                      <HiddenSecret>{t('hidden')}</HiddenSecret>
+                      <Confirm
+                        onConfirm={rotateClientSecret}
+                        message={t(
+                          'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                        )}
+                      >
+                        <Button size="xs" priority="danger">
+                          {t('Rotate client secret')}
+                        </Button>
+                      </Confirm>
+                    </ClientSecret>
+                  )
+                }
+              </FormField>
+            )}
 
             <FieldGroup label={t('Authorization URL')} flexibleControlStateSize>
               <TextCopyInput>{`${urlPrefix}/oauth/authorize/`}</TextCopyInput>
@@ -159,6 +182,12 @@ function ApiApplicationsDetails() {
     </SentryDocumentTitle>
   );
 }
+
+const TitleWithTag = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
 
 const HiddenSecret = styled('span')`
   width: 100px;

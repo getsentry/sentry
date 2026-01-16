@@ -33,6 +33,19 @@ class ApiApplicationsEndpoint(Endpoint):
         )
 
     def post(self, request: Request) -> Response:
-        app = ApiApplication.objects.create(owner_id=request.user.id)
+        # Check if this should be a public client (no client_secret)
+        # Public clients are used for CLIs, native apps, and SPAs that
+        # cannot securely store a client secret (RFC 6749 §2.1)
+        is_public = request.data.get("isPublic", False)
+
+        if is_public:
+            # Public clients have no client_secret
+            app = ApiApplication.objects.create(
+                owner_id=request.user.id,
+                client_secret=None,
+            )
+        else:
+            # Confidential clients get an auto-generated secret
+            app = ApiApplication.objects.create(owner_id=request.user.id)
 
         return Response(serialize(app, request.user), status=201)
