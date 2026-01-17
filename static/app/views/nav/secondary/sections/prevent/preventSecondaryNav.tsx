@@ -29,8 +29,6 @@ function PreventSecondaryNav() {
     path: `/${PREVENT_AI_BASE_URL}/`,
   });
 
-  const hasOriginalSeerPlan = !showNewSeer(organization);
-
   return (
     <Fragment>
       <SecondaryNav.Header>
@@ -43,14 +41,14 @@ function PreventSecondaryNav() {
               {t('Tests')}
             </SecondaryNav.Item>
           </Feature>
-          {hasOriginalSeerPlan ? (
+          {showNewSeer(organization) ? null : (
             <SecondaryNav.Item
               to={`${preventAIPathName}new/`}
               activeTo={`${preventAIPathName}new/`}
             >
               {t('AI Code Review')}
             </SecondaryNav.Item>
-          ) : null}
+          )}
         </SecondaryNav.Section>
         <Feature features={['prevent-test-analytics']}>
           <SecondaryNav.Section id="prevent-configure" title={t('Configure')}>
