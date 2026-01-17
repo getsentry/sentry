@@ -4,16 +4,10 @@ import {zodResolver} from '@hookform/resolvers/zod';
 import {revalidateLogic} from '@tanstack/react-form';
 import {z} from 'zod';
 
-import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
-import {Text} from '@sentry/scraps/text';
-
 import * as Storybook from 'sentry/stories';
-import type {SelectValue} from 'sentry/types/core';
 
 import {defaultFormOptions, useScrapsForm} from './index';
+import {InputField, NumberField, SelectField, SubmitButton} from './index.rhf';
 
 const COUNTRY_OPTIONS = [
   {value: 'US', label: 'United States'},
@@ -83,48 +77,32 @@ function TanStack() {
         }}
       >
         <form.AppField name="firstName">
-          {field => {
-            return <field.Input label="First Name:" />;
-          }}
+          {field => <field.Input label="First Name:" />}
         </form.AppField>
         <form.AppField name="lastName">
-          {field => {
-            return <field.Input label="Last Name:" />;
-          }}
+          {field => <field.Input label="Last Name:" />}
         </form.AppField>
-        <form.AppField name="age">
-          {field => {
-            return <field.Number label="Age:" />;
-          }}
-        </form.AppField>
+        <form.AppField name="age">{field => <field.Number label="Age:" />}</form.AppField>
         <form.Subscribe selector={state => state.values.age === 42}>
-          {showSecret => {
-            return showSecret ? (
+          {showSecret =>
+            showSecret ? (
               <form.AppField name="secret">
-                {field => {
-                  return <field.Input label="Secret:" />;
-                }}
+                {field => <field.Input label="Secret:" />}
               </form.AppField>
-            ) : null;
-          }}
+            ) : null
+          }
         </form.Subscribe>
         <div style={{marginTop: '20px', marginBottom: '10px'}}>
           <strong>Address</strong>
         </div>
         <form.AppField name="address.street">
-          {field => {
-            return <field.Input label="Street:" />;
-          }}
+          {field => <field.Input label="Street:" />}
         </form.AppField>
         <form.AppField name="address.city">
-          {field => {
-            return <field.Input label="City:" />;
-          }}
+          {field => <field.Input label="City:" />}
         </form.AppField>
         <form.AppField name="address.country">
-          {field => {
-            return <field.Select label="Country:" options={COUNTRY_OPTIONS} />;
-          }}
+          {field => <field.Select label="Country:" options={COUNTRY_OPTIONS} />}
         </form.AppField>
         <form.SubmitButton>Submit</form.SubmitButton>
       </form>
@@ -132,13 +110,10 @@ function TanStack() {
   );
 }
 
+type UserFormValues = z.infer<typeof userSchema>;
+
 function Rhf() {
-  const {
-    control,
-    handleSubmit,
-    watch,
-    formState: {isSubmitting},
-  } = useForm({
+  const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: {
       age: 0,
@@ -153,93 +128,72 @@ function Rhf() {
     },
   });
 
-  const age = watch('age');
+  const age = form.watch('age');
   const showSecret = age === 42;
 
   return (
     <form
       autoComplete="off"
-      onSubmit={handleSubmit(data => {
+      onSubmit={form.handleSubmit(data => {
         // eslint-disable-next-line no-alert
         alert(JSON.stringify(data));
       })}
     >
       <Controller
         name="firstName"
-        control={control}
+        control={form.control}
         render={({field, fieldState}) => (
-          <Stack as="label" gap="sm">
-            <Text>First Name:</Text>
-            <Input
-              {...field}
-              aria-invalid={!!fieldState.error}
-              onChange={e => field.onChange(e.target.value)}
-            />
-            {fieldState.error ? (
-              <Text size="sm" variant="danger">
-                {fieldState.error.message}
-              </Text>
-            ) : null}
-          </Stack>
+          <InputField
+            label="First Name:"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            aria-invalid={!!fieldState.error}
+            error={fieldState.error?.message}
+          />
         )}
       />
       <Controller
         name="lastName"
-        control={control}
+        control={form.control}
         render={({field, fieldState}) => (
-          <Stack as="label" gap="sm">
-            <Text>Last Name:</Text>
-            <Input
-              {...field}
-              aria-invalid={!!fieldState.error}
-              onChange={e => field.onChange(e.target.value)}
-            />
-            {fieldState.error ? (
-              <Text size="sm" variant="danger">
-                {fieldState.error.message}
-              </Text>
-            ) : null}
-          </Stack>
+          <InputField
+            label="Last Name:"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            aria-invalid={!!fieldState.error}
+            error={fieldState.error?.message}
+          />
         )}
       />
       <Controller
         name="age"
-        control={control}
+        control={form.control}
         render={({field, fieldState}) => (
-          <Stack as="label" gap="sm">
-            <Text>Age:</Text>
-            <Input
-              {...field}
-              type="number"
-              aria-invalid={!!fieldState.error}
-              onChange={e => field.onChange(Number(e.target.value))}
-            />
-            {fieldState.error ? (
-              <Text size="sm" variant="danger">
-                {fieldState.error.message}
-              </Text>
-            ) : null}
-          </Stack>
+          <NumberField
+            label="Age:"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            aria-invalid={!!fieldState.error}
+            error={fieldState.error?.message}
+          />
         )}
       />
       {showSecret ? (
         <Controller
           name="secret"
-          control={control}
+          control={form.control}
           render={({field, fieldState}) => (
-            <Stack as="label" gap="sm">
-              <Text>Secret:</Text>
-              <Input
-                {...field}
-                aria-invalid={!!fieldState.error}
-                onChange={e => field.onChange(e.target.value)}
-              />
-              {fieldState.error ? (
-                <Text size="sm" variant="danger">
-                  {fieldState.error.message}
-                </Text>
-              ) : null}
-            </Stack>
+            <InputField
+              label="Secret:"
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              aria-invalid={!!fieldState.error}
+              error={fieldState.error?.message}
+            />
           )}
         />
       ) : null}
@@ -248,67 +202,48 @@ function Rhf() {
       </div>
       <Controller
         name="address.street"
-        control={control}
+        control={form.control}
         render={({field, fieldState}) => (
-          <Stack as="label" gap="sm">
-            <Text>Street:</Text>
-            <Input
-              {...field}
-              aria-invalid={!!fieldState.error}
-              onChange={e => field.onChange(e.target.value)}
-            />
-            {fieldState.error ? (
-              <Text size="sm" variant="danger">
-                {fieldState.error.message}
-              </Text>
-            ) : null}
-          </Stack>
+          <InputField
+            label="Street:"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            aria-invalid={!!fieldState.error}
+            error={fieldState.error?.message}
+          />
         )}
       />
       <Controller
         name="address.city"
-        control={control}
+        control={form.control}
         render={({field, fieldState}) => (
-          <Stack as="label" gap="sm">
-            <Text>City:</Text>
-            <Input
-              {...field}
-              aria-invalid={!!fieldState.error}
-              onChange={e => field.onChange(e.target.value)}
-            />
-            {fieldState.error ? (
-              <Text size="sm" variant="danger">
-                {fieldState.error.message}
-              </Text>
-            ) : null}
-          </Stack>
+          <InputField
+            label="City:"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            aria-invalid={!!fieldState.error}
+            error={fieldState.error?.message}
+          />
         )}
       />
       <Controller
         name="address.country"
-        control={control}
+        control={form.control}
         render={({field, fieldState}) => (
-          <Stack as="label" gap="sm">
-            <Text>Country:</Text>
-            <Select
-              {...field}
-              aria-invalid={!!fieldState.error}
-              options={COUNTRY_OPTIONS}
-              onChange={(option: SelectValue<string>) =>
-                field.onChange(option?.value ?? '')
-              }
-            />
-            {fieldState.error ? (
-              <Text size="sm" variant="danger">
-                {fieldState.error.message}
-              </Text>
-            ) : null}
-          </Stack>
+          <SelectField
+            label="Country:"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            options={COUNTRY_OPTIONS}
+            aria-invalid={!!fieldState.error}
+            error={fieldState.error?.message}
+          />
         )}
       />
-      <Button type="submit" disabled={isSubmitting}>
-        Submit
-      </Button>
+      <SubmitButton isSubmitting={form.formState.isSubmitting}>Submit</SubmitButton>
     </form>
   );
 }
