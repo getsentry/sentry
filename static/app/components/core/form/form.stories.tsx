@@ -77,17 +77,43 @@ function TanStack() {
         }}
       >
         <form.AppField name="firstName">
-          {field => <field.Input label="First Name:" />}
+          {field => (
+            <field.Input
+              label="First Name:"
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
         </form.AppField>
         <form.AppField name="lastName">
-          {field => <field.Input label="Last Name:" />}
+          {field => (
+            <field.Input
+              label="Last Name:"
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
         </form.AppField>
-        <form.AppField name="age">{field => <field.Number label="Age:" />}</form.AppField>
+        <form.AppField name="age">
+          {field => (
+            <field.Number
+              label="Age:"
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.AppField>
         <form.Subscribe selector={state => state.values.age === 42}>
           {showSecret =>
             showSecret ? (
               <form.AppField name="secret">
-                {field => <field.Input label="Secret:" />}
+                {field => (
+                  <field.Input
+                    label="Secret:"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                )}
               </form.AppField>
             ) : null
           }
@@ -96,13 +122,32 @@ function TanStack() {
           <strong>Address</strong>
         </div>
         <form.AppField name="address.street">
-          {field => <field.Input label="Street:" />}
+          {field => (
+            <field.Input
+              label="Street:"
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
         </form.AppField>
         <form.AppField name="address.city">
-          {field => <field.Input label="City:" />}
+          {field => (
+            <field.Input
+              label="City:"
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
         </form.AppField>
         <form.AppField name="address.country">
-          {field => <field.Select label="Country:" options={COUNTRY_OPTIONS} />}
+          {field => (
+            <field.Select
+              label="Country:"
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={COUNTRY_OPTIONS}
+            />
+          )}
         </form.AppField>
         <form.SubmitButton>Submit</form.SubmitButton>
       </form>

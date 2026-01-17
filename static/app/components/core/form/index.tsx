@@ -41,26 +41,22 @@ const {useAppForm} = createFormHook({
 
 export const useScrapsForm = useAppForm;
 
-type FieldChildrenProps<T = never> = {
+type FieldChildrenProps = {
   'aria-invalid': boolean;
   name: string;
-  onBlur: (e: React.FocusEvent) => void;
-  onChange: (value: T) => void;
-  value: T;
+  onBlur: () => void;
 };
 
-export function Field<T = never>(
-  props: FieldProps & {children: (props: FieldChildrenProps<T>) => React.ReactNode}
+export function Field(
+  props: FieldProps & {children: (props: FieldChildrenProps) => React.ReactNode}
 ) {
-  const field = useFieldContext<T>();
+  const field = useFieldContext();
   const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
   return (
     <Stack as="label" gap="sm">
-      <Text> {props.label} </Text>
+      <Text>{props.label}</Text>
       {props.children({
-        value: field.state.value,
         'aria-invalid': hasError,
-        onChange: field.handleChange,
         onBlur: field.handleBlur,
         name: field.name,
       })}
@@ -78,45 +74,66 @@ export function Field<T = never>(
   );
 }
 
-function InputField(props: FieldProps & Omit<InputProps, 'type'>) {
+function InputField({
+  label,
+  hintText,
+  onChange,
+  ...props
+}: FieldProps &
+  Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur'> & {
+    onChange: (value: string) => void;
+    value: string;
+  }) {
   return (
-    <Field<string> label={props.label} hintText={props.hintText}>
+    <Field label={label} hintText={hintText}>
       {fieldProps => (
-        <Input
-          {...props}
-          {...fieldProps}
-          onChange={e => fieldProps.onChange(e.target.value)}
-        />
+        <Input {...fieldProps} {...props} onChange={e => onChange(e.target.value)} />
       )}
     </Field>
   );
 }
 
-function NumberField(props: FieldProps & Omit<InputProps, 'type'>) {
+function NumberField({
+  label,
+  hintText,
+  onChange,
+  ...props
+}: FieldProps &
+  Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur'> & {
+    onChange: (value: number) => void;
+    value: number;
+  }) {
   return (
-    <Field<number> label={props.label} hintText={props.hintText}>
+    <Field label={label} hintText={hintText}>
       {fieldProps => (
         <Input
+          {...fieldProps}
+          {...props}
           type="number"
-          {...props}
-          {...fieldProps}
-          onChange={e => fieldProps.onChange(Number(e.target.value))}
+          onChange={e => onChange(Number(e.target.value))}
         />
       )}
     </Field>
   );
 }
 
-function SelectField(props: FieldProps & React.ComponentProps<typeof Select>) {
+function SelectField({
+  label,
+  hintText,
+  onChange,
+  ...props
+}: FieldProps &
+  Omit<React.ComponentProps<typeof Select>, 'value' | 'onChange' | 'onBlur'> & {
+    onChange: (value: string) => void;
+    value: string;
+  }) {
   return (
-    <Field<string> label={props.label} hintText={props.hintText}>
+    <Field label={label} hintText={hintText}>
       {fieldProps => (
         <Select
-          {...props}
           {...fieldProps}
-          onChange={(option: SelectValue<string>) =>
-            fieldProps.onChange(option?.value ?? '')
-          }
+          {...props}
+          onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
         />
       )}
     </Field>
