@@ -102,7 +102,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
                 />
               ),
             })}
-            <TimeSince date={commit.dateCreated} tooltipUnderlineColor="background" />
+            <TimeSince date={commit.dateCreated} tooltipUnderlineColor="muted" />
           </Meta>
         </MetaWrapper>
       </CommitContent>
@@ -145,10 +145,10 @@ const Message = styled(TextOverflow)`
 const Meta = styled(TextOverflow)`
   line-height: 1.5;
   margin: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   a {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-decoration: underline;
     text-decoration-style: dotted;
   }
@@ -159,17 +159,20 @@ const Meta = styled(TextOverflow)`
 `;
 
 const CommitContent = styled('div')`
-  display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.2;
 `;
@@ -178,7 +181,7 @@ const AuthorWrapper = styled('span')`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   & svg {
     transition: 120ms opacity;

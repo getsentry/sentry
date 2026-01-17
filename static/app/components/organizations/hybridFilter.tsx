@@ -436,7 +436,7 @@ export function HybridFilter<Value extends SelectKey>({
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
   margin: -${space(0.5)} -${space(0.5)};
 `;
@@ -482,7 +482,7 @@ const FooterTip = styled('p')`
   gap: ${space(0.5)};
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
 
@@ -493,7 +493,11 @@ const FooterTip = styled('p')`
 `;
 
 const FooterTipMessage = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const FooterInnerWrap = styled('div')`

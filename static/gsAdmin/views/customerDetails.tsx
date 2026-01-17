@@ -42,6 +42,7 @@ import triggerChangePlanAction from 'admin/components/changePlanAction';
 import CloseAccountInfo from 'admin/components/closeAccountInfo';
 import CustomerCharges from 'admin/components/customers/customerCharges';
 import CustomerHistory from 'admin/components/customers/customerHistory';
+import CustomerIntegrationDebugDetails from 'admin/components/customers/customerIntegrationDebugDetails';
 import CustomerIntegrations from 'admin/components/customers/customerIntegrations';
 import CustomerInvoices from 'admin/components/customers/customerInvoices';
 import CustomerMembers from 'admin/components/customers/customerMembers';
@@ -318,7 +319,7 @@ export default function CustomerDetails() {
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
-      level: 'error',
+      level: 'danger',
       help: subscription.suspensionReason,
       visible: subscription.isSuspended,
     },
@@ -891,6 +892,10 @@ export default function CustomerDetails() {
           {
             noPanel: true,
             content: <CustomerProjects orgId={orgId} />,
+          },
+          {
+            noPanel: true,
+            content: <CustomerIntegrationDebugDetails orgId={orgId} />,
           },
           {
             noPanel: true,

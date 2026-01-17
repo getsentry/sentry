@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
@@ -11,7 +13,6 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -108,7 +109,7 @@ export function FeedbackOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
-        {introduction && <Introduction>{introduction}</Introduction>}
+        {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
         <Steps>
           {steps
             // TODO(aknaus): Move inserting the toggle into the docs definitions
@@ -174,10 +175,4 @@ const Wrapper = styled('div')`
       margin-bottom: 0;
     }
   }
-`;
-
-const Introduction = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: ${space(4)};
 `;

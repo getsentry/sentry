@@ -63,7 +63,7 @@ export const fields = {
       };
     },
     saveOnBlur: false,
-    saveMessageAlertType: 'warning',
+    saveMessageAlertVariant: 'warning',
     saveMessage: t(
       "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
@@ -126,7 +126,7 @@ export const fields = {
         strong: <strong />,
       }
     ),
-    saveMessageAlertType: 'warning',
+    saveMessageAlertVariant: 'warning',
   },
   allowedDomains: {
     name: 'allowedDomains',

@@ -9,6 +9,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.github.webhook_types import (
     GITHUB_INSTALLATION_TARGET_ID_HEADER,
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
+    GithubWebhookType,
 )
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.overwatch_webhooks.types import (
@@ -16,10 +17,7 @@ from sentry.overwatch_webhooks.types import (
     OrganizationSummary,
     WebhookDetails,
 )
-from sentry.overwatch_webhooks.webhook_forwarder import (
-    GITHUB_EVENTS_TO_FORWARD_OVERWATCH,
-    OverwatchGithubWebhookForwarder,
-)
+from sentry.overwatch_webhooks.webhook_forwarder import OverwatchGithubWebhookForwarder
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -49,8 +47,17 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         assert self.forwarder.integration == self.integration
 
     def test_should_forward_to_overwatch_with_valid_events(self):
-        for event_action in GITHUB_EVENTS_TO_FORWARD_OVERWATCH:
-            headers = {GITHUB_WEBHOOK_TYPE_HEADER_KEY: event_action}
+        # Test installation events (always forwarded)
+        for event_type in [
+            GithubWebhookType.INSTALLATION,
+            GithubWebhookType.INSTALLATION_REPOSITORIES,
+        ]:
+            headers = {GITHUB_WEBHOOK_TYPE_HEADER_KEY: event_type}
+            assert self.forwarder.should_forward_to_overwatch(headers) is True
+
+        # Test events controlled by options
+        for event_type in [GithubWebhookType.PULL_REQUEST, GithubWebhookType.ISSUE_COMMENT]:
+            headers = {GITHUB_WEBHOOK_TYPE_HEADER_KEY: event_type}
             assert self.forwarder.should_forward_to_overwatch(headers) is True
 
     def test_should_forward_to_overwatch_with_invalid_events(self):
@@ -153,6 +160,35 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             )
             mock_enqueue.assert_not_called()
 
+    @override_options(
+        {
+            "overwatch.enabled-regions": ["us"],
+            "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
+        }
+    )
+    def test_forward_if_applicable_skips_seer_only_orgs(self):
+        organization = self.create_organization(name="Test Org", slug="test-org", region="us")
+        self.create_organization_integration(
+            integration=self.integration,
+            organization_id=organization.id,
+        )
+
+        event = {
+            "action": "pull_request",
+            "repository": {"owner": {"login": "sentry-ecosystem"}},
+            "commits": [],
+        }
+
+        with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
+            self.forwarder.forward_if_applicable(
+                event,
+                headers={
+                    GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request",
+                    GITHUB_INSTALLATION_TARGET_ID_HEADER: "987654",
+                },
+            )
+            mock_enqueue.assert_not_called()
+
     @override_options({"overwatch.enabled-regions": ["us"]})
     def test_forward_if_applicable_successful_forwarding(self):
         organization = self.create_organization(name="Test Org", slug="test-org", region="us")
@@ -214,7 +250,14 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             organization_id=organization.id,
         )
 
-        for event_type in GITHUB_EVENTS_TO_FORWARD_OVERWATCH:
+        # Test installation events (always forwarded) and events controlled by options
+        event_types = [
+            GithubWebhookType.INSTALLATION,
+            GithubWebhookType.INSTALLATION_REPOSITORIES,
+            GithubWebhookType.PULL_REQUEST,
+        ]
+
+        for event_type in event_types:
             event = {"action": "create", "test_data": f"data_for_{event_type}"}
 
             with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
@@ -422,3 +465,60 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             "app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
+
+    def test_default_events_included(self):
+        """Test that default events should always be forwarded."""
+        # Installation events are always forwarded
+        assert self.forwarder.should_forward_to_overwatch(
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: GithubWebhookType.INSTALLATION}
+        )
+        assert self.forwarder.should_forward_to_overwatch(
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: GithubWebhookType.INSTALLATION_REPOSITORIES}
+        )
+        # Events controlled by options should be forwarded when enabled
+        assert self.forwarder.should_forward_to_overwatch(
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: GithubWebhookType.PULL_REQUEST}
+        )
+        assert self.forwarder.should_forward_to_overwatch(
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: GithubWebhookType.ISSUE_COMMENT}
+        )
+
+    @override_options({"github.webhook.issue-comment": False, "github.webhook.pr": False})
+    def test_disabling_options_excludes_events(self):
+        """Test that disabling options excludes events from forwarding."""
+        # Events controlled by options should NOT be forwarded when disabled
+        assert not self.forwarder.should_forward_to_overwatch(
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: GithubWebhookType.ISSUE_COMMENT}
+        )
+        assert not self.forwarder.should_forward_to_overwatch(
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: GithubWebhookType.PULL_REQUEST}
+        )
+        # Installation events are always forwarded regardless of options
+        assert self.forwarder.should_forward_to_overwatch(
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: GithubWebhookType.INSTALLATION}
+        )
+        assert self.forwarder.should_forward_to_overwatch(
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: GithubWebhookType.INSTALLATION_REPOSITORIES}
+        )
+
+    @override_options(
+        {
+            "overwatch.enabled-regions": ["us"],
+            "github.webhook.issue-comment": False,
+        }
+    )
+    def test_forward_if_applicable_with_disabled_webhook_type(self):
+        """Test that disabled webhook types are not forwarded even when region is enabled."""
+        organization = self.create_organization(name="Test Org", slug="test-org", region="us")
+        self.create_organization_integration(
+            integration=self.integration,
+            organization_id=organization.id,
+        )
+
+        event = {"action": "created", "comment": {"body": "test comment"}}
+
+        with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
+            self.forwarder.forward_if_applicable(
+                event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: "issue_comment"}
+            )
+            mock_enqueue.assert_not_called()

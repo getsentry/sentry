@@ -53,7 +53,7 @@ export function OtherPlatformsInfo({
           {t('dsn: %s', data[0]!.dsn.public)}
         </CodeBlock>
       ) : (
-        <Alert type="warning">
+        <Alert variant="warning">
           {tct(
             'No DSN found for this project. You an create a new one by visiting your [link:project settings].',
             {

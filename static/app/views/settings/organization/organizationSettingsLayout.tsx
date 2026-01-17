@@ -1,12 +1,11 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {Outlet} from 'react-router-dom';
+
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
-type Props = RouteComponentProps & {
-  children: React.ReactNode;
-};
-
-function OrganizationSettingsLayout(props: Props) {
-  return <SettingsLayout {...props} />;
+export default function OrganizationSettingsLayout() {
+  return (
+    <SettingsLayout>
+      <Outlet />
+    </SettingsLayout>
+  );
 }
-
-export default OrganizationSettingsLayout;

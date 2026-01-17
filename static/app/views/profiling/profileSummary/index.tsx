@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -426,7 +428,14 @@ function ProfileSummaryPage() {
                   <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
                     <FlamegraphThemeProvider>
                       <FlamegraphProvider>
-                        <AggregateFlamegraphContainer>
+                        <Stack
+                          flex="1 1 100%"
+                          width="100%"
+                          height="100%"
+                          position="absolute"
+                          top="0px"
+                          left="0px"
+                        >
                           <AggregateFlamegraphToolbar
                             scheduler={scheduler}
                             canvasPoolManager={canvasPoolManager}
@@ -465,7 +474,7 @@ function ProfileSummaryPage() {
                               profileType={PROFILE_TYPE}
                             />
                           )}
-                        </AggregateFlamegraphContainer>
+                        </Stack>
                       </FlamegraphProvider>
                     </FlamegraphThemeProvider>
                   </FlamegraphStateProvider>
@@ -473,11 +482,11 @@ function ProfileSummaryPage() {
               </ProfileVisualization>
               {hideRegressions ? null : (
                 <ProfileDigestContainer>
-                  <ProfileDigestScrollContainer>
+                  <Stack position="absolute" top="0" left="0" bottom="0" right="0">
                     <ProfileDigest onViewChange={setView} transaction={transaction} />
                     <MostRegressedProfileFunctions transaction={transaction} />
                     <SlowestProfileFunctions transaction={transaction} />
-                  </ProfileDigestScrollContainer>
+                  </Stack>
                 </ProfileDigestContainer>
               )}
             </ProfileVisualizationContainer>
@@ -497,18 +506,7 @@ const RequestStateMessageContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const AggregateFlamegraphContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-  height: 100%;
-  width: 100%;
-  position: absolute;
-  left: 0px;
-  top: 0px;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 interface AggregateFlamegraphToolbarProps {
@@ -616,23 +614,13 @@ const ProfileVisualization = styled('div')`
 
 const ProfileDigestContainer = styled('div')`
   grid-area: digest;
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex: 1 1 100%;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-`;
-
-const ProfileDigestScrollContainer = styled('div')`
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
 `;
 
 // @ts-expect-error TS(7008): Member 'hideRegressions' implicitly has an 'any' t... Remove this comment to see the full error message
@@ -780,7 +768,7 @@ const ProfileDigestHeader = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: 0 ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   /* force height to be same as toolbar */
   height: 42px;
   flex-shrink: 0;

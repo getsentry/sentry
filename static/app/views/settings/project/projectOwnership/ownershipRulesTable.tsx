@@ -5,6 +5,8 @@ import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -138,7 +140,7 @@ export function OwnershipRulesTable({
 
   return (
     <RulesTableWrapper data-test-id="ownership-rules-table">
-      <SearchAndSelectorWrapper>
+      <Flex align="center" gap="xl">
         <OwnershipOwnerFilter
           actors={allActors}
           selectedTeams={selectedActors ?? []}
@@ -158,7 +160,7 @@ export function OwnershipRulesTable({
           query={search}
           onChange={handleSearch}
         />
-      </SearchAndSelectorWrapper>
+      </Flex>
 
       <StyledPanelTable
         headers={[t('Type'), t('Rule'), t('Owner')]}
@@ -181,11 +183,11 @@ export function OwnershipRulesTable({
 
           return (
             <Fragment key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}>
-              <RowItem>
-                <Tag type="highlight">{rule.matcher.type}</Tag>
-              </RowItem>
+              <Flex align="center" gap="md">
+                <Tag variant="info">{rule.matcher.type}</Tag>
+              </Flex>
               <RowRule>{rule.matcher.pattern}</RowRule>
-              <RowItem>
+              <Flex align="center" gap="md">
                 <AvatarContainer numAvatars={Math.min(owners.length, 3)}>
                   <SuggestedAvatarStack
                     owners={owners}
@@ -196,12 +198,12 @@ export function OwnershipRulesTable({
                 {name}
                 {owners.length > 1 &&
                   tn(' and %s other', ' and %s others', owners.length - 1)}
-              </RowItem>
+              </Flex>
             </Fragment>
           );
         })}
       </StyledPanelTable>
-      <PaginationWrapper>
+      <Flex justify="end">
         <ButtonBar merged gap="0">
           <Button
             icon={<IconChevron direction="left" size="sm" />}
@@ -222,16 +224,10 @@ export function OwnershipRulesTable({
             aria-label={t('Next page')}
           />
         </ButtonBar>
-      </PaginationWrapper>
+      </Flex>
     </RulesTableWrapper>
   );
 }
-
-const SearchAndSelectorWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-`;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
@@ -256,17 +252,6 @@ const StyledPanelTable = styled(PanelTable)`
         padding: ${space(1.5)} ${space(2)};
       }
     `}
-`;
-
-const PaginationWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const RowItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const RowRule = styled('div')`

@@ -102,7 +102,7 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
           body={
             <Fragment>
               <Alert.Container>
-                <Alert type="warning" showIcon={false}>
+                <Alert variant="warning" showIcon={false}>
                   {alertMessage}
                 </Alert>
               </Alert.Container>
@@ -110,8 +110,11 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
             </Fragment>
           }
         >
-          <IncidentIndicator css={position}>
-            <IconExclamation color="white" />
+          <IncidentIndicator
+            css={position}
+            data-test-id="cron-service-incident-indicator"
+          >
+            <StyledIconExclamation />
           </IncidentIndicator>
         </IncidentHovercard>
         <IncidentOverlay css={position} />
@@ -119,6 +122,10 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
     );
   });
 }
+
+const StyledIconExclamation = styled(IconExclamation)`
+  color: ${p => p.theme.colors.white};
+`;
 
 const IncidentHovercard = styled(Hovercard)`
   width: 400px;

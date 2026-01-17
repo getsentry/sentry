@@ -29,7 +29,12 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
+    UptimeMonitorMode,
+)
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
@@ -1148,12 +1153,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         mock_get_limit.return_value = 1
 
         # Create a not-metric detector
-        self.create_detector(
-            project=self.project,
-            name="Error Detector",
-            type=ErrorGroupType.slug,
-            status=ObjectStatus.ACTIVE,
-        )
+        self.create_uptime_detector()
 
         # Create 1 metric detector, it should succeed
         response = self.get_success_response(
@@ -1173,16 +1173,103 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert response.status_code == 400
 
         # Create another not-metric detector, it should succeed
+        data = {
+            "name": "Test Uptime Monitor",
+            "type": UptimeDomainCheckFailure.slug,
+            "enabled": True,
+            "config": {
+                "mode": UptimeMonitorMode.MANUAL.value,
+                "environment": None,
+                "recovery_threshold": DEFAULT_RECOVERY_THRESHOLD,
+                "downtime_threshold": DEFAULT_DOWNTIME_THRESHOLD,
+            },
+            "dataSources": [
+                {
+                    "url": "https://sentry.io",
+                    "intervalSeconds": 60,
+                    "timeoutMs": 1000,
+                }
+            ],
+        }
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
                 projectId=self.project.id,
-                name="Error Detector",
-                type=ErrorGroupType.slug,
+                **data,
                 status_code=201,
             )
         detector = Detector.objects.get(id=response.data["id"])
-        assert detector.type == ErrorGroupType.slug
+        assert detector.type == UptimeDomainCheckFailure.slug
+
+    def test_owner_team_not_member_denied(self) -> None:
+        """
+        Test that members cannot assign a team they are not a member of as owner.
+        This is a regression test for an IDOR vulnerability.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = {**self.valid_data, "owner": f"team:{other_team.id}"}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data == {"owner": ["You do not have permission to assign this owner"]}
+
+    def test_owner_team_member_allowed(self) -> None:
+        """
+        Test that members CAN assign a team they are a member of as owner.
+        """
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = {**self.valid_data, "owner": f"team:{self.team.id}"}
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.owner_team_id == self.team.id
+
+    def test_owner_team_admin_can_assign_any_team(self) -> None:
+        """
+        Test that users with team:admin scope CAN assign any team as owner.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        admin_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=admin_user,
+            organization=self.organization,
+            role="admin",
+            teams=[self.team],
+        )
+        self.login_as(admin_user)
+
+        data = {**self.valid_data, "owner": f"team:{other_team.id}"}
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.owner_team_id == other_team.id
 
 
 @region_silo_test

@@ -146,15 +146,17 @@ const ViewTitleWrapper = styled(Layout.Title)`
 
 const ViewTitle = styled('div')`
   height: 40px;
-  white-space: nowrap;
   letter-spacing: normal;
   margin-right: ${space(0.25)};
   font-size: inherit;
-  display: flex;
   align-items: center;
-  border-bottom: 1px dotted ${p => p.theme.border};
+  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
 
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledGrowingInput = styled(Input)`

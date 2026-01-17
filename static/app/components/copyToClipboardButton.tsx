@@ -28,7 +28,7 @@ export function CopyToClipboardButton({
         copy(text).then(onCopy).catch(onError);
         props.onClick?.(e);
       }}
-      icon={<IconCopy color="subText" />}
+      icon={<IconCopy variant="muted" />}
       {...props}
     />
   );

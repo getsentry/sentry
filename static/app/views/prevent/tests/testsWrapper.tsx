@@ -1,7 +1,9 @@
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import NotFound from 'sentry/components/errors/notFound';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
@@ -12,11 +14,15 @@ import {TESTS_PAGE_TITLE} from 'sentry/views/prevent/settings';
 export default function TestAnalyticsPageWrapper() {
   const organization = useOrganization();
 
+  if (!organization.features.includes('prevent-test-analytics')) {
+    return <NotFound />;
+  }
+
   return (
     <SentryDocumentTitle title={TESTS_PAGE_TITLE} orgSlug={organization.slug}>
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <HeaderContentBar>
+          <Flex justify="between" align="center">
             <Layout.Title>
               {TESTS_PAGE_TITLE}
               <FeatureBadge type="beta" />
@@ -29,7 +35,7 @@ export default function TestAnalyticsPageWrapper() {
                 },
               }}
             />
-          </HeaderContentBar>
+          </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -42,10 +48,3 @@ export default function TestAnalyticsPageWrapper() {
     </SentryDocumentTitle>
   );
 }
-
-const HeaderContentBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;

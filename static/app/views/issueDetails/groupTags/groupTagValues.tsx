@@ -117,7 +117,7 @@ export function GroupTagValues() {
 
   const title = tagKey === 'user' ? t('Affected Users') : tagKey;
   const sort = location.query.sort || DEFAULT_SORT;
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const {tagValueList, tag, isLoading, isError, pageLinks} = useTagQueries({
     groupId: params.groupId,
@@ -234,12 +234,12 @@ export function GroupTagValues() {
                 href={`mailto:${tagValue.email}`}
                 data-test-id="group-tag-mail"
               >
-                <IconMail size="xs" color="gray300" />
+                <IconMail size="xs" variant="muted" />
               </StyledExternalLink>
             )}
             {isUrl(tagValue.value) && (
               <StyledExternalLink href={tagValue.value} data-test-id="group-tag-url">
-                <IconOpen size="xs" color="gray300" />
+                <IconOpen size="xs" variant="muted" />
               </StyledExternalLink>
             )}
           </NameColumn>
@@ -293,7 +293,7 @@ export function GroupTagValues() {
   return (
     <Layout.Body>
       <Layout.Main width="full">
-        <TitleWrapper>
+        <Flex justify="between" align="center" wrap="wrap" marginBottom="xl">
           <Title>{t('Tag Details')}</Title>
           <ButtonBar>
             <LinkButton
@@ -314,7 +314,7 @@ export function GroupTagValues() {
               }}
             />
           </ButtonBar>
-        </TitleWrapper>
+        </Flex>
         <StyledPanelTable
           isLoading={isLoading}
           isEmpty={!isError && tagValueList?.length === 0}
@@ -350,15 +350,6 @@ function GroupTagValuesRoute() {
 
   return <GroupTagValues />;
 }
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
 
 const Title = styled('h3')`
   margin: 0;
@@ -411,13 +402,19 @@ function RightAlignColumn(props: FlexProps) {
 }
 
 const NameColumn = styled(Column)`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   min-width: 320px;
 `;
 
 const NameWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

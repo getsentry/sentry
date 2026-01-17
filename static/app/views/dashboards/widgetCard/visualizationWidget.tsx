@@ -52,16 +52,23 @@ export function VisualizationWidget({
   return (
     <WidgetCardDataLoader
       widget={widget}
-      dashboardFilters={dashboardFilters}
       selection={selection}
+      dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
     >
-      {({timeseriesResults, timeseriesResultsTypes, errorMessage, loading}) => {
+      {({
+        timeseriesResults,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits,
+        errorMessage,
+        loading,
+      }) => {
         const plottables = transformLegacySeriesToPlottables(
           timeseriesResults,
           timeseriesResultsTypes,
+          timeseriesResultsUnits,
           widget
         );
 

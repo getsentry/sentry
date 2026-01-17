@@ -2,7 +2,7 @@ import unittest
 import uuid
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.utils import timezone
@@ -18,7 +18,6 @@ from sentry.models.group import GroupStatus
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
@@ -30,8 +29,8 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
-    get_detector_by_event,
-    get_detectors_for_event,
+    get_detectors_for_event_data,
+    get_preferred_detector,
     process_detectors,
 )
 from sentry.workflow_engine.types import (
@@ -838,7 +837,7 @@ class TestGetDetectorsForEvent(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
-        self.group = self.create_group(project=self.project)
+        self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
         self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
         self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         self.issue_stream_detector = self.create_detector(
@@ -862,7 +861,6 @@ class TestGetDetectorsForEvent(TestCase):
         )
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
-    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_activity_update(self) -> None:
         activity = Activity.objects.create(
             project=self.project,
@@ -871,31 +869,29 @@ class TestGetDetectorsForEvent(TestCase):
             user_id=self.user.id,
         )
         event_data = WorkflowEventData(event=activity, group=self.group)
-        result = get_detectors_for_event(event_data, detector=self.detector)
+        result = get_detectors_for_event_data(event_data, detector=self.detector)
         assert result is not None
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.issue_stream_detector, self.detector}
 
-    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_error_event(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.error_detector
         assert result.detectors == {self.issue_stream_detector, self.error_detector}
 
-    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_metric_issue(self) -> None:
         self.group_event.occurrence = self.occurrence
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.issue_stream_detector, self.detector}
 
-    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
-    def test_event_without_detector(self) -> None:
+    @patch("sentry.workflow_engine.processors.detector.logger")
+    def test_event_without_detector(self, mock_logger: MagicMock) -> None:
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=1,
@@ -914,43 +910,65 @@ class TestGetDetectorsForEvent(TestCase):
         self.group_event.occurrence = occurrence
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.issue_stream_detector
         assert result.detectors == {self.issue_stream_detector}
+
+        # assert no exception is logged
+        mock_logger.exception.assert_not_called()
+
+    @patch("sentry.workflow_engine.processors.detector.logger")
+    def test_event_missing_detector(self, mock_logger: MagicMock) -> None:
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={"detector_id": 12345},  # missing detector
+            evidence_display=[],
+            type=PerformanceNPlusOneAPICallsGroupType,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+        self.group_event.occurrence = occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.issue_stream_detector
+        assert result.detectors == {self.issue_stream_detector}
+
+        # assert no exception is logged
+        mock_logger.exception.assert_called_once()
 
     def test_no_detectors(self) -> None:
         self.issue_stream_detector.delete()
         self.error_detector.delete()
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is None
 
-    def test_exclude_issue_stream_detector(self) -> None:
+    def test_multiple_detectors(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
         # Default behavior: issue stream detector is included
-        result = get_detectors_for_event(event_data)
+        result = get_detectors_for_event_data(event_data)
 
         assert result is not None
         assert result.issue_stream_detector == self.issue_stream_detector
         assert result.event_detector == self.error_detector
         assert result.preferred_detector == self.error_detector
 
-        # With flag enabled: issue stream detector is excluded
-        with override_options({"workflow_engine.exclude_issue_stream_detector": True}):
-            result_excluded = get_detectors_for_event(event_data)
 
-            assert result_excluded is not None
-            assert result_excluded.issue_stream_detector is None
-            assert result_excluded.event_detector == self.error_detector
-            assert result_excluded.preferred_detector == self.error_detector
-
-
-class TestGetDetectorByEvent(TestCase):
+class TestGetPreferredDetector(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.group = self.create_group(project=self.project)
+        self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
         self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
         self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         self.event = self.store_event(project_id=self.project.id, data={})
@@ -976,32 +994,35 @@ class TestGetDetectorByEvent(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_detector_by_event(event_data)
+        result = get_preferred_detector(event_data)
 
         assert result == self.detector
 
     def test_without_occurrence(self) -> None:
+        self.group.type = ErrorGroupType.type_id
         group_event = GroupEvent.from_event(self.event, self.group)
         group_event.occurrence = None
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_detector_by_event(event_data)
+        result = get_preferred_detector(event_data)
 
         assert result == self.error_detector
 
-    def test_activity_not_supported(self) -> None:
+    def test_activity(self) -> None:
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
             type=ActivityType.SET_RESOLVED.value,
             user_id=self.user.id,
         )
+        DetectorGroup.objects.create(detector=self.detector, group=self.group)
 
         event_data = WorkflowEventData(event=activity, group=self.group)
 
-        with pytest.raises(TypeError):
-            get_detector_by_event(event_data)
+        result = get_preferred_detector(event_data)
+
+        assert result == self.detector
 
     def test_no_detector_id(self) -> None:
         occurrence = IssueOccurrence(
@@ -1026,9 +1047,9 @@ class TestGetDetectorByEvent(TestCase):
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
         with pytest.raises(Detector.DoesNotExist):
-            get_detector_by_event(event_data)
+            get_preferred_detector(event_data)
 
-    def test_defaults_to_error_detector(self) -> None:
+    def test_errors_on_no_detector(self) -> None:
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=self.project.id,
@@ -1051,9 +1072,8 @@ class TestGetDetectorByEvent(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_detector_by_event(event_data)
-
-        assert result == self.error_detector
+        with pytest.raises(Detector.DoesNotExist):
+            get_preferred_detector(event_data)
 
 
 class TestAssociateNewGroupWithDetector(TestCase):

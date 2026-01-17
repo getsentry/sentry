@@ -23,6 +23,7 @@ from sentry.issue_detection.performance_detection import detect_performance_prob
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.killswitches import killswitch_matches_context
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -81,6 +82,16 @@ def _process_segment(
             )
     except (Project.DoesNotExist, Organization.DoesNotExist):
         # If the project does not exist then it might have been deleted during ingestion.
+        return []
+
+    # Check killswitch for dropping segments based on org_id
+    if killswitch_matches_context(
+        "spans.process-segments.drop-segments",
+        {
+            "org_id": str(project.organization_id),
+        },
+        emit_metrics=True,
+    ):
         return []
 
     safe_execute(_normalize_segment_name, segment_span, project)

@@ -49,20 +49,37 @@ sentry/
 
 ## Command Execution Requirements
 
-**CRITICAL**: Before running ANY Python commands (pytest, mypy, pre-commit, etc.), you MUST activate the virtual environment:
+**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+
+### For AI Agents (automated commands)
+
+Use the full relative path to virtualenv executables:
 
 ```bash
-direnv allow
+cd /path/to/sentry && .venv/bin/pytest tests/...
+cd /path/to/sentry && .venv/bin/python -m mypy ...
 ```
 
-This ensures you're using the correct Python interpreter and dependencies from `.venv`. Commands will fail or use the wrong Python environment without this step.
+Or source the activate script in your command:
 
-**When to run `direnv allow`:**
+```bash
+cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
+```
 
-- Before running tests (`pytest`)
-- Before running type checks (`mypy`)
-- Before running any Python scripts
-- At the start of any new terminal session
+**Important for AI agents:**
+
+- Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
+- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
+
+### For Human Developers (interactive shells)
+
+Run `direnv allow` once to trust the `.envrc` file. After that, direnv will automatically activate the virtual environment when you cd into the directory.
+
+```bash
+cd /path/to/sentry
+direnv allow  # Only needed once, or after .envrc changes
+# Now pytest, python, etc. will automatically use .venv
+```
 
 ## Security Guidelines
 
@@ -249,6 +266,44 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 # path('organizations/<slug:organization_slug>/', OrganizationDetailsEndpoint.as_view()),
 ```
 
+### Serializers: Avoiding N+1 Queries
+
+**Rule**: NEVER query the database in `serialize()` for bulk requests, always use `get_attrs()`.
+
+The `serialize()` function in `base.py` calls `get_attrs()` once with all objects, then `serialize()` once per object:
+
+```python
+# ❌ WRONG: Query runs once per object (N+1)
+class MySerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        data = RelatedModel.objects.filter(obj=obj).first()  # NO!
+        return {"id": obj.id, "data": data}
+
+# ✅ CORRECT: Bulk query in get_attrs
+class MySerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        # Query once for all items
+        data_by_id = {
+            d.object_id: d.value
+            for d in RelatedModel.objects.filter(object__in=item_list)
+        }
+        return {item: {"data": data_by_id.get(item.id)} for item in item_list}
+
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {"id": obj.id, "data": attrs.get("data")}
+
+# Extending serializers
+class DetailedSerializer(MySerializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        attrs = super().get_attrs(item_list, user)  # Call parent first
+
+        # Add more bulk queries
+        extra_by_id = {e.id: e for e in Extra.objects.filter(item__in=item_list)}
+        for item in item_list:
+            attrs[item]["extra"] = extra_by_id.get(item.id)
+        return attrs
+```
+
 ### Celery Task Pattern
 
 ```python
@@ -294,6 +349,29 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 4. Return strings for numeric IDs
 5. Implement pagination with `cursor`
 6. Use `GET` for read, `POST` for create, `PUT` for update
+7. **Error responses MUST use `"detail"` key** (Django REST Framework convention)
+
+### Error Response Convention
+
+Following Django REST Framework standards, all error responses must use `"detail"` as the key for error messages.
+
+```python
+from rest_framework.response import Response
+
+# ✅ CORRECT: Use "detail" for error messages
+return Response({"detail": "Internal server error"}, status=500)
+return Response({"detail": "Invalid input"}, status=400)
+
+# ❌ WRONG: Don't use "error" or other keys
+return Response({"error": "Internal server error"}, status=500)
+return Response({"message": "Invalid input"}, status=400)
+```
+
+**Why `detail`?**
+
+- Standard Django REST Framework convention
+- Consistent with existing Sentry codebase
+- Expected by API clients and error handlers
 
 ## Common Patterns
 
@@ -609,7 +687,6 @@ print(silo_mode_delegation.get_current_mode())
 - `.github/`: CI/CD workflows
 - `devservices/config.yml`: Local service configuration
 - `.pre-commit-config.yaml`: Pre-commit hooks configuration
-- `codecov.yml`: Code coverage configuration
 
 ## File Location Map
 

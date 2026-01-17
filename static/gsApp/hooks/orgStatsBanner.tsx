@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
@@ -91,12 +93,12 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
     <Panel>
       <SubscriptionBody withPadding>
         <TextWrapper>
-          <HeaderWrapper>
+          <Flex>
             <Heading>{headerText}</Heading>
             {showStartTrial && (
               <TrialBadge subscription={subscription} organization={organization} />
             )}
-          </HeaderWrapper>
+          </Flex>
           <SubText>{subText}</SubText>
         </TextWrapper>
         <ButtonWrapper>
@@ -124,7 +126,7 @@ const Heading = styled('span')`
 `;
 
 const SubText = styled(TextBlock)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;
 
@@ -132,10 +134,6 @@ const TextWrapper = styled('div')`
   display: grid;
   grid-auto-rows: auto;
   gap: ${space(1)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
 `;
 
 export default withSubscription(OrgStatsBanner, {noLoader: true});

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -23,7 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {AddAutofixRepoModalContent} from './addAutofixRepoModal';
+import {AddAutofixRepoModal} from './addAutofixRepoModal';
 import {AutofixRepoItem} from './autofixRepoItem';
 import {MAX_REPOS_LIMIT} from './constants';
 
@@ -231,16 +231,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
   const openAddRepoModal = useCallback(() => {
     openModal(deps => (
-      <AddAutofixRepoModalContent
+      <AddAutofixRepoModal
         {...deps}
-        repositories={repositories || []}
         selectedRepoIds={selectedRepoIds}
         onSave={handleSaveModalSelections}
-        isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
       />
     ));
-  }, [repositories, selectedRepoIds, handleSaveModalSelections, isFetchingRepositories]);
+  }, [selectedRepoIds, handleSaveModalSelections]);
 
   return (
     <Panel>
@@ -322,17 +319,17 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" system>
+        <Alert variant="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}
         </Alert>
       )}
       {isFetchingRepositories || isLoadingPreferences ? (
-        <LoadingContainer>
+        <Stack justify="center" align="center" padding="3xl" gap="xl" width="100%">
           <StyledLoadingIndicator size={36} />
           <LoadingMessage>{t('Loading repositories...')}</LoadingMessage>
-        </LoadingContainer>
+        </Stack>
       ) : filteredSelectedRepositories.length === 0 ? (
         <EmptyMessage>
           {t("Seer can't see your code. Click 'Add Repos' to give Seer access.")}
@@ -369,25 +366,15 @@ const ReposContainer = styled('div')`
   flex-direction: column;
 
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: ${space(4)};
-  width: 100%;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -395,6 +382,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingMessage = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 `;

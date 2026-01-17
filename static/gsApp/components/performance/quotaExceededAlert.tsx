@@ -201,7 +201,7 @@ export function QuotaExceededAlert(props: Props) {
 
   return (
     <Alert.Container>
-      <Alert type="warning">{message}</Alert>
+      <Alert variant="warning">{message}</Alert>
     </Alert.Container>
   );
 }

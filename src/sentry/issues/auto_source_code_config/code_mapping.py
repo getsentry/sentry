@@ -420,6 +420,9 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
     """
+    if not source_path:
+        raise UnexpectedPathException("Source path is empty")
+
     stack_path = frame_filename.raw_path
     stack_root = ""
     if stack_path[0] == "/" or stack_path[0] == "\\":

@@ -65,7 +65,7 @@ function PartnerPlanEndingBanner({
         <PartnerPlanEndingText>
           <PartnerPlanEndingBannerTitle>
             {t('Your current promotional plan is ending')}
-            <DaysLeftTag type="error" icon={<IconClock size="xs" />}>
+            <DaysLeftTag variant="danger" icon={<IconClock size="xs" />}>
               {tn('%s day left', '%s days left', daysLeft)}
             </DaysLeftTag>
           </PartnerPlanEndingBannerTitle>

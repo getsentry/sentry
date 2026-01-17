@@ -2,6 +2,7 @@ import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 
 import {logs} from './logs';
+import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {profiling} from './profiling';
 
@@ -10,6 +11,9 @@ const docs: Docs = {
   crashReportOnboarding: CrashReportWebApiOnboarding,
   profilingOnboarding: profiling(),
   logsOnboarding: logs({
+    docsPlatform: 'ruby',
+  }),
+  metricsOnboarding: metrics({
     docsPlatform: 'ruby',
   }),
 };

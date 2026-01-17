@@ -403,6 +403,23 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
 
+    def test_query_title_not_in_with_wildcards(self) -> None:
+        event_e = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": "staging",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["group-title-wildcard"],
+                "message": "some other title",
+            },
+            project_id=self.project_1.id,
+        )
+
+        url = f"/api/0/issues/{event_e.group.id}/events/recommended/"
+        response = self.client.get(url, {"query": '!title:["*value1*", "*value2*"]'}, format="json")
+
+        assert response.status_code == 200, response.content
+
     def test_query_issue_platform_title(self) -> None:
         issue_title = "king of england"
         occurrence, group_info = self.process_occurrence(

@@ -34,12 +34,14 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             file_id=self.file.id,
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.app",
-            app_name="TestApp",
-            build_version="1.0.0",
-            build_number=42,
             build_configuration=None,
             installable_app_file_id=1234,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.preprod_artifact,
+            build_version="1.0.0",
+            build_number=42,
         )
 
         # Enable the feature flag for all tests by default
@@ -68,10 +70,32 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         resp_data = response.json()
         assert resp_data["state"] == self.preprod_artifact.state
         assert resp_data["app_info"]["app_id"] == self.preprod_artifact.app_id
-        assert resp_data["app_info"]["name"] == self.preprod_artifact.app_name
-        assert resp_data["app_info"]["version"] == self.preprod_artifact.build_version
-        assert resp_data["app_info"]["build_number"] == self.preprod_artifact.build_number
+        assert resp_data["app_info"]["name"] == self.mobile_app_info.app_name
+        assert resp_data["app_info"]["version"] == self.mobile_app_info.build_version
+        assert resp_data["app_info"]["build_number"] == self.mobile_app_info.build_number
         assert resp_data["app_info"]["artifact_type"] == self.preprod_artifact.artifact_type
+
+    def test_get_build_details_distribution_info(self) -> None:
+        self.preprod_artifact.extras = {"release_notes": "Build notes"}
+        self.preprod_artifact.save()
+        self.create_installable_preprod_artifact(
+            preprod_artifact=self.preprod_artifact, download_count=2
+        )
+        self.create_installable_preprod_artifact(
+            preprod_artifact=self.preprod_artifact, download_count=3
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        distribution_info = resp_data["distribution_info"]
+        assert distribution_info["is_installable"] is True
+        assert distribution_info["download_count"] == 5
+        assert distribution_info["release_notes"] == "Build notes"
 
     def test_get_build_details_not_found(self) -> None:
         url = self._get_url(artifact_id=999999)
@@ -467,10 +491,13 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             file_id=base_file.id,
             artifact_type=self.preprod_artifact.artifact_type,
             app_id=self.preprod_artifact.app_id,
+            commit_comparison=base_commit_comparison,
+        )
+        base_mobile_app_info = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=base_artifact,
             app_name=self.preprod_artifact.app_name,
             build_version="0.9.0",
             build_number=41,
-            commit_comparison=base_commit_comparison,
         )
 
         url = self._get_url()
@@ -483,14 +510,13 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["base_artifact_id"] == str(base_artifact.id)
         assert resp_data["base_build_info"] is not None
         # base_build_info now returns full BuildDetailsAppInfo
-        assert resp_data["base_build_info"]["version"] == "0.9.0"
-        assert resp_data["base_build_info"]["build_number"] == 41
+        assert resp_data["base_build_info"]["version"] == base_mobile_app_info.build_version
+        assert resp_data["base_build_info"]["build_number"] == base_mobile_app_info.build_number
         assert resp_data["base_build_info"]["app_id"] == base_artifact.app_id
-        assert resp_data["base_build_info"]["name"] == base_artifact.app_name
+        assert resp_data["base_build_info"]["name"] == base_mobile_app_info.app_name
         assert resp_data["base_build_info"]["artifact_type"] == base_artifact.artifact_type
         assert "date_added" in resp_data["base_build_info"]
         assert "date_built" in resp_data["base_build_info"]
-        assert "is_installable" in resp_data["base_build_info"]
         assert "platform" in resp_data["base_build_info"]
 
     def test_base_build_info_none_when_no_base_artifact(self) -> None:

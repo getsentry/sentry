@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -19,7 +21,6 @@ import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/gr
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
@@ -225,7 +226,7 @@ function ResolveActions({
               key: 'semver-release',
               label: t('The current semver release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : (
@@ -237,7 +238,7 @@ function ResolveActions({
                       </div>{' '}
                     </Fragment>
                   )}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -250,7 +251,7 @@ function ResolveActions({
               key: 'current-release',
               label: t('The current release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : latestRelease ? (
@@ -263,7 +264,7 @@ function ResolveActions({
                       ({isSemver ? t('semver') : t('non-semver')})
                     </Fragment>
                   ) : null}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -381,27 +382,9 @@ function ResolveActions({
 
 export default ResolveActions;
 
-const ResolveButton = withChonk(
-  styled(Button)<{priority?: 'primary'}>`
-    box-shadow: none;
-    ${p =>
-      p.priority === 'primary' &&
-      css`
-        &::after {
-          content: '';
-          position: absolute;
-          top: -1px;
-          bottom: -1px;
-          right: -1px;
-          border-right: solid 1px currentColor;
-          opacity: 0.25;
-        }
-      `}
-  `,
-  styled(Button)`
-    box-shadow: none;
-  `
-);
+const ResolveButton = styled(Button)`
+  box-shadow: none;
+`;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
@@ -440,13 +423,11 @@ const SetupReleasesHeader = styled('h6')`
   margin-bottom: ${space(1)};
 `;
 
-const CurrentReleaseWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-`;
-
 const MaxReleaseWidthWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 250px;
 `;

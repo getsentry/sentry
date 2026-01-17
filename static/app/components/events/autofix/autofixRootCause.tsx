@@ -22,6 +22,7 @@ import {
   makeAutofixQueryKey,
   useCodingAgentIntegrations,
   useLaunchCodingAgent,
+  type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -246,12 +247,6 @@ function CopyRootCauseButton({
     </Button>
   );
 }
-
-type CodingAgentIntegration = {
-  id: string;
-  name: string;
-  provider: string;
-};
 
 function SolutionActionButton({
   cursorIntegrations,
@@ -515,7 +510,7 @@ function AutofixRootCauseDisplay({
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No root cause available.')}</Alert>
+        <Alert variant="danger">{t('No root cause available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -524,17 +519,17 @@ function AutofixRootCauseDisplay({
     return (
       <CausesContainer>
         <CustomRootCausePadding>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFocusRef}>
-                <IconFocus size="md" color="pink400" />
+                <IconFocus size="md" variant="promotion" />
               </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           <BottomDivider />
-          <BottomButtonContainer>
+          <Flex justify="end" align="center" paddingTop="xl" gap="md">
             <ButtonBar>
               <CopyRootCauseButton
                 customRootCause={rootCauseSelection.custom_root_cause}
@@ -548,7 +543,7 @@ function AutofixRootCauseDisplay({
                 runId={runId}
               />
             )}
-          </BottomButtonContainer>
+          </Flex>
         </CustomRootCausePadding>
       </CausesContainer>
     );
@@ -556,10 +551,10 @@ function AutofixRootCauseDisplay({
 
   return (
     <CausesContainer>
-      <HeaderWrapper>
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFocusRef}>
-            <IconFocus size="md" color="pink400" />
+            <IconFocus size="md" variant="promotion" />
           </Flex>
           {t('Root Cause')}
           <Button
@@ -573,7 +568,7 @@ function AutofixRootCauseDisplay({
             <IconChat />
           </Button>
         </HeaderText>
-      </HeaderWrapper>
+      </Flex>
       <AnimatePresence>
         {agentCommentThread && iconFocusRef.current && (
           <AutofixHighlightPopup
@@ -605,7 +600,7 @@ function AutofixRootCauseDisplay({
         </Fragment>
       </Content>
       <BottomDivider />
-      <BottomButtonContainer>
+      <Flex justify="end" align="center" paddingTop="xl" gap="md">
         <SolutionInput
           autosize
           value={solutionText}
@@ -638,7 +633,7 @@ function AutofixRootCauseDisplay({
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="root_cause" groupId={groupId} runId={runId} />
         )}
-      </BottomButtonContainer>
+      </Flex>
     </CausesContainer>
   );
 }
@@ -650,7 +645,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
               </Alert>
             </Alert.Container>
@@ -670,7 +665,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -680,7 +675,7 @@ const NoCausesPadding = styled('div')`
 `;
 
 const CausesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -690,14 +685,6 @@ const CausesContainer = styled('div')`
 
 const Content = styled('div')`
   padding: ${space(1)} 0;
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-  flex-wrap: wrap;
 `;
 
 const HeaderText = styled('div')`
@@ -722,15 +709,7 @@ const AnimationWrapper = styled(motion.div)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
-`;
-
-const BottomButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: ${space(1)};
-  padding-top: ${p => p.theme.space.xl};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const SolutionInput = styled(TextArea)`
@@ -749,5 +728,5 @@ const DropdownTrigger = styled(Button)`
 
 const SmallIntegrationIdText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

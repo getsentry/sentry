@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
@@ -170,7 +172,7 @@ export function InviteBanner({
       {/* this is temporary to collect feedback about the banner */}
       <FloatingFeedbackButton />
       <StyledCard>
-        <CardTitleContainer>
+        <Flex justify="between">
           <CardTitleContent>
             <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
             <Subtitle>
@@ -205,7 +207,7 @@ export function InviteBanner({
               }}
             />
           </ButtonBar>
-        </CardTitleContainer>
+        </Flex>
         <Carousel>
           <MemberCards
             missingMembers={missingMembers}
@@ -307,11 +309,6 @@ const StyledCard = styled(Card)`
   overflow: hidden;
 `;
 
-const CardTitleContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
 const CardTitleContent = styled('div')`
   display: flex;
   flex-direction: column;
@@ -329,7 +326,7 @@ const Subtitle = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   gap: ${space(0.5)};
 `;
 
@@ -338,7 +335,7 @@ const MemberEmail = styled('div')`
   max-width: 70%;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   overflow: hidden;
 `;

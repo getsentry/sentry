@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -266,7 +266,7 @@ export default function IssueAlertNotificationOptions(
         value={actions}
         onChange={values => setActions(values)}
       >
-        <Wrapper>
+        <Stack gap="md">
           <MultipleCheckbox.Item value={MultipleCheckboxOptions.EMAIL} disabled>
             {t('Notify via email')}
           </MultipleCheckbox.Item>
@@ -280,7 +280,7 @@ export default function IssueAlertNotificationOptions(
               )}
             </div>
           )}
-        </Wrapper>
+        </Stack>
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
@@ -290,9 +290,3 @@ export default function IssueAlertNotificationOptions(
     </Fragment>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;

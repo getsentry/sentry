@@ -39,6 +39,7 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -178,6 +179,11 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
 
+  // Sync active thread to module store for copy functionality
+  useEffect(() => {
+    setActiveThreadId(activeThread?.id);
+  }, [activeThread?.id]);
+
   const stackTraceNotFound = !threads.length;
 
   const hasMoreThanOneThread = threads.length > 1;
@@ -258,7 +264,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
             <div>
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
-                <Wrapper>
+                <Flex justify="start" align="center" wrap="wrap" flexGrow={1} gap="md">
                   <ButtonBar merged gap="0">
                     <Button
                       title={t('Previous Thread')}
@@ -290,13 +296,13 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                     }}
                     exception={exception}
                   />
-                </Wrapper>
+                </Flex>
               )}
             </div>
             {activeThread?.state && (
               <TheadStateContainer>
                 <ThreadHeading>{t('Thread State')}</ThreadHeading>
-                <ThreadStateWrapper>
+                <Flex align="center" gap="xs" position="relative">
                   <ThreadStateIcon state={threadStateDisplay} />
                   <TextOverflow>{threadStateDisplay}</TextOverflow>
                   {threadStateDisplay && (
@@ -309,7 +315,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                     />
                   )}
                   <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
-                </ThreadStateWrapper>
+                </Flex>
               </TheadStateContainer>
             )}
           </Grid>
@@ -434,29 +440,16 @@ const Grid = styled('div')`
 `;
 
 const TheadStateContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis}
-`;
-
-const ThreadStateWrapper = styled('div')`
-  display: flex;
-  position: relative;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.5)};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const LockReason = styled(TextOverflow)`
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
-  flex-grow: 1;
-  justify-content: flex-start;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ThreadTraceWrapper = styled('div')`
@@ -470,7 +463,7 @@ const ThreadTraceWrapper = styled('div')`
 `;
 
 const ThreadHeading = styled('h3')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};

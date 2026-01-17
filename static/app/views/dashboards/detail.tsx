@@ -35,7 +35,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -50,10 +50,13 @@ import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -119,19 +122,21 @@ const DATA_SET_TO_WIDGET_TYPE = {
 type RouteParams = {
   dashboardId?: string;
   templateId?: string;
-  widgetId?: number | string;
-  widgetIndex?: number;
+  widgetId?: string;
+  widgetIndex?: string;
 };
 
-type Props = RouteComponentProps<RouteParams> & {
+type Props = {
   api: Client;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   initialState: DashboardState;
+  location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
+  params: RouteParams;
   projects: Project[];
-  route: PlainRoute;
+  router: InjectedRouter;
   theme: Theme;
   children?: React.ReactNode;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
@@ -708,13 +713,19 @@ class DashboardDetail extends Component<Props, State> {
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
     const mergedWidget = assignTempId({...baseWidget, ...widget});
 
-    const newWidgets = defined(index)
-      ? [
-          ...currentDashboard.widgets.slice(0, index),
-          mergedWidget,
-          ...currentDashboard.widgets.slice(index + 1),
-        ]
-      : [...currentDashboard.widgets, mergedWidget];
+    // Always ensure added widgets in the save flow have a layout
+    // This sets the layout for the request, as well as the optimistic
+    // update on save
+    const newWidgets = assignDefaultLayout(
+      defined(index)
+        ? [
+            ...currentDashboard.widgets.slice(0, index),
+            mergedWidget,
+            ...currentDashboard.widgets.slice(index + 1),
+          ]
+        : [...currentDashboard.widgets, mergedWidget],
+      calculateColumnDepths(getDashboardLayout(currentDashboard.widgets))
+    );
 
     try {
       if (this.isEditingDashboard) {
@@ -729,7 +740,7 @@ class DashboardDetail extends Component<Props, State> {
         newlyAddedWidget: mergedWidget,
       });
 
-      this.handleCloseWidgetBuilder();
+      this.handleCloseWidgetBuilder(newWidgets);
     } catch (error) {
       addErrorMessage(t('Failed to save widget'));
     }
@@ -754,20 +765,44 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleCloseWidgetBuilder = () => {
-    const {organization, navigate, location, params} = this.props;
+  handleCloseWidgetBuilder = (newWidgets?: Widget[]) => {
+    const {organization, navigate, location, params, dashboard} = this.props;
+    const {dashboardState, modifiedDashboard} = this.state;
 
     this.setState({
       isWidgetBuilderOpen: false,
       openWidgetTemplates: undefined,
     });
+
+    // Build the state to persist through the route change.
+    // This prevents losing data when the component remounts during navigation.
+    let navigationState: {dashboard?: DashboardDetails; widgets?: Widget[]} | undefined;
+
+    if (dashboardState === DashboardState.CREATE && defined(newWidgets)) {
+      // For new dashboards, persist the widgets
+      navigationState = {widgets: newWidgets};
+    } else if (dashboardState === DashboardState.VIEW && newWidgets) {
+      // For existing dashboards in view mode, persist the full dashboard with new widgets
+      // so it can be displayed immediately while the API update happens in the background
+      const currentDashboard = modifiedDashboard ?? dashboard;
+      navigationState = {
+        dashboard: {
+          ...currentDashboard,
+          widgets: newWidgets,
+        },
+      };
+    }
+
     navigate(
       getDashboardLocation({
         organization,
         dashboardId: params.dashboardId,
         location,
       }),
-      {preventScrollReset: true}
+      {
+        preventScrollReset: true,
+        state: navigationState,
+      }
     );
   };
 
@@ -1016,7 +1051,6 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       dashboards,
-      router,
       location,
       onDashboardUpdate,
       projects,
@@ -1157,8 +1191,6 @@ class DashboardDetail extends Component<Props, State> {
                                   organization={organization}
                                   eventView={eventView}
                                   projects={projects}
-                                  location={location}
-                                  router={router}
                                   source={DiscoverQueryPageSource.DISCOVER}
                                   {...metricsDataSide}
                                 />
@@ -1331,14 +1363,30 @@ const StyledPageHeader = styled('div')`
 `;
 
 interface DashboardDetailWithInjectedPropsProps
-  extends Omit<Props, 'theme' | 'navigate' | 'api' | 'organization' | 'projects'> {}
+  extends Omit<
+    Props,
+    | 'theme'
+    | 'navigate'
+    | 'api'
+    | 'organization'
+    | 'projects'
+    | 'location'
+    | 'params'
+    | 'router'
+  > {}
 
-function DashboardDetailWithInjectedProps(props: DashboardDetailWithInjectedPropsProps) {
+export default function DashboardDetailWithInjectedProps(
+  props: DashboardDetailWithInjectedPropsProps
+) {
   const theme = useTheme();
   const navigate = useNavigate();
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const location = useLocation();
+  const params = useParams<RouteParams>();
+  const router = useRouter();
+
   return (
     <DashboardDetail
       {...props}
@@ -1347,8 +1395,9 @@ function DashboardDetailWithInjectedProps(props: DashboardDetailWithInjectedProp
       api={api}
       organization={organization}
       projects={projects}
+      location={location}
+      params={params}
+      router={router}
     />
   );
 }
-
-export default DashboardDetailWithInjectedProps;

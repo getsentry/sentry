@@ -108,6 +108,9 @@ def result_transformer(result):
         if token["type"] == "keyExplicitNumberTag":
             return SearchKey(name=f"tags[{token['key']['value']},number]")
 
+        if token["type"] == "keyExplicitBooleanTag":
+            return SearchKey(name=f"tags[{token['key']['value']},boolean]")
+
         if token["type"] == "keyExplicitFlag":
             return SearchKey(name=f"flags[{token['key']['value']}]")
 
@@ -1115,6 +1118,8 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern) -> None:
         pytest.param("tags[foo:bar,string]:true", "tags[foo:bar,string]", "true"),
         pytest.param("tags[foo,number]:0", "tags[foo,number]", "0"),
         pytest.param("tags[foo:bar,number]:0", "tags[foo:bar,number]", "0"),
+        pytest.param("tags[foo,boolean]:true", "tags[foo,boolean]", "true"),
+        pytest.param("tags[foo:bar,boolean]:true", "tags[foo:bar,boolean]", "true"),
         pytest.param("flags[foo]:true", "flags[foo]", "true"),
         pytest.param("flags[foo,string]:true", "flags[foo,string]", "true"),
         pytest.param("flags[foo:bar,string]:true", "flags[foo:bar,string]", "true"),
@@ -1133,9 +1138,11 @@ def test_handles_special_character_in_tags_and_flags(query, key, value) -> None:
         pytest.param("has:tags[foo]", "tags[foo]"),
         pytest.param("has:tags[foo,string]", "tags[foo,string]"),
         pytest.param("has:tags[foo,number]", "tags[foo,number]"),
+        pytest.param("has:tags[foo,boolean]", "tags[foo,boolean]"),
         pytest.param("has:tags[foo:bar]", "tags[foo:bar]"),
         pytest.param("has:tags[foo:bar,string]", "tags[foo:bar,string]"),
         pytest.param("has:tags[foo:bar,number]", "tags[foo:bar,number]"),
+        pytest.param("has:tags[foo:bar,boolean]", "tags[foo:bar,boolean]"),
         pytest.param("has:flags[foo]", "flags[foo]"),
         pytest.param("has:flags[foo,string]", "flags[foo,string]"),
         pytest.param("has:flags[foo,number]", "flags[foo,number]"),

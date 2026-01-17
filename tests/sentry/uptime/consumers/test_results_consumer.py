@@ -26,7 +26,7 @@ from sentry.conf.types import kafka_definition
 from sentry.conf.types.kafka_definition import Topic as KafkaTopic
 from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
@@ -50,8 +50,9 @@ from sentry.uptime.subscriptions.subscriptions import (
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.uptime.utils import (
+    build_backlog_key,
     build_detector_fingerprint_component,
-    build_last_seen_interval_key,
+    build_last_interval_change_timestamp_key,
     build_last_update_key,
     get_cluster,
 )
@@ -312,16 +313,19 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
-        # has an interval of 300 seconds, which we're going to say was just recently
-        # changed.  Verify we don't emit any metrics recording of a missed check
+        # has an interval of 300 seconds. The interval was changed AFTER the last check,
+        # so this gap should be skipped (it's the interval transition).
+        last_update_ms = int(result["scheduled_check_time_ms"]) - (3500 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
-            int(result["scheduled_check_time_ms"]) - (3500 * 1000),
+            last_update_ms,
         )
 
+        # Set interval change timestamp to be AFTER the last update (between last check and now)
+        interval_change_ms = last_update_ms + (1000 * 1000)  # 1000 seconds after last check
         get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            3600 * 1000,
+            build_last_interval_change_timestamp_key(self.detector),
+            interval_change_ms,
         )
 
         with (
@@ -330,24 +334,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             self.send_result(result)
             logger.info.assert_any_call(
-                "uptime.result_processor.false_num_missing_check",
-                extra={**result},
+                "uptime.result_processor.skipping_backfill_interval_changed",
+                extra={
+                    "last_update_ms": last_update_ms,
+                    "interval_change_ms": interval_change_ms,
+                    **result,
+                },
             )
 
     def test_missed_check_updated_interval(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
-        # has an interval of 300 seconds, which we're going to say was just recently
-        # changed.  Verify we don't emit any metrics recording of a missed check
+        # has an interval of 300 seconds. The interval was changed AFTER the last check,
+        # so this gap should be skipped (it's the interval transition).
+        last_update_ms = int(result["scheduled_check_time_ms"]) - (3500 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
-            int(result["scheduled_check_time_ms"]) - (3500 * 1000),
+            last_update_ms,
         )
 
+        # Set interval change timestamp to be AFTER the last update
+        interval_change_ms = last_update_ms + (1000 * 1000)
         get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            3600 * 1000,
+            build_last_interval_change_timestamp_key(self.detector),
+            interval_change_ms,
         )
 
         with (
@@ -356,11 +367,16 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             self.send_result(result)
             logger.info.assert_any_call(
-                "uptime.result_processor.false_num_missing_check",
-                extra={**result},
+                "uptime.result_processor.skipping_backfill_interval_changed",
+                extra={
+                    "last_update_ms": last_update_ms,
+                    "interval_change_ms": interval_change_ms,
+                    **result,
+                },
             )
 
-        # Send another check that should now be classified as a miss
+        # Send another check that should now be classified as a miss because the last
+        # update is now AFTER the interval change timestamp
         result = self.create_uptime_result(self.subscription.subscription_id)
         result["scheduled_check_time_ms"] = int(result["scheduled_check_time_ms"]) + (600 * 1000)
         result["actual_check_time_ms"] = result["scheduled_check_time_ms"]
@@ -386,11 +402,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             last_update_time,
         )
 
-        get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            300 * 1000,
-        )
-
         # Enabling and disabling should clear the last_update_time, and we
         # will not produce any synthetic checks
         disable_uptime_detector(self.detector)
@@ -411,15 +422,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         # Pretend we got a result 900 seconds ago; the subscription
         # has an interval of 300 seconds.  We've missed two checks.
+        # No interval change timestamp is set, so backfill should run.
         last_update_time = int(result["scheduled_check_time_ms"]) - (900 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
             last_update_time,
-        )
-
-        get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            300 * 1000,
         )
 
         with (
@@ -671,8 +678,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             remove_call_vals = []
 
-            def capture_remove_seat(data_category, seat_object):
-                remove_call_vals.append((data_category, seat_object.id))
+            def capture_remove_seat(data_category=None, seat_object=None):
+                remove_call_vals.append(seat_object.id)
 
             mock_remove_seat.side_effect = capture_remove_seat
 
@@ -711,7 +718,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert remove_call_vals == [(DataCategory.UPTIME, self.detector.id)]
+        assert remove_call_vals == [self.detector.id]
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()
@@ -1390,6 +1397,95 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             ],
             current_minute=5,
         )
+
+    def test_out_of_order_result_queued(self):
+        """Out-of-order results should be queued when feature flag is enabled."""
+        cluster = get_cluster()
+        base_time = datetime.now()
+
+        # Process first result at 4:00
+        result1 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time,
+        )
+        with self.feature("organizations:uptime-backlog-retry"):
+            self.send_result(result1)
+
+        # Send result at 4:10. Should be queued because we expected a result at 4:05
+        result2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time + timedelta(minutes=10),
+        )
+
+        with (
+            self.feature("organizations:uptime-backlog-retry"),
+            mock.patch("sentry.uptime.consumers.tasks.process_uptime_backlog") as mock_task,
+        ):
+            self.send_result(result2)
+
+            backlog_key = build_backlog_key(str(self.subscription.id))
+            assert cluster.zcard(backlog_key) == 1
+            mock_task.apply_async.assert_called_once()
+            call_kwargs = mock_task.apply_async.call_args[1]
+            assert call_kwargs["args"] == [str(self.subscription.id)]
+            assert call_kwargs["countdown"] == 10
+            assert call_kwargs["kwargs"]["attempt"] == 1
+
+    def test_feature_flag_disabled_processes_normally(self):
+        """When feature flag is disabled, results should process normally without queueing."""
+        cluster = get_cluster()
+        base_time = datetime.now()
+
+        result1 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time,
+        )
+        self.send_result(result1)
+
+        result2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time + timedelta(minutes=10),
+        )
+
+        self.send_result(result2)
+
+        backlog_key = build_backlog_key(str(self.subscription.id))
+        assert cluster.zcard(backlog_key) == 0
+
+    def test_task_scheduling_deduplication(self):
+        """Multiple out-of-order results shouldn't schedule duplicate tasks."""
+        cluster = get_cluster()
+        base_time = datetime.now()
+
+        result1 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time,
+        )
+        with self.feature("organizations:uptime-backlog-retry"):
+            self.send_result(result1)
+
+        result2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time + timedelta(minutes=10),
+        )
+        result3 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=base_time + timedelta(minutes=15),
+        )
+
+        with (
+            self.feature("organizations:uptime-backlog-retry"),
+            mock.patch("sentry.uptime.consumers.tasks.process_uptime_backlog") as mock_task,
+        ):
+            self.send_result(result2)
+            self.send_result(result3)
+
+            # Verify task was only scheduled once
+            assert mock_task.apply_async.call_count == 1
+
+            # Verify both results were queued
+            backlog_key = build_backlog_key(str(self.subscription.id))
+            assert cluster.zcard(backlog_key) == 2
 
 
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)

@@ -1,6 +1,5 @@
 import {type ReactNode} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -1104,22 +1103,18 @@ describe('MultiQueryModeContent', () => {
   });
 
   it('sets interval correctly', async () => {
-    const router = RouterFixture({
-      location: {
-        pathname: '/traces/compare',
-        query: {
-          queries: [
-            '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
-          ],
+    const {router} = render(<MultiQueryModeContent />, {
+      organization,
+      additionalWrapper: Wrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare',
+          query: {
+            queries:
+              '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          },
         },
       },
-    });
-
-    render(<MultiQueryModeContent />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-      additionalWrapper: Wrapper(),
     });
 
     const section = screen.getByTestId('section-visualization-0');
@@ -1128,21 +1123,19 @@ describe('MultiQueryModeContent', () => {
     ).toBeInTheDocument();
     await userEvent.click(within(section).getByRole('button', {name: '30 minutes'}));
     await userEvent.click(within(section).getByRole('option', {name: '3 hours'}));
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/traces/compare',
-      query: expect.objectContaining({
+    expect(router.location.pathname).toBe('/traces/compare');
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
         interval: '3h',
-        queries: [
+        queries:
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
-        ],
-      }),
-    });
+      })
+    );
   });
 
   it('renders a save query button', async () => {
     render(<MultiQueryModeContent />, {
       organization,
-      deprecatedRouterMocks: true,
       additionalWrapper: Wrapper(),
     });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
@@ -1180,23 +1173,20 @@ describe('MultiQueryModeContent', () => {
       url: `/organizations/${organization.slug}/explore/saved/123/visit/`,
       method: 'POST',
     });
-    const router = RouterFixture({
-      location: {
-        pathname: '/traces/compare',
-        query: {
-          queries: [
-            '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
-          ],
-          id: '123',
-        },
-      },
-    });
 
     render(<MultiQueryModeContent />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
       additionalWrapper: Wrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare',
+          query: {
+            queries:
+              '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+            id: '123',
+          },
+        },
+      },
     });
     // No good way to check for highlighted css, so we just check for the text
     expect(await screen.findByText('Save')).toBeInTheDocument();

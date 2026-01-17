@@ -1,6 +1,9 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {AddressElement} from '@stripe/react-stripe-js';
+import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
+import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
+
+import {Alert} from '@sentry/scraps/alert';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -8,6 +11,7 @@ import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -16,10 +20,8 @@ import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import LegacyBillingDetailsForm from 'getsentry/components/billingDetails/legacyForm';
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
-import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import {countryCodes} from 'getsentry/utils/ISO3166codes';
 import type {TaxFieldInfo} from 'getsentry/utils/salesTax';
 import {
@@ -70,10 +72,6 @@ type Props = {
    * Form submit button label.
    */
   submitLabel?: string;
-  /**
-   * Custom wrapper for the form fields.
-   */
-  wrapper?: (children: any) => React.ReactElement;
 };
 
 type State = {
@@ -84,8 +82,131 @@ type State = {
 
 const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 
-function DefaultWrapper({children}: any) {
-  return <div>{children}</div>;
+function BillingDetailsFormFields({
+  form,
+  isDetailed,
+  fieldProps,
+  initialData,
+  handleStripeFormChange,
+  state,
+  taxFieldInfo,
+  onSubmitDisabled,
+}: {
+  form: FormModel;
+  handleStripeFormChange: (data: StripeAddressElementChangeEvent) => void;
+  isDetailed: boolean;
+  onSubmitDisabled: (disabled: boolean) => void;
+  state: State;
+  fieldProps?: FieldGroupProps;
+  initialData?: BillingDetails;
+  taxFieldInfo?: TaxFieldInfo;
+}) {
+  const elements = useElements();
+  const stripe = useStripe();
+  const [stripeIsLoading, setStripeIsLoading] = useState(true); // stripe is loading
+  const [stripeIsBlocked, setStripeIsBlocked] = useState(false); // stripe failed to load
+
+  const handleStripeLoadError = useCallback(() => {
+    setStripeIsBlocked(true);
+    onSubmitDisabled(true);
+    setStripeIsLoading(false);
+  }, [onSubmitDisabled]);
+
+  const handleStripeLoadSuccess = useCallback(() => {
+    onSubmitDisabled(false);
+    setStripeIsLoading(false);
+  }, [onSubmitDisabled]);
+
+  // Check if Stripe loaded properly
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!stripe || !elements) {
+        handleStripeLoadError();
+      } else {
+        handleStripeLoadSuccess();
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeoutId);
+  }, [stripe, elements, handleStripeLoadError, handleStripeLoadSuccess]);
+
+  return (
+    <Flex direction="column" gap="xl">
+      {stripeIsBlocked ? (
+        <Alert variant="warning">
+          {t(
+            'To add or update your business address, you may need to disable any ad or tracker blocking extensions on this page and reload.'
+          )}
+        </Alert>
+      ) : (
+        <Fragment>
+          {isDetailed && !stripeIsLoading && (
+            <CustomBillingDetailsFormField
+              inputName="billingEmail"
+              label={t('Billing email')}
+              help={t(
+                'If provided, all billing-related notifications will be sent to this address'
+              )}
+              placeholder={t('name@example.com (optional)')}
+              value={form.getValue('billingEmail') ?? ''}
+              fieldProps={fieldProps}
+            />
+          )}
+          {stripeIsLoading && <LoadingIndicator />}
+          <AddressElement
+            options={{
+              mode: 'billing',
+              autocomplete: GOOGLE_MAPS_API_KEY
+                ? {
+                    mode: 'google_maps_api',
+                    apiKey: GOOGLE_MAPS_API_KEY,
+                  }
+                : {
+                    mode: 'automatic', // if our key isn't available, see if we can use Stripe's
+                  },
+              allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
+                defined(code)
+              ).map(([code]) => code as string),
+              fields: {phone: 'never'}, // don't show phone number field
+              defaultValues: {
+                name: initialData?.companyName,
+                address: {
+                  line1: initialData?.addressLine1,
+                  line2: initialData?.addressLine2,
+                  city: initialData?.city,
+                  state: initialData?.region,
+                  postal_code: initialData?.postalCode,
+                  country: initialData?.countryCode ?? 'US',
+                },
+              },
+              display: {name: 'organization'},
+            }}
+            onChange={handleStripeFormChange}
+            onReady={() => {
+              handleStripeLoadSuccess();
+            }}
+            onLoadError={() => {
+              handleStripeLoadError();
+            }}
+          />
+          {!!(state.showTaxNumber && taxFieldInfo && !stripeIsLoading) && (
+            // TODO: use Stripe's TaxIdElement when it's generally available
+            <CustomBillingDetailsFormField
+              inputName="taxNumber"
+              label={taxFieldInfo.label}
+              help={tct(
+                "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
+                {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
+              )}
+              value={form.getValue('taxNumber') ?? ''}
+              placeholder={taxFieldInfo.placeholder}
+              fieldProps={fieldProps}
+            />
+          )}
+        </Fragment>
+      )}
+    </Flex>
+  );
 }
 
 function CustomBillingDetailsFormField({
@@ -136,11 +257,11 @@ function BillingDetailsForm({
   footerStyle,
   requireChanges,
   isDetailed = true,
-  wrapper = DefaultWrapper,
   fieldProps,
   extraButton,
   analyticsEvent,
 }: Props) {
+  const [submitDisabled, setSubmitDisabled] = useState(true);
   const transformData = (data: Record<string, any>) => {
     // Clear tax number if not applicable to country code.
     // This is done on save instead of on change to retain the field value
@@ -166,7 +287,6 @@ function BillingDetailsForm({
     showTaxNumber:
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
-  const hasStripeComponents = hasStripeComponentsFeature(organization);
   const location = useLocation();
 
   const taxFieldInfo = useMemo(
@@ -215,33 +335,12 @@ function BillingDetailsForm({
     if (analyticsEvent) {
       trackGetsentryAnalytics(analyticsEvent, {
         organization,
-        isStripeComponent: hasStripeComponents,
+        isStripeComponent: true,
         referrer: decodeScalar(location.query?.referrer),
       });
     }
     onSubmitSuccess(data);
   };
-
-  if (!hasStripeComponents) {
-    return (
-      <LegacyBillingDetailsForm
-        initialData={initialData}
-        onSubmitSuccess={handleSubmit}
-        organization={organization}
-        onSubmitError={onSubmitError}
-        onPreSubmit={onPreSubmit}
-        footerStyle={footerStyle}
-        requireChanges={requireChanges}
-        isDetailed={isDetailed}
-        wrapper={wrapper}
-        submitLabel={submitLabel}
-        fieldProps={fieldProps}
-        extraButton={extraButton}
-      />
-    );
-  }
-
-  const FieldWrapper = wrapper;
 
   const transformedInitialData = {
     ...initialData,
@@ -251,82 +350,33 @@ function BillingDetailsForm({
   };
 
   return (
-    <Form
-      apiMethod="PUT"
-      model={form}
-      requireChanges={requireChanges}
-      apiEndpoint={`/customers/${organization.slug}/billing-details/`}
-      submitLabel={submitLabel}
-      onPreSubmit={onPreSubmit}
-      onSubmitSuccess={handleSubmit}
-      onSubmitError={err => onSubmitError?.(err)}
-      initialData={transformedInitialData}
-      footerStyle={footerStyle}
-      extraButton={extraButton}
-    >
-      <FieldWrapper>
-        <Flex direction="column" gap="xl">
-          {isDetailed && (
-            <CustomBillingDetailsFormField
-              inputName="billingEmail"
-              label={t('Billing email')}
-              help={t(
-                'If provided, all billing-related notifications will be sent to this address'
-              )}
-              placeholder={t('name@example.com (optional)')}
-              value={form.getValue('billingEmail') ?? ''}
-              fieldProps={fieldProps}
-            />
-          )}
-          <StripeWrapper>
-            <AddressElement
-              options={{
-                mode: 'billing',
-                autocomplete: GOOGLE_MAPS_API_KEY
-                  ? {
-                      mode: 'google_maps_api',
-                      apiKey: GOOGLE_MAPS_API_KEY,
-                    }
-                  : {
-                      mode: 'automatic', // if our key isn't available, see if we can use Stripe's
-                    },
-                allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
-                  defined(code)
-                ).map(([code]) => code as string),
-                fields: {phone: 'never'}, // don't show phone number field
-                defaultValues: {
-                  name: initialData?.companyName,
-                  address: {
-                    line1: initialData?.addressLine1,
-                    line2: initialData?.addressLine2,
-                    city: initialData?.city,
-                    state: initialData?.region,
-                    postal_code: initialData?.postalCode,
-                    country: initialData?.countryCode ?? 'US',
-                  },
-                },
-                display: {name: 'organization'},
-              }}
-              onChange={handleStripeFormChange}
-            />
-          </StripeWrapper>
-          {!!(state.showTaxNumber && taxFieldInfo) && (
-            // TODO: use Stripe's TaxIdElement when it's generally available
-            <CustomBillingDetailsFormField
-              inputName="taxNumber"
-              label={taxFieldInfo.label}
-              help={tct(
-                "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
-                {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
-              )}
-              value={form.getValue('taxNumber') ?? ''}
-              placeholder={taxFieldInfo.placeholder}
-              fieldProps={fieldProps}
-            />
-          )}
-        </Flex>
-      </FieldWrapper>
-    </Form>
+    <StripeWrapper>
+      <Form
+        apiMethod="PUT"
+        model={form}
+        requireChanges={requireChanges}
+        submitDisabled={submitDisabled}
+        apiEndpoint={`/customers/${organization.slug}/billing-details/`}
+        submitLabel={submitLabel}
+        onPreSubmit={onPreSubmit}
+        onSubmitSuccess={handleSubmit}
+        onSubmitError={err => onSubmitError?.(err)}
+        initialData={transformedInitialData}
+        footerStyle={footerStyle}
+        extraButton={extraButton}
+      >
+        <BillingDetailsFormFields
+          form={form}
+          isDetailed={isDetailed}
+          fieldProps={fieldProps}
+          initialData={initialData}
+          handleStripeFormChange={handleStripeFormChange}
+          state={state}
+          taxFieldInfo={taxFieldInfo}
+          onSubmitDisabled={setSubmitDisabled}
+        />
+      </Form>
+    </StripeWrapper>
   );
 }
 

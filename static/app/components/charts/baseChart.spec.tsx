@@ -22,7 +22,7 @@ describe('BaseChart', () => {
     // @ts-expect-error TODO: Fix this type
     const series = ReactEchartsCore.mock.calls[0][0].option.series;
     expect(series).toHaveLength(1);
-    expect(series[0].lineStyle.color).toEqual(theme.tokens.graphics.muted);
+    expect(series[0].lineStyle.color).toEqual(theme.tokens.dataviz.semantic.neutral);
     expect(series[0].lineStyle.type).toBe('dotted');
   });
 

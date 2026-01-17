@@ -71,7 +71,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     }
 
     return (
-      <Tag key="failure-rate-value" type="error">
+      <Tag key="failure-rate-value" variant="danger">
         {formatPercentage(failureRateValue[0]?.['failure_rate()'] ?? 0)}
       </Tag>
     );

@@ -95,7 +95,7 @@ export function Am1BackendOverviewPage({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
@@ -286,7 +286,7 @@ export function Am1BackendOverviewPage({
                       theme={theme}
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
-                      setError={setPageError}
+                      setError={setPageDanger}
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>

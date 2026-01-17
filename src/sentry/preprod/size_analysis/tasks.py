@@ -21,7 +21,7 @@ from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compa
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
+from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.json import dumps_htmlsafe
 
@@ -33,8 +33,6 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
-    # TODO(EME-242): Remove once inflight tasks done.
-    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -246,8 +244,6 @@ def compare_preprod_artifact_size_analysis(
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
-    # TODO(EME-242): Remove once inflight tasks done.
-    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -297,18 +293,26 @@ def manual_size_analysis_comparison(
         )
         return
 
-    head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact_id__in=[head_artifact.id],
-        preprod_artifact__project__organization_id=org_id,
-        preprod_artifact__project_id=project_id,
-    ).select_related("preprod_artifact")
+    head_size_metrics_qs = (
+        PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[head_artifact.id],
+            preprod_artifact__project__organization_id=org_id,
+            preprod_artifact__project_id=project_id,
+        )
+        .select_related("preprod_artifact")
+        .select_related("preprod_artifact__mobile_app_info")
+    )
     head_size_metrics = list(head_size_metrics_qs)
 
-    base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact_id__in=[base_artifact.id],
-        preprod_artifact__project__organization_id=org_id,
-        preprod_artifact__project_id=project_id,
-    ).select_related("preprod_artifact")
+    base_size_metrics_qs = (
+        PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[base_artifact.id],
+            preprod_artifact__project__organization_id=org_id,
+            preprod_artifact__project_id=project_id,
+        )
+        .select_related("preprod_artifact")
+        .select_related("preprod_artifact__mobile_app_info")
+    )
     base_size_metrics = list(base_size_metrics_qs)
 
     logger.info(

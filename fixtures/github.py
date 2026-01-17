@@ -3559,6 +3559,10 @@ CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE = b"""{
     "check_run": {
         "external_id": "4663713",
         "html_url": "https://github.com/test/repo/runs/4"
+    },
+    "sender": {
+        "id": 12345678,
+        "login": "test-user"
     }
 }"""
 
@@ -3569,5 +3573,9 @@ CHECK_RUN_COMPLETED_EVENT_EXAMPLE = b"""{
         "id": 35129377,
         "full_name": "getsentry/sentry",
         "html_url": "https://github.com/getsentry/sentry"
+    },
+    "sender": {
+        "id": 12345678,
+        "login": "test-user"
     }
 }"""

@@ -2,6 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -14,7 +16,10 @@ import {
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
+import {
+  useCodingAgentIntegrations,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -104,12 +109,6 @@ const autofixAutomationToggleField = {
   }),
 } satisfies FieldObject;
 
-interface CursorIntegration {
-  id: string;
-  name: string;
-  provider: string;
-}
-
 function CodingAgentSettings({
   preference,
   handleAutoCreatePrChange,
@@ -119,7 +118,7 @@ function CodingAgentSettings({
   cursorIntegrations,
 }: {
   canWriteProject: boolean;
-  cursorIntegrations: CursorIntegration[];
+  cursorIntegrations: CodingAgentIntegration[];
   handleAutoCreatePrChange: (value: boolean) => void;
   handleIntegrationChange: (integrationId: number) => void;
   preference: ProjectSeerPreferences | null | undefined;
@@ -310,9 +309,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
             addErrorMessage(t('Failed to update auto-open PR setting'));
             // Refetch to reset form state to backend value
             queryClient.invalidateQueries({
-              queryKey: [
-                makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-              ],
+              queryKey: makeProjectSeerPreferencesQueryKey(
+                organization.slug,
+                project.slug
+              ),
             });
           },
         }
@@ -355,9 +355,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
               // Refetch to reset form state to backend value
               queryClient.invalidateQueries({
-                queryKey: [
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-                ],
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
               });
             },
           }
@@ -376,9 +377,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
               // Refetch to reset form state to backend value
               queryClient.invalidateQueries({
-                queryKey: [
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-                ],
+                queryKey: makeProjectSeerPreferencesQueryKey(
+                  organization.slug,
+                  project.slug
+                ),
               });
             },
           }
@@ -655,14 +657,14 @@ function ProjectSeer({
       <ProjectSeerGeneralForm project={project} />
       <CursorIntegrationCta project={project} />
       <AutofixRepositories project={project} />
-      <Center>
+      <Flex justify="center" marginTop="lg">
         <LinkButton
           to={`/settings/${organization.slug}/seer/onboarding/`}
           priority="primary"
         >
           {t('Set up my other projects')}
         </LinkButton>
-      </Center>
+      </Flex>
     </Fragment>
   );
 }
@@ -674,7 +676,7 @@ export default function ProjectSeerContainer() {
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
       <FeatureDisabled
-        features={['autofix-seer-preferences']}
+        features={['organizations:autofix-seer-preferences']}
         hideHelpToggle
         message={t('Autofix is not enabled for this organization.')}
         featureName={t('Autofix')}
@@ -687,15 +689,9 @@ export default function ProjectSeerContainer() {
 
 const Subheading = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
   margin-top: ${space(1)};
   line-height: 1.4;
-`;
-
-const Center = styled('div')`
-  display: flex;
-  justify-content: center;
-  margin-top: ${p => p.theme.space.lg};
 `;

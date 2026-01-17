@@ -206,5 +206,5 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                     "pr_number": pr_number,
                 }
             )
-            comments = client.get_pullrequest_comments(repo_name, pr_number)
+            comments = client.get_pull_request_comments(repo_name, pr_number)
             return comments or []

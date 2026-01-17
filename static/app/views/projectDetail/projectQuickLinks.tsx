@@ -1,6 +1,5 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -24,7 +23,6 @@ import {
 import {SidebarSection} from './styles';
 
 type Props = {
-  location: Location;
   organization: Organization;
   project?: Project;
 };
@@ -127,7 +125,11 @@ const QuickLink = styled((p: any) =>
 
 const QuickLinkText = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default ProjectQuickLinks;

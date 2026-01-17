@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
@@ -128,21 +128,6 @@ def generate_rules(project: Project) -> list[PolymorphicRule]:
         rules = _get_rules_of_enabled_biases(
             project, base_sample_rate, enabled_user_biases, combined_biases
         )
-        if features.has("organizations:log-project-config", organization, actor=None):
-            try:
-                logger.info(
-                    "log-project-config - generate_rules: Generated %s rules for project %s in org %s.",
-                    len(rules),
-                    project.id,
-                    organization.id,
-                    extra={
-                        "enabled_user_biases": enabled_user_biases,
-                        "base_sample_rate": base_sample_rate,
-                        "num_rules": len(rules),
-                    },
-                )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
 
     except Exception as e:
         sentry_sdk.capture_exception(e)

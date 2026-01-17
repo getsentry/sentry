@@ -38,7 +38,7 @@ function TeamMembersRow({
     <TeamRolesPanelItem key={member.id}>
       <Flex gap="md">
         <IdBadge avatarSize={36} member={member} />
-        {member.pending ? <Tag>{t('Pending')}</Tag> : null}
+        {member.pending ? <Tag variant="muted">{t('Pending')}</Tag> : null}
       </Flex>
       <RoleSelectWrapper>
         <TeamRoleSelect

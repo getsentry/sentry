@@ -90,7 +90,7 @@ function NextBillCard({
           {isLoading ? (
             <Placeholder height="20px" width="150px" />
           ) : (
-            <Tag type="info">
+            <Tag variant="info">
               {tct('[billDate]・in [daysLeft] days', {
                 billDate: nextBillDate.format('MMM D, YYYY'),
                 daysLeft,
@@ -101,7 +101,7 @@ function NextBillCard({
         isLoading ? (
           <Placeholder style={{flexGrow: 1}} />
         ) : isError ? (
-          <Alert type="error">
+          <Alert variant="danger">
             {t('Could not compute next bill. Please try again later.')}
           </Alert>
         ) : (

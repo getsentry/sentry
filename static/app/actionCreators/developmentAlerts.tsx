@@ -27,7 +27,7 @@ export function displayDeployPreviewAlert() {
       'You are viewing a frontend deploy preview of [commitLink] ([branchLink])',
       {commitLink, branchLink}
     ),
-    type: 'warning',
+    variant: 'warning',
     neverExpire: true,
     noDuplicates: true,
   });
@@ -43,7 +43,7 @@ export function displayExperimentalSpaAlert() {
     message: t(
       'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'
     ),
-    type: 'warning',
+    variant: 'warning',
     opaque: true,
     neverExpire: true,
     noDuplicates: true,

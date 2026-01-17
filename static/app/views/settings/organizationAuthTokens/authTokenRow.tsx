@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -9,7 +11,6 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {OrgAuthToken} from 'sentry/types/user';
@@ -95,7 +96,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         )}
       </div>
 
-      <DateTime>
+      <Flex align="center" gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -103,9 +104,9 @@ export function OrganizationAuthTokensAuthTokenRow({
             <TimeSince date={token.dateCreated} />
           </Fragment>
         )}
-      </DateTime>
+      </Flex>
 
-      <DateTime>
+      <Flex align="center" gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -115,9 +116,9 @@ export function OrganizationAuthTokensAuthTokenRow({
             organization={organization}
           />
         )}
-      </DateTime>
+      </Flex>
 
-      <Actions>
+      <Flex justify="end">
         <Tooltip
           title={t('You must be an organization owner or manager to revoke a token.')}
           disabled={!!revokeToken}
@@ -140,28 +141,17 @@ export function OrganizationAuthTokensAuthTokenRow({
             </Button>
           </Confirm>
         </Tooltip>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
 
 const Label = styled('div')``;
 
-const Actions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const DateTime = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
 const NeverUsed = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TokenPreview = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

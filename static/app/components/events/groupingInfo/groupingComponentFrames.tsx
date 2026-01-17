@@ -76,7 +76,7 @@ function GroupingComponentFrames({
 
 const ToggleCollapse = styled(Button)`
   margin: ${space(0.5)} 0;
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>`

@@ -338,7 +338,7 @@ const Container = styled('div')`
 const Header = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const HeaderTitle = styled('h1')`

@@ -8,7 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import type {Subscription} from 'getsentry/types';
-import OnDemandBudgetEditModal from 'getsentry/views/onDemandBudgets/onDemandBudgetEditModal';
+import SpendLimitsEditModal from 'getsentry/views/spendLimits/editModal';
 
 interface UpgradeCTAProps {
   hasBillingAccess: boolean;
@@ -61,7 +61,7 @@ export function CronsBannerOnDemandCTA({
   const openOnDemandBudgetEditModal = () => {
     openModal(
       modalProps => (
-        <OnDemandBudgetEditModal
+        <SpendLimitsEditModal
           {...modalProps}
           subscription={subscription}
           organization={organization}

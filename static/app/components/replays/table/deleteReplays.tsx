@@ -223,7 +223,7 @@ function ReplayPreviewTable({
                   <Flex gap="xs">
                     {getShortEventId(replay.id)}
                     <Flex gap="xs">
-                      <IconCalendar color="gray300" size="xs" />
+                      <IconCalendar variant="muted" size="xs" />
                       <TimeSince date={replay.started_at} />
                     </Flex>
                   </Flex>
@@ -280,8 +280,11 @@ const SimpleTableWithTwoColumns = styled(SimpleTable)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.secondary};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
@@ -293,7 +296,11 @@ const DisplayName = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: normal;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const LinkWithUnderline = styled(Link)`

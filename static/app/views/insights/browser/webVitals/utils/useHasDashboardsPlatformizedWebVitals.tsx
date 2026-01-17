@@ -9,5 +9,5 @@ export default function useHasDashboardsPlatformizedWebVitals() {
     return true;
   }
 
-  return organization.features.includes('performance-web-vitals-dashboard-migration');
+  return organization.features.includes('insights-web-vitals-dashboard-migration');
 }

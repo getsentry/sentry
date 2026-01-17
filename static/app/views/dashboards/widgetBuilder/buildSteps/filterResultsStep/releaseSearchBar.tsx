@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -11,7 +12,6 @@ import {SavedSearchType} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {
-  GetTagValues,
   SearchBarData,
   SearchBarDataProviderProps,
   WidgetBuilderSearchBarProps,

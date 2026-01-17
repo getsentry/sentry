@@ -595,7 +595,7 @@ function CheckoutSuccess({
             <LinkButton
               priority="primary"
               aria-label={t('View your subscription')}
-              to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
+              to={`/settings/${organization.slug}/billing/overview/${viewSubscriptionQueryParams}`}
             >
               {t('View your subscription')}
             </LinkButton>
@@ -616,6 +616,7 @@ function CheckoutSuccess({
                   ['feedback.owner']: 'billing',
                 },
               }}
+              size="md"
             />
           </Flex>
         </Flex>
@@ -662,9 +663,9 @@ const ReceiptSlot = styled('div')`
   width: 445px;
   height: 7px;
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.colors.gray200};
   box-shadow: 0px 2px 4px 0px
-    ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;
+    ${p => Color(p.theme.colors.black).lighten(0.08).alpha(0.15).toString()} inset;
 `;
 
 const ReceiptPaperContainer = styled('div')`
@@ -682,7 +683,7 @@ const ReceiptPaperShadow = styled('div')`
   width: 320px;
   height: 7px;
   box-shadow: inset 0 10px 6px -6px
-    ${p => Color(p.theme.black).lighten(0.05).alpha(0.15).toString()};
+    ${p => Color(p.theme.colors.black).lighten(0.05).alpha(0.15).toString()};
 `;
 
 const ReceiptPaper = styled(Container)`
@@ -691,12 +692,12 @@ const ReceiptPaper = styled(Container)`
 `;
 
 const DateSeparator = styled('div')`
-  border-top: 1px dashed ${p => p.theme.gray500};
+  border-top: 1px dashed ${p => p.theme.colors.gray800};
   width: 100%;
 `;
 
 const DashedContainer = styled(Container)`
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const ZigZagEdge = styled('div')`
@@ -704,7 +705,7 @@ const ZigZagEdge = styled('div')`
   --s: 10px; /* size of the zig-zag */
   --b: 2px; /* control the thickness */
 
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   height: calc(var(--b) + var(--s) / (2 * tan(var(--a) / 2)));
   --_g: var(--s) repeat-x
     conic-gradient(

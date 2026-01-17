@@ -236,7 +236,7 @@ def test_retry_timeout_disabled(capture_exception, current_task) -> None:
 
 
 def test_instrumented_task_parameters() -> None:
-    registry = TaskRegistry()
+    registry = TaskRegistry(application="sentry")
     namespace = registry.create_namespace("registertest")
 
     @instrumented_task(

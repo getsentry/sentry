@@ -21,7 +21,7 @@ export function RelatedIssuesNotAvailable({buttonTo, buttonText}: Props) {
   return (
     <Alert.Container>
       <StyledAlert
-        type="info"
+        variant="info"
         trailingItems={
           <Feature features="discover-basic">
             <LinkButton priority="default" size="xs" to={buttonTo}>

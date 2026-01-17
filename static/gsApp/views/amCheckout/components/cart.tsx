@@ -61,7 +61,11 @@ interface CartProps {
     invoice,
     nextQueryParams,
     isSubmitted,
-  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
+    previewData,
+  }: Pick<
+    CheckoutState,
+    'invoice' | 'nextQueryParams' | 'isSubmitted' | 'previewData'
+  >) => void;
   organization: Organization;
   subscription: Subscription;
   referrer?: string;
@@ -250,7 +254,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                   </div>
                 ) : isPaygOnly ? (
                   hasPaygForCategory ? (
-                    <Tag>{t('Available')}</Tag>
+                    <Tag variant="muted">{t('Available')}</Tag>
                   ) : (
                     <Tooltip
                       title={tct('This product is only available with [budgetTerm].', {
@@ -263,7 +267,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                           }),
                       })}
                     >
-                      <Tag icon={<IconLock locked size="xs" />}>
+                      <Tag variant="muted" icon={<IconLock locked size="xs" />}>
                         {isXSmallScreen ? (
                           <Text size="xs">
                             {tct('Unlock with [budgetTerm]', {
@@ -412,7 +416,7 @@ function SubtotalSummary({
                       bounce: 0.1,
                     }}
                   >
-                    <Tag icon={<IconSentry size="xs" />} type="info">
+                    <Tag icon={<IconSentry size="xs" />} variant="info">
                       <Text size="xs">{t('Default Amount')}</Text>
                     </Tag>
                   </motion.div>
@@ -948,7 +952,7 @@ function Cart({
             <Flex direction="column" gap="lg" data-test-id="plan-summary" width="100%">
               {errorMessage && (
                 <Container>
-                  <Alert type="error">{errorMessage}</Alert>
+                  <Alert variant="danger">{errorMessage}</Alert>
                 </Container>
               )}
               <ItemsSummary activePlan={activePlan} formData={formData} />

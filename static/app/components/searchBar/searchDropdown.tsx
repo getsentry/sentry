@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -83,9 +85,14 @@ function SearchDropdown({
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
       {loading ? (
-        <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
+        <Flex
+          justify="center"
+          padding="md"
+          key="loading"
+          data-test-id="search-autocomplete-loading"
+        >
           <LoadingIndicator mini />
-        </LoadingWrapper>
+        </Flex>
       ) : (
         <SearchItemsList maxMenuHeight={maxMenuHeight}>
           {items.map(item => {
@@ -298,20 +305,20 @@ type KindTagProps = {
 
 function KindTag({kind, deprecated}: KindTagProps) {
   if (deprecated) {
-    return <Tag type="error">deprecated</Tag>;
+    return <Tag variant="danger">deprecated</Tag>;
   }
 
   switch (kind) {
     case FieldKind.FUNCTION:
     case FieldKind.NUMERIC_METRICS:
-      return <Tag type="success">f(x)</Tag>;
+      return <Tag variant="success">f(x)</Tag>;
     case FieldKind.MEASUREMENT:
     case FieldKind.BREAKDOWN:
-      return <Tag type="highlight">field</Tag>;
+      return <Tag variant="info">field</Tag>;
     case FieldKind.TAG:
-      return <Tag type="warning">{kind}</Tag>;
+      return <Tag variant="warning">{kind}</Tag>;
     default:
-      return <Tag>{kind}</Tag>;
+      return <Tag variant="muted">{kind}</Tag>;
   }
 }
 
@@ -386,11 +393,11 @@ function DropdownItem({
           documentation={item.documentation}
           searchSubstring={searchSubstring}
         />
-        <TagWrapper>
+        <Flex as="span" justify="end" align="center" flexShrink={0}>
           {item.kind && !isChild && (
             <KindTag kind={item.kind} deprecated={item.deprecated} />
           )}
-        </TagWrapper>
+        </Flex>
       </Fragment>
     );
   }
@@ -494,20 +501,14 @@ const SearchDropdownOverlay = styled(Overlay)`
   margin-top: ${space(1)};
 `;
 
-const LoadingWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(1)};
-`;
-
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -517,8 +518,8 @@ const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
 
@@ -554,16 +555,18 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   padding: 4px ${space(2)};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
-  ${p => !p.isChild && `border-top: 1px solid ${p.theme.innerBorder};`}
+  ${p => !p.isChild && `border-top: 1px solid ${p.theme.tokens.border.secondary};`}
 
   ${p => {
     if (!p.isDisabled) {
       return css`
         cursor: pointer;
 
-        &:hover,
+        &:hover {
+          background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+        }
         &.active {
-          background: ${p.theme.hover};
+          background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
         }
       `;
     }
@@ -580,7 +583,6 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
 `;
 
 const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
-  display: flex;
   flex-grow: 1;
   flex-shrink: ${p => (p.hasSingleField ? '1' : '0')};
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
@@ -591,14 +593,19 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
 
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const RestOfWordsContainer = styled('span')<{
   hasSplit?: boolean;
   isFirstWordHidden?: boolean;
 }>`
-  color: ${p => (p.hasSplit ? p.theme.colors.blue500 : p.theme.tokens.content.primary)};
+  color: ${p =>
+    p.hasSplit ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
   margin-left: ${p => (p.isFirstWordHidden ? space(1) : '0px')};
 `;
 
@@ -606,32 +613,26 @@ const FirstWordWrapper = styled('span')`
   font-weight: medium;
 `;
 
-const TagWrapper = styled('span')`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-end;
-`;
-
 const Documentation = styled('span')`
-  display: flex;
   flex: 2;
   padding: 0 ${space(1)};
   min-width: 0;
 
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: ${p => p.theme.fontSize.md};
   font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: pre;
 `;
 
 const DropdownFooter = styled(`div`)`
   width: 100%;
   min-height: 45px;
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   flex-direction: row;
   display: flex;
   align-items: center;
@@ -642,7 +643,7 @@ const DropdownFooter = styled(`div`)`
 `;
 
 const HotkeyGlyphWrapper = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-right: ${space(0.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -677,7 +678,11 @@ const Value = styled('span')<{hasDocs?: boolean}>`
 
   max-width: ${p => (p.hasDocs ? '280px' : 'none')};
 
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IconOpenWithMargin = styled(IconOpen)`
@@ -689,5 +694,9 @@ const RecommendedItem = styled('div')`
 `;
 
 const RecommendedItemTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

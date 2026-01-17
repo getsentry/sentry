@@ -22,7 +22,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -224,7 +223,13 @@ function WidgetBuilderSlideout({
       ];
 
   const header = (
-    <SlideoutHeaderWrapper>
+    <Flex
+      align="center"
+      justify="between"
+      borderBottom="primary"
+      height="44px"
+      padding="0 2xl"
+    >
       <Breadcrumbs crumbs={breadcrumbs} />
       <CloseButton
         priority="link"
@@ -236,7 +241,7 @@ function WidgetBuilderSlideout({
       >
         {t('Close')}
       </CloseButton>
-    </SlideoutHeaderWrapper>
+    </Flex>
   );
 
   return (
@@ -267,7 +272,7 @@ function WidgetBuilderSlideout({
               {isTransactionsWidget && showTransactionsDeprecationAlert && (
                 <Section>
                   <Alert
-                    type="warning"
+                    variant="warning"
                     trailingItems={
                       <StyledCloseButton
                         icon={<IconClose size="sm" />}
@@ -482,20 +487,12 @@ function DisableTransactionWidget({children}: DisableModeProps) {
 }
 
 const CloseButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: fit-content;
   &:hover {
     color: ${p => p.theme.colors.gray500};
   }
   z-index: 100;
-`;
-
-const SlideoutHeaderWrapper = styled('div')`
-  padding: ${space(1)} ${space(4)};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const SlideoutBreadcrumb = styled('div')`

@@ -1,5 +1,6 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -91,7 +92,9 @@ function UserOverview({
           <DetailLabel title="Staff" yesNo={user.isStaff} />
           <DetailLabel title="Permissions">
             {Array.from(user.permissions).map(p => (
-              <Tag key={p}>{p}</Tag>
+              <Tag key={p} variant="muted">
+                {p}
+              </Tag>
             ))}
           </DetailLabel>
         </DetailList>
@@ -102,7 +105,7 @@ function UserOverview({
           <DetailList>
             {identities.map(identity => (
               <DetailLabel key={identity.id} title={identity.provider.name}>
-                <ButtonWrapper>
+                <Flex justify="between">
                   <div>{identityLabel(identity)}</div>
                   <Button
                     icon={<IconNot />}
@@ -116,7 +119,7 @@ function UserOverview({
                       identity.category !== UserIdentityCategory.ORG_IDENTITY
                     }
                   />
-                </ButtonWrapper>
+                </Flex>
 
                 <small>{identity.name}</small>
                 <br />
@@ -142,7 +145,7 @@ function UserOverview({
           <DetailList>
             {user.authenticators.map(auth => (
               <DetailLabel title={auth.type} key={auth.id}>
-                <ButtonWrapper>
+                <Flex justify="between">
                   <div>{auth.name}</div>
                   <Button
                     icon={<IconNot />}
@@ -152,7 +155,7 @@ function UserOverview({
                     onClick={() => onAuthenticatorRemove(auth)}
                     aria-label="Remove Authenticator"
                   />
-                </ButtonWrapper>
+                </Flex>
                 <small style={{color: '#999999'}}>
                   Last used {auth.dateUsed ? prettyDate(auth.dateUsed) : 'never'}
                 </small>
@@ -189,10 +192,5 @@ function UserOverview({
     </DetailsContainer>
   );
 }
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
 
 export default UserOverview;

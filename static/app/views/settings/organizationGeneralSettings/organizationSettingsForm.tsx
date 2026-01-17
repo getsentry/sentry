@@ -99,7 +99,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                     />
                   }
                 >
-                  <Tag role="status" icon={<IconLock locked />}>
+                  <Tag variant="muted" role="status" icon={<IconLock locked />}>
                     {t('disabled')}
                   </Tag>
                 </Hovercard>

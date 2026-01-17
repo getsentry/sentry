@@ -752,7 +752,7 @@ export function ErrorChart({
 }: ErrorChartProps) {
   return (
     <ChartErrorWrapper {...props}>
-      <PanelAlert type="error">
+      <PanelAlert variant="danger">
         {!isAllowIndexed && !isQueryValid
           ? t('Your filter conditions contain an unsupported field - please review.')
           : typeof errorMessage === 'string'
@@ -761,7 +761,7 @@ export function ErrorChart({
       </PanelAlert>
 
       <StyledErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </StyledErrorPanel>
     </ChartErrorWrapper>
   );

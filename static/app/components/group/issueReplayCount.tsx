@@ -57,7 +57,7 @@ const ReplayCountLink = styled(Link)`
   position: relative;
 
   &:hover {
-    color: ${p => p.theme.linkHoverColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 `;
 

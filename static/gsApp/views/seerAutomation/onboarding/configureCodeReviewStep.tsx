@@ -5,6 +5,7 @@ import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -45,10 +46,13 @@ export function ConfigureCodeReviewStep() {
       .filter(repo => repo.settings?.enabledCodeReview)
       .map(repo => repo.id);
 
+    const hasSelectedRepositories = selectedCodeReviewRepositories.length > 0;
+    const hasUnselectedRepositories = existingRepostoriesToRemove.length > 0;
+
     // Turn on code review for the selected repositories.
     const updateEnabledCodeReview = () =>
       new Promise<void>((resolve, reject) => {
-        if (selectedCodeReviewRepositories.length === 0) {
+        if (!hasSelectedRepositories) {
           resolve();
           return;
         }
@@ -73,7 +77,7 @@ export function ConfigureCodeReviewStep() {
     // This handles the case where we load selected repositories from the server, but the user unselects some of them.
     const updateUnselectedRepositories = () =>
       new Promise<void>((resolve, reject) => {
-        if (existingRepostoriesToRemove.length === 0) {
+        if (!hasUnselectedRepositories) {
           resolve();
           return;
         }
@@ -109,13 +113,15 @@ export function ConfigureCodeReviewStep() {
           clearRootCauseAnalysisRepositories();
         }
 
-        addSuccessMessage(t('AI Code Review settings updated successfully'));
+        if (hasSelectedRepositories || hasUnselectedRepositories) {
+          addSuccessMessage(t('AI Code Review settings updated successfully'));
 
-        trackGetsentryAnalytics('seer.onboarding.code_review_updated', {
-          organization,
-          added_repositories: selectedCodeReviewRepositories.length,
-          removed_repositories: existingRepostoriesToRemove.length,
-        });
+          trackGetsentryAnalytics('seer.onboarding.code_review_updated', {
+            organization,
+            added_repositories: selectedCodeReviewRepositories.length,
+            removed_repositories: existingRepostoriesToRemove.length,
+          });
+        }
 
         setCurrentStep(currentStep + 1);
       })
@@ -140,14 +146,19 @@ export function ConfigureCodeReviewStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
-              <p>{t(`You've successfully connected to GitHub!`)}</p>
+              <Flex direction="column" gap="lg">
+                <Text>{t(`You've successfully connected to GitHub!`)}</Text>
+                <Separator orientation="horizontal" border="muted" />
 
-              <Text bold>{t('AI Code Review')}</Text>
-              <p>
-                {t(
-                  `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
-                )}
-              </p>
+                <Flex direction="column" gap="sm">
+                  <Text bold>{t('AI Code Review')}</Text>
+                  <Text variant="muted" density="comfortable">
+                    {t(
+                      `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
+                    )}
+                  </Text>
+                </Flex>
+              </Flex>
             </PanelDescription>
             <RepositorySelector />
           </PanelBody>

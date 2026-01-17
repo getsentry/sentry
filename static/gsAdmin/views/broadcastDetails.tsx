@@ -10,9 +10,9 @@ import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
 
 import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
@@ -27,9 +27,8 @@ import {
   TRIALCHOICES,
 } from 'getsentry/utils/broadcasts';
 
-type Props = RouteComponentProps<{broadcastId: string}, unknown>;
-
-function BroadcastDetails({params: {broadcastId}}: Props) {
+export default function BroadcastDetails() {
+  const {broadcastId} = useParams<{broadcastId: string}>();
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -144,7 +143,7 @@ function BroadcastDetails({params: {broadcastId}}: Props) {
       badges={[
         {
           name: data.isActive ? 'Enabled' : 'Disabled',
-          level: data.isActive ? 'success' : 'error',
+          level: data.isActive ? 'success' : 'danger',
         },
       ]}
       actions={[
@@ -162,4 +161,3 @@ function BroadcastDetails({params: {broadcastId}}: Props) {
     />
   );
 }
-export default BroadcastDetails;

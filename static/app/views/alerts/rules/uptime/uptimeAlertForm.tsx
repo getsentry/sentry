@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
@@ -36,6 +36,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {UptimeAssertionsField} from './assertions/field';
 import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
@@ -81,6 +82,7 @@ function getFormDataFromRule(rule: UptimeRule) {
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
     recoveryThreshold: rule.recoveryThreshold,
     downtimeThreshold: rule.downtimeThreshold,
+    assertion: rule.assertion,
   };
 }
 
@@ -357,7 +359,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             />
           </ConfigurationPanel>
           <Alert.Container>
-            <Alert type="muted">
+            <Alert variant="muted">
               {tct(
                 'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
                 {
@@ -380,6 +382,25 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             )}
           </Observer>
         </Configuration>
+        {organization.features.includes('uptime-runtime-assertions') && (
+          <Fragment>
+            <AlertListItem>{t('Verification')}</AlertListItem>
+            <ListItemSubText>
+              {t(
+                'Define conditions that must be met for the check to be considered successful.'
+              )}
+            </ListItemSubText>
+            <Configuration>
+              <ConfigurationPanel>
+                <UptimeAssertionsField
+                  name="assertion"
+                  label={t('Assertions')}
+                  flexibleControlStateSize
+                />
+              </ConfigurationPanel>
+            </Configuration>
+          </Fragment>
+        )}
         <AlertListItem>{t('Set thresholds')}</AlertListItem>
         <ListItemSubText>
           {t('Configure when an issue is created or resolved.')}
@@ -480,7 +501,7 @@ const AlertListItem = styled(ListItem)`
 
 const ListItemSubText = styled(Text)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FormRow = styled('div')`

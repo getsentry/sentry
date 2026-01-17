@@ -15,13 +15,13 @@ function EmptyStateWarning({small = false, withIcon = true, children, className}
   return small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconSearch color="gray300" size="lg" />}
+        {withIcon && <StyledIconSearch variant="muted" size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch color="gray300" legacySize="54px" />}
+      {withIcon && <IconSearch variant="muted" legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );
@@ -48,7 +48,7 @@ export const EmptyStreamWrapper = styled('div')`
 const SmallMessage = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xl};
   line-height: 1em;
 `;

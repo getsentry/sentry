@@ -35,6 +35,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ColumnDefinitions, VirtualColumnDefinition
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
@@ -109,6 +110,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
         "organizations:ourlogs-enabled",
         "organizations:visibility-explore-view",
         "organizations:tracemetrics-enabled",
+        "organizations:preprod-frontend-routes",
     ]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
@@ -130,7 +132,7 @@ class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
         [e.value for e in SupportedTraceItemType], required=True, source="item_type"
     )
     attributeType = serializers.ChoiceField(
-        ["string", "number"], required=True, source="attribute_type"
+        ["string", "number", "boolean"], required=True, source="attribute_type"
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
@@ -147,6 +149,8 @@ def get_column_definitions(item_type: SupportedTraceItemType) -> ColumnDefinitio
         return OURLOG_DEFINITIONS
     elif item_type == SupportedTraceItemType.TRACEMETRICS:
         return TRACE_METRICS_DEFINITIONS
+    elif item_type == SupportedTraceItemType.PREPROD:
+        return PREPROD_SIZE_DEFINITIONS
 
     raise ValueError(f"Invalid item type: {item_type}")
 
@@ -158,6 +162,8 @@ def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
         return Referrer.API_LOGS_TAG_KEYS_RPC
     elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
         return Referrer.API_TRACE_METRICS_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.PREPROD.value:
+        return Referrer.API_PREPROD_TAG_KEYS_RPC
     else:
         raise ValueError(f"Invalid item type: {item_type}")
 
@@ -169,12 +175,14 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
         return Referrer.API_LOGS_TAG_VALUES_RPC
     elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
         return Referrer.API_TRACE_METRICS_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.PREPROD.value:
+        return Referrer.API_PREPROD_TAG_VALUES_RPC
     else:
         raise ValueError(f"Invalid item type: {item_type}")
 
 
 def as_attribute_key(
-    name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
+    name: str, type: Literal["string", "number", "boolean"], item_type: SupportedTraceItemType
 ) -> TraceItemAttributeKey:
     public_key, public_name, attribute_source = translate_internal_to_public_alias(
         name, type, item_type
@@ -185,6 +193,9 @@ def as_attribute_key(
         pass
     elif type == "number":
         public_key = f"tags[{name},number]"
+        public_name = name
+    elif type == "boolean":
+        public_key = f"tags[{name},boolean]"
         public_name = name
     else:
         public_key = name
@@ -266,12 +277,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
 
-        attr_type = (
-            AttributeKey.Type.TYPE_DOUBLE
-            if attribute_type == "number"
-            else AttributeKey.Type.TYPE_STRING
+        attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
+            attribute_type, AttributeKey.Type.TYPE_STRING
         )
-
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def data_fn(offset: int, limit: int):

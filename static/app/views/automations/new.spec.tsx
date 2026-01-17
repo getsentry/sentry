@@ -158,6 +158,7 @@ describe('AutomationNewSettings', () => {
               logicType: 'any-short',
               conditions: [
                 {type: 'first_seen_event', comparison: true, conditionResult: true},
+                {type: 'issue_resolved_trigger', comparison: true, conditionResult: true},
                 {type: 'reappeared_event', comparison: true, conditionResult: true},
                 {type: 'regression_event', comparison: true, conditionResult: true},
               ],
@@ -179,7 +180,7 @@ describe('AutomationNewSettings', () => {
                     type: 'slack',
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: null,
+                      targetIdentifier: '',
                       targetDisplay: '#alerts',
                     },
                     integrationId: '1',
@@ -223,6 +224,7 @@ describe('AutomationNewSettings', () => {
       trigger_conditions_count: expect.any(Number),
       success: true,
       actions_count: expect.any(Number),
+      source: 'full',
     });
   });
 });

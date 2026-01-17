@@ -60,6 +60,13 @@ class GithubRequestParser(BaseRequestParser):
             metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=0.01)
 
     def get_response(self) -> HttpResponseBase:
+        """
+        Orchestrates GitHub webhook routing across Sentry's multi-service architecture.
+
+        Handles installation events in control silo, distributes webhooks to appropriate
+        region silos based on organization locations, and conditionally forwards to
+        external services (Codecov, Overwatch) based on configuration and region.
+        """
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
 

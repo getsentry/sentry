@@ -2,13 +2,13 @@ import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 
 type Props = {
-  type?: AlertProps['type'];
+  variant?: AlertProps['variant'];
 };
 
-function PreviewFeature({type = 'info'}: Props) {
+function PreviewFeature({variant = 'info'}: Props) {
   return (
     <Alert.Container>
-      <Alert type={type}>
+      <Alert variant={variant}>
         {t(
           'This feature is a preview and may change in the future. Thanks for being an early adopter!'
         )}

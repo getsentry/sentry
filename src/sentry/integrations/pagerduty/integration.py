@@ -176,6 +176,9 @@ class PagerDutyIntegration(IntegrationInstallation):
             )
         return {"service_table": service_list}
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name"]
+
     @property
     def services(self) -> list[PagerDutyServiceDict]:
         if self.org_integration:

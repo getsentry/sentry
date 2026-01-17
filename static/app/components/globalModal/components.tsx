@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 const ModalHeader = styled('header')`
   display: flex;
@@ -13,7 +12,7 @@ const ModalHeader = styled('header')`
   align-items: center;
   gap: ${space(1)};
   position: relative;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(3)} ${space(3)};
   margin: -${space(4)} -${space(2)} ${space(3)} -${space(3)};
 
@@ -35,7 +34,7 @@ const ModalHeader = styled('header')`
   }
 `;
 
-function ChonkCloseButton(p: Omit<ButtonProps, 'aria-label'>) {
+function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
   return (
     <Button
       aria-label={t('Close Modal')}
@@ -46,28 +45,6 @@ function ChonkCloseButton(p: Omit<ButtonProps, 'aria-label'>) {
     />
   );
 }
-
-const CloseButton = withChonk(
-  styled((p: Omit<ButtonProps, 'aria-label'>) => {
-    return (
-      <Button
-        aria-label={t('Close Modal')}
-        icon={<IconClose size="xs" />}
-        size="zero"
-        {...p}
-      />
-    );
-  })`
-    position: absolute;
-    top: 0;
-    right: 0;
-    transform: translate(50%, -50%);
-    border-radius: 50%;
-    height: 24px;
-    width: 24px;
-  `,
-  ChonkCloseButton
-);
 
 const ModalBody = styled('section')`
   font-size: ${p => p.theme.fontSize.md};
@@ -82,7 +59,7 @@ const ModalBody = styled('section')`
 `;
 
 const ModalFooter = styled('footer')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   justify-content: flex-end;
   padding: ${space(3)} ${space(2)};

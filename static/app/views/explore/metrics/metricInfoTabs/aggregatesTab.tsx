@@ -198,7 +198,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       <StickyCompatibleTableBody>
         {result.isError ? (
           <SimpleTable.Empty>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </SimpleTable.Empty>
         ) : result.data?.length ? (
           result.data.map((row, i) => (

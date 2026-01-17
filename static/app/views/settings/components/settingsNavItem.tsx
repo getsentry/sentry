@@ -31,12 +31,12 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
   if (badge === 'warning') {
     return (
       <Tooltip title={t('This setting needs review')} position="right">
-        <StyledBadge type="warning">{badge}</StyledBadge>
+        <StyledBadge variant="warning">{badge}</StyledBadge>
       </Tooltip>
     );
   }
   if (typeof badge === 'string' || typeof badge === 'number') {
-    return <StyledBadge type="default">{badge}</StyledBadge>;
+    return <StyledBadge variant="muted">{badge}</StyledBadge>;
   }
 
   return badge;

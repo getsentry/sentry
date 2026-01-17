@@ -65,6 +65,20 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         hits = int(response["X-Hits"])
         assert hits == 3
 
+    def test_only_returns_workflows_from_organization(self) -> None:
+        other_org = self.create_organization()
+        self.create_workflow(organization_id=other_org.id, name="Other Org Workflow")
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 3
+        workflow_names = {w["name"] for w in response.data}
+        assert "Other Org Workflow" not in workflow_names
+        assert workflow_names == {
+            self.workflow.name,
+            self.workflow_two.name,
+            self.workflow_three.name,
+        }
+
     def test_empty_result(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "aaaaaaaaaaaaa"}
@@ -156,6 +170,57 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.workflow_three.name,
             self.workflow_two.name,
         ]
+
+    def test_priority_detector(self) -> None:
+        """Test priorityDetector param - workflows connected to the specified detector appear first."""
+        fresh_org = self.create_organization(name="Fresh Org", owner=self.user)
+        fresh_project = self.create_project(organization=fresh_org)
+
+        workflow_a = self.create_workflow(organization_id=fresh_org.id, name="Workflow A")
+        workflow_b = self.create_workflow(organization_id=fresh_org.id, name="Workflow B")
+        workflow_c = self.create_workflow(organization_id=fresh_org.id, name="Workflow C")
+
+        detector_x = self.create_detector(
+            project=fresh_project, name="Detector X", type=MetricIssue.slug
+        )
+        detector_y = self.create_detector(
+            project=fresh_project, name="Detector Y", type=ErrorGroupType.slug
+        )
+
+        # workflow_a is connected to detector_x
+        self.create_detector_workflow(workflow=workflow_a, detector=detector_x)
+        # workflow_b is connected to detector_y
+        self.create_detector_workflow(workflow=workflow_b, detector=detector_y)
+        # workflow_c has no detector connection
+
+        # Priority detector_x - workflow_a should come first
+        response = self.get_success_response(
+            fresh_org.slug, qs_params={"priorityDetector": str(detector_x.id)}
+        )
+        assert response.data[0]["name"] == workflow_a.name
+
+        # Priority detector_y - workflow_b should come first
+        response2 = self.get_success_response(
+            fresh_org.slug, qs_params={"priorityDetector": str(detector_y.id)}
+        )
+        assert response2.data[0]["name"] == workflow_b.name
+
+        # Can combine with sortBy - priority detector still comes first, then sorted by name
+        response3 = self.get_success_response(
+            fresh_org.slug,
+            qs_params={"priorityDetector": str(detector_x.id), "sortBy": "-name"},
+        )
+        # workflow_a (priority) first, then others sorted by -name (C before B)
+        assert response3.data[0]["name"] == workflow_a.name
+        assert response3.data[1]["name"] == workflow_c.name
+        assert response3.data[2]["name"] == workflow_b.name
+
+    def test_priority_detector_invalid_format(self) -> None:
+        """Test error handling for invalid priorityDetector format."""
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"priorityDetector": "not-a-number"}
+        )
+        assert "priorityDetector" in response.data
 
     def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
@@ -345,6 +410,53 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response3.data) == 2
         assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response3.data}
+
+    def test_filter_by_detector(self) -> None:
+        project_1 = self.create_project(organization=self.organization)
+        project_2 = self.create_project(organization=self.organization)
+        project_3 = self.create_project(organization=self.organization)
+
+        detector_1 = self.create_detector(project=project_1, name="Detector 1")
+        detector_2 = self.create_detector(project=project_2, name="Detector 2")
+        detector_3 = self.create_detector(project=project_3, name="Detector 3")
+
+        self.create_detector_workflow(workflow=self.workflow, detector=detector_1)
+        self.create_detector_workflow(workflow=self.workflow_two, detector=detector_2)
+        self.create_detector_workflow(workflow=self.workflow_three, detector=detector_3)
+
+        # Filter by single detector
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector": str(detector_1.id)},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == self.workflow.name
+
+        # Filter by multiple detectors
+        response2 = self.get_success_response(
+            self.organization.slug,
+            qs_params=[
+                ("detector", str(detector_1.id)),
+                ("detector", str(detector_2.id)),
+            ],
+        )
+        assert len(response2.data) == 2
+        assert {w["name"] for w in response2.data} == {self.workflow.name, self.workflow_two.name}
+
+        # Filter by non-existent detector ID returns no results
+        response3 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector": "999999"},
+        )
+        assert len(response3.data) == 0
+
+        # Invalid detector ID format returns error
+        response4 = self.get_error_response(
+            self.organization.slug,
+            qs_params={"detector": "not-an-id"},
+            status_code=400,
+        )
+        assert response4.data == {"detector": ["Invalid detector ID format"]}
 
     def test_compound_query(self) -> None:
         self.create_detector_workflow(

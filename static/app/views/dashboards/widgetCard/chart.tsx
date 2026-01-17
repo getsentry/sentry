@@ -58,6 +58,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -83,13 +84,13 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
 
 type TableComponentProps = Pick<
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   'errorMessage' | 'loading' | 'tableResults'
 > & {
   selection: PageFilters;
@@ -101,7 +102,7 @@ type TableComponentProps = Pick<
   onWidgetTableSort?: (sort: Sort) => void;
 };
 
-type WidgetCardChartProps = Pick<GenericWidgetQueriesChildrenProps, 'timeseriesResults'> &
+type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'> &
   TableComponentProps & {
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
@@ -122,6 +123,7 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesChildrenProps, 'timeseriesR
     showConfidenceWarning?: boolean;
     showLoadingText?: boolean;
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
     windowWidth?: number;
   };
 
@@ -146,6 +148,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     onLegendSelectChanged,
     widgetLegendState,
     selection,
+    timeseriesResultsUnits,
   } = props;
 
   const chartRef = useRef<ReactEchartsRef>(null);
@@ -174,7 +177,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   if (errorMessage) {
     return (
       <StyledErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </StyledErrorPanel>
     );
   }
@@ -234,7 +237,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : [];
   // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
   if (shouldColorOther) {
-    colors[colors.length] = theme.tokens.content.muted;
+    colors[colors.length] = theme.tokens.content.secondary;
   }
 
   // Create a list of series based on the order of the fields,
@@ -298,9 +301,14 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       : seriesName;
     const aggregateName = decodedSeriesName?.split(':').pop()?.trim();
     if (aggregateName) {
-      return timeseriesResultsTypes
-        ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
-        : tooltipFormatter(value, aggregateOutputType(aggregateName));
+      // Metrics widgets use the series name to fully differentiate types between aggregates
+      const type =
+        timeseriesResultsTypes?.[aggregateName] ??
+        timeseriesResultsTypes?.[decodedSeriesName ?? ''];
+      const unit =
+        timeseriesResultsUnits?.[aggregateName] ??
+        timeseriesResultsUnits?.[decodedSeriesName ?? ''];
+      return tooltipFormatter(value, type ?? aggregateOutputType(aggregateName), unit);
     }
     return tooltipFormatter(value, 'number');
   };
@@ -366,7 +374,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     },
     yAxis: {
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter: (value: number) => {
           if (timeseriesResultsTypes) {
             return axisLabelFormatterUsingAggregateOutputType(
@@ -522,7 +530,7 @@ function TableComponent({
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
-
+  const {projects} = useProjects();
   if (loading || !tableResults?.[0]) {
     // Align height to other charts.
     return <LoadingPlaceholder />;
@@ -606,6 +614,7 @@ function TableComponent({
             return {
               location,
               organization,
+              projects,
               theme,
               unit,
               eventView,
@@ -795,7 +804,7 @@ function LoadingScreen({
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />
 ))`
-  background-color: ${p => p.theme.colors.surface400};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`

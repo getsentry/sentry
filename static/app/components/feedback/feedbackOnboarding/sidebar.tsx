@@ -5,6 +5,8 @@ import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
@@ -130,7 +132,7 @@ function SidebarContent() {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with User Feedback')}</Heading>
-        <HeaderActions>
+        <Flex justify="between" gap="2xl">
           <div
             onClick={e => {
               // we need to stop bubbling the CompactSelect click event
@@ -162,7 +164,7 @@ function SidebarContent() {
               position="bottom-end"
             />
           </div>
-        </HeaderActions>
+        </Flex>
         <OnboardingContent currentProject={currentProject} />
       </TaskList>
     </Fragment>
@@ -176,10 +178,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       value: platform.id,
       textValue: platform.name,
       label: (
-        <PlatformLabel>
+        <Flex align="center" gap="md">
           <PlatformIcon platform={platform.id} size={16} />
           <TextOverflow>{platform.name}</TextOverflow>
-        </PlatformLabel>
+        </Flex>
       ),
     };
   });
@@ -260,7 +262,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             [
               'npm',
               webBackendPlatform ? (
-                <PlatformSelect key="platform-select">
+                <Flex align="center" wrap="wrap" gap="md" key="platform-select">
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
@@ -281,7 +283,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                       disabled={setupMode() === 'jsLoader'}
                     />
                   )}
-                </PlatformSelect>
+                </Flex>
               ) : (
                 t('I use NPM or Yarn')
               ),
@@ -299,7 +301,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         !isExcluded &&
         !crashReportOnboarding &&
         !isLoading && (
-          <PlatformSelect>
+          <Flex align="center" wrap="wrap" gap="md">
             {tct("I'm using [platformSelect]", {
               platformSelect: (
                 <PlatformOptionDropdown
@@ -307,7 +309,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 />
               ),
             })}
-          </PlatformSelect>
+          </Flex>
         )
       )}
     </Header>
@@ -406,7 +408,7 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -418,26 +420,6 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const HeaderActions = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(3)};
-`;
-
-const PlatformLabel = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const PlatformSelect = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
 `;
 
 const StyledRadioGroup = styled(RadioGroup)`

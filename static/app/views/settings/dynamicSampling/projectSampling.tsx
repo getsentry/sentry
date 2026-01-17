@@ -1,6 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -119,10 +121,10 @@ export function ProjectSampling() {
             locationChange.nextLocation.pathname && formState.hasChanged
         }
       />
-      <MainControlBar>
+      <Flex justify="between" marginBottom="lg">
         <ProjectionPeriodControl period={period} onChange={setPeriod} />
         <SamplingModeSwitch initialTargetRate={initialTargetRate} />
-      </MainControlBar>
+      </Flex>
       {sampleCountsQuery.isError ? (
         <LoadingError onRetry={sampleCountsQuery.refetch} />
       ) : (
@@ -152,12 +154,6 @@ export function ProjectSampling() {
     </FormProvider>
   );
 }
-
-const MainControlBar = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1.5)};
-`;
 
 const FormActions = styled('div')`
   display: grid;

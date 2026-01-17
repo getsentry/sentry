@@ -38,7 +38,7 @@ function Resources(_props: Props) {
 export default Resources;
 
 const ResourcesWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(2)} ${space(4)};
 `;
 

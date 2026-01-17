@@ -66,10 +66,10 @@ const IncidentItemWrapper = styled('div')`
   padding: ${space(3)};
 
   :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const DangerUnreadIndicator = styled(SidebarItemUnreadIndicator)`
-  background: ${p => p.theme.danger};
+  background: ${p => p.theme.tokens.content.danger};
 `;

@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -77,11 +78,11 @@ class RedirectToProjectModal extends Component<Props, State> {
                 }
               )}
             </Text>
-            <ButtonWrapper>
+            <Flex justify="end">
               <LinkButton priority="primary" href={this.newPath}>
                 {t('Continue to %s', slug)}
               </LinkButton>
-            </ButtonWrapper>
+            </Flex>
           </div>
         </Body>
       </Fragment>
@@ -91,8 +92,3 @@ class RedirectToProjectModal extends Component<Props, State> {
 
 export default withSentryRouter(RedirectToProjectModal);
 export {RedirectToProjectModal};
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;

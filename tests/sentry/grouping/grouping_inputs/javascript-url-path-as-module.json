@@ -1,0 +1,15 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "https://sentry.io/dogs/are/great.js",
+        "module": "dogs.are.great"
+      },
+      {
+        "abs_path": "https://sentry.io/adopt/dont/shop.js",
+        "module": "adopt/dont/shop.js"
+      }
+    ]
+  },
+  "platform": "javascript"
+}

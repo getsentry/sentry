@@ -37,7 +37,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
     return (
       <Flex gap="md" align="center" justify="center">
         <ArchivedWrapper>
-          <IconDelete color="gray500" size="md" />
+          <IconDelete variant="primary" size="md" />
         </ArchivedWrapper>
 
         <Flex direction="column" gap="xs">
@@ -88,7 +88,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
               {project ? <span>{project.slug}</span> : null}
               <span>{getShortEventId(replay.id)}</span>
               <Flex gap="xs">
-                <IconCalendar color="gray300" size="xs" />
+                <IconCalendar variant="muted" size="xs" />
                 <TimeSince date={replay.started_at} />
               </Flex>
             </Flex>
@@ -114,8 +114,11 @@ const ArchivedWrapper = styled(Flex)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.secondary};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
@@ -127,7 +130,11 @@ const DisplayName = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: normal;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

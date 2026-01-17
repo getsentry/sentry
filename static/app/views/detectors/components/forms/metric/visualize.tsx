@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FormContext from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -44,48 +43,48 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
  */
 function renderTag(kind: FieldValueKind): React.ReactNode {
   let text: string | undefined;
-  let tagType: TagProps['type'] | undefined;
+  let tagVariant: TagProps['variant'] | undefined;
 
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.TAG:
       text = 'tag';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.EQUATION:
       text = 'equation';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.METRICS:
       text = 'metrics';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     default:
       unreachable(kind);
       throw new Error(`Invalid field value kind: ${kind}`);
   }
 
-  return <Tag type={tagType}>{text}</Tag>;
+  return <Tag variant={tagVariant}>{text}</Tag>;
 }
 
 /**
@@ -365,7 +364,7 @@ export function Visualize() {
   return (
     <Flex direction="column" gap="md">
       <Flex gap="md" align="end">
-        <FieldContainer>
+        <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
             <Tooltip
               title={t(
@@ -386,10 +385,10 @@ export function Visualize() {
             }}
             disabled={isTransactionsDataset}
           />
-        </FieldContainer>
+        </Stack>
         {aggregateMetadata?.parameters?.map((param, index) => {
           return (
-            <FieldContainer key={index}>
+            <Stack flex="1" gap="xs" maxWidth="425px" key={index}>
               {param.kind === 'column' ? (
                 <StyledVisualizeSelect
                   searchable
@@ -437,21 +436,13 @@ export function Visualize() {
                   disabled={isTransactionsDataset}
                 />
               )}
-            </FieldContainer>
+            </Stack>
           );
         })}
       </Flex>
     </Flex>
   );
 }
-
-const FieldContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  flex: 1;
-  max-width: 425px;
-`;
 
 const StyledAggregateSelect = styled(CompactSelect)`
   width: 100%;

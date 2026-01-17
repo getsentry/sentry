@@ -40,6 +40,8 @@ from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
+from sentry.web.frontend.oauth_device import OAuthDeviceView
+from sentry.web.frontend.oauth_device_authorization import OAuthDeviceAuthorizationView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
@@ -207,6 +209,17 @@ urlpatterns += [
                     r"^userinfo/$",
                     OAuthUserInfoEndpoint.as_view(),
                     name="sentry-api-0-oauth-userinfo",
+                ),
+                # Device Authorization Flow (RFC 8628)
+                re_path(
+                    r"^device/code/$",
+                    OAuthDeviceAuthorizationView.as_view(),
+                    name="sentry-oauth-device-code",
+                ),
+                re_path(
+                    r"^device/$",
+                    OAuthDeviceView.as_view(),
+                    name="sentry-oauth-device",
                 ),
             ]
         ),
@@ -1089,7 +1102,7 @@ urlpatterns += [
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/events/(?P<client_event_id>[^/]+)/$",
                     ProjectEventRedirect.as_view(),
-                    name="sentry-project-event-redirect",
+                    name="sentry-organization-project-event-redirect",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/api-keys/$",

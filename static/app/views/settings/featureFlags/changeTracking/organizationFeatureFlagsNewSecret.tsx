@@ -76,14 +76,14 @@ function OrganizationFeatureFlagsNewSecret() {
         )}
       </TextBlock>
       <Alert.Container>
-        <Alert type="info">
+        <Alert variant="info">
           {t('Note that each provider can only have one associated signing secret.')}
         </Alert>
       </Alert.Container>
 
       {error && (
         <Alert.Container>
-          <Alert type="error" showIcon>
+          <Alert variant="danger" showIcon>
             {error}
           </Alert>
         </Alert.Container>
@@ -91,7 +91,7 @@ function OrganizationFeatureFlagsNewSecret() {
 
       {existingSecret && !canSaveSecret && (
         <Alert.Container>
-          <Alert type="warning" showIcon>
+          <Alert variant="warning" showIcon>
             {t(
               'This provider is already configured. Only owners, managers, and the original creator can override it.'
             )}

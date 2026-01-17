@@ -52,14 +52,14 @@ function getCrashFreeIcon(
   iconSize: SVGIconProps['size'] = 'sm'
 ) {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire color="errorText" size={iconSize} />;
+    return <IconFire variant="danger" size={iconSize} />;
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning color="warningText" size={iconSize} />;
+    return <IconWarning variant="warning" size={iconSize} />;
   }
 
-  return <IconCheckmark color="successText" size={iconSize} />;
+  return <IconCheckmark variant="success" size={iconSize} />;
 }
 
 type Props = {
@@ -134,7 +134,9 @@ function ReleaseCardProjectRow({
                     },
                   }}
                 >
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                  <Tag variant={adoptionStageLabel.variant}>
+                    {adoptionStageLabel.name}
+                  </Tag>
                 </Link>
               </Tooltip>
             ) : (
@@ -164,7 +166,10 @@ function ReleaseCardProjectRow({
 
                     return `${value.toLocaleString()} ${suffix}`;
                   }}
-                  colors={[theme.colors.blue400, theme.colors.gray200]}
+                  colors={[
+                    theme.tokens.dataviz.semantic.accent,
+                    theme.tokens.dataviz.semantic.other,
+                  ]}
                 />
               </LazyLoad>
             </AdoptionWrapper>

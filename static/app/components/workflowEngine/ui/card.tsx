@@ -7,7 +7,7 @@ export const Card = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   background-color: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(2)};
 `;

@@ -137,7 +137,7 @@ export const Header = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
   background: ${p => p.theme.tokens.background.primary};
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.header};
@@ -151,13 +151,13 @@ export const Title = styled('div')`
 `;
 
 export const HeaderItem = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StreamlineGridEditable = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   ${Panel} {
@@ -185,8 +185,8 @@ const StreamlineGridEditable = styled('div')`
         to bottom,
         transparent,
         transparent 30%,
-        ${p => p.theme.border} 30%,
-        ${p => p.theme.border} 70%,
+        ${p => p.theme.tokens.border.primary} 30%,
+        ${p => p.theme.tokens.border.primary} 70%,
         transparent 70%,
         transparent
       )
@@ -217,14 +217,14 @@ const StreamlineGridEditable = styled('div')`
       a {
         color: ${p => p.theme.tokens.content.primary};
         text-decoration: underline;
-        text-decoration-color: ${p => p.theme.border};
+        text-decoration-color: ${p => p.theme.tokens.border.primary};
       }
     }
   }
 `;
 
 export const PaginationButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
 

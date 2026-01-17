@@ -77,7 +77,7 @@ function WebVitalsLandingPage() {
       <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main width="full">
-            <TopMenuContainer>
+            <Flex gap="xl">
               <ModulePageFilterBar
                 moduleName={ModuleName.VITAL}
                 extraFilters={
@@ -87,7 +87,7 @@ function WebVitalsLandingPage() {
                   </Fragment>
                 }
               />
-            </TopMenuContainer>
+            </Flex>
             <MainContentContainer>
               <ModulesOnboarding moduleName={ModuleName.VITAL}>
                 <PerformanceScoreChartContainer>
@@ -175,11 +175,6 @@ function PageWithProviders() {
 
 export default PageWithProviders;
 
-const TopMenuContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-`;
-
 const PerformanceScoreChartContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
@@ -214,6 +209,6 @@ const LoadingBox = styled('div')`
 
 const PagesTooltip = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline dotted ${p => p.theme.colors.gray400};
 `;

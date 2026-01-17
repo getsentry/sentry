@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -325,18 +327,18 @@ function ArchiveActions({
             aria-label={t('Archive options')}
             size={size}
             icon={
-              <IconChevron color="subText" direction={isOpen ? 'up' : 'down'} size="xs" />
+              <IconChevron variant="muted" direction={isOpen ? 'up' : 'down'} size="xs" />
             }
             disabled={disabled}
           />
         )}
         menuTitle={
-          <MenuWrapper>
+          <Flex justify="between" align="center">
             {t('Archive')}
             <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
               {t('Read the docs')}
             </StyledExternalLink>
-          </MenuWrapper>
+          </Flex>
         }
         items={dropdownItems}
         isDisabled={disabled}
@@ -356,12 +358,6 @@ const DropdownTrigger = styled(Button)`
   box-shadow: none;
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
-`;
-
-const MenuWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

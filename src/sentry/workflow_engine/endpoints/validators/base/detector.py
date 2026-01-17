@@ -7,7 +7,7 @@ from jsonschema import ValidationError as JSONSchemaValidationError
 from rest_framework import serializers
 
 from sentry import audit_log
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
@@ -30,7 +30,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.detector import enforce_config_schema
-from sentry.workflow_engine.types import DataConditionType
+from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
 
 
 @dataclass(frozen=True)
@@ -54,7 +54,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     )
     type = serializers.CharField()
     config = serializers.JSONField(default=dict)
-    owner = ActorField(required=False, allow_null=True)
+    owner = OwnerActorField(required=False, allow_null=True)
     description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     enabled = serializers.BooleanField(required=False)
     condition_group = BaseDataConditionGroupValidator(required=False)
@@ -93,6 +93,28 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             raise serializers.ValidationError(
                 "Only one data source is allowed for this detector type."
             )
+        return value
+
+    def validate_condition_group(self, value: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate that all conditions have valid detector priority levels as their condition_result.
+        """
+        conditions = value.get("conditions", [])
+        for condition in conditions:
+            condition_result = condition.get("condition_result")
+
+            if not isinstance(condition_result, int):
+                raise serializers.ValidationError(
+                    "condition_result must be an integer corresponding to a valid detector priority level"
+                )
+
+            try:
+                DetectorPriorityLevel(condition_result)
+            except ValueError:
+                raise serializers.ValidationError(
+                    f"Invalid detector priority level: {condition_result}"
+                )
+
         return value
 
     def get_quota(self) -> DetectorQuota:
@@ -146,7 +168,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
                 if data_conditions and instance.workflow_condition_group:
-                    group_validator = BaseDataConditionGroupValidator()
+                    # Pass context for organization validation of condition IDs
+                    group_validator = BaseDataConditionGroupValidator(context=self.context)
                     group_validator.update(instance.workflow_condition_group, condition_group)
 
             # Handle config field update

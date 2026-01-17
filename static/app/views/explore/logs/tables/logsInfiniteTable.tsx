@@ -1,8 +1,11 @@
 import type {CSSProperties, RefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
+
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -94,6 +97,8 @@ type LogsTableProps = {
   scrollContainer?: React.RefObject<HTMLElement | null>;
   stringAttributes?: TagCollection;
 };
+
+const {info, fmt} = Sentry.logger;
 
 const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // If you are less than this number of pixels from the top of the table while scrolling backward, fetch the previous page.
 const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
@@ -424,13 +429,21 @@ export function LogsInfiniteTable({
   if (hasReplay && (isPending || isError || isEmpty)) {
     return (
       <Fragment>
-        <CenteredEmptyStateContainer>
+        <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer />}
           {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
-        </CenteredEmptyStateContainer>
+        </Flex>
       </Fragment>
     );
+  }
+
+  if (originalData.length < 20 && originalData.length > 0 && !isPending && !isError) {
+    if (virtualItems.length !== originalData.length) {
+      info(
+        fmt`Mismatch in virtualItems.length and data.length: virtualItems.length: ${virtualItems.length}, data.length: ${originalData.length}`
+      );
+    }
   }
 
   return (
@@ -693,7 +706,7 @@ function EmptyRenderer({
 function ErrorRenderer() {
   return (
     <TableStatus>
-      <IconWarning color="gray300" size="lg" />
+      <IconWarning variant="muted" size="lg" />
     </TableStatus>
   );
 }
@@ -701,7 +714,7 @@ function ErrorRenderer() {
 export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
   return (
     <TableStatus>
-      <LoadingStateContainer>
+      <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
           {defined(bytesScanned) && bytesScanned > 0 && (
@@ -716,16 +729,10 @@ export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
             </Fragment>
           )}
         </EmptyStateText>
-      </LoadingStateContainer>
+      </Stack>
     </TableStatus>
   );
 }
-
-const LoadingStateContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{
   margin: CSSProperties['margin'];
@@ -754,14 +761,6 @@ function HoveringRowLoadingRenderer({
     </HoveringRowLoadingRendererContainer>
   );
 }
-
-const CenteredEmptyStateContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  min-height: 200px;
-`;
 
 function BackToTopButton({
   virtualizer,

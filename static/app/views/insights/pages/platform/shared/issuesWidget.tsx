@@ -201,7 +201,7 @@ const GroupPlaceholder = styled('div')`
   padding: ${space(1)};
 
   &:not(:last-child) {
-    border-bottom: solid 1px ${p => p.theme.innerBorder};
+    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -214,7 +214,7 @@ const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
 `;
 
 const SuperHeader = styled(PanelHeader)`
-  background-color: ${p => p.theme.headerBackground};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(1)};
   text-transform: capitalize;
 `;

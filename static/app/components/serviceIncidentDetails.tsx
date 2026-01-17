@@ -123,15 +123,15 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
   return (
     <Tooltip skipWrapper title={startCase(status)}>
       {status === 'operational' ? (
-        <IconCheckmark size="sm" color="successText" />
+        <IconCheckmark size="sm" variant="success" />
       ) : status === 'major_outage' ? (
-        <IconFatal size="sm" color="errorText" />
+        <IconFatal size="sm" variant="danger" />
       ) : status === 'degraded_performance' ? (
-        <IconWarning size="sm" color="warningText" />
+        <IconWarning size="sm" variant="warning" />
       ) : status === 'partial_outage' ? (
-        <IconFire size="sm" color="warningText" />
+        <IconFire size="sm" variant="warning" />
       ) : (
-        <IconInfo size="sm" color="subText" />
+        <IconInfo size="sm" variant="muted" />
       )}
     </Tooltip>
   );
@@ -185,10 +185,10 @@ function getIndicatorColor({
   theme: Theme;
 }): string {
   const indicatorColor: Record<StatusPageIncidentUpdate['status'], string> = {
-    investigating: theme.colors.red200,
-    identified: theme.colors.blue200,
-    monitoring: theme.colors.yellow200,
-    resolved: theme.colors.green200,
+    investigating: theme.tokens.background.transparent.danger.muted,
+    identified: theme.tokens.background.transparent.accent.muted,
+    monitoring: theme.tokens.background.transparent.warning.muted,
+    resolved: theme.tokens.background.transparent.success.muted,
   };
   return indicatorColor[status];
 }
@@ -218,7 +218,7 @@ const StatusTitle = styled('div')`
 `;
 
 const StatusDate = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

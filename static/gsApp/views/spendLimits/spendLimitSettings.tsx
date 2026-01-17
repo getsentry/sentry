@@ -43,7 +43,7 @@ import {
   displayPriceWithCents,
   getBucket,
 } from 'getsentry/views/amCheckout/utils';
-import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
+import {convertOnDemandBudget} from 'getsentry/views/spendLimits/utils';
 
 const LARGE_INPUT_WIDTH = '300px';
 
@@ -185,13 +185,7 @@ export function SharedSpendLimitPriceTable({
 
   return (
     <Stack borderTop="primary">
-      <Flex
-        borderBottom="primary"
-        padding="md xl"
-        background="secondary"
-        justify="between"
-        align="center"
-      >
+      <Flex padding="md xl" background="secondary" justify="between" align="center">
         <Text bold>{t('Product')}</Text>
         <Text bold>{t('Price')}</Text>
       </Flex>
@@ -283,11 +277,7 @@ export function SharedSpendLimitPriceTable({
           : 0;
         const tooltipText = getProductCheckoutDescription({
           product: apiName,
-          isNewCheckout: true,
           withPunctuation: true,
-          includedBudget: includedBudget
-            ? displayPrice({cents: includedBudget})
-            : undefined,
         });
 
         const dataCategories = addOnInfo.dataCategories;
@@ -524,11 +514,7 @@ function InnerSpendLimitSettings({
             const isLastInList = index === Object.keys(includedAddOns).length - 1;
             const tooltipText = getProductCheckoutDescription({
               product: apiName,
-              isNewCheckout: true,
               withPunctuation: true,
-              includedBudget: includedBudget
-                ? displayPrice({cents: includedBudget})
-                : undefined,
             });
 
             return (
@@ -634,7 +620,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <Grid columns={{xs: '1fr', md: 'repeat(2, 1fr)'}} gap="xl">
+    <Grid columns={{xs: '1fr', lg: 'repeat(2, 1fr)'}} gap="lg">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
@@ -651,25 +637,14 @@ function BudgetModeSettings({
                 onDemandBudgets: nextOnDemandBudget,
               });
             }}
-          >
-            <Flex align="start" gap="md" padding="xl">
-              <Container paddingTop="2xs">
-                <RadioMarker
-                  width="16px"
-                  height="16px"
-                  border={isSelected ? 'accent' : 'primary'}
-                  radius="full"
-                  background="primary"
-                  isSelected={isSelected}
-                />
-              </Container>
+            optionHeader={
               <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
                 {budgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? t('Set a spending limit for each product')
                   : t('Set a spending limit shared across all products')}
               </Heading>
-            </Flex>
-          </CheckoutOption>
+            }
+          />
         );
       })}
     </Grid>
@@ -682,7 +657,6 @@ function SpendLimitSettings({
   onDemandBudgets,
   onUpdate,
   currentReserved,
-  isOpen,
   addOns,
   footer,
   organization,
@@ -691,54 +665,48 @@ function SpendLimitSettings({
   return (
     <Flex direction="column" gap="sm">
       {header}
-      {isOpen && (
-        <Grid gap="2xl">
-          <Text variant="muted">
-            {tct(
-              "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.[partnerMessage]",
-              {
-                budgetTerm:
-                  activePlan.budgetTerm === 'pay-as-you-go'
-                    ? `${displayBudgetName(activePlan, {title: true})} (PAYG)`
-                    : displayBudgetName(activePlan, {title: true}),
-                partnerMessage: subscription.isSelfServePartner
-                  ? tct(' This will be part of your [partnerName] bill.', {
-                      partnerName: subscription.partner?.partnership.displayName,
-                    })
-                  : '',
-              }
-            )}
-          </Text>
-          <BudgetModeSettings
+      <Grid gap="2xl">
+        <Text variant="muted">
+          {tct(
+            "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.[partnerMessage]",
+            {
+              budgetTerm:
+                activePlan.budgetTerm === 'pay-as-you-go'
+                  ? `${displayBudgetName(activePlan, {title: true})} (PAYG)`
+                  : displayBudgetName(activePlan, {title: true}),
+              partnerMessage: subscription.isSelfServePartner
+                ? tct(' This will be part of your [partnerName] bill.', {
+                    partnerName: subscription.partner?.partnership.displayName,
+                  })
+                : '',
+            }
+          )}
+        </Text>
+        <BudgetModeSettings
+          activePlan={activePlan}
+          onDemandBudgets={onDemandBudgets}
+          onUpdate={onUpdate}
+        />
+        <InnerContainer direction="column" gap="xl" border="primary" radius="md">
+          <InnerSpendLimitSettings
             activePlan={activePlan}
             onDemandBudgets={onDemandBudgets}
             onUpdate={onUpdate}
+            currentReserved={currentReserved}
+            addOns={addOns}
+            organization={organization}
           />
-          <InnerContainer direction="column" gap="xl" border="primary" radius="md">
-            <InnerSpendLimitSettings
-              activePlan={activePlan}
-              onDemandBudgets={onDemandBudgets}
-              onUpdate={onUpdate}
-              currentReserved={currentReserved}
-              addOns={addOns}
-              organization={organization}
-            />
-            {footer}
-          </InnerContainer>
-        </Grid>
-      )}
+          {footer}
+        </InnerContainer>
+      </Grid>
     </Flex>
   );
 }
 
 export default SpendLimitSettings;
 
-const RadioMarker = styled(Container)<{isSelected: boolean}>`
-  border-width: ${p => (p.isSelected ? '4px' : '1px')};
-`;
-
 const InnerContainer = styled(Flex)`
-  border-bottom: 3px solid ${p => p.theme.border};
+  border-bottom: 3px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
 `;
 
@@ -756,7 +724,7 @@ const Currency = styled('div')`
     position: absolute;
     padding: 9px ${p => p.theme.space.lg};
     content: '$';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.md};
   }
 `;

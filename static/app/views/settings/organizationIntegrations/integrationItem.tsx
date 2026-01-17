@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -11,7 +13,7 @@ type Props = {
 
 function IntegrationItem({integration, compact = false}: Props) {
   return (
-    <Flex>
+    <Flex align="center">
       <div>
         <IntegrationIcon size={compact ? 22 : 32} integration={integration} />
       </div>
@@ -26,11 +28,6 @@ function IntegrationItem({integration, compact = false}: Props) {
 }
 
 export default IntegrationItem;
-
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const Labels = styled('div')<{compact: boolean}>`
   box-sizing: border-box;
@@ -52,7 +49,7 @@ const IntegrationName = styled('div')`
 // as it sets width 100% which causes layout issues in the
 // integration list.
 const DomainName = styled('div')<{compact: boolean}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (p.compact ? 'inherit' : 0)};
   font-size: ${p => p.theme.fontSize.sm};

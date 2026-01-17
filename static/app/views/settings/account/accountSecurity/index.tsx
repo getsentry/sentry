@@ -165,7 +165,7 @@ export default function AccountSecurity() {
                     <AuthenticatorTitle>
                       {name}
                       {isBackupInterface && !isEnrolled && (
-                        <Tag type="info">{t('requires 2FA')}</Tag>
+                        <Tag variant="info">{t('requires 2FA')}</Tag>
                       )}
                     </AuthenticatorTitle>
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>

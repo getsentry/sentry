@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {removeAuthenticator} from 'sentry/actionCreators/account';
 import {
   addErrorMessage,
@@ -371,7 +373,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         )}
       </Teams>
 
-      <Footer>
+      <Flex justify="end">
         <Button
           priority="primary"
           busy={isSaving}
@@ -380,7 +382,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         >
           {t('Save Member')}
         </Button>
-      </Footer>
+      </Flex>
     </Fragment>
   );
 }
@@ -416,7 +418,7 @@ function OrganizationMemberDetail() {
 export default OrganizationMemberDetail;
 
 const ExtraHeaderText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.lg};
 `;
@@ -438,9 +440,4 @@ const DetailLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.tokens.content.primary};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;

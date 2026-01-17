@@ -122,6 +122,6 @@ const AbsoluteDateOption = styled('div')`
   align-items: center;
 
   svg {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

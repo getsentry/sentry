@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 from collections.abc import Callable, Generator
 from typing import Any
 from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
-from django.http import StreamingHttpResponse
+from django.http import HttpRequest, StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
+
+from sentry.utils.http import BodyWithLength
 
 # TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
 uwsgi: Any = None
@@ -82,48 +86,57 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
-
         headers.pop("Host", None)
         headers.pop("Content-Length", None)
-        transfer_encoding = headers.pop("Transfer-Encoding", "")
-
-        stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
-        wsgi_input = request.META.get("wsgi.input")
-
-        if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
-            stream = wsgi_input
-        # uwsgi and wsgiref will respectively raise an exception and hang when attempting to read wsgi.input while there's no body.
-        # For now, support bodies only on PUT and POST requests.
-        elif request.method in ("PUT", "POST"):
-            if uwsgi:
-                if transfer_encoding.lower() == "chunked":
-
-                    def stream_generator():
-                        while True:
-                            chunk = uwsgi.chunked_read()
-                            if not chunk:
-                                break
-                            yield chunk
-
-                    stream = stream_generator()
-                else:
-                    stream = wsgi_input
-
-            else:
-                # This code path assumes wsgiref, used in dev/test mode.
-                # Note that we don't handle non-chunked transfer encoding here as our client (which we use for tests) always uses chunked encoding.
-                stream = ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+        headers.pop("Transfer-Encoding", None)
 
         response = requests.request(
             request.method,
             url=target_url,
             headers=headers,
-            data=stream,
+            data=request._request.body or get_raw_body(request._request),
             params=dict(request.GET) if request.GET else None,
             stream=True,
             allow_redirects=False,
         )
         return stream_response(response)
+
+
+def get_raw_body(
+    request: HttpRequest,
+) -> Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None:
+    wsgi_input = request.META.get("wsgi.input")
+    if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
+        return wsgi_input
+
+    # uwsgi and wsgiref will respectively raise an exception and hang when attempting to read wsgi.input while there's no body.
+    # For now, support bodies only on PUT and POST requests when not using Granian.
+    if request.method not in ("PUT", "POST"):
+        return None
+
+    if uwsgi:
+        if request.headers.get("Transfer-Encoding", "").lower() == "chunked":
+
+            def stream_generator():
+                while True:
+                    chunk = uwsgi.chunked_read()
+                    if not chunk:
+                        break
+                    yield chunk
+
+            return stream_generator()
+
+        return wsgi_input
+
+    # wsgiref (dev/test server)
+    if (
+        hasattr(wsgi_input, "_read")
+        and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
+    ):
+        return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+
+    # wsgiref and the request has been already proxied through control silo
+    return BodyWithLength(request)
 
 
 def get_target_url(path: str) -> str:

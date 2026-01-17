@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -54,7 +56,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
 
   return (
     <Fragment>
-      <PlayerBreadcrumbContainer>
+      <Flex flexGrow={1} gap="md">
         <PlayerContainer>
           <ContextContainer>
             {isLoading ? (
@@ -62,7 +64,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
                 {''}
               </TextCopyInput>
             ) : isVideoReplay ? (
-              <ScreenNameContainer>
+              <Flex align="center" flex="1" gap="md" width="100%">
                 {replay?.getReplay()?.sdk.name?.includes('flutter') ? (
                   <QuestionTooltip
                     isHoverable
@@ -80,7 +82,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
                 <ScreenNameInputContainer>
                   <ReplayCurrentScreen />
                 </ScreenNameInputContainer>
-              </ScreenNameContainer>
+              </Flex>
             ) : (
               <ReplayCurrentUrl />
             )}
@@ -123,7 +125,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
             <Breadcrumbs />
           </BreadcrumbContainer>
         ) : null}
-      </PlayerBreadcrumbContainer>
+      </Flex>
       {isFullscreen ? (
         <ReplayController
           isLoading={isLoading}
@@ -138,7 +140,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
 const Panel = styled(FluidHeight)`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
@@ -148,14 +150,6 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(1.5)};
-`;
-
-const ScreenNameContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  width: 100%;
-  flex: 1;
 `;
 
 const ScreenNameInputContainer = styled('div')`
@@ -178,11 +172,4 @@ const BreadcrumbContainer = styled('div')`
   & > div {
     flex-grow: 1;
   }
-`;
-
-const PlayerBreadcrumbContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-grow: 1;
-  gap: ${space(1)};
 `;

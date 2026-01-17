@@ -125,7 +125,11 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         )}
       </BottomFormWrapper>
       <AlertLink.Container>
-        <AlertLink type="info" to="/settings/account/emails" trailingItems={<IconMail />}>
+        <AlertLink
+          variant="info"
+          to="/settings/account/emails"
+          trailingItems={<IconMail />}
+        >
           {t('Looking to add or remove an email address? Use the emails panel.')}
         </AlertLink>
       </AlertLink.Container>
@@ -140,14 +144,14 @@ const FieldLabel = styled('div')`
 
 const FieldHelp = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FieldWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
   padding: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const IconWrapper = styled('div')`

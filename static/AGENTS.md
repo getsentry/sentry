@@ -24,6 +24,14 @@ pnpm run dev
 pnpm run dev-ui
 ```
 
+### Typechecking
+
+Typechecking only works on the entire project. Individual files cannot be checked.
+
+```bash
+pnpm run typecheck
+```
+
 ### Linting
 
 ```bash
@@ -224,7 +232,7 @@ import {Heading} from '@sentry/scraps/text';
 
 // ❌ Do not use styled and create a new styled component
 const Title = styled('h4')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSizes.small};
 `;
 
@@ -251,7 +259,7 @@ import {Text} from '@sentry/scraps/text';
 
 // ❌ Do not use styled and create a new styled component
 const Label = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSizes.small};
 `;
 
@@ -268,7 +276,7 @@ import {Text} from '@sentry/scraps/text';
 
 // ❌ Do not style intrinsic elements directly
 const Paragraph = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
 `;
 
@@ -313,7 +321,7 @@ function Content() {
 const Component = styled('div')`
   display: flex;
   flex-directon: column;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
@@ -606,6 +614,23 @@ expect(await screen.findByRole('alert')).toBeInTheDocument();
 
 // ✅ Use waitForElementToBeRemoved for disappearance
 await waitForElementToBeRemoved(() => screen.getByRole('alert'));
+```
+
+#### Avoid waiting for loading indicators
+
+Do not use `findBy` with `.not.toBeInTheDocument()` for loading indicators. `findBy` will error if the element is not found, but we're asserting it should NOT exist. Loading indicators are also flakey since they appear on screen for only a few ticks.
+
+```tsx
+// ❌ Wrong - findBy errors if element not found, and loading indicators are flakey
+expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+// ✅ Correct - wait for the actual content you care about
+await waitFor(() => {
+  expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
+});
+
+// ✅ Also correct - use findBy on the content that appears after loading
+expect(await screen.findByRole('button', {name: 'Submit'})).toBeInTheDocument();
 ```
 
 #### User interactions

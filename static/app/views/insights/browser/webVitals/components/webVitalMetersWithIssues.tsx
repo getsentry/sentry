@@ -306,7 +306,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 `;
 
 const MeterBarBody = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)} 0 ${space(0.5)} 0;
 `;
@@ -340,7 +340,7 @@ const MeterValueText = styled('div')`
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xl};
 `;
 

@@ -16,7 +16,8 @@ import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
-import Feature from 'sentry/components/acl/feature';
+import {Flex} from '@sentry/scraps/layout';
+
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
@@ -329,11 +330,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           overlayIsOpen={isOpen}
           size="sm"
         />
-        {enableAISearch ? (
-          <Feature features="organizations:gen-ai-explore-traces">
-            <AskSeer state={state} />
-          </Feature>
-        ) : null}
+        {enableAISearch ? <AskSeer state={state} /> : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -588,7 +585,7 @@ export function SearchQueryBuilderCombobox<
 
   const autosizeInput = useAutosizeInput({value: inputValue});
   return (
-    <Wrapper>
+    <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
@@ -632,17 +629,9 @@ export function SearchQueryBuilderCombobox<
         overlayProps={overlayProps}
         portalTarget={portalTarget}
       />
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  width: 100%;
-`;
 
 const UnstyledInput = styled(Input)`
   background: transparent;

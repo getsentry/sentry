@@ -74,7 +74,7 @@ export default function ProjectAlertSettings() {
         <AlertLink
           to="/settings/account/notifications/"
           trailingItems={<IconMail />}
-          type="info"
+          variant="info"
         >
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
@@ -108,7 +108,7 @@ export default function ProjectAlertSettings() {
               disabled={!canEditRule}
               fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
               renderHeader={() => (
-                <PanelAlert type="info">
+                <PanelAlert variant="info">
                   {t(
                     'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. To control how frequently notifications are delivered, use the sliders below.'
                   )}

@@ -13,7 +13,7 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -412,6 +412,29 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_create_comment_reaction(self, get_jwt) -> None:
+        response_data = {
+            "id": 1,
+            "node_id": "MDg6UmVhY3Rpb24x",
+            "user": {"login": "octocat", "id": 1},
+            "content": "eyes",
+            "created_at": "2016-05-20T20:09:31Z",
+        }
+        responses.add(
+            responses.POST,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/123/reactions",
+            json=response_data,
+            status=201,
+        )
+
+        result = self.github_client.create_comment_reaction(
+            repo=self.repo.name, comment_id="123", reaction=GitHubReaction.EYES
+        )
+        assert result == response_data
+        assert orjson.loads(responses.calls[0].request.body) == {"content": "eyes"}
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_merge_commit_sha_from_commit(self, get_jwt) -> None:
         merge_commit_sha = "jkl123"
         pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]
@@ -439,6 +462,37 @@ class GitHubApiClientTest(TestCase):
 
         sha = self.github_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request(self, get_jwt) -> None:
+        pull_number = 42
+        pr_data = {
+            "number": pull_number,
+            "title": "Test PR",
+            "state": "open",
+            "head": {
+                "sha": "abc123def456",
+                "ref": "feature-branch",
+            },
+            "base": {
+                "sha": "789xyz",
+                "ref": "main",
+            },
+            "user": {"login": "testuser"},
+        }
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/pulls/{pull_number}",
+            json=pr_data,
+        )
+
+        result = self.github_client.get_pull_request(repo=self.repo.name, pull_number=pull_number)
+        assert result["number"] == pull_number
+        assert result["title"] == "Test PR"
+        assert result["state"] == "open"
+        assert result["head"]["sha"] == "abc123def456"
+        assert result["base"]["ref"] == "main"
 
 
 @control_silo_test

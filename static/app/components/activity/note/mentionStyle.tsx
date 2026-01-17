@@ -26,7 +26,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
     fontSize: theme.fontSize.md,
     padding: `${space(1)} ${space(1.5)}`,
     outline: 0,
-    border: `1px solid ${theme.border}`,
+    border: `1px solid ${theme.tokens.border.primary}`,
     borderRadius: theme.radius.md,
     minHeight,
     overflow: 'auto',
@@ -87,7 +87,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
         padding: space(0.5),
         borderRadius: theme.radius.md,
         '&focused': {
-          backgroundColor: theme.hover,
+          backgroundColor: theme.tokens.interactive.transparent.neutral.background.active,
         },
       },
     },

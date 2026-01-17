@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 import moment from 'moment-timezone';
 
+import {Text} from '@sentry/scraps/text';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -20,7 +22,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -153,10 +154,10 @@ function TeamReleases({
     }
 
     return (
-      <SubText color={trend >= 0 ? 'successText' : 'errorText'}>
+      <Text variant={trend >= 0 ? 'success' : 'danger'}>
         {`${round(Math.abs(trend), 3)}`}
         <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
-      </SubText>
+      </Text>
     );
   }
 
@@ -297,7 +298,7 @@ export default TeamReleases;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
@@ -334,8 +335,4 @@ const ScoreWrapper = styled('div')`
 
 const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
-`;
-
-const SubText = styled('div')<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
 `;

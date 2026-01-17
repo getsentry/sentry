@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
 
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -22,18 +21,14 @@ import type {User} from 'sentry/types/user';
 import {getTimeFormat} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-import withSubscription from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-
-import SubscriptionHeader from './subscriptionHeader';
 
 function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
   if (logEntryUser?.isSuperuser) {
@@ -42,7 +37,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
         <Text variant="muted" size="sm">
           {logEntryUser.name}
         </Text>
-        <Tag type="default">{t('Sentry Staff')}</Tag>
+        <Tag variant="muted">{t('Sentry Staff')}</Tag>
       </Flex>
     );
   }
@@ -78,11 +73,6 @@ interface UsageLogs {
   rows: AuditLog[];
 }
 
-type Props = {
-  location: Location;
-  subscription: Subscription;
-};
-
 function SkeletonEntry() {
   return (
     <Timeline.Item
@@ -94,8 +84,9 @@ function SkeletonEntry() {
   );
 }
 
-function UsageLog({location, subscription}: Props) {
+export default function UsageLog() {
   const organization = useOrganization();
+  const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
   const {
@@ -155,7 +146,6 @@ function UsageLog({location, subscription}: Props) {
       value: type,
     })) ?? [];
   const selectedEventName = decodeScalar(location.query.event);
-  const isNewBillingUI = hasNewBillingUI(organization);
 
   const usageLogContent = (
     <Fragment>
@@ -186,8 +176,14 @@ function UsageLog({location, subscription}: Props) {
                   <Timeline.Item
                     key={entry.id}
                     colorConfig={{
-                      icon: index === 0 ? theme.active : theme.gray300,
-                      iconBorder: index === 0 ? theme.active : theme.gray300,
+                      icon:
+                        index === 0
+                          ? theme.tokens.interactive.link.accent.active
+                          : theme.colors.gray400,
+                      iconBorder:
+                        index === 0
+                          ? theme.tokens.interactive.link.accent.active
+                          : theme.colors.gray400,
                       title: theme.tokens.content.primary,
                     }}
                     icon={<IconCircleFill />}
@@ -229,23 +225,11 @@ function UsageLog({location, subscription}: Props) {
     </Fragment>
   );
 
-  if (!isNewBillingUI) {
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <SubscriptionHeader subscription={subscription} organization={organization} />
-        {usageLogContent}
-      </SubscriptionPageContainer>
-    );
-  }
-
   return (
-    <SubscriptionPageContainer background="primary" organization={organization}>
+    <SubscriptionPageContainer background="primary">
       <SentryDocumentTitle title={t('Activity Logs')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Activity Logs')} />
       {usageLogContent}
     </SubscriptionPageContainer>
   );
 }
-
-export default withSubscription(UsageLog);
-export {UsageLog};

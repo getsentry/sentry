@@ -7,6 +7,7 @@ from sentry.db.models import NodeData
 from sentry.eventstream.item_helpers import encode_attributes, serialize_event_data_as_item
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
+from sentry.utils.eap import hex_to_item_id, item_id_to_hex
 
 
 class ItemHelpersTest(TestCase):
@@ -232,6 +233,41 @@ class ItemHelpersTest(TestCase):
         # tag_keys should still be present with an empty array
         assert result["tag_keys"] == AnyValue(array_value=ArrayValue(values=[]))
 
+    def test_encode_attributes_with_none_elements_in_tags(self) -> None:
+        """Test that encode_attributes handles tags list containing None values."""
+        event_data = {
+            "field": "value",
+            "tags": [
+                ("tag1", "value1"),
+                None,
+                ("tag2", None),
+                ("tag3", "value3"),
+            ],
+        }
+
+        event = Event(
+            event_id="a" * 32,
+            data=event_data,
+            project_id=self.project.id,
+        )
+
+        result = encode_attributes(event, event_data)
+
+        assert result["field"] == AnyValue(string_value="value")
+        assert result["tags[tag1]"] == AnyValue(string_value="value1")
+        assert result["tags[tag3]"] == AnyValue(string_value="value3")
+        # tag2 has None value, so it should be skipped
+        assert "tags[tag2]" not in result
+
+        assert result["tag_keys"] == AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(string_value="tags[tag1]"),
+                    AnyValue(string_value="tags[tag3]"),
+                ]
+            )
+        )
+
     def test_serialize_event_data_as_item_basic(self) -> None:
         project = self.create_project()
 
@@ -247,7 +283,7 @@ class ItemHelpersTest(TestCase):
         event = self.create_group_event(event_data)
         result = serialize_event_data_as_item(event, event_data, project)
 
-        assert result.item_id == ("a" * 32).encode("utf-8")
+        assert result.item_id == hex_to_item_id("a" * 32)
         assert result.item_type == TRACE_ITEM_TYPE_OCCURRENCE
         assert result.trace_id == "b" * 32
         assert result.timestamp.seconds == 1234567890
@@ -303,9 +339,9 @@ class ItemHelpersTest(TestCase):
         project = self.create_project()
 
         event_data = {
-            "event_id": "g" * 32,
+            "event_id": "1" * 32,
             "timestamp": 1234567890,
-            "contexts": {"trace": {"trace_id": "h" * 32}},
+            "contexts": {"trace": {"trace_id": "2" * 32}},
             "other_field": "should_be_included",
             "tags": [("level", "info")],
             "empty": None,
@@ -330,9 +366,9 @@ class ItemHelpersTest(TestCase):
         project = self.create_project()
 
         event_data = {
-            "event_id": "i" * 32,
+            "event_id": "3" * 32,
             "timestamp": 1234567890,
-            "contexts": {"trace": {"trace_id": "j" * 32}},
+            "contexts": {"trace": {"trace_id": "4" * 32}},
             "level": "error",
             "logger": "django",
             "server_name": "web-1",
@@ -342,7 +378,7 @@ class ItemHelpersTest(TestCase):
         }
 
         event = Event(
-            event_id="i" * 32,
+            event_id="3" * 32,
             data=event_data,
             project_id=project.id,
         )
@@ -353,3 +389,41 @@ class ItemHelpersTest(TestCase):
         assert result.attributes["server_name"] == AnyValue(string_value="web-1")
         assert result.attributes["release"] == AnyValue(string_value="1.0.0")
         assert result.attributes["environment"] == AnyValue(string_value="production")
+
+    def test_event_id_encoding_as_item_id(self) -> None:
+        project = self.create_project()
+
+        test_event_ids = [
+            "0fe53e4887e143549dd0cc65c0370d38",
+            "b87e618e18dc428b9dbd9afc56c9e4cd",
+            "00000000000000000000000000000000",
+            "ffffffffffffffffffffffffffffffff",
+            "0123456789abcdef0123456789abcdef",
+            "fedcba9876543210fedcba9876543210",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "12345678123456781234567812345678",
+        ]
+
+        for original_event_id in test_event_ids:
+            event_data = {
+                "event_id": original_event_id,
+                "timestamp": 1234567890,
+                "contexts": {"trace": {"trace_id": "b" * 32}},
+                "tags": [],
+            }
+            event = Event(
+                event_id=original_event_id,
+                data=event_data,
+                project_id=project.id,
+            )
+            result = serialize_event_data_as_item(event, event_data, project)
+
+            assert len(result.item_id) == 16, (
+                f"item_id must be exactly 16 bytes, got {len(result.item_id)} bytes "
+                f"for event_id {original_event_id}"
+            )
+
+            recovered_event_id = item_id_to_hex(result.item_id)
+            assert (
+                recovered_event_id == original_event_id
+            ), f"Encoding scheme failed for event_id {original_event_id}: got {recovered_event_id}"

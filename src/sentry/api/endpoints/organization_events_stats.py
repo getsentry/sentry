@@ -18,6 +18,7 @@ from sentry.api.helpers.error_upsampling import (
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -36,6 +37,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
@@ -186,6 +188,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         Spans,
                         OurLogs,
                         ProfileFunctions,
+                        PreprodSize,
                         TraceMetrics,
                         errors,
                         transactions,
@@ -239,6 +242,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
                     return TraceMetricsSearchResolverConfig(
                         metric=metric,
+                        auto_fields=False,
+                        use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation=request.GET.get(
+                            "disableAggregateExtrapolation", "0"
+                        )
+                        == "1",
+                        extrapolation_mode=extrapolation_mode,
+                    )
+
+                if scoped_dataset == PreprodSize:
+                    return PreprodSizeSearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
                         disable_aggregate_extrapolation=request.GET.get(
@@ -366,7 +380,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     )
 
                 try:
-                    widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                    widget = DashboardWidget.objects.get(
+                        id=dashboard_widget_id, dashboard__organization_id=organization.id
+                    )
                     does_widget_have_split = widget.discover_widget_split is not None
 
                     if does_widget_have_split:

@@ -24,7 +24,7 @@ export function MetricTypeBadge({metricType}: {metricType: TraceMetricTypeValue}
     return null;
   }
 
-  return <Tag>{metricType}</Tag>;
+  return <Tag variant="muted">{metricType}</Tag>;
 }
 
 export function MetricSelector({

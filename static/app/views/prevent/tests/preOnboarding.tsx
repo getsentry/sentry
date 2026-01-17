@@ -64,7 +64,7 @@ export default function TestsPreOnboardingPage() {
     <LayoutGap>
       {!isUSStorage && (
         <Alert.Container>
-          <Alert type="info">
+          <Alert variant="info">
             {t(
               'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
             )}

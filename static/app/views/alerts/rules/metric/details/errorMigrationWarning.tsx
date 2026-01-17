@@ -100,7 +100,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   return (
     <Alert.Container>
       <Alert
-        type="warning"
+        variant="warning"
         trailingItems={
           <ButtonBar>
             <LinkButton

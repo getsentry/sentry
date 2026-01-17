@@ -1,3 +1,4 @@
+import uuid
 from unittest import mock
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -5,7 +6,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.types.group import PriorityLevel
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -31,12 +32,16 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         mock_handler = mock.Mock()
         mock_registry_get.return_value = mock_handler
 
-        self.action.trigger(self.event_data)
+        notification_uuid = str(uuid.uuid4())
+        self.action.trigger(self.event_data, notification_uuid=notification_uuid)
 
         mock_registry_get.assert_called_once_with(ErrorGroupType.slug)
-        mock_handler.handle_workflow_action.assert_called_once_with(
-            self.event_data, self.action, self.detector
-        )
+        assert mock_handler.handle_workflow_action.call_count == 1
+        invocation = mock_handler.handle_workflow_action.call_args[0][0]
+        assert isinstance(invocation, ActionInvocation)
+        assert invocation.event_data == self.event_data
+        assert invocation.action == self.action
+        assert invocation.detector == self.detector
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.group_type_notification_registry.get"
@@ -65,12 +70,15 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         mock_handler = mock.Mock()
         mock_registry_get.return_value = mock_handler
 
-        self.action.trigger(self.event_data)
+        self.action.trigger(self.event_data, notification_uuid=str(uuid.uuid4()))
 
         mock_registry_get.assert_called_once_with(MetricIssue.slug)
-        mock_handler.handle_workflow_action.assert_called_once_with(
-            self.event_data, self.action, self.detector
-        )
+        assert mock_handler.handle_workflow_action.call_count == 1
+        invocation = mock_handler.handle_workflow_action.call_args[0][0]
+        assert isinstance(invocation, ActionInvocation)
+        assert invocation.event_data == self.event_data
+        assert invocation.action == self.action
+        assert invocation.detector == self.detector
 
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_issue_alert_handler")
     @mock.patch(
@@ -86,7 +94,7 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
     ) -> None:
         """Test that execute does nothing when we can't find the detector"""
 
-        self.action.trigger(self.event_data)
+        self.action.trigger(self.event_data, notification_uuid=str(uuid.uuid4()))
 
         mock_logger.warning.assert_called_once_with(
             "group_type_notification_registry.get.NoRegistrationExistsError",

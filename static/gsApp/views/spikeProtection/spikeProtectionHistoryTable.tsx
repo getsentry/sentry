@@ -1,6 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -130,7 +132,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
       : null;
     return [
       <SpikeProtectionTimeDetails spike={spike} key="time" />,
-      <StyledCell key="threshold">
+      <Flex align="center" key="threshold">
         {defined(spike.threshold)
           ? formatUsageWithUnits(
               spike.threshold,
@@ -138,11 +140,11 @@ class SpikeProtectionHistoryTable extends Component<Props> {
               getFormatUsageOptions(dataCategoryInfo.plural)
             )
           : '-'}
-      </StyledCell>,
-      <StyledCell key="duration">
+      </Flex>,
+      <Flex align="center" key="duration">
         {duration ? getExactDuration(duration, true) : t('Ongoing')}
-      </StyledCell>,
-      <StyledCell key="dropped">
+      </Flex>,
+      <Flex align="center" key="dropped">
         {spike.dropped
           ? formatUsageWithUnits(
               spike.dropped,
@@ -150,8 +152,8 @@ class SpikeProtectionHistoryTable extends Component<Props> {
               getFormatUsageOptions(dataCategoryInfo.plural)
             )
           : '-'}
-      </StyledCell>,
-      <StyledCell key="discover-button">
+      </Flex>,
+      <Flex align="center" justify="end" key="discover-button">
         <DiscoverButton
           icon={<IconTelescope size="sm" />}
           data-test-id="spike-protection-discover-button"
@@ -176,7 +178,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
         >
           {t('Open in Discover')}
         </DiscoverButton>
-      </StyledCell>,
+      </Flex>,
     ];
   }
 
@@ -245,7 +247,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     const {organization} = this.props;
     return (
       <div data-test-id="spike-protection-history-table">
-        <SectionHeading>
+        <Flex align="center" marginBottom="xl" gap="md">
           <Title>
             {t('Spike Protection')}
             <PageHeadingQuestionTooltip
@@ -262,7 +264,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             title={t('Go to spike protection settings')}
             to={`/settings/${organization.slug}/spike-protection/`}
           />
-        </SectionHeading>
+        </Flex>
         {this.renderTable()}
       </div>
     );
@@ -271,29 +273,14 @@ class SpikeProtectionHistoryTable extends Component<Props> {
 
 export default withSubscription(withOrganization(SpikeProtectionHistoryTable));
 
-const SectionHeading = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
-  align-items: center;
-`;
-
 const Title = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   display: flex;
   flex: 1;
   align-items: center;
   gap: ${space(0.75)};
-`;
-
-const StyledCell = styled('div')`
-  display: flex;
-  align-items: center;
-  &:nth-child(5n) {
-    justify-content: end;
-  }
 `;
 
 const EmptySpikeHistory = styled(Panel)`

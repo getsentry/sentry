@@ -5,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
+import {BuildDetailsSidebarStatusCheck} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarStatusCheck';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -23,18 +24,27 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
     return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
   }
 
+  /* App info + status check info + VCS info - only show when artifact is processed */
+  if (buildDetailsData.state !== BuildDetailsState.PROCESSED) {
+    return null;
+  }
+
   return (
     <Flex direction="column" gap="2xl">
-      {/* App info - only show when artifact is processed */}
-      {buildDetailsData.state === BuildDetailsState.PROCESSED && (
-        <BuildDetailsSidebarAppInfo
-          appInfo={buildDetailsData.app_info}
-          projectId={projectId}
-          artifactId={artifactId}
+      <BuildDetailsSidebarAppInfo
+        appInfo={buildDetailsData.app_info}
+        projectId={projectId}
+        artifactId={artifactId}
+      />
+
+      {/* Status check info */}
+      {buildDetailsData.posted_status_checks?.size && (
+        <BuildDetailsSidebarStatusCheck
+          statusCheck={buildDetailsData.posted_status_checks.size}
+          vcsInfo={buildDetailsData.vcs_info}
         />
       )}
 
-      {/* VCS info */}
       <BuildVcsInfo buildDetailsData={buildDetailsData} projectId={projectId} />
     </Flex>
   );
@@ -103,7 +113,7 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
 
 const SkeletonCard = styled('div')`
   padding: ${space(3)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;

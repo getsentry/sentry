@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {logout} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -52,7 +54,7 @@ function AcceptActions({
           )}
         </p>
       )}
-      <Actions>
+      <Flex justify="between" align="center" marginBottom="2xl">
         <ActionsLeft>
           {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
             <LinkButton
@@ -74,7 +76,7 @@ function AcceptActions({
             {t('Join the %s organization', inviteDetails.orgSlug)}
           </Button>
         </ActionsLeft>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
@@ -85,7 +87,7 @@ function ExistingMemberAlert() {
 
   return (
     <Alert.Container>
-      <Alert type="warning" data-test-id="existing-member">
+      <Alert variant="warning" data-test-id="existing-member">
         {tct(
           'Your account ([email]) is already a member of this organization. [switchLink:Switch accounts]?',
           {
@@ -117,7 +119,7 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
           {orgSlug: inviteDetails.orgSlug}
         )}
       </p>
-      <Actions>
+      <Flex justify="between" align="center" marginBottom="2xl">
         <LinkButton
           external
           priority="primary"
@@ -125,7 +127,7 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
         >
           {t('Configure Two-Factor Auth')}
         </LinkButton>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
@@ -166,7 +168,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
         </p>
       )}
 
-      <Actions>
+      <Flex justify="between" align="center" marginBottom="2xl">
         <ActionsLeft>
           {inviteDetails.hasAuthProvider && (
             <LinkButton
@@ -196,7 +198,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
             {t('Login using an existing account')}
           </ExternalLink>
         )}
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
@@ -250,7 +252,7 @@ function AcceptOrganizationInvite() {
     return (
       <NarrowLayout>
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {tct(
               'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
               {
@@ -278,7 +280,7 @@ function AcceptOrganizationInvite() {
       <SettingsPageHeader title={t('Accept organization invite')} />
       {isAcceptError && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {t('Failed to join this organization. Please try again')}
           </Alert>
         </Alert.Container>
@@ -307,12 +309,6 @@ function AcceptOrganizationInvite() {
   );
 }
 
-const Actions = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(3)};
-`;
 const ActionsLeft = styled('span')`
   > a {
     margin-right: ${space(1)};

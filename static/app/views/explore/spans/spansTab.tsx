@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -19,7 +21,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -308,7 +309,7 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
-        <ActionButtonsGroup>
+        <Flex gap="xs">
           <Feature features="organizations:tracing-export-csv">
             <SpansExport
               aggregatesTableResult={aggregatesTableResult}
@@ -316,14 +317,14 @@ function SpanTabContentSection({
             />
           </Feature>
           <SettingsDropdown />
-        </ActionButtonsGroup>
+        </Flex>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
       <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
-          <Alert type="error">{error.message}</Alert>
+          <Alert variant="danger">{error.message}</Alert>
         </Alert.Container>
       )}
       <TourElement<ExploreSpansTour>
@@ -369,45 +370,22 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-const ActionButtonsGroup = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-`;
+const ChevronButton = styled(Button)<{expanded: boolean}>`
+  display: none;
 
-const ChevronButton = withChonk(
-  styled(Button)<{expanded: boolean}>`
-    display: none;
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: inline-flex;
+  }
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: block;
-    }
+  ${p =>
+    p.expanded &&
+    css`
+      margin-left: -13px;
 
-    ${p =>
-      p.expanded &&
-      css`
-        margin-left: -13px;
+      &::after {
         border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
-      `}
-  `,
-  styled(Button)<{expanded: boolean}>`
-    display: none;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: inline-flex;
-    }
-
-    ${p =>
-      p.expanded &&
-      css`
-        margin-left: -13px;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.background.primary};
-          border-top-left-radius: 0px;
-          border-bottom-left-radius: 0px;
-        }
-      `}
-  `
-);
+      }
+    `}
+`;

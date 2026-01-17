@@ -19,6 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -254,7 +255,7 @@ class MetricAlertDetails extends Component<Props, State> {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {error?.status === 404
               ? t('This alert rule could not be found.')
               : t('An error occurred while fetching the alert rule.')}
@@ -285,7 +286,7 @@ class MetricAlertDetails extends Component<Props, State> {
       >
         {warning && (
           <Alert.Container>
-            <Alert type="warning">{warning}</Alert>
+            <Alert variant="warning">{warning}</Alert>
           </Alert.Container>
         )}
         <SentryDocumentTitle title={rule?.name ?? ''} />
@@ -309,4 +310,4 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 }
 
-export default withApi(withProjects(MetricAlertDetails));
+export default withApi(withOrganization(withProjects(MetricAlertDetails)));

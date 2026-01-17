@@ -36,7 +36,7 @@ export const makeAutofixQueryKey = (
   isUserWatching = false
 ): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
-  {query: {isUserWatching: isUserWatching ? true : false}},
+  {query: {isUserWatching: isUserWatching ? true : false, mode: 'legacy'}},
 ];
 
 const makeInitialAutofixData = (): AutofixResponse => ({
@@ -254,6 +254,7 @@ export const useAiAutofix = (
           `/organizations/${orgSlug}/issues/${group.id}/autofix/`,
           {
             method: 'POST',
+            query: {mode: 'legacy'},
             data: {
               event_id: event.id,
               instruction,
@@ -309,15 +310,17 @@ export const useAiAutofix = (
   };
 };
 
+export type CodingAgentIntegration = {
+  id: string;
+  name: string;
+  provider: string;
+};
+
 export function useCodingAgentIntegrations() {
   const organization = useOrganization();
 
   return useApiQuery<{
-    integrations: Array<{
-      id: string;
-      name: string;
-      provider: string;
-    }>;
+    integrations: CodingAgentIntegration[];
   }>([`/organizations/${organization.slug}/integrations/coding-agents/`], {
     staleTime: 5 * 60 * 1000,
   });

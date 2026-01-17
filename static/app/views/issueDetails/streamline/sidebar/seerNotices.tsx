@@ -534,7 +534,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       )}
       {/* Banners for unreadable repos */}
       {hasMultipleUnreadableRepos && (
-        <StyledAlert type="warning" key="multiple-repos">
+        <StyledAlert variant="warning" key="multiple-repos">
           {tct("Seer can't access these repositories: [repoList].", {
             repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
           })}
@@ -559,7 +559,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </StyledAlert>
       )}
       {hasSingleUnreadableRepo && (
-        <StyledAlert type="warning" key="single-repo">
+        <StyledAlert variant="warning" key="single-repo">
           {unreadableRepos[0]?.provider.includes('github')
             ? tct(
                 "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
@@ -655,7 +655,7 @@ const StepsHeader = styled('h3')`
 
 const StepsDivider = styled('hr')`
   border: none;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(3)} 0;
 `;
 
@@ -664,7 +664,7 @@ const CollapsedSummaryCard = styled('div')`
   align-items: center;
   gap: ${space(1)};
   background: ${p => p.theme.colors.pink500}10;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
   padding: ${space(1)};
   margin-bottom: ${space(2)};

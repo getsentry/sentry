@@ -299,7 +299,7 @@ function NativeFrame({
               >
                 <IconFileBroken
                   size="sm"
-                  color="errorText"
+                  variant="danger"
                   data-test-id="symbolication-error-icon"
                 />
               </Tooltip>
@@ -311,7 +311,7 @@ function NativeFrame({
               >
                 <IconWarning
                   size="sm"
-                  color="warningText"
+                  variant="warning"
                   data-test-id="symbolication-warning-icon"
                 />
               </Tooltip>
@@ -432,7 +432,7 @@ function NativeFrame({
               </ErrorBoundary>
             )}
             <TypeCell>
-              {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+              {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             </TypeCell>
           </Flex>
           <ExpandCell>
@@ -474,7 +474,7 @@ export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-
 const AddressCell = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   ${p => p.onClick && `cursor: pointer`};
-  ${p => p.onClick && `color:` + p.theme.linkColor};
+  ${p => p.onClick && `color:` + p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FunctionNameCell = styled('div')`
@@ -507,17 +507,17 @@ const ExpandCell = styled('div')`
 
 const ToggleButton = styled(Button)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Registers = styled(Context)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0;
   margin: 0;
 `;
 
 const PackageNote = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
 `;
 
@@ -530,8 +530,8 @@ const Package = styled('span')`
 `;
 
 const FileName = styled('span')`
-  color: ${p => p.theme.subText};
-  border-bottom: 1px dashed ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.secondary};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const RowHeader = styled('span')<{
@@ -552,7 +552,7 @@ const RowHeader = styled('span')<{
       : `${p.theme.tokens.background.secondary}`};
   font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1)};
-  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
@@ -566,7 +566,7 @@ const RowHeader = styled('span')<{
 const StackTraceFrame = styled('li')`
   :not(:last-child) {
     ${RowHeader} {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;
@@ -576,12 +576,12 @@ const SymbolicatorIcon = styled('div')`
 `;
 
 const ShowHideButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

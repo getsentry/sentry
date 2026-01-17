@@ -135,12 +135,12 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   text-align: center;
   height: auto;
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 30;
   padding: 20px;
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   transform-origin: 50% 50%;
   transform: translate(-50%, -50%);
   animation: ${p =>

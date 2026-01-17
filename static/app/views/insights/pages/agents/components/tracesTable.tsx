@@ -409,7 +409,7 @@ function AgentTags({agents}: {agents: string[]}) {
               },
             }}
           >
-            <Tag key={agent} type="default">
+            <Tag key={agent} variant="muted">
               {agent}
             </Tag>
           </Link>

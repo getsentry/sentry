@@ -1,5 +1,6 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   ProcessingErrorType,
   type ProcessingError,
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ProcessingErrorItem({error, checkinTooltip}: Props) {
+  const organization = useOrganization();
   switch (error.type) {
     case ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH:
       return tct(
@@ -59,7 +61,10 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
       // for now we'll just default to "pay-as-you-go" since it's the modern term
       return tct(
         'A [checkinTooltip:check-in] upsert was sent, but due to insufficient quota a new monitor could not be enabled. Increase your Crons pay-as-you-go budget in your [link: subscription settings], and then enable this monitor.',
-        {checkinTooltip, link: <Link to="/settings/billing/overview/" />}
+        {
+          checkinTooltip,
+          link: <Link to={`/settings/${organization.slug}/billing/overview/`} />,
+        }
       );
     case ProcessingErrorType.MONITOR_INVALID_CONFIG:
       return tct(
@@ -94,7 +99,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
         'A [checkinTooltip:check-in] was sent but dropped due to the monitor being disabled. Please increase your on-demand budget if needed in your [link:subscription settings]. Then, enable this monitor to resume processing check-ins.',
         {
           checkinTooltip,
-          link: <Link to="/settings/billing/overview/" />,
+          link: <Link to={`/settings/${organization.slug}/billing/overview/`} />,
         }
       );
     case ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED:
@@ -104,7 +109,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
       );
     case ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED:
       return tct(
-        'A sent [checkinTooltip:check-in] was dropped due to being rate limited. Reivew our rate limits for more information.',
+        'A sent [checkinTooltip:check-in] was dropped due to being rate limited. Review our rate limits for more information.',
         {checkinTooltip}
       );
     case ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED:

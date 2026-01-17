@@ -10,7 +10,7 @@ export default function ModalTask({title}: Props) {
   return (
     <TaskCard>
       <Title>
-        <IconCheckmark color="successText" />
+        <IconCheckmark variant="success" />
         {title}
       </Title>
     </TaskCard>

@@ -1,11 +1,12 @@
 import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
@@ -15,8 +16,8 @@ import GridEditable, {
 } from 'sentry/components/tables/gridEditable';
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import TimeSince from 'sentry/components/timeSince';
-import {IconArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconArrow, IconUser} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
@@ -25,6 +26,7 @@ import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversatio
 import {
   useConversations,
   type Conversation,
+  type ConversationUser,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
@@ -48,6 +50,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
+  {key: 'user', name: t('User'), width: 120},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
@@ -69,6 +72,7 @@ function ConversationsTableInner() {
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
+        {column.key === 'user' && <IconUser size="xs" />}
         {column.name}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
         {column.key === 'inputOutput' && <CellExpander />}
@@ -105,6 +109,26 @@ function ConversationsTableInner() {
   );
 }
 
+function getUserDisplayName(user: ConversationUser): string {
+  return user.email || user.username || user.ip_address || t('Unknown');
+}
+
+function UserNotInstrumentedTooltip() {
+  return (
+    <Text>
+      {tct(
+        'User data not found. Call [code:sentry.setUser()] in your SDK to track users. [link:Learn more]',
+        {
+          code: <code />,
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/apis/#setUser" />
+          ),
+        }
+      )}
+    </Text>
+  );
+}
+
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
@@ -123,6 +147,21 @@ const BodyCell = memo(function BodyCell({
         >
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
+      );
+    case 'user':
+      if (!dataRow.user) {
+        return (
+          <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
+            <Text variant="muted">&mdash;</Text>
+          </Tooltip>
+        );
+      }
+      return (
+        <Flex align="center">
+          <Tooltip title={getUserDisplayName(dataRow.user)} showOnlyOnOverflow>
+            <Text ellipsis>{getUserDisplayName(dataRow.user)}</Text>
+          </Tooltip>
+        </Flex>
       );
     case 'inputOutput': {
       return (
@@ -237,6 +276,12 @@ const InputOutputButton = styled('button')`
   width: 100%;
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;

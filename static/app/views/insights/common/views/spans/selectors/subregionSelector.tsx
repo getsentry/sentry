@@ -1,5 +1,6 @@
 import type {ComponentProps} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {
   CompactSelect,
@@ -8,7 +9,6 @@ import {
 } from 'sentry/components/core/compactSelect';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -65,10 +65,10 @@ export default function SubregionSelector({size}: Props) {
       clearable
       value={value}
       menuTitle={
-        <MenuTitleContainer>
+        <Flex align="center" gap="xs">
           {t('Filter region')}
           <QuestionTooltip title={tooltip} size="xs" />
-        </MenuTitleContainer>
+        </Flex>
       }
       options={options}
       onChange={(selectedOptions: Array<SelectOption<string>>) => {
@@ -89,9 +89,3 @@ export default function SubregionSelector({size}: Props) {
     />
   );
 }
-
-const MenuTitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;

@@ -1869,4 +1869,249 @@ describe('useWidgetBuilderState', () => {
       );
     });
   });
+
+  describe('traceMetric', () => {
+    it('validates and fixes invalid aggregates when trace metric is changed for chart display', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['p50(value)', 'p90(value)'],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'distribution'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Initial state should have p50 and p90 from query params
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['p50', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['p90', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Change trace metric from distribution to counter, where percentiles are invalid
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'counter'},
+        });
+      });
+
+      // p50 and p90 are now invalid for counter, so they should be replaced with per_second
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('validates and fixes invalid aggregates when trace metric is changed for big number display', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.BIG_NUMBER,
+            field: ['avg(value)'],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'gauge'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Initial state should have avg (valid for gauge)
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['avg', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Change trace metric to counter which doesn't support avg
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'counter'},
+        });
+      });
+
+      // Aggregate should be updated to valid one for counter (per_second is the first valid option)
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('does not modify aggregates when they are already valid for the trace metric type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value)'],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'counter'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Initial state should have sum (valid for counter)
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Change trace metric to distribution which also supports sum
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'distribution'},
+        });
+      });
+
+      // sum is valid for distribution, so it should remain unchanged
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('handles mixed valid and invalid aggregates', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value)', 'p99(value)', 'count(value)'],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'distribution'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // All aggregates are valid for distribution
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['p99', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Change to counter which only supports sum and count (not p99)
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'counter'},
+        });
+      });
+
+      // sum and count should remain, but p99 should be replaced with per_second (first valid option)
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('only applies validation for trace metrics dataset', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Try to set a trace metric on a non-trace-metrics dataset
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'counter'},
+        });
+      });
+
+      // yAxis should remain unchanged since dataset is not TRACEMETRICS
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+  });
 });

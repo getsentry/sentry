@@ -211,7 +211,7 @@ function SolutionDescription({
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -507,7 +507,7 @@ function AutofixSolutionDisplay({
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No solution available.')}</Alert>
+        <Alert variant="danger">{t('No solution available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -516,19 +516,19 @@ function AutofixSolutionDisplay({
     return (
       <SolutionContainer>
         <CustomSolutionPadding>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFixRef}>
-                <IconFix size="sm" color="green400" />
+                <IconFix size="sm" variant="success" />
               </Flex>
               {t('Custom Solution')}
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
           </Content>
           <BottomDivider />
-          <BottomFooter>
+          <Flex justify="end" align="center" padding="xl 0 0 0" gap="lg">
             <div style={{flex: 1}} />
             <CopySolutionButton
               solution={solution}
@@ -536,7 +536,7 @@ function AutofixSolutionDisplay({
               event={event}
               rootCause={rootCause}
             />
-          </BottomFooter>
+          </Flex>
         </CustomSolutionPadding>
       </SolutionContainer>
     );
@@ -544,10 +544,10 @@ function AutofixSolutionDisplay({
 
   return (
     <SolutionContainer ref={containerRef}>
-      <HeaderWrapper>
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFixRef}>
-            <IconFix size="md" color="green400" />
+            <IconFix size="md" variant="success" />
           </Flex>
           {t('Solution')}
           <Button
@@ -561,7 +561,7 @@ function AutofixSolutionDisplay({
             <IconChat />
           </Button>
         </HeaderText>
-      </HeaderWrapper>
+      </Flex>
       <AnimatePresence>
         {agentCommentThread && iconFixRef.current && (
           <AutofixHighlightPopup
@@ -594,7 +594,7 @@ function AutofixSolutionDisplay({
         />
       </Content>
       <BottomDivider />
-      <BottomFooter>
+      <Flex justify="end" align="center" padding="xl 0 0 0" gap="lg">
         <AddInstructionWrapper>
           <InstructionsInputWrapper onSubmit={handleFormSubmit}>
             <InstructionsInput
@@ -669,7 +669,7 @@ function AutofixSolutionDisplay({
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
         )}
-      </BottomFooter>
+      </Flex>
     </SolutionContainer>
   );
 }
@@ -680,7 +680,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
       <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
-            <Alert type="warning">{t('No solution found.')}</Alert>
+            <Alert variant="warning">{t('No solution found.')}</Alert>
           </NoSolutionPadding>
         </AnimationWrapper>
       </AnimatePresence>
@@ -701,7 +701,7 @@ const NoSolutionPadding = styled('div')`
 `;
 
 const SolutionContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -711,14 +711,6 @@ const SolutionContainer = styled('div')`
 
 const Content = styled('div')`
   padding: ${space(1)} 0 0;
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const HeaderText = styled('div')`
@@ -755,7 +747,7 @@ const InstructionsInput = styled(Input)`
   padding-right: ${space(4)};
 
   &::placeholder {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -770,16 +762,8 @@ const SubmitButton = styled(Button)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.lg};
-`;
-
-const BottomFooter = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
-  padding: ${p => p.theme.space.xl} 0 0 0;
-  justify-content: flex-end;
 `;
 
 const AddInstructionWrapper = styled('div')`

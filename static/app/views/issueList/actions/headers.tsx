@@ -101,7 +101,8 @@ const GraphToggle = styled('a')<{active: boolean}>`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.tokens.content.primary : p.theme.disabled)};
+    color: ${p =>
+      p.active ? p.theme.tokens.content.primary : p.theme.tokens.content.disabled};
   }
 `;
 
@@ -128,7 +129,10 @@ const AssigneeLabel = styled(IssueStreamHeaderLabel)`
 // Reprocessing
 const StartedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -138,7 +142,10 @@ const StartedColumn = styled(ToolbarHeader)`
 
 const EventsReprocessedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

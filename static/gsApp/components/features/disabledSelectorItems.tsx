@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {TimeRangeItem} from 'sentry/components/timeRangeSelector/types';
 import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
@@ -63,10 +65,10 @@ function DisabledSelectorItems({
                 : '90d-trial',
             label: (
               <SelectorItemLabel>
-                <UpsellLabelWrap>
+                <Flex align="center">
                   {relativePeriods['90d']}
                   <StyledIconBusiness data-test-id="power-icon" />
-                </UpsellLabelWrap>
+                </Flex>
 
                 <UpsellMessage>
                   {canTrial
@@ -109,14 +111,9 @@ const SelectorItemLabel = styled('div')`
   margin-bottom: ${space(0.25)};
 `;
 
-const UpsellLabelWrap = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const UpsellMessage = styled('p')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;
 
