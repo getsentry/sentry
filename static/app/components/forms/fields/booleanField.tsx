@@ -34,48 +34,34 @@ export default function BooleanField({confirm, ...fieldProps}: BooleanFieldProps
         value: any;
         children?: React.ReactNode;
       }) => {
-        const handleChange = (
-          e?: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>
-        ) => {
-          // We need to toggle current value because Switch is not an input
+        const handleChange = (event: React.FormEvent<HTMLInputElement>) => {
           const newValue = !value;
-          onChange(newValue, e);
-          onBlur(newValue, e);
+          onChange(newValue, event);
+          onBlur(newValue, event);
         };
 
         const {type: _, ...propsWithoutType} = props;
         const switchProps: SwitchProps = {
           ...propsWithoutType,
           size: 'lg',
-          checked: !!value,
+          checked: Boolean(value),
           disabled,
-          onChange: handleChange,
         };
 
         if (confirm) {
+          const confirmMessage = confirm[(!value).toString() as 'true' | 'false'];
+
           return (
             <Confirm
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              renderMessage={() => confirm[(!value).toString()]}
-              onConfirm={() => handleChange()}
+              renderMessage={() => confirmMessage}
+              onConfirm={() => handleChange({} as React.FormEvent<HTMLInputElement>)}
               isDangerous={confirm.isDangerous}
             >
               {({open}) => (
                 <Tooltip title={disabledReason} skipWrapper disabled={!disabled}>
                   <Switch
                     {...switchProps}
-                    onChange={e => {
-                      // If we have a `confirm` prop and enabling switch
-                      // Then show confirm dialog, otherwise propagate change as normal
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      if (confirm[(!value).toString()]) {
-                        // Open confirm modal
-                        open();
-                        return;
-                      }
-
-                      handleChange(e);
-                    }}
+                    onChange={confirmMessage ? open : handleChange}
                   />
                 </Tooltip>
               )}
@@ -85,7 +71,7 @@ export default function BooleanField({confirm, ...fieldProps}: BooleanFieldProps
 
         return (
           <Tooltip title={disabledReason} skipWrapper disabled={!disabled}>
-            <Switch {...switchProps} />
+            <Switch {...switchProps} onChange={handleChange} />
           </Tooltip>
         );
       }}
