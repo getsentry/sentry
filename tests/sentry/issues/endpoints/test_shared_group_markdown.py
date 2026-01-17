@@ -145,16 +145,13 @@ class SharedGroupMarkdownFormatterTest(TestCase):
     def test_stacktrace_truncation(self) -> None:
         """Test that long stack traces are truncated to 10 frames."""
         frames = [
-            {"filename": f"file{i}.py", "function": f"func{i}", "lineNo": i}
-            for i in range(20)
+            {"filename": f"file{i}.py", "function": f"func{i}", "lineNo": i} for i in range(20)
         ]
 
         data = {
             "title": "Long Stack Trace",
             "shortId": "TEST-4",
-            "latestEvent": {
-                "entries": [{"type": "stacktrace", "data": {"frames": frames}}]
-            },
+            "latestEvent": {"entries": [{"type": "stacktrace", "data": {"frames": frames}}]},
         }
 
         markdown = format_shared_issue_as_markdown(data)

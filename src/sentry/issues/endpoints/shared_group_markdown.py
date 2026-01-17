@@ -205,9 +205,7 @@ def _format_request_entry(data: dict[str, Any], lines: list[str]) -> None:
     if headers and isinstance(headers, dict):
         # Only show some common useful headers
         useful_headers = ["user-agent", "referer", "content-type"]
-        filtered_headers = {
-            k: v for k, v in headers.items() if k.lower() in useful_headers
-        }
+        filtered_headers = {k: v for k, v in headers.items() if k.lower() in useful_headers}
         if filtered_headers:
             lines.append("\n**Headers:**")
             for key, value in filtered_headers.items():
