@@ -456,7 +456,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
     const {result} = renderHook(
-      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
+      () =>
+        useStreamingTimeseriesResult({
+          tableData: mockTableData,
+          timeseriesResult: mockTimeseriesData,
+          timeseriesIngestDelay: 0n,
+        }),
       {
         wrapper: createWrapper({autoRefresh: 'enabled', organization: logsOrganization}),
       }
@@ -470,7 +475,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
     const {result} = renderHook(
-      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
+      () =>
+        useStreamingTimeseriesResult({
+          tableData: mockTableData,
+          timeseriesResult: mockTimeseriesData,
+          timeseriesIngestDelay: 0n,
+        }),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),
       }
@@ -484,7 +494,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockMultiAxisTimeseries();
 
     const {result} = renderHook(
-      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
+      () =>
+        useStreamingTimeseriesResult({
+          tableData: mockTableData,
+          timeseriesResult: mockTimeseriesData,
+          timeseriesIngestDelay: 0n,
+        }),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),
       }
@@ -498,7 +513,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockMultiGroupTimeseries();
 
     const {result} = renderHook(
-      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
+      () =>
+        useStreamingTimeseriesResult({
+          tableData: mockTableData,
+          timeseriesResult: mockTimeseriesData,
+          timeseriesIngestDelay: 0n,
+        }),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),
       }
@@ -512,7 +532,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockMultiAxisGroupTimeseries();
 
     const {result} = renderHook(
-      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
+      () =>
+        useStreamingTimeseriesResult({
+          tableData: mockTableData,
+          timeseriesResult: mockTimeseriesData,
+          timeseriesIngestDelay: 0n,
+        }),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),
       }
@@ -527,7 +552,11 @@ describe('useStreamingTimeseriesResult', () => {
 
       const {result, rerender} = renderHook(
         (tableData: UseInfiniteLogsQueryResult) =>
-          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+          useStreamingTimeseriesResult({
+            tableData,
+            timeseriesResult: mockTimeseriesData,
+            timeseriesIngestDelay: 0n,
+          }),
         {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({autoRefresh: 'enabled'}),
@@ -601,7 +630,11 @@ describe('useStreamingTimeseriesResult', () => {
 
       const {result, rerender} = renderHook(
         (tableData: UseInfiniteLogsQueryResult) =>
-          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+          useStreamingTimeseriesResult({
+            tableData,
+            timeseriesResult: mockTimeseriesData,
+            timeseriesIngestDelay: 0n,
+          }),
         {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({
@@ -839,7 +872,11 @@ describe('useStreamingTimeseriesResult', () => {
 
       const {result, rerender} = renderHook(
         (tableData: UseInfiniteLogsQueryResult) =>
-          useStreamingTimeseriesResult(tableData, mockTimeseriesData, ingestDelayMs),
+          useStreamingTimeseriesResult({
+            tableData,
+            timeseriesResult: mockTimeseriesData,
+            timeseriesIngestDelay: ingestDelayMs,
+          }),
         {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({
@@ -946,7 +983,11 @@ describe('useStreamingTimeseriesResult', () => {
 
       const {result, rerender} = renderHook(
         (tableData: UseInfiniteLogsQueryResult) =>
-          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+          useStreamingTimeseriesResult({
+            tableData,
+            timeseriesResult: mockTimeseriesData,
+            timeseriesIngestDelay: 0n,
+          }),
         {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({

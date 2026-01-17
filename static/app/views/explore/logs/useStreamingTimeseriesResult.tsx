@@ -76,11 +76,15 @@ type BufferedTimeseriesGroup = {
  *                                        ↑ Merge the last timeseries bucket with the table data
  */
 
-export function useStreamingTimeseriesResult(
-  tableData: ReturnType<typeof useLogsPageDataQueryResult>,
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
-  timeseriesIngestDelay: bigint
-): ReturnType<typeof useSortedTimeSeries> {
+export function useStreamingTimeseriesResult({
+  tableData,
+  timeseriesIngestDelay,
+  timeseriesResult,
+}: {
+  tableData: ReturnType<typeof useLogsPageDataQueryResult>;
+  timeseriesIngestDelay: bigint;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+}): ReturnType<typeof useSortedTimeSeries> {
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();

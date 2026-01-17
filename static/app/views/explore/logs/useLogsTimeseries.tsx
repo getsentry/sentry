@@ -75,11 +75,11 @@ export function useLogsTimeseries({
     },
   });
 
-  return useStreamingTimeseriesResult(
+  return useStreamingTimeseriesResult({
     tableData,
-    timeseriesResult.result,
-    timeseriesIngestDelay
-  );
+    timeseriesResult: timeseriesResult.result,
+    timeseriesIngestDelay,
+  });
 }
 
 function useLogsTimeseriesImpl({
