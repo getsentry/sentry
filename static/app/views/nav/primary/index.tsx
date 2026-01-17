@@ -34,7 +34,12 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-import {PREVENT_AI_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
+import {makePreventPathname} from 'sentry/views/prevent/pathnames';
+import {
+  PREVENT_AI_BASE_URL,
+  PREVENT_BASE_URL,
+  TESTS_BASE_URL,
+} from 'sentry/views/prevent/settings';
 
 function SidebarBody({
   children,
@@ -159,15 +164,27 @@ export function PrimaryNavigationItems() {
         <Feature features={['prevent-ai']}>
           {showPreventNav(organization) ? (
             <Container position="relative" height="100%">
-              <SidebarLink
-                to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-                activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
-                analyticsKey="prevent"
-                group={PrimaryNavGroup.PREVENT}
-                {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-              >
-                <IconPrevent />
-              </SidebarLink>
+              {showNewSeer(organization) ? (
+                <SidebarLink
+                  to={makePreventPathname({organization, path: `/${TESTS_BASE_URL}/`})}
+                  activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                  analyticsKey="prevent"
+                  group={PrimaryNavGroup.PREVENT}
+                  {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+                >
+                  <IconPrevent />
+                </SidebarLink>
+              ) : (
+                <SidebarLink
+                  to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
+                  activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                  analyticsKey="prevent"
+                  group={PrimaryNavGroup.PREVENT}
+                  {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+                >
+                  <IconPrevent />
+                </SidebarLink>
+              )}
               <BetaBadge type="beta" />
             </Container>
           ) : null}
