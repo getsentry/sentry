@@ -76,10 +76,13 @@ function createAISummaryQueryKey(
   return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/`];
 }
 
-export function useReplaySummary(
-  replay: ReplayReader,
-  options?: UseApiQueryOptions<SummaryResponse>
-): UseReplaySummaryResult {
+export function useReplaySummary({
+  replay,
+  options,
+}: {
+  replay: ReplayReader;
+  options?: UseApiQueryOptions<SummaryResponse>;
+}): UseReplaySummaryResult {
   const organization = useOrganization();
   const replayRecord = replay.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});

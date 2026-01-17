@@ -39,14 +39,17 @@ export function ReplaySummaryContextProvider({
     setupAcknowledgement.orgHasAcknowledged;
   const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
 
-  const summaryResult = useReplaySummary(replay, {
-    staleTime: 0,
-    enabled: Boolean(
-      replay.getReplay().id &&
-        projectSlug &&
-        hasAiSummary &&
-        (!mobileProject || hasMobileSummary)
-    ),
+  const summaryResult = useReplaySummary({
+    replay,
+    options: {
+      staleTime: 0,
+      enabled: Boolean(
+        replay.getReplay().id &&
+          projectSlug &&
+          hasAiSummary &&
+          (!mobileProject || hasMobileSummary)
+      ),
+    },
   });
   useEmitTimestampChanges();
 
