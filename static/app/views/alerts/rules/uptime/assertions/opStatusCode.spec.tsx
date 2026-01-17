@@ -193,17 +193,14 @@ describe('AssertionOpStatusCode', () => {
     });
   });
 
-  it('clamps value to max on blur when above range', async () => {
+  it('clamps value immediately when typing 3 digits above range', async () => {
     await renderStatefulOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
 
     const input = screen.getByRole('textbox');
     await userEvent.clear(input);
     await userEvent.type(input, '700');
-    mockOnChange.mockClear();
 
-    // Blur should clamp to max
-    await userEvent.tab();
-
+    // Value should be clamped to 599 immediately on the third keystroke
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op,

@@ -34,7 +34,12 @@ export function AssertionOpStatusCode({
     if (!/^\d*$/.test(rawValue) || rawValue.length > 3) {
       return;
     }
-    const newValue = parseInt(rawValue, 10);
+    let newValue = parseInt(rawValue, 10);
+    // Clamp to valid HTTP range when user has entered a complete 3-digit code
+    // This prevents the race condition where submitting before blur could send invalid values
+    if (rawValue.length === 3) {
+      newValue = Math.max(100, Math.min(599, newValue));
+    }
     onChange({...value, value: newValue});
   };
 
