@@ -59,13 +59,9 @@ describe('makeUndoableReducer', () => {
           action === 'add' ? state + 1 : state - 1
         );
 
-      const {result} = renderHook(
-        (args: Parameters<typeof useUndoableReducer>) =>
-          useUndoableReducer(args[0], args[1]),
-        {
-          initialProps: [reducer, 100],
-        }
-      );
+      const {result} = renderHook(useUndoableReducer, {
+        initialProps: {reducer, initialState: 100},
+      });
       expect(reducer).not.toHaveBeenCalled();
       expect(result.current[0]).toBe(100);
     });
@@ -77,11 +73,9 @@ describe('makeUndoableReducer', () => {
           action === 'add' ? state + 1 : state - 1
         );
 
-      const {result} = renderHook(
-        (args: Parameters<typeof useUndoableReducer>) =>
-          useUndoableReducer(args[0], args[1]),
-        {initialProps: [reducer, 0]}
-      );
+      const {result} = renderHook(useUndoableReducer, {
+        initialProps: {reducer, initialState: 0},
+      });
       act(() => result.current[1]('add'));
 
       expect(result.current[0]).toBe(1);
@@ -94,11 +88,12 @@ describe('makeUndoableReducer', () => {
     });
 
     it('can undo state', () => {
-      const {result} = renderHook(
-        (args: Parameters<typeof useUndoableReducer>) =>
-          useUndoableReducer(args[0], args[1]),
-        {initialProps: [jest.fn().mockImplementation(s => s + 1), 0]}
-      );
+      const {result} = renderHook(useUndoableReducer, {
+        initialProps: {
+          reducer: jest.fn().mockImplementation(s => s + 1),
+          initialState: 0,
+        },
+      });
 
       act(() => result.current[1](0));
       expect(result.current[0]).toBe(1);
@@ -108,11 +103,12 @@ describe('makeUndoableReducer', () => {
     });
 
     it('can redo state', () => {
-      const {result} = renderHook(
-        (args: Parameters<typeof useUndoableReducer>) =>
-          useUndoableReducer(args[0], args[1]),
-        {initialProps: [jest.fn().mockImplementation(s => s + 1), 0]}
-      );
+      const {result} = renderHook(useUndoableReducer, {
+        initialProps: {
+          reducer: jest.fn().mockImplementation(s => s + 1),
+          initialState: 0,
+        },
+      });
 
       act(() => result.current[1](0)); // 0 + 1
       act(() => result.current[1](1)); // 1 + 1
@@ -134,13 +130,9 @@ describe('makeUndoableReducer', () => {
     const simpleReducer = (state: any, action: any) =>
       action.type === 'add' ? state + 1 : state - 1;
 
-    const {result} = renderHook(
-      (args: Parameters<typeof useUndoableReducer>) =>
-        useUndoableReducer(args[0], args[1]),
-      {
-        initialProps: [simpleReducer, 0],
-      }
-    );
+    const {result} = renderHook(useUndoableReducer, {
+      initialProps: {reducer: simpleReducer, initialState: 0},
+    });
 
     act(() => result.current[1]({type: 'add'}));
     expect(result.current?.[2].previousState).toBe(0);

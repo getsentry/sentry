@@ -81,7 +81,13 @@ type UndoableReducerState<R extends React.Reducer<ReducerState<R>, ReducerAction
 
 export function useUndoableReducer<
   R extends React.Reducer<ReducerState<R>, ReducerAction<R>>,
->(reducer: R, initialState: ReducerState<R>): UndoableReducerState<R> {
+>({
+  reducer,
+  initialState,
+}: {
+  initialState: ReducerState<R>;
+  reducer: R;
+}): UndoableReducerState<R> {
   const [state, dispatch] = useReducer(makeUndoableReducer(reducer), {
     current: initialState,
     previous: undefined,
