@@ -19,7 +19,7 @@ describe('useDispatchingReducer', () => {
   it('initializes state with initializer', () => {
     const reducer = jest.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
-    const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
+    const {result} = renderHook(() => useDispatchingReducer({reducer, initialState}));
 
     expect(result.current[0]).toBe(initialState);
   });
@@ -27,7 +27,11 @@ describe('useDispatchingReducer', () => {
     const reducer = jest.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
     const {result} = renderHook(() =>
-      useDispatchingReducer(reducer, undefined, () => initialState)
+      useDispatchingReducer({
+        reducer,
+        initialState: undefined,
+        initializer: () => initialState,
+      })
     );
 
     expect(result.current[0]).toBe(initialState);
@@ -43,7 +47,7 @@ describe('useDispatchingReducer', () => {
     });
     it('calls reducer and updates state', async () => {
       const initialState = {type: 'initial'};
-      const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
+      const {result} = renderHook(() => useDispatchingReducer({reducer, initialState}));
 
       act(() => result.current[1]('action'));
       act(() => {
@@ -57,7 +61,7 @@ describe('useDispatchingReducer', () => {
     });
     it('calls before action with state and action args', () => {
       const initialState = {type: 'initial'};
-      const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
+      const {result} = renderHook(() => useDispatchingReducer({reducer, initialState}));
 
       const beforeAction = jest.fn();
       result.current[2].on('before action', beforeAction);
@@ -72,7 +76,7 @@ describe('useDispatchingReducer', () => {
     });
     it('calls after action with previous, new state and action args', () => {
       const initialState = {type: 'initial'};
-      const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
+      const {result} = renderHook(() => useDispatchingReducer({reducer, initialState}));
 
       const beforeNextState = jest.fn();
       result.current[2].on('before next state', beforeNextState);
@@ -104,7 +108,7 @@ describe('useDispatchingReducer', () => {
           }
         });
       const {result} = renderHook(() =>
-        useDispatchingReducer(action_storing_reducer, initialState)
+        useDispatchingReducer({reducer: action_storing_reducer, initialState})
       );
 
       act(() => {
@@ -140,7 +144,9 @@ describe('useDispatchingReducer', () => {
     });
 
     const initialState = {a: {}, b: {}};
-    const {result} = renderHook(() => useDispatchingReducer(finalReducer, initialState));
+    const {result} = renderHook(() =>
+      useDispatchingReducer({reducer: finalReducer, initialState})
+    );
 
     act(() => {
       result.current[1]('a');
@@ -164,7 +170,7 @@ describe('useDispatchingReducer', () => {
     });
 
     const initialState = {};
-    const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
+    const {result} = renderHook(() => useDispatchingReducer({reducer, initialState}));
 
     result.current[2].on('before action', (_state: any, action: any) => {
       if (action === 'a') {

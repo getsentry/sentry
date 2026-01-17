@@ -93,11 +93,15 @@ function update<R extends React.Reducer<any, any>>(
   return start;
 }
 
-export function useDispatchingReducer<R extends React.Reducer<any, any>>(
-  reducer: R,
-  initialState: ReducerState<R>,
-  initializer?: (arg: ReducerState<R>) => ReducerState<R>
-): [ReducerState<R>, React.Dispatch<ReducerAction<R>>, DispatchingReducerEmitter<R>] {
+export function useDispatchingReducer<R extends React.Reducer<any, any>>({
+  reducer,
+  initialState,
+  initializer,
+}: {
+  initialState: ReducerState<R>;
+  reducer: R;
+  initializer?: (arg: ReducerState<R>) => ReducerState<R>;
+}): [ReducerState<R>, React.Dispatch<ReducerAction<R>>, DispatchingReducerEmitter<R>] {
   const emitter = useMemo(() => new DispatchingReducerEmitter<R>(), []);
   const [state, setState] = useState(
     initialState ?? (initializer?.(initialState) as ReducerState<R>)

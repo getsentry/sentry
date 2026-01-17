@@ -66,9 +66,9 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
     // We only want to decode on load
   }, []);
 
-  const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
-    TraceReducer,
-    {
+  const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer({
+    reducer: TraceReducer,
+    initialState: {
       rovingTabIndex: {
         index: null,
         items: null,
@@ -89,8 +89,8 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
         current_tab: null,
         last_clicked_tab: null,
       },
-    }
-  );
+    },
+  });
 
   useLayoutEffect(() => {
     if (props.preferencesStorageKey) {
