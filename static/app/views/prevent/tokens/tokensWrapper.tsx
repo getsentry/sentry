@@ -1,6 +1,7 @@
 import {Outlet} from 'react-router-dom';
 
 import {Flex} from 'sentry/components/core/layout';
+import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -13,6 +14,10 @@ export default function TokensPageWrapper() {
   const organization = useOrganization();
 
   const tooltip = t('Manage your upload tokens that are created in Sentry Prevent.');
+
+  if (!organization.features.includes('prevent-test-analytics')) {
+    return <NotFound />;
+  }
 
   return (
     <SentryDocumentTitle title={TOKENS_PAGE_TITLE} orgSlug={organization.slug}>
