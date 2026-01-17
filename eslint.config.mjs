@@ -426,6 +426,7 @@ export default typescript.config([
     plugins: {'@sentry': sentryPlugin},
     rules: {
       '@sentry/no-static-translations': 'error',
+      '@sentry/no-renderHook-arrow-function': 'error',
     },
   },
   {
