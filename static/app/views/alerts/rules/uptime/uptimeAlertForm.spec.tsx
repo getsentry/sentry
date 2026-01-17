@@ -10,7 +10,11 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
+import type {Op} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  normalizeAssertion,
+  UptimeAlertForm,
+} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
 describe('Uptime Alert Form', () => {
   const organization = OrganizationFixture();
@@ -454,6 +458,160 @@ describe('Uptime Alert Form', () => {
 
     // Verify the Verification section is NOT shown
     expect(screen.queryByText('Verification')).not.toBeInTheDocument();
+  });
+});
+
+describe('normalizeAssertion', () => {
+  it('clamps status code values above range to 599', () => {
+    const op: Op = {
+      id: 'test-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 700,
+    };
+
+    const result = normalizeAssertion(op);
+
+    expect(result).toEqual({
+      id: 'test-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 599,
+    });
+  });
+
+  it('clamps status code values below range to 100', () => {
+    const op: Op = {
+      id: 'test-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 50,
+    };
+
+    const result = normalizeAssertion(op);
+
+    expect(result).toEqual({
+      id: 'test-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 100,
+    });
+  });
+
+  it('does not modify status code values within valid range', () => {
+    const op: Op = {
+      id: 'test-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 404,
+    };
+
+    const result = normalizeAssertion(op);
+
+    expect(result).toEqual({
+      id: 'test-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 404,
+    });
+  });
+
+  it('recursively normalizes nested and operations', () => {
+    const op: Op = {
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'test-1',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 700,
+        },
+        {
+          id: 'test-2',
+          op: 'status_code_check',
+          operator: {cmp: 'not_equal'},
+          value: 50,
+        },
+      ],
+    };
+
+    const result = normalizeAssertion(op);
+
+    expect(result).toEqual({
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'test-1',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 599,
+        },
+        {
+          id: 'test-2',
+          op: 'status_code_check',
+          operator: {cmp: 'not_equal'},
+          value: 100,
+        },
+      ],
+    });
+  });
+
+  it('recursively normalizes nested not operations', () => {
+    const op: Op = {
+      id: 'not-1',
+      op: 'not',
+      operand: {
+        id: 'test-1',
+        op: 'status_code_check',
+        operator: {cmp: 'equals'},
+        value: 999,
+      },
+    };
+
+    const result = normalizeAssertion(op);
+
+    expect(result).toEqual({
+      id: 'not-1',
+      op: 'not',
+      operand: {
+        id: 'test-1',
+        op: 'status_code_check',
+        operator: {cmp: 'equals'},
+        value: 599,
+      },
+    });
+  });
+
+  it('does not modify non-status-code operations', () => {
+    const op: Op = {
+      id: 'json-1',
+      op: 'json_path',
+      value: '$.status',
+    };
+
+    const result = normalizeAssertion(op);
+
+    expect(result).toEqual(op);
+  });
+});
+
+describe('Uptime Alert Form - Assertions', () => {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({environments: ['prod', 'dev']});
+
+  beforeEach(() => {
+    OrganizationStore.onUpdate(organization);
+    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [MemberFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [TeamFixture()],
+    });
   });
 
   it('renders and updates assertion for existing rule', async () => {

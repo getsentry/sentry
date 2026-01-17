@@ -34,7 +34,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {Op, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {UptimeAssertionsField} from './assertions/field';
 import {HTTPSnippet} from './httpSnippet';
@@ -65,6 +65,33 @@ const VALID_INTERVALS_SEC = [
 
 function methodHasBody(model: FormModel) {
   return !HTTP_METHODS_NO_BODY.includes(model.getValue('method'));
+}
+
+/**
+ * Recursively normalizes assertion values to ensure they are within valid ranges.
+ * This prevents submitting invalid values if the user clicks submit before blur.
+ */
+export function normalizeAssertion(op: Op): Op {
+  switch (op.op) {
+    case 'status_code_check':
+      return {
+        ...op,
+        value: Math.max(100, Math.min(599, op.value)),
+      };
+    case 'and':
+    case 'or':
+      return {
+        ...op,
+        children: op.children.map(normalizeAssertion),
+      };
+    case 'not':
+      return {
+        ...op,
+        operand: normalizeAssertion(op.operand),
+      };
+    default:
+      return op;
+  }
 }
 
 function getFormDataFromRule(rule: UptimeRule) {
@@ -198,6 +225,14 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
+        }
+        // Normalize assertion values to ensure they are within valid ranges
+        const assertion = formModel.getValue<Op | undefined>('assertion');
+        if (assertion) {
+          formModel.setValue(
+            'assertion',
+            normalizeAssertion(assertion) as unknown as Record<PropertyKey, unknown>
+          );
         }
       }}
       extraButton={
