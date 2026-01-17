@@ -6,6 +6,11 @@ const ruleTester = new RuleTester({
   languageOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
+    parserOptions: {
+      ecmaFeatures: {
+        jsx: true,
+      },
+    },
   },
 });
 
@@ -147,6 +152,107 @@ ruleTester.run('no-renderHook-arrow-function', noRenderHookArrowFunction, {
         },
       ],
       name: 'Arrow function with no params calling hook with multiple args (no auto-fix)',
+    },
+    {
+      code: `renderHook(() => {
+  const x = 1;
+  const y = 2;
+  return useMyHook(x + y);
+})`,
+      output: `import {render} from 'sentry-test/reactTestingLibrary';
+
+function MyHook() {
+  const x = 1;
+  const y = 2;
+  return useMyHook(x + y);
+}
+render(<MyHook />)`,
+      errors: [
+        {
+          messageId: 'useComponentRenderInstead',
+        },
+      ],
+      name: 'Arrow function with multiple statements should convert to component render',
+    },
+    {
+      code: `renderHook(() => {
+  const value = 123;
+  return useMyHook(value);
+})`,
+      output: `import {render} from 'sentry-test/reactTestingLibrary';
+
+function MyHook() {
+  const value = 123;
+  return useMyHook(value);
+}
+render(<MyHook />)`,
+      errors: [
+        {
+          messageId: 'useComponentRenderInstead',
+        },
+      ],
+      name: 'Arrow function with single variable declaration should convert to component render',
+    },
+    {
+      code: `renderHookWithProviders(() => {
+  const state = useState();
+  return useMyHook(state);
+})`,
+      output: `import {render} from 'sentry-test/reactTestingLibrary';
+
+function MyHook() {
+  const state = useState();
+  return useMyHook(state);
+}
+render(<MyHook />)`,
+      errors: [
+        {
+          messageId: 'useComponentRenderInstead',
+        },
+      ],
+      name: 'renderHookWithProviders with multiple statements should convert to component render',
+    },
+    {
+      code: `import {screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+renderHook(() => {
+  const value = 123;
+  return useMyHook(value);
+})`,
+      output: `import {screen, userEvent, render} from 'sentry-test/reactTestingLibrary';
+
+function MyHook() {
+  const value = 123;
+  return useMyHook(value);
+}
+render(<MyHook />)`,
+      errors: [
+        {
+          messageId: 'useComponentRenderInstead',
+        },
+      ],
+      name: 'Should add render to existing import from sentry-test/reactTestingLibrary',
+    },
+    {
+      code: `import {render} from 'sentry-test/reactTestingLibrary';
+
+renderHook(() => {
+  const value = 123;
+  return useMyHook(value);
+})`,
+      output: `import {render} from 'sentry-test/reactTestingLibrary';
+
+function MyHook() {
+  const value = 123;
+  return useMyHook(value);
+}
+render(<MyHook />)`,
+      errors: [
+        {
+          messageId: 'useComponentRenderInstead',
+        },
+      ],
+      name: 'Should not duplicate render import if already present',
     },
   ],
 });
