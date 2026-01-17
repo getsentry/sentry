@@ -35,6 +35,18 @@ ruleTester.run('no-renderHook-arrow-function', noRenderHookArrowFunction, {
       code: 'renderHookWithProviders(p => useMyHook(p), {initialProps: props})',
       name: 'renderHookWithProviders with arrow function using parameter',
     },
+    {
+      code: 'renderHook(({fact, dep}) => useMemoWithPrevious(fact, [dep]), {initialProps: {fact: factory, dep: firstDep}})',
+      name: 'Arrow function with destructured object parameters that are used',
+    },
+    {
+      code: 'renderHook(([a, b]) => useMyHook(a, b), {initialProps: [1, 2]})',
+      name: 'Arrow function with destructured array parameters that are used',
+    },
+    {
+      code: 'renderHook(({a: renamed}) => useMyHook(renamed), {initialProps: {a: value}})',
+      name: 'Arrow function with renamed destructured parameter that is used',
+    },
   ],
   invalid: [
     {
@@ -46,7 +58,7 @@ ruleTester.run('no-renderHook-arrow-function', noRenderHookArrowFunction, {
           data: {hookName: 'useMyHook'},
         },
       ],
-      name: 'Arrow function with no parameters calling hook with no args',
+      name: 'Arrow function with no parameters calling hook with no args (auto-fixable)',
     },
     {
       code: 'renderHook(() => useMyHook(props))',
@@ -57,7 +69,7 @@ ruleTester.run('no-renderHook-arrow-function', noRenderHookArrowFunction, {
           data: {hookName: 'useMyHook'},
         },
       ],
-      name: 'Arrow function with no parameters calling hook with static args',
+      name: 'Arrow function with no parameters calling hook with single arg',
     },
     {
       code: 'renderHook(() => useMyHook(orgSlug), {wrapper})',
@@ -94,14 +106,47 @@ ruleTester.run('no-renderHook-arrow-function', noRenderHookArrowFunction, {
     },
     {
       code: 'renderHook((_unused) => useMyHook(foo, bar))',
-      output: 'renderHook(useMyHook, {initialProps: [foo, bar]})',
+      output: null, // Can't auto-fix multiple arguments
       errors: [
         {
           messageId: 'unnecessaryArrowFunction',
           data: {hookName: 'useMyHook', props: 'foo, bar'},
         },
       ],
-      name: 'Arrow function with unused parameter and multiple hook args',
+      name: 'Arrow function with unused parameter and multiple hook args (no auto-fix)',
+    },
+    {
+      code: 'renderHook((props) => useMyHook(value), {wrapper})',
+      output: 'renderHook(useMyHook, {wrapper, initialProps: value})',
+      errors: [
+        {
+          messageId: 'unnecessaryArrowFunction',
+          data: {hookName: 'useMyHook', props: 'value'},
+        },
+      ],
+      name: 'Arrow function with unused parameter and existing options object',
+    },
+    {
+      code: 'renderHook((p) => useMyHook(a, b), {wrapper, otherOption: true})',
+      output: null, // Can't auto-fix multiple arguments
+      errors: [
+        {
+          messageId: 'unnecessaryArrowFunction',
+          data: {hookName: 'useMyHook', props: 'a, b'},
+        },
+      ],
+      name: 'Arrow function with unused parameter, multiple args, and existing options (no auto-fix)',
+    },
+    {
+      code: 'renderHook(() => useMyHook(a, b))',
+      output: null, // Can't auto-fix multiple arguments
+      errors: [
+        {
+          messageId: 'arrowFunctionWithoutParams',
+          data: {hookName: 'useMyHook'},
+        },
+      ],
+      name: 'Arrow function with no params calling hook with multiple args (no auto-fix)',
     },
   ],
 });

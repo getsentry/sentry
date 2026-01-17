@@ -78,77 +78,61 @@ const noRenderHookArrowFunction = {
               hookName,
             },
             fix(fixer) {
-              // Simple case: no arguments to the hook
+              // Auto-fix when hook has zero arguments
               if (hookCall.arguments.length === 0) {
                 return fixer.replaceText(firstArg, hookName);
               }
 
-              // Complex case: hook has arguments that should become initialProps
-              const hookArgs = hookCall.arguments.map(arg =>
-                context.sourceCode.getText(arg)
-              );
+              // Auto-fix when hook has exactly one argument
+              if (hookCall.arguments.length === 1) {
+                const hookArg = context.sourceCode.getText(hookCall.arguments[0]);
+                const secondArg = node.arguments[1];
 
-              // Format initialProps value
-              // Single argument: initialProps: foo
-              // Multiple arguments: initialProps: [foo, bar]
-              const initialPropsValue =
-                hookArgs.length === 1 ? hookArgs[0] : `[${hookArgs.join(', ')}]`;
-
-              const secondArg = node.arguments[1];
-
-              if (!secondArg) {
-                // No second argument exists, create one
-                return [
-                  fixer.replaceText(firstArg, hookName),
-                  fixer.insertTextAfter(
-                    firstArg,
-                    `, {initialProps: ${initialPropsValue}}`
-                  ),
-                ];
-              }
-              if (secondArg.type === 'ObjectExpression') {
-                // Second argument is an object, check if initialProps already exists
-                const hasInitialProps = secondArg.properties.some(
-                  prop =>
-                    prop.type === 'Property' &&
-                    prop.key.type === 'Identifier' &&
-                    prop.key.name === 'initialProps'
-                );
-
-                if (!hasInitialProps) {
-                  // Add initialProps to the object
-                  const lastProp = secondArg.properties[secondArg.properties.length - 1];
+                if (!secondArg) {
+                  // No second argument exists, create one
                   return [
                     fixer.replaceText(firstArg, hookName),
-                    lastProp
-                      ? fixer.insertTextAfter(
-                          lastProp,
-                          `, initialProps: ${initialPropsValue}`
-                        )
-                      : fixer.insertTextAfterRange(
-                          [secondArg.range[0], secondArg.range[0] + 1],
-                          `initialProps: ${initialPropsValue}, `
-                        ),
+                    fixer.insertTextAfter(firstArg, `, {initialProps: ${hookArg}}`),
                   ];
+                }
+
+                if (secondArg.type === 'ObjectExpression') {
+                  // Second argument is an object, check if initialProps already exists
+                  const hasInitialProps = secondArg.properties.some(
+                    prop =>
+                      prop.type === 'Property' &&
+                      prop.key.type === 'Identifier' &&
+                      prop.key.name === 'initialProps'
+                  );
+
+                  if (!hasInitialProps) {
+                    // Add initialProps to the object
+                    const lastProp = secondArg.properties[secondArg.properties.length - 1];
+                    return [
+                      fixer.replaceText(firstArg, hookName),
+                      lastProp
+                        ? fixer.insertTextAfter(lastProp, `, initialProps: ${hookArg}`)
+                        : fixer.insertTextAfterRange(
+                            [secondArg.range[0], secondArg.range[0] + 1],
+                            `initialProps: ${hookArg}, `
+                          ),
+                    ];
+                  }
                 }
               }
 
-              // Can't auto-fix if we can't determine how to handle existing second argument
-              return fixer.replaceText(firstArg, hookName);
+              // Don't auto-fix for multiple arguments - requires manual intervention
+              return null;
             },
           });
           return;
         }
 
         // If the arrow function has parameters, check if they're actually used
-        const arrowParamNames = arrowParams
-          .map(param => {
-            if (param.type === 'Identifier') {
-              return param.name;
-            }
-            return null;
-          })
-          .filter(Boolean);
+        const arrowParamNames = [];
+        for (const param of arrowParams) {
+          extractIdentifierNames(param, arrowParamNames);
+        }
 
         // Check if any of the arrow function parameters are used in the hook call
         const usesArrowParams = hookCall.arguments.some(arg => {
@@ -174,35 +158,91 @@ const noRenderHookArrowFunction = {
             props: propsText,
           },
           fix(fixer) {
-            // Same fix logic as above
+            // Auto-fix when hook has zero arguments
             if (hookCall.arguments.length === 0) {
               return fixer.replaceText(firstArg, hookName);
             }
 
-            const hookArgsForFix = hookCall.arguments.map(arg =>
-              context.sourceCode.getText(arg)
-            );
-            const initialPropsValue =
-              hookArgsForFix.length === 1
-                ? hookArgsForFix[0]
-                : `[${hookArgsForFix.join(', ')}]`;
+            // Auto-fix when hook has exactly one argument
+            if (hookCall.arguments.length === 1) {
+              const hookArg = context.sourceCode.getText(hookCall.arguments[0]);
+              const secondArg = node.arguments[1];
 
-            const secondArg = node.arguments[1];
+              if (!secondArg) {
+                // No second argument exists, create one
+                return [
+                  fixer.replaceText(firstArg, hookName),
+                  fixer.insertTextAfter(firstArg, `, {initialProps: ${hookArg}}`),
+                ];
+              }
 
-            if (!secondArg) {
-              return [
-                fixer.replaceText(firstArg, hookName),
-                fixer.insertTextAfter(firstArg, `, {initialProps: ${initialPropsValue}}`),
-              ];
+              if (secondArg.type === 'ObjectExpression') {
+                // Second argument is an object, check if initialProps already exists
+                const hasInitialProps = secondArg.properties.some(
+                  prop =>
+                    prop.type === 'Property' &&
+                    prop.key.type === 'Identifier' &&
+                    prop.key.name === 'initialProps'
+                );
+
+                if (!hasInitialProps) {
+                  // Add initialProps to the object
+                  const lastProp = secondArg.properties[secondArg.properties.length - 1];
+                  return [
+                    fixer.replaceText(firstArg, hookName),
+                    lastProp
+                      ? fixer.insertTextAfter(lastProp, `, initialProps: ${hookArg}`)
+                      : fixer.insertTextAfterRange(
+                          [secondArg.range[0], secondArg.range[0] + 1],
+                          `initialProps: ${hookArg}, `
+                        ),
+                  ];
+                }
+              }
             }
 
-            return fixer.replaceText(firstArg, hookName);
+            // Don't auto-fix for multiple arguments - requires manual intervention
+            return null;
           },
         });
       },
     };
   },
 };
+
+/**
+ * Extract all identifier names from a parameter pattern
+ * Handles simple identifiers, object destructuring, and array destructuring
+ */
+function extractIdentifierNames(param, names) {
+  if (!param) return;
+
+  if (param.type === 'Identifier') {
+    names.push(param.name);
+  } else if (param.type === 'ObjectPattern') {
+    // Handle object destructuring like {fact, dep} or {a: b, c}
+    for (const prop of param.properties) {
+      if (prop.type === 'Property') {
+        extractIdentifierNames(prop.value, names);
+      } else if (prop.type === 'RestElement') {
+        extractIdentifierNames(prop.argument, names);
+      }
+    }
+  } else if (param.type === 'ArrayPattern') {
+    // Handle array destructuring like [a, b]
+    for (const element of param.elements) {
+      if (element) {
+        extractIdentifierNames(element, names);
+      }
+    }
+  } else if (param.type === 'RestElement') {
+    // Handle rest parameters like ...rest
+    extractIdentifierNames(param.argument, names);
+  } else if (param.type === 'AssignmentPattern') {
+    // Handle default parameters like a = 5
+    extractIdentifierNames(param.left, names);
+  }
+}
 
 /**
  * Check if an AST node contains an identifier with one of the given names
