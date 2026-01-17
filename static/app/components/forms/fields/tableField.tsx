@@ -35,20 +35,15 @@ export interface TableFieldProps extends Omit<InputFieldProps, 'type'> {}
 
 interface RenderProps extends TableFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
-const DEFAULT_PROPS: DefaultProps = {
-  addButtonText: t('Add Item'),
-  allowEmpty: false,
-};
-
 function hasValue(value: any) {
   return defined(value) && !isEmptyObject(value);
 }
 
 export default function TableField({
-  addButtonText = DEFAULT_PROPS.addButtonText,
-  allowEmpty = DEFAULT_PROPS.allowEmpty,
+  addButtonText = t('Add Item'),
+  allowEmpty = false,
   ...props
-}: InputFieldProps) {
+}: InputFieldProps & DefaultProps) {
   const renderField = (fieldProps: RenderProps) => {
     const {
       onChange,

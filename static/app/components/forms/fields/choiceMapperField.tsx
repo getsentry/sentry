@@ -40,12 +40,6 @@ interface DefaultProps {
   perItemMapping: boolean;
 }
 
-const defaultProps: DefaultProps = {
-  addButtonText: t('Add Item'),
-  perItemMapping: false,
-  allowEmpty: false,
-};
-
 type MappedSelectors = Record<string, Partial<ControlProps>>;
 
 export interface ChoiceMapperProps extends DefaultProps {
@@ -224,9 +218,9 @@ function hasValue(value: InputFieldProps['value']) {
 }
 
 export default function ChoiceMapperField({
-  addButtonText = defaultProps.addButtonText,
-  perItemMapping = defaultProps.perItemMapping,
-  allowEmpty = defaultProps.allowEmpty,
+  addButtonText = t('Add Item'),
+  perItemMapping = false,
+  allowEmpty = false,
   ...props
 }: ChoiceMapperFieldProps) {
   const renderField = (fieldProps: ChoiceMapperFieldProps) => {
