@@ -84,7 +84,9 @@ describe('EventList', () => {
 
   it('renders the list using a discover event query', async () => {
     renderAllEvents();
-    const {result} = renderHook(() => useEventColumns(group, organization));
+    const {result} = renderHook(useEventColumns, {
+      initialProps: {group, organization},
+    });
 
     expect(await screen.findByText('All Events')).toBeInTheDocument();
 

@@ -34,13 +34,13 @@ const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
   return `/issues/${groupId}/events/latest/`;
 };
 
-function AllEventsTable({organization, excludedTags, group}: Props) {
+export default function AllEventsTable({organization, excludedTags, group}: Props) {
   const location = useLocation();
   const theme = useTheme();
   const config = getConfigForIssueType(group, group.project);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
-  const {fields, columnTitles} = useEventColumns(group, organization);
+  const {fields, columnTitles} = useEventColumns({group, organization});
   const now = useMemo(() => Date.now(), []);
 
   const endpointUrl = makeGroupPreviewRequestUrl({
@@ -122,7 +122,13 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
 
 type ColumnInfo = {columnTitles: string[]; fields: string[]};
 
-export const useEventColumns = (group: Group, organization: Organization): ColumnInfo => {
+export function useEventColumns({
+  group,
+  organization,
+}: {
+  group: Group;
+  organization: Organization;
+}): ColumnInfo {
   return useMemo(() => {
     const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
     const isReplayEnabled =
@@ -175,7 +181,7 @@ export const useEventColumns = (group: Group, organization: Organization): Colum
       columnTitles,
     };
   }, [group, organization]);
-};
+}
 
 const getPlatformColumns = (
   platform: PlatformKey | undefined,
@@ -226,5 +232,3 @@ const getPlatformColumns = (
 
   return platformColumns;
 };
-
-export default AllEventsTable;

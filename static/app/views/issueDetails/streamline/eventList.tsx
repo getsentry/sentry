@@ -34,7 +34,7 @@ export function EventList({group}: EventListProps) {
   const organization = useOrganization();
   const routes = useRoutes();
   const [_error, setError] = useState('');
-  const {fields, columnTitles} = useEventColumns(group, organization);
+  const {fields, columnTitles} = useEventColumns({group, organization});
   const eventView = useIssueDetailsEventView({
     group,
     queryProps: {
