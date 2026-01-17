@@ -168,10 +168,13 @@ function tourReducer<T extends TourEnumType>(
   }
 }
 
-export function useTourReducer<T extends TourEnumType>(
-  initialState: TourState<T>,
-  options: TourOptions<T>
-): TourContextType<T> {
+export function useTourReducer<T extends TourEnumType>({
+  initialState,
+  options,
+}: {
+  initialState: TourState<T>;
+  options: TourOptions<T>;
+}): TourContextType<T> {
   const {orderedStepIds} = initialState;
 
   const [state, dispatch] = useReducer(tourReducer<T>, initialState);

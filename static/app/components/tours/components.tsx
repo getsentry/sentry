@@ -96,16 +96,16 @@ export function TourContextProvider<T extends TourEnumType>({
     }),
     [onStartTour, onEndTour, onStepChange, requireAllStepsRegistered]
   );
-  const tourContextValue = useTourReducer<T>(
-    {
+  const tourContextValue = useTourReducer<T>({
+    initialState: {
       isCompleted,
       isRegistered: false,
       orderedStepIds,
       currentStepId: null,
       tourKey,
     },
-    options
-  );
+    options,
+  });
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
 

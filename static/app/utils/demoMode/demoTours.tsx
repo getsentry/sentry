@@ -152,20 +152,20 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
     [handleEndTour, handleStepChange]
   );
 
-  const issuesTour = useTourReducer<DemoTourStep>(
-    tourState[DemoTour.ISSUES],
-    getTourOptions(DemoTour.ISSUES)
-  );
+  const issuesTour = useTourReducer<DemoTourStep>({
+    initialState: tourState[DemoTour.ISSUES],
+    options: getTourOptions(DemoTour.ISSUES),
+  });
 
-  const releasesTour = useTourReducer<DemoTourStep>(
-    tourState[DemoTour.RELEASES],
-    getTourOptions(DemoTour.RELEASES)
-  );
+  const releasesTour = useTourReducer<DemoTourStep>({
+    initialState: tourState[DemoTour.RELEASES],
+    options: getTourOptions(DemoTour.RELEASES),
+  });
 
-  const performanceTour = useTourReducer<DemoTourStep>(
-    tourState[DemoTour.PERFORMANCE],
-    getTourOptions(DemoTour.PERFORMANCE)
-  );
+  const performanceTour = useTourReducer<DemoTourStep>({
+    initialState: tourState[DemoTour.PERFORMANCE],
+    options: getTourOptions(DemoTour.PERFORMANCE),
+  });
 
   const tours = useMemo(
     () => ({
