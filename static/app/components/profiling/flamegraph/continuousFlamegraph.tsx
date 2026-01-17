@@ -590,8 +590,8 @@ export function ContinuousFlamegraph(): ReactElement {
     return new FlamegraphCanvas(memoryChartCanvasRef, vec2.fromValues(0, 0));
   }, [memoryChartCanvasRef]);
 
-  const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
-    previousView => {
+  const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>({
+    factory: previousView => {
       if (!flamegraphCanvas) {
         return null;
       }
@@ -686,19 +686,18 @@ export function ContinuousFlamegraph(): ReactElement {
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
+    deps: [
       flamegraph,
       flamegraphCanvas,
       flamegraphTheme,
       profile,
       segment,
       configSpaceQueryParam,
-    ]
-  );
+    ],
+  });
 
-  const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
-    _previousView => {
+  const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>({
+    factory: _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !uiFrames) {
         return null;
       }
@@ -724,18 +723,18 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [
+    deps: [
       flamegraphView,
       flamegraphCanvas,
       flamegraph,
       uiFrames,
       profile,
       configSpaceQueryParam,
-    ]
-  );
+    ],
+  });
 
-  const batteryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
-    _previousView => {
+  const batteryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>({
+    factory: _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !batteryChart || !batteryChartCanvas) {
         return null;
       }
@@ -768,7 +767,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [
+    deps: [
       flamegraphView,
       flamegraphCanvas,
       batteryChart,
@@ -776,11 +775,11 @@ export function ContinuousFlamegraph(): ReactElement {
       batteryChartCanvas,
       profile,
       configSpaceQueryParam,
-    ]
-  );
+    ],
+  });
 
-  const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
-    _previousView => {
+  const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>({
+    factory: _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !CPUChart || !cpuChartCanvas) {
         return null;
       }
@@ -813,7 +812,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [
+    deps: [
       flamegraphView,
       flamegraphCanvas,
       CPUChart,
@@ -821,11 +820,11 @@ export function ContinuousFlamegraph(): ReactElement {
       cpuChartCanvas,
       profile,
       configSpaceQueryParam,
-    ]
-  );
+    ],
+  });
 
-  const memoryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
-    _previousView => {
+  const memoryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>({
+    factory: _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !memoryChart || !memoryChartCanvas) {
         return null;
       }
@@ -858,7 +857,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [
+    deps: [
       flamegraphView,
       flamegraphCanvas,
       memoryChart,
@@ -866,11 +865,11 @@ export function ContinuousFlamegraph(): ReactElement {
       memoryChartCanvas,
       profile,
       configSpaceQueryParam,
-    ]
-  );
+    ],
+  });
 
-  const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
-    _previousView => {
+  const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>({
+    factory: _previousView => {
       if (!spansCanvas || !spanChart || !flamegraphView) {
         return null;
       }
@@ -899,7 +898,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [
+    deps: [
       spanChart,
       spansCanvas,
       flamegraphView,
@@ -907,8 +906,8 @@ export function ContinuousFlamegraph(): ReactElement {
       profileTimestamp,
       configSpaceQueryParam,
       segment,
-    ]
-  );
+    ],
+  });
 
   // We want to make sure that the views have the same min zoom levels so that
   // if you wheel zoom on one, the other one will also zoom to the same level of detail.

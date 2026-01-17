@@ -3,10 +3,13 @@ import {useState} from 'react';
 import {useEffectAfterFirstRender} from './useEffectAfterFirstRender';
 import usePrevious from './usePrevious';
 
-const useMemoWithPrevious = <T>(
-  factory: (previousInstance: T | null) => T,
-  deps: React.DependencyList
-): T => {
+export function useMemoWithPrevious<T>({
+  deps,
+  factory,
+}: {
+  deps: React.DependencyList;
+  factory: (previousInstance: T | null) => T;
+}): T {
   const [value, setValue] = useState<T>(() => factory(null));
   const previous = usePrevious<T | null>(value);
 
@@ -17,6 +20,4 @@ const useMemoWithPrevious = <T>(
   }, deps);
 
   return value;
-};
-
-export {useMemoWithPrevious};
+}

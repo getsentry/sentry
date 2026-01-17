@@ -66,15 +66,15 @@ function GroupEventDetails() {
   const eventWithMeta = useMemo(() => withMeta(event), [event]);
   const project = useProjectFromSlug({organization, projectSlug: group?.project?.slug});
   const prevEnvironment = usePrevious(environments);
-  const prevEvent = useMemoWithPrevious<typeof event | null>(
-    previousInstance => {
+  const prevEvent = useMemoWithPrevious<typeof event | null>({
+    factory: previousInstance => {
       if (event) {
         return event;
       }
       return previousInstance;
     },
-    [event]
-  );
+    deps: [event],
+  });
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   // load the data

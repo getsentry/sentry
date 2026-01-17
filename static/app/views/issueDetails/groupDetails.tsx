@@ -312,15 +312,15 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
    * This is not closer to the GroupEventHeader because it is unmounted
    * between route changes like latest event => eventId
    */
-  const previousEvent = useMemoWithPrevious<typeof event | null>(
-    previousInstance => {
+  const previousEvent = useMemoWithPrevious<typeof event | null>({
+    factory: previousInstance => {
       if (event) {
         return event;
       }
       return previousInstance;
     },
-    [event]
-  );
+    deps: [event],
+  });
 
   // If the environment changes, we need to refetch the group, but we can
   // still display the previous group while the new group is loading.
@@ -328,8 +328,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     cachedGroup: typeof groupData | null;
     previousEnvironments: typeof environments | null;
     previousGroupData: typeof groupData | null;
-  }>(
-    previousInstance => {
+  }>({
+    factory: previousInstance => {
       // Preserve the previous group if:
       // - New group is not yet available
       // - Previously we had group data
@@ -355,8 +355,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
         previousGroupData: null,
       };
     },
-    [groupData, environments, groupId]
-  );
+    deps: [groupData, environments, groupId],
+  });
 
   const group = groupData ?? previousGroupData.cachedGroup ?? null;
 

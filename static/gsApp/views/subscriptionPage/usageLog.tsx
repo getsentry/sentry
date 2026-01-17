@@ -108,10 +108,10 @@ export default function UsageLog() {
     {staleTime: 0}
   );
 
-  const eventNames = useMemoWithPrevious<string[] | null>(
-    previous => auditLogs?.eventNames ?? previous,
-    [auditLogs?.eventNames]
-  );
+  const eventNames = useMemoWithPrevious<string[] | null>({
+    factory: previous => auditLogs?.eventNames ?? previous,
+    deps: [auditLogs?.eventNames],
+  });
 
   const handleEventFilter = (value: string | undefined) => {
     if (typeof value === 'string') {

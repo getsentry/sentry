@@ -570,8 +570,8 @@ function Flamegraph(): ReactElement {
     return new FlamegraphCanvas(memoryChartCanvasRef, vec2.fromValues(0, 0));
   }, [memoryChartCanvasRef]);
 
-  const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
-    previousView => {
+  const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>({
+    factory: previousView => {
       if (!flamegraphCanvas) {
         return null;
       }
@@ -659,12 +659,12 @@ function Flamegraph(): ReactElement {
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme, profileOffsetFromTransaction]
-  );
 
-  const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
-    _previousView => {
+    deps: [flamegraph, flamegraphCanvas, flamegraphTheme, profileOffsetFromTransaction],
+  });
+
+  const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>({
+    factory: _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !uiFrames) {
         return null;
       }
@@ -690,11 +690,17 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames, profileOffsetFromTransaction]
-  );
+    deps: [
+      flamegraphView,
+      flamegraphCanvas,
+      flamegraph,
+      uiFrames,
+      profileOffsetFromTransaction,
+    ],
+  });
 
-  const batteryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
-    _previousView => {
+  const batteryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>({
+    factory: _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !batteryChart || !batteryChartCanvas) {
         return null;
       }
@@ -727,18 +733,18 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [
+    deps: [
       flamegraphView,
       flamegraphCanvas,
       batteryChart,
       uiFrames.minFrameDuration,
       batteryChartCanvas,
       profileOffsetFromTransaction,
-    ]
-  );
+    ],
+  });
 
-  const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
-    _previousView => {
+  const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>({
+    factory: _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !CPUChart || !cpuChartCanvas) {
         return null;
       }
@@ -771,18 +777,18 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [
+    deps: [
       flamegraphView,
       flamegraphCanvas,
       CPUChart,
       uiFrames.minFrameDuration,
       cpuChartCanvas,
       profileOffsetFromTransaction,
-    ]
-  );
+    ],
+  });
 
-  const memoryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
-    _previousView => {
+  const memoryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>({
+    factory: _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !memoryChart || !memoryChartCanvas) {
         return null;
       }
@@ -815,18 +821,18 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [
+    deps: [
       flamegraphView,
       flamegraphCanvas,
       memoryChart,
       uiFrames.minFrameDuration,
       memoryChartCanvas,
       profileOffsetFromTransaction,
-    ]
-  );
+    ],
+  });
 
-  const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
-    _previousView => {
+  const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>({
+    factory: _previousView => {
       if (!spansCanvas || !spanChart || !flamegraphView) {
         return null;
       }
@@ -850,8 +856,8 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES]
-  );
+    deps: [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES],
+  });
 
   // We want to make sure that the views have the same min zoom levels so that
   // if you wheel zoom on one, the other one will also zoom to the same level of detail.

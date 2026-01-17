@@ -4,11 +4,11 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 describe('useMemoWithPrevious', () => {
   it('calls factory with null', () => {
-    const dep = {};
+    const deps = [{}];
 
     const factory = jest.fn().mockImplementation(() => 'foo');
 
-    const {result} = renderHook(() => useMemoWithPrevious(factory, [dep]));
+    const {result} = renderHook(useMemoWithPrevious, {initialProps: {factory, deps}});
     expect(factory).toHaveBeenCalledWith(null);
     expect(result.current).toBe('foo');
   });
@@ -20,18 +20,14 @@ describe('useMemoWithPrevious', () => {
     const firstDependency: unknown[] = [];
     const secondDependency: unknown[] = [];
 
-    const {rerender, result} = renderHook(
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      ({fact, dep}) => useMemoWithPrevious(fact, [dep]),
-      {
-        initialProps: {
-          fact: factory,
-          dep: firstDependency,
-        },
-      }
-    );
+    const {rerender, result} = renderHook(useMemoWithPrevious, {
+      initialProps: {
+        factory,
+        deps: [firstDependency],
+      },
+    });
 
-    rerender({fact: factory, dep: secondDependency});
+    rerender({factory, deps: [secondDependency]});
 
     expect(result.current).toBe('bar');
     expect(factory.mock.calls[1][0]).toBe('foo');
