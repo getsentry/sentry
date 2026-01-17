@@ -11,6 +11,7 @@ import type {SelectValue} from 'sentry/types/core';
 type FieldProps = {
   label: string;
   hintText?: string;
+  required?: boolean;
 };
 
 export const defaultFormOptions = formOptions({
@@ -54,7 +55,9 @@ export function Field(
   const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
   return (
     <Stack as="label" gap="sm">
-      <Text>{props.label}</Text>
+      <Text>
+        {props.label} {props.required ? <Text variant="danger">*</Text> : null}
+      </Text>
       {props.children({
         'aria-invalid': hasError,
         onBlur: field.handleBlur,
@@ -78,6 +81,7 @@ function InputField({
   label,
   hintText,
   onChange,
+  required,
   ...props
 }: FieldProps &
   Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur'> & {
@@ -85,7 +89,7 @@ function InputField({
     value: string;
   }) {
   return (
-    <Field label={label} hintText={hintText}>
+    <Field label={label} hintText={hintText} required={required}>
       {fieldProps => (
         <Input {...fieldProps} {...props} onChange={e => onChange(e.target.value)} />
       )}
@@ -97,6 +101,7 @@ function NumberField({
   label,
   hintText,
   onChange,
+  required,
   ...props
 }: FieldProps &
   Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur'> & {
@@ -104,7 +109,7 @@ function NumberField({
     value: number;
   }) {
   return (
-    <Field label={label} hintText={hintText}>
+    <Field label={label} hintText={hintText} required={required}>
       {fieldProps => (
         <Input
           {...fieldProps}
@@ -121,6 +126,7 @@ function SelectField({
   label,
   hintText,
   onChange,
+  required,
   ...props
 }: FieldProps &
   Omit<React.ComponentProps<typeof Select>, 'value' | 'onChange' | 'onBlur'> & {
@@ -128,7 +134,7 @@ function SelectField({
     value: string;
   }) {
   return (
-    <Field label={label} hintText={hintText}>
+    <Field label={label} hintText={hintText} required={required}>
       {fieldProps => (
         <Select
           {...fieldProps}

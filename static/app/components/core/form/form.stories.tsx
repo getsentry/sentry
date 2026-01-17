@@ -18,7 +18,7 @@ const COUNTRY_OPTIONS = [
 const userSchema = z
   .object({
     age: z.number().gte(13, 'You must be 13 to make an account'),
-    firstName: z.string().min(2, 'First name must be at least 2 characters'),
+    firstName: z.string(),
     lastName: z.string().min(2, 'Last name must be at least 2 characters'),
     secret: z.string(),
     address: z.object({
@@ -89,6 +89,7 @@ function TanStack() {
           {field => (
             <field.Input
               label="Last Name:"
+              required
               value={field.state.value}
               onChange={field.handleChange}
             />
@@ -98,6 +99,7 @@ function TanStack() {
           {field => (
             <field.Number
               label="Age:"
+              required
               value={field.state.value}
               onChange={field.handleChange}
             />
@@ -125,6 +127,7 @@ function TanStack() {
           {field => (
             <field.Input
               label="Street:"
+              required
               value={field.state.value}
               onChange={field.handleChange}
             />
@@ -133,6 +136,7 @@ function TanStack() {
         <form.AppField name="address.city">
           {field => (
             <field.Input
+              required
               label="City:"
               value={field.state.value}
               onChange={field.handleChange}
@@ -142,6 +146,7 @@ function TanStack() {
         <form.AppField name="address.country">
           {field => (
             <field.Select
+              required
               label="Country:"
               value={field.state.value}
               onChange={field.handleChange}
