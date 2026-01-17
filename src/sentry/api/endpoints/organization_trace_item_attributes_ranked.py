@@ -318,7 +318,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
 
         # If baseline is empty or negative, comparison is not meaningful
         if total_baseline <= 0:
-            logger.info("total_baseline is <= 0 (%s). Returning empty response", total_baseline)
+            logger.warning("total_baseline is <= 0 (%s). Returning empty response", total_baseline)
             return Response(ranked_distribution)
 
         logger.info(
