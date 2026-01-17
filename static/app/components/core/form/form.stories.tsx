@@ -1,13 +1,26 @@
 import {Fragment} from 'react';
 import {useForm} from 'react-hook-form';
+import {
+  Form as FormischForm,
+  getInput,
+  useForm as useFormischForm,
+} from '@formisch/react';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {revalidateLogic} from '@tanstack/react-form';
+import * as v from 'valibot';
 import {z} from 'zod';
 
 import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
 import {defaultFormOptions, useScrapsForm} from './index';
+import {
+  FormischField,
+  InputField as FormischInputField,
+  NumberField as FormischNumberField,
+  SelectField as FormischSelectField,
+  SubmitButton as FormischSubmitButton,
+} from './index.formisch';
 import {InputField, NumberField, RHFField, SelectField, SubmitButton} from './index.rhf';
 
 const COUNTRY_OPTIONS = [
@@ -40,6 +53,30 @@ const userSchema = z
       path: ['secret'],
     }
   );
+
+// Valibot schema for Formisch
+const userSchemaValibot = v.pipe(
+  v.object({
+    age: v.pipe(v.number(), v.minValue(13, 'You must be 13 to make an account')),
+    firstName: v.string(),
+    lastName: v.pipe(
+      v.string(),
+      v.minLength(2, 'Last name must be at least 2 characters')
+    ),
+    secret: v.string(),
+    address: v.object({
+      street: v.pipe(v.string(), v.minLength(1, 'Street is required')),
+      city: v.pipe(v.string(), v.minLength(1, 'City is required')),
+      country: v.pipe(v.string(), v.minLength(1, 'Country is required')),
+    }),
+  }),
+  v.check(input => {
+    if (input.age === 42) {
+      return input.secret.length > 0;
+    }
+    return true;
+  }, 'Secret is required when age is 42')
+);
 
 function TanStack() {
   const form = useScrapsForm({
@@ -269,6 +306,118 @@ function Rhf() {
   );
 }
 
+function Formisch() {
+  const form = useFormischForm({
+    schema: userSchemaValibot,
+    initialInput: {
+      age: 0,
+      firstName: '',
+      lastName: '',
+      secret: '',
+      address: {
+        street: '',
+        city: '',
+        country: '',
+      },
+    },
+  });
+
+  // Access form state for conditional rendering using getInput
+  const formInput = getInput(form);
+  const age = formInput.age ?? 0;
+  const showSecret = age === 42;
+
+  return (
+    <FormischForm
+      of={form}
+      onSubmit={output => {
+        // eslint-disable-next-line no-alert
+        alert(JSON.stringify(output));
+      }}
+    >
+      <Stack gap="lg">
+        <FormischField of={form} path={['firstName']}>
+          {field => (
+            <FormischInputField
+              label="First Name:"
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </FormischField>
+        <FormischField of={form} path={['lastName']}>
+          {field => (
+            <FormischInputField
+              label="Last Name:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </FormischField>
+        <FormischField of={form} path={['age']}>
+          {field => (
+            <FormischNumberField
+              label="Age:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </FormischField>
+        {showSecret ? (
+          <FormischField of={form} path={['secret']}>
+            {field => (
+              <FormischInputField
+                label="Secret:"
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          </FormischField>
+        ) : null}
+        <div style={{marginTop: '20px', marginBottom: '10px'}}>
+          <strong>Address</strong>
+        </div>
+        <FormischField of={form} path={['address', 'street']}>
+          {field => (
+            <FormischInputField
+              label="Street:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </FormischField>
+        <FormischField of={form} path={['address', 'city']}>
+          {field => (
+            <FormischInputField
+              label="City:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </FormischField>
+        <FormischField of={form} path={['address', 'country']}>
+          {field => (
+            <FormischSelectField
+              label="Country:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+              options={COUNTRY_OPTIONS}
+            />
+          )}
+        </FormischField>
+        <FormischSubmitButton isSubmitting={form.isSubmitting}>
+          Submit
+        </FormischSubmitButton>
+      </Stack>
+    </FormischForm>
+  );
+}
+
 export default Storybook.story('Form', story => {
   story('TanStack', () => {
     return (
@@ -282,6 +431,14 @@ export default Storybook.story('Form', story => {
     return (
       <Fragment>
         <Rhf />
+      </Fragment>
+    );
+  });
+
+  story('Formisch', () => {
+    return (
+      <Fragment>
+        <Formisch />
       </Fragment>
     );
   });
