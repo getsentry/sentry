@@ -15,6 +15,7 @@ import {
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
+import type {Organization} from 'sentry/types/organization';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
@@ -68,16 +69,22 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   );
 }
 
+function showPreventNav(organization: Organization) {
+  if (showNewSeer(organization)) {
+    // If you've got the new seer, then we won't show code-review sub-nav items.
+    // We will show the main prevent nav only if you have test analytics.
+    return organization.features.includes('prevent-test-analytics');
+  }
+  // If you've got the old seer, then we will show the sub-nav items, maybe the test items too
+  return true;
+}
+
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
   const ref = useRef<HTMLUListElement>(null);
 
   const makeNavItemProps = useActivateNavGroupOnHover({ref});
-
-  const showPreventNav = organization.features.includes('prevent-test-analytics')
-    ? true // If you've got test analytics, then you can see the nav
-    : !showNewSeer(organization); // Old seer plan members will see the button to access the AI Code Review landing page.
 
   return (
     <Fragment>
@@ -150,7 +157,7 @@ export function PrimaryNavigationItems() {
         </Feature>
 
         <Feature features={['prevent-ai']}>
-          {showPreventNav ? (
+          {showPreventNav(organization) ? (
             <Container position="relative" height="100%">
               <SidebarLink
                 to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
