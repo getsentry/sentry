@@ -86,7 +86,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
     def test_no_cron_monitor_rules(self) -> None:
         """
         Tests that the shadow cron monitor rules are NOT returned as part of
-        the the list of alert rules.
+        the list of alert rules.
         """
         self.create_alert_rule()
         cron_rule = Rule.objects.create(
