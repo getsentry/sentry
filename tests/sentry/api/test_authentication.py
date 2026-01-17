@@ -896,18 +896,16 @@ class TestAuthTokens(TestCase):
 
 
 class TestAuthenticateHeader:
-    """
-    Tests for RFC 6750 Section 3 compliance: WWW-Authenticate header.
-    """
+    """Tests for RFC 6750 Section 3 compliance: WWW-Authenticate header."""
 
-    def test_user_auth_token_returns_bearer(self) -> None:
+    def test_user_auth_token_returns_bearer_with_realm(self) -> None:
         auth = UserAuthTokenAuthentication()
-        assert auth.authenticate_header(_drf_request()) == "Bearer"
+        assert auth.authenticate_header(_drf_request()) == 'Bearer realm="api"'
 
-    def test_org_auth_token_returns_bearer(self) -> None:
+    def test_org_auth_token_returns_bearer_with_realm(self) -> None:
         auth = OrgAuthTokenAuthentication()
-        assert auth.authenticate_header(_drf_request()) == "Bearer"
+        assert auth.authenticate_header(_drf_request()) == 'Bearer realm="api"'
 
-    def test_dsn_authentication_returns_dsn(self) -> None:
+    def test_dsn_authentication_returns_dsn_with_realm(self) -> None:
         auth = DSNAuthentication()
-        assert auth.authenticate_header(_drf_request()) == "Dsn"
+        assert auth.authenticate_header(_drf_request()) == 'Dsn realm="api"'
