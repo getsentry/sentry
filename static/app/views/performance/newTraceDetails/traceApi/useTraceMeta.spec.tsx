@@ -82,8 +82,8 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
-      organization,
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization, initialProps: mockedReplayTraces,
     });
 
     expect(result.current).toEqual({
@@ -170,8 +170,8 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
-      organization: org,
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization: org, initialProps: mockedReplayTraces,
     });
 
     expect(result.current).toEqual({
@@ -222,8 +222,8 @@ describe('useTraceMeta', () => {
       statusCode: 400,
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
-      organization,
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization, initialProps: mockedReplayTraces,
     });
 
     expect(result.current).toEqual({
@@ -290,8 +290,8 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
-      organization,
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization, initialProps: mockedReplayTraces,
     });
 
     expect(result.current).toEqual({

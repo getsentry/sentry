@@ -47,13 +47,12 @@ describe('useExploreSpansTable', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useExploreSpansTable({
+      useExploreSpansTable,
+      {additionalWrapper: Wrapper, initialProps: {
           query: 'test value',
           enabled: true,
           limit: 10,
-        }),
-      {additionalWrapper: Wrapper}
+        }}
     );
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
@@ -104,12 +103,7 @@ describe('useExploreSpansTable', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreSpansTable({
-          query: 'test value',
-          enabled: true,
-          limit: 10,
-        }),
+      useExploreSpansTable,
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
@@ -119,6 +113,10 @@ describe('useExploreSpansTable', () => {
               extrapolate: '0',
             },
           },
+        }, initialProps: {
+          query: 'test value',
+          enabled: true,
+          limit: 10,
         },
       }
     );

@@ -31,8 +31,8 @@ describe('useGetActiveIntegratedOrgs', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useGetActiveIntegratedOrgs({organization}),
-      {organization}
+      useGetActiveIntegratedOrgs,
+      {organization, initialProps: {organization}}
     );
 
     await waitFor(() => {
@@ -71,8 +71,8 @@ describe('useGetActiveIntegratedOrgs', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useGetActiveIntegratedOrgs({organization}),
-      {organization}
+      useGetActiveIntegratedOrgs,
+      {organization, initialProps: {organization}}
     );
 
     await waitFor(() => {
@@ -92,8 +92,8 @@ describe('useGetActiveIntegratedOrgs', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useGetActiveIntegratedOrgs({organization}),
-      {organization}
+      useGetActiveIntegratedOrgs,
+      {organization, initialProps: {organization}}
     );
 
     await waitFor(() => {

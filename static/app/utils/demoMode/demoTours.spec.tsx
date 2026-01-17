@@ -105,7 +105,7 @@ describe('DemoTours', () => {
     it('returns null when used outside provider', () => {
       jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES));
+      const {result} = renderHookWithProviders(useDemoTour, {initialProps: DemoTour.RELEASES});
 
       expect(result.current).toBeNull();
 
@@ -113,8 +113,8 @@ describe('DemoTours', () => {
     });
 
     it('provides tour context when used inside provider', () => {
-      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES), {
-        additionalWrapper: createWrapper(),
+      const {result} = renderHookWithProviders(useDemoTour, {
+        additionalWrapper: createWrapper(), initialProps: DemoTour.RELEASES,
       });
 
       const tour = result.current;
@@ -128,8 +128,8 @@ describe('DemoTours', () => {
     });
 
     it('handles tour actions', () => {
-      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES), {
-        additionalWrapper: createWrapper(),
+      const {result} = renderHookWithProviders(useDemoTour, {
+        additionalWrapper: createWrapper(), initialProps: DemoTour.RELEASES,
       });
 
       const tour = result.current;
@@ -160,18 +160,18 @@ describe('DemoTours', () => {
 
     it('maintains separate state for different tours', () => {
       const {result: sideBarResult} = renderHookWithProviders(
-        () => useDemoTour(DemoTour.RELEASES),
+        useDemoTour,
         {
-          additionalWrapper: createWrapper(),
+          additionalWrapper: createWrapper(), initialProps: DemoTour.RELEASES,
         }
       );
 
       const sidebarTour = sideBarResult.current;
 
       const {result: issuesResult} = renderHookWithProviders(
-        () => useDemoTour(DemoTour.ISSUES),
+        useDemoTour,
         {
-          additionalWrapper: createWrapper(),
+          additionalWrapper: createWrapper(), initialProps: DemoTour.ISSUES,
         }
       );
 
@@ -213,8 +213,8 @@ describe('DemoTours', () => {
     });
 
     it('correctly advances through tour steps', () => {
-      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES), {
-        additionalWrapper: createWrapper(),
+      const {result} = renderHookWithProviders(useDemoTour, {
+        additionalWrapper: createWrapper(), initialProps: DemoTour.RELEASES,
       });
 
       const sidebarTour = result.current;

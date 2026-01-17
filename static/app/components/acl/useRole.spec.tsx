@@ -24,8 +24,8 @@ describe('useRole', () => {
   });
 
   it('has a sufficient role', () => {
-    const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
-      organization,
+    const {result} = renderHookWithProviders(useRole, {
+      organization, initialProps: {role: 'attachmentsRole'},
     });
     expect(result.current.hasRole).toBe(true);
     expect(result.current.roleRequired).toBe('admin');
@@ -37,8 +37,8 @@ describe('useRole', () => {
       orgRole: 'member',
     });
     OrganizationStore.onUpdate(org, {replace: true});
-    const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
-      organization: org,
+    const {result} = renderHookWithProviders(useRole, {
+      organization: org, initialProps: {role: 'attachmentsRole'},
     });
     expect(result.current.hasRole).toBe(false);
   });
@@ -50,8 +50,8 @@ describe('useRole', () => {
       access: ['org:superuser'],
     });
     OrganizationStore.onUpdate(org, {replace: true});
-    const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
-      organization: org,
+    const {result} = renderHookWithProviders(useRole, {
+      organization: org, initialProps: {role: 'attachmentsRole'},
     });
     expect(result.current.hasRole).toBe(true);
   });
@@ -59,8 +59,8 @@ describe('useRole', () => {
   it('handles no organization.orgRoleList', () => {
     const org = {...organization, orgRoleList: []};
     OrganizationStore.onUpdate(org, {replace: true});
-    const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
-      organization: org,
+    const {result} = renderHookWithProviders(useRole, {
+      organization: org, initialProps: {role: 'attachmentsRole'},
     });
     expect(result.current.hasRole).toBe(false);
   });

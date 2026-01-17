@@ -48,10 +48,9 @@ describe('useTrace', () => {
         body: [],
       });
 
-      renderHookWithProviders(() =>
-        useTrace({
+      renderHookWithProviders(useTrace, {initialProps: {
           traceSlug: 'test-trace-id',
-        })
+        }}
       );
 
       // Wait for the hook to make the API call
@@ -134,10 +133,9 @@ describe('useTrace', () => {
           body: [],
         });
 
-        renderHookWithProviders(() =>
-          useTrace({
+        renderHookWithProviders(useTrace, {initialProps: {
             traceSlug: 'trace-test-id',
-          })
+          }}
         );
 
         await waitFor(() => {

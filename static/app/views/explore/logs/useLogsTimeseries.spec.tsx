@@ -74,8 +74,8 @@ describe('useLogsTimeseries', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useLogsTimeseries({
+      useLogsTimeseries,
+      {additionalWrapper: Wrapper, initialProps: {
           enabled: true,
           timeseriesIngestDelay: 0n,
           tableData: {
@@ -104,8 +104,7 @@ describe('useLogsTimeseries', () => {
             canResumeAutoFetch: false,
             resumeAutoFetch: () => {},
           },
-        }),
-      {additionalWrapper: Wrapper}
+        }}
     );
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);

@@ -39,7 +39,7 @@ describe('useDashboardsLimit', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+    const {result} = renderHookWithProviders(useDashboardsLimit, {
       organization: mockOrganization,
     });
 
@@ -66,7 +66,7 @@ describe('useDashboardsLimit', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+    const {result} = renderHookWithProviders(useDashboardsLimit, {
       organization: mockOrganization,
     });
 
@@ -110,7 +110,7 @@ describe('useDashboardsLimit', () => {
       match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+    const {result} = renderHookWithProviders(useDashboardsLimit, {
       organization: mockOrganization,
     });
 
@@ -152,7 +152,7 @@ describe('useDashboardsLimit', () => {
       match: [MockApiClient.matchQuery({per_page: 3, filter: 'excludePrebuilt'})],
     });
 
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+    const {result} = renderHookWithProviders(useDashboardsLimit, {
       organization: mockOrganization,
     });
 
@@ -198,7 +198,7 @@ describe('useDashboardsLimit', () => {
       match: [MockApiClient.matchQuery({per_page: 2, filter: 'excludePrebuilt'})],
     });
 
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+    const {result} = renderHookWithProviders(useDashboardsLimit, {
       organization: mockOrganization,
     });
 
@@ -240,7 +240,7 @@ describe('useDashboardsLimit', () => {
       match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+    const {result} = renderHookWithProviders(useDashboardsLimit, {
       organization: mockOrganization,
     });
 
@@ -274,7 +274,7 @@ describe('useDashboardsLimit', () => {
       match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+    const {result} = renderHookWithProviders(useDashboardsLimit, {
       organization: mockOrganization,
     });
 
@@ -306,7 +306,7 @@ describe('useDashboardsLimit', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+    const {result} = renderHookWithProviders(useDashboardsLimit, {
       organization: mockOrganization,
     });
 

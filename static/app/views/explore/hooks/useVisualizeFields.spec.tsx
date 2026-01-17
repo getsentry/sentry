@@ -57,8 +57,8 @@ describe('useVisualizeFields', () => {
   });
 
   it('returns numeric fields', () => {
-    const {result} = renderHook(() => useWrapper('avg(score.ttfb)'), {
-      wrapper: createWrapper(organization),
+    const {result} = renderHook(useWrapper, {
+      wrapper: createWrapper(organization), initialProps: 'avg(score.ttfb)',
     });
 
     expect(result.current.map(field => field.value)).toEqual([
@@ -69,16 +69,16 @@ describe('useVisualizeFields', () => {
   });
 
   it('returns numeric fields for count', () => {
-    const {result} = renderHook(() => useWrapper('count(span.duration)'), {
-      wrapper: createWrapper(organization),
+    const {result} = renderHook(useWrapper, {
+      wrapper: createWrapper(organization), initialProps: 'count(span.duration)',
     });
 
     expect(result.current.map(field => field.value)).toEqual(['span.duration']);
   });
 
   it('returns string fields for count_unique', () => {
-    const {result} = renderHook(() => useWrapper('count_unique(foobar)'), {
-      wrapper: createWrapper(organization),
+    const {result} = renderHook(useWrapper, {
+      wrapper: createWrapper(organization), initialProps: 'count_unique(foobar)',
     });
 
     expect(result.current.map(field => field.value)).toEqual(

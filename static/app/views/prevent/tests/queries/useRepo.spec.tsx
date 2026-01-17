@@ -37,7 +37,7 @@ describe('useRepo', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useRepo(), {
+    const {result} = renderHookWithProviders(useRepo, {
       additionalWrapper,
       organization,
     });
@@ -66,7 +66,7 @@ describe('useRepo', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useRepo(), {
+    const {result} = renderHookWithProviders(useRepo, {
       additionalWrapper,
       organization,
     });

@@ -30,12 +30,11 @@ describe('useProfileFunctionTrendss', () => {
     });
 
     const hook = renderHook(
-      () =>
-        useProfileFunctionTrends({
+      useProfileFunctionTrends,
+      {wrapper: TestContext, initialProps: {
           trendFunction: 'p95()',
           trendType: 'regression',
-        }),
-      {wrapper: TestContext}
+        }}
     );
     expect(hook.result.current).toMatchObject(
       expect.objectContaining({
@@ -51,12 +50,11 @@ describe('useProfileFunctionTrendss', () => {
     });
 
     const hook = renderHook(
-      () =>
-        useProfileFunctionTrends({
+      useProfileFunctionTrends,
+      {wrapper: TestContext, initialProps: {
           trendFunction: 'p95()',
           trendType: 'regression',
-        }),
-      {wrapper: TestContext}
+        }}
     );
     expect(hook.result.current.isPending).toBe(true);
     expect(hook.result.current.isFetched).toBe(false);

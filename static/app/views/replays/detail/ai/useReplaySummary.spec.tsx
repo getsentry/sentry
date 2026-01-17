@@ -55,8 +55,8 @@ describe('useReplaySummary', () => {
         body: mockSummaryData,
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
-        organization: mockOrganization,
+      const {result} = renderHookWithProviders(useReplaySummary, {
+        organization: mockOrganization, initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -73,8 +73,8 @@ describe('useReplaySummary', () => {
         statusCode: 500,
         body: {detail: 'Internal server error'},
       });
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
-        organization: mockOrganization,
+      const {result} = renderHookWithProviders(useReplaySummary, {
+        organization: mockOrganization, initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -142,8 +142,8 @@ describe('useReplaySummary', () => {
         body: responsePromise,
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
-        organization: mockOrganization,
+      const {result} = renderHookWithProviders(useReplaySummary, {
+        organization: mockOrganization, initialProps: mockReplay,
       });
 
       // Wait for the return value to be in pending state
@@ -165,8 +165,8 @@ describe('useReplaySummary', () => {
         body: {status: ReplaySummaryStatus.PROCESSING, data: undefined},
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
-        organization: mockOrganization,
+      const {result} = renderHookWithProviders(useReplaySummary, {
+        organization: mockOrganization, initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -184,8 +184,8 @@ describe('useReplaySummary', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
-        organization: mockOrganization,
+      const {result} = renderHookWithProviders(useReplaySummary, {
+        organization: mockOrganization, initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -200,8 +200,8 @@ describe('useReplaySummary', () => {
         body: {status: ReplaySummaryStatus.ERROR, data: undefined},
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
-        organization: mockOrganization,
+      const {result} = renderHookWithProviders(useReplaySummary, {
+        organization: mockOrganization, initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -228,9 +228,9 @@ describe('useReplaySummary', () => {
       });
 
       const {result, rerender} = renderHookWithProviders(
-        () => useReplaySummary(mockReplay),
+        useReplaySummary,
         {
-          organization: mockOrganization,
+          organization: mockOrganization, initialProps: mockReplay,
         }
       );
 

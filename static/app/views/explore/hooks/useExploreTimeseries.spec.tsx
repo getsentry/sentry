@@ -61,13 +61,12 @@ describe('useExploreTimeseries', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
+      useExploreTimeseries,
+      {
+        additionalWrapper: Wrapper, initialProps: {
           query: 'test value',
           enabled: true,
-        }),
-      {
-        additionalWrapper: Wrapper,
+        },
       }
     );
 
@@ -111,11 +110,7 @@ describe('useExploreTimeseries', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
+      useExploreTimeseries,
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
@@ -125,6 +120,9 @@ describe('useExploreTimeseries', () => {
               extrapolate: '0',
             },
           },
+        }, initialProps: {
+          query: 'test value',
+          enabled: true,
         },
       }
     );

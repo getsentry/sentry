@@ -1,4 +1,4 @@
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor, render} from 'sentry-test/reactTestingLibrary';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -14,10 +14,10 @@ describe('useLocalStorageState', () => {
 
   it('throws if key is not a string', () => {
     expect(() => {
-      renderHook(() => {
-        // @ts-expect-error force incorrect usage
+      function TestComponent() {
         useLocalStorageState({}, 'default value');
-      });
+      }
+      render(<TestComponent />);
     }).toThrow('useLocalStorage: key must be a string');
   });
 

@@ -105,16 +105,15 @@ describe('useSaveAsItems', () => {
 
   it('should open save query modal when save as new query is clicked', () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
+      useSaveAsItems,
+      {additionalWrapper: createWrapper(), initialProps: {
           visualizes: [new VisualizeFunction('count()')],
           groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
+        }}
     );
 
     const saveAsItems = result.current;
@@ -163,16 +162,15 @@ describe('useSaveAsItems', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
+      useSaveAsItems,
+      {additionalWrapper: createWrapper(), initialProps: {
           visualizes: [new VisualizeFunction('count()')],
           groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
+        }}
     );
 
     await waitFor(() => {
@@ -195,16 +193,15 @@ describe('useSaveAsItems', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
+      useSaveAsItems,
+      {additionalWrapper: createWrapper(), initialProps: {
           visualizes: [new VisualizeFunction('count()')],
           groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
+        }}
     );
 
     const saveAsItems = result.current;
@@ -215,8 +212,8 @@ describe('useSaveAsItems', () => {
 
   it('should call saveQuery with correct parameters when modal saves', async () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
+      useSaveAsItems,
+      {additionalWrapper: createWrapper(), initialProps: {
           visualizes: [new VisualizeFunction('count()')],
           groupBys: ['message.template'],
           // Note: useSaveQuery uses the value returned by useChartInterval()
@@ -225,8 +222,7 @@ describe('useSaveAsItems', () => {
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
+        }}
     );
 
     const saveAsItems = result.current;

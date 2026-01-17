@@ -30,8 +30,8 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}), {
-      wrapper: UrlParamBatchProvider,
+    const {result} = renderHook(useQueryParamState, {
+      wrapper: UrlParamBatchProvider, initialProps: {fieldName: 'testField'},
     });
 
     expect(result.current[0]).toBe('initial state');
@@ -41,8 +41,8 @@ describe('useQueryParamState', () => {
     const mockedNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
-    const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}), {
-      wrapper: UrlParamBatchProvider,
+    const {result} = renderHook(useQueryParamState, {
+      wrapper: UrlParamBatchProvider, initialProps: {fieldName: 'testField'},
     });
 
     act(() => {
@@ -85,9 +85,9 @@ describe('useQueryParamState', () => {
     const testDeserializer = (value: string) => `${value.toUpperCase()} - decoded`;
 
     const {result} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', deserializer: testDeserializer}),
+      useQueryParamState,
       {
-        wrapper: UrlParamBatchProvider,
+        wrapper: UrlParamBatchProvider, initialProps: {fieldName: 'testField', deserializer: testDeserializer},
       }
     );
 
@@ -108,9 +108,9 @@ describe('useQueryParamState', () => {
       `${value.value} - ${value.count} - ${value.isActive}`;
 
     const {result} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', serializer: testSerializer}),
+      useQueryParamState,
       {
-        wrapper: UrlParamBatchProvider,
+        wrapper: UrlParamBatchProvider, initialProps: {fieldName: 'testField', serializer: testSerializer},
       }
     );
 
@@ -134,14 +134,13 @@ describe('useQueryParamState', () => {
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
     const {result} = renderHook(
-      () =>
-        useQueryParamState<Sort[]>({
+      useQueryParamState,
+      {
+        wrapper: UrlParamBatchProvider, initialProps: {
           fieldName: 'sort',
           decoder: decodeSorts,
           serializer: value => value.map(formatSort),
-        }),
-      {
-        wrapper: UrlParamBatchProvider,
+        },
       }
     );
 
@@ -166,9 +165,9 @@ describe('useQueryParamState', () => {
     );
 
     const {result, rerender} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', syncStateWithUrl: false}),
+      useQueryParamState,
       {
-        wrapper: UrlParamBatchProvider,
+        wrapper: UrlParamBatchProvider, initialProps: {fieldName: 'testField', syncStateWithUrl: false},
       }
     );
 
@@ -191,9 +190,9 @@ describe('useQueryParamState', () => {
     );
 
     const {result, rerender} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', syncStateWithUrl: true}),
+      useQueryParamState,
       {
-        wrapper: UrlParamBatchProvider,
+        wrapper: UrlParamBatchProvider, initialProps: {fieldName: 'testField', syncStateWithUrl: true},
       }
     );
 

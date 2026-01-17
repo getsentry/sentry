@@ -27,15 +27,14 @@ describe('useMetricDetectorAnomalyThresholds', () => {
     ];
 
     renderHookWithProviders(
-      () =>
-        useMetricDetectorAnomalyThresholds({
+      useMetricDetectorAnomalyThresholds,
+      {organization, initialProps: {
           detectorId: '123',
           detectionType: 'static',
           startTimestamp: 1609459200,
           endTimestamp: 1609545600,
           series,
-        }),
-      {organization}
+        }}
     );
 
     expect(anomalyDataRequest).not.toHaveBeenCalled();
@@ -69,15 +68,14 @@ describe('useMetricDetectorAnomalyThresholds', () => {
     ];
 
     renderHookWithProviders(
-      () =>
-        useMetricDetectorAnomalyThresholds({
+      useMetricDetectorAnomalyThresholds,
+      {organization, initialProps: {
           detectorId: '123',
           detectionType: 'dynamic',
           startTimestamp: 1609459200,
           endTimestamp: 1609545600,
           series,
-        }),
-      {organization}
+        }}
     );
 
     await waitFor(() => {
@@ -103,15 +101,14 @@ describe('useMetricDetectorAnomalyThresholds', () => {
     ];
 
     renderHookWithProviders(
-      () =>
-        useMetricDetectorAnomalyThresholds({
+      useMetricDetectorAnomalyThresholds,
+      {organization, initialProps: {
           detectorId: '123',
           detectionType: undefined,
           startTimestamp: 1609459200,
           endTimestamp: 1609545600,
           series,
-        }),
-      {organization}
+        }}
     );
 
     expect(anomalyDataRequest).not.toHaveBeenCalled();
@@ -146,16 +143,15 @@ describe('useMetricDetectorAnomalyThresholds', () => {
     ];
 
     renderHookWithProviders(
-      () =>
-        useMetricDetectorAnomalyThresholds({
+      useMetricDetectorAnomalyThresholds,
+      {organization, initialProps: {
           detectorId: '123',
           detectionType: 'dynamic',
           startTimestamp: 1609459200,
           endTimestamp: 1609545600,
           series,
           isLegacyAlert: true,
-        }),
-      {organization}
+        }}
     );
 
     await waitFor(() => {

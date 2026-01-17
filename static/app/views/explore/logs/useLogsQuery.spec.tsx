@@ -115,7 +115,7 @@ describe('useInfiniteLogsQuery', () => {
       );
     }
 
-    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result, rerender} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper(),
       organization,
     });
@@ -205,7 +205,7 @@ describe('useInfiniteLogsQuery', () => {
       headers: linkHeaders,
     });
 
-    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result, rerender} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper(),
       organization,
     });
@@ -288,8 +288,8 @@ describe('useInfiniteLogsQuery', () => {
       ],
     });
 
-    renderHookWithProviders(() => useInfiniteLogsQuery({}), {
-      additionalWrapper: createWrapper(),
+    renderHookWithProviders(useInfiniteLogsQuery, {
+      additionalWrapper: createWrapper(), initialProps: {},
     });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
@@ -381,9 +381,9 @@ describe('useInfiniteLogsQuery', () => {
       ].map(response => MockApiClient.addMockResponse(response));
 
       const {result} = renderHookWithProviders(
-        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
+        useInfiniteLogsQuery,
         {
-          additionalWrapper: createWrapper(),
+          additionalWrapper: createWrapper(), initialProps: {highFidelity: true, maxAutoFetches: 3},
         }
       );
 
@@ -434,9 +434,9 @@ describe('useInfiniteLogsQuery', () => {
       ].map(response => MockApiClient.addMockResponse(response));
 
       const {result} = renderHookWithProviders(
-        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
+        useInfiniteLogsQuery,
         {
-          additionalWrapper: createWrapper(),
+          additionalWrapper: createWrapper(), initialProps: {highFidelity: true, maxAutoFetches: 3},
         }
       );
 
@@ -682,7 +682,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
       organization,
     });
@@ -710,7 +710,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper({autoRefresh: 'idle'}),
       organization,
     });
@@ -767,7 +767,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
       organization,
     });
@@ -829,7 +829,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
       organization,
     });

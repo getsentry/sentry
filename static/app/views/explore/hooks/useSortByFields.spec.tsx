@@ -46,8 +46,9 @@ describe('useSortByFields', () => {
 
   it('returns a valid list of field options in samples mode', () => {
     const {result} = renderHook(
-      () =>
-        useSortByFields({
+      useSortByFields,
+      {
+        wrapper: createWrapper(organization), initialProps: {
           fields: [
             'id',
             'span.op',
@@ -59,9 +60,7 @@ describe('useSortByFields', () => {
           groupBys: [],
           yAxes: ['avg(span.duration)'],
           mode: Mode.SAMPLES,
-        }),
-      {
-        wrapper: createWrapper(organization),
+        },
       }
     );
 
@@ -77,15 +76,14 @@ describe('useSortByFields', () => {
 
   it('returns a valid list of field options in aggregate mode', () => {
     const {result} = renderHook(
-      () =>
-        useSortByFields({
+      useSortByFields,
+      {
+        wrapper: createWrapper(organization), initialProps: {
           fields: ['span.op', 'span.description'],
           groupBys: ['span.op'],
           yAxes: ['avg(span.duration)'],
           mode: Mode.AGGREGATE,
-        }),
-      {
-        wrapper: createWrapper(organization),
+        },
       }
     );
 

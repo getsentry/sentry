@@ -64,11 +64,10 @@ describe('useTraceItemAttributeKeys', () => {
       mockAttributeKeys
     );
 
-    const {result} = renderHookWithProviders(() =>
-      useTraceItemAttributeKeys({
+    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'string',
-      })
+      }}
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -119,11 +118,10 @@ describe('useTraceItemAttributeKeys', () => {
       'number'
     );
 
-    const {result} = renderHookWithProviders(() =>
-      useTraceItemAttributeKeys({
+    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'number',
-      })
+      }}
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -173,11 +171,10 @@ describe('useTraceItemAttributeKeys', () => {
 
     mockTraceItemAttributeKeysApi(organization.slug, attributesWithInvalidChars);
 
-    const {result} = renderHookWithProviders(() =>
-      useTraceItemAttributeKeys({
+    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'string',
-      })
+      }}
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -227,11 +224,10 @@ describe('useTraceItemAttributeKeys', () => {
       testAttributeKeys
     );
 
-    const {result} = renderHookWithProviders(() =>
-      useTraceItemAttributeKeys({
+    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'string',
-      })
+      }}
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));

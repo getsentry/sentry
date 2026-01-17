@@ -69,14 +69,13 @@ describe('useInfiniteRepositoryTokens', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () =>
-        useInfiniteRepositoryTokens({
-          cursor: undefined,
-          navigation: undefined,
-        }),
+      useInfiniteRepositoryTokens,
       {
         organization,
-        additionalWrapper,
+        additionalWrapper, initialProps: {
+          cursor: undefined,
+          navigation: undefined,
+        },
       }
     );
 
@@ -121,14 +120,13 @@ describe('useInfiniteRepositoryTokens', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () =>
-        useInfiniteRepositoryTokens({
-          cursor: 'next-cursor',
-          navigation: 'next',
-        }),
+      useInfiniteRepositoryTokens,
       {
         organization,
-        additionalWrapper,
+        additionalWrapper, initialProps: {
+          cursor: 'next-cursor',
+          navigation: 'next',
+        },
       }
     );
 
@@ -156,14 +154,13 @@ describe('useInfiniteRepositoryTokens', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () =>
-        useInfiniteRepositoryTokens({
-          cursor: undefined,
-          navigation: undefined,
-        }),
+      useInfiniteRepositoryTokens,
       {
         organization,
-        additionalWrapper,
+        additionalWrapper, initialProps: {
+          cursor: undefined,
+          navigation: undefined,
+        },
       }
     );
 
@@ -195,14 +192,13 @@ describe('useInfiniteRepositoryTokens', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () =>
-        useInfiniteRepositoryTokens({
-          cursor: undefined,
-          navigation: undefined,
-        }),
+      useInfiniteRepositoryTokens,
       {
         additionalWrapper,
-        organization,
+        organization, initialProps: {
+          cursor: undefined,
+          navigation: undefined,
+        },
       }
     );
 
@@ -230,14 +226,13 @@ describe('useInfiniteRepositoryTokens', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () =>
-        useInfiniteRepositoryTokens({
-          cursor: undefined,
-          navigation: undefined,
-        }),
+      useInfiniteRepositoryTokens,
       {
         additionalWrapper,
-        organization,
+        organization, initialProps: {
+          cursor: undefined,
+          navigation: undefined,
+        },
       }
     );
 

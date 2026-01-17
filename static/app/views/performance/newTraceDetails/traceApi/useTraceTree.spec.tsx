@@ -34,13 +34,12 @@ const contextWrapper = () => {
 describe('useTraceTree', () => {
   it('returns tree for error case', async () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
+      useTraceTree,
+      {additionalWrapper: contextWrapper(), initialProps: {
           trace: getMockedTraceResults('error'),
           traceSlug: 'test-trace',
           replay: null,
-        }),
-      {additionalWrapper: contextWrapper()}
+        }}
     );
 
     await waitFor(() => {
@@ -50,13 +49,12 @@ describe('useTraceTree', () => {
 
   it('returns tree for loading case', async () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
+      useTraceTree,
+      {additionalWrapper: contextWrapper(), initialProps: {
           trace: getMockedTraceResults('pending'),
           traceSlug: 'test-trace',
           replay: null,
-        }),
-      {additionalWrapper: contextWrapper()}
+        }}
     );
 
     await waitFor(() => {
@@ -66,16 +64,15 @@ describe('useTraceTree', () => {
 
   it('returns tree for empty success case', async () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
+      useTraceTree,
+      {additionalWrapper: contextWrapper(), initialProps: {
           trace: getMockedTraceResults('success', {
             transactions: [],
             orphan_errors: [],
           }),
           traceSlug: 'test-trace',
           replay: null,
-        }),
-      {additionalWrapper: contextWrapper()}
+        }}
     );
 
     await waitFor(() => {
@@ -120,13 +117,12 @@ describe('useTraceTree', () => {
     };
 
     const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
+      useTraceTree,
+      {additionalWrapper: contextWrapper(), initialProps: {
           trace: getMockedTraceResults('success', mockedTrace),
           traceSlug: 'test-trace',
           replay: null,
-        }),
-      {additionalWrapper: contextWrapper()}
+        }}
     );
 
     await waitFor(() => {

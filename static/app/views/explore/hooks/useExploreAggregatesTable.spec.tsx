@@ -46,14 +46,13 @@ describe('useExploreAggregatesTable', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
+      useExploreAggregatesTable,
+      {
+        additionalWrapper: Wrapper, initialProps: {
           query: 'test value',
           enabled: true,
           limit: 100,
-        }),
-      {
-        additionalWrapper: Wrapper,
+        },
       }
     );
 
@@ -97,12 +96,7 @@ describe('useExploreAggregatesTable', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
-          query: 'test value',
-          enabled: true,
-          limit: 100,
-        }),
+      useExploreAggregatesTable,
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
@@ -112,6 +106,10 @@ describe('useExploreAggregatesTable', () => {
               extrapolate: '0',
             },
           },
+        }, initialProps: {
+          query: 'test value',
+          enabled: true,
+          limit: 100,
         },
       }
     );

@@ -56,13 +56,12 @@ describe('useMetricTimeseries', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useMetricTimeseries({
+      useMetricTimeseries,
+      {
+        additionalWrapper: MockMetricQueryParamsContext, initialProps: {
           traceMetric: {name: 'test metric', type: 'counter'},
           enabled: true,
-        }),
-      {
-        additionalWrapper: MockMetricQueryParamsContext,
+        },
       }
     );
 

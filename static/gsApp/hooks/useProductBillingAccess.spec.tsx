@@ -19,9 +19,9 @@ describe('useProductBillingAccess', () => {
   });
   it('returns true if the org has billing access to the given product', () => {
     const {result} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.ERRORS),
+      useProductBillingAccess,
       {
-        organization,
+        organization, initialProps: DataCategory.ERRORS,
       }
     );
     expect(result.current).toBe(true);
@@ -29,9 +29,9 @@ describe('useProductBillingAccess', () => {
 
   it('returns false if the org does not have billing access to the given product', () => {
     const {result} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.TRANSACTIONS),
+      useProductBillingAccess,
       {
-        organization,
+        organization, initialProps: DataCategory.TRANSACTIONS,
       }
     );
     expect(result.current).toBe(false);
@@ -39,9 +39,9 @@ describe('useProductBillingAccess', () => {
 
   it('uses parent add-on context when appropriate', () => {
     const {result: result1} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.SEER_USER),
+      useProductBillingAccess,
       {
-        organization,
+        organization, initialProps: DataCategory.SEER_USER,
       }
     );
     expect(result1.current).toBe(false);
@@ -56,9 +56,9 @@ describe('useProductBillingAccess', () => {
     });
 
     const {result: result2} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.SEER_USER),
+      useProductBillingAccess,
       {
-        organization,
+        organization, initialProps: DataCategory.SEER_USER,
       }
     );
     expect(result2.current).toBe(false); // still false because add-on parent is not enabled
@@ -72,9 +72,9 @@ describe('useProductBillingAccess', () => {
     });
 
     const {result: result3} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.SEER_USER),
+      useProductBillingAccess,
       {
-        organization,
+        organization, initialProps: DataCategory.SEER_USER,
       }
     );
     expect(result3.current).toBe(true); // now true because add-on parent is enabled

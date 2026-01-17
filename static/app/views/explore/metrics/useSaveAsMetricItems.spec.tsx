@@ -65,11 +65,10 @@ describe('useSaveAsMetricItems', () => {
 
   it('should open save query modal when save as new query is clicked', () => {
     const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
+      useSaveAsMetricItems,
+      {wrapper: createWrapper(), initialProps: {
           interval: '5m',
-        }),
-      {wrapper: createWrapper()}
+        }}
     );
 
     const saveAsItems = result.current;
@@ -116,11 +115,10 @@ describe('useSaveAsMetricItems', () => {
     );
 
     const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
+      useSaveAsMetricItems,
+      {wrapper: createWrapper(), initialProps: {
           interval: '5m',
-        }),
-      {wrapper: createWrapper()}
+        }}
     );
 
     await waitFor(() => {
@@ -141,11 +139,10 @@ describe('useSaveAsMetricItems', () => {
     );
 
     const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
+      useSaveAsMetricItems,
+      {wrapper: createWrapper(), initialProps: {
           interval: '5m',
-        }),
-      {wrapper: createWrapper()}
+        }}
     );
 
     const saveAsItems = result.current;
@@ -160,10 +157,7 @@ describe('useSaveAsMetricItems', () => {
     });
 
     const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
-          interval: '5m',
-        }),
+      useSaveAsMetricItems,
       {
         wrapper: function ({children}: {children?: React.ReactNode}) {
           return (
@@ -173,6 +167,8 @@ describe('useSaveAsMetricItems', () => {
               </QueryClientProvider>
             </OrganizationContext.Provider>
           );
+        }, initialProps: {
+          interval: '5m',
         },
       }
     );

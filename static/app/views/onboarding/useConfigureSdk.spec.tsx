@@ -79,13 +79,13 @@ describe('useConfigureSdk', () => {
   });
 
   it('returns loading state correctly', () => {
-    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}));
+    const {result} = renderHookWithProviders(useConfigureSdk, {initialProps: {onComplete}});
 
     expect(result.current.isLoadingData).toBe(true);
   });
 
   it('opens the framework suggestion modal if platform is supported', async () => {
-    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}));
+    const {result} = renderHookWithProviders(useConfigureSdk, {initialProps: {onComplete}});
 
     await act(async () => {
       await result.current.configureSdk(frameworkModalSupportedPlatform);
@@ -95,7 +95,7 @@ describe('useConfigureSdk', () => {
   });
 
   it('does not open the framework suggestion modal if platform is not supported', async () => {
-    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}));
+    const {result} = renderHookWithProviders(useConfigureSdk, {initialProps: {onComplete}});
 
     await act(async () => {
       await result.current.configureSdk(notFrameworkModalSupportedPlatform);
@@ -106,7 +106,7 @@ describe('useConfigureSdk', () => {
   });
 
   it('creates project only once even if called multiple times', async () => {
-    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}));
+    const {result} = renderHookWithProviders(useConfigureSdk, {initialProps: {onComplete}});
 
     mockCreateProject.mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 10))

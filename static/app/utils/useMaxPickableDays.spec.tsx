@@ -8,10 +8,9 @@ import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
   it('returns 90/90 for transactions', () => {
-    const {result} = renderHookWithProviders(() =>
-      useMaxPickableDays({
+    const {result} = renderHookWithProviders(useMaxPickableDays, {initialProps: {
         dataCategories: [DataCategory.TRANSACTIONS],
-      })
+      }}
     );
 
     expect(result.current).toEqual({
@@ -21,10 +20,9 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 90/90 for replays', () => {
-    const {result} = renderHookWithProviders(() =>
-      useMaxPickableDays({
+    const {result} = renderHookWithProviders(useMaxPickableDays, {initialProps: {
         dataCategories: [DataCategory.REPLAYS],
-      })
+      }}
     );
 
     expect(result.current).toEqual({
@@ -34,10 +32,9 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 30/90 for spans without flag', () => {
-    const {result} = renderHookWithProviders(() =>
-      useMaxPickableDays({
+    const {result} = renderHookWithProviders(useMaxPickableDays, {initialProps: {
         dataCategories: [DataCategory.SPANS],
-      })
+      }}
     );
 
     expect(result.current).toEqual({
@@ -49,12 +46,11 @@ describe('useMaxPickableDays', () => {
 
   it('returns 90/90 for spans with flag', () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useMaxPickableDays({
-          dataCategories: [DataCategory.SPANS],
-        }),
+      useMaxPickableDays,
       {
-        organization: OrganizationFixture({features: ['visibility-explore-range-high']}),
+        organization: OrganizationFixture({features: ['visibility-explore-range-high']}), initialProps: {
+          dataCategories: [DataCategory.SPANS],
+        },
       }
     );
 
@@ -66,10 +62,9 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 30/30 days for tracemetrics', () => {
-    const {result} = renderHookWithProviders(() =>
-      useMaxPickableDays({
+    const {result} = renderHookWithProviders(useMaxPickableDays, {initialProps: {
         dataCategories: [DataCategory.TRACE_METRICS],
-      })
+      }}
     );
 
     expect(result.current).toEqual({
@@ -80,10 +75,9 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 30/30 days for logs', () => {
-    const {result} = renderHookWithProviders(() =>
-      useMaxPickableDays({
+    const {result} = renderHookWithProviders(useMaxPickableDays, {initialProps: {
         dataCategories: [DataCategory.LOG_BYTE, DataCategory.LOG_ITEM],
-      })
+      }}
     );
 
     expect(result.current).toEqual({
@@ -94,8 +88,7 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 30/90 for many without flag', () => {
-    const {result} = renderHookWithProviders(() =>
-      useMaxPickableDays({
+    const {result} = renderHookWithProviders(useMaxPickableDays, {initialProps: {
         dataCategories: [
           DataCategory.SPANS,
           DataCategory.SPANS_INDEXED,
@@ -103,7 +96,7 @@ describe('useMaxPickableDays', () => {
           DataCategory.LOG_BYTE,
           DataCategory.LOG_ITEM,
         ],
-      })
+      }}
     );
 
     expect(result.current).toEqual({

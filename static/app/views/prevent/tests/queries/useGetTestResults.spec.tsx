@@ -98,9 +98,9 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
-      organization,
+      organization, initialProps: {},
     });
 
     await waitFor(() => {
@@ -153,14 +153,13 @@ describe('useInfiniteTestResults', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () =>
-        useInfiniteTestResults({
-          cursor: 'next-cursor',
-          navigation: 'next',
-        }),
+      useInfiniteTestResults,
       {
         additionalWrapper,
-        organization,
+        organization, initialProps: {
+          cursor: 'next-cursor',
+          navigation: 'next',
+        },
       }
     );
 
@@ -194,9 +193,9 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
-      organization,
+      organization, initialProps: {},
     });
 
     await waitFor(() => {
@@ -226,9 +225,9 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
-      organization,
+      organization, initialProps: {},
     });
 
     await waitFor(() => {
@@ -277,9 +276,9 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
-      organization,
+      organization, initialProps: {},
     });
 
     await waitFor(() => {

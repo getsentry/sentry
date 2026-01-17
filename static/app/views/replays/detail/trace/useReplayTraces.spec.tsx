@@ -35,7 +35,7 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useReplayTraces({replayRecord}));
+    const {result} = renderHookWithProviders(useReplayTraces, {initialProps: {replayRecord}});
 
     expect(result.current.indexComplete).toBe(false);
 
@@ -61,7 +61,7 @@ describe('useTraceMeta', () => {
       statusCode: 400,
     });
 
-    const {result} = renderHookWithProviders(() => useReplayTraces({replayRecord}));
+    const {result} = renderHookWithProviders(useReplayTraces, {initialProps: {replayRecord}});
 
     expect(result.current.indexComplete).toBe(false);
 

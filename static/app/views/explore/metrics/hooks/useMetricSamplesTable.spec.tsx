@@ -55,8 +55,9 @@ describe('useMetricSamplesTable', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useMetricSamplesTable({
+      useMetricSamplesTable,
+      {
+        additionalWrapper: MockMetricQueryParamsContext, initialProps: {
           traceMetric: {
             name: 'test metric',
             type: 'counter',
@@ -64,9 +65,7 @@ describe('useMetricSamplesTable', () => {
           fields: [],
           limit: 100,
           ingestionDelaySeconds: 0,
-        }),
-      {
-        additionalWrapper: MockMetricQueryParamsContext,
+        },
       }
     );
 
@@ -106,8 +105,9 @@ describe('useMetricSamplesTable', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useMetricSamplesTable({
+      useMetricSamplesTable,
+      {
+        additionalWrapper: MockMetricQueryParamsContext, initialProps: {
           traceMetric: {
             name: 'test.metric',
             type: 'counter',
@@ -115,9 +115,7 @@ describe('useMetricSamplesTable', () => {
           fields: ['trace', 'timestamp'],
           limit: 50,
           ingestionDelaySeconds: 0,
-        }),
-      {
-        additionalWrapper: MockMetricQueryParamsContext,
+        },
       }
     );
 

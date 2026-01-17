@@ -22,7 +22,7 @@ describe('useIsSentryEmployee', () => {
       })
     );
 
-    const {result} = renderHook(() => useIsSentryEmployee());
+    const {result} = renderHook(useIsSentryEmployee);
 
     expect(result.current).toBe(true);
   });
@@ -43,7 +43,7 @@ describe('useIsSentryEmployee', () => {
       })
     );
 
-    const {result} = renderHook(() => useIsSentryEmployee());
+    const {result} = renderHook(useIsSentryEmployee);
 
     expect(result.current).toBe(false);
   });
@@ -63,7 +63,7 @@ describe('useIsSentryEmployee', () => {
       })
     );
 
-    const {result} = renderHook(() => useIsSentryEmployee());
+    const {result} = renderHook(useIsSentryEmployee);
 
     expect(result.current).toBe(false);
   });

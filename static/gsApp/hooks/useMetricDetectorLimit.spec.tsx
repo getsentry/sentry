@@ -34,7 +34,7 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+    const {result} = renderHookWithProviders(useMetricDetectorLimit, {
       organization: mockOrganizationWithoutFeature,
     });
 
@@ -57,7 +57,7 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+    const {result} = renderHookWithProviders(useMetricDetectorLimit, {
       organization: mockOrganization,
     });
 
@@ -95,7 +95,7 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+    const {result} = renderHookWithProviders(useMetricDetectorLimit, {
       organization: mockOrganization,
     });
 
@@ -141,7 +141,7 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+    const {result} = renderHookWithProviders(useMetricDetectorLimit, {
       organization: mockOrganization,
     });
 
@@ -177,7 +177,7 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+    const {result} = renderHookWithProviders(useMetricDetectorLimit, {
       organization: mockOrganization,
     });
 
@@ -214,7 +214,7 @@ describe('useMetricDetectorLimit', () => {
       statusCode: 500,
     });
 
-    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+    const {result} = renderHookWithProviders(useMetricDetectorLimit, {
       organization: mockOrganization,
     });
 
