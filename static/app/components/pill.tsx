@@ -95,7 +95,7 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
       `;
     default:
       return css`
-        background: ${theme.backgroundSecondary};
+        background: ${theme.tokens.background.secondary};
         font-family: ${theme.text.familyMono};
       `;
   }

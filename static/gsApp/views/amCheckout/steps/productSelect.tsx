@@ -5,9 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout';
-import {Separator} from 'sentry/components/core/separator';
 import {Heading, Text} from 'sentry/components/core/text';
 import {IconCheckmark, IconSeer, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -121,100 +119,91 @@ function ProductSelect({
                 onClick={toggleProductOption}
                 isSelected={!!isSelected}
                 ariaRole="checkbox"
-              >
-                <Flex align="center" gap="lg" padding="xl">
-                  <IconSeer animation="waiting" size="lg" />
-                  <Heading as="h2">
-                    {t('Detect and fix issues faster with our AI agent')}
-                  </Heading>
-                </Flex>
-                <Flex direction="column" gap="lg" padding="xl" width="100%">
-                  <Flex align="center" gap="md">
-                    <Checkbox
-                      tabIndex={-1} // let CheckoutOption handle the focus
-                      aria-label={ariaLabel}
-                      aria-checked={isSelected}
-                      checked={isSelected}
-                      onChange={toggleProductOption}
-                    />
-
-                    <Flex align="center" justify="between" gap="sm" flex="1">
-                      <Heading as="h3" variant="primary">
-                        {toTitleCase(productName, {
-                          allowInnerUpperCase: true,
-                        })}
-                      </Heading>
-                      <Flex align="center" gap="md">
-                        {formattedMonthlyBudget && (
-                          <Tag
-                            variant="promotion"
-                            data-test-id="product-option-feature-credits"
-                          >
-                            {tct('Includes [includedBudget]/mo in credits', {
-                              includedBudget: formattedMonthlyBudget,
-                            })}
-                          </Tag>
-                        )}
-                        <Flex>
-                          <Text
-                            size="lg"
-                            bold
-                            variant="primary"
-                          >{`+$${priceInDollars}`}</Text>
-                          <Text size="lg" variant="muted">{`/${billingInterval}`}</Text>
-                        </Flex>
+                topDecoration={
+                  <Flex align="center" gap="lg">
+                    <IconSeer animation="waiting" size="lg" />
+                    <Heading as="h2">
+                      {t('Detect and fix issues faster with our AI agent')}
+                    </Heading>
+                  </Flex>
+                }
+                optionHeader={
+                  <Flex align="center" justify="between" gap="sm" flex="1">
+                    <Heading as="h3" variant="primary">
+                      {toTitleCase(productName, {
+                        allowInnerUpperCase: true,
+                      })}
+                    </Heading>
+                    <Flex align="center" gap="md">
+                      {formattedMonthlyBudget && (
+                        <Tag
+                          variant="promotion"
+                          data-test-id="product-option-feature-credits"
+                        >
+                          {tct('Includes [includedBudget]/mo in credits', {
+                            includedBudget: formattedMonthlyBudget,
+                          })}
+                        </Tag>
+                      )}
+                      <Flex>
+                        <Text
+                          size="lg"
+                          bold
+                          variant="primary"
+                        >{`+$${priceInDollars}`}</Text>
+                        <Text size="lg" variant="muted">{`/${billingInterval}`}</Text>
                       </Flex>
                     </Flex>
                   </Flex>
-                  <Flex direction="column" gap="2xs">
-                    <Separator orientation="horizontal" border="primary" />
-                    <Flex direction="column" gap="xl" paddingTop="xl">
-                      {Object.entries(SUBCATEGORY_TEXT).map(([category, info]) => {
-                        const pricingInfo =
-                          activePlan.planCategories[category as DataCategory];
-                        const eventPrice = pricingInfo
-                          ? pricingInfo[1]?.onDemandPrice
-                          : null;
-                        const dataCategoryInfo = getCategoryInfoFromPlural(
-                          category as DataCategory
-                        );
-                        const perEventNameOverride =
-                          dataCategoryInfo?.shortenedUnitName ??
-                          getSingularCategoryName({
-                            plan: activePlan,
-                            category: category as DataCategory,
-                            capitalize: false,
-                          });
-                        return (
-                          <FeatureItem
-                            key={category}
-                            data-test-id={`product-option-feature-${category}`}
-                          >
-                            <IconContainer>
-                              <IconCheckmark variant="success" />
-                            </IconContainer>
-                            <Flex direction="column" gap="xs">
-                              <Text size="md">
-                                {getSingularCategoryName({
-                                  plan: activePlan,
-                                  category: category as DataCategory,
-                                  hadCustomDynamicSampling: false,
-                                })}
-                                {' - '}
-                                {eventPrice &&
-                                  `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${perEventNameOverride}`}
-                              </Text>
-                              <Text size="md" variant="muted">
-                                {info.description}
-                              </Text>
-                            </Flex>
-                          </FeatureItem>
-                        );
-                      })}
-                    </Flex>
+                }
+                optionDescription={
+                  <Flex direction="column" gap="xl" paddingTop="xl">
+                    {Object.entries(SUBCATEGORY_TEXT).map(([category, info]) => {
+                      const pricingInfo =
+                        activePlan.planCategories[category as DataCategory];
+                      const eventPrice = pricingInfo
+                        ? pricingInfo[1]?.onDemandPrice
+                        : null;
+                      const dataCategoryInfo = getCategoryInfoFromPlural(
+                        category as DataCategory
+                      );
+                      const perEventNameOverride =
+                        dataCategoryInfo?.shortenedUnitName ??
+                        getSingularCategoryName({
+                          plan: activePlan,
+                          category: category as DataCategory,
+                          capitalize: false,
+                        });
+                      return (
+                        <FeatureItem
+                          key={category}
+                          data-test-id={`product-option-feature-${category}`}
+                        >
+                          <Flex align="center" marginTop="2xs">
+                            <IconCheckmark variant="success" />
+                          </Flex>
+                          <Flex direction="column" gap="xs">
+                            <Text size="md">
+                              {getSingularCategoryName({
+                                plan: activePlan,
+                                category: category as DataCategory,
+                                hadCustomDynamicSampling: false,
+                              })}
+                              {' - '}
+                              {eventPrice &&
+                                `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${perEventNameOverride}`}
+                            </Text>
+                            <Text size="md" variant="muted">
+                              {info.description}
+                            </Text>
+                          </Flex>
+                        </FeatureItem>
+                      );
+                    })}
                   </Flex>
-                </Flex>
-              </CheckoutOption>
+                }
+                withDivider
+              />
             </Flex>
           );
         }
@@ -222,9 +211,9 @@ function ProductSelect({
         if (apiName === AddOnCategory.SEER) {
           return (
             <Flex direction="column" gap="xl" key={apiName}>
-              <Flex gap="sm" align="center">
+              <Flex gap="sm" align="start">
                 <Badge variant="new">{t('New')}</Badge>
-                <Heading as="h2">
+                <Heading as="h2" textWrap="pretty">
                   {t('Find and fix issues anywhere with Seer AI debugger')}
                 </Heading>
               </Flex>
@@ -241,61 +230,49 @@ function ProductSelect({
                 onClick={toggleProductOption}
                 isSelected={!!isSelected}
                 ariaRole="checkbox"
-              >
-                <Flex direction="column" gap="lg" padding="xl" width="100%">
-                  <Flex align="center" gap="md">
-                    <Checkbox
-                      tabIndex={-1} // let CheckoutOption handle the focus
-                      aria-label={ariaLabel}
-                      aria-checked={isSelected}
-                      checked={isSelected}
-                      onChange={toggleProductOption}
-                    />
-
-                    <Flex align="center" justify="between" gap="sm" flex="1" wrap="wrap">
-                      <Heading as="h3" variant="primary">
-                        {toTitleCase(productName, {
-                          allowInnerUpperCase: true,
-                        })}
-                      </Heading>
-                      <Flex align="start" gap="xs" wrap="wrap">
-                        {/* TODO(seer): serialize pricing info */}
-                        <Text size="lg" bold variant="primary">
-                          +$40
-                        </Text>
-                        <Text size="lg" variant="muted">
-                          {t('/ active contributor / month')}
-                        </Text>
-                      </Flex>
+                optionHeader={
+                  <Flex align="center" justify="between" gap="sm" flex="1" wrap="wrap">
+                    <Heading as="h3" variant="primary">
+                      {toTitleCase(productName, {
+                        allowInnerUpperCase: true,
+                      })}
+                    </Heading>
+                    <Flex align="start" gap="xs" wrap="wrap">
+                      {/* TODO(seer): serialize pricing info */}
+                      <Text size="lg" bold variant="primary">
+                        +$40
+                      </Text>
+                      <Text size="lg" variant="muted">
+                        {t('/ active contributor / month')}
+                      </Text>
                     </Flex>
                   </Flex>
-                  <Flex direction="column" gap="2xs">
-                    <Separator orientation="horizontal" border="primary" />
-                    <Flex
-                      direction="column"
-                      gap="lg"
-                      paddingTop="xl"
-                      data-test-id="product-option-description"
-                    >
+                }
+                optionDescription={
+                  <Flex
+                    direction="column"
+                    gap="lg"
+                    data-test-id="product-option-description"
+                  >
+                    <Text variant="muted">
+                      {t(
+                        'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
+                      )}
+                    </Text>
+                    <Flex direction="column" gap="xs">
                       <Text variant="muted">
                         {t(
-                          'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
+                          'Setup required: connect repositories after adding to your plan.'
                         )}
                       </Text>
-                      <Flex direction="column" gap="xs">
-                        <Text variant="muted">
-                          {t(
-                            'Setup required: connect repositories after adding to your plan.'
-                          )}
-                        </Text>
-                        <Text variant="muted">
-                          {t('Billed at month-end and varies with active contributors.')}
-                        </Text>
-                      </Flex>
+                      <Text variant="muted">
+                        {t('Billed at month-end and varies with active contributors.')}
+                      </Text>
                     </Flex>
                   </Flex>
-                </Flex>
-              </CheckoutOption>
+                }
+                withDivider
+              />
             </Flex>
           );
         }
@@ -306,12 +283,6 @@ function ProductSelect({
 }
 
 export default ProductSelect;
-
-const IconContainer = styled('div')`
-  margin-top: ${p => p.theme.space['2xs']};
-  display: flex;
-  align-items: center;
-`;
 
 const FeatureItem = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};

@@ -2,6 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
@@ -85,7 +87,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
         >
           <StyledSecondaryNavItem
             leadingItems={
-              <LeadingItemsWrapper>
+              <Flex justify="center" align="center" position="relative">
                 <GrabHandleWrapper
                   data-test-id={`grab-handle-${query.id}`}
                   data-drag-icon
@@ -109,7 +111,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
                     .filter(defined)}
                   allProjects={query.projects.length === 1 && query.projects[0] === -1}
                 />
-              </LeadingItemsWrapper>
+              </Flex>
             }
             key={query.id}
             to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
@@ -171,13 +173,10 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   border-radius: 4px;
 `;
 
-const LeadingItemsWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const TruncatedTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

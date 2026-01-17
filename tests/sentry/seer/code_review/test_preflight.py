@@ -119,6 +119,65 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason is None
 
     # -------------------------------------------------------------------------
+    # Seer-added (legacy usage-based) org tests
+    # -------------------------------------------------------------------------
+
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    def test_denied_when_seer_added_org_has_legacy_toggle_disabled(self) -> None:
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_PR_REVIEW_LEGACY_TOGGLE_DISABLED
+
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    def test_allowed_when_seer_added_org_has_legacy_toggle_enabled(self) -> None:
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        with patch(
+            "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
+            return_value=True,
+        ):
+            service = self._create_service()
+            result = service.check()
+
+        assert result.allowed is True
+        assert result.denial_reason is None
+
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    def test_seer_added_org_bypasses_repo_settings_check(self, mock_check_quota: MagicMock) -> None:
+        """Seer-added orgs don't need repo settings to be enabled."""
+        mock_check_quota.return_value = True
+
+        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+
+        # Explicitly disable repo code review
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=False,
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        # Should still be allowed because seer-added orgs bypass repo settings
+        assert result.allowed is True
+        assert result.denial_reason is None
+
+    # -------------------------------------------------------------------------
     # Seat-based org tests
     # -------------------------------------------------------------------------
 
@@ -226,12 +285,12 @@ class TestCodeReviewPreflightService(TestCase):
     # Billing tests
     # -------------------------------------------------------------------------
 
-
-# TODO: Uncomment these billing tests once we're ready to actually gate billing (when it's time for GA)
-"""
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_integration_id(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         service = CodeReviewPreflightService(
             organization=self.organization,
@@ -244,9 +303,12 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_external_identifier(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         service = CodeReviewPreflightService(
             organization=self.organization,
@@ -259,9 +321,12 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_contributor_does_not_exist(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         service = self._create_service()
         result = service.check()
@@ -270,11 +335,14 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
 
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_quota_check_fails(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = False
 
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         OrganizationContributors.objects.create(
             organization_id=self.organization.id,
@@ -287,5 +355,3 @@ class TestCodeReviewPreflightService(TestCase):
 
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
-
-"""

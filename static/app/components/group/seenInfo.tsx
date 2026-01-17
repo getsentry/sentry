@@ -43,19 +43,19 @@ function SeenInfo({
         showUnderline
         header={
           <div>
-            <TimeSinceWrapper>
+            <Flex justify="between" marginBottom="xs">
               {t('Any Environment')}
               <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
-            </TimeSinceWrapper>
+            </Flex>
             {environment && (
-              <TimeSinceWrapper>
+              <Flex justify="between" marginBottom="xs">
                 {toTitleCase(environment)}
                 {date ? (
                   <TimeSince date={date} disabledAbsoluteTooltip />
                 ) : (
                   <span>{t('N/A')}</span>
                 )}
-              </TimeSinceWrapper>
+              </Flex>
             )}
           </div>
         }
@@ -112,7 +112,11 @@ const dateTimeCss = (p: any) => css`
 
 const DateWrapper = styled('div')`
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledDateTime = styled(DateTime)`
@@ -134,12 +138,6 @@ const TooltipWrapper = styled('span')`
     position: relative;
     top: 1px;
   }
-`;
-
-const TimeSinceWrapper = styled('div')`
-  margin-bottom: ${space(0.5)};
-  display: flex;
-  justify-content: space-between;
 `;
 
 const StyledTimeSince = styled(TimeSince)`

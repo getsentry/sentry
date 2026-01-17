@@ -308,9 +308,6 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPARTUP_SPAN_TABLE = "api.insights.mobile-spartup-span-table"
     API_INSIGHTS_MOBILE_SCREENS_METRICS = "api.insights.mobile-screens-metrics"
     API_INSIGHTS_MOBILE_SCREENS_SPAN_METRICS = "api.insights.mobile-screens-span-metrics"
-    API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_METRICS = (
-        "api.insights.mobile-screens-screen-table-metrics"
-    )
     API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_SPAN_METRICS = (
         "api.insights.mobile-screens-screen-table-span-metrics"
     )
@@ -489,6 +486,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
     API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
+    API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"

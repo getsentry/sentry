@@ -62,6 +62,10 @@ register_grouping_config(
         # Preserve a long-standing bug, wherein our "non-URL frame" test actually looks for frames
         # *with* URLs
         "handle_js_single_frame_url_origin_backwards": True,
+        # Don't parameterize `spawn_main(tracker_fd=12, pipe_handle=31)`-type context lines
+        "prevent_python_multiprocessing_context_line_parameterization": True,
+        # Ignore rather than flagging unknown fingerprint variables
+        "use_legacy_unknown_variable_handling": True,
     },
     enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
@@ -73,6 +77,8 @@ register_grouping_config(
     initial_context={
         "use_legacy_exception_subcomponent_order": False,
         "handle_js_single_frame_url_origin_backwards": False,
+        "prevent_python_multiprocessing_context_line_parameterization": False,
+        "use_legacy_unknown_variable_handling": False,
     },
     enhancements_base="all-platforms:2025-11-21",
 )

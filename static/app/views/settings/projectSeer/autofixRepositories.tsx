@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -326,10 +326,10 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         </Alert>
       )}
       {isFetchingRepositories || isLoadingPreferences ? (
-        <LoadingContainer>
+        <Stack justify="center" align="center" padding="3xl" gap="xl" width="100%">
           <StyledLoadingIndicator size={36} />
           <LoadingMessage>{t('Loading repositories...')}</LoadingMessage>
-        </LoadingContainer>
+        </Stack>
       ) : filteredSelectedRepositories.length === 0 ? (
         <EmptyMessage>
           {t("Seer can't see your code. Click 'Add Repos' to give Seer access.")}
@@ -372,19 +372,9 @@ const ReposContainer = styled('div')`
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: ${space(4)};
-  width: 100%;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

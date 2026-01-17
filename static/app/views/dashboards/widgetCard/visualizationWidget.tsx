@@ -52,8 +52,8 @@ export function VisualizationWidget({
   return (
     <WidgetCardDataLoader
       widget={widget}
-      dashboardFilters={dashboardFilters}
       selection={selection}
+      dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}

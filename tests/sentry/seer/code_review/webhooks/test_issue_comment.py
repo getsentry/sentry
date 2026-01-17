@@ -33,11 +33,12 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 "sentry.integrations.github.client.GitHubApiClient.create_comment_reaction"
             ) as mock_reaction,
             patch(
-                "sentry.seer.code_review.utils.GitHubApiClient", return_value=mock_client_instance
-            ) as mock_api_client,
+                "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
+                mock_client_instance.get_pull_request,
+            ) as mock_get_pull_request,
         ):
             self.mock_reaction = mock_reaction
-            self.mock_api_client = mock_api_client
+            self.mock_get_pull_request = mock_get_pull_request
             yield
 
     @pytest.fixture(autouse=True)
@@ -183,7 +184,8 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_skips_non_whitelisted_github_org(self) -> None:
         """Test that non-whitelisted GitHub organizations are skipped."""
-        with self.code_review_setup(), self.tasks():
+        # The option says to forward to Overwatch AND the org is not whitelisted, so we should skip Seer.
+        with self.code_review_setup({"github.webhook.issue-comment": True}), self.tasks():
             event = self._build_issue_comment_event(
                 f"Please {SENTRY_REVIEW_COMMAND} this PR", github_org="random-org"
             )

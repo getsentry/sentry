@@ -337,7 +337,7 @@ const Paragraph = styled('p')`
 `;
 
 const TouchCustomerMessage = styled('p')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.tokens.content.promotion};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(2)};
 `;
@@ -361,7 +361,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const ErrorText = styled('div')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const AddBudgetButton = styled(Button)`

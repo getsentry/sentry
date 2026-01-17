@@ -115,7 +115,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       id: 'jobs-chart',
       title: 'Jobs',
       description: '',
-      displayType: DisplayType.BAR,
+      displayType: DisplayType.LINE,
       thresholds: null,
       interval: '1h',
       queries: [

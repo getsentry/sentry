@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
@@ -15,6 +17,7 @@ export function OrganizationAvatar({
 }: OrganizationAvatarProps) {
   if (!organization) {
     // @TODO(jonasbadalic): Do we need a placeholder here?
+    Sentry.captureMessage('OrganizationAvatar: organization summary is undefined');
     return null;
   }
 

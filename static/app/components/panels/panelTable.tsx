@@ -183,7 +183,7 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   line-height: 1;
   display: flex;
   flex-direction: column;
@@ -199,4 +199,4 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
     `}
 `;
 
-export {PanelTable, type PanelTableProps, PanelTableHeader};
+export {PanelTable};

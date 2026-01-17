@@ -12,7 +12,7 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
@@ -651,10 +651,10 @@ export function SourceMapsDebuggerModal({
                 <StyledProgressRing
                   progressColor={
                     activeTab === 'debug-ids'
-                      ? theme.colors.blue400
-                      : theme.colors.gray400
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.debugIdProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -674,9 +674,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'release' ? theme.colors.blue400 : theme.colors.gray400
+                    activeTab === 'release'
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.releaseProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -692,9 +694,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'fetching' ? theme.colors.blue400 : theme.colors.gray400
+                    activeTab === 'fetching'
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.scrapingProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -888,7 +892,7 @@ export function SourceMapsDebuggerModal({
 function CheckListItem({children, title, status}: PropsWithChildren<CheckListItemProps>) {
   return (
     <ListItemContainer>
-      <CheckMarkContainer>
+      <Stack align="center">
         {
           {
             none: <IconCircle size="md" variant="muted" />,
@@ -898,11 +902,11 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
           }[status]
         }
         <Line className="source-map-debugger-modal-checklist-line" />
-      </CheckMarkContainer>
+      </Stack>
       <ListItemContentContainer>
-        <ListItemTitleWrapper>
+        <Flex align="center" minHeight="20px">
           <ListItemTitle status={status}>{title}</ListItemTitle>
-        </ListItemTitleWrapper>
+        </Flex>
         {children}
       </ListItemContentContainer>
     </ListItemContainer>
@@ -1998,12 +2002,6 @@ const ListItemContainer = styled('li')`
   }
 `;
 
-const CheckMarkContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
 const Line = styled('div')`
   margin: ${space(0.5)} 0;
   flex-grow: 1;
@@ -2026,12 +2024,6 @@ const CompletionNoteContainer = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(2)} 0 0;
-`;
-
-const ListItemTitleWrapper = styled('div')`
-  min-height: 20px;
-  display: flex;
-  align-items: center;
 `;
 
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`

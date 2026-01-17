@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 
@@ -7,13 +9,9 @@ export const ToolbarSection = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export const ToolbarHeader = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: ${p => p.theme.space.sm};
-`;
+export function ToolbarHeader(props: FlexProps<'div'>) {
+  return <Flex justify="between" align="baseline" marginBottom="sm" {...props} />;
+}
 
 export const ToolbarLabel = styled('h6')<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.colors.gray800)};

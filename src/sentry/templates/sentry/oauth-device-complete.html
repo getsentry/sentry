@@ -1,0 +1,24 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% block title %}Device Authorization Complete | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <div>
+    {% if application %}
+      <div class="alert alert-success">
+        <h4>Success!</h4>
+        <p>{{ message }}</p>
+        <p style="margin-top: 1em;">You can now close this tab and return to your device.</p>
+      </div>
+    {% else %}
+      <div class="alert alert-info">
+        <p>{{ message }}</p>
+        <p style="margin-top: 1em;">You can now close this tab.</p>
+      </div>
+    {% endif %}
+
+    <div class="auth-footer" style="margin-top: 2em;">
+      <a href="/" class="btn btn-default">Go to Sentry</a>
+    </div>
+  </div>
+{% endblock %}

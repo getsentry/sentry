@@ -90,7 +90,8 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 }
 
 const ValueWrapper = styled('span')<{isDangerous?: boolean}>`
-  color: ${p => (p.isDangerous ? p.theme.errorText : p.theme.tokens.content.secondary)};
+  color: ${p =>
+    p.isDangerous ? p.theme.tokens.content.danger : p.theme.tokens.content.secondary};
 `;
 
 const Subheading = styled('span')`
@@ -452,7 +453,8 @@ const StyledCheckbox = styled(Checkbox)`
 const ClickablePanelItem = styled(PanelItem)`
   cursor: pointer;
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

@@ -18,7 +18,7 @@ describe('automationNameUtils', () => {
         config: {
           targetType: ActionTarget.ISSUE_OWNERS,
           targetDisplay: null,
-          targetIdentifier: null,
+          targetIdentifier: '',
         },
       });
 

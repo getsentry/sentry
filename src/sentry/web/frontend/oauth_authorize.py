@@ -246,6 +246,13 @@ class OAuthAuthorizeView(AuthLoginView):
             "cc": code_challenge,
             "ccm": code_challenge_method if code_challenge else None,
         }
+        # TODO(dcramer): Using a single "oa2" session key means multiple tabs authorizing
+        # different applications will overwrite each other's session data. If a user has
+        # Tab A (App A) and Tab B (App B) open, whichever tab they opened last will have
+        # its payload in the session. Approving from Tab A would then authorize App B.
+        # Consider using a unique transaction ID per authorization request, stored either
+        # in the URL or as a per-request session key (e.g., oa2:{tx_id}).
+        # See oauth_device.py for an example using user_code as a natural unique key.
         request.session["oa2"] = payload
 
         if not request.user.is_authenticated:

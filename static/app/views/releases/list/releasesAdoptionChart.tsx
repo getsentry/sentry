@@ -8,6 +8,8 @@ import compact from 'lodash/compact';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
@@ -190,7 +192,7 @@ function ReleasesAdoptionChart({
           <Panel>
             <PanelBody withPadding>
               <ChartHeader>
-                <ChartTitle>{t('Release Adoption')}</ChartTitle>
+                <Flex as="header">{t('Release Adoption')}</Flex>
               </ChartHeader>
               <TransitionChart loading={loading} reloading={reloading}>
                 <TransparentLoadingMask visible={reloading} />
@@ -316,11 +318,6 @@ export default ReleasesAdoptionChart;
 
 const ChartHeader = styled(HeaderTitleLegend)`
   margin-bottom: ${space(1)};
-`;
-
-const ChartTitle = styled('header')`
-  display: flex;
-  flex-direction: row;
 `;
 
 const ChartFooter = styled(PanelFooter)`

@@ -230,6 +230,6 @@ const PlaceholderLink = styled('span')`
 `;
 
 const ErrorText = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   margin-top: ${p => p.theme.space.sm};
 `;

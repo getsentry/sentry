@@ -46,11 +46,7 @@ import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 import {type SentryRouteObject} from './types';
 
 const routeHook = (name: HookName): SentryRouteObject => {
-  const route = HookStore.get(name)?.[0]?.() ?? {};
-  return {
-    ...route,
-    deprecatedRouteProps: true,
-  };
+  return HookStore.get(name)?.[0]?.() ?? {};
 };
 
 function buildRoutes(): RouteObject[] {
@@ -1478,7 +1474,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':projectId/',
           component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-          deprecatedRouteProps: true,
           children: [
             {
               index: true,
@@ -1492,7 +1487,6 @@ function buildRoutes(): RouteObject[] {
                 () =>
                   import('sentry/views/alerts/workflowEngineRedirectWrappers/alertEdit')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1554,7 +1548,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':projectId/',
           component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-          deprecatedRouteProps: true,
           children: [
             {
               index: true,
@@ -1570,7 +1563,6 @@ function buildRoutes(): RouteObject[] {
                     'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit'
                   )
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1582,7 +1574,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':projectId/',
           component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':ruleId/',
@@ -1592,7 +1583,6 @@ function buildRoutes(): RouteObject[] {
                     'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit'
                   )
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1604,12 +1594,10 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':projectId/',
           component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-          deprecatedRouteProps: true,
           children: [
             {
               path: ':monitorSlug/',
               component: make(() => import('sentry/views/alerts/edit')),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1627,15 +1615,12 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           component: make(() => import('sentry/views/alerts/wizard')),
-          deprecatedRouteProps: true,
         },
       ],
-      deprecatedRouteProps: true,
     },
     {
       path: 'new/',
       component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -1648,7 +1633,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/alerts/workflowEngineRedirectWrappers/alertCreate')
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1666,17 +1650,14 @@ function buildRoutes(): RouteObject[] {
             'sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider'
           )
       ),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'new/',
           component: make(() => import('sentry/views/alerts/create')),
-          deprecatedRouteProps: true,
         },
         {
           path: 'wizard/',
           component: make(() => import('sentry/views/alerts/wizard')),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1688,13 +1669,11 @@ function buildRoutes(): RouteObject[] {
         component: withDomainRequired(make(() => import('sentry/views/alerts'))),
         customerDomainOnlyRoute: true,
         children: alertChildRoutes(true),
-        deprecatedRouteProps: true,
       },
       {
         path: '/organizations/:orgId/alerts/',
         component: withDomainRedirect(make(() => import('sentry/views/alerts'))),
         children: alertChildRoutes(false),
-        deprecatedRouteProps: true,
       },
     ],
   };
@@ -2494,15 +2473,15 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
     {
-      path: ':artifactId/',
+      path: 'size/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
     },
     {
-      path: ':artifactId/install/',
+      path: 'install/:artifactId/',
       component: make(() => import('sentry/views/preprod/install/installPage')),
     },
     {
-      path: 'compare/',
+      path: 'size/compare/',
       children: [
         {
           index: true,
@@ -2522,9 +2501,26 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    // TODO(EME-735): Remove old routes after backend deployment
+    {
+      path: ':projectId/:artifactId/',
+      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
+    },
+    {
+      path: ':projectId/:artifactId/install/',
+      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
+    },
+    {
+      path: ':projectId/compare/:headArtifactId/',
+      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
+    },
+    {
+      path: ':projectId/compare/:headArtifactId/:baseArtifactId/',
+      component: make(() => import('sentry/views/preprod/redirects/legacyUrlRedirect')),
+    },
   ];
   const preprodRoutes: SentryRouteObject = {
-    path: '/preprod/:projectId/',
+    path: '/preprod/',
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
@@ -2640,6 +2636,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/warnings')),
     },
     {
+      path: 'instrumentation/',
+      component: make(() => import('sentry/views/issueList/pages/instrumentation')),
+    },
+    {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
@@ -2694,7 +2694,6 @@ function buildRoutes(): RouteObject[] {
       path: 'alerts/',
       component: make(() => import('sentry/views/alerts')),
       children: alertChildRoutes(true),
-      deprecatedRouteProps: true,
     },
     traceView,
   ];
@@ -2881,7 +2880,6 @@ function buildRoutes(): RouteObject[] {
           ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
         )
       ),
-      deprecatedRouteProps: true,
     },
   ];
   const legacyOrgRedirects: SentryRouteObject = {
@@ -3076,14 +3074,15 @@ function buildRoutes(): RouteObject[] {
   };
 
   const appRoutes: SentryRouteObject = {
-    component: ({children}: {children: React.ReactNode}) => {
+    component: () => {
       return (
         <ProvideAriaRouter>
-          <ScrapsProviders>{children}</ScrapsProviders>
+          <ScrapsProviders>
+            <Outlet />
+          </ScrapsProviders>
         </ProvideAriaRouter>
       );
     },
-    deprecatedRouteProps: true,
     children: [
       experimentalSpaRoutes,
       {

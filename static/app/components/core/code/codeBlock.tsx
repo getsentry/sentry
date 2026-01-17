@@ -265,7 +265,10 @@ const Header = styled('div')<{isFloating: boolean}>`
 `;
 
 const FileName = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 
@@ -284,7 +287,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   color: var(--prism-comment);
   ${p =>
     p.isSelected
-      ? `border-bottom: 3px solid ${p.theme.colors.blue400};
+      ? `border-bottom: 3px solid ${p.theme.tokens.graphics.accent.vibrant};
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}

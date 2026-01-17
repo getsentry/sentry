@@ -1,4 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {EventBreadcrumbsSection} from 'sentry/components/events/eventBreadcrumbsSection';
 import {t} from 'sentry/locale';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -10,7 +11,6 @@ import {isJavascriptPlatform} from 'sentry/utils/platform';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';
 import {DebugMeta} from './interfaces/debugMeta';
 import {Exception} from './interfaces/exception';
@@ -88,13 +88,7 @@ function EventEntryContent({
       );
 
     case EntryType.BREADCRUMBS:
-      return (
-        <Breadcrumbs
-          data={entry.data}
-          organization={organization as Organization}
-          event={event}
-        />
-      );
+      return <EventBreadcrumbsSection event={event} />;
 
     case EntryType.THREADS:
       return (
