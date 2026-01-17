@@ -258,7 +258,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   }
 `;
 
-const Container = styled('div')`
+const Container = styled('div')<{area?: string}>`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
@@ -266,6 +266,7 @@ const Container = styled('div')`
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  ${p => p.area && `grid-area: ${p.area};`}
 `;
 
 const SetupContainer = styled('div')`
