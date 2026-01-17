@@ -15,14 +15,6 @@ from sentry.models.repositorysettings import (
 )
 from sentry.seer.code_review.billing import passes_code_review_billing_check
 
-DEFAULT_ENABLED_CODE_REVIEW_SETTINGS = CodeReviewSettings(
-    enabled=True,
-    triggers=[
-        CodeReviewTrigger.ON_NEW_COMMIT,
-        CodeReviewTrigger.ON_READY_FOR_REVIEW,
-    ],
-)
-
 
 class PreflightDenialReason(StrEnum):
     """Reasons why a preflight check denied code review."""
@@ -73,7 +65,14 @@ class CodeReviewPreflightService:
 
         settings: CodeReviewSettings | None = self._repo_settings
         if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
-            settings = DEFAULT_ENABLED_CODE_REVIEW_SETTINGS
+            # For beta and legacy usage-based plan orgs, all repos are considered enabled for these default triggers
+            settings = CodeReviewSettings(
+                enabled=True,
+                triggers=[
+                    CodeReviewTrigger.ON_NEW_COMMIT,
+                    CodeReviewTrigger.ON_READY_FOR_REVIEW,
+                ],
+            )
 
         return CodeReviewPreflightResult(allowed=True, settings=settings)
 
