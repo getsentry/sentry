@@ -189,7 +189,7 @@ export const issueAndEventToMarkdown = (
   return markdownText;
 };
 
-export const useCopyIssueDetails = (group: Group, event?: Event) => {
+export function useCopyIssueDetails({group, event}: {group: Group; event?: Event}) {
   const organization = useOrganization();
 
   // These aren't guarded by useAiConfig because they are both non fetching, and should only return data when it's fetched elsewhere.
@@ -233,4 +233,4 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       skipPreventDefault: NODE_ENV === 'development',
     },
   ]);
-};
+}

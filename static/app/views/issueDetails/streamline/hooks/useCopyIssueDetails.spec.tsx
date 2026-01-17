@@ -390,7 +390,7 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('calls useCopyToClipboard hook', () => {
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHook(useCopyIssueDetails, {initialProps: {group, event}});
 
       // Check that the hook was called
       expect(copyToClipboardModule.default).toHaveBeenCalled();
@@ -399,7 +399,7 @@ describe('useCopyIssueDetails', () => {
     it('sets up hotkeys with the correct callbacks', () => {
       const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
 
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHook(useCopyIssueDetails, {initialProps: {group, event}});
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
@@ -423,7 +423,7 @@ describe('useCopyIssueDetails', () => {
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, undefined));
+      renderHook(useCopyIssueDetails, {initialProps: {group, event: undefined}});
 
       // Trigger the keyboard event (command+alt+c)
       const keyboardEvent = new KeyboardEvent('keydown', {
@@ -451,7 +451,7 @@ describe('useCopyIssueDetails', () => {
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHook(useCopyIssueDetails, {initialProps: {group, event}});
 
       // Trigger the keyboard event (command+alt+c)
       const keyboardEvent = new KeyboardEvent('keydown', {

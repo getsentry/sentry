@@ -130,7 +130,7 @@ export function EventDetailsContent({
     projectId: project.id,
   });
 
-  useCopyIssueDetails(group, event);
+  useCopyIssueDetails({group, event});
 
   // default to show on error or isPromptDismissed === undefined
   const showFeedback = !isPromptDismissed || promptError || hasStreamlinedUI;
