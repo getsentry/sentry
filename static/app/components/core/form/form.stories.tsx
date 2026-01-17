@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
-import {Controller, useForm} from 'react-hook-form';
+import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {revalidateLogic} from '@tanstack/react-form';
 import {z} from 'zod';
 
+import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
 import {defaultFormOptions, useScrapsForm} from './index';
-import {InputField, NumberField, SelectField, SubmitButton} from './index.rhf';
+import {InputField, NumberField, RHFField, SelectField, SubmitButton} from './index.rhf';
 
 const COUNTRY_OPTIONS = [
   {value: 'US', label: 'United States'},
@@ -76,85 +77,87 @@ function TanStack() {
           form.handleSubmit();
         }}
       >
-        <form.AppField name="firstName">
-          {field => (
-            <field.Input
-              label="First Name:"
-              value={field.state.value}
-              onChange={field.handleChange}
-            />
-          )}
-        </form.AppField>
-        <form.AppField name="lastName">
-          {field => (
-            <field.Input
-              label="Last Name:"
-              required
-              value={field.state.value}
-              onChange={field.handleChange}
-            />
-          )}
-        </form.AppField>
-        <form.AppField name="age">
-          {field => (
-            <field.Number
-              label="Age:"
-              required
-              value={field.state.value}
-              onChange={field.handleChange}
-            />
-          )}
-        </form.AppField>
-        <form.Subscribe selector={state => state.values.age === 42}>
-          {showSecret =>
-            showSecret ? (
-              <form.AppField name="secret">
-                {field => (
-                  <field.Input
-                    label="Secret:"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                )}
-              </form.AppField>
-            ) : null
-          }
-        </form.Subscribe>
-        <div style={{marginTop: '20px', marginBottom: '10px'}}>
-          <strong>Address</strong>
-        </div>
-        <form.AppField name="address.street">
-          {field => (
-            <field.Input
-              label="Street:"
-              required
-              value={field.state.value}
-              onChange={field.handleChange}
-            />
-          )}
-        </form.AppField>
-        <form.AppField name="address.city">
-          {field => (
-            <field.Input
-              required
-              label="City:"
-              value={field.state.value}
-              onChange={field.handleChange}
-            />
-          )}
-        </form.AppField>
-        <form.AppField name="address.country">
-          {field => (
-            <field.Select
-              required
-              label="Country:"
-              value={field.state.value}
-              onChange={field.handleChange}
-              options={COUNTRY_OPTIONS}
-            />
-          )}
-        </form.AppField>
-        <form.SubmitButton>Submit</form.SubmitButton>
+        <Stack gap="lg">
+          <form.AppField name="firstName">
+            {field => (
+              <field.Input
+                label="First Name:"
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="lastName">
+            {field => (
+              <field.Input
+                label="Last Name:"
+                required
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="age">
+            {field => (
+              <field.Number
+                label="Age:"
+                required
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            )}
+          </form.AppField>
+          <form.Subscribe selector={state => state.values.age === 42}>
+            {showSecret =>
+              showSecret ? (
+                <form.AppField name="secret">
+                  {field => (
+                    <field.Input
+                      label="Secret:"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                    />
+                  )}
+                </form.AppField>
+              ) : null
+            }
+          </form.Subscribe>
+          <div style={{marginTop: '20px', marginBottom: '10px'}}>
+            <strong>Address</strong>
+          </div>
+          <form.AppField name="address.street">
+            {field => (
+              <field.Input
+                label="Street:"
+                required
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="address.city">
+            {field => (
+              <field.Input
+                required
+                label="City:"
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="address.country">
+            {field => (
+              <field.Select
+                required
+                label="Country:"
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={COUNTRY_OPTIONS}
+              />
+            )}
+          </form.AppField>
+          <form.SubmitButton>Submit</form.SubmitButton>
+        </Stack>
       </form>
     </form.AppForm>
   );
@@ -189,111 +192,79 @@ function Rhf() {
         alert(JSON.stringify(data));
       })}
     >
-      <Controller
-        name="firstName"
-        control={form.control}
-        render={({field, fieldState}) => (
-          <InputField
-            label="First Name:"
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            aria-invalid={!!fieldState.error}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
-      <Controller
-        name="lastName"
-        control={form.control}
-        render={({field, fieldState}) => (
-          <InputField
-            label="Last Name:"
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            aria-invalid={!!fieldState.error}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
-      <Controller
-        name="age"
-        control={form.control}
-        render={({field, fieldState}) => (
-          <NumberField
-            label="Age:"
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            aria-invalid={!!fieldState.error}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
-      {showSecret ? (
-        <Controller
-          name="secret"
-          control={form.control}
-          render={({field, fieldState}) => (
+      <Stack gap="lg">
+        <RHFField name="firstName" control={form.control}>
+          {field => (
             <InputField
-              label="Secret:"
+              label="First Name:"
               value={field.value}
               onChange={field.onChange}
-              onBlur={field.onBlur}
-              aria-invalid={!!fieldState.error}
-              error={fieldState.error?.message}
             />
           )}
-        />
-      ) : null}
-      <div style={{marginTop: '20px', marginBottom: '10px'}}>
-        <strong>Address</strong>
-      </div>
-      <Controller
-        name="address.street"
-        control={form.control}
-        render={({field, fieldState}) => (
-          <InputField
-            label="Street:"
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            aria-invalid={!!fieldState.error}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
-      <Controller
-        name="address.city"
-        control={form.control}
-        render={({field, fieldState}) => (
-          <InputField
-            label="City:"
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            aria-invalid={!!fieldState.error}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
-      <Controller
-        name="address.country"
-        control={form.control}
-        render={({field, fieldState}) => (
-          <SelectField
-            label="Country:"
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            options={COUNTRY_OPTIONS}
-            aria-invalid={!!fieldState.error}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
-      <SubmitButton isSubmitting={form.formState.isSubmitting}>Submit</SubmitButton>
+        </RHFField>
+        <RHFField name="lastName" control={form.control}>
+          {field => (
+            <InputField
+              label="Last Name:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </RHFField>
+        <RHFField name="age" control={form.control}>
+          {field => (
+            <NumberField
+              label="Age:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </RHFField>
+        {showSecret ? (
+          <RHFField name="secret" control={form.control}>
+            {field => (
+              <InputField label="Secret:" value={field.value} onChange={field.onChange} />
+            )}
+          </RHFField>
+        ) : null}
+        <div style={{marginTop: '20px', marginBottom: '10px'}}>
+          <strong>Address</strong>
+        </div>
+        <RHFField name="address.street" control={form.control}>
+          {field => (
+            <InputField
+              label="Street:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </RHFField>
+        <RHFField name="address.city" control={form.control}>
+          {field => (
+            <InputField
+              label="City:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        </RHFField>
+        <RHFField name="address.country" control={form.control}>
+          {field => (
+            <SelectField
+              label="Country:"
+              required
+              value={field.value}
+              onChange={field.onChange}
+              options={COUNTRY_OPTIONS}
+            />
+          )}
+        </RHFField>
+        <SubmitButton isSubmitting={form.formState.isSubmitting}>Submit</SubmitButton>
+      </Stack>
     </form>
   );
 }

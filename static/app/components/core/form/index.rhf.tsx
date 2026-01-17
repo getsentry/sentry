@@ -1,3 +1,13 @@
+import {createContext, useContext} from 'react';
+import {
+  useController,
+  type Control,
+  type FieldPath,
+  type FieldPathValue,
+  type FieldValues,
+  type UseControllerReturn,
+} from 'react-hook-form';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Input, type InputProps} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
@@ -8,31 +18,73 @@ import type {SelectValue} from 'sentry/types/core';
 
 type FieldProps = {
   label: string;
-  'aria-invalid'?: boolean;
-  error?: string;
   hintText?: string;
+  required?: boolean;
 };
+
+// Context to hold the field controller state
+const RHFFieldContext = createContext<UseControllerReturn<any, any> | null>(null);
+
+function useRHFFieldContext() {
+  const context = useContext(RHFFieldContext);
+  if (!context) {
+    throw new Error('RHF field components must be used within RHFField');
+  }
+  return context;
+}
+
+// Field wrapper that uses useController and provides context
+export function RHFField<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>,
+>({
+  name,
+  control,
+  children,
+}: {
+  children: (field: {
+    onChange: (value: FieldPathValue<TFieldValues, TName>) => void;
+    value: FieldPathValue<TFieldValues, TName>;
+  }) => React.ReactNode;
+  control: Control<TFieldValues>;
+  name: TName;
+}) {
+  const controller = useController({name, control});
+
+  return (
+    <RHFFieldContext.Provider value={controller}>
+      {children({
+        value: controller.field.value,
+        onChange: controller.field.onChange,
+      })}
+    </RHFFieldContext.Provider>
+  );
+}
 
 // Base Field component for layout
 function Field({
   label,
-  'aria-invalid': ariaInvalid,
-  error,
   hintText,
+  required,
   children,
 }: FieldProps & {children: React.ReactNode}) {
+  const {fieldState} = useRHFFieldContext();
+  const hasError = !!fieldState.error;
+
   return (
     <Stack as="label" gap="sm">
-      <Text>{label}</Text>
+      <Text>
+        {label} {required ? <Text variant="danger">*</Text> : null}
+      </Text>
       {children}
       {hintText ? (
         <Text size="sm" variant="muted">
           {hintText}
         </Text>
       ) : null}
-      {ariaInvalid && error ? (
+      {hasError ? (
         <Text size="sm" variant="danger">
-          {error}
+          {fieldState.error?.message}
         </Text>
       ) : null}
     </Stack>
@@ -42,26 +94,26 @@ function Field({
 // Input field component
 export function InputField({
   label,
-  'aria-invalid': ariaInvalid,
-  error,
   hintText,
+  required,
   value,
   onChange,
-  onBlur,
   ...props
 }: FieldProps &
   Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur'> & {
-    onBlur: () => void;
     onChange: (value: string) => void;
     value: string;
   }) {
+  const {field, fieldState} = useRHFFieldContext();
+  const hasError = !!fieldState.error;
+
   return (
-    <Field label={label} aria-invalid={ariaInvalid} error={error} hintText={hintText}>
+    <Field label={label} hintText={hintText} required={required}>
       <Input
         {...props}
         value={value}
-        aria-invalid={ariaInvalid}
-        onBlur={onBlur}
+        aria-invalid={hasError}
+        onBlur={field.onBlur}
         onChange={e => onChange(e.target.value)}
       />
     </Field>
@@ -71,27 +123,27 @@ export function InputField({
 // Number field component
 export function NumberField({
   label,
-  'aria-invalid': ariaInvalid,
-  error,
   hintText,
+  required,
   value,
   onChange,
-  onBlur,
   ...props
 }: FieldProps &
   Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur'> & {
-    onBlur: () => void;
     onChange: (value: number) => void;
     value: number;
   }) {
+  const {field, fieldState} = useRHFFieldContext();
+  const hasError = !!fieldState.error;
+
   return (
-    <Field label={label} aria-invalid={ariaInvalid} error={error} hintText={hintText}>
+    <Field label={label} hintText={hintText} required={required}>
       <Input
         {...props}
         type="number"
         value={value}
-        aria-invalid={ariaInvalid}
-        onBlur={onBlur}
+        aria-invalid={hasError}
+        onBlur={field.onBlur}
         onChange={e => onChange(Number(e.target.value))}
       />
     </Field>
@@ -101,26 +153,26 @@ export function NumberField({
 // Select field component
 export function SelectField({
   label,
-  'aria-invalid': ariaInvalid,
-  error,
   hintText,
+  required,
   value,
   onChange,
-  onBlur,
   ...props
 }: FieldProps &
   Omit<React.ComponentProps<typeof Select>, 'value' | 'onChange' | 'onBlur'> & {
-    onBlur: () => void;
     onChange: (value: string) => void;
     value: string;
   }) {
+  const {field, fieldState} = useRHFFieldContext();
+  const hasError = !!fieldState.error;
+
   return (
-    <Field label={label} aria-invalid={ariaInvalid} error={error} hintText={hintText}>
+    <Field label={label} hintText={hintText} required={required}>
       <Select
         {...props}
         value={value}
-        aria-invalid={ariaInvalid}
-        onBlur={onBlur}
+        aria-invalid={hasError}
+        onBlur={field.onBlur}
         onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
       />
     </Field>
