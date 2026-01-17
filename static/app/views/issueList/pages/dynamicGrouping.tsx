@@ -708,7 +708,7 @@ function DynamicGrouping() {
     <PageFiltersContainer>
       <PageWrapper>
         <HeaderSection>
-          <Flex align="center" gap="md" justify="between" marginBottom="md">
+          <Flex align="center" gap="md" justify="between" marginBottom="xl">
             <Flex align="center" gap="md">
               <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
                 {t('Top Issues')}
@@ -731,7 +731,7 @@ function DynamicGrouping() {
             </Flex>
           </Flex>
 
-          <Flex gap="sm" align="center" marginBottom="md">
+          <Flex gap="sm" align="center" marginBottom="xl">
             <ProjectPageFilter resetParamsOnChange={['cluster']} />
             {showDevTools && (
               <Button

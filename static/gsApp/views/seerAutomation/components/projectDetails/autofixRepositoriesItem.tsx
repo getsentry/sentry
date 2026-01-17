@@ -110,7 +110,7 @@ export function AutofixRepositoriesItem({
         height="100%"
         position="relative"
         padding="0"
-        borderBottom={isExpanded ? undefined : 'primary'}
+        style={isExpanded ? {borderBottom: 'none'} : {}}
       >
         <RowButton
           icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
@@ -127,12 +127,12 @@ export function AutofixRepositoriesItem({
         gap="lg"
         align="center"
         justify="end"
-        borderBottom={isExpanded ? undefined : 'primary'}
+        style={isExpanded ? {borderBottom: 'none'} : {}}
       >
         <Text size="sm">{repository.provider}</Text>
       </Flex>
 
-      <Flex align="center" borderBottom={isExpanded ? undefined : 'primary'}>
+      <Flex align="center" style={isExpanded ? {borderBottom: 'none'} : {}}>
         <Confirm
           disabled={!canWrite}
           onConfirm={onRemoveRepo}
