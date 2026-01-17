@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -40,28 +40,30 @@ const DEFAULT_PROPS: DefaultProps = {
   allowEmpty: false,
 };
 
-export default class TableField extends Component<InputFieldProps> {
-  static defaultProps = DEFAULT_PROPS;
+function hasValue(value: any) {
+  return defined(value) && !isEmptyObject(value);
+}
 
-  hasValue = (value: any) => defined(value) && !isEmptyObject(value);
-
-  renderField = (props: RenderProps) => {
+export default function TableField({
+  addButtonText = DEFAULT_PROPS.addButtonText,
+  allowEmpty = DEFAULT_PROPS.allowEmpty,
+  ...props
+}: InputFieldProps) {
+  const renderField = (fieldProps: RenderProps) => {
     const {
       onChange,
       onBlur,
-      addButtonText,
       columnLabels,
       columnKeys,
       disabled: rawDisabled,
-      allowEmpty,
       confirmDeleteMessage,
-    } = props;
+    } = fieldProps;
 
     const mappedKeys = columnKeys || [];
     const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {id: ''});
 
-    const valueIsEmpty = this.hasValue(props.value);
-    const value = valueIsEmpty ? (props.value as any[]) : [];
+    const valueIsEmpty = hasValue(fieldProps.value);
+    const value = valueIsEmpty ? (fieldProps.value as any[]) : [];
 
     const saveChanges = (nextValue: Array<Record<PropertyKey, unknown>>) => {
       onChange?.(nextValue, []);
@@ -182,21 +184,21 @@ export default class TableField extends Component<InputFieldProps> {
     );
   };
 
-  render() {
-    // We need formatMessageValue=false since we're saving an object
-    // and there isn't a great way to render the
-    // change within the toast. Just turn off displaying the from/to portion of
-    // the message
-    return (
-      <FormField
-        {...this.props}
-        formatMessageValue={false}
-        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
-      >
-        {this.renderField}
-      </FormField>
-    );
-  }
+  // We need formatMessageValue=false since we're saving an object
+  // and there isn't a great way to render the
+  // change within the toast. Just turn off displaying the from/to portion of
+  // the message
+  return (
+    <FormField
+      {...props}
+      addButtonText={addButtonText}
+      allowEmpty={allowEmpty}
+      formatMessageValue={false}
+      inline={({model}: any) => !hasValue(model.getValue(props.name))}
+    >
+      {renderField}
+    </FormField>
+  );
 }
 
 const HeaderLabel = styled('div')`

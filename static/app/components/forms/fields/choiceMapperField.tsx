@@ -1,4 +1,4 @@
-import {Component, Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
@@ -219,30 +219,32 @@ function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
   );
 }
 
-export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
-  static defaultProps = defaultProps;
+function hasValue(value: InputFieldProps['value']) {
+  return defined(value) && !isEmptyObject(value);
+}
 
-  hasValue = (value: InputFieldProps['value']) => defined(value) && !isEmptyObject(value);
-
-  renderField = (props: ChoiceMapperFieldProps) => {
+export default function ChoiceMapperField({
+  addButtonText = defaultProps.addButtonText,
+  perItemMapping = defaultProps.perItemMapping,
+  allowEmpty = defaultProps.allowEmpty,
+  ...props
+}: ChoiceMapperFieldProps) {
+  const renderField = (fieldProps: ChoiceMapperFieldProps) => {
     const {
       onChange,
       onBlur,
-      addButtonText,
       addDropdown,
       mappedColumnLabel,
       columnLabels,
       mappedSelectors,
-      perItemMapping,
       disabled,
-      allowEmpty,
-    } = props;
+    } = fieldProps;
 
     const mappedKeys = Object.keys(columnLabels);
     const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {});
 
-    const valueIsEmpty = this.hasValue(props.value);
-    const value = valueIsEmpty ? props.value : {};
+    const valueIsEmpty = hasValue(fieldProps.value);
+    const value = valueIsEmpty ? fieldProps.value : {};
 
     const saveChanges = (nextValue: ChoiceMapperFieldProps['value']) => {
       onChange?.(nextValue, {});
@@ -417,16 +419,17 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     );
   };
 
-  render() {
-    return (
-      <FormField
-        {...this.props}
-        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
-      >
-        {this.renderField}
-      </FormField>
-    );
-  }
+  return (
+    <FormField
+      {...props}
+      addButtonText={addButtonText}
+      perItemMapping={perItemMapping}
+      allowEmpty={allowEmpty}
+      inline={({model}: any) => !hasValue(model.getValue(props.name))}
+    >
+      {renderField}
+    </FormField>
+  );
 }
 
 const Control = styled('div')`
