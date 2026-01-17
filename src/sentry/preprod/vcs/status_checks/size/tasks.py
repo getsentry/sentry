@@ -347,57 +347,44 @@ def _fetch_base_size_metrics(
     if not artifacts:
         return {}
 
-    # Collect all base_sha values we need to look up
-    base_shas: set[str] = {
-        artifact.commit_comparison.base_sha
-        for artifact in artifacts
-        if artifact.commit_comparison and artifact.commit_comparison.base_sha
-    }
-
-    if not base_shas:
+    # All artifacts share the same commit_comparison, so get base_sha from the first one
+    first_artifact = artifacts[0]
+    if not first_artifact.commit_comparison or not first_artifact.commit_comparison.base_sha:
         return {}
 
-    # Batch query: find all CommitComparisons where head_sha matches any base_sha
-    base_commit_comparisons = list(
+    base_sha = first_artifact.commit_comparison.base_sha
+
+    # Find the base commit comparison (where head_sha matches our base_sha)
+    base_commit_comparison = (
         CommitComparison.objects.filter(
-            head_sha__in=base_shas,
+            head_sha=base_sha,
             organization_id=project.organization_id,
-        ).order_by("head_sha", "date_added")
+        )
+        .order_by("date_added")
+        .first()
     )
 
-    if not base_commit_comparisons:
+    if not base_commit_comparison:
         return {}
 
-    # Build map of base_sha -> first (oldest) commit comparison
-    base_sha_to_commit_comparison: dict[str, CommitComparison] = {}
-    for cc in base_commit_comparisons:
-        if cc.head_sha not in base_sha_to_commit_comparison:
-            base_sha_to_commit_comparison[cc.head_sha] = cc
-
-    # Batch query all potential base artifacts for matching commit comparisons
+    # Batch query all base artifacts for this commit comparison
     base_artifacts_qs = PreprodArtifact.objects.filter(
-        commit_comparison__in=base_sha_to_commit_comparison.values(),
+        commit_comparison=base_commit_comparison,
         project__organization_id=project.organization_id,
-    ).select_related("commit_comparison")
+    )
 
     # Build lookup key -> base artifact
-    # Key: (commit_comparison_id, app_id, artifact_type, build_configuration_id)
+    # Key: (app_id, artifact_type, build_configuration_id)
     base_artifact_lookup = {}
     for ba in base_artifacts_qs:
-        key = (ba.commit_comparison_id, ba.app_id, ba.artifact_type, ba.build_configuration_id)
+        key = (ba.app_id, ba.artifact_type, ba.build_configuration_id)
         if key not in base_artifact_lookup:
             base_artifact_lookup[key] = ba
 
     # Map head artifacts to their base artifacts
     base_artifact_map: dict[int, PreprodArtifact] = {}
     for artifact in artifacts:
-        if not artifact.commit_comparison or not artifact.commit_comparison.base_sha:
-            continue
-        base_sha = artifact.commit_comparison.base_sha
-        base_cc = base_sha_to_commit_comparison.get(base_sha)
-        if not base_cc:
-            continue
-        key = (base_cc.id, artifact.app_id, artifact.artifact_type, artifact.build_configuration_id)
+        key = (artifact.app_id, artifact.artifact_type, artifact.build_configuration_id)
         base_artifact = base_artifact_lookup.get(key)
         if base_artifact:
             base_artifact_map[artifact.id] = base_artifact
