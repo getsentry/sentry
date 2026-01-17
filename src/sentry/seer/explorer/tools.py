@@ -1626,14 +1626,22 @@ def get_attribute_breakdown_comparison(
     query: str | None = "",
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    stats_period: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
 ) -> dict[str, Any] | None:
     """
-    Fetch ranked attribute breakdowns for a selected time window (minute precision) vs baseline.
+    Fetch ranked attribute breakdowns for a selected time range (minute precision) vs baseline.
+    The selected range should be smaller and within the larger range provided by start/end/stats_period (default 7d). This is not validated.
 
     Mirrors the frontend useAttributeBreakdownComparison hook by building two queries
     (selected window and baseline) and forwarding them to /trace-items/attributes/ranked/.
     """
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
     range_start_dt = datetime.fromisoformat(range_start)
     range_end_dt = datetime.fromisoformat(range_end)
     if (range_start_dt.timestamp() // 60) >= (range_end_dt.timestamp() // 60):
@@ -1659,7 +1667,7 @@ def get_attribute_breakdown_comparison(
     query_1 = (
         f"{base_query} timestamp:>={range_start_str} timestamp:<={range_end_str}"
         if base_query
-        else ""
+        else f"timestamp:>={range_start_str} timestamp:<={range_end_str}"
     )
     query_2 = base_query
 
@@ -1671,6 +1679,9 @@ def get_attribute_breakdown_comparison(
         "query_1": query_1,
         "query_2": query_2,
         "above": 1,
+        "start": start,
+        "end": end,
+        "statsPeriod": stats_period,
         "sampling": sampling_mode,
         "referrer": Referrer.SEER_EXPLORER_TOOLS,
     }

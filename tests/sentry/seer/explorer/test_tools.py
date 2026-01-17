@@ -2768,14 +2768,51 @@ class TestGetAttributeBreakdownComparison(TestCase):
         assert params["function"] == "count(span.duration)"
         assert params["query_2"] == "transaction:api"
 
-        # Rounds to  minute precision
+        # Rounds to minute precision
         assert (
             params["query_1"]
             == "transaction:api timestamp:>=2024-01-01T00:00:00 timestamp:<=2024-01-01T00:01:00"
         )
         assert params["sampling"] == "NORMAL"
         assert params["above"] == 1
+        assert "start" not in params
+        assert "end" not in params
+        assert params.get("statsPeriod") == "7d"
         assert params["referrer"] == Referrer.SEER_EXPLORER_TOOLS
+
+    @patch("sentry.seer.explorer.tools.client")
+    def test_attr_comparison_empty_query_and_time_filter(self, mock_client: Mock) -> None:
+        organization = self.create_organization()
+        mock_client.get.return_value = Mock(data={"rankedAttributes": []})
+
+        range_start_iso = "2024-01-01T00:00:00.0000"
+        range_end_iso = "2024-01-01T00:05:00.0000"
+        start_iso = "2024-01-01T00:00:00"
+        end_iso = "2024-01-02T01:00:00"
+
+        result = get_attribute_breakdown_comparison(
+            organization_id=organization.id,
+            dataset="spans",
+            aggregate_function="count(span.duration)",
+            range_start=range_start_iso,
+            range_end=range_end_iso,
+            query="",
+            start=start_iso,
+            end=end_iso,
+            stats_period=None,
+        )
+
+        assert result == {"rankedAttributes": []}
+
+        kwargs = mock_client.get.call_args.kwargs
+        params: dict[str, Any] = kwargs["params"]
+        assert params["query_2"] == ""
+        assert (
+            params["query_1"] == "timestamp:>=2024-01-01T00:00:00 timestamp:<=2024-01-01T00:05:00"
+        )
+        assert params.get("start") == start_iso
+        assert params.get("end") == end_iso
+        assert "statsPeriod" not in params
 
     def test_attr_comparison_rejects_same_minute_range(self) -> None:
         organization = self.create_organization()
