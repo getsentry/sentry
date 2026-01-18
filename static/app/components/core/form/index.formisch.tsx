@@ -1,6 +1,7 @@
 import {createContext, useContext} from 'react';
 import {
   Field as FormischBaseField,
+  setInput,
   type FormStore,
   type PathValue,
   type RequiredPath,
@@ -26,8 +27,15 @@ type FieldProps = {
 // Context to hold the field state
 const FormischFieldContext = createContext<{
   errors: [string, ...string[]] | null;
-  onBlur: (e: React.FocusEvent<any>) => void;
-  onChange: (e: React.ChangeEvent<any>) => void;
+  fieldPath: any;
+  fieldProps: {
+    name: string;
+    onBlur: (e: React.FocusEvent<any>) => void;
+    onChange: (e: React.ChangeEvent<any>) => void;
+    onFocus: (e: React.FocusEvent<any>) => void;
+    ref: (element: any) => void;
+  };
+  formStore: FormStore<any>;
 } | null>(null);
 
 function useFormischFieldContext() {
@@ -61,8 +69,9 @@ export function FormischField<
           <FormischFieldContext.Provider
             value={{
               errors: field.errors,
-              onBlur: field.props.onBlur,
-              onChange: field.props.onChange,
+              fieldProps: field.props,
+              formStore: of,
+              fieldPath: path,
             }}
           >
             {children({
@@ -123,19 +132,19 @@ export function InputField({
     onChange: (value: string) => void;
     value: string;
   }) {
-  const {errors, onBlur, onChange: formischOnChange} = useFormischFieldContext();
+  const {errors, fieldProps} = useFormischFieldContext();
   const hasError = !!errors?.[0];
 
   return (
     <Field label={label} hintText={hintText} required={required}>
       <Input
         {...props}
+        {...fieldProps}
         value={value}
         aria-invalid={hasError}
-        onBlur={onBlur}
         onChange={e => {
           // Call Formisch's onChange with the real event
-          formischOnChange(e);
+          fieldProps.onChange(e);
           // Also call the render prop's onChange for compatibility
           // (though it's a no-op in our implementation)
           onChange(e.target.value);
@@ -158,20 +167,20 @@ export function NumberField({
     onChange: (value: number) => void;
     value: number;
   }) {
-  const {errors, onBlur, onChange: formischOnChange} = useFormischFieldContext();
+  const {errors, fieldProps} = useFormischFieldContext();
   const hasError = !!errors?.[0];
 
   return (
     <Field label={label} hintText={hintText} required={required}>
       <Input
         {...props}
+        {...fieldProps}
         type="number"
         value={value}
         aria-invalid={hasError}
-        onBlur={onBlur}
         onChange={e => {
           // Call Formisch's onChange with the real event
-          formischOnChange(e);
+          fieldProps.onChange(e);
           // Also call the render prop's onChange for compatibility
           onChange(Number(e.target.value));
         }}
@@ -193,28 +202,27 @@ export function SelectField({
     onChange: (value: string) => void;
     value: string;
   }) {
-  const {errors, onBlur, onChange: formischOnChange} = useFormischFieldContext();
+  const {errors, fieldProps, formStore, fieldPath} = useFormischFieldContext();
   const hasError = !!errors?.[0];
 
   return (
     <Field label={label} hintText={hintText} required={required}>
       <Select
         {...props}
+        name={fieldProps.name}
+        onBlur={fieldProps.onBlur}
         value={value}
         aria-invalid={hasError}
-        onBlur={onBlur}
         onChange={(option: SelectValue<string>) => {
           const newValue = option?.value ?? '';
-          // Create a synthetic event for Formisch
-          const syntheticEvent = {
-            target: {
-              value: newValue,
-              type: 'select-one',
-            },
-          } as React.ChangeEvent<HTMLSelectElement>;
-          // Call Formisch's onChange with the synthetic event
-          formischOnChange(syntheticEvent);
-          // Also call the render prop's onChange for compatibility
+
+          // Use Formisch's setInput API to update the field value
+          setInput(formStore, {
+            path: fieldPath,
+            input: newValue,
+          });
+
+          // Call the render prop's onChange
           onChange(newValue);
         }}
       />
