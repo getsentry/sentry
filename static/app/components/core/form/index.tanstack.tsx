@@ -6,6 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
 type FieldProps = {
@@ -122,6 +123,15 @@ function NumberField({
   );
 }
 
+function SelectInput({
+  selectProps,
+  ...props
+}: React.ComponentProps<typeof components.Input> & {
+  selectProps: {'aria-invalid': boolean};
+}) {
+  return <components.Input {...props} aria-invalid={selectProps['aria-invalid']} />;
+}
+
 function SelectField({
   label,
   hintText,
@@ -139,6 +149,7 @@ function SelectField({
         <Select
           {...fieldProps}
           {...props}
+          components={{...props.components, Input: SelectInput}}
           onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
         />
       )}
