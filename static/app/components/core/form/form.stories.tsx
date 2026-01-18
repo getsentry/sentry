@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
-import {useForm} from 'react-hook-form';
+import {useForm, useWatch, type Control} from 'react-hook-form';
 import {
   Form as FormischForm,
-  getInput,
+  useField as useFormischField,
   useForm as useFormischForm,
+  type FormStore,
 } from '@formisch/react';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {revalidateLogic} from '@tanstack/react-form';
@@ -151,6 +152,7 @@ function TanStack() {
                   {field => (
                     <field.Input
                       label="Secret:"
+                      required
                       value={field.state.value}
                       onChange={field.handleChange}
                     />
@@ -202,6 +204,29 @@ function TanStack() {
 
 type UserFormValues = z.infer<typeof userSchema>;
 
+function RHFSecretField({control}: {control: Control<UserFormValues>}) {
+  // Subscribe to just the age field reactively - only this component re-renders when age changes
+  const age = useWatch({control, name: 'age'});
+  const showSecret = age === 42;
+
+  if (!showSecret) {
+    return null;
+  }
+
+  return (
+    <RHFField name="secret" control={control}>
+      {field => (
+        <InputField
+          required
+          label="Secret:"
+          value={field.value}
+          onChange={field.onChange}
+        />
+      )}
+    </RHFField>
+  );
+}
+
 function Rhf() {
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -217,9 +242,6 @@ function Rhf() {
       },
     },
   });
-
-  const age = form.watch('age');
-  const showSecret = age === 42;
 
   return (
     <form
@@ -259,13 +281,7 @@ function Rhf() {
             />
           )}
         </RHFField>
-        {showSecret ? (
-          <RHFField name="secret" control={form.control}>
-            {field => (
-              <InputField label="Secret:" value={field.value} onChange={field.onChange} />
-            )}
-          </RHFField>
-        ) : null}
+        <RHFSecretField control={form.control} />
         <div style={{marginTop: '20px', marginBottom: '10px'}}>
           <strong>Address</strong>
         </div>
@@ -306,6 +322,29 @@ function Rhf() {
   );
 }
 
+function FormischSecretField({form}: {form: FormStore<typeof userSchemaValibot>}) {
+  // Subscribe to just the age field reactively - only this component re-renders when age changes
+  const ageField = useFormischField(form, {path: ['age']});
+  const showSecret = ageField.input === 42;
+
+  if (!showSecret) {
+    return null;
+  }
+
+  return (
+    <FormischField of={form} path={['secret']}>
+      {field => (
+        <FormischInputField
+          label="Secret:"
+          required
+          value={field.value}
+          onChange={field.onChange}
+        />
+      )}
+    </FormischField>
+  );
+}
+
 function Formisch() {
   const form = useFormischForm({
     schema: userSchemaValibot,
@@ -321,11 +360,6 @@ function Formisch() {
       },
     },
   });
-
-  // Access form state for conditional rendering using getInput
-  const formInput = getInput(form);
-  const age = formInput.age ?? 0;
-  const showSecret = age === 42;
 
   return (
     <FormischForm
@@ -365,17 +399,7 @@ function Formisch() {
             />
           )}
         </FormischField>
-        {showSecret ? (
-          <FormischField of={form} path={['secret']}>
-            {field => (
-              <FormischInputField
-                label="Secret:"
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          </FormischField>
-        ) : null}
+        <FormischSecretField form={form} />
         <div style={{marginTop: '20px', marginBottom: '10px'}}>
           <strong>Address</strong>
         </div>
