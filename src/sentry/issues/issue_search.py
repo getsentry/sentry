@@ -74,6 +74,7 @@ issue_search_config = SearchConfig.create_from(
         "date": ["event.timestamp"],
         "times_seen": ["timesSeen"],
         "sentry:dist": ["dist"],
+        "team": ["team"],
     },
 )
 parse_search_query = partial(base_parse_query, config=issue_search_config)
@@ -268,6 +269,27 @@ def convert_detector_value(
     return list(value)
 
 
+def convert_team_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Sequence[Environment] | None,
+) -> list[Team]:
+    """Convert team slug(s) to Team objects for filtering issues by project ownership"""
+    teams: list[Team] = []
+    organization_id = projects[0].organization_id
+    for team_identifier in value:
+        team_slug = team_identifier.lstrip("#")
+        team = Team.objects.filter(
+            slug__iexact=team_slug,
+            organization_id=organization_id,
+        ).first()
+        if not team:
+            raise InvalidSearchQuery(f"Invalid team '{team_identifier}'")
+        teams.append(team)
+    return teams
+
+
 value_converters: Mapping[str, ValueConverter] = {
     "assigned_or_suggested": convert_actor_or_none_value,
     "assigned_to": convert_actor_or_none_value,
@@ -284,6 +306,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "substatus": convert_substatus_value,
     "issue.seer_actionability": convert_seer_actionability_value,
     "detector": convert_detector_value,
+    "team": convert_team_value,
 }
 
 
