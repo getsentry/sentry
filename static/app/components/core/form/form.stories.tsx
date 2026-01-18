@@ -95,7 +95,7 @@ function TanStack() {
     },
     validationLogic: revalidateLogic({
       mode: 'submit',
-      modeAfterSubmission: 'blur',
+      modeAfterSubmission: 'change',
     }),
     validators: {
       onDynamic: userSchema,
