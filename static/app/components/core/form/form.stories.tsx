@@ -14,7 +14,6 @@ import {z} from 'zod';
 import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
-import {defaultFormOptions, useScrapsForm} from './index';
 import {
   FormischField,
   InputField as FormischInputField,
@@ -23,6 +22,7 @@ import {
   SubmitButton as FormischSubmitButton,
 } from './index.formisch';
 import {InputField, NumberField, RHFField, SelectField, SubmitButton} from './index.rhf';
+import {defaultFormOptions, useScrapsForm} from './index.tanstack';
 
 const COUNTRY_OPTIONS = [
   {value: 'US', label: 'United States'},
