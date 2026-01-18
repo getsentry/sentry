@@ -221,6 +221,7 @@ function RHFSecretField({control}: {control: Control<UserFormValues>}) {
           label="Secret:"
           value={field.value}
           onChange={field.onChange}
+          ref={field.ref}
         />
       )}
     </RHFField>
@@ -258,6 +259,7 @@ function Rhf() {
               label="First Name:"
               value={field.value}
               onChange={field.onChange}
+              ref={field.ref}
             />
           )}
         </RHFField>
@@ -268,6 +270,7 @@ function Rhf() {
               required
               value={field.value}
               onChange={field.onChange}
+              ref={field.ref}
             />
           )}
         </RHFField>
@@ -278,6 +281,7 @@ function Rhf() {
               required
               value={field.value}
               onChange={field.onChange}
+              ref={field.ref}
             />
           )}
         </RHFField>
@@ -292,6 +296,7 @@ function Rhf() {
               required
               value={field.value}
               onChange={field.onChange}
+              ref={field.ref}
             />
           )}
         </RHFField>
@@ -302,6 +307,7 @@ function Rhf() {
               required
               value={field.value}
               onChange={field.onChange}
+              ref={field.ref}
             />
           )}
         </RHFField>
@@ -312,6 +318,7 @@ function Rhf() {
               required
               value={field.value}
               onChange={field.onChange}
+              ref={field.ref}
               options={COUNTRY_OPTIONS}
             />
           )}

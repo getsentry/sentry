@@ -11,9 +11,10 @@ import {
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Input, type InputProps} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
+import {Select, type GeneralSelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
+import type {ReactSelect} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
 type FieldProps = {
@@ -44,6 +45,7 @@ export function RHFField<
 }: {
   children: (field: {
     onChange: (value: FieldPathValue<TFieldValues, TName>) => void;
+    ref: React.Ref<any>;
     value: FieldPathValue<TFieldValues, TName>;
   }) => React.ReactNode;
   control: Control<TFieldValues>;
@@ -56,6 +58,7 @@ export function RHFField<
       {children({
         value: controller.field.value,
         onChange: controller.field.onChange,
+        ref: controller.field.ref,
       })}
     </RHFFieldContext.Provider>
   );
@@ -98,10 +101,12 @@ export function InputField({
   required,
   value,
   onChange,
+  ref,
   ...props
 }: FieldProps &
   Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur'> & {
     onChange: (value: string) => void;
+    ref: React.Ref<HTMLInputElement>;
     value: string;
   }) {
   const {field, fieldState} = useRHFFieldContext();
@@ -111,6 +116,7 @@ export function InputField({
     <Field label={label} hintText={hintText} required={required}>
       <Input
         {...props}
+        ref={ref}
         value={value}
         aria-invalid={hasError}
         onBlur={field.onBlur}
@@ -127,10 +133,12 @@ export function NumberField({
   required,
   value,
   onChange,
+  ref,
   ...props
 }: FieldProps &
   Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur'> & {
     onChange: (value: number) => void;
+    ref: React.Ref<HTMLInputElement>;
     value: number;
   }) {
   const {field, fieldState} = useRHFFieldContext();
@@ -140,6 +148,7 @@ export function NumberField({
     <Field label={label} hintText={hintText} required={required}>
       <Input
         {...props}
+        ref={ref}
         type="number"
         value={value}
         aria-invalid={hasError}
@@ -157,10 +166,12 @@ export function SelectField({
   required,
   value,
   onChange,
+  ref,
   ...props
 }: FieldProps &
   Omit<React.ComponentProps<typeof Select>, 'value' | 'onChange' | 'onBlur'> & {
     onChange: (value: string) => void;
+    ref: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
     value: string;
   }) {
   const {field, fieldState} = useRHFFieldContext();
@@ -170,6 +181,7 @@ export function SelectField({
     <Field label={label} hintText={hintText} required={required}>
       <Select
         {...props}
+        ref={ref}
         value={value}
         aria-invalid={hasError}
         onBlur={field.onBlur}
