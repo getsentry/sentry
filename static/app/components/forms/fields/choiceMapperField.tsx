@@ -28,16 +28,16 @@ interface DefaultProps {
   /**
    * Text used for the 'add row' button.
    */
-  addButtonText: NonNullable<React.ReactNode>;
+  addButtonText?: NonNullable<React.ReactNode>;
   /**
    * Automatically save even if fields are empty
    */
-  allowEmpty: boolean;
+  allowEmpty?: boolean;
   /**
    * If using mappedSelectors to specifically map different choice selectors
    * per item specify this as true.
    */
-  perItemMapping: boolean;
+  perItemMapping?: boolean;
 }
 
 type MappedSelectors = Record<string, Partial<ControlProps>>;
@@ -416,9 +416,6 @@ export default function ChoiceMapperField({
   return (
     <FormField
       {...props}
-      addButtonText={addButtonText}
-      perItemMapping={perItemMapping}
-      allowEmpty={allowEmpty}
       inline={({model}: any) => !hasValue(model.getValue(props.name))}
     >
       {renderField}

@@ -24,11 +24,11 @@ interface DefaultProps {
    * Text used for the 'add' button. An empty string can be used
    * to just render the "+" icon.
    */
-  addButtonText: string;
+  addButtonText?: string;
   /**
    * Automatically save even if fields are empty
    */
-  allowEmpty: boolean;
+  allowEmpty?: boolean;
 }
 
 export interface TableFieldProps extends Omit<InputFieldProps, 'type'> {}
@@ -186,8 +186,6 @@ export default function TableField({
   return (
     <FormField
       {...props}
-      addButtonText={addButtonText}
-      allowEmpty={allowEmpty}
       formatMessageValue={false}
       inline={({model}: any) => !hasValue(model.getValue(props.name))}
     >
