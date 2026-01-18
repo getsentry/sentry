@@ -11,6 +11,18 @@ import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';
 
 jest.mock('sentry/utils/usePageFilters');
 
+function useTestableFetchEventsTimeSeries({
+  dataset,
+  options,
+  referrer,
+}: {
+  dataset: Parameters<typeof useFetchEventsTimeSeries>[0];
+  options: Parameters<typeof useFetchEventsTimeSeries>[1];
+  referrer: Parameters<typeof useFetchEventsTimeSeries>[2];
+}) {
+  return useFetchEventsTimeSeries(dataset, options, referrer);
+}
+
 describe('useFetchEventsTimeSeries', () => {
   const organization = OrganizationFixture();
 
@@ -42,15 +54,13 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {
-          yAxis: 'epm()',
-        },
-        REFERRER
-      )
-    );
+    const {result} = renderHookWithProviders(useTestableFetchEventsTimeSeries, {
+      initialProps: {
+        dataset: DiscoverDatasets.SPANS,
+        options: {yAxis: 'epm()'},
+        referrer: REFERRER,
+      },
+    });
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
@@ -71,16 +81,16 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {
+    const {result} = renderHookWithProviders(useTestableFetchEventsTimeSeries, {
+      initialProps: {
+        dataset: DiscoverDatasets.SPANS,
+        options: {
           yAxis: ['epm()'],
           enabled: false,
         },
-        REFERRER
-      )
-    );
+        referrer: REFERRER,
+      },
+    });
 
     await waitFor(() => expect(result.current.isPending).toBe(true));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -90,16 +100,16 @@ describe('useFetchEventsTimeSeries', () => {
 
   it('requires a referrer', () => {
     expect(() => {
-      renderHookWithProviders(() =>
-        useFetchEventsTimeSeries(
-          DiscoverDatasets.SPANS,
-          {
+      renderHookWithProviders(useTestableFetchEventsTimeSeries, {
+        initialProps: {
+          dataset: DiscoverDatasets.SPANS,
+          options: {
             yAxis: ['epm()'],
             enabled: false,
           },
-          ''
-        )
-      );
+          referrer: '',
+        },
+      });
     }).toThrow();
   });
 
@@ -110,16 +120,16 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {
+    const {result} = renderHookWithProviders(useTestableFetchEventsTimeSeries, {
+      initialProps: {
+        dataset: DiscoverDatasets.SPANS,
+        options: {
           yAxis: 'p50(span.duration)',
           query: new MutableSearch('span.op:db*'),
         },
-        REFERRER
-      )
-    );
+        referrer: REFERRER,
+      },
+    });
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
@@ -153,10 +163,10 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {
+    const {result} = renderHookWithProviders(useTestableFetchEventsTimeSeries, {
+      initialProps: {
+        dataset: DiscoverDatasets.SPANS,
+        options: {
           yAxis: 'p50(span.duration)',
           interval: '2h',
           pageFilters: {
@@ -170,9 +180,9 @@ describe('useFetchEventsTimeSeries', () => {
             },
           },
         },
-        REFERRER
-      )
-    );
+        referrer: REFERRER,
+      },
+    });
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
@@ -207,10 +217,10 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {
+    const {result} = renderHookWithProviders(useTestableFetchEventsTimeSeries, {
+      initialProps: {
+        dataset: DiscoverDatasets.SPANS,
+        options: {
           yAxis: 'p50(span.duration)',
           topEvents: 5,
           groupBy: ['span.category', 'transaction'],
@@ -219,9 +229,9 @@ describe('useFetchEventsTimeSeries', () => {
             kind: 'desc',
           },
         },
-        REFERRER
-      )
-    );
+        referrer: REFERRER,
+      },
+    });
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
@@ -257,13 +267,17 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {yAxis: 'epm()', logQuery: ['span.op:db*'], metricQuery: ['span.op:db*']},
-        REFERRER
-      )
-    );
+    const {result} = renderHookWithProviders(useTestableFetchEventsTimeSeries, {
+      initialProps: {
+        dataset: DiscoverDatasets.SPANS,
+        options: {
+          yAxis: 'epm()',
+          logQuery: ['span.op:db*'],
+          metricQuery: ['span.op:db*'],
+        },
+        referrer: REFERRER,
+      },
+    });
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
