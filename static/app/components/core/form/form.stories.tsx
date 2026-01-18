@@ -7,7 +7,6 @@ import {
   type FormStore,
 } from '@formisch/react';
 import {zodResolver} from '@hookform/resolvers/zod';
-import {revalidateLogic} from '@tanstack/react-form';
 import * as v from 'valibot';
 import {z} from 'zod';
 
@@ -93,10 +92,6 @@ function TanStack() {
         country: '',
       },
     },
-    validationLogic: revalidateLogic({
-      mode: 'submit',
-      modeAfterSubmission: 'change',
-    }),
     validators: {
       onDynamic: userSchema,
     },

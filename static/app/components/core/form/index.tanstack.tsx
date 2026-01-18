@@ -1,4 +1,9 @@
-import {createFormHook, createFormHookContexts, formOptions} from '@tanstack/react-form';
+import {
+  createFormHook,
+  createFormHookContexts,
+  formOptions,
+  revalidateLogic,
+} from '@tanstack/react-form';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Input, type InputProps} from '@sentry/scraps/input';
@@ -23,6 +28,10 @@ export const defaultFormOptions = formOptions({
 
     InvalidInput?.focus();
   },
+  validationLogic: revalidateLogic({
+    mode: 'submit',
+    modeAfterSubmission: 'change',
+  }),
 });
 
 const {fieldContext, formContext, useFormContext, useFieldContext} =
