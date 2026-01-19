@@ -272,10 +272,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_comment_id"] is None
             assert payload["data"]["config"]["trigger_comment_type"] is None
 
-    def test_pull_request_opened_filtered_when_trigger_disabled(self) -> None:
+    def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_NEW_COMMIT]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        with self.code_review_setup(triggers=triggers, features=features), self.tasks():
+        org_options = {"sentry:enable_pr_review_test_generation": False}
+        with (
+            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.tasks(),
+        ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "opened"
             event["repository"]["owner"]["login"] = "sentry-ecosystem"
@@ -284,10 +288,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
-    def test_pull_request_synchronize_filtered_when_trigger_disabled(self) -> None:
+    def test_pull_request_synchronize_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        with self.code_review_setup(triggers=triggers, features=features), self.tasks():
+        org_options = {"sentry:enable_pr_review_test_generation": False}
+        with (
+            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.tasks(),
+        ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "synchronize"
             event["repository"]["owner"]["login"] = "sentry-ecosystem"
@@ -296,10 +304,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
-    def test_pull_request_ready_for_review_filtered_when_trigger_disabled(self) -> None:
+    def test_pull_request_ready_for_review_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_NEW_COMMIT]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        with self.code_review_setup(triggers=triggers, features=features), self.tasks():
+        org_options = {"sentry:enable_pr_review_test_generation": False}
+        with (
+            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.tasks(),
+        ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "ready_for_review"
             event["repository"]["owner"]["login"] = "sentry-ecosystem"
@@ -308,10 +320,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
-    def test_pull_request_closed_bypasses_trigger_check(self) -> None:
-        triggers: list[CodeReviewTrigger] = []
+    def test_pull_request_closed_bypasses_trigger_check_post_ga(self) -> None:
+        triggers: list[CodeReviewTrigger] = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        with self.code_review_setup(triggers=triggers, features=features), self.tasks():
+        org_options = {"sentry:enable_pr_review_test_generation": False}
+        with (
+            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.tasks(),
+        ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "closed"
             event["repository"]["owner"]["login"] = "sentry-ecosystem"
@@ -320,10 +336,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_called_once()
 
-    def test_pull_request_opened_works_when_trigger_enabled(self) -> None:
+    def test_pull_request_opened_works_when_trigger_enabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        with self.code_review_setup(triggers=triggers, features=features), self.tasks():
+        org_options = {"sentry:enable_pr_review_test_generation": False}
+        with (
+            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.tasks(),
+        ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "opened"
             event["repository"]["owner"]["login"] = "sentry-ecosystem"
@@ -332,10 +352,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_called_once()
 
-    def test_pull_request_ready_for_review_works_when_trigger_enabled(self) -> None:
+    def test_pull_request_ready_for_review_works_when_trigger_enabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        with self.code_review_setup(triggers=triggers, features=features), self.tasks():
+        org_options = {"sentry:enable_pr_review_test_generation": False}
+        with (
+            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.tasks(),
+        ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "ready_for_review"
             event["repository"]["owner"]["login"] = "sentry-ecosystem"
