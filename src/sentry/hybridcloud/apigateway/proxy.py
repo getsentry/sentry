@@ -191,7 +191,7 @@ def proxy_region_request(
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
-    data: Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
+    data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
         data = get_raw_body(request)
     else:
