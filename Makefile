@@ -1,10 +1,13 @@
 .PHONY: all
 all: develop
 
+# Detect uv location - use system uv if available (CI), otherwise use .devenv/bin/uv (local dev)
+UV := $(shell command -v uv 2>/dev/null || echo .devenv/bin/uv)
+
 WEBPACK := pnpm run build-acceptance
 
 freeze-requirements:
-	@uv lock
+	@$(UV) lock
 
 bootstrap:
 	@echo "devenv bootstrap is typically run on new machines."
@@ -59,17 +62,17 @@ diff-api-docs:
 build: locale
 
 merge-locale-catalogs: build-js-po
-	uv pip install Babel
+	$(UV) pip install Babel
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 
 compile-locale:
-	uv pip install Babel
+	$(UV) pip install Babel
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
 install-transifex:
-	uv pip install transifex-client
+	$(UV) pip install transifex-client
 
 push-transifex: merge-locale-catalogs install-transifex
 	tx push -s
@@ -89,7 +92,7 @@ build-chartcuterie-config:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
+	$(UV) run pytest tests/acceptance --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db
@@ -121,7 +124,7 @@ test-js-ci:
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
-	python3 -b -m pytest \
+	$(UV) run pytest \
 		tests \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
@@ -136,7 +139,7 @@ test-python-ci:
 
 test-backend-ci-with-coverage:
 	@echo "--> Running CI Python tests with coverage"
-	python3 -b -m pytest \
+	$(UV) run pytest \
 		tests \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
@@ -160,7 +163,7 @@ test-monolith-dbs:
 	@echo "--> Running CI Python tests (SENTRY_USE_MONOLITH_DBS=1)"
 	SENTRY_LEGACY_TEST_SUITE=1 \
 	SENTRY_USE_MONOLITH_DBS=1 \
-	python3 -b -m pytest \
+	$(UV) run pytest \
 	  tests/sentry/backup/test_exhaustive.py \
 	  tests/sentry/backup/test_exports.py \
 	  tests/sentry/backup/test_imports.py \
@@ -176,16 +179,16 @@ test-monolith-dbs:
 test-tools:
 	@echo "--> Running tools tests"
 	@# bogus configuration to force vanilla pytest
-	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
+	$(UV) run pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `devservices up` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	python3 -b -m pytest tests/symbolicator -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
-	python3 -b -m pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
-	python3 -b -m pytest tests/relay_integration/lang/java/ -vv -m symbolicator
+	$(UV) run pytest tests/symbolicator -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
+	$(UV) run pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
+	$(UV) run pytest tests/relay_integration/lang/java/ -vv -m symbolicator
 	@echo ""
 
 test-acceptance:
@@ -196,7 +199,7 @@ test-acceptance:
 # XXX: this is called by `getsentry/relay`
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
-	python3 -b -m pytest \
+	$(UV) run pytest \
 		tests/relay_integration \
 		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		-vv
@@ -204,7 +207,7 @@ test-relay-integration:
 
 test-api-docs: build-api-docs
 	pnpm run validate-api-examples
-	python3 -b -m pytest tests/apidocs
+	$(UV) run pytest tests/apidocs
 	@echo ""
 
 review-python-snapshots:

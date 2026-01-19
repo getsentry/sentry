@@ -34,27 +34,29 @@ This section contains critical command execution instructions that apply across 
 
 ### Python Command Execution Requirements
 
-**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use `uv run` to ensure the correct virtual environment is used.
 
 #### For AI Agents (automated commands)
 
-Use the full relative path to virtualenv executables:
+Use `uv run` to execute Python commands:
 
 ```bash
-cd /path/to/sentry && .venv/bin/pytest tests/...
-cd /path/to/sentry && .venv/bin/python -m mypy ...
+cd /path/to/sentry && uv run pytest tests/...
+cd /path/to/sentry && uv run python -m mypy ...
+cd /path/to/sentry && uv run pre-commit run --files src/sentry/path/to/file.py
 ```
 
-Or source the activate script in your command:
+If `uv` is not in PATH, use the full path:
 
 ```bash
-cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
+cd /path/to/sentry && .devenv/bin/uv run pytest tests/...
 ```
 
 **Important for AI agents:**
 
 - Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
-- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
+- `uv run` automatically uses the correct Python interpreter and dependencies from `.venv`
+- `uv` is installed via `devenv sync` at `.devenv/bin/uv` and is added to PATH by direnv
 
 ### Backend Development Commands
 
@@ -81,30 +83,30 @@ devservices serve
 
 ```bash
 # Preferred: Run pre-commit hooks on specific files
-pre-commit run --files src/sentry/path/to/file.py
+uv run pre-commit run --files src/sentry/path/to/file.py
 
 # Run all pre-commit hooks
-pre-commit run --all-files
+uv run pre-commit run --all-files
 ```
 
 #### Testing
 
 ```bash
 # Run Python tests (always use these parameters)
-pytest -svv --reuse-db
+uv run pytest -svv --reuse-db
 
 # Run specific test file
-pytest -svv --reuse-db tests/sentry/api/test_base.py
+uv run pytest -svv --reuse-db tests/sentry/api/test_base.py
 ```
 
 #### Database Operations
 
 ```bash
 # Run migrations
-sentry django migrate
+uv run sentry django migrate
 
 # Create new migration
-sentry django makemigrations
+uv run sentry django makemigrations
 
 # Update migration after rebase conflict (handles renaming, dependencies, lockfile)
 ./bin/update-migration <migration_name_or_number> <app_label>

@@ -3,6 +3,7 @@ name = "sentry"
 # see setup.cfg for versioning; we only have this here to make uv happy
 # which we intend to use for dependency management, not packaging
 version = "0.0.0"
+requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.7.1",
     "boto3>=1.34.128",
