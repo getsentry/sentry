@@ -100,24 +100,15 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason is None
 
     @with_feature("organizations:gen-ai-features")
-    def test_allowed_when_org_is_legacy_opt_in_without_beta_flag(self) -> None:
+    def test_denied_when_legacy_opt_in_enabled_without_beta_flag(self) -> None:
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            external_identifier=self.external_identifier,
-        )
+        service = self._create_service()
+        result = service.check()
 
-        with patch(
-            "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
-            return_value=True,
-        ):
-            service = self._create_service()
-            result = service.check()
-
-        assert result.allowed is True
-        assert result.denial_reason is None
+        # Should be denied because org doesn't have code-review-beta, seer-added, or seat-based-seer-enabled
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
     # -------------------------------------------------------------------------
     # Seer-added (legacy usage-based) org tests

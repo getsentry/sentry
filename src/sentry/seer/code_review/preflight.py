@@ -146,12 +146,7 @@ class CodeReviewPreflightService:
         return features.has("organizations:seat-based-seer-enabled", self.organization)
 
     def _is_code_review_beta_org(self) -> bool:
-        # TODO: Remove the has_legacy_opt_in check once the beta list is frozen
-        has_beta_flag = features.has("organizations:code-review-beta", self.organization)
-        has_legacy_opt_in = self.organization.get_option(
-            "sentry:enable_pr_review_test_generation", False
-        )
-        return has_beta_flag or bool(has_legacy_opt_in)
+        return features.has("organizations:code-review-beta", self.organization)
 
     def _is_legacy_usage_based_seer_plan_org(self) -> bool:
         return features.has("organizations:seer-added", self.organization)
