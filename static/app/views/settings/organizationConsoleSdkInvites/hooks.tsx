@@ -12,7 +12,7 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
+export type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
 interface ConsoleSdkInviteUser {
   email: string;
@@ -20,11 +20,16 @@ interface ConsoleSdkInviteUser {
   user_id: string;
 }
 
+export interface ConsoleSdkInviteDeleteItem {
+  platform: ConsolePlatform;
+  user_id: string;
+}
+
 interface UseRevokeConsoleSdkPlatformInviteParams {
   email: string;
+  items: ConsoleSdkInviteDeleteItem[];
   orgSlug: string;
   platform: ConsolePlatform;
-  userId: string;
 }
 
 export function useConsoleSdkInvites(orgSlug: string) {
@@ -40,30 +45,20 @@ export function useRevokeConsoleSdkPlatformInvite() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      orgSlug,
-      userId,
-      platform,
-    }: UseRevokeConsoleSdkPlatformInviteParams) => {
+    mutationFn: ({orgSlug, items}: UseRevokeConsoleSdkPlatformInviteParams) => {
       return fetchMutation({
         method: 'DELETE',
         url: `/organizations/${orgSlug}/console-sdk-invites/`,
-        data: {user_id: userId, platforms: [platform]},
+        data: {items},
       });
     },
     onMutate: ({email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
       addLoadingMessage(tct('Removing [platform] access for [email]', {platform, email}));
     },
-    onSuccess: (
-      _data,
-      {email, platform, orgSlug}: UseRevokeConsoleSdkPlatformInviteParams
-    ) => {
+    onSuccess: (_data, {email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
       addSuccessMessage(
         tct('Successfully removed [platform] access for [email]', {platform, email})
       );
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
-      });
     },
     onError: (
       error: RequestError,
@@ -76,6 +71,11 @@ export function useRevokeConsoleSdkPlatformInvite() {
           : (rawDetail?.message ??
             tct('Failed to remove [platform] access for [email]', {platform, email}));
       addErrorMessage(detail);
+    },
+    onSettled: (_data, _error, {orgSlug}: UseRevokeConsoleSdkPlatformInviteParams) => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
+      });
     },
   });
 }
