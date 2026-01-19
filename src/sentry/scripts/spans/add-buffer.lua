@@ -30,6 +30,12 @@ ARGS:
 - byte_count -- int -- The total number of bytes in the subsegment.
 - *span_id -- str[] -- The span ids in the subsegment.
 
+RETURNS:
+- redirect_depth -- int
+- set_key -- str
+- has_root_span -- bool
+- latency_ms -- number (milliseconds elapsed during script execution)
+
 ]]--
 
 local project_and_trace = KEYS[1]
@@ -41,6 +47,10 @@ local set_timeout = tonumber(ARGV[4])
 local max_segment_bytes = tonumber(ARGV[5])
 local byte_count = tonumber(ARGV[6])
 local NUM_ARGS = 6
+
+-- Capture start time for latency measurement
+local start_time = redis.call("TIME")
+local start_time_ms = tonumber(start_time[1]) * 1000 + tonumber(start_time[2]) / 1000
 
 local set_span_id = parent_span_id
 local redirect_depth = 0
@@ -136,4 +146,9 @@ redis.call("expire", ingested_byte_count_key, set_timeout)
 
 redis.call("expire", set_key, set_timeout)
 
-return {redirect_depth, set_key, has_root_span}
+-- Capture end time and calculate latency in milliseconds
+local end_time = redis.call("TIME")
+local end_time_ms = tonumber(end_time[1]) * 1000 + tonumber(end_time[2]) / 1000
+local latency_ms = end_time_ms - start_time_ms
+
+return {redirect_depth, set_key, has_root_span, latency_ms}
