@@ -104,7 +104,10 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
 def get_raw_body(
     request: HttpRequest,
-) -> Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None:
+) -> bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None:
+    if request.body:
+        return request.body
+
     wsgi_input = request.META.get("wsgi.input")
     if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
         return wsgi_input
