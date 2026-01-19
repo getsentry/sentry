@@ -293,11 +293,32 @@ export function hasAIInputAttribute(
     getTraceNodeAttribute('gen_ai.input.messages', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.system_instructions', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.call.arguments', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.embeddings.input', node, event, attributes) ||
     getTraceNodeAttribute('ai.input_messages', node, event, attributes) ||
     getTraceNodeAttribute('ai.prompt', node, event, attributes)
   );
+}
+
+/**
+ * Gets AI tool input, checking gen_ai.tool.call.arguments first, falling back to gen_ai.tool.input.
+ */
+function getAIToolInput(
+  node: EapSpanNode | SpanNode | TransactionNode,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  const toolCallArgs = getTraceNodeAttribute(
+    'gen_ai.tool.call.arguments',
+    node,
+    event,
+    attributes
+  );
+  if (toolCallArgs) {
+    return toolCallArgs;
+  }
+  return getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
 }
 
 function useInvalidRoleDetection(roles: string[]) {
@@ -348,7 +369,7 @@ export function AIInputSection({
 
   const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
 
-  const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
+  const toolArgs = getAIToolInput(node, attributes, event);
   const embeddingsInput = getTraceNodeAttribute(
     'gen_ai.embeddings.input',
     node,
