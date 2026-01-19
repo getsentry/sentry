@@ -1,38 +1,69 @@
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
-import {space} from 'sentry/styles/space';
+import {Container, Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 
-export const Card = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  border-radius: ${p => p.theme.radius.md};
-  border: 1px ${p => 'solid ' + p.theme.border};
-  box-shadow: ${p => p.theme.dropShadowMedium};
-  margin: ${space(2)} 0;
-  padding: ${space(2)};
-`;
+export function Card({
+  children,
+  ...props
+}: {children: React.ReactNode} & React.ComponentProps<'div'>) {
+  const theme = useTheme();
+  return (
+    <Container
+      border="primary"
+      radius="md"
+      background="primary"
+      style={{boxShadow: theme.tokens.shadow.elevationMedium}}
+      margin="xl 0"
+      padding="xl"
+      {...props}
+    >
+      {children}
+    </Container>
+  );
+}
 
-export const HalvedGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  align-items: center;
-  gap: ${space(4)};
-`;
+export function HalvedGrid({
+  children,
+  ...gridProps
+}: {children: React.ReactNode} & React.ComponentProps<typeof Grid>) {
+  return (
+    <Grid columns="repeat(2, 1fr)" gap="3xl" align="center" {...gridProps}>
+      {children}
+    </Grid>
+  );
+}
 
-export const HalvedWithDivider = styled('div')`
-  display: grid;
-  grid-template-columns: 2fr 1fr 2fr;
-  align-items: center;
-  margin: 8px 0;
-`;
+export function HalvedWithDivider({
+  children,
+  ...gridProps
+}: {children: React.ReactNode} & React.ComponentProps<typeof Grid>) {
+  return (
+    <Grid columns="2fr 1fr 2fr" margin="md 0" align="center" {...gridProps}>
+      {children}
+    </Grid>
+  );
+}
 
-export const Divider = styled('span')`
-  border-right: 1px solid ${p => p.theme.border};
-  margin: 0 ${space(1)};
-  height: ${space(3)};
-`;
+export function Divider() {
+  return <Container borderRight="primary" margin="0 md" height="20px" />;
+}
 
-export const Centered = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
+export function Centered(props: FlexProps<'div'>) {
+  return <Flex justify="center" align="center" {...props} />;
+}
+
+export function Cell({
+  children,
+  textAlign,
+  ...props
+}: {
+  children?: React.ReactNode;
+  textAlign?: 'left' | 'center' | 'right';
+} & React.ComponentProps<'td'>) {
+  const theme = useTheme();
+  return (
+    <td style={{padding: theme.space.xl, textAlign}} {...props}>
+      {children}
+    </td>
+  );
+}

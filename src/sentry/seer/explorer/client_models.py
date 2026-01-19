@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -115,6 +115,34 @@ class PendingUserInput(BaseModel):
         extra = "allow"
 
 
+class CodingAgentResult(BaseModel):
+    """Result from a coding agent."""
+
+    description: str
+    repo_provider: str
+    repo_full_name: str
+    branch_name: str | None = None
+    pr_url: str | None = None
+
+    class Config:
+        extra = "allow"
+
+
+class ExplorerCodingAgentState(BaseModel):
+    """State of a coding agent launched from an Explorer run."""
+
+    id: str
+    status: Literal["pending", "running", "completed", "failed"]
+    agent_url: str | None = None
+    provider: str  # e.g., "cursor_background_agent"
+    name: str
+    started_at: datetime
+    results: list[CodingAgentResult] = Field(default_factory=list)
+
+    class Config:
+        extra = "allow"
+
+
 class SeerRunState(BaseModel):
     """State of a Seer Explorer session."""
 
@@ -123,8 +151,9 @@ class SeerRunState(BaseModel):
     status: Literal["processing", "completed", "error", "awaiting_user_input"]
     updated_at: str
     pending_user_input: PendingUserInput | None = None
-    repo_pr_states: dict[str, RepoPRState] = {}
+    repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
     metadata: dict[str, Any] | None = None
+    coding_agents: dict[str, ExplorerCodingAgentState] = Field(default_factory=dict)
 
     class Config:
         extra = "allow"

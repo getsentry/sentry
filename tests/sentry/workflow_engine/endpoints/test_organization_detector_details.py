@@ -104,6 +104,67 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
     def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 3, status_code=404)
 
+    def test_permission_denied_when_open_membership_disabled(self) -> None:
+        """
+        Test that members cannot access detectors for projects they don't have team access to
+        when Open Membership is disabled. This is a regression test for an IDOR vulnerability.
+        """
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create a user who is a member of the org but NOT a member of any team
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        # Should get 403 Forbidden since user has no access to the project
+        self.get_error_response(self.organization.slug, self.detector.id, status_code=403)
+
+    def test_permission_allowed_when_open_membership_enabled(self) -> None:
+        """
+        Test that members CAN access detectors for any project when Open Membership is enabled.
+        """
+        # Enable Open Membership (default)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        # Create a user who is a member of the org but NOT a member of any team
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        # Should succeed since Open Membership allows access to all projects
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+        assert response.data == serialize(self.detector)
+
+    def test_permission_allowed_when_user_has_team_membership(self) -> None:
+        """
+        Test that members CAN access detectors for projects they have team access to
+        even when Open Membership is disabled.
+        """
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create a user who is a member of the project's team
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        # Should succeed since user has team access to the project
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+        assert response.data == serialize(self.detector)
+
     def test_malformed_id(self) -> None:
         from django.urls import reverse
 

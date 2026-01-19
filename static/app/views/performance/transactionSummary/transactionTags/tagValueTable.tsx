@@ -337,7 +337,7 @@ const LinkContainer = styled('div')<{disabled?: boolean}>`
     p.disabled &&
     css`
       opacity: 0.5;
-      color: ${p.theme.disabled};
+      color: ${p.theme.tokens.content.disabled};
       cursor: default;
     `}
 `;

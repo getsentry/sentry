@@ -49,6 +49,6 @@ const Cell = styled('div')`
   cursor: pointer;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;

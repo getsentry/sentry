@@ -5,7 +5,7 @@ from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 
 from sentry.models.organization import Organization
-from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import metrics
@@ -18,7 +18,9 @@ class AmbiguousUserFromEmail(Exception):
         self.users = tuple(users)
 
 
-def resolve_email_to_user(email: str, organization: Organization | None = None) -> User | None:
+def resolve_email_to_user(
+    email: str, organization: Organization | RpcOrganization | None = None
+) -> User | None:
     candidates = tuple(UserEmail.objects.filter(email__iexact=email, user__is_active=True))
     if not candidates:
         return None
@@ -28,7 +30,7 @@ def resolve_email_to_user(email: str, organization: Organization | None = None) 
 @dataclass
 class _EmailResolver:
     email: str
-    organization: Organization | None
+    organization: Organization | RpcOrganization | None
 
     def resolve(self, candidates: Collection[UserEmail]) -> User:
         """Pick the user best matching the email address."""

@@ -173,7 +173,7 @@ const AvatarStyle = (p: {theme: Theme}) => css`
   }
 
   ${AvatarListWrapper}:hover & {
-    border-color: ${p.theme.translucentBorder};
+    border-color: ${p.theme.tokens.border.transparent.neutral.muted};
     cursor: pointer;
   }
 `;
@@ -197,7 +197,7 @@ const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   text-align: center;
   font-weight: ${p => p.theme.fontWeight.bold};
   background-color: ${p => p.theme.colors.gray200};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;

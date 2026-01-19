@@ -1,9 +1,9 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -89,7 +89,7 @@ export function StreamlinedExternalIssueList({
   }
 
   return (
-    <Flex direction="row" gap="md">
+    <Fragment>
       {linkedIssues.length > 0 && (
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
@@ -201,7 +201,7 @@ export function StreamlinedExternalIssueList({
           })}
         </IssueActionWrapper>
       )}
-    </Flex>
+    </Fragment>
   );
 }
 
@@ -225,7 +225,7 @@ const IssueActionButton = styled(Button)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
@@ -234,7 +234,7 @@ const IssueActionLinkButton = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
@@ -243,17 +243,21 @@ const IssueActionDropdownMenu = styled(DropdownButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 
   &[aria-expanded='true'] {
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const IssueActionName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
@@ -265,16 +269,20 @@ const LinkedIssueTooltipWrapper = styled('div')`
 `;
 
 const LinkedIssueName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-right: ${space(0.25)};
 `;
 
 const HorizontalSeparator = styled('div')`
   width: 1px;
   height: 14px;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
 `;
 
 const UnlinkButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

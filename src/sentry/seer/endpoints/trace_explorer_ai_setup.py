@@ -24,6 +24,7 @@ from rest_framework.request import Request
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     scope_map = {
+        "GET": ["org:read"],
         "POST": ["org:read"],
     }
 
@@ -80,8 +81,6 @@ class TraceExplorerAISetup(OrganizationEndpoint):
             )
 
         if not features.has(
-            "organizations:gen-ai-explore-traces", organization=organization, actor=request.user
-        ) or not features.has(
             "organizations:gen-ai-features", organization=organization, actor=request.user
         ):
             return Response(

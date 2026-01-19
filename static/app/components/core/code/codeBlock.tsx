@@ -260,12 +260,15 @@ const Header = styled('div')<{isFloating: boolean}>`
       : css`
           gap: ${space(0.75)};
           padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
-          border-bottom: solid 1px ${p.theme.border};
+          border-bottom: solid 1px ${p.theme.tokens.border.primary};
         `}
 `;
 
 const FileName = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 
@@ -284,7 +287,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   color: var(--prism-comment);
   ${p =>
     p.isSelected
-      ? `border-bottom: 3px solid ${p.theme.colors.blue400};
+      ? `border-bottom: 3px solid ${p.theme.tokens.graphics.accent.vibrant};
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}

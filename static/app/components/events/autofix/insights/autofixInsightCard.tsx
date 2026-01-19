@@ -2,6 +2,8 @@ import React, {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -147,7 +149,7 @@ export function AutofixInsightCard({
       {isEditing ? (
         <EditContainer>
           <form onSubmit={handleSubmit}>
-            <EditFormRow>
+            <Flex align="center" gap="md" width="100%">
               <EditInput
                 autosize
                 value={editText}
@@ -194,7 +196,7 @@ export function AutofixInsightCard({
                   {'\u23CE'}
                 </Button>
               </ButtonBar>
-            </EditFormRow>
+            </Flex>
           </form>
         </EditContainer>
       ) : (
@@ -215,7 +217,7 @@ export function AutofixInsightCard({
             />
           </AutofixHighlightWrapper>
 
-          <RightSection>
+          <Flex align="center" paddingRight="xs">
             {isExpandable && (
               <Button
                 size="zero"
@@ -243,7 +245,7 @@ export function AutofixInsightCard({
                 run_id: runId,
               }}
             />
-          </RightSection>
+          </Flex>
         </InsightCardRow>
       )}
 
@@ -313,7 +315,13 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -329,8 +337,8 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
   overflow: hidden;
   margin-bottom: 0;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px dashed ${p => p.theme.border};
-  border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-color: ${p => (p.expanded ? p.theme.tokens.border.primary : 'transparent')};
 
   box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 `;
@@ -343,10 +351,12 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
   margin: 0;
   flex: 1;
   word-break: break-word;
-  color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.expanded ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   code {
-    color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
+    color: ${p =>
+      p.expanded ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   }
 `;
 
@@ -366,24 +376,11 @@ const ContextBody = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
-`;
-
-const RightSection = styled('div')`
-  display: flex;
-  align-items: center;
-  padding-right: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const EditContainer = styled('div')`
   padding: ${space(1)};
-  width: 100%;
-`;
-
-const EditFormRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
   width: 100%;
 `;
 
@@ -393,7 +390,7 @@ const EditInput = styled(TextArea)`
 `;
 
 const EditButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DiffContainer = styled('div')`

@@ -216,7 +216,7 @@ const DeviceAnimation = styled('div')<{activated: boolean}>`
   border-radius: 50%;
   background-image: url(${deviceAnimation});
   background-size: 100px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   ${p =>
     p.activated &&
     css`

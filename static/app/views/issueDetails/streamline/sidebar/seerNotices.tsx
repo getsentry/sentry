@@ -655,7 +655,7 @@ const StepsHeader = styled('h3')`
 
 const StepsDivider = styled('hr')`
   border: none;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(3)} 0;
 `;
 
@@ -664,7 +664,7 @@ const CollapsedSummaryCard = styled('div')`
   align-items: center;
   gap: ${space(1)};
   background: ${p => p.theme.colors.pink500}10;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
   padding: ${space(1)};
   margin-bottom: ${space(2)};

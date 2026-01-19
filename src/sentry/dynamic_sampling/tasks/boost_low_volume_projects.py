@@ -284,6 +284,9 @@ def query_project_counts_by_org(
 
     Yields chunks of result rows, to allow timeouts to be handled in the caller.
     """
+    if not org_ids:
+        return
+
     if query_interval is None:
         query_interval = timedelta(hours=1)
 

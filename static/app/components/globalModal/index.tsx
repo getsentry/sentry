@@ -276,7 +276,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.modal};
-  background: ${p => p.theme.black};
+  background: ${p => p.theme.colors.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;
@@ -309,7 +309,7 @@ const Content = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow:
-    0 0 0 1px ${p => p.theme.translucentBorder},
+    0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted},
     ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};

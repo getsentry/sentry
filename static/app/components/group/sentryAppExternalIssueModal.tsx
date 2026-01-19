@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
 import {t, tct} from 'sentry/locale';
@@ -9,6 +9,47 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
+import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
+
+interface OpenSentryAppIssueModalProps
+  extends Omit<Props, keyof ModalRenderProps | 'disabled'> {
+  organization: Organization;
+}
+
+export const openSentryAppIssueModal = ({
+  organization,
+  group,
+  event,
+  sentryAppComponent,
+  sentryAppInstallation,
+}: OpenSentryAppIssueModalProps) => {
+  trackAnalytics('issue_details.external_issue_modal_opened', {
+    organization,
+    ...getAnalyticsDataForGroup(group),
+    external_issue_provider: sentryAppComponent.sentryApp.slug,
+    external_issue_type: 'sentry_app',
+  });
+  recordInteraction(
+    sentryAppComponent.sentryApp.slug,
+    'sentry_app_component_interacted',
+    {
+      componentType: 'issue-link',
+    }
+  );
+
+  openModal(
+    deps => (
+      <SentryAppExternalIssueModal
+        {...deps}
+        {...{group, event, sentryAppComponent, sentryAppInstallation}}
+      />
+    ),
+    {closeEvents: 'escape-key'}
+  );
+};
 
 type Props = ModalRenderProps & {
   event: Event;
@@ -62,5 +103,3 @@ function SentryAppExternalIssueModal(props: Props) {
 const TabsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
-
-export default SentryAppExternalIssueModal;

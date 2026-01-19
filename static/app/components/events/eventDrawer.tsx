@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -20,11 +22,9 @@ export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   padding: 0;
 `;
 
-export const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
+export function CrumbContainer(props: FlexProps<'div'>) {
+  return <Flex align="center" gap="md" {...props} />;
+}
 
 export const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
@@ -42,7 +42,7 @@ export const EventDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;

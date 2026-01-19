@@ -71,5 +71,5 @@ const IncidentItemWrapper = styled('div')`
 `;
 
 const DangerUnreadIndicator = styled(SidebarItemUnreadIndicator)`
-  background: ${p => p.theme.danger};
+  background: ${p => p.theme.tokens.content.danger};
 `;

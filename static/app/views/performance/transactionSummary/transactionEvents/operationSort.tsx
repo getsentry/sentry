@@ -4,6 +4,8 @@ import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Radio} from 'sentry/components/core/radio';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
@@ -81,7 +83,7 @@ class OperationSort extends Component<Props, State> {
     const {eventView} = this.props;
     return (
       <DropdownMenuItem>
-        <MenuItemContent>
+        <Flex justify="start" align="center" width="100%">
           <RadioLabel>
             <StyledRadio
               readOnly
@@ -96,7 +98,7 @@ class OperationSort extends Component<Props, State> {
             />
             <span>{title}</span>
           </RadioLabel>
-        </MenuItemContent>
+        </Flex>
       </DropdownMenuItem>
     );
   }
@@ -205,7 +207,7 @@ const DropdownWrapper = styled('div')`
     margin-top: 9px;
 
     &:before {
-      border-bottom: 9px solid ${p => p.theme.border};
+      border-bottom: 9px solid ${p => p.theme.tokens.border.primary};
       top: -9px;
     }
 
@@ -219,7 +221,7 @@ const DropdownWrapper = styled('div')`
     margin-bottom: 9px;
 
     &:before {
-      border-top: 9px solid ${p => p.theme.border};
+      border-top: 9px solid ${p => p.theme.tokens.border.primary};
       bottom: -9px;
     }
 
@@ -236,14 +238,6 @@ const DropdownMenuItem = styled(MenuItem)`
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const MenuItemContent = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: center;
-  width: 100%;
 `;
 
 const RadioLabel = styled('label')`

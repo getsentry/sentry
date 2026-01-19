@@ -468,7 +468,7 @@ const FooterWrapper = styled('div')`
   gap: ${space(0.5)};
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

@@ -315,7 +315,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -386,7 +386,8 @@ const PlatformCard = styled(
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: ${p => (p.selected ? p.theme.tokens.content.primary : p.theme.subText)};
+    color: ${p =>
+      p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
     text-align: center;
     font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;

@@ -31,6 +31,7 @@ export enum DataConditionType {
   NEW_HIGH_PRIORITY_ISSUE = 'new_high_priority_issue',
   REGRESSION_EVENT = 'regression_event',
   REAPPEARED_EVENT = 'reappeared_event',
+  ISSUE_RESOLVED_TRIGGER = 'issue_resolved_trigger',
   TAGGED_EVENT = 'tagged_event',
   ISSUE_PRIORITY_EQUALS = 'issue_priority_equals',
   ISSUE_PRIORITY_GREATER_OR_EQUAL = 'issue_priority_greater_or_equal',

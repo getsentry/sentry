@@ -313,7 +313,7 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
 const StepMessage = styled('div')`
   overflow: hidden;
   padding: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   justify-content: flex-start;
   text-align: left;
@@ -345,5 +345,5 @@ const AnimationWrapper = styled(motion.div)``;
 const StandaloneErrorMessage = styled('div')`
   margin: ${space(1)} 0;
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

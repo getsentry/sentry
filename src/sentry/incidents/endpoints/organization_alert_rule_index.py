@@ -7,7 +7,7 @@ from django.db.models.functions import Coalesce
 from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -33,6 +33,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
+from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     AlertRuleSerializerResponse,
@@ -157,7 +158,14 @@ def create_metric_alert(
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
-class AlertRuleIndexMixin(Endpoint):
+class AlertRuleFetchMixin(Endpoint):
+    """
+    Mixin providing fetch functionality for metric alert rules.
+
+    This mixin requires access to paginate() method from Endpoint.
+    Can be used with any endpoint base class (OrganizationEndpoint, ProjectEndpoint, etc).
+    """
+
     def fetch_metric_alert(
         self, request: Request, organization: Organization, alert_rules: BaseQuerySet[AlertRule]
     ) -> HttpResponseBase:
@@ -218,14 +226,17 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         the maximum allowed limit of on-demand alert rules that can be created.
         """
         project_id = request.GET.get("project_id")
-
         if project_id is None:
-            return Response(
-                {"detail": "Missing required parameter 'project_id'"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError(detail="Invalid project_id")
+        try:
+            project_id_int = int(project_id)
+        except ValueError:
+            raise ParseError(detail="Invalid project_id")
+        if project_id_int <= 0:
+            raise ParseError(detail="Invalid project_id")
 
-        project = Project.objects.get(id=int(project_id))
+        projects = self.get_projects(request, organization, project_ids={project_id_int})
+        project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
         prefilling_for_deprecation = (
@@ -587,49 +598,13 @@ Metric alert rule trigger actions follow the following structure:
 
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
-class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationAlertRulePermission,)
-
-    def check_can_create_alert(self, request: Request, organization: Organization) -> None:
-        """
-        Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
-        permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
-        in their request.
-        """
-        if features.has(
-            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
-        ):
-            alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
-            # filter out alert rules without any projects
-            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
-
-            if alert_limit >= 0 and alert_count >= alert_limit:
-                raise ValidationError(
-                    f"You may not exceed {alert_limit} metric alerts on your current plan."
-                )
-
-        # if the requesting user has any of these org-level permissions, then they can create an alert
-        if (
-            request.access.has_scope("alerts:write")
-            or request.access.has_scope("org:admin")
-            or request.access.has_scope("org:write")
-        ):
-            return
-        # team admins should be able to create alerts for the projects they have access to
-        projects = self.get_projects(request, organization)
-        # team admins will have alerts:write scoped to their projects, members will not
-        team_admin_has_access = all(
-            [request.access.has_project_scope(project, "alerts:write") for project in projects]
-        )
-        # all() returns True for empty list, so include a check for it
-        if not team_admin_has_access or not projects:
-            raise PermissionDenied
 
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",
@@ -824,5 +799,18 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
+        if features.has(
+            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
+        ):
+            alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
+            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
+            # filter out alert rules without any projects
+            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
+
+            if alert_limit >= 0 and alert_count >= alert_limit:
+                raise ValidationError(
+                    f"You may not exceed {alert_limit} metric alerts on your current plan."
+                )
+
         self.check_can_create_alert(request, organization)
         return create_metric_alert(request, organization)

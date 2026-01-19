@@ -1,5 +1,6 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {getKnownData} from 'sentry/components/events/contexts/utils';
@@ -81,7 +82,7 @@ export function AdditionalData({event}: {event: EventTransaction}) {
       });
 
   const title = (
-    <Title>
+    <Flex justify="between" align="center">
       {t('Additional Data')}
       <SegmentedControl
         aria-label={t('View')}
@@ -92,7 +93,7 @@ export function AdditionalData({event}: {event: EventTransaction}) {
         <SegmentedControl.Item key="formatted">{t('Formatted')}</SegmentedControl.Item>
         <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
       </SegmentedControl>
-    </Title>
+    </Flex>
   );
 
   return (
@@ -104,9 +105,3 @@ export function AdditionalData({event}: {event: EventTransaction}) {
     />
   );
 }
-
-const Title = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;

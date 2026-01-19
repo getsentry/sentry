@@ -48,8 +48,8 @@ export default function DetailsSplitDivider({
 
 const StyledStacked = styled(Stacked)`
   position: relative;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const CloseButtonWrapper = styled('div')`

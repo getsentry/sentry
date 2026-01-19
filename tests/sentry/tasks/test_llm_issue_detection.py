@@ -36,7 +36,9 @@ class LLMIssueDetectionTest(TestCase):
         ):
             run_llm_issue_detection()
 
-        mock_apply_async.assert_called_once_with(args=[project.id], countdown=0)
+        mock_apply_async.assert_called_once_with(
+            args=[project.id], countdown=0, headers={"sentry-propagate-traces": False}
+        )
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")

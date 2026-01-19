@@ -66,7 +66,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
       labelLine: {
         show: true,
         lineStyle: {
-          color: theme.border,
+          color: theme.tokens.border.primary,
         },
       },
       emphasis: {

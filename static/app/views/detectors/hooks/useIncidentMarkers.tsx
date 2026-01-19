@@ -162,14 +162,25 @@ function IncidentMarkerSeries({
     const [incidentStartX, incidentStartY] = startCoord;
     const [incidentEndX] = endCoord;
 
-    // Width between two timestamps
-    const width = Math.max(incidentEndX - incidentStartX, 2);
+    // ECharts provides coordinate system boundaries via params.coordSys
+    // https://echarts.apache.org/en/option.html#series-custom.renderItem.arguments.params
+    const coordSys = params.coordSys as any;
+    const chartLeft = coordSys.x ?? 0;
+    const chartRight = (coordSys.x ?? 0) + (coordSys.width ?? 0);
+
+    // Clip bubble coordinates to stay within visible chart area
+    // This prevents overflow when incidents start before or extend past the visible time range
+    const clippedStartX = Math.max(incidentStartX, chartLeft);
+    const clippedEndX = Math.min(incidentEndX, chartRight);
+
+    // Width between two timestamps, adjusted for clipping
+    const width = Math.max(clippedEndX - clippedStartX, 2);
 
     const renderMarkerPadding = 2;
 
     const shape = {
-      // Position the rectangle in the space created by the grid/xAxis offset
-      x: incidentStartX,
+      // Position the rectangle using clipped coordinates to prevent overflow
+      x: clippedStartX,
       y: incidentStartY + renderMarkerPadding - 1,
       width,
       height: INCIDENT_MARKER_HEIGHT,

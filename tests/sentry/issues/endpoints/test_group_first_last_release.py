@@ -5,7 +5,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
     def test_simple(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/first-last-release/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/"
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
@@ -15,7 +15,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         event = self.store_event(data={"release": "1.0"}, project_id=self.project.id)
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/first-last-release/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
@@ -39,7 +39,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         group = prod_event.group
 
         # Without the environment filter, we should return the first and last across all environments
-        url = f"/api/0/issues/{group.id}/first-last-release/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/"
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
@@ -47,7 +47,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         assert response.data["lastRelease"]["version"] == "1.1.0"
 
         # Test with production environment filter
-        url = f"/api/0/issues/{group.id}/first-last-release/?environment=production"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/?environment=production"
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
@@ -55,7 +55,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         assert response.data["lastRelease"]["version"] == "1.0.0"
 
         # Test with staging environment filter
-        url = f"/api/0/issues/{group.id}/first-last-release/?environment=staging"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/?environment=staging"
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
@@ -63,7 +63,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         assert response.data["lastRelease"]["version"] == "1.1.0"
 
         # Test with multiple environment filters
-        url = f"/api/0/issues/{group.id}/first-last-release/?environment=production&environment=staging"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/?environment=production&environment=staging"
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
@@ -75,7 +75,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
             data={"release": "1.2.0", "environment": "staging"}, project_id=self.project.id
         )
         assert staging_event_2.group == group
-        url = f"/api/0/issues/{group.id}/first-last-release/?environment=staging"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/?environment=staging"
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
@@ -89,7 +89,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         )
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/first-last-release/?environment=nonexistent"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/?environment=nonexistent"
         response = self.client.get(url)
         assert response.status_code == 404, response.content
         assert response.data["detail"] == "The requested resource does not exist"

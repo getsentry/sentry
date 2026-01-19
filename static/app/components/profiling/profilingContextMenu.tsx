@@ -17,7 +17,7 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   font-size: ${p => p.theme.fontSize.md};
   z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   width: auto;
@@ -255,7 +255,7 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
   text-transform: uppercase;
   line-height: 1.5;
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
   cursor: default;
   font-size: 75%;

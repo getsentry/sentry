@@ -153,9 +153,9 @@ function BranchButton({change}: {change: AutofixCodebaseChange}) {
 const CopyContainer = styled('div')`
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   max-width: 25rem;
   min-width: 0;
   flex: 1;
@@ -165,7 +165,7 @@ const CopyContainer = styled('div')`
 const CopyButton = styled(Button)`
   border: none;
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   height: auto;
   flex-shrink: 0;
 `;
@@ -277,7 +277,7 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconCodeRef}>
                 <IconCode size="md" variant="accent" />
@@ -294,7 +294,7 @@ export function AutofixChanges({
                 <IconChat />
               </Button>
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <AnimatePresence>
             {agentCommentThread && iconCodeRef.current && (
               <AutofixHighlightPopup
@@ -425,7 +425,7 @@ const AnimationWrapper = styled(motion.div)`
 const PrefixText = styled('span')``;
 
 const ChangesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.xl};
@@ -441,13 +441,13 @@ const Title = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   text-decoration: underline dashed;
-  text-decoration-color: ${p => p.theme.colors.blue400};
+  text-decoration-color: ${p => p.theme.tokens.border.accent.vibrant};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 `;
 
 const PullRequestTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoChangesHeader = styled('div')`
@@ -483,14 +483,6 @@ const HeaderText = styled('div')`
   margin-right: ${space(2)};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
-
 const BottomDivider = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.xl};
@@ -505,7 +497,7 @@ const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
 `;
 
 const TerminationReasonText = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: ${p => p.theme.fontSize.sm};
   flex: 1;
   min-width: 0;

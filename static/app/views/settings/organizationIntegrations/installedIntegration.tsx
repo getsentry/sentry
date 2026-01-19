@@ -203,11 +203,11 @@ export default class InstalledIntegration extends Component<Props> {
 }
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const IntegrationItemBox = styled('div')`
@@ -222,7 +222,7 @@ function IntegrationStatus(
 ) {
   const theme = useTheme();
   const {status, hideTooltip, ...p} = props;
-  const color = status === 'active' ? theme.success : theme.colors.gray400;
+  const color = status === 'active' ? theme.tokens.content.success : theme.colors.gray400;
   const inner = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />
@@ -257,7 +257,7 @@ function IntegrationStatus(
 const StyledIntegrationStatus = styled(IntegrationStatus)`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: light;
   text-transform: capitalize;
   &:before {

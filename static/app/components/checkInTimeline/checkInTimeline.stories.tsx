@@ -1,11 +1,14 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {TimeRangeSelectTrigger} from 'sentry/components/timeRangeSelector';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -103,7 +106,11 @@ export default Storybook.story('CheckInTimeline', story => {
         </p>
 
         <Controls>
-          <DatePageFilter triggerProps={{prefix: 'Time Window'}} />
+          <DatePageFilter
+            trigger={triggerProps => (
+              <TimeRangeSelectTrigger {...triggerProps} prefix="Time Window" />
+            )}
+          />
           <CompactSelect
             triggerProps={{prefix: 'Spacing'}}
             options={[
@@ -117,7 +124,7 @@ export default Storybook.story('CheckInTimeline', story => {
           />
         </Controls>
         <ExampleContainer>
-          <TimelineContainer ref={elementRef}>
+          <Flex align="center" width="100%" height="40px" ref={elementRef}>
             <CheckInTimeline
               bucketedData={data}
               statusStyle={statusStyle}
@@ -125,7 +132,7 @@ export default Storybook.story('CheckInTimeline', story => {
               statusPrecedent={statusPrecedent}
               timeWindowConfig={timeWindowConfig}
             />
-          </TimelineContainer>
+          </Flex>
         </ExampleContainer>
 
         <p>
@@ -138,7 +145,7 @@ export default Storybook.story('CheckInTimeline', story => {
         <ExampleContainer>
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
           <GridLineOverlay timeWindowConfig={timeWindowConfig} />
-          <TimelineContainer ref={elementRef}>
+          <Flex align="center" width="100%" height="40px" ref={elementRef}>
             <CheckInTimeline
               bucketedData={data}
               statusStyle={statusStyle}
@@ -146,7 +153,7 @@ export default Storybook.story('CheckInTimeline', story => {
               statusPrecedent={statusPrecedent}
               timeWindowConfig={timeWindowConfig}
             />
-          </TimelineContainer>
+          </Flex>
         </ExampleContainer>
 
         <p>
@@ -164,7 +171,7 @@ export default Storybook.story('CheckInTimeline', story => {
             cursorOverlayAnchorOffset={10}
             timeWindowConfig={timeWindowConfig}
           />
-          <TimelineContainer ref={elementRef}>
+          <Flex align="center" width="100%" height="40px" ref={elementRef}>
             <CheckInTimeline
               bucketedData={data}
               statusStyle={statusStyle}
@@ -172,7 +179,7 @@ export default Storybook.story('CheckInTimeline', story => {
               statusPrecedent={statusPrecedent}
               timeWindowConfig={timeWindowConfig}
             />
-          </TimelineContainer>
+          </Flex>
         </ExampleContainer>
       </PageFiltersContainer>
     );
@@ -187,11 +194,4 @@ const Controls = styled(ButtonBar)`
 const ExampleContainer = styled(NegativeSpaceContainer)`
   position: relative;
   flex-direction: column;
-`;
-
-const TimelineContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 40px;
-  width: 100%;
 `;

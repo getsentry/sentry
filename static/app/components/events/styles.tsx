@@ -23,8 +23,8 @@ type BannerProps = {
 function getColors({priority, theme}: BannerProps & {theme: Theme}) {
   const COLORS = {
     default: {
-      background: theme.backgroundSecondary,
-      border: theme.border,
+      background: theme.tokens.background.secondary,
+      border: theme.tokens.border.primary,
     },
     danger: {
       background: theme.alert.danger.backgroundLight,
@@ -87,7 +87,7 @@ export const SuspectCommitHeader = styled('div')`
 
   & button,
   & h3 {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.fontSize.md};
     font-weight: ${p => p.theme.fontWeight.bold};
   }

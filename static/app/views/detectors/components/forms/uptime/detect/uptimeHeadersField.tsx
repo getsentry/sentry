@@ -1,6 +1,8 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
@@ -86,7 +88,7 @@ function UptimHeadersControl(props: any) {
   }
 
   return (
-    <HeadersContainer>
+    <Stack gap="md">
       {items.length > 0 && (
         <HeaderItems>
           {items.map(([id, headerName, headerValue], index) => (
@@ -127,13 +129,13 @@ function UptimHeadersControl(props: any) {
           ))}
         </HeaderItems>
       )}
-      <HeaderActions>
+      <Flex gap="lg">
         <Button disabled={disabled} icon={<IconAdd />} size="sm" onClick={addItem}>
           {t('Add Header')}
         </Button>
         <FormFieldControlState model={model} name={name} />
-      </HeaderActions>
-    </HeadersContainer>
+      </Flex>
+    </Stack>
   );
 }
 
@@ -144,17 +146,6 @@ export function UptimeHeadersField(props: Omit<FormFieldProps, 'children'>) {
     </FormField>
   );
 }
-
-const HeadersContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const HeaderActions = styled('div')`
-  display: flex;
-  gap: ${space(1.5)};
-`;
 
 const HeaderItems = styled('fieldset')`
   display: grid;

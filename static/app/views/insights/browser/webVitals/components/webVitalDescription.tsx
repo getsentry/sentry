@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -135,15 +135,15 @@ export function WebVitalDescription({score, value, webVital}: Props) {
   return (
     <div>
       <WebVitalDetailHeader score={score} value={value} webVital={webVital} />
-      <DescriptionWrapper>
+      <Stack marginBottom="md">
         {longDescription}
         {tct(` [webVital] is available for the following browsers:`, {
           webVital: webVital.toUpperCase(),
         })}
-      </DescriptionWrapper>
+      </Stack>
       <SupportedBrowsers>
         {Object.values(Browser).map(browser => (
-          <BrowserItem key={browser}>
+          <Flex align="center" gap="md" key={browser}>
             {vitalSupportedBrowsers[
               WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
             ]?.includes(browser) ? (
@@ -152,7 +152,7 @@ export function WebVitalDescription({score, value, webVital}: Props) {
               <IconClose variant="danger" size="sm" />
             )}
             {browser}
-          </BrowserItem>
+          </Flex>
         ))}
       </SupportedBrowsers>
       <ReferenceLink>{link}</ReferenceLink>
@@ -170,25 +170,17 @@ const ReferenceLink = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const BrowserItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const DescriptionWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: ${space(1)};
-`;
-
 const Value = styled('h2')`
   margin-bottom: 0;
 `;
 
 const WebVitalName = styled('h6')`
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const WebVitalScore = styled('div')`

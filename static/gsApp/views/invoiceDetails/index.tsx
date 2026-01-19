@@ -115,7 +115,11 @@ function InvoiceDetails() {
                     invoice.customer.billingInterval === 'annual'
                       ? 'year'
                       : 'month',
-                  here: <ExternalLink href="/settings/billing/cancel" />,
+                  here: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/billing/cancel/`}
+                    />
+                  ),
                 }
               )}
             </FinePrint>
@@ -300,7 +304,7 @@ const Attributes = styled('dl')`
     margin: 0 0 ${space(0.25)} ${space(1)};
   }
   dd {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     padding: ${space(1)};
     margin-bottom: ${space(2)};
   }
@@ -347,5 +351,5 @@ const RefundRow = styled('tr')`
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
 `;

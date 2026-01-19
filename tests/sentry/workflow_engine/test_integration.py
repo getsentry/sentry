@@ -547,10 +547,9 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
 
 
-class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrationTest):
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [6001]})
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    def test_workflow_engine(self) -> None:
+class TestWorkflowEngineIntegrationPostProcessRollout(BaseWorkflowIntegrationTest):
+    def setUp(self) -> None:
+        self.project = self.create_project(create_default_detectors=True)
         occurrence_data = self.build_occurrence_data(
             type=FeedbackGroup.type_id,
             event_id=self.event.event_id,
@@ -567,11 +566,50 @@ class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrati
         self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
         assert group_info is not None
 
-        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
-        assert self.group.type == FeedbackGroup.type_id
+        self.feedback_group = Group.objects.get(id=group_info.group.id)
+        assert self.feedback_group.type == FeedbackGroup.type_id
 
+    @override_options(
+        {
+            "workflow_engine.issue_alert.group.type_id.ga": [1],
+        }
+    )
+    def test_errors_only_rollout(self) -> None:
         with mock.patch(
             "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
-            self.call_post_process_group(self.group.id)
-            mock_process_workflow.assert_called_once()
+            self.call_post_process_group(self.feedback_group.id)
+            assert not mock_process_workflow.called
+
+    @override_options(
+        {
+            "workflow_engine.issue_alert.group.type_id.ga": [1],
+            "workflow_engine.issue_alert.group.type_id.rollout": [6001],
+        }
+    )
+    @with_feature(
+        {
+            "organizations:workflow-engine-single-process-workflows": True,
+            "organizations:workflow-engine-log-evaluations": True,
+        }
+    )
+    @patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_rollout_new_issue_type(self, mock_logger: MagicMock) -> None:
+        with self.tasks():
+            self.call_post_process_group(self.feedback_group.id)
+
+        # log and exit because no workflows, but we fetched issue stream detector successfully
+        mock_logger.info.assert_any_call(
+            "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
+            extra={
+                "event_id": self.event.event_id,
+                "group_id": self.feedback_group.id,
+                "detection_type": "issue_stream",
+                "workflow_ids": None,
+                "triggered_workflow_ids": [],
+                "delayed_conditions": None,
+                "action_filter_group_ids": [],
+                "triggered_action_ids": [],
+                "debug_msg": "No workflows are associated with the detector in the event",
+            },
+        )

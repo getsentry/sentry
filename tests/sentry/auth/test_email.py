@@ -63,3 +63,47 @@ class EmailResolverTest(TestCase):
         assert result == self.user2
 
         assert mock_metrics.incr.call_args.args == ("auth.email_resolution.by_primary_email",)
+
+    @mock.patch("sentry.auth.email.metrics")
+    def test_both_org_members_falls_through_to_primary(self, mock_metrics: mock.MagicMock) -> None:
+        """
+        When both users are org members, HasOrgMembership can't narrow down,
+        so it falls through to IsPrimary.
+        """
+        org = self.create_organization()
+        shared_email = "shared@example.com"
+
+        # Both users have the shared email verified
+        self.create_useremail(user=self.user1, email=shared_email, is_verified=True)
+        self.user2 = self.create_user(email=shared_email)  # primary email
+
+        # Both are org members
+        self.create_member(organization=org, user_id=self.user1.id)
+        self.create_member(organization=org, user_id=self.user2.id)
+
+        # Should fall through to IsPrimary since both are org members
+        result = resolve_email_to_user(shared_email, organization=org)
+        assert result == self.user2  # user2 has it as primary
+        assert mock_metrics.incr.call_args.args == ("auth.email_resolution.by_primary_email",)
+
+    @mock.patch("sentry.auth.email.metrics")
+    def test_neither_org_member_falls_through_to_primary(
+        self, mock_metrics: mock.MagicMock
+    ) -> None:
+        """
+        When neither user is an org member, HasOrgMembership returns empty
+        (which is ignored), so it falls through to IsPrimary.
+        """
+        org = self.create_organization()
+        shared_email = "shared@example.com"
+
+        # Both users have the shared email verified
+        self.create_useremail(user=self.user1, email=shared_email, is_verified=True)
+        self.user2 = self.create_user(email=shared_email)  # primary email
+
+        # Neither is an org member (no create_member calls)
+
+        # Should fall through to IsPrimary since neither is an org member
+        result = resolve_email_to_user(shared_email, organization=org)
+        assert result == self.user2  # user2 has it as primary
+        assert mock_metrics.incr.call_args.args == ("auth.email_resolution.by_primary_email",)

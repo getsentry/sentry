@@ -703,7 +703,7 @@ export default function TableView(props: TableViewProps) {
 }
 
 const PrependHeader = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTooltip = styled(Tooltip)`
@@ -718,7 +718,11 @@ const StyledLink = styled(Link)`
 `;
 
 export const TransactionLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledIcon = styled(IconStack)`

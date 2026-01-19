@@ -1,10 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeBlock} from 'sentry/components/core/code';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -136,9 +137,9 @@ export function DatabaseSpanDescription({
   return (
     <Frame showBorder={showBorder}>
       {areIndexedSpansLoading ? (
-        <WithPadding>
+        <Flex padding="md xl">
           <LoadingIndicator mini />
-        </WithPadding>
+        </Flex>
       ) : (
         <QueryWrapper
           clipHeight={500}
@@ -189,14 +190,9 @@ const Frame = styled('div')<{showBorder: boolean}>`
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: ${p => (p.showBorder ? `solid 1px ${p.theme.border}` : 'none')};
+  border: ${p => (p.showBorder ? `solid 1px ${p.theme.tokens.border.primary}` : 'none')};
   border-radius: ${p => (p.showBorder ? p.theme.radius.md : '0')};
   overflow: hidden;
-`;
-
-const WithPadding = styled('div')`
-  display: flex;
-  padding: ${space(1)} ${space(2)};
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

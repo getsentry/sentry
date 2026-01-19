@@ -1,5 +1,5 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openPluginActionModal} from 'sentry/components/group/pluginActions';
+import {openPluginActionModal} from 'sentry/components/group/pluginActionsModal';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import GroupStore from 'sentry/stores/groupStore';

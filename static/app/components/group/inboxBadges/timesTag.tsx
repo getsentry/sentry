@@ -51,7 +51,7 @@ const Wrapper = styled('div')`
 `;
 
 const Separator = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconClock = styled(IconClock)`

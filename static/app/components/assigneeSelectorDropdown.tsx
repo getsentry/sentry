@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   type SelectTriggerProps,
 } from '@sentry/scraps/compactSelect/trigger';
+import {Flex} from '@sentry/scraps/layout';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -532,7 +533,7 @@ export default function AssigneeSelectorDropdown({
   };
 
   const footerInviteButton = (
-    <FooterWrapper>
+    <Flex align="center" gap="md">
       <Button
         size="xs"
         aria-label={t('Invite Member')}
@@ -546,7 +547,7 @@ export default function AssigneeSelectorDropdown({
         {t('Invite Member')}
       </Button>
       {additionalMenuFooterItems}
-    </FooterWrapper>
+    </Flex>
   );
 
   return (
@@ -599,20 +600,14 @@ const TooltipWrapper = styled('div')`
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-const FooterWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;

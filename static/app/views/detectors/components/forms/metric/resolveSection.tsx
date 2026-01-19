@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Text} from 'sentry/components/core/text/text';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -7,7 +9,10 @@ import RadioField from 'sentry/components/forms/fields/radioField';
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
-import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {
+  getStaticDetectorThresholdPlaceholder,
+  getStaticDetectorThresholdSuffix,
+} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 import type {MetricDetectorFormData} from './metricFormData';
 import {METRIC_DETECTOR_FORM_FIELDS, useMetricDetectorFormField} from './metricFormData';
@@ -93,6 +98,8 @@ export function ResolveSection() {
   }
 
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+  const thresholdPlaceholder =
+    detectionType === 'percent' ? '0' : getStaticDetectorThresholdPlaceholder(aggregate);
 
   // Compute the automatic resolution threshold: medium if present, otherwise high
   const resolutionThreshold =
@@ -145,7 +152,7 @@ export function ResolveSection() {
 
   return (
     <div>
-      <FormRow>
+      <Stack>
         <StyledRadioField
           name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
           aria-label={t('Resolution method')}
@@ -153,7 +160,7 @@ export function ResolveSection() {
           defaultValue="automatic"
           preserveOnUnmount
         />
-      </FormRow>
+      </Stack>
       {resolutionStrategy === 'custom' && (
         <DescriptionContainer onClick={e => e.preventDefault()}>
           <Text>
@@ -167,7 +174,7 @@ export function ResolveSection() {
             name={METRIC_DETECTOR_FORM_FIELDS.resolutionValue}
             inline={false}
             flexibleControlStateSize
-            placeholder="0"
+            placeholder={thresholdPlaceholder}
             suffix={detectionType === 'percent' ? '%' : thresholdSuffix}
             validate={validateResolutionThreshold}
             required
@@ -179,11 +186,6 @@ export function ResolveSection() {
     </div>
   );
 }
-
-const FormRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const StyledRadioField = styled(RadioField)`
   flex: 1;

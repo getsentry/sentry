@@ -115,7 +115,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       id: 'jobs-chart',
       title: 'Jobs',
       description: '',
-      displayType: DisplayType.BAR,
+      displayType: DisplayType.LINE,
       thresholds: null,
       interval: '1h',
       queries: [
@@ -271,6 +271,8 @@ const THIRD_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
+            'equation|count_if(cache.hit,equals,false)',
+            `count(${SpanFields.SPAN_DURATION})`,
             `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [SpanFields.TRANSACTION],

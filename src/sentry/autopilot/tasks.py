@@ -1,5 +1,7 @@
 import logging
+import uuid
 from datetime import timedelta
+from enum import StrEnum
 from itertools import chain, groupby
 from typing import Any
 
@@ -9,8 +11,11 @@ from pydantic import BaseModel
 
 from sentry import options
 from sentry.api.utils import handle_query_errors
+from sentry.autopilot.grouptype import InstrumentationIssueExperimentalGroupType
 from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sdk_updates import get_sdk_versions
@@ -23,6 +28,81 @@ from sentry.taskworker.namespaces import autopilot_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+class AutopilotDetectorName(StrEnum):
+    SDK_UPDATE = "sdk-update"
+    MISSING_SDK_INTEGRATION = "missing-sdk-integration"
+
+
+def create_instrumentation_issue(
+    project_id: int,
+    detector_name: str,
+    title: str,
+    subtitle: str,
+    description: str | None = None,
+    repository_name: str | None = None,
+) -> None:
+    detection_time = timezone.now()
+    event_id = uuid.uuid4().hex
+
+    # Fetch the project to get its platform
+    project = Project.objects.get_from_cache(id=project_id)
+
+    evidence_data: dict[str, Any] = {}
+    evidence_display: list[IssueEvidence] = []
+
+    if description:
+        evidence_data["description"] = description
+        evidence_display.append(
+            IssueEvidence(name="Description", value=description, important=True)
+        )
+
+    if repository_name:
+        evidence_data["repository_name"] = repository_name
+        evidence_display.append(
+            IssueEvidence(name="Repository", value=repository_name, important=False)
+        )
+
+    occurrence = IssueOccurrence(
+        id=uuid.uuid4().hex,
+        project_id=project_id,
+        event_id=event_id,
+        fingerprint=[f"{detector_name}:{title}"],
+        issue_title=title,
+        subtitle=subtitle,
+        resource_id=None,
+        evidence_data=evidence_data,
+        evidence_display=evidence_display,
+        type=InstrumentationIssueExperimentalGroupType,
+        detection_time=detection_time,
+        culprit=detector_name,
+        level="info",
+    )
+
+    event_data: dict[str, Any] = {
+        "event_id": occurrence.event_id,
+        "project_id": occurrence.project_id,
+        "platform": project.platform or "other",
+        "received": detection_time.isoformat(),
+        "timestamp": detection_time.isoformat(),
+        "tags": {},
+    }
+
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.OCCURRENCE,
+        occurrence=occurrence,
+        event_data=event_data,
+    )
+
+    logger.warning(
+        "autopilot.instrumentation_issue.created",
+        extra={
+            "project_id": project_id,
+            "detector_name": detector_name,
+            "title": title,
+        },
+    )
 
 
 class MissingSdkIntegrationsResult(BaseModel):
@@ -115,8 +195,6 @@ def run_sdk_update_detector_for_organization(organization: Organization):
 
     # Determine if each SDK needs an update for each project
     sdk_versions = get_sdk_versions()
-    logger.warning("sdk_versions: %s", sdk_versions)
-    logger.warning("latest_sdks: %s", latest_sdks)
 
     def needs_update(sdk_name, sdk_version):
         if sdk_name not in sdk_versions:
@@ -144,6 +222,22 @@ def run_sdk_update_detector_for_organization(organization: Organization):
 
     logger.warning("updates_list: %s", updates_list)
     metrics.incr("autopilot.sdk_update_detector.updates_found", len(updates_list))
+
+    for update in updates_list:
+        project_id = int(update["projectId"])
+        sdk_name = update["sdkName"]
+        current_version = update["sdkVersion"]
+        newest_version = update["newestSdkVersion"]
+
+        create_instrumentation_issue(
+            project_id=project_id,
+            detector_name=AutopilotDetectorName.SDK_UPDATE,
+            title=f"SDK Update Available: {sdk_name}",
+            subtitle=f"Update from {current_version} to {newest_version}",
+            description=f"A newer version of {sdk_name} is available. "
+            f"Consider updating from version {current_version} to {newest_version} "
+            f"to gain access to bug fixes, performance improvements, and new features.",
+        )
 
     return updates_list
 
@@ -183,12 +277,12 @@ def run_missing_sdk_integration_detector_for_organization(organization: Organiza
 
         if repo_config:
             run_missing_sdk_integration_detector_for_project(
-                organization, project, repo_config.repository.name
+                organization, project, repo_config.repository.name, repo_config.source_root
             )
 
 
 def run_missing_sdk_integration_detector_for_project(
-    organization: Organization, project: Project, repo_name: str
+    organization: Organization, project: Project, repo_name: str, source_root: str
 ) -> list[str] | None:
     """
     Detect missing SDK integrations for a project using Seer Explorer.
@@ -200,7 +294,7 @@ def run_missing_sdk_integration_detector_for_project(
         client = SeerExplorerClient(
             organization,
             user=None,
-            category_key="missing-sdk-integration-detector",
+            category_key=AutopilotDetectorName.MISSING_SDK_INTEGRATION,
             category_value=str(project.id),
             intelligence_level="low",
         )
@@ -228,20 +322,68 @@ def run_missing_sdk_integration_detector_for_project(
         else "https://docs.sentry.io/platforms/"
     )
 
-    prompt = f"""Analyze the connected code repository for project "{project.slug}" to identify missing Sentry SDK integrations.
+    prompt = f"""# Objective
 
-The project is mapped to repository: {repo_name}
-The project platform is: {project.platform or "unknown"}
+Identify missing Sentry SDK integrations for a project by analyzing its code repository.
 
-Refer to the Sentry SDK integrations documentation for available integrations:
-{integration_docs_url}
+# Context
 
-Look at the project's dependencies (package.json, requirements.txt, pyproject.toml, etc.) and identify any libraries or frameworks that have Sentry SDK integrations available but require manual instrumentation steps.
-Check the Sentry initialization code to see if any integrations are already configured.
+- **Project**: {project.slug}
+- **Repository**: {repo_name}
+- **Source Root**: {source_root or "/"}
+- **Platform**: {project.platform}
+- **SDK Integrations Documentation**: {integration_docs_url}
 
-Return the list of missing SDK integration names. Each integration name should be the exact integration function/class name from the Sentry SDK (e.g., "anthropicIntegration", "openaiIntegration", "CeleryIntegration").
+# Instructions
 
-If no missing integrations are found, return an empty list."""
+Follow these steps in order:
+
+## Step 1: Locate the Project Directory
+
+The repository may contain multiple projects. Use the **Source Root** path to identify the correct project directory.
+- If the Source Root is "/" or empty, the project is at the repository root
+- Otherwise, navigate to the Source Root path within the repository
+
+All subsequent steps should be scoped to this directory.
+
+## Step 2: Identify Project Dependencies
+
+Locate and analyze dependency files within the project directory, like:
+- `package.json` (Node.js/JavaScript)
+- `requirements.txt`, `pyproject.toml`, `setup.py` (Python)
+- `Gemfile` (Ruby)
+- `go.mod` (Go)
+- `pom.xml`, `build.gradle` (Java)
+- `composer.json` (PHP)
+
+Extract the list of libraries and frameworks the project uses.
+
+## Step 3: Review Available Sentry Integrations
+
+Reference the SDK integrations documentation to identify which integrations:
+- Are available for the detected libraries/frameworks
+- Require manual configuration (not auto-enabled by default)
+
+## Step 4: Check Current Sentry Configuration
+
+Search for existing Sentry initialization code (e.g., `Sentry.init`, `sentry_sdk.init`) within the project directory.
+Note which integrations are already explicitly configured.
+
+## Step 5: Determine Missing Integrations
+
+Compare the available integrations (Step 3) against the configured integrations (Step 4).
+An integration is "missing" if:
+- A library/framework in the project has a corresponding Sentry integration
+- The integration requires manual setup
+- The integration is NOT already configured
+
+# Output
+
+Return a JSON array of strings containing the missing SDK integration names.
+
+Example: `["celery", "redis", "sqlalchemy"]`
+
+If no missing integrations are found, return an empty array: `[]`"""
 
     try:
         run_id = client.start_run(
@@ -266,6 +408,19 @@ If no missing integrations are found, return an empty list."""
                 "repo_name": repo_name,
             },
         )
+
+        for integration in missing_integrations:
+            create_instrumentation_issue(
+                project_id=project.id,
+                detector_name=AutopilotDetectorName.MISSING_SDK_INTEGRATION,
+                title=f"Missing SDK Integration: {integration}",
+                # TODO: Generate subtitle and description using AI
+                subtitle="Get better insights by enabling this integration",
+                description=f"The {integration} SDK integration is available for your project but not configured. "
+                f"Adding this integration can improve error tracking and provide better insights into your application's behavior. "
+                f"Learn more at: {integration_docs_url}",
+                repository_name=repo_name,
+            )
 
         return missing_integrations
 

@@ -2,6 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
@@ -153,7 +155,7 @@ type LabelDetailsProps = {
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
-    <DetailsContainer>
+    <Flex justify="between" gap="md" minWidth="200px">
       <div>
         {defined(props.screenCount)
           ? tn('%s event', '%s events', props.screenCount)
@@ -164,7 +166,7 @@ function LabelDetails(props: LabelDetailsProps) {
           <DateTime dateOnly year date={props.dateCreated} />
         )}
       </div>
-    </DetailsContainer>
+    </Flex>
   );
 }
 
@@ -309,12 +311,4 @@ const StyledPageSelector = styled(PageFilterBar)`
       }
     }
   }
-`;
-
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-  min-width: 200px;
 `;

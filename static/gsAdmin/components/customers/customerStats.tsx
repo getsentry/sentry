@@ -67,27 +67,27 @@ export const useSeries = (): Record<string, SeriesItem> => {
     accepted: {
       seriesName: SeriesName.ACCEPTED,
       data: [],
-      color: theme.purple300,
+      color: theme.tokens.graphics.accent.vibrant,
     },
     overQuota: {
       seriesName: SeriesName.OVER_QUOTA,
       data: [],
-      color: theme.pink200,
+      color: theme.tokens.graphics.promotion.moderate,
     },
     totalFiltered: {
       seriesName: SeriesName.FILTERED,
       data: [],
-      color: theme.purple200,
+      color: theme.tokens.graphics.accent.moderate,
     },
     totalDiscarded: {
       seriesName: SeriesName.DISCARDED,
       data: [],
-      color: theme.yellow300,
+      color: theme.tokens.graphics.warning.vibrant,
     },
     totalDropped: {
       seriesName: SeriesName.DROPPED,
       data: [],
-      color: theme.red300,
+      color: theme.tokens.graphics.danger.vibrant,
     },
   };
 };
@@ -428,7 +428,7 @@ export const CustomerStats = memo(
       zeroFillDates(
         zeroFillStart,
         new Date(dataDatetime.end ?? moment().format()).valueOf() / 1000,
-        {color: theme.purple200}
+        {color: theme.tokens.graphics.accent.moderate}
       ),
     ];
 
@@ -505,10 +505,10 @@ export const CustomerStats = memo(
 const Footer = styled('div')`
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(3)} -${space(2)} -${space(2)} -${space(2)};
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const LegendContainer = styled('div')`

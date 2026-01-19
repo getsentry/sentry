@@ -214,14 +214,17 @@ export const FilterWrapper = styled('div')`
 `;
 
 const FilterValue = styled('div')`
-  width: 100%;
   max-width: 300px;
-  color: ${p => p.theme.colors.blue500};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.accent};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Paren = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

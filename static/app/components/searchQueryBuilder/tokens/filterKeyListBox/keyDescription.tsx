@@ -84,7 +84,7 @@ const DescriptionKeyLabel = styled('p')`
 `;
 
 const Separator = styled('hr')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(1)} 0;
 `;
 
@@ -96,7 +96,7 @@ const DescriptionList = styled('dl')`
 `;
 
 const Term = styled('dt')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
 

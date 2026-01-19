@@ -1,33 +1,21 @@
 ---
 source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
-hash_basis: stacktrace
+hash_basis: fallback
 hashing_metadata: {
-  "num_stacktraces": 1,
-  "stacktrace_location": "top-level",
-  "stacktrace_type": "system"
+  "fallback_reason": "no_contributing_frames"
 }
 ---
 metrics with tags: {
   "grouping.grouphashmetadata.event_hash_basis": {
-    "hash_basis": "stacktrace",
+    "hash_basis": "fallback",
     "is_hybrid_fingerprint": "False"
   },
-  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
-    "chained_exception": "False",
-    "stacktrace_location": "top-level",
-    "stacktrace_type": "system"
+  "grouping.grouphashmetadata.event_hashing_metadata.fallback": {
+    "fallback_reason": "no_contributing_frames"
   }
 }
 ---
 contributing variants:
-  system*
-    hash: "d2ab6870c762b8a67d831c2a608bbfb4"
-    contributing component: stacktrace
-    hint: None
-    root_component:
-      system*
-        stacktrace*
-          frame*
-            filename*
-              "great.js"
+  fallback*
+    hash: "d41d8cd98f00b204e9800998ecf8427e"

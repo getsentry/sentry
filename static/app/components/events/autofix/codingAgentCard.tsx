@@ -2,6 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -98,16 +100,16 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                 </HeaderWrapper>
 
                 <Content>
-                  <CardHeader>
+                  <Stack marginBottom="md" gap="xs">
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
                     <div>
                       <Tag variant={getTagVariant(codingAgentState.status)}>
                         {getStatusText(codingAgentState.status)}
                       </Tag>
                     </div>
-                  </CardHeader>
+                  </Stack>
 
-                  <CardContent>
+                  <Stack gap="sm">
                     {/* Show results for completed or failed agents */}
                     {codingAgentState.results && codingAgentState.results.length > 0 && (
                       <ResultsSection>
@@ -148,7 +150,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                       {t('Started')}
                       <DateTime date={codingAgentState.started_at} />
                     </DetailRow>
-                  </CardContent>
+                  </Stack>
                 </Content>
                 {hasButtons && (
                   <React.Fragment>
@@ -200,7 +202,7 @@ export default CodingAgentCard;
 const VerticalLine = styled('div')`
   width: 0;
   height: ${p => p.theme.space.xl};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   margin-left: 16px;
   margin-bottom: -1px;
 `;
@@ -227,7 +229,7 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const StyledCard = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -257,23 +259,10 @@ const Content = styled('div')`
   padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.xl} 0;
 `;
 
-const CardHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const AgentTitle = styled('h4')`
   margin: 0 0 ${p => p.theme.space.xs} 0;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.tokens.content.primary};
-`;
-
-const CardContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const DetailRow = styled('div')`
@@ -281,12 +270,12 @@ const DetailRow = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Label = styled('span')`
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   min-width: 80px;
 `;
 
@@ -316,7 +305,7 @@ const ResultItem = styled('div')`
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
     p.status === CodingAgentStatus.FAILED
-      ? p.theme.errorText
+      ? p.theme.tokens.content.danger
       : p.theme.tokens.content.primary};
 `;
 

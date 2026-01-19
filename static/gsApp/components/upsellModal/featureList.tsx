@@ -96,8 +96,8 @@ const CountdownRing = withTheme(({theme, id, totalTime}: CountdownRingProps) => 
         value={timeLeft}
         barWidth={2}
         size={14}
-        backgroundColor={theme.gray100}
-        progressColor={theme.gray200}
+        backgroundColor={theme.colors.gray100}
+        progressColor={theme.colors.gray200}
       />
     </RingContainer>
   );
@@ -119,7 +119,7 @@ const Heading = styled('div')`
 const FeatureLink = styled(motion.div)`
   cursor: pointer;
   transition: color 300ms;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   position: relative;
   display: grid;
   grid-template-columns: max-content auto;

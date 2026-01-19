@@ -1,19 +1,15 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 export const Section = styled('div')``;
 
-export const SectionHeader = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: ${space(0.5)};
-`;
+export function SectionHeader(props: FlexProps<'div'>) {
+  return <Flex justify="between" align="baseline" marginBottom="xs" {...props} />;
+}
 
 export const SectionLabel = styled('h6')<{disabled?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.colors.gray800)};
+  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.colors.gray800)};
   font-size: ${p => p.theme.form.md.fontSize};
   margin: 0;
   text-decoration: underline dotted

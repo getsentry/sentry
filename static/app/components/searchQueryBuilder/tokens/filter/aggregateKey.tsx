@@ -151,7 +151,7 @@ const FnName = styled('span')`
 `;
 
 const UnfocusedText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Parameters = styled('span')`
@@ -169,7 +169,7 @@ const KeyEditing = styled('div')`
 
   :focus-within {
     ${Parameters} {
-      background-color: ${p => p.theme.colors.blue100};
+      background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
       height: 100%;
     }
   }
