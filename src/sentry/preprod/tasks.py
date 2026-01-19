@@ -10,7 +10,7 @@ import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import features, quotas
+from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -19,7 +19,6 @@ from sentry.preprod.eap.write import (
     produce_preprod_build_distribution_to_eap,
     produce_preprod_size_metric_to_eap,
 )
-from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -198,26 +197,6 @@ def create_preprod_artifact(
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
-        # Check if organization has quota for either SIZE_ANALYSIS or INSTALLABLE_BUILD
-        has_size_quota = quotas.backend.has_usage_quota(org_id, DataCategory.SIZE_ANALYSIS)
-        has_installable_quota = quotas.backend.has_usage_quota(
-            org_id, DataCategory.INSTALLABLE_BUILD
-        )
-        if not has_size_quota and not has_installable_quota:
-            logger.info(
-                "No quota available for preprod artifact creation",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": org_id,
-                    "checksum": checksum,
-                    "has_size_quota": has_size_quota,
-                    "has_installable_quota": has_installable_quota,
-                },
-            )
-            raise NoPreprodQuota(
-                "Organization does not have quota for preprod features (SIZE_ANALYSIS or INSTALLABLE_BUILD)"
-            )
-
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             # Create CommitComparison if git information is provided
             commit_comparison = None
@@ -270,6 +249,7 @@ def create_preprod_artifact(
                 extras=extras,
             )
 
+            # TODO(preprod): add gating to only create if has quota
             PreprodArtifactSizeMetrics.objects.get_or_create(
                 preprod_artifact=preprod_artifact,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -290,8 +270,6 @@ def create_preprod_artifact(
 
             return preprod_artifact
 
-    except NoPreprodQuota:
-        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(

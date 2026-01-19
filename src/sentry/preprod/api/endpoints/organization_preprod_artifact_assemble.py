@@ -19,7 +19,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
-from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -199,27 +198,21 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if not chunks:
                 return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []})
 
-            try:
-                artifact = create_preprod_artifact(
-                    org_id=project.organization_id,
-                    project_id=project.id,
-                    checksum=checksum,
-                    build_configuration_name=data.get("build_configuration"),
-                    release_notes=data.get("release_notes"),
-                    head_sha=data.get("head_sha"),
-                    base_sha=data.get("base_sha"),
-                    provider=data.get("provider"),
-                    head_repo_name=data.get("head_repo_name"),
-                    base_repo_name=data.get("base_repo_name"),
-                    head_ref=data.get("head_ref"),
-                    base_ref=data.get("base_ref"),
-                    pr_number=data.get("pr_number"),
-                )
-            except NoPreprodQuota:
-                return Response(
-                    {"detail": "Organization does not have quota for preprod features"},
-                    status=403,
-                )
+            artifact = create_preprod_artifact(
+                org_id=project.organization_id,
+                project_id=project.id,
+                checksum=checksum,
+                build_configuration_name=data.get("build_configuration"),
+                release_notes=data.get("release_notes"),
+                head_sha=data.get("head_sha"),
+                base_sha=data.get("base_sha"),
+                provider=data.get("provider"),
+                head_repo_name=data.get("head_repo_name"),
+                base_repo_name=data.get("base_repo_name"),
+                head_ref=data.get("head_ref"),
+                base_ref=data.get("base_ref"),
+                pr_number=data.get("pr_number"),
+            )
 
             if artifact is None:
                 return Response(
