@@ -13,6 +13,7 @@ from django.utils import timezone as django_timezone
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.statistical_detectors import compute_delay
@@ -26,9 +27,11 @@ LAST_RUN_CACHE_KEY = "seer:explorer_index:last_run"
 LAST_RUN_CACHE_TIMEOUT = 24 * 60 * 60  # 24 hours
 
 EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
-EXPLORER_INDEX_RUN_FREQUENCY = timedelta(minutes=50)
+EXPLORER_INDEX_RUN_FREQUENCY = timedelta(hours=24)
 # Use a larger prime number to spread indexing tasks throughout the day
 EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=127)
+
+FEATURE_NAMES = ["organizations:gen-ai-features", "organizations:seer-explorer-index"]
 
 
 def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
@@ -49,12 +52,12 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             return
 
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
-            has_feature = features.has("organizations:seer-explorer-index", project.organization)
-
-        if has_feature:
-            yield project.id, project.organization_id
-        else:
-            logger.info("organizations:seer-explorer-index flag not enabled, skipping")
+            if (
+                features.batch_has(FEATURE_NAMES, project.organization)
+                and not bool(project.organization.get_option("sentry:hide_ai_features"))
+                and get_seer_org_acknowledgement(project.organization)
+            ):
+                yield project.id, project.organization_id
 
 
 @instrumented_task(
@@ -74,7 +77,13 @@ def schedule_explorer_index() -> None:
         return
 
     last_run = cache.get(LAST_RUN_CACHE_KEY)
-    if last_run and last_run > django_timezone.now() - EXPLORER_INDEX_RUN_FREQUENCY:
+
+    # Default is 24 hours, making it an option so we can trigger
+    # the run at higher frequencies as we roll it out.
+    explorer_index_run_frequency = timedelta(
+        minutes=options.get("seer.explorer_index.run_frequency.minutes")
+    )
+    if last_run and last_run > django_timezone.now() - explorer_index_run_frequency:
         logger.info("Index updated less than 24 hours ago, skiping")
         return
 
