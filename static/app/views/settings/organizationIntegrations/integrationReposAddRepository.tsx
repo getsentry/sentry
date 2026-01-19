@@ -12,7 +12,7 @@ import type {
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
-import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
+import {fetchDataQuery, useQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,7 +46,7 @@ export function IntegrationReposAddRepository({
     queryKey: [
       `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
       {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},
-    ] as const,
+    ] as unknown as ApiQueryKey,
     queryFn: async context => {
       try {
         onSearchError(null);
