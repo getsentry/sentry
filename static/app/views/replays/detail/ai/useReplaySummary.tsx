@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -70,10 +71,17 @@ const shouldPoll = (
 
 function createAISummaryQueryKey(
   orgSlug: string,
-  projectSlug: string | undefined,
+  projectSlug: string,
   replayId: string
 ): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/`];
+  return [
+    getApiUrl(
+      `/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/summarize/`,
+      {
+        path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug, replayId},
+      }
+    ),
+  ];
 }
 
 export function useReplaySummary(
@@ -166,7 +174,7 @@ export function useReplaySummary(
       queryClient.invalidateQueries({
         queryKey: createAISummaryQueryKey(
           organization.slug,
-          project?.slug,
+          project?.slug ?? '',
           replayRecord?.id ?? ''
         ),
       });
@@ -188,7 +196,11 @@ export function useReplaySummary(
   }, [options?.enabled, startSummaryRequestMutate, startTotalTimeout, startStartTimeout]);
 
   const {data: summaryData, dataUpdatedAt: lastFetchTime} = useApiQuery<SummaryResponse>(
-    createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
+    createAISummaryQueryKey(
+      organization.slug,
+      project?.slug ?? '',
+      replayRecord?.id ?? ''
+    ),
     {
       staleTime: 0,
       retry: false,

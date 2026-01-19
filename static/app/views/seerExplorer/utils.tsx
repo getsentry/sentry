@@ -5,6 +5,7 @@ import queryString from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -35,7 +36,12 @@ export const makeSeerExplorerQueryKey = (
   orgSlug: string,
   runId?: number
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  getApiUrl(
+    `/organizations/$organizationIdOrSlug/seer/explorer-chat/${runId ? `${runId}/` : ''}` as any,
+    {
+      path: {organizationIdOrSlug: orgSlug},
+    }
+  ),
   {},
 ];
 
