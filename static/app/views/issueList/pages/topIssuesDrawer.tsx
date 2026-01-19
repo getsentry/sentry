@@ -44,6 +44,7 @@ import type {Group} from 'sentry/types/group';
 import {GroupSubstatus} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -102,7 +103,9 @@ export function useClusterStats(groupIds: number[]): ClusterStats {
 
   const {data: groups, isPending} = useApiQuery<Group[]>(
     [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           group: groupIds,
@@ -319,7 +322,13 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
 
   const {data: event, isPending} = useApiQuery<Event>(
     [
-      `/organizations/${organization.slug}/issues/${groupId}/events/${defaultIssueEvent}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: groupId,
+          eventId: defaultIssueEvent,
+        },
+      }),
       {
         query: {
           collapse: ['fullRelease'],
@@ -429,7 +438,11 @@ function useSeerExplorerRun(runId: number | undefined) {
   const organization = useOrganization();
 
   return useApiQuery<SeerExplorerRunResponse>(
-    [`/organizations/${organization.slug}/seer/explorer-chat/${runId}/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId', {
+        path: {organizationIdOrSlug: organization.slug, runId: String(runId)},
+      }),
+    ],
     {
       staleTime: 60000,
       enabled: runId !== undefined && runId > 0,
@@ -515,7 +528,9 @@ function useClusterTagFacets(groupIds: number[]) {
 
   const queryResult = useApiQuery<DiscoverFacetTag[]>(
     [
-      `/organizations/${organization.slug}/events-facets/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events-facets/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           dataset: DiscoverDatasets.ERRORS,
