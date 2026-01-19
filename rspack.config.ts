@@ -27,6 +27,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import StoriesIndexPlugin from './build-utils/stories-index-plugin.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -434,6 +436,12 @@ const appConfig: Configuration = {
       // We will cache using `Cache-Control` headers
       filename: 'entrypoints/[name].css',
     }),
+
+    /**
+     * Generate stories search index from MDX files at build time.
+     * This enables static imports instead of runtime MDX loading for story metadata.
+     */
+    new StoriesIndexPlugin({basePath: staticPrefix}),
 
     /**
      * Defines environment specific flags.
