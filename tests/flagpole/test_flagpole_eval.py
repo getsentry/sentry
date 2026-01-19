@@ -146,7 +146,9 @@ class TestReadFeature:
     def test_read_feature_missing_flag(self):
         """Test read_feature raises exception when flag doesn't exist in file."""
         yaml_content = {
-            "options": {"other-feature": {"enabled": True, "owner": {"team": "test-team"}, "segments": []}}
+            "options": {
+                "other-feature": {"enabled": True, "owner": {"team": "test-team"}, "segments": []}
+            }
         }
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -195,7 +197,9 @@ class TestEvaluateFlag:
 
     def test_evaluate_flag_no_segments(self):
         """Test evaluate_flag with feature that has no segments."""
-        feature = Feature(name="no-segments-feature", owner=OwnerInfo(team="test-team"), enabled=True, segments=[])
+        feature = Feature(
+            name="no-segments-feature", owner=OwnerInfo(team="test-team"), enabled=True, segments=[]
+        )
         context = EvaluationContext({"user_id": 123})
 
         result, rollout, segment = evaluate_flag(feature, context)
