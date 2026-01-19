@@ -84,6 +84,10 @@ describe('ReplayList', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('should render the onboarding panel when the org is on AM1', async () => {

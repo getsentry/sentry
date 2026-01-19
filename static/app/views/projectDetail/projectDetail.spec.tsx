@@ -58,6 +58,10 @@ describe('ProjectDetail', () => {
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   }
 
   beforeEach(() => {

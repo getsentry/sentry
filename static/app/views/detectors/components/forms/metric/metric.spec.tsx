@@ -63,6 +63,10 @@ describe('NewMetricDetectorForm', () => {
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('removes is filters when switching away from the errors dataset', async () => {

@@ -162,6 +162,10 @@ describe('Performance > Transaction Tags', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

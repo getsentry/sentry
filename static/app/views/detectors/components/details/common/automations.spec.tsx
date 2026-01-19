@@ -25,9 +25,6 @@ describe('DetectorDetailsAutomations', () => {
   const issueStreamDetector = IssueStreamDetectorFixture({id: '4'});
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    MockApiClient.clearMockResponses();
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       method: 'GET',
@@ -39,6 +36,15 @@ describe('DetectorDetailsAutomations', () => {
         }),
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders connected alerts list', async () => {

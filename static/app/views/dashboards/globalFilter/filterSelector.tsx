@@ -28,7 +28,7 @@ import {
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {prettifyTagKey, useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -39,7 +39,7 @@ import FilterSelectorTrigger, {
   FilterValueTruncated,
 } from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
-  getFieldDefinitionForDataset,
+  getFieldType,
   getFilterToken,
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
@@ -66,14 +66,19 @@ function FilterSelector({
   disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
+  const {getFieldDefinition} = useFieldDefinitionGetter();
 
   const {fieldDefinition, filterToken} = useMemo(() => {
-    const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
+    const fieldDef = getFieldDefinition(
+      globalFilter.tag.key,
+      getFieldType(globalFilter.dataset),
+      globalFilter.tag.kind
+    );
     return {
       fieldDefinition: fieldDef,
-      filterToken: getFilterToken(globalFilter, fieldDef),
+      filterToken: getFilterToken(globalFilter, fieldDef, getFieldDefinition),
     };
-  }, [globalFilter]);
+  }, [getFieldDefinition, globalFilter]);
 
   // Get initial selected values from the filter token
   const initialValues = useMemo(() => {
@@ -264,7 +269,8 @@ function FilterSelector({
     }
 
     if (stagedOperator !== initialOperator) {
-      const newToken = parseFilterValue(newValue, globalFilter)[0] ?? filterToken;
+      const newToken =
+        parseFilterValue(newValue, globalFilter, getFieldDefinition)[0] ?? filterToken;
       newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator);
     }
 

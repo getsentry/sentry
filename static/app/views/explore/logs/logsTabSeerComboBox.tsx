@@ -9,7 +9,6 @@ import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -60,6 +59,7 @@ export function LogsTabSeerComboBox() {
     committedQuery,
     askSeerSuggestedQueryRef,
     enableAISearch,
+    getFieldDefinition,
   } = useSearchQueryBuilder();
 
   let initialSeerQuery = '';
@@ -67,7 +67,7 @@ export function LogsTabSeerComboBox() {
     const queryToUse = committedQuery.length > 0 ? committedQuery : query;
     const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
     return {parsedQuery, queryToUse};
-  }, [committedQuery, query]);
+  }, [committedQuery, getFieldDefinition, query]);
 
   const inputValue = currentInputValueRef.current.trim();
 

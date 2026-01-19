@@ -25,9 +25,11 @@ describe('SampleList', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
     });
   });
 

@@ -63,6 +63,10 @@ describe('MetricRuleDuplicate', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders new alert form with values copied over', async () => {

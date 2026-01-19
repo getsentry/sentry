@@ -110,6 +110,11 @@ describe('DetectorEdit', () => {
       match: [MockApiClient.matchQuery({ids: ['100']})],
       body: [AutomationFixture({id: '100', name: 'Workflow foo'})],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   describe('EditDetectorActions', () => {

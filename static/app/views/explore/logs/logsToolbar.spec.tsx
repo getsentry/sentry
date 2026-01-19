@@ -20,6 +20,17 @@ function Wrapper({children}: {children: ReactNode}) {
 }
 
 describe('LogsToolbar', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   describe('visualize section', () => {
     it('options disabled', async () => {
       render(

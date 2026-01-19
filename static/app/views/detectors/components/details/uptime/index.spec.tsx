@@ -41,6 +41,10 @@ describe('UptimeDetectorDetails', () => {
       url: '/organizations/org-slug/issues/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders the detector details sections', async () => {

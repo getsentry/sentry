@@ -17,6 +17,10 @@ describe('EAPField', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders', () => {

@@ -32,6 +32,10 @@ describe('MetricDetectorTriggeredSection', () => {
       url: '/organizations/org-slug/issues/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders nothing when event has no occurrence', () => {

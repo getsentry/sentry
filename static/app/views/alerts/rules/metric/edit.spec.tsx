@@ -72,6 +72,10 @@ describe('MetricRulesEdit', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

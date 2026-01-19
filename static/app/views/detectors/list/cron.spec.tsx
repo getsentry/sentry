@@ -51,6 +51,11 @@ describe('CronDetectorsList', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+
     // Ensure a project is selected for queries
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
 

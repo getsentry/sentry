@@ -154,6 +154,10 @@ describe('groupDetails', () => {
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({}),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

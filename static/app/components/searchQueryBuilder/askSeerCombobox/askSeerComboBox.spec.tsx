@@ -64,6 +64,11 @@ describe('AskSeerComboBox', () => {
       method: 'GET',
       body: {setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true}},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders the search input', async () => {

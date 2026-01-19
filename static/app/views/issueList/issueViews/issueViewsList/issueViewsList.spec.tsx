@@ -65,6 +65,10 @@ describe('IssueViewsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('displays views from myself and others', async () => {

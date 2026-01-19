@@ -144,6 +144,11 @@ describe('MetricsTabContent', () => {
       method: 'GET',
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('should add a metric when Add Metric button is clicked', async () => {
@@ -477,6 +482,11 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
     });
 
     render(

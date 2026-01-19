@@ -79,6 +79,10 @@ describe('IssueListOverview (actions)', () => {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
 
     TagStore.init?.();
   });

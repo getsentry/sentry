@@ -84,6 +84,11 @@ describe('ExploreToolbar', () => {
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('disables changing visualize fields for count', async () => {

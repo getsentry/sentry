@@ -157,6 +157,10 @@ describe('messageSpanSamplesPanel', () => {
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterAll(() => {

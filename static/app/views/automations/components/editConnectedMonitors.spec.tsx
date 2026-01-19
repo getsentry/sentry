@@ -44,6 +44,10 @@ describe('EditConnectedMonitors', () => {
       method: 'GET',
       body: [detector1],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 

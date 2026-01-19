@@ -8,7 +8,6 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -79,6 +78,7 @@ export function SpansTabSeerComboBox() {
     committedQuery,
     askSeerSuggestedQueryRef,
     enableAISearch,
+    getFieldDefinition,
   } = useSearchQueryBuilder();
 
   const useTranslateEndpoint = organization.features.includes(
@@ -89,7 +89,7 @@ export function SpansTabSeerComboBox() {
     const queryToUse = committedQuery.length > 0 ? committedQuery : query;
     const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
     return {parsedQuery, queryToUse};
-  }, [committedQuery, query]);
+  }, [committedQuery, getFieldDefinition, query]);
 
   const inputValue = currentInputValueRef.current.trim();
 

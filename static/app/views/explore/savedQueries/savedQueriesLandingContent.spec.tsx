@@ -52,6 +52,10 @@ describe('SavedQueriesTable', () => {
       url: `/organizations/${organization.slug}/explore/saved/2/starred/`,
       method: 'POST',
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('should render', async () => {

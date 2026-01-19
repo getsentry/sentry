@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FieldKind} from 'sentry/utils/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AttributeDetailsProps {
@@ -20,6 +20,7 @@ export function AttributeDetails({
   label,
   traceItemType,
 }: AttributeDetailsProps) {
+  const {getFieldDefinition} = useFieldDefinitionGetter();
   const type = traceItemTypeToType(traceItemType);
   const definition = getFieldDefinition(column, type, kind);
   const description = definition?.desc ?? t('An attribute sent with one or more events');

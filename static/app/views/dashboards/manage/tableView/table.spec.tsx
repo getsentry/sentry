@@ -19,6 +19,10 @@ describe('DashboardTable', () => {
       method: 'GET',
       body: {dashboards: []},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('should render', () => {

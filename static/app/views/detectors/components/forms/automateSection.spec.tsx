@@ -126,6 +126,11 @@ describe('AutomateSection', () => {
       method: 'GET',
       body: [project],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('can connect an existing automation', async () => {

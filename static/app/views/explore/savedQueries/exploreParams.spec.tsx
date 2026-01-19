@@ -5,6 +5,13 @@ import * as useDimensions from 'sentry/utils/useDimensions';
 import {ExploreParams} from './exploreParams';
 
 describe('ExploreParams', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
   it('should render', () => {
     jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 900, height: 100});
     render(<ExploreParams query="test" visualizes={[]} groupBys={[]} />);

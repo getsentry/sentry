@@ -78,6 +78,10 @@ describe('EventDetailsHeader', () => {
       url: `/organizations/${organization.slug}/events/`,
       body: {data: [{'count_unique(user)': 21}]},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('renders filters alongside the graph', async () => {

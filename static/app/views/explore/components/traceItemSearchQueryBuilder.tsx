@@ -6,10 +6,11 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, useFieldDefinitionGetter} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -54,6 +55,7 @@ const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric
 };
 
 function getTraceItemFieldDefinitionFunction(
+  getFieldDefinition: FieldDefinitionGetter,
   itemType: TraceItemDataset,
   tags: TagCollection
 ) {
@@ -87,6 +89,7 @@ export function useTraceItemSearchQueryBuilderProps({
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
   const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
+  const {getFieldDefinition} = useFieldDefinitionGetter();
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: itemType,
@@ -104,7 +107,11 @@ export function useTraceItemSearchQueryBuilderProps({
       placeholder: placeholderText,
       filterKeys: filterTags,
       initialQuery,
-      fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
+      fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(
+        getFieldDefinition,
+        itemType,
+        filterTags
+      ),
       onSearch,
       onChange,
       onBlur,
@@ -128,6 +135,7 @@ export function useTraceItemSearchQueryBuilderProps({
       caseInsensitive,
       filterKeySections,
       filterTags,
+      getFieldDefinition,
       getFilterTokenWarning,
       getSuggestedAttribute,
       getTraceItemAttributeValues,

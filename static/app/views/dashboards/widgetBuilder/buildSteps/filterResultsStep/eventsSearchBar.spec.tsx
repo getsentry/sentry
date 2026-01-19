@@ -25,6 +25,10 @@ describe('EventsSearchBar', () => {
       body: [],
       method: 'POST',
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('does not show function tags in has: dropdown', async () => {

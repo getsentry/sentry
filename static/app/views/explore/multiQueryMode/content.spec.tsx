@@ -112,6 +112,10 @@ describe('MultiQueryModeContent', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   it('disables changing fields for count', async () => {

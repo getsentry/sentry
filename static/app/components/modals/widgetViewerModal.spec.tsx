@@ -173,6 +173,11 @@ describe('Modals -> WidgetViewerModal', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+
     eventsMetaMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
       body: {count: 33323612},

@@ -22,6 +22,13 @@ jest.mock('sentry/components/searchQueryBuilder/context', () => ({
 }));
 
 describe('FormattedQuery', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
+  });
+
   const defaultProps: Partial<FormattedQueryProps> = {
     filterKeys: FILTER_KEYS,
   };

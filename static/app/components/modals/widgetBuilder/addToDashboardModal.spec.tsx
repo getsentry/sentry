@@ -128,6 +128,11 @@ describe('add to dashboard modal', () => {
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

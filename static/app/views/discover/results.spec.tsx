@@ -73,6 +73,11 @@ function renderMockRequests() {
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/attribute-mappings/',
+    body: {data: []},
+  });
+
   const measurementsMetaMock = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/measurements-meta/',
     method: 'GET',

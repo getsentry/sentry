@@ -115,6 +115,10 @@ describe('DetectorDetails', () => {
       body: [],
       match: [(_url, options) => options.query?.detector === undefined],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   describe('metric detectors', () => {

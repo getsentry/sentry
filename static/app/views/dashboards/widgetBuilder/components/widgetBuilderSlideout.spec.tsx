@@ -50,6 +50,11 @@ describe('WidgetBuilderSlideout', () => {
       url: '/organizations/org-slug/tags/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {

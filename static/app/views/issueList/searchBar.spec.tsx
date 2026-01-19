@@ -25,6 +25,11 @@ describe('IssueListSearchBar', () => {
       method: 'POST',
       url: '/organizations/org-slug/recent-searches/',
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/attribute-mappings/',
+      body: {data: []},
+    });
   });
 
   afterEach(() => {
