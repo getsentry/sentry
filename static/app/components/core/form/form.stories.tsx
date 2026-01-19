@@ -8,6 +8,8 @@ import {
   type FormStore,
 } from '@formisch/react';
 import {zodResolver} from '@hookform/resolvers/zod';
+import {TanStackDevtools} from '@tanstack/react-devtools';
+import {formDevtoolsPlugin} from '@tanstack/react-form-devtools';
 import {queryOptions, useQuery} from '@tanstack/react-query';
 import * as v from 'valibot';
 import {z} from 'zod';
@@ -36,30 +38,30 @@ const COUNTRY_OPTIONS = [
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const userSchema = z
-  .object({
-    age: z.number().gte(13, 'You must be 13 to make an account'),
-    firstName: z.string(),
-    lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-    secret: z.string().optional(),
-    address: z.object({
-      street: z.string().min(1, 'Street is required'),
-      city: z.string().min(1, 'City is required'),
-      country: z.string().min(1, 'Country is required'),
-    }),
-  })
-  .refine(
-    data => {
-      if (data.age === 42) {
-        return !!data.secret && data.secret.length > 0;
-      }
-      return true;
-    },
-    {
-      message: 'Secret is required when age is 42',
-      path: ['secret'],
+const baseUserSchema = z.object({
+  age: z.number().gte(13, 'You must be 13 to make an account'),
+  firstName: z.string(),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  secret: z.string().optional(),
+  address: z.object({
+    street: z.string().min(1, 'Street is required'),
+    city: z.string().min(1, 'City is required'),
+    country: z.string().min(1, 'Country is required'),
+  }),
+});
+
+const userSchema = baseUserSchema.refine(
+  data => {
+    if (data.age === 42) {
+      return !!data.secret && data.secret.length > 0;
     }
-  );
+    return true;
+  },
+  {
+    message: 'Secret is required when age is 42',
+    path: ['secret'],
+  }
+);
 
 const userQuery = queryOptions({
   queryKey: ['user', 'example'],
@@ -108,9 +110,9 @@ function TanStack() {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: user.data,
-    // validators: {
-    //   onDynamic: userSchema,
-    // },
+    validators: {
+      onDynamic: baseUserSchema,
+    },
     onSubmit: ({value}) => {
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value));
@@ -131,12 +133,7 @@ function TanStack() {
         }}
       >
         <Stack gap="lg">
-          <form.AppField
-            name="firstName"
-            validators={{
-              onDynamic: userSchema.shape.firstName,
-            }}
-          >
+          <form.AppField name="firstName">
             {field => (
               <field.Input
                 label="First Name:"
@@ -145,12 +142,7 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.AppField
-            name="lastName"
-            validators={{
-              onDynamic: userSchema.shape.lastName,
-            }}
-          >
+          <form.AppField name="lastName">
             {field => (
               <field.Input
                 label="Last Name:"
@@ -160,12 +152,7 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.AppField
-            name="age"
-            validators={{
-              onDynamic: userSchema.shape.age,
-            }}
-          >
+          <form.AppField name="age">
             {field => (
               <field.Number
                 label="Age:"
@@ -199,12 +186,7 @@ function TanStack() {
           <div style={{marginTop: '20px', marginBottom: '10px'}}>
             <strong>Address</strong>
           </div>
-          <form.AppField
-            name="address.street"
-            validators={{
-              onDynamic: userSchema.shape.address.shape.street,
-            }}
-          >
+          <form.AppField name="address.street">
             {field => (
               <field.Input
                 label="Street:"
@@ -214,12 +196,7 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.AppField
-            name="address.city"
-            validators={{
-              onDynamic: userSchema.shape.address.shape.city,
-            }}
-          >
+          <form.AppField name="address.city">
             {field => (
               <field.Input
                 required
@@ -229,12 +206,7 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.AppField
-            name="address.country"
-            validators={{
-              onDynamic: userSchema.shape.address.shape.country,
-            }}
-          >
+          <form.AppField name="address.country">
             {field => (
               <field.Select
                 required
@@ -536,6 +508,7 @@ export default Storybook.story('Form', story => {
     return (
       <Fragment>
         <Formisch />
+        <TanStackDevtools plugins={[formDevtoolsPlugin()]} />
       </Fragment>
     );
   });
