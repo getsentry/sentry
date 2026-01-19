@@ -81,6 +81,7 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
+from sentry.spans.buffer_logger import BufferLogger
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics, redis
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -166,6 +167,7 @@ class SpansBuffer:
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
+        self._buffer_logger = BufferLogger()
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -250,7 +252,10 @@ class SpansBuffer:
             assert len(result_meta) == len(results)
 
             for (project_and_trace, parent_span_id), result in zip(result_meta, results):
-                redirect_depth, set_key, has_root_span = result
+                redirect_depth, set_key, has_root_span, evalsha_latency_ms = result
+
+                # Log individual EVALSHA latency for this trace
+                self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
 
                 shard = self.assigned_shards[
                     int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
