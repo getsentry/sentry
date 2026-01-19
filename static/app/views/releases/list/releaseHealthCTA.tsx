@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -30,10 +31,17 @@ export default function ReleaseHealthCTA({
     data: project,
     isPending,
     isError,
-  } = useApiQuery<Project>([`/projects/${organization.slug}/${selectedProject?.slug}/`], {
-    enabled: Boolean(selectedProject) && releases.length > 0,
-    staleTime: 1_000, // 1 second
-  });
+  } = useApiQuery<Project>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/${selectedProject?.slug}/` as any, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      enabled: Boolean(selectedProject) && releases.length > 0,
+      staleTime: 1_000, // 1 second
+    }
+  );
 
   const trackAddReleaseHealth = useCallback(() => {
     if (organization.id && selection.projects[0]) {
