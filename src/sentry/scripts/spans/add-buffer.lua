@@ -180,7 +180,11 @@ redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time = redis.call("TIME")
 local ingested_count_end_time_ms = tonumber(ingested_count_end_time[1]) * 1000 + tonumber(ingested_count_end_time[2]) / 1000
-local ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
+if zpopmin_end_time_ms then
+    local ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
+else
+    local ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
+end
 
 -- Capture end time and calculate latency in milliseconds
 local end_time = redis.call("TIME")
