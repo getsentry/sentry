@@ -14,8 +14,6 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -129,27 +127,11 @@ export default function ConsoleSDKInvitesSettings() {
                           }
                           addLoadingMessage(t('Revoking %s access...', displayName));
                           revokePlatformInvite({
-                            userId: invite.user_id,
-                            platforms: [platform],
                             orgSlug: organization.slug,
-                          })
-                            .then(() => {
-                              addSuccessMessage(
-                                t('Successfully revoked %s access', displayName)
-                              );
-                            })
-                            .catch(() => {
-                              addErrorMessage(
-                                t('Failed to revoke %s access', displayName)
-                              );
-                            })
-                            .finally(() => {
-                              queryClient.invalidateQueries({
-                                queryKey: [
-                                  `/organizations/${organization.slug}/console-sdk-invites/`,
-                                ],
-                              });
-                            });
+                            items: [{user_id: invite.user_id, platform}],
+                            email: invite.email,
+                            platform,
+                          });
                         }}
                       >
                         {displayName}
@@ -180,27 +162,27 @@ export default function ConsoleSDKInvitesSettings() {
 function NoAccessAlert() {
   return (
     <Alert.Container>
-      <Alert variant="warning" showIcon={false}>
-        {t(
-          'Your organization does not have any console platforms enabled. Please complete the middleware verification process for your platform:'
+      <Alert variant="warning">
+        {tct(
+          'Your organization does not have any console platforms enabled. Please complete the middleware verification process for [playstation], [nintendo], or [xbox].',
+          {
+            playstation: (
+              <ExternalLink href="https://game.develop.playstation.net/tm/verify/functionalsw">
+                {t('PlayStation')}
+              </ExternalLink>
+            ),
+            nintendo: (
+              <ExternalLink href="https://developer.nintendo.com/group/development/getting-started/g1kr9vj6/middleware/sentry">
+                {t('Nintendo Switch')}
+              </ExternalLink>
+            ),
+            xbox: (
+              <ExternalLink href="https://developer.microsoft.com/en-us/games/support/request-gdkx-middleware">
+                {t('Xbox')}
+              </ExternalLink>
+            ),
+          }
         )}
-        <List symbol="bullet">
-          <ListItem>
-            <ExternalLink href="https://game.develop.playstation.net/tm/verify/functionalsw">
-              {t('PlayStation Partners')}
-            </ExternalLink>
-          </ListItem>
-          <ListItem>
-            <ExternalLink href="https://developer.nintendo.com/group/development/getting-started/g1kr9vj6/middleware/sentry">
-              {t('Nintendo Developer Portal')}
-            </ExternalLink>
-          </ListItem>
-          <ListItem>
-            <ExternalLink href="https://developer.microsoft.com/en-us/games/support/request-gdkx-middleware">
-              {t('Microsoft GDK Middleware')}
-            </ExternalLink>
-          </ListItem>
-        </List>
       </Alert>
     </Alert.Container>
   );
@@ -209,7 +191,7 @@ function NoAccessAlert() {
 function NoQuotaRemaining({organization}: {organization: Organization}) {
   return (
     <Alert.Container>
-      <Alert variant="info" showIcon={false}>
+      <Alert variant="info">
         {tct(
           'This organization ([orgSlug]) has used all GitHub invites available. [mailto:Contact support] to increase the quota.',
           {
