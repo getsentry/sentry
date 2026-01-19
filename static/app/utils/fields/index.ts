@@ -549,11 +549,6 @@ function logConventionsFallback(options: {key: string; type: string; kind?: Fiel
     return;
   }
 
-  if (conventionsFallbackLogCache.size) {
-    conventionsFallbackLogCache.clear();
-  }
-  conventionsFallbackLogCache.add(cacheKey);
-
   // Want to track and see how "popular" these conventions are and what fields we're
   // missing mappings for in the UI codebase.
   Sentry.logger.info('Field definition fallback to conventions', {
@@ -561,6 +556,7 @@ function logConventionsFallback(options: {key: string; type: string; kind?: Fiel
     type: options.type,
     kind: options.kind,
   });
+  conventionsFallbackLogCache.add(cacheKey);
 }
 
 function getFallbackValueTypeForKind(kind?: FieldKind): FieldValueType {
