@@ -79,9 +79,10 @@ describe('SchedulePreview', () => {
     );
 
     expect(
-      await screen.findByText(/No schedule preview available\./i)
+      await screen.findByText(
+        /No preview available\. The provided schedule is invalid, or the thresholds are incompatible with it\./i
+      )
     ).toBeInTheDocument();
-    expect(screen.getByText(/schedule: Invalid schedule/i)).toBeInTheDocument();
   });
 
   it('shows a generic error on non-400 errors', async () => {
