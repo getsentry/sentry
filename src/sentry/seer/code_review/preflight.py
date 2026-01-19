@@ -8,7 +8,11 @@ from sentry import features
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewSettings, RepositorySettings
+from sentry.models.repositorysettings import (
+    CodeReviewSettings,
+    CodeReviewTrigger,
+    RepositorySettings,
+)
 from sentry.seer.code_review.billing import passes_code_review_billing_check
 
 
@@ -59,7 +63,18 @@ class CodeReviewPreflightService:
             if denial_reason is not None:
                 return CodeReviewPreflightResult(allowed=False, denial_reason=denial_reason)
 
-        return CodeReviewPreflightResult(allowed=True, settings=self._repo_settings)
+        settings: CodeReviewSettings | None = self._repo_settings
+        if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
+            # For beta and legacy usage-based plan orgs, all repos are considered enabled for these default triggers
+            settings = CodeReviewSettings(
+                enabled=True,
+                triggers=[
+                    CodeReviewTrigger.ON_NEW_COMMIT,
+                    CodeReviewTrigger.ON_READY_FOR_REVIEW,
+                ],
+            )
+
+        return CodeReviewPreflightResult(allowed=True, settings=settings)
 
     # -------------------------------------------------------------------------
     # Checks - each returns denial reason or None if valid
