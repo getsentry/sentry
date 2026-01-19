@@ -60,7 +60,7 @@ function _apiOptions<
   return queryOptions({
     queryKey:
       url === null
-        ? [path]
+        ? [path as ReturnType<typeof getApiUrl>]
         : Object.keys(options).length > 0
           ? ([url, options] as const)
           : ([url] as const),
