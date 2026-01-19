@@ -143,9 +143,9 @@ function ToggleConsolePlatformsModal({
 }: ToggleConsolePlatformsModalProps) {
   const {enabledConsolePlatforms = [], consoleSdkInviteQuota = 0} = organization;
 
-  const [pendingRevocations, setPendingRevocations] = useState(
-    new Map<string, Set<ConsolePlatform>>()
-  );
+  const [pendingRevocations, setPendingRevocations] = useState<
+    Array<{platform: ConsolePlatform; user_id: string}>
+  >([]);
 
   const {
     data: userInvites = [],
@@ -157,11 +157,10 @@ function ToggleConsolePlatformsModal({
   // Filter out pending revocations from displayed invites
   const displayedInvites = userInvites
     .map(invite => {
-      const pendingForUser = pendingRevocations.get(invite.user_id);
-      if (!pendingForUser) {
-        return invite;
-      }
-      const filteredPlatforms = invite.platforms.filter(p => !pendingForUser.has(p));
+      const filteredPlatforms = invite.platforms.filter(
+        p =>
+          !pendingRevocations.some(r => r.user_id === invite.user_id && r.platform === p)
+      );
       return {...invite, platforms: filteredPlatforms};
     })
     .filter(invite => invite.platforms.length > 0);
@@ -198,13 +197,7 @@ function ToggleConsolePlatformsModal({
     platform: ConsolePlatform;
     userId: string;
   }) => {
-    setPendingRevocations(prev => {
-      const next = new Map(prev);
-      const platformsToRevoke = new Set(prev.get(userId));
-      platformsToRevoke.add(platform);
-      next.set(userId, platformsToRevoke);
-      return next;
-    });
+    setPendingRevocations(prev => [...prev, {user_id: userId, platform}]);
   };
 
   const handleSubmit = async (data: Record<string, boolean | number>) => {
@@ -212,19 +205,11 @@ function ToggleConsolePlatformsModal({
 
     const promises: Array<Promise<unknown>> = [];
 
-    // Collect all revocations into a single array for batch API call
-    const itemsToRevoke: Array<{platform: ConsolePlatform; user_id: string}> = [];
-    pendingRevocations.forEach((platforms, userId) => {
-      platforms.forEach(platform => {
-        itemsToRevoke.push({user_id: userId, platform});
-      });
-    });
-
-    if (itemsToRevoke.length > 0) {
+    if (pendingRevocations.length > 0) {
       promises.push(
         revokeConsoleInvites({
           orgSlug: organization.slug,
-          items: itemsToRevoke,
+          items: pendingRevocations,
         })
       );
     }
@@ -238,7 +223,7 @@ function ToggleConsolePlatformsModal({
       })
       .catch(() => {
         addErrorMessage('Failed to update console SDK settings');
-        setPendingRevocations(new Map());
+        setPendingRevocations([]);
       })
       .finally(() => {
         queryClient.invalidateQueries({
