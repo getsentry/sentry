@@ -164,7 +164,7 @@ if #sunionstore_args > 0 then
 
     local zpopmin_end_time = redis.call("TIME")
     local zpopmin_end_time_ms = tonumber(zpopmin_end_time[1]) * 1000 + tonumber(zpopmin_end_time[2]) / 1000
-    local zpopmin_step_latency_ms = zpopmin_end_time_ms - arg_cleanup_step_latency_ms
+    local zpopmin_step_latency_ms = zpopmin_end_time_ms - arg_cleanup_end_time_ms
 end
 
 
@@ -180,7 +180,7 @@ redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time = redis.call("TIME")
 local ingested_count_end_time_ms = tonumber(ingested_count_end_time[1]) * 1000 + tonumber(ingested_count_end_time[2]) / 1000
-local ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_step_latency_ms
+local ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
 
 -- Capture end time and calculate latency in milliseconds
 local end_time = redis.call("TIME")
