@@ -73,6 +73,7 @@ class PrebuiltDashboardId(IntEnum):
     MOBILE_VITALS_APP_STARTS = 9
     MOBILE_VITALS_SCREEN_LOADS = 10
     MOBILE_VITALS_SCREEN_RENDERING = 11
+    BACKEND_OVERVIEW = 12
 
 
 class PrebuiltDashboard(TypedDict):
@@ -133,6 +134,10 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
         "title": "Screen Rendering",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
+        "title": "Backend Overview",
     },
 ]
 
