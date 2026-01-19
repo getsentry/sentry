@@ -28,10 +28,9 @@ import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClie
 import {
   useConsoleSdkInvites,
   useRevokeConsoleSdkPlatformInvite,
+  type ConsolePlatform,
   type ConsoleSdkInviteUser,
 } from 'sentry/views/settings/organizationConsoleSdkInvites/hooks';
-
-type ConsolePlatform = ConsoleSdkInviteUser['platforms'][number];
 
 function QuotaAlert() {
   const playstation = useFormField<boolean>('playstation');
@@ -213,18 +212,23 @@ function ToggleConsolePlatformsModal({
     addLoadingMessage('Saving changes...');
 
     const promises: Array<Promise<unknown>> = [];
+
+    // Collect all revocations into a single array for batch API call
+    const itemsToRevoke: Array<{platform: ConsolePlatform; user_id: string}> = [];
     pendingRevocations.forEach((platforms, userId) => {
-      if (platforms.size <= 0) {
-        return;
-      }
+      platforms.forEach(platform => {
+        itemsToRevoke.push({user_id: userId, platform});
+      });
+    });
+
+    if (itemsToRevoke.length > 0) {
       promises.push(
         revokeConsoleInvites({
           orgSlug: organization.slug,
-          userId,
-          platforms: Array.from(platforms),
+          items: itemsToRevoke,
         })
       );
-    });
+    }
     promises.push(updateConsolePlatforms(data));
 
     await Promise.all(promises)
