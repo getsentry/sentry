@@ -238,7 +238,7 @@ const StyledTabs = styled(Tabs)`
 
 const StyledTabList = styled(TabList)`
   flex-shrink: 0;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} 0;
+  padding: ${p => p.theme.space.lg};
 `;
 
 const StyledTabPanels = styled(TabPanels)`

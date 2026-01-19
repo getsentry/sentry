@@ -349,10 +349,12 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                     </Text>
                     {message.toolCalls.map(tool => {
                       const toolNode = nodeMap.get(tool.nodeId);
+                      const isToolSelected = tool.nodeId === selectedNodeId;
                       return (
                         <ClickableTag
                           key={tool.nodeId}
                           variant="info"
+                          isSelected={isToolSelected}
                           onClick={e => {
                             e.stopPropagation();
                             if (toolNode) {
@@ -434,9 +436,15 @@ const ToolCallsFooter = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const ClickableTag = styled(Tag)`
+const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
   cursor: pointer;
   &:hover {
     opacity: 0.8;
   }
+  ${p =>
+    p.isSelected &&
+    `
+    outline: 2px solid ${p.theme.tokens.focus.default};
+    outline-offset: -2px;
+  `}
 `;
