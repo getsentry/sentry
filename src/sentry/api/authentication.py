@@ -189,6 +189,10 @@ class StandardAuthentication(QuietBasicAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
 
+    def authenticate_header(self, request: Request) -> str:
+        """Return WWW-Authenticate header value for 401 responses per RFC 6750 Section 3."""
+        return f'{self.token_name.decode().title()} realm="api"'
+
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         raise NotImplementedError
 
