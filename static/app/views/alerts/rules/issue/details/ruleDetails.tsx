@@ -30,6 +30,7 @@ import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -66,7 +67,13 @@ const getIssueAlertDetailsQueryKey = ({
   projectSlug: string;
   ruleId: string;
 }): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/rules/${ruleId}/`,
+  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      projectIdOrSlug: projectSlug,
+      ruleId,
+    },
+  }),
   {query: {expand: 'lastTriggered'}},
 ];
 
