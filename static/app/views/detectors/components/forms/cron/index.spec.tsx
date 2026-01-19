@@ -31,6 +31,14 @@ describe('NewCronDetectorForm', () => {
       url: `/organizations/${organization.slug}/workflows/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-window/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-buckets/`,
+      body: [],
+    });
   });
 
   const renderForm = (routerConfig?: any) => {
