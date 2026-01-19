@@ -1,14 +1,19 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {useForm, useWatch, type Control} from 'react-hook-form';
 import {
   Form as FormischForm,
+  reset,
   useField as useFormischField,
   useForm as useFormischForm,
   type FormStore,
 } from '@formisch/react';
 import {zodResolver} from '@hookform/resolvers/zod';
+import {queryOptions, useQuery} from '@tanstack/react-query';
 import * as v from 'valibot';
 import {z} from 'zod';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
@@ -29,12 +34,14 @@ const COUNTRY_OPTIONS = [
   {value: 'AT', label: 'Austria'},
 ];
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 const userSchema = z
   .object({
     age: z.number().gte(13, 'You must be 13 to make an account'),
     firstName: z.string(),
     lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-    secret: z.string(),
+    secret: z.string().optional(),
     address: z.object({
       street: z.string().min(1, 'Street is required'),
       city: z.string().min(1, 'City is required'),
@@ -44,7 +51,7 @@ const userSchema = z
   .refine(
     data => {
       if (data.age === 42) {
-        return data.secret.length > 0;
+        return !!data.secret && data.secret.length > 0;
       }
       return true;
     },
@@ -53,6 +60,23 @@ const userSchema = z
       path: ['secret'],
     }
   );
+
+const userQuery = queryOptions({
+  queryKey: ['user', 'example'],
+  queryFn: async () => {
+    await sleep(500);
+    return userSchema.parse({
+      firstName: 'John',
+      lastName: 'Doe',
+      age: 23,
+      address: {
+        street: '123 Main St',
+        city: 'Anytown',
+        country: 'US',
+      },
+    });
+  },
+});
 
 // Valibot schema for Formisch
 const userSchemaValibot = v.pipe(
@@ -79,19 +103,11 @@ const userSchemaValibot = v.pipe(
 );
 
 function TanStack() {
+  const user = useQuery(userQuery);
+
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      age: 0,
-      firstName: '',
-      lastName: '',
-      secret: '',
-      address: {
-        street: '',
-        city: '',
-        country: '',
-      },
-    },
+    defaultValues: user.data,
     validators: {
       onDynamic: userSchema,
     },
@@ -100,6 +116,10 @@ function TanStack() {
       alert(JSON.stringify(value));
     },
   });
+
+  if (user.isPending) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <form.AppForm>
@@ -148,7 +168,7 @@ function TanStack() {
                     <field.Input
                       label="Secret:"
                       required
-                      value={field.state.value}
+                      value={field.state.value ?? ''}
                       onChange={field.handleChange}
                     />
                   )}
@@ -190,7 +210,11 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.SubmitButton>Submit</form.SubmitButton>
+
+          <Flex gap="md">
+            <form.SubmitButton>Submit</form.SubmitButton>
+            <Button onClick={() => form.reset()}>Reset</Button>
+          </Flex>
         </Stack>
       </form>
     </form.AppForm>
@@ -214,7 +238,7 @@ function RHFSecretField({control}: {control: Control<UserFormValues>}) {
         <InputField
           required
           label="Secret:"
-          value={field.value}
+          value={field.value ?? ''}
           onChange={field.onChange}
           ref={field.ref}
         />
@@ -224,20 +248,15 @@ function RHFSecretField({control}: {control: Control<UserFormValues>}) {
 }
 
 function Rhf() {
+  const user = useQuery(userQuery);
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
-    defaultValues: {
-      age: 0,
-      firstName: '',
-      lastName: '',
-      secret: '',
-      address: {
-        street: '',
-        city: '',
-        country: '',
-      },
-    },
+    values: user.data,
   });
+
+  if (user.isPending) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <form
@@ -318,7 +337,10 @@ function Rhf() {
             />
           )}
         </RHFField>
-        <SubmitButton isSubmitting={form.formState.isSubmitting}>Submit</SubmitButton>
+        <Flex gap="md">
+          <SubmitButton isSubmitting={form.formState.isSubmitting}>Submit</SubmitButton>
+          <Button onClick={() => form.reset()}>Reset</Button>
+        </Flex>
       </Stack>
     </form>
   );
@@ -348,6 +370,7 @@ function FormischSecretField({form}: {form: FormStore<typeof userSchemaValibot>}
 }
 
 function Formisch() {
+  const user = useQuery(userQuery);
   const form = useFormischForm({
     schema: userSchemaValibot,
     initialInput: {
@@ -362,6 +385,16 @@ function Formisch() {
       },
     },
   });
+
+  useEffect(() => {
+    if (user.data) {
+      reset(form, {initialInput: user.data});
+    }
+  }, [user.data, form]);
+
+  if (user.isPending) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <FormischForm
@@ -436,9 +469,12 @@ function Formisch() {
             />
           )}
         </FormischField>
-        <FormischSubmitButton isSubmitting={form.isSubmitting}>
-          Submit
-        </FormischSubmitButton>
+        <Flex gap="md">
+          <FormischSubmitButton isSubmitting={form.isSubmitting}>
+            Submit
+          </FormischSubmitButton>
+          <Button onClick={() => reset(form)}>Reset</Button>
+        </Flex>
       </Stack>
     </FormischForm>
   );
