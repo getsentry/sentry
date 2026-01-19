@@ -10,6 +10,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 class Log(enum.StrEnum):
+    MISSING_INTEGRATION = "github.webhook.pull_request.missing-integration"
+    REACTION_FAILED = "github.webhook.pull_request.reaction-failed"
     MISSING_PULL_REQUEST = "github.webhook.pull_request.missing-pull-request"
     MISSING_ACTION = "github.webhook.pull_request.missing-action"
     UNSUPPORTED_ACTION = "github.webhook.pull_request.unsupported-action"
@@ -70,6 +73,43 @@ WHITELISTED_ACTIONS = {
     PullRequestAction.READY_FOR_REVIEW,
     PullRequestAction.SYNCHRONIZE,
 }
+
+
+def _add_eyes_reaction_to_pull_request(
+    github_event: GithubWebhookType,
+    github_event_action: PullRequestAction,
+    integration: RpcIntegration | None,
+    organization: Organization,
+    repo: Repository,
+    pr_number: str,
+) -> None:
+    extra = {
+        "organization_id": organization.id,
+        "repo": repo.name,
+        "pr_number": pr_number,
+        "github_event": github_event,
+        "github_event_action": github_event_action.value,
+    }
+
+    if integration is None:
+        record_webhook_handler_error(
+            github_event,
+            github_event_action.value,
+            CodeReviewErrorType.MISSING_INTEGRATION,
+        )
+        logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
+        return
+
+    try:
+        client = integration.get_installation(organization_id=organization.id).get_client()
+        client.create_issue_reaction(repo.name, str(pr_number), GitHubReaction.EYES)
+    except Exception:
+        record_webhook_handler_error(
+            github_event,
+            github_event_action.value,
+            CodeReviewErrorType.REACTION_FAILED,
+        )
+        logger.exception(Log.REACTION_FAILED.value, extra=extra)
 
 
 def handle_pull_request_event(
@@ -126,6 +166,21 @@ def handle_pull_request_event(
 
     if should_forward_to_seer(github_event, event):
         from .task import schedule_task
+
+        pr_number = pull_request.get("number")
+        if pr_number and action in {
+            PullRequestAction.READY_FOR_REVIEW,
+            PullRequestAction.OPENED,
+            PullRequestAction.SYNCHRONIZE,
+        }:
+            _add_eyes_reaction_to_pull_request(
+                github_event,
+                action,
+                integration,
+                organization,
+                repo,
+                str(pr_number),
+            )
 
         schedule_task(
             github_event=github_event,

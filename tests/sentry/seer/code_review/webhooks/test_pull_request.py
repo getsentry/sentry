@@ -5,6 +5,7 @@ import orjson
 import pytest
 
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
+from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.utils import RequestType, SeerCodeReviewTrigger
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
@@ -27,11 +28,17 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         mock_client_instance = MagicMock()
         mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
 
-        with patch(
-            "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
-            mock_client_instance.get_pull_request,
-        ) as mock_get_pull_request:
+        with (
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
+                mock_client_instance.get_pull_request,
+            ) as mock_get_pull_request,
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.create_issue_reaction"
+            ) as mock_reaction,
+        ):
             self.mock_get_pull_request = mock_get_pull_request
+            self.mock_reaction = mock_reaction
             yield
 
     @pytest.fixture(autouse=True)
@@ -45,7 +52,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             yield
 
     def test_pull_request_opened(self) -> None:
-        """Test that opened action triggers Seer request."""
+        """Test that opened action triggers Seer request and adds reaction."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             assert event["action"] == "opened"
@@ -61,6 +68,12 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
             payload = call_kwargs["payload"]
             assert payload["request_type"] == RequestType.PR_REVIEW.value
+
+            self.mock_reaction.assert_called_once_with(
+                event["repository"]["full_name"],
+                str(event["pull_request"]["number"]),
+                GitHubReaction.EYES,
+            )
 
     def test_pull_request_skips_draft(self) -> None:
         """Test that draft PRs are skipped."""
@@ -138,7 +151,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_not_called()
 
     def test_pull_request_ready_for_review_action(self) -> None:
-        """Test that ready_for_review action triggers Seer request."""
+        """Test that ready_for_review action triggers Seer request and adds reaction."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "ready_for_review"
@@ -150,6 +163,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
 
             self.mock_seer.assert_called_once()
+            self.mock_reaction.assert_called_once()
 
     def test_pull_request_reopened_action(self) -> None:
         """Test that reopened action is skipped (not in whitelist)."""
@@ -177,6 +191,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
 
             self.mock_seer.assert_called_once()
+            self.mock_reaction.assert_called_once()
 
     def test_pull_request_invalid_enum_action(self) -> None:
         """Test that actions not in PullRequestAction enum are handled gracefully."""
@@ -233,6 +248,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
 
             self.mock_seer.assert_called_once()
+            self.mock_reaction.assert_called_once()
 
     def test_pull_request_skips_non_whitelisted_github_org(self) -> None:
         """Test that non-whitelisted GitHub organizations are skipped."""
@@ -248,6 +264,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
 
             self.mock_seer.assert_not_called()
+            self.mock_reaction.assert_not_called()
 
     def test_pull_request_closed_action(self) -> None:
         """Test that closed action triggers Seer request with pr-closed request type."""
@@ -270,3 +287,4 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
             assert payload["data"]["config"]["trigger_comment_id"] is None
             assert payload["data"]["config"]["trigger_comment_type"] is None
+            self.mock_reaction.assert_not_called()

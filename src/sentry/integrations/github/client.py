@@ -574,6 +574,13 @@ class GitHubBaseClient(
         endpoint = f"/repos/{repo}/issues/{issue_number}"
         return self.patch(endpoint, data={"state": status})
 
+    def create_issue_reaction(self, repo: str, issue_number: str, reaction: GitHubReaction) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}/reactions"
+        return self.post(endpoint, data={"content": reaction.value})
+
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
