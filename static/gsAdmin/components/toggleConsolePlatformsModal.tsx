@@ -22,7 +22,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {
@@ -36,10 +35,10 @@ function QuotaAlert() {
   const playstation = useFormField<boolean>('playstation');
   const nintendoSwitch = useFormField<boolean>('nintendo-switch');
   const xbox = useFormField<boolean>('xbox');
-  const quota = useFormField<string | number>('newConsoleSdkInviteQuota');
+  const quota = useFormField<number>('newConsoleSdkInviteQuota');
 
   const hasEnabledPlatform = playstation || nintendoSwitch || xbox;
-  const isQuotaZero = quota === 0 || quota === '0' || quota === '';
+  const isQuotaZero = Number(quota) === 0;
 
   if (!hasEnabledPlatform || !isQuotaZero) {
     return null;
@@ -48,7 +47,7 @@ function QuotaAlert() {
   return (
     <StyledQuotaAlert variant="warning">
       You have enabled console platforms but the invite quota is set to 0. Users won't be
-      able to request access to the console SDK repositories.
+      able to request access to the console SDK repositories anymore.
     </StyledQuotaAlert>
   );
 }
@@ -341,16 +340,16 @@ function ToggleConsolePlatformsModal({
 }
 
 const StyledFieldFromConfig = styled(FieldFromConfig)`
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
   &:last-child {
     padding-bottom: 0;
   }
 `;
 
 const NumberFieldFromConfig = styled(FieldFromConfig)`
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
   > div {
-    padding-right: ${space(4)};
+    padding-right: ${p => p.theme.space['3xl']};
   }
 `;
 
@@ -359,7 +358,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
 `;
 
 const StyledQuotaAlert = styled(Alert)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 export function openToggleConsolePlatformsModal({
