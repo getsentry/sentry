@@ -562,7 +562,6 @@ module = [
     "sentry.notifications.utils.*",
     "sentry.options.rollout",
     "sentry.organizations.*",
-    "sentry.overwatch.*",
     "sentry.ownership.*",
     "sentry.pipeline.*",
     "sentry.plugins.base.response",
