@@ -56,16 +56,6 @@ cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
 - Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
 - The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
 
-#### For Human Developers (interactive shells)
-
-Run `direnv allow` once to trust the `.envrc` file. After that, direnv will automatically activate the virtual environment when you cd into the directory.
-
-```bash
-cd /path/to/sentry
-direnv allow  # Only needed once, or after .envrc changes
-# Now pytest, python, etc. will automatically use .venv
-```
-
 ### Backend Development Commands
 
 #### Setup
