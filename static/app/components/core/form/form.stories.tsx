@@ -108,9 +108,9 @@ function TanStack() {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: user.data,
-    validators: {
-      onDynamic: userSchema,
-    },
+    // validators: {
+    //   onDynamic: userSchema,
+    // },
     onSubmit: ({value}) => {
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value));
@@ -131,7 +131,12 @@ function TanStack() {
         }}
       >
         <Stack gap="lg">
-          <form.AppField name="firstName">
+          <form.AppField
+            name="firstName"
+            validators={{
+              onDynamic: userSchema.shape.firstName,
+            }}
+          >
             {field => (
               <field.Input
                 label="First Name:"
@@ -140,7 +145,12 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.AppField name="lastName">
+          <form.AppField
+            name="lastName"
+            validators={{
+              onDynamic: userSchema.shape.lastName,
+            }}
+          >
             {field => (
               <field.Input
                 label="Last Name:"
@@ -150,7 +160,12 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.AppField name="age">
+          <form.AppField
+            name="age"
+            validators={{
+              onDynamic: userSchema.shape.age,
+            }}
+          >
             {field => (
               <field.Number
                 label="Age:"
@@ -163,7 +178,12 @@ function TanStack() {
           <form.Subscribe selector={state => state.values.age === 42}>
             {showSecret =>
               showSecret ? (
-                <form.AppField name="secret">
+                <form.AppField
+                  name="secret"
+                  validators={{
+                    onDynamic: z.string('Secret is required when age is 42'),
+                  }}
+                >
                   {field => (
                     <field.Input
                       label="Secret:"
@@ -179,7 +199,12 @@ function TanStack() {
           <div style={{marginTop: '20px', marginBottom: '10px'}}>
             <strong>Address</strong>
           </div>
-          <form.AppField name="address.street">
+          <form.AppField
+            name="address.street"
+            validators={{
+              onDynamic: userSchema.shape.address.shape.street,
+            }}
+          >
             {field => (
               <field.Input
                 label="Street:"
@@ -189,7 +214,12 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.AppField name="address.city">
+          <form.AppField
+            name="address.city"
+            validators={{
+              onDynamic: userSchema.shape.address.shape.city,
+            }}
+          >
             {field => (
               <field.Input
                 required
@@ -199,7 +229,12 @@ function TanStack() {
               />
             )}
           </form.AppField>
-          <form.AppField name="address.country">
+          <form.AppField
+            name="address.country"
+            validators={{
+              onDynamic: userSchema.shape.address.shape.country,
+            }}
+          >
             {field => (
               <field.Select
                 required
