@@ -3086,13 +3086,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
-register(
-    "spans.buffer.evalsha-latency-threshold",
-    type=Int,
-    default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Segments consumer
 register(
