@@ -325,6 +325,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     def test_comparison_alert_eap(self, helper_metrics):
         detector = self.comparison_detector_above
         self.snuba_query.update(
+            aggregate="count(span.duration)",
             dataset=Dataset.EventsAnalyticsPlatform.value,
             type=SnubaQuery.Type.PERFORMANCE.value,
         )
@@ -345,14 +346,23 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         comparison_date = timezone.now() - comparison_delta
 
+        spans = []
         for i in range(4):
-            self.store_event(
-                data={
-                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
-                    "environment": self.environment.name,
-                },
-                project_id=self.project.id,
+            spans.append(
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success", "environment": self.environment.name},
+                        "tags": {"foo": "five"},
+                    },
+                    measurements={"foo": {"value": 5}},
+                    start_ts=(comparison_date - timedelta(minutes=30 + i)),
+                    project=self.project,
+                )
             )
+
+        self.store_spans(spans, is_eap=True)
+
         self.metrics.incr.reset_mock()
         self.send_update(2, timedelta(minutes=-9))
         # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
