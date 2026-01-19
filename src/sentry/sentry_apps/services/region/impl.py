@@ -231,6 +231,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         project_ids: list[int],
+        existing_project_ids: list[int],
     ) -> RpcServiceHookProjectsResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ POST
@@ -270,16 +271,25 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             )
 
         new_project_ids = set(project_ids)
+        current_project_ids = set(
+            ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
+                "project_id", flat=True
+            )
+        )
 
-        with transaction.atomic(router.db_for_write(ServiceHookProject)):
-            existing_project_ids = set(
-                ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
-                    "project_id", flat=True
-                )
+        # Validate that the service hooks the caller is attempting to modify match
+        # the database. Prevents a TOCTOU race condition.
+        if set(current_project_ids) != set(existing_project_ids):
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="The service hooks have changed during your request. Please try again after a moment.",
+                    status_code=409,
+                ),
             )
 
-            projects_to_add = new_project_ids - existing_project_ids
-            projects_to_remove = existing_project_ids - new_project_ids
+        with transaction.atomic(router.db_for_write(ServiceHookProject)):
+            projects_to_add = new_project_ids - current_project_ids
+            projects_to_remove = current_project_ids - new_project_ids
 
             ServiceHookProject.objects.filter(
                 service_hook_id=hook.id, project_id__in=projects_to_remove
@@ -307,6 +317,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
+        existing_project_ids: list[int],
     ) -> RpcEmptyResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ DELETE
@@ -325,6 +336,17 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             )
 
         hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
+        # Validate that the service hooks the caller is attempting to modify match
+        # the database. Prevents a TOCTOU race condition.
+        current_project_ids = {hp.project_id for hp in hook_projects}
+        if current_project_ids != set(existing_project_ids):
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="The service hooks have changed during your request. Please try again after a moment.",
+                    status_code=400,
+                ),
+            )
         deletions.exec_sync_many(list(hook_projects))
 
         return RpcEmptyResult()

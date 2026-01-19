@@ -119,8 +119,12 @@ class SentryAppRegionService(RpcService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         project_ids: list[int],
+        existing_project_ids: list[int],
     ) -> RpcServiceHookProjectsResult:
-        """Replaces all service hook projects with the given project IDs."""
+        """
+        Replaces all service hook projects with the given project IDs. Requires the existing project IDs to
+        prevent a race condition, confirming the caller is modifying what they intended.
+        """
         pass
 
     @regional_rpc_method(ByOrganizationId())
@@ -130,8 +134,12 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
+        existing_project_ids: list[int],
     ) -> RpcEmptyResult:
-        """Deletes all service hook projects for an installation."""
+        """
+        Deletes service hook projects for an installation. Requires the existing project IDs to
+        prevent a race condition, confirming the caller is modifying what they intended.
+        """
         pass
 
     @regional_rpc_method(
