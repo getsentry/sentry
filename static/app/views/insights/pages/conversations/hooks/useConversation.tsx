@@ -96,6 +96,7 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
+      [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
       [SpanFields.USER_EMAIL]: apiSpan['user.email'] ?? '',
       [SpanFields.USER_ID]: apiSpan['user.id'] ?? '',
       [SpanFields.USER_IP]: apiSpan['user.ip'] ?? '',

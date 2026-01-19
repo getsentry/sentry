@@ -162,16 +162,20 @@ function TransactionWrapper({
       ? transaction.value.transaction
       : transaction.value.description;
 
+  const showHeader = canCollapse || !!title;
+
   return (
     <Fragment>
-      <TransactionButton type="button" disabled={!canCollapse} onClick={handleCollapse}>
-        {canCollapse ? (
-          <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
-        ) : null}
-        <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
-          <span>{title}</span>
-        </Tooltip>
-      </TransactionButton>
+      {showHeader && (
+        <TransactionButton type="button" disabled={!canCollapse} onClick={handleCollapse}>
+          {canCollapse ? (
+            <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
+          ) : null}
+          <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+            <span>{title}</span>
+          </Tooltip>
+        </TransactionButton>
+      )}
       {isExpanded &&
         nodes.map(node => {
           const aiRunNode = nodeAiRunParentsMap[node.id];
