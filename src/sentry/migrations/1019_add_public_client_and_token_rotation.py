@@ -1,7 +1,8 @@
 # Generated manually for OAuth 2.1 public client support and refresh token rotation
 
-import sentry.models.apiapplication
 from django.db import migrations, models
+
+import sentry.models.apiapplication
 
 
 class Migration(migrations.Migration):
