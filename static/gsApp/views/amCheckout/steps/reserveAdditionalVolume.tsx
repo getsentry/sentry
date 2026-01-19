@@ -56,6 +56,9 @@ function ReserveAdditionalVolume({
       return acc + (bucket?.price ?? 0);
     }, 0);
   }, [formData.reserved, activePlan]);
+  const [reserved, setReserved] = useState<Partial<Record<DataCategory, number>>>(
+    formData.reserved
+  );
 
   const handleReservedChange = useCallback(
     (value: number, category: DataCategory) => {
@@ -137,9 +140,12 @@ function ReserveAdditionalVolume({
             activePlan={activePlan}
             organization={organization}
             onUpdate={onUpdate}
-            formData={formData}
             subscription={subscription}
-            onReservedChange={debouncedReservedChange}
+            onReservedChange={(newReserved, category) => {
+              setReserved({...reserved, [category]: newReserved});
+              debouncedReservedChange(newReserved, category);
+            }}
+            currentSliderValues={reserved}
           />
         </Stack>
       )}
