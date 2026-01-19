@@ -1,13 +1,10 @@
 import {useEffect, useState} from 'react';
 
+import type getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
-
-interface HookProps {
-  endpoint: string;
-}
 
 interface HookResult {
   error: string | undefined;
@@ -19,7 +16,7 @@ interface HookResult {
 /**
  * Get payment method setup intent data.
  */
-function useSetupIntentData({endpoint}: HookProps): HookResult {
+function useSetupIntentData({endpoint}: {endpoint: string}): HookResult {
   const [setupIntentData, setSetupIntentData] = useState<
     PaymentSetupCreateResponse | undefined
   >(undefined);
@@ -60,7 +57,11 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
 /**
  * Get payment intent data.
  */
-function usePaymentIntentData({endpoint}: HookProps): HookResult {
+function usePaymentIntentData({
+  endpoint,
+}: {
+  endpoint: ReturnType<typeof getApiUrl>;
+}): HookResult {
   const {
     isLoading,
     isPending,

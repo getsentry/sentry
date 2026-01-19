@@ -74,7 +74,10 @@ export default function SeerRepoTable() {
     parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = ['seer-repos', {query: {query: searchTerm, sort}}];
+  const queryKey: ApiQueryKey = [
+    'seer-repos',
+    {query: {query: searchTerm, sort}},
+  ] as unknown as ApiQueryKey;
 
   const sortedRepositories = useMemo(() => {
     return supportedRepositories.toSorted((a, b) => {

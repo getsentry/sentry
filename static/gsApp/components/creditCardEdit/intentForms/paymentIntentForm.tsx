@@ -4,6 +4,7 @@ import type {PaymentIntentResult, Stripe, StripeElements} from '@stripe/stripe-j
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type getApiUrl from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import InnerIntentForm from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
@@ -17,7 +18,7 @@ function PaymentIntentForm(props: IntentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {intentData, isLoading, isError, error} = usePaymentIntentData({
-    endpoint: props.intentDataEndpoint,
+    endpoint: props.intentDataEndpoint as unknown as ReturnType<typeof getApiUrl>,
   });
 
   useEffect(() => {
