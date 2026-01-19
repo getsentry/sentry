@@ -90,8 +90,6 @@ export function AISpanList({
       const isNodeTransaction =
         isTransactionNode(node) || (isEAPSpanNode(node) && node.value.is_transaction);
       const transaction = isNodeTransaction ? node : node.findClosestParentTransaction();
-
-      // If no transaction, group under the first orphan node as a placeholder
       const groupKey = transaction ?? (orphanGroup ??= node);
       const transactionNodes = result.get(groupKey) || [];
       result.set(groupKey, [...transactionNodes, node]);
@@ -300,10 +298,6 @@ const COMPRESSED_GAP_SECONDS = 1;
 /**
  * Compresses large time gaps between spans to make the timeline more readable.
  * Gaps larger than MAX_GAP_SECONDS are compressed to COMPRESSED_GAP_SECONDS.
- *
- * For overlapping spans (where a span starts before the previous one ends),
- * the overlap is handled by tracking the maximum end time seen so far.
- * This ensures spans don't double-count time in the compressed timeline.
  */
 function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds {
   if (nodes.length === 0) {
@@ -350,8 +344,6 @@ function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds
       } else if (gap > 0) {
         compressedTime += gap;
       }
-      // gap <= 0 means this span overlaps with or touches a previous span,
-      // so no additional gap time is added
     }
 
     segments.push({
