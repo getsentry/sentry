@@ -411,12 +411,13 @@ class CreatePreprodArtifactTest(TestCase):
         content = b"test with both quotas"
         total_checksum = sha1(content).hexdigest()
 
-        with patch("sentry.preprod.tasks.quotas.backend.has_usage_quota", return_value=True):
-            artifact = create_preprod_artifact(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                checksum=total_checksum,
-            )
+        with self.feature("organizations:preprod-enforce-quota"):
+            with patch("sentry.preprod.quota.quotas.backend.has_usage_quota", return_value=True):
+                artifact = create_preprod_artifact(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    checksum=total_checksum,
+                )
 
         assert artifact is not None
 
@@ -428,14 +429,15 @@ class CreatePreprodArtifactTest(TestCase):
         def quota_side_effect(org_id, data_category):
             return data_category == DataCategory.SIZE_ANALYSIS
 
-        with patch(
-            "sentry.preprod.tasks.quotas.backend.has_usage_quota", side_effect=quota_side_effect
-        ):
-            artifact = create_preprod_artifact(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                checksum=total_checksum,
-            )
+        with self.feature("organizations:preprod-enforce-quota"):
+            with patch(
+                "sentry.preprod.quota.quotas.backend.has_usage_quota", side_effect=quota_side_effect
+            ):
+                artifact = create_preprod_artifact(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    checksum=total_checksum,
+                )
 
         assert artifact is not None
 
@@ -445,18 +447,17 @@ class CreatePreprodArtifactTest(TestCase):
         total_checksum = sha1(content).hexdigest()
 
         def quota_side_effect(org_id, data_category):
-            from sentry.constants import DataCategory
-
             return data_category == DataCategory.INSTALLABLE_BUILD
 
-        with patch(
-            "sentry.preprod.tasks.quotas.backend.has_usage_quota", side_effect=quota_side_effect
-        ):
-            artifact = create_preprod_artifact(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                checksum=total_checksum,
-            )
+        with self.feature("organizations:preprod-enforce-quota"):
+            with patch(
+                "sentry.preprod.quota.quotas.backend.has_usage_quota", side_effect=quota_side_effect
+            ):
+                artifact = create_preprod_artifact(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    checksum=total_checksum,
+                )
 
         assert artifact is not None
 
@@ -465,13 +466,14 @@ class CreatePreprodArtifactTest(TestCase):
         content = b"test with no quota"
         total_checksum = sha1(content).hexdigest()
 
-        with patch("sentry.preprod.tasks.quotas.backend.has_usage_quota", return_value=False):
-            with pytest.raises(NoPreprodQuota):
-                create_preprod_artifact(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
-                    checksum=total_checksum,
-                )
+        with self.feature("organizations:preprod-enforce-quota"):
+            with patch("sentry.preprod.quota.quotas.backend.has_usage_quota", return_value=False):
+                with pytest.raises(NoPreprodQuota):
+                    create_preprod_artifact(
+                        org_id=self.organization.id,
+                        project_id=self.project.id,
+                        checksum=total_checksum,
+                    )
 
         # Verify no artifact was created in the database
         artifacts = PreprodArtifact.objects.filter(project=self.project)
