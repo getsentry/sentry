@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -110,7 +111,9 @@ const POLL_INTERVAL = 500;
 const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
 
 const makeExplorerAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+    path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+  }),
   {query: {mode: 'explorer'}},
 ];
 
@@ -327,7 +330,9 @@ export function useExplorerAutofix(
 
       try {
         const response = await api.requestPromise(
-          `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+          }),
           {
             method: 'POST',
             query: {mode: 'explorer'},
@@ -367,7 +372,9 @@ export function useExplorerAutofix(
     async (runId: number, repoName?: string) => {
       try {
         await api.requestPromise(
-          `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
+            path: {organizationIdOrSlug: orgSlug, runId},
+          }),
           {
             method: 'POST',
             data: {
@@ -415,7 +422,9 @@ export function useExplorerAutofix(
       try {
         const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
           await api.requestPromise(
-            `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+            getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+              path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+            }),
             {
               method: 'POST',
               query: {mode: 'explorer'},

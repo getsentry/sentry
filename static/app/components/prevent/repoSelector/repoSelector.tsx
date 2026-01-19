@@ -16,6 +16,7 @@ import {IconInfo} from 'sentry/icons';
 import {IconRepository} from 'sentry/icons/iconRepository';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -66,7 +67,9 @@ export function RepoSelector() {
 
   const {data: integrations = []} = useApiQuery<OrganizationIntegration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {includeConfig: 0, provider_key: 'github'}},
     ],
     {staleTime: 0}

@@ -19,6 +19,7 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -62,7 +63,9 @@ function StacktraceLinkModal({
 
   const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[] | null>(
     [
-      `/organizations/${organization.slug}/derive-code-mappings/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/derive-code-mappings/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           projectId: project.id,
@@ -153,7 +156,15 @@ function StacktraceLinkModal({
       provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
       organization,
     });
-    const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
+    const parsingEndpoint = getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+        },
+      }
+    );
     try {
       const configData = await api.requestPromise(parsingEndpoint, {
         method: 'POST',
@@ -166,7 +177,12 @@ function StacktraceLinkModal({
         },
       });
 
-      const configEndpoint = `/organizations/${organization.slug}/code-mappings/`;
+      const configEndpoint = getApiUrl(
+        '/organizations/$organizationIdOrSlug/code-mappings/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+        }
+      );
       await api.requestPromise(configEndpoint, {
         method: 'POST',
         data: {

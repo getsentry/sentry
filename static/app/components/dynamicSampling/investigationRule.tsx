@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -64,7 +65,11 @@ function makeRuleExistsQueryKey(
   // sort the projects to keep the query key invariant to the order of the projects
   const sortedProjects = [...projects].sort();
   return [
-    `/organizations/${organization.slug}/dynamic-sampling/custom-rules/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dynamic-sampling/custom-rules/', {
+      path: {
+        organizationIdOrSlug: organization.slug,
+      },
+    }),
     {
       query: {
         project: sortedProjects,
