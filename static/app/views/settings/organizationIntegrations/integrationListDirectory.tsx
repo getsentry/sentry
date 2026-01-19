@@ -27,6 +27,7 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
   getAlertText,
@@ -83,13 +84,25 @@ function useIntegrationList() {
     isError: isConfigError,
   } = useApiQuery<{
     providers: IntegrationProvider[];
-  }>([`/organizations/${organization.slug}/config/integrations/`], queryOptions);
+  }>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    queryOptions
+  );
   const {
     data: integrations = [],
     isPending: isIntegrationsPending,
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
-    [`/organizations/${organization.slug}/integrations/`, {query: {includeConfig: 0}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {includeConfig: 0}},
+    ],
     queryOptions
   );
   const {
@@ -97,7 +110,11 @@ function useIntegrationList() {
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
   } = useApiQuery<SentryApp[]>(
-    [`/organizations/${organization.slug}/sentry-apps/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     queryOptions
   );
   const {
@@ -105,7 +122,7 @@ function useIntegrationList() {
     isPending: isPublishedAppsPending,
     isError: isPublishedAppsError,
   } = useApiQuery<SentryApp[]>(
-    ['/sentry-apps/', {query: {status: 'published'}}],
+    [getApiUrl('/sentry-apps/'), {query: {status: 'published'}}],
     queryOptions
   );
   const {
@@ -113,7 +130,11 @@ function useIntegrationList() {
     isPending: isAppInstallsPending,
     isError: isAppInstallsError,
   } = useApiQuery<SentryAppInstallation[]>(
-    [`/organizations/${organization.slug}/sentry-app-installations/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-app-installations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     queryOptions
   );
   const {
@@ -121,20 +142,31 @@ function useIntegrationList() {
     isPending: isPluginsPending,
     isError: isPluginsError,
   } = useApiQuery<PluginWithProjectList[]>(
-    [`/organizations/${organization.slug}/plugins/configs/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     queryOptions
   );
   const {
     data: docIntegrations = [],
     isPending: isDocIntegrationsPending,
     isError: isDocIntegrationsError,
-  } = useApiQuery<DocIntegration[]>(['/doc-integrations/'], queryOptions);
+  } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
-  const extraAppQuery = useApiQuery<SentryApp>([`/sentry-apps/${extraAppSlug ?? ''}/`], {
-    ...queryOptions,
-    enabled: isExtraAppEnabled,
-  });
+  const extraAppQuery = useApiQuery<SentryApp>(
+    [
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+        path: {sentryAppIdOrSlug: extraAppSlug ?? ''},
+      }),
+    ],
+    {
+      ...queryOptions,
+      enabled: isExtraAppEnabled,
+    }
+  );
   const {data: extraApp} = extraAppQuery;
   const isExtraAppPending = isExtraAppEnabled && extraAppQuery.isPending;
   const isExtraAppError = isExtraAppEnabled && extraAppQuery.isError;

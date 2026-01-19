@@ -16,6 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -44,7 +45,11 @@ function getReleaseTokenQueryKey(
   organizationSlug: string,
   projectSlug: string
 ): ApiQueryKey {
-  return [`/projects/${organizationSlug}/${projectSlug}/releases/token/`];
+  return [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/`, {
+      path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
+    }),
+  ];
 }
 
 export default function ProjectReleaseTracking() {
@@ -67,7 +72,11 @@ export default function ProjectReleaseTracking() {
   );
 
   const {data: fetchedPlugins = [], isPending: isPluginsLoading} = useApiQuery<Plugin[]>(
-    [`/projects/${organization.slug}/${project.slug}/plugins/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
     {
       staleTime: 0,
     }

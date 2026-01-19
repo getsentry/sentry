@@ -23,6 +23,7 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -54,7 +55,9 @@ function getTeamMembersQueryKey({
   teamId: string;
 }): ApiQueryKey {
   return [
-    `/teams/${organization.slug}/${teamId}/members/`,
+    getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/members/`, {
+      path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamId},
+    }),
     {
       query: {
         cursor: location.query.cursor,
@@ -83,7 +86,9 @@ function AddMemberDropdown({
   const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
   const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useApiQuery<Member[]>(
     [
-      `/organizations/${organization.slug}/members/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: debouncedMemberQuery ? {query: debouncedMemberQuery} : undefined,
       },

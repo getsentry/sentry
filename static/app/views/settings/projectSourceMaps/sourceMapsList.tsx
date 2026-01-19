@@ -28,6 +28,7 @@ import type {Project} from 'sentry/types/project';
 import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -94,7 +95,9 @@ function useSourceMapUploads({
     refetch: archivesRefetch,
   } = useApiQuery<SourceMapsArchive[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/files/source-maps/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {
         query: {query, cursor, sortBy: '-date_added'},
       },
@@ -112,7 +115,12 @@ function useSourceMapUploads({
     refetch: debugIdBundlesRefetch,
   } = useApiQuery<DebugIdBundle[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/files/artifact-bundles/`,
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }
+      ),
       {
         query: {query, cursor, sortBy: '-date_added'},
       },
@@ -130,7 +138,9 @@ function useSourceMapUploads({
 
   const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: [project.id],

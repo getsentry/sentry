@@ -14,6 +14,7 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay, RelayActivity} from 'sentry/types/relay';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -154,7 +155,11 @@ function RelayUsageList({
   relays: Relay[];
 }) {
   const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
-    [`/organizations/${orgSlug}/relay_usage/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/relay_usage/`, {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+    ],
     {
       staleTime: 0,
       retry: false,
