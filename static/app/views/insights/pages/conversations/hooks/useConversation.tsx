@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -57,7 +58,9 @@ export function useConversation(
 
   const queryKeys: ApiQueryKey[] = useMemo(() => {
     return conversation.traceIds.map(traceId => [
-      `/organizations/${organization.slug}/trace/${traceId}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
+        path: {organizationIdOrSlug: organization.slug, traceId},
+      }),
       {
         query: {
           project: -1,
