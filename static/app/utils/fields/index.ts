@@ -2584,7 +2584,11 @@ const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 };
 
 const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  // TODO: Add field definitions for tracemetric fields
+  [FieldKey.TIMESTAMP]: {
+    desc: t('The time the metric was recorded'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
