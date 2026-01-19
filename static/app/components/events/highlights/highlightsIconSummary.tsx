@@ -47,7 +47,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
 
   const {data: attachments = []} = useFetchEventAttachments({
     orgSlug: organization.slug,
-    projectSlug,
+    projectSlug: projectSlug!,
     eventId: event.id,
   });
   const screenshot = attachments.find(

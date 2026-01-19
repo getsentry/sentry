@@ -50,7 +50,8 @@ import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {
   ExplorerCodingAgentState,
@@ -469,10 +470,11 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
   const {data: memberDataByEmail} = useApiQuery<Member[]>(
     email
       ? [
-          `/organizations/${organization.slug}/members/`,
-          {query: {query: `email:${email}`}},
+          getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
         ]
-      : [''],
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!email,
       staleTime: 0,
@@ -483,8 +485,13 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
   const shouldTryNameMatch = name && !memberDataByEmail?.length;
   const {data: memberDataByName} = useApiQuery<Member[]>(
     shouldTryNameMatch
-      ? [`/organizations/${organization.slug}/members/`, {query: {query: name}}]
-      : [''],
+      ? [
+          getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {query: {query: name}},
+        ]
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!shouldTryNameMatch,
       staleTime: 0,

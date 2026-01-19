@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {
   fetchMutation,
@@ -68,7 +69,9 @@ export function useGetBulkAutofixAutomationSettings() {
     perPage: 100,
     getQueryKey: useCallback(
       ({cursor, per_page}: {cursor: string; per_page: number}) => [
-        `/organizations/${organization.slug}/autofix/automation-settings/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/autofix/automation-settings/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {query: {cursor, per_page}},
       ],
       [organization.slug]

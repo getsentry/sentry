@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery, type InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 function NoFeedback() {
   return (
@@ -38,7 +38,7 @@ interface Props {
 export default function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
-    queryKey: listQueryKey ?? ['infinite', ''],
+    queryKey: listQueryKey ?? (['infinite', ''] as unknown as InfiniteApiQueryKey),
     enabled: Boolean(listQueryKey),
   });
 

@@ -3,6 +3,7 @@ import {createContext, useContext} from 'react';
 import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface FrontendVersionResponse {
@@ -86,7 +87,7 @@ export function FrontendVersionProvider({children, force, releaseVersion}: Props
     !DEPLOY_PREVIEW_CONFIG;
 
   const {data: frontendVersionData} = useApiQuery<FrontendVersionResponse>(
-    ['/internal/frontend-version/'],
+    [getApiUrl('/internal/frontend-version/')],
     {
       staleTime: 5 * 60 * 1000,
       refetchInterval: 5 * 60 * 1000,

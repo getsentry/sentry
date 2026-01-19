@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {CurrentRelease, Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
@@ -52,8 +53,16 @@ function GroupReleaseStats({
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
     [
       defined(group)
-        ? `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`
-        : '',
+        ? getApiUrl(
+            '/organizations/$organizationIdOrSlug/issues/$issueId/first-last-release/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                issueId: group.id,
+              },
+            }
+          )
+        : ('' as any),
     ],
     {
       staleTime: 30000,
