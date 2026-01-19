@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, cast, overload
+from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -836,7 +836,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.nodestore",
-    "sentry.deletions.tasks.overwatch",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
@@ -2860,11 +2859,6 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
-# Used to validate RPC requests from the Overwatch service
-OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
-if (val := os.environ.get("OVERWATCH_RPC_SHARED_SECRET")) is not None:
-    OVERWATCH_RPC_SHARED_SECRET = [val]
-
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
@@ -3175,12 +3169,6 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # of Codecov.
 # Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
-
-OVERWATCH_REGION_URLS: dict[str, str] = cast(
-    dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
-)
-OVERWATCH_REGION_URL: str | None = os.getenv("OVERWATCH_REGION_URL")
-OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
