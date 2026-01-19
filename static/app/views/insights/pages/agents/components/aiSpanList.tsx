@@ -129,7 +129,7 @@ function TransactionWrapper({
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
-  transaction: TransactionNode | EapSpanNode;
+  transaction: TransactionNode | EapSpanNode | AITraceSpanNode;
   compressGaps?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -159,19 +159,19 @@ function TransactionWrapper({
     setIsExpanded(prevValue => !prevValue);
   };
 
+  const title =
+    'transaction' in transaction.value
+      ? transaction.value.transaction
+      : transaction.value.description;
+
   return (
     <Fragment>
       <TransactionButton type="button" disabled={!canCollapse} onClick={handleCollapse}>
         {canCollapse ? (
           <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
         ) : null}
-        <Tooltip
-          title={transaction.value.transaction}
-          showOnlyOnOverflow
-          skipWrapper
-          delay={500}
-        >
-          <span>{transaction.value.transaction}</span>
+        <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+          <span>{title}</span>
         </Tooltip>
       </TransactionButton>
       {isExpanded &&

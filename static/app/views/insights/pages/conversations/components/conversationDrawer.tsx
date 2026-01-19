@@ -2,6 +2,7 @@ import {memo, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -65,9 +66,9 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
       <StyledDrawerHeader>
         <Flex align="center" flex="1" gap="md">
           {t('Conversation')}
-          <ConversationIdLabel>
+          <Text variant="muted" size="sm" monospace>
             {conversation.conversationId.slice(0, 8)}
-          </ConversationIdLabel>
+          </Text>
         </Flex>
       </StyledDrawerHeader>
       <StyledDrawerBody>
@@ -279,10 +280,4 @@ const DetailsPanel = styled('div')`
 const StyledDrawerHeader = styled(DrawerHeader)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: flex;
-`;
-
-const ConversationIdLabel = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
 `;

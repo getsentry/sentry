@@ -5,6 +5,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -66,7 +67,10 @@ function createNodeFromApiSpan(
     apiSpan['gen_ai.operation.type'] ||
     getGenAiOperationTypeFromSpanOp(apiSpan['span.op']);
 
+  const duration = apiSpan['precise.finish_ts'] - apiSpan['precise.start_ts'];
   const value: TraceTree.EAPSpan = {
+    children: [],
+    duration,
     event_id: apiSpan.span_id,
     event_type: 'span',
     is_transaction: false,
@@ -77,30 +81,32 @@ function createNodeFromApiSpan(
     project_id: apiSpan['project.id'],
     project_slug: apiSpan.project,
     parent_span_id: apiSpan.parent_span,
-    span_id: apiSpan.span_id,
+    profile_id: '',
+    profiler_id: '',
+    sdk_name: '',
     transaction: '',
     transaction_id: '',
     name: apiSpan['span.description'],
     errors: [],
     occurrences: [],
     additional_attributes: {
-      'gen_ai.conversation.id': apiSpan['gen_ai.conversation.id'],
-      'gen_ai.operation.type': operationType,
-      'gen_ai.request.messages': apiSpan['gen_ai.request.messages'],
-      'gen_ai.response.object': apiSpan['gen_ai.response.object'],
-      'gen_ai.response.text': apiSpan['gen_ai.response.text'],
-      'gen_ai.tool.name': apiSpan['gen_ai.tool.name'],
-      'user.email': apiSpan['user.email'],
-      'user.id': apiSpan['user.id'],
-      'user.ip': apiSpan['user.ip'],
-      'user.username': apiSpan['user.username'],
+      [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
+      [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
+      [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
+      [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
+      [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
+      [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
+      [SpanFields.USER_EMAIL]: apiSpan['user.email'] ?? '',
+      [SpanFields.USER_ID]: apiSpan['user.id'] ?? '',
+      [SpanFields.USER_IP]: apiSpan['user.ip'] ?? '',
+      [SpanFields.USER_USERNAME]: apiSpan['user.username'] ?? '',
     },
   };
 
   const startMs = value.start_timestamp * 1e3;
   const durationMs = (value.end_timestamp - value.start_timestamp) * 1e3;
-
   const parentSpanId = apiSpan.parent_span;
+  const errors = new Set<TraceTree.TraceError>();
 
   const node = {
     id: apiSpan.span_id,
@@ -108,37 +114,16 @@ function createNodeFromApiSpan(
     type: 'span' as const,
     extra: null,
     space: [startMs, durationMs] as [number, number],
-
-    get op() {
-      return value.op;
-    },
-    get description() {
-      return value.description;
-    },
-    get startTimestamp() {
-      return value.start_timestamp;
-    },
-    get endTimestamp() {
-      return value.end_timestamp;
-    },
-    get projectSlug() {
-      return value.project_slug;
-    },
-    get attributes() {
-      return value.additional_attributes;
-    },
-    get errors() {
-      return new Set<TraceTree.TraceError>();
-    },
-    get profileId() {
-      return undefined;
-    },
-    get profilerId() {
-      return undefined;
-    },
-    get uniqueIssues(): TraceTree.TraceIssue[] {
-      return [];
-    },
+    op: value.op,
+    description: value.description,
+    startTimestamp: value.start_timestamp,
+    endTimestamp: value.end_timestamp,
+    projectSlug: value.project_slug,
+    attributes: value.additional_attributes,
+    errors,
+    profileId: undefined,
+    profilerId: undefined,
+    uniqueIssues: [] as TraceTree.TraceIssue[],
 
     findClosestParentTransaction: () => null,
     findParent<T>(predicate: (node: T) => boolean): T | null {
@@ -151,7 +136,7 @@ function createNodeFromApiSpan(
         if (predicate(parentNode as unknown as T)) {
           return parentNode as unknown as T;
         }
-        currentParentId = parentNode.value?.parent_span_id;
+        currentParentId = parentNode.value?.parent_span_id ?? undefined;
       }
       return null;
     },
