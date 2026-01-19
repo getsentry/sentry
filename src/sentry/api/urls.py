@@ -448,12 +448,6 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
 )
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
-from sentry.overwatch.endpoints.overwatch_rpc import (
-    CodeReviewRepoSettingsEndpoint,
-    PreventPrReviewEligibilityEndpoint,
-    PreventPrReviewResolvedConfigsEndpoint,
-    PreventPrReviewSentryOrgEndpoint,
-)
 from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.prevent.endpoints.organization_github_repos import (
     OrganizationPreventGitHubReposEndpoint,
@@ -3577,27 +3571,6 @@ INTERNAL_URLS = [
         r"^seer-rpc/(?P<method_name>\w+)/$",
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
-    ),
-    # Prevent AI (Overwatch) endpoints
-    re_path(
-        r"^prevent/pr-review/configs/resolved/$",
-        PreventPrReviewResolvedConfigsEndpoint.as_view(),
-        name="sentry-api-0-prevent-pr-review-configs-resolved",
-    ),
-    re_path(
-        r"^prevent/pr-review/eligibility/$",
-        PreventPrReviewEligibilityEndpoint.as_view(),
-        name="sentry-api-0-prevent-pr-review-eligibility",
-    ),
-    re_path(
-        r"^prevent/pr-review/github/sentry-org/$",
-        PreventPrReviewSentryOrgEndpoint.as_view(),
-        name="sentry-api-0-prevent-pr-review-github-sentry-org",
-    ),
-    re_path(
-        r"^code-review/repo-settings/$",
-        CodeReviewRepoSettingsEndpoint.as_view(),
-        name="sentry-api-0-code-review-repo-settings",
     ),
     re_path(
         r"^feature-flags/$",

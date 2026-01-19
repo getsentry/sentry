@@ -27,7 +27,7 @@ def passes_code_review_billing_check(
         )
     except OrganizationContributors.DoesNotExist:
         metrics.incr(
-            "overwatch.code_review.contributor_not_found",
+            "seer.code_review.error.contributor_not_found",
             tags={"organization_id": organization_id},
         )
         return False
