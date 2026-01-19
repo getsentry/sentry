@@ -6,6 +6,7 @@ import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -53,9 +54,16 @@ function Overview({subscription, promotionData}: Props) {
     refetch: refetchUsage,
     isPending,
     isError,
-  } = useApiQuery<CustomerUsage>([`/customers/${organization.slug}/usage/`], {
-    staleTime: 60_000,
-  });
+  } = useApiQuery<CustomerUsage>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/usage/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 60_000,
+    }
+  );
 
   useEffect(() => {
     if (promotionData) {
