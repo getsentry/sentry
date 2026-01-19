@@ -385,10 +385,8 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'android',
   'java',
-  'java-log4j',
   'java-log4j2',
   'java-logback',
-  'java-logging',
   'java-spring',
   'java-spring-boot',
   'javascript',
