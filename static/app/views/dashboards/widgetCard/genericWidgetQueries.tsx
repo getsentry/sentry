@@ -158,30 +158,61 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   // Check if new hook-based approach is available
   const isChartDisplay = isChartDisplayType(widget.displayType);
+
+  const hookSeriesResults = config.useSeriesQuery?.({
+    widget,
+    organization,
+    pageFilters: selection,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    onDemandControlContext,
+    mepSetting,
+    samplingMode,
+    enabled: isChartDisplay && !disabled && !propsLoading,
+    limit,
+    cursor,
+  });
+
+  const hookTableResults = config.useTableQuery?.({
+    widget,
+    organization,
+    pageFilters: selection,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    onDemandControlContext,
+    mepSetting,
+    samplingMode,
+    enabled: !isChartDisplay && !disabled && !propsLoading,
+    limit,
+    cursor,
+  });
+
+  // Use the appropriate results based on display type
+  const hookResults = isChartDisplay ? hookSeriesResults : hookTableResults;
   const hasHookApproach = isChartDisplay
     ? !!config.useSeriesQuery
     : !!config.useTableQuery;
 
-  // For hook-based queries, React Query auto-fetches when keys change (e.g., date selection)
-  // The hooks internally integrate with the queue to manage concurrency
-  const hookResults = hasHookApproach
-    ? (isChartDisplay ? config.useSeriesQuery : config.useTableQuery)?.({
-        widget,
-        organization,
-        pageFilters: selection,
-        dashboardFilters,
-        skipDashboardFilterParens,
-        onDemandControlContext,
-        mepSetting,
-        samplingMode,
-        enabled: !disabled && !propsLoading,
-        limit,
-        cursor,
-      })
-    : null;
-
   // Track previous raw data to detect when new data arrives
   const prevRawDataRef = useRef<any[] | undefined>(undefined);
+  // Track previous loading state to detect when fetching starts
+  const prevLoadingRef = useRef(false);
+
+  // Call onDataFetchStart when loading begins
+  useEffect(() => {
+    if (!hasHookApproach) {
+      return;
+    }
+
+    const isLoadingNow = hookResults?.loading ?? false;
+
+    // Detect transition from not loading to loading (fetch start)
+    if (isLoadingNow && !prevLoadingRef.current) {
+      onDataFetchStart?.();
+    }
+
+    prevLoadingRef.current = isLoadingNow;
+  }, [hasHookApproach, hookResults?.loading, onDataFetchStart]);
 
   // Watch for when hook data changes and call callbacks
   useEffect(() => {
@@ -209,25 +240,21 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
       });
     } else {
-      hookResults.rawData.forEach((data: any, index: number) => {
+      // Collect any results from afterFetchTableData callbacks
+      let mergedCallbackData = {};
+      hookResults.rawData.forEach((data: any) => {
         const result = afterFetchTableData?.(data as TableResponse);
-        // Merge any additional data from callback into onDataFetched
-        if (result && index === hookResults.rawData.length - 1) {
-          onDataFetched?.({
-            tableResults: (hookResults as any).tableResults,
-            pageLinks: (hookResults as any).pageLinks,
-            ...result,
-          });
+        if (result) {
+          mergedCallbackData = {...mergedCallbackData, ...result};
         }
       });
 
-      // Call onDataFetched if we haven't already
-      if (!afterFetchTableData) {
-        onDataFetched?.({
-          tableResults: (hookResults as any).tableResults,
-          pageLinks: (hookResults as any).pageLinks,
-        });
-      }
+      // Always call onDataFetched, merging any callback results
+      onDataFetched?.({
+        tableResults: (hookResults as any).tableResults,
+        pageLinks: (hookResults as any).pageLinks,
+        ...mergedCallbackData,
+      });
     }
   }, [
     hasHookApproach,

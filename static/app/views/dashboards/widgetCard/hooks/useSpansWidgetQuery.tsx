@@ -35,7 +35,10 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {
+  cleanWidgetForRequest,
+  getReferrer,
+} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
 type SpansSeriesResponse =
   | EventsStats
@@ -44,34 +47,38 @@ type SpansSeriesResponse =
 type SpansTableResponse = TableData | EventsTableData;
 
 /**
- * Helper to apply dashboard filters to a widget
+ * Helper to apply dashboard filters and clean widget for API request
  */
 function applyDashboardFilters(
   widget: Widget,
   dashboardFilters?: DashboardFilters,
   skipParens?: boolean
 ): Widget {
-  if (!dashboardFilters) {
-    return widget;
+  let processedWidget = widget;
+
+  // Apply dashboard filters if provided
+  if (dashboardFilters) {
+    const filtered = cloneDeep(widget);
+    const dashboardFilterConditions = dashboardFiltersToString(
+      dashboardFilters,
+      filtered.widgetType
+    );
+
+    filtered.queries.forEach(query => {
+      if (dashboardFilterConditions) {
+        // If there is no base query, there's no need to add parens
+        if (query.conditions && !skipParens) {
+          query.conditions = `(${query.conditions})`;
+        }
+        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
+      }
+    });
+
+    processedWidget = filtered;
   }
 
-  const filtered = cloneDeep(widget);
-  const dashboardFilterConditions = dashboardFiltersToString(
-    dashboardFilters,
-    filtered.widgetType
-  );
-
-  filtered.queries.forEach(query => {
-    if (dashboardFilterConditions) {
-      // If there is no base query, there's no need to add parens
-      if (query.conditions && !skipParens) {
-        query.conditions = `(${query.conditions})`;
-      }
-      query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-    }
-  });
-
-  return filtered;
+  // Clean widget to remove empty/invalid fields before API request
+  return cleanWidgetForRequest(processedWidget);
 }
 
 /**
@@ -196,8 +203,10 @@ export function useSpansSeriesQuery(
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
+      // If there's an error and we're not fetching, we're done loading
+      const loading = isFetching || !errorMessage;
       return {
-        loading: true,
+        loading,
         errorMessage,
         rawData: EMPTY_ARRAY,
       };
@@ -384,8 +393,10 @@ export function useSpansTableQuery(
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
+      // If there's an error and we're not fetching, we're done loading
+      const loading = isFetching || !errorMessage;
       return {
-        loading: true,
+        loading,
         errorMessage,
         rawData: EMPTY_ARRAY,
       };
