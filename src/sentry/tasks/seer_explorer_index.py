@@ -77,7 +77,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
 @instrumented_task(
     name="sentry.tasks.seer_explorer_index.schedule_explorer_index",
     namespace=seer_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=10 * 60,
 )
 def schedule_explorer_index() -> None:
     """
