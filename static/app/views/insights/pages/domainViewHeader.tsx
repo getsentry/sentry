@@ -109,21 +109,23 @@ export function DomainViewHeader({
       })),
   ];
 
-  const feedbackOptions =
-    isAgentMonitoring || isLaravelInsights || isNextJsInsights || isSessionsInsights
-      ? {
-          tags: {
-            ['feedback.source']: isAgentMonitoring
-              ? 'agent-monitoring'
-              : isLaravelInsights
-                ? 'laravel-insights'
-                : isSessionsInsights
-                  ? 'sessions-insights'
-                  : 'nextjs-insights',
-            ['feedback.owner']: 'telemetry-experience',
-          },
-        }
-      : undefined;
+  const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
+    [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
+    [!!isLaravelInsights, {owner: 'performance', source: 'laravel-insights'}],
+    [isSessionsInsights, {owner: 'replay', source: 'sessions-insights'}],
+    [!!isNextJsInsights, {owner: 'performance', source: 'nextjs-insights'}],
+  ];
+
+  const activeFeedback = feedbackConfig.find(([condition]) => condition)?.[1];
+
+  const feedbackOptions = activeFeedback
+    ? {
+        tags: {
+          ['feedback.source']: activeFeedback.source,
+          ['feedback.owner']: activeFeedback.owner,
+        },
+      }
+    : undefined;
   return (
     <Fragment>
       <Layout.Header unified={unified}>
