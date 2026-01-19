@@ -3,9 +3,10 @@
 from django.db import migrations, models
 
 import sentry.models.apiapplication
+from sentry.new_migrations.migrations import CheckedMigration
 
 
-class Migration(migrations.Migration):
+class Migration(CheckedMigration):
     """Add support for public OAuth clients and refresh token rotation.
 
     This migration implements RFC 9700 §4.14.2 (OAuth 2.0 Security Best Current Practice)
@@ -26,6 +27,10 @@ class Migration(migrations.Migration):
     - Old refresh tokens are invalidated
     - If an old token is reused (replay attack), the entire family is revoked
     """
+
+    # This flag is used to mark that a migration shouldn't be automatically run in production.
+    # For schema changes like adding nullable fields, this should be False (run during deploy).
+    is_post_deployment = False
 
     dependencies = [
         ("sentry", "1018_encrypt_integration_metadata"),
