@@ -327,14 +327,12 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
 
   /**
    * Hook-based approach for fetching series data
-   * Queries are disabled by default - refetch() must be called to fetch.
    * Returns transformed data, raw responses for callbacks, and refetch function.
    * This replaces getSeriesRequest when available.
    */
   useSeriesQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
   /**
    * Hook-based approach for fetching table data
-   * Queries are disabled by default - refetch() must be called to fetch.
    * Returns transformed data, raw responses for callbacks, and refetch function.
    * This replaces getTableRequest when available.
    */

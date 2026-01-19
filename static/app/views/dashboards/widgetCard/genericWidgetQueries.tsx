@@ -73,7 +73,7 @@ export type GenericWidgetQueriesResult = {
  */
 export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
   /**
-   * Raw API response data, used for callbacks.
+   * Raw API response data, used for callbacks in genericWidgetQueries.tsx
    */
   rawData: any[];
 };
