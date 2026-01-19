@@ -220,6 +220,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             assert response.status_code == 204
             self.mock_seer.assert_not_called()
+            self.mock_reaction.assert_not_called()
 
     def test_pull_request_blocks_draft_for_synchronize_action(self) -> None:
         """Test that draft PRs are blocked for synchronize action."""
@@ -235,6 +236,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             assert response.status_code == 204
             self.mock_seer.assert_not_called()
+            self.mock_reaction.assert_not_called()
 
     def test_pull_request_processes_whitelisted_github_org(self) -> None:
         """Test that whitelisted GitHub organizations are processed."""
