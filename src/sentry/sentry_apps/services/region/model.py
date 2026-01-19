@@ -63,6 +63,9 @@ class RpcPlatformExternalIssue(RpcModel):
     display_name: str
     web_url: str
 
+    def __hash__(self) -> int:
+        return hash(self.id)
+
 
 class RpcPlatformExternalIssueResult(RpcModel):
     external_issue: RpcPlatformExternalIssue | None = None
@@ -77,6 +80,9 @@ class RpcEmptyResult(RpcModel):
 class RpcServiceHookProject(RpcModel):
     id: int
     project_id: int
+
+    def __hash__(self) -> int:
+        return hash(self.id)
 
 
 class RpcServiceHookProjectsResult(RpcModel):
