@@ -187,7 +187,7 @@ describe('javascript-ember onboarding docs', () => {
     });
 
     expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Metrics'})).toBeInTheDocument();
   });
 
   it('does not show Metrics in next steps when metrics is not selected', () => {
@@ -196,6 +196,6 @@ describe('javascript-ember onboarding docs', () => {
     });
 
     expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Metrics'})).not.toBeInTheDocument();
   });
 });

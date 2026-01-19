@@ -50,6 +50,6 @@ describe('javascript-nextjs onboarding docs', () => {
       ],
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Metrics'})).not.toBeInTheDocument();
   });
 });
