@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from uuid import uuid4
 
 from django.urls import reverse
@@ -47,7 +48,7 @@ class TestExtractContentFromParts:
         assert _extract_content_from_parts(msg) == "User question\nMore text"
 
     def test_empty_parts(self):
-        msg = {"parts": []}
+        msg: dict[str, Any] = {"parts": []}
         assert _extract_content_from_parts(msg) is None
 
     def test_no_parts_key(self):
@@ -121,7 +122,7 @@ class TestGetFirstInputMessage:
         assert _get_first_input_message(row) == "Old"
 
     def test_returns_none_when_both_empty(self):
-        row = {}
+        row: dict[str, Any] = {}
         assert _get_first_input_message(row) is None
 
     def test_skips_invalid_new_format(self):
@@ -154,7 +155,7 @@ class TestGetLastOutput:
         assert _get_last_output(row) == "Old response"
 
     def test_returns_none_when_empty(self):
-        row = {}
+        row: dict[str, Any] = {}
         assert _get_last_output(row) is None
 
     def test_finds_last_assistant_message(self):
