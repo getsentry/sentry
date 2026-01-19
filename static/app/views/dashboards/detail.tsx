@@ -987,6 +987,7 @@ class DashboardDetail extends Component<Props, State> {
                 </StyledPageHeader>
                 <HookHeader organization={organization} />
                 <FiltersBar
+                  dashboard={dashboard}
                   dashboardPermissions={dashboard.permissions}
                   dashboardCreator={dashboard.createdBy}
                   filters={{}} // Default Dashboards don't have filters set
@@ -1196,6 +1197,7 @@ class DashboardDetail extends Component<Props, State> {
                                 />
                               ) : null}
                               <FiltersBar
+                                dashboard={modifiedDashboard ?? dashboard}
                                 filters={(modifiedDashboard ?? dashboard).filters}
                                 dashboardPermissions={dashboard.permissions}
                                 dashboardCreator={dashboard.createdBy}
