@@ -351,7 +351,7 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
 
   if (!stacktrace) {
     return (
-      <Flex direction="column" gap="sm">
+      <StackTraceWrapper>
         <IssuePreview
           event={event}
           group={group}
@@ -360,7 +360,7 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
         <Text size="sm" variant="muted">
           {t('No stack trace available for this issue.')}
         </Text>
-      </Flex>
+      </StackTraceWrapper>
     );
   }
 
@@ -380,26 +380,26 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
 
   if (isNativePlatform(platform)) {
     return (
-      <Flex direction="column" gap="sm">
+      <StackTraceWrapper>
         <IssuePreview
           event={event}
           group={group}
           issueUrl={`/organizations/${organization.slug}/issues/${groupId}/`}
         />
         <NativeContent {...commonProps} hideIcon maxDepth={5} />
-      </Flex>
+      </StackTraceWrapper>
     );
   }
 
   return (
-    <Flex direction="column" gap="sm">
+    <StackTraceWrapper>
       <IssuePreview
         event={event}
         group={group}
         issueUrl={`/organizations/${organization.slug}/issues/${groupId}/`}
       />
       <StackTraceContent {...commonProps} expandFirstFrame hideIcon />
-    </Flex>
+    </StackTraceWrapper>
   );
 }
 
@@ -852,12 +852,13 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
           <Container padding="2xl" borderBottom="muted">
             <Flex direction="column" gap="xs" style={{marginBottom: theme.space.lg}}>
               <Heading as="h2" size="lg">
-                {renderWithInlineCode(cluster.title)}
+                {renderWithInlineCode(cluster.impact || cluster.title)}
               </Heading>
-              <Text size="sm" variant="muted">
-                {cluster.impact ? `${cluster.impact} ` : ''}
-                [CLUSTER-{cluster.cluster_id}]
-              </Text>
+              {cluster.impact ? (
+                <Text size="sm" variant="muted">
+                  {renderWithInlineCode(cluster.title)}
+                </Text>
+              ) : null}
             </Flex>
             <Flex wrap="wrap" align="center" gap="md">
               {relevancePercent !== null && (
@@ -1107,6 +1108,14 @@ const IssuePreviewLink = styled(Link)`
 
 const DrawerContentBody = styled(DrawerBody)`
   padding: 0;
+`;
+
+const StackTraceWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.sm};
+  width: 100%;
+  contain: inline-size;
 `;
 
 const TagsTableHeader = styled('div')`

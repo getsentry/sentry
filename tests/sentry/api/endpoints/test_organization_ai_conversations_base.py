@@ -29,6 +29,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         agent_name=None,
         messages=None,
         response_text=None,
+        tool_name=None,
         user_id=None,
         user_email=None,
         user_username=None,
@@ -49,6 +50,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             agent_name: The gen_ai.agent.name attribute
             messages: The gen_ai.request.messages (will be JSON serialized)
             response_text: The gen_ai.response.text attribute
+            tool_name: The gen_ai.tool.name attribute
             user_id: User ID (sentry.user.id)
             user_email: User email (sentry.user.email)
             user_username: User username (sentry.user.username)
@@ -71,6 +73,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.request.messages"] = json.dumps(messages)
         if response_text is not None:
             span_data["gen_ai.response.text"] = response_text
+        if tool_name is not None:
+            span_data["gen_ai.tool.name"] = tool_name
         # Store user data with sentry. prefix for EAP indexing
         if user_id is not None:
             span_data["sentry.user.id"] = user_id

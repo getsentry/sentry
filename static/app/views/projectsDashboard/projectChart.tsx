@@ -162,7 +162,7 @@ export function ProjectChart({
         margin: 2,
         showMaxLabel: true,
         showMinLabel: false,
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         fontFamily: theme.text.family,
         inside: true,
         lineHeight: 12,

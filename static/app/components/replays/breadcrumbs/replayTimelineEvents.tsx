@@ -128,7 +128,7 @@ function Event({
     'warning',
     'success',
     'accent',
-    'muted',
+    'neutral',
   ] as readonly GraphicsVariant[];
   const getColorPos = (c: GraphicsVariant) => colorOrder.indexOf(c);
   const sortedUniqueColorTokens = uniqueColorTokens
@@ -171,9 +171,9 @@ const getBackgroundGradient = ({
   frameCount: number;
   theme: Theme;
 }) => {
-  const c0 = theme.tokens.graphics[colorTokens[0]];
-  const c1 = colorTokens[1] ? theme.tokens.graphics[colorTokens[1]] : c0;
-  const c2 = colorTokens[2] ? theme.tokens.graphics[colorTokens[2]] : c1;
+  const c0 = theme.tokens.graphics[colorTokens[0]].vibrant;
+  const c1 = colorTokens[1] ? theme.tokens.graphics[colorTokens[1]].vibrant : c0;
+  const c2 = colorTokens[2] ? theme.tokens.graphics[colorTokens[2]].vibrant : c1;
 
   if (frameCount === 1) {
     return `background: ${c0};`;
@@ -209,7 +209,7 @@ const IconNode = styled('button')<{
   width: ${p => NODE_SIZES[p.frameCount - 1]}px;
   height: ${p => NODE_SIZES[p.frameCount - 1]}px;
   border-radius: 50%;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   ${getBackgroundGradient}
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
