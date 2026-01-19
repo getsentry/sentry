@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
@@ -35,13 +37,13 @@ function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
 
   return (
     <Fragment>
-      <NameColumn>
+      <Stack justify="center" align="start">
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />
         </TimeWrapper>
-      </NameColumn>
+      </Stack>
       <SizeColumn>
         <FileSize bytes={size} />
       </SizeColumn>
@@ -96,13 +98,6 @@ function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
     </Fragment>
   );
 }
-
-const NameColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-`;
 
 const SizeColumn = styled('div')`
   display: flex;

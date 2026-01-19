@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,34 +46,21 @@ export function useMonitorsScheduleSampleBuckets({
 }: UseMonitorsScheduleSampleBucketsOptions) {
   const organization = useOrganization();
 
-  const query = useMemo(() => {
-    const schedule =
-      scheduleType === ScheduleType.INTERVAL
-        ? [scheduleIntervalValue, scheduleIntervalUnit]
-        : scheduleCrontab;
+  const schedule =
+    scheduleType === ScheduleType.INTERVAL
+      ? [scheduleIntervalValue, scheduleIntervalUnit]
+      : scheduleCrontab;
 
-    return {
-      failure_issue_threshold: failureIssueThreshold,
-      recovery_threshold: recoveryThreshold,
-      schedule_type: scheduleType,
-      timezone,
-      schedule,
-      start,
-      end,
-      interval,
-    };
-  }, [
-    failureIssueThreshold,
-    interval,
-    recoveryThreshold,
-    scheduleCrontab,
-    scheduleIntervalUnit,
-    scheduleIntervalValue,
-    scheduleType,
+  const query = {
+    failure_issue_threshold: failureIssueThreshold,
+    recovery_threshold: recoveryThreshold,
+    schedule_type: scheduleType,
+    timezone,
+    schedule,
     start,
     end,
-    timezone,
-  ]);
+    interval,
+  };
 
   return useApiQuery<Array<CheckInBucket<SchedulePreviewStatus>>>(
     [`/organizations/${organization.slug}/monitors-schedule-buckets/`, {query}],

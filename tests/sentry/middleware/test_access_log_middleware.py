@@ -2,6 +2,7 @@ import logging
 from urllib.parse import unquote
 
 import pytest
+from django.http import HttpRequest
 from django.test import override_settings
 from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
@@ -19,6 +20,34 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils.snuba import RateLimitExceeded
+
+
+class ImpersonationTestMiddleware:
+    """
+    Test middleware that simulates user impersonation by setting request.actual_user.
+    Reads the X-Impersonator-Id header and sets request.actual_user if present.
+    This middleware should be placed before the access log middleware in tests.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest):
+        # Check for impersonator ID in header
+        impersonator_id = request.META.get("HTTP_X_IMPERSONATOR_ID")
+        if impersonator_id:
+            from sentry.users.services.user.service import user_service
+
+            try:
+                actual_user = user_service.get_user(user_id=int(impersonator_id))
+                if actual_user:
+                    request.actual_user = actual_user  # type: ignore[attr-defined]
+            except (ValueError, TypeError):
+                # Invalid user ID format, skip
+                pass
+
+        response = self.get_response(request)
+        return response
 
 
 class DummyEndpoint(Endpoint):
@@ -158,6 +187,7 @@ optional_access_log_fields = (
     "organization_id",
     "is_app",
     "user_id",
+    "impersonator_user_id",
     "token_type",
     "entity_id",
     "user_agent",
@@ -180,6 +210,16 @@ optional_access_log_fields = (
 
 @override_settings(ROOT_URLCONF=__name__)
 @override_settings(LOG_API_ACCESS=True)
+@override_settings(
+    MIDDLEWARE=[
+        "tests.sentry.middleware.test_access_log_middleware.ImpersonationTestMiddleware",
+        *[
+            m
+            for m in __import__("django.conf", fromlist=["settings"]).settings.MIDDLEWARE
+            if "ImpersonationTestMiddleware" not in m
+        ],
+    ]
+)
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog: pytest.LogCaptureFixture):
@@ -310,6 +350,73 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         assert resp.status_code == 302
         records = [record for record in self._caplog.records if record.levelno == logging.ERROR]
         assert not records  # no errors should occur
+
+    def test_no_impersonation(self) -> None:
+        """Test that impersonator_user_id is not present when there's no impersonation."""
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.login_as(user=self.user)
+        self.get_success_response()
+        self.assert_access_log_recorded()
+
+        tested_log = self.get_tested_log()
+        assert not hasattr(tested_log, "impersonator_user_id")
+
+    def test_with_impersonation(self) -> None:
+        """Test that impersonator_user_id is logged when request.actual_user is set."""
+        self._caplog.set_level(logging.INFO, logger="sentry")
+
+        impersonated_user = self.create_user(email="impersonated@example.com")
+        actual_user = self.create_user(email="actual@example.com")
+
+        self.login_as(user=impersonated_user)
+
+        # Pass impersonator ID via header - middleware will set request.actual_user
+        response = self.client.get(
+            reverse(self.endpoint), HTTP_X_IMPERSONATOR_ID=str(actual_user.id)
+        )
+        assert response.status_code == 200
+        self.assert_access_log_recorded()
+
+        tested_log = self.get_tested_log()
+        assert tested_log.user_id == str(impersonated_user.id)
+        assert tested_log.impersonator_user_id == str(actual_user.id)
+
+    def test_impersonation_with_none_actual_user(self) -> None:
+        """Test that impersonator_user_id is not present when actual_user is not set."""
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.login_as(user=self.user)
+
+        # No impersonation set (fixture clears it automatically)
+        response = self.client.get(reverse(self.endpoint))
+        assert response.status_code == 200
+        self.assert_access_log_recorded()
+
+        tested_log = self.get_tested_log()
+        assert not hasattr(tested_log, "impersonator_user_id")
+
+    def test_impersonation_tracks_correct_user_ids(self) -> None:
+        """Test that both user_id and impersonator_user_id are correctly tracked."""
+        self._caplog.set_level(logging.INFO, logger="sentry")
+
+        impersonated_user = self.create_user(email="impersonated@example.com")
+        actual_user = self.create_user(email="actual@example.com")
+
+        self.login_as(user=impersonated_user)
+
+        # Pass impersonator ID via header - middleware will set request.actual_user
+        response = self.client.get(
+            reverse(self.endpoint), HTTP_X_IMPERSONATOR_ID=str(actual_user.id)
+        )
+        assert response.status_code == 200
+        self.assert_access_log_recorded()
+
+        tested_log = self.get_tested_log()
+        # Ensure the logged user is the impersonated user
+        assert tested_log.user_id == str(impersonated_user.id)
+        assert int(tested_log.user_id) != actual_user.id
+        # Ensure the impersonator is the actual user
+        assert tested_log.impersonator_user_id == str(actual_user.id)
+        assert int(tested_log.impersonator_user_id) != impersonated_user.id
 
 
 @all_silo_test

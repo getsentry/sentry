@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
@@ -15,40 +14,12 @@ jest.mock('sentry/utils/useDimensions', () => ({
 describe('SchedulePreview', () => {
   const organization = OrganizationFixture();
 
-  const tickStyle: TickStyle<SchedulePreviewStatus> = theme => ({
-    [SchedulePreviewStatus.ERROR]: {
-      labelColor: theme.colors.red500,
-      tickColor: theme.colors.red400,
-    },
-    [SchedulePreviewStatus.OK]: {
-      labelColor: theme.colors.green500,
-      tickColor: theme.colors.green400,
-    },
-    [SchedulePreviewStatus.SUB_FAILURE_ERROR]: {
-      labelColor: theme.colors.red500,
-      tickColor: theme.colors.red400,
-      hatchTick: theme.colors.red200,
-    },
-    [SchedulePreviewStatus.SUB_RECOVERY_OK]: {
-      labelColor: theme.colors.green500,
-      tickColor: theme.colors.green400,
-      hatchTick: theme.colors.green200,
-    },
-  });
-
   const statusToText: Record<SchedulePreviewStatus, string> = {
     [SchedulePreviewStatus.OK]: 'Okay',
     [SchedulePreviewStatus.ERROR]: 'Failed',
     [SchedulePreviewStatus.SUB_FAILURE_ERROR]: 'Failed (Sub-Threshold)',
     [SchedulePreviewStatus.SUB_RECOVERY_OK]: 'Okay (Sub-Threshold)',
   };
-
-  const statusPrecedent: SchedulePreviewStatus[] = [
-    SchedulePreviewStatus.SUB_FAILURE_ERROR,
-    SchedulePreviewStatus.SUB_RECOVERY_OK,
-    SchedulePreviewStatus.ERROR,
-    SchedulePreviewStatus.OK,
-  ];
 
   it('renders the open period bar and labels', async () => {
     const start = 1700000000;
@@ -76,10 +47,7 @@ describe('SchedulePreview', () => {
         timezone="UTC"
         failureIssueThreshold={2}
         recoveryThreshold={3}
-        tickStyle={tickStyle}
         statusToText={statusToText}
-        statusPrecedent={statusPrecedent}
-        isSticky
       />,
       {organization}
     );
@@ -105,18 +73,16 @@ describe('SchedulePreview', () => {
         timezone="UTC"
         failureIssueThreshold={2}
         recoveryThreshold={3}
-        tickStyle={tickStyle}
         statusToText={statusToText}
-        statusPrecedent={statusPrecedent}
-        isSticky
       />,
       {organization}
     );
 
     expect(
-      await screen.findByText(/No schedule preview available\./i)
+      await screen.findByText(
+        /No preview available\. The provided schedule is invalid, or the thresholds are incompatible with it\./i
+      )
     ).toBeInTheDocument();
-    expect(screen.getByText(/schedule: Invalid schedule/i)).toBeInTheDocument();
   });
 
   it('shows a generic error on non-400 errors', async () => {
@@ -135,10 +101,7 @@ describe('SchedulePreview', () => {
         timezone="UTC"
         failureIssueThreshold={2}
         recoveryThreshold={3}
-        tickStyle={tickStyle}
         statusToText={statusToText}
-        statusPrecedent={statusPrecedent}
-        isSticky
       />,
       {organization}
     );
