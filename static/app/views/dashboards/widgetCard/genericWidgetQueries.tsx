@@ -167,9 +167,8 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     ? !!config.useSeriesQuery
     : !!config.useTableQuery;
 
-  // For hook-based queries, we let React Query auto-fetch when keys change
-  // This fixes the issue where date selection changes caused infinite loading
-  // Queue is only used for non-hook widgets now
+  // For hook-based queries, React Query auto-fetches when keys change (e.g., date selection)
+  // The hooks internally integrate with the queue to manage concurrency
   const hookResults = hasHookApproach
     ? (isChartDisplay ? config.useSeriesQuery : config.useTableQuery)?.({
         widget,
