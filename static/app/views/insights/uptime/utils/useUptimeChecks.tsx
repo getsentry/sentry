@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -27,7 +28,16 @@ function makeUptimeChecksQueryKey({
   statsPeriod,
 }: UptimeChecksParameters): ApiQueryKey {
   return [
-    `/projects/${orgSlug}/${projectSlug}/uptime/${detectorId}/checks/`,
+    getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/checks/',
+      {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+          uptimeDetectorId: detectorId,
+        },
+      }
+    ),
     {
       query: {
         per_page: limit,
