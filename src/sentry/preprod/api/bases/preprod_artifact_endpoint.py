@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
 
 
@@ -63,7 +64,9 @@ class PreprodArtifactEndpoint(OrganizationEndpoint):
 
         try:
             head_artifact = PreprodArtifact.objects.select_related(
-                "mobile_app_info", "build_configuration", "project",
+                "mobile_app_info",
+                "build_configuration",
+                "project",
             ).get(id=int(head_artifact_id))
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise HeadPreprodArtifactResourceDoesNotExist
@@ -76,7 +79,11 @@ class PreprodArtifactEndpoint(OrganizationEndpoint):
         if project.status != ObjectStatus.ACTIVE:
             raise HeadPreprodArtifactResourceDoesNotExist
 
-        if project not in self.get_projects(request, organization):
+        # Skip project access check for service-to-service RPC authenticated requests
+        is_rpc_authenticated = hasattr(request, "successful_authenticator") and isinstance(
+            request.successful_authenticator, LaunchpadRpcSignatureAuthentication
+        )
+        if not is_rpc_authenticated and project not in self.get_projects(request, organization):
             raise HeadPreprodArtifactResourceDoesNotExist
 
         # If project_id_or_slug is provided, validate it matches the artifact's project
@@ -103,7 +110,9 @@ class PreprodArtifactEndpoint(OrganizationEndpoint):
 
         try:
             base_artifact = PreprodArtifact.objects.select_related(
-                "mobile_app_info", "build_configuration", "project",
+                "mobile_app_info",
+                "build_configuration",
+                "project",
             ).get(id=int(base_artifact_id))
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise BasePreprodArtifactResourceDoesNotExist
