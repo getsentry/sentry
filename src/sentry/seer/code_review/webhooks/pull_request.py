@@ -86,7 +86,7 @@ def handle_pull_request_event(
     organization: Organization,
     repo: Repository,
     integration: RpcIntegration | None = None,
-    settings: CodeReviewSettings | None = None,
+    org_code_review_settings: CodeReviewSettings | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -129,12 +129,13 @@ def handle_pull_request_event(
         )
         return
 
-    if action in ACTIONS_REQUIRING_TRIGGER_CHECK:
-        if settings is None or ACTIONS_REQUIRING_TRIGGER_CHECK[action] not in settings.triggers:
-            record_webhook_filtered(
-                github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED
-            )
-            return
+    action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
+    if action_requires_trigger_permission is not None and (
+        org_code_review_settings is None
+        or action_requires_trigger_permission not in org_code_review_settings.triggers
+    ):
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        return
 
     if pull_request.get("draft") is True:
         return
