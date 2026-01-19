@@ -83,6 +83,8 @@ export function IntegrationReposAddRepository({
       const repo = await promise;
       onAddRepository(repo);
       RepositoryStore.resetRepositories();
+    } catch {
+      // Error feedback is handled by addRepository/migrateRepository
     } finally {
       setAdding(false);
     }
