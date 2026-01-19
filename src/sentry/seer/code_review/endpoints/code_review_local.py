@@ -72,13 +72,16 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
                 repo_provider=provider,
             )
         except Repository.DoesNotExist:
-            return Response(
-                {
-                    "detail": f"Repository {full_repo_name} not found. "
-                    "Please ensure the repository is connected to Sentry via an integration."
-                },
-                status=404,
-            )
+            msg = f"Repo {full_repo_name} not found. This will return 404 in the future"
+            logger.warning(msg)
+            repository = None
+            # return Response(
+            #     {
+            #         "detail": f"Repository {full_repo_name} not found. "
+            #         "Please ensure the repository is connected to Sentry via an integration."
+            #     },
+            #     status=404,
+            # )
 
         # Log request
         logger.info(
@@ -86,7 +89,7 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
             extra={
                 "organization_id": organization.id,
                 "user_id": request.user.id,
-                "repository_id": repository.id,
+                "repository_id": repository.id if repository else "not_found",
                 "diff_size_bytes": len(diff),
             },
         )
@@ -94,22 +97,18 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
         metrics.incr("code_review_local.request", tags={"org": organization.slug})
 
         # Trigger Seer
-        # user.id is guaranteed to be non-None since this endpoint requires authentication
-        user_id = request.user.id
-        assert user_id is not None
-        user_name = request.user.username or getattr(request.user, "email", None) or str(user_id)
+        user_name = request.user.username or getattr(request.user, "email", None) or ""
 
         try:
             trigger_response = trigger_code_review_local(
                 repo_provider=provider,
                 repo_owner=owner,
                 repo_name=repo_name,
-                repo_external_id=repository.external_id or "",
+                repo_external_id=repository.external_id or "" if repository else "",
                 base_commit_sha=repo_data["base_commit_sha"],
                 diff=diff,
                 organization_id=organization.id,
                 organization_slug=organization.slug,
-                user_id=user_id,
                 user_name=user_name,
                 commit_message=commit_message,
             )
