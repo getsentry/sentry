@@ -14,12 +14,14 @@ describe('awslambda onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [ProductSolution.LOGS],
     });
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify Logs'})).toBeInTheDocument();
 
     // Renders SDK version from registry
     expect(
@@ -36,6 +38,16 @@ describe('awslambda onboarding docs', () => {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
     ).toBeInTheDocument();
   });
 });

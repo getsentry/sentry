@@ -5,6 +5,7 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -39,6 +40,12 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
               // of transactions for tracing.
               // We recommend adjusting this value in production
               o.TracesSampleRate = 1.0;`
+                  : ''
+              }${
+                params.isLogsSelected
+                  ? `
+              // Enable logs to be sent to Sentry
+              o.EnableLogs = true;`
                   : ''
               }
           });
@@ -176,6 +183,14 @@ export const onboarding: OnboardingConfig = {
             ],
           },
         ] satisfies OnboardingStep[])
+      : []),
+    ...(params.isLogsSelected
+      ? [
+          {
+            title: t('Verify Logs'),
+            content: [logsVerify(params)],
+          },
+        ]
       : []),
     {
       title: t('Samples'),
