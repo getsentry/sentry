@@ -15,13 +15,15 @@ from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.services.region.model import (
     RpcEmptyResult,
     RpcInteractionStatsResult,
-    RpcPlatformExternalIssue,
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcSentryAppError,
-    RpcServiceHookProject,
     RpcServiceHookProjectsResult,
     RpcTimeSeriesPoint,
+)
+from sentry.sentry_apps.services.region.serial import (
+    serialize_platform_external_issue,
+    serialize_service_hook_project,
 )
 from sentry.sentry_apps.services.region.service import SentryAppRegionService
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -108,13 +110,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         return RpcPlatformExternalIssueResult(
-            external_issue=RpcPlatformExternalIssue(
-                id=external_issue.id,
-                group_id=external_issue.group_id,
-                service_type=external_issue.service_type,
-                display_name=external_issue.display_name,
-                web_url=external_issue.web_url,
-            )
+            external_issue=serialize_platform_external_issue(external_issue)
         )
 
     def create_external_issue(
@@ -155,13 +151,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         return RpcPlatformExternalIssueResult(
-            external_issue=RpcPlatformExternalIssue(
-                id=external_issue.id,
-                group_id=external_issue.group_id,
-                service_type=external_issue.service_type,
-                display_name=external_issue.display_name,
-                web_url=external_issue.web_url,
-            )
+            external_issue=serialize_platform_external_issue(external_issue)
         )
 
     def delete_external_issue(
@@ -220,9 +210,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
         return RpcServiceHookProjectsResult(
             projects=[serialize_project(p) for p in projects],
-            service_hook_projects=[
-                RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
-            ],
+            service_hook_projects=[serialize_service_hook_project(hp) for hp in hook_projects],
         )
 
     def set_service_hook_projects(
@@ -271,23 +259,22 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             )
 
         new_project_ids = set(project_ids)
-        current_project_ids = set(
-            ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
-                "project_id", flat=True
-            )
-        )
-
-        # Validate that the service hooks the caller is attempting to modify match
-        # the database. Prevents a TOCTOU race condition.
-        if set(current_project_ids) != set(existing_project_ids):
-            return RpcServiceHookProjectsResult(
-                error=RpcSentryAppError(
-                    message="The service hooks have changed during your request. Please try again after a moment.",
-                    status_code=409,
-                ),
-            )
-
         with transaction.atomic(router.db_for_write(ServiceHookProject)):
+            current_project_ids = set(
+                ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
+                    "project_id", flat=True
+                )
+            )
+
+            # Validate that the service hooks the caller is attempting to modify match
+            # the database. Prevents a TOCTOU race condition.
+            if set(current_project_ids) != set(existing_project_ids):
+                return RpcServiceHookProjectsResult(
+                    error=RpcSentryAppError(
+                        message="The service hooks have changed during your request. Please try again after a moment.",
+                        status_code=409,
+                    ),
+                )
             projects_to_add = new_project_ids - current_project_ids
             projects_to_remove = current_project_ids - new_project_ids
 
@@ -307,9 +294,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
         return RpcServiceHookProjectsResult(
             projects=[serialize_project(p) for p in projects],
-            service_hook_projects=[
-                RpcServiceHookProject(id=hp.id, project_id=hp.project_id) for hp in hook_projects
-            ],
+            service_hook_projects=[serialize_service_hook_project(hp) for hp in hook_projects],
         )
 
     def delete_service_hook_projects(
