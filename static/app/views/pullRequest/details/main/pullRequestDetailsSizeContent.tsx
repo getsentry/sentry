@@ -5,7 +5,11 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {
+  useApiQuery,
+  type ApiQueryKey,
+  type UseApiQueryResult,
+} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BuildDetailsMainContent} from 'sentry/views/preprod/buildDetails/main/buildDetailsMainContent';
@@ -27,16 +31,14 @@ export function PullRequestDetailsSizeContent({
 
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
-      [`/projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
+      [
+        `/projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`,
+      ] as unknown as ApiQueryKey,
       {
         staleTime: 0,
         enabled: !!selectedBuildId,
       }
     );
-
-  if (buildDetails.length === 0 || !selectedBuildId) {
-    return <div>No build details found</div>;
-  }
 
   const getBuildDetailsLabel = (buildDetail: BuildDetailsApiResponse) => {
     const {id, app_info} = buildDetail;
@@ -89,7 +91,7 @@ export function PullRequestDetailsSizeContent({
           {buildDetails.length > 0 && (
             <BuildDetailsSidebarContent
               buildDetailsData={selectedBuildDetail}
-              artifactId={selectedBuildId}
+              artifactId={selectedBuildId!}
               projectId={null}
             />
           )}
