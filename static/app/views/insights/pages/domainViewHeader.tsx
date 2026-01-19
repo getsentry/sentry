@@ -111,9 +111,9 @@ export function DomainViewHeader({
 
   const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
     [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
-    [!!isLaravelInsights, {owner: 'telemetry-experience', source: 'laravel-insights'}],
+    [!!isLaravelInsights, {owner: 'performance', source: 'laravel-insights'}],
     [isSessionsInsights, {owner: 'replay', source: 'sessions-insights'}],
-    [!!isNextJsInsights, {owner: 'telemetry-experience', source: 'nextjs-insights'}],
+    [!!isNextJsInsights, {owner: 'performance', source: 'nextjs-insights'}],
   ];
 
   const activeFeedback = feedbackConfig.find(([condition]) => condition)?.[1];
