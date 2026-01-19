@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import base64
 import logging
+import time
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
+from django.core.cache import cache
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -20,10 +22,20 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
+from sentry.models.trustedidentityprovider import (
+    IdPDisabledError,
+    JWKSFetchError,
+    JWTValidationError,
+    KeyNotFoundError,
+    TrustedIdentityProvider,
+)
 from sentry.ratelimits import backend as ratelimiter
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
-from sentry.utils import json, metrics
+from sentry.users.models.user import User
+from sentry.utils import json
+from sentry.utils import jwt as sentry_jwt
+from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
@@ -129,6 +141,7 @@ class OAuthTokenView(View):
             GrantTypes.AUTHORIZATION,
             GrantTypes.REFRESH,
             GrantTypes.DEVICE_CODE,
+            GrantTypes.JWT_BEARER,
         ]:
             return self.error(request=request, name="unsupported_grant_type")
 
@@ -272,17 +285,19 @@ class OAuthTokenView(View):
             token_data = self.get_access_tokens(request=request, application=application)
         elif grant_type == GrantTypes.DEVICE_CODE:
             return self.handle_device_code_grant(request=request, application=application)
+        elif grant_type == GrantTypes.JWT_BEARER:
+            return self.handle_jwt_bearer_grant(request=request, application=application)
         else:
             token_data = self.get_refresh_token(request=request, application=application)
         if "error" in token_data:
             return self.error(
                 request=request,
                 name=token_data["error"],
-                reason=token_data["reason"] if "reason" in token_data else None,
+                reason=token_data.get("reason"),
             )
         return self.process_token_details(
             token=token_data["token"],
-            id_token=token_data["id_token"] if "id_token" in token_data else None,
+            id_token=token_data.get("id_token"),
         )
 
     def _extract_basic_auth_credentials(
@@ -619,6 +634,329 @@ class OAuthTokenView(View):
             name="invalid_grant",
             reason="device code in invalid state",
         )
+
+    def handle_jwt_bearer_grant(
+        self, request: Request, application: ApiApplication
+    ) -> HttpResponse:
+        """
+        Handle JWT Bearer grant type (RFC 7523) for ID-JAG tokens.
+
+        This implements the Identity Assertion JWT Authorization Grant (ID-JAG)
+        flow where an external IdP issues a JWT assertion that can be exchanged
+        for a Sentry access token.
+
+        Request format:
+            POST /oauth/token
+            Content-Type: application/x-www-form-urlencoded
+            Authorization: Basic {base64(client_id:client_secret)}
+
+            grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
+            &assertion={id-jag-jwt}
+            &scope=org:read project:read (optional)
+
+        The JWT assertion must:
+        - Be signed by a TrustedIdentityProvider's key (validated via JWKS)
+        - Contain 'iss' claim matching a configured TrustedIdentityProvider
+        - Contain 'sub' claim identifying the user
+        - Contain 'email' claim for user lookup (current implementation)
+        - Contain 'aud' claim matching Sentry's issuer identifier
+
+        Returns:
+        - On success: Access token response
+        - invalid_request: Missing or malformed assertion
+        - invalid_grant: JWT validation failed, issuer not trusted, or user not found
+        """
+        assertion = request.POST.get("assertion")
+        requested_scope = request.POST.get("scope")
+
+        if not assertion:
+            return self.error(
+                request=request,
+                name="invalid_request",
+                reason="missing assertion parameter",
+            )
+
+        # Peek at the JWT to get the issuer without full validation
+        try:
+            unverified_claims = sentry_jwt.peek_claims(assertion)
+        except sentry_jwt.DecodeError as e:
+            logger.warning(
+                "JWT bearer grant: invalid assertion format",
+                extra={"client_id": application.client_id, "error": str(e)},
+            )
+            return self.error(
+                request=request,
+                name="invalid_request",
+                reason="invalid assertion format",
+            )
+
+        issuer = unverified_claims.get("iss")
+        if not issuer:
+            logger.warning(
+                "JWT bearer grant: missing issuer claim",
+                extra={"client_id": application.client_id},
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="assertion missing issuer claim",
+            )
+
+        # Rate limit JWT bearer attempts per client+issuer to prevent brute force
+        rate_limit_key = f"oauth:jwt_bearer:{application.client_id}:{issuer}"
+        if ratelimiter.is_limited(rate_limit_key, limit=10, window=60):
+            return self.error(
+                request=request,
+                name="slow_down",
+                reason="too many requests",
+            )
+
+        # Look up TrustedIdentityProvider by issuer
+        # We find all providers with this issuer and try each one
+        trusted_idps = TrustedIdentityProvider.objects.filter(
+            issuer=issuer,
+            enabled=True,
+        )
+
+        if not trusted_idps.exists():
+            logger.warning(
+                "JWT bearer grant: untrusted issuer",
+                extra={"client_id": application.client_id, "issuer": issuer},
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="issuer not trusted",
+            )
+
+        # Try to validate the JWT with each matching IdP
+        claims = None
+        validated_idp = None
+        last_error = None
+
+        for idp in trusted_idps:
+            # Check if client is allowed to use this IdP
+            if not idp.is_client_allowed(application.client_id):
+                continue
+
+            try:
+                # Validate JWT signature and get claims
+                # audience validation is optional - pass None to skip
+                claims = idp.validate_jwt_signature(
+                    assertion,
+                    audience=options.get("system.url-prefix") or None,
+                )
+                validated_idp = idp
+                break
+            except IdPDisabledError:
+                # Skip disabled IdPs (shouldn't happen due to filter, but defensive)
+                continue
+            except (JWTValidationError, KeyNotFoundError, JWKSFetchError) as e:
+                last_error = e
+                logger.info(
+                    "JWT bearer grant: validation failed for IdP",
+                    extra={
+                        "client_id": application.client_id,
+                        "issuer": issuer,
+                        "idp_id": idp.id,
+                        "error": str(e),
+                    },
+                )
+                continue
+
+        if claims is None or validated_idp is None:
+            error_msg = str(last_error) if last_error else "no matching IdP found"
+            logger.warning(
+                "JWT bearer grant: JWT validation failed",
+                extra={
+                    "client_id": application.client_id,
+                    "issuer": issuer,
+                    "error": error_msg,
+                },
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="assertion validation failed",
+            )
+
+        # Require exp claim per RFC 7523
+        exp = claims.get("exp")
+        if not exp:
+            logger.warning(
+                "JWT bearer grant: missing exp claim",
+                extra={"client_id": application.client_id, "issuer": issuer},
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="assertion missing exp claim",
+            )
+
+        # Replay prevention: check jti claim hasn't been used before
+        jti = claims.get("jti")
+        if jti:
+            # Cache key includes issuer to prevent cross-IdP collisions
+            jti_cache_key = f"oauth:jwt_bearer:jti:{issuer}:{jti}"
+
+            # Calculate cache TTL based on JWT expiration (with small buffer)
+            # Use min of JWT remaining lifetime or 10 minutes
+            now = int(time.time())
+            jwt_ttl = max(0, exp - now) + 60  # Add 60s buffer for clock skew
+            cache_ttl = min(jwt_ttl, 600)  # Cap at 10 minutes
+
+            # Use atomic cache.add() to prevent race conditions
+            # add() returns False if key already exists (replay attack)
+            if not cache.add(jti_cache_key, True, timeout=cache_ttl):
+                logger.warning(
+                    "JWT bearer grant: assertion already used (replay attempt)",
+                    extra={
+                        "client_id": application.client_id,
+                        "issuer": issuer,
+                        "jti": jti,
+                    },
+                )
+                return self.error(
+                    request=request,
+                    name="invalid_grant",
+                    reason="assertion already used",
+                )
+
+        # Extract subject identifier using configured claim
+        subject_claim = validated_idp.subject_claim
+        subject = claims.get(subject_claim)
+        if not subject:
+            logger.warning(
+                "JWT bearer grant: missing subject claim",
+                extra={
+                    "client_id": application.client_id,
+                    "issuer": issuer,
+                    "subject_claim": subject_claim,
+                },
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason=f"assertion missing {subject_claim} claim",
+            )
+
+        # Map subject to Sentry user
+        # Current implementation: lookup by email claim
+        email = claims.get("email")
+        if not email:
+            logger.warning(
+                "JWT bearer grant: missing email claim for user lookup",
+                extra={
+                    "client_id": application.client_id,
+                    "issuer": issuer,
+                    "subject": subject,
+                },
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="assertion missing email claim",
+            )
+
+        try:
+            user = User.objects.get(email__iexact=email, is_active=True)
+        except User.DoesNotExist:
+            logger.warning(
+                "JWT bearer grant: user not found",
+                extra={
+                    "client_id": application.client_id,
+                    "issuer": issuer,
+                    "subject": subject,
+                    "email": email,
+                },
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="user not found",
+            )
+        except User.MultipleObjectsReturned:
+            logger.warning(
+                "JWT bearer grant: multiple users with same email",
+                extra={
+                    "client_id": application.client_id,
+                    "issuer": issuer,
+                    "email": email,
+                },
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="ambiguous user identity",
+            )
+
+        # Verify user is a member of the IdP's organization
+        from sentry.organizations.services.organization import organization_service
+
+        org_context = organization_service.get_organization_by_id(
+            id=validated_idp.organization_id,
+            user_id=user.id,
+            include_projects=False,
+            include_teams=False,
+        )
+        if org_context is None or org_context.member is None:
+            logger.warning(
+                "JWT bearer grant: user is not a member of the IdP's organization",
+                extra={
+                    "client_id": application.client_id,
+                    "issuer": issuer,
+                    "user_id": user.id,
+                    "organization_id": validated_idp.organization_id,
+                },
+            )
+            return self.error(
+                request=request,
+                name="invalid_grant",
+                reason="user not authorized for this organization",
+            )
+
+        # Determine scopes for the token
+        # Intersect: requested scopes ∩ IdP allowed scopes ∩ application allowed scopes
+        requested_scopes = set(requested_scope.split()) if requested_scope else set()
+        idp_scopes = set(validated_idp.allowed_scopes) if validated_idp.allowed_scopes else None
+        app_scopes = set(application.scopes) if application.scopes else None
+
+        # Start with requested scopes (or empty if none requested)
+        final_scopes = requested_scopes
+
+        # Always apply scope restrictions via intersection
+        # Note: We always perform the intersection, even if final_scopes is empty.
+        # An empty requested scope set should result in an empty final scope set.
+        if idp_scopes is not None:
+            final_scopes = final_scopes & idp_scopes
+
+        if app_scopes is not None:
+            final_scopes = final_scopes & app_scopes
+
+        # Create the access token
+        # Token is scoped to the IdP's organization
+        with transaction.atomic(router.db_for_write(ApiToken)):
+            token = ApiToken.objects.create(
+                application=application,
+                user=user,
+                scope_list=list(final_scopes) if final_scopes else [],
+                scoping_organization_id=validated_idp.organization_id,
+            )
+
+        metrics.incr("oauth_token.jwt_bearer.success", sample_rate=1.0)
+        logger.info(
+            "oauth.jwt-bearer-grant-success",
+            extra={
+                "client_id": application.client_id,
+                "issuer": issuer,
+                "idp_id": validated_idp.id,
+                "user_id": user.id,
+                "token_id": token.id,
+                "organization_id": validated_idp.organization_id,
+            },
+        )
+
+        return self.process_token_details(token=token)
 
     def process_token_details(
         self, token: ApiToken, id_token: OpenIDToken | None = None

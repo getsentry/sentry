@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -1474,3 +1475,681 @@ class OAuthTokenDeviceCodeTest(TestCase):
         )
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_client"}
+
+
+@control_silo_test
+class OAuthTokenJWTBearerTest(TestCase):
+    """Tests for JWT Bearer grant type (RFC 7523) for ID-JAG tokens."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        import orjson
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from jwt import algorithms as jwt_algorithms
+
+        from sentry.models.trustedidentityprovider import TrustedIdentityProvider
+        from sentry.utils import jwt
+
+        self.jwt = jwt
+        self.orjson = orjson
+
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+        self.client_secret = self.application.client_secret
+
+        # Generate RSA key pair for signing JWTs
+        self.private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048, backend=default_backend()
+        )
+        self.private_key_pem = self.private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        ).decode("utf-8")
+
+        # Create JWK from public key
+        public_key = self.private_key.public_key()
+        jwk_json = jwt_algorithms.RSAAlgorithm.to_jwk(public_key)
+        self.jwk = orjson.loads(jwk_json)
+        self.kid = "test-key-1"
+        self.jwk["kid"] = self.kid
+        self.jwk["use"] = "sig"
+        self.jwk["alg"] = "RS256"
+
+        self.issuer = "https://acme.okta.com"
+        self.jwks_uri = "https://acme.okta.com/.well-known/jwks.json"
+
+        # Create TrustedIdentityProvider
+        self.idp = TrustedIdentityProvider.objects.create(
+            organization_id=self.organization.id,
+            issuer=self.issuer,
+            name="Acme Okta",
+            jwks_uri=self.jwks_uri,
+            jwks_cache={"keys": [self.jwk]},
+            jwks_cached_at=timezone.now(),
+        )
+
+    def _create_jwt(self, claims: dict, kid: str | None = None) -> str:
+        """Create a signed JWT for testing.
+
+        Automatically adds 'exp' claim (1 hour from now) if not provided.
+        """
+        import time
+
+        full_claims = claims.copy()
+        if "exp" not in full_claims:
+            full_claims["exp"] = int(time.time()) + 3600  # 1 hour from now
+
+        return self.jwt.encode(
+            full_claims,
+            self.private_key_pem,
+            algorithm="RS256",
+            headers={"kid": kid or self.kid},
+        )
+
+    def test_missing_assertion(self) -> None:
+        """Missing assertion should return invalid_request."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_request"}
+
+    def test_invalid_assertion_format(self) -> None:
+        """Malformed JWT should return invalid_request."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": "not.a.valid.jwt",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_request"}
+
+    def test_missing_issuer_claim(self) -> None:
+        """JWT without issuer claim should return invalid_grant."""
+        token = self._create_jwt({"sub": "user@example.com", "email": self.user.email})
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_untrusted_issuer(self) -> None:
+        """JWT from untrusted issuer should return invalid_grant."""
+        token = self._create_jwt(
+            {
+                "iss": "https://untrusted.example.com",
+                "sub": "user@example.com",
+                "email": self.user.email,
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_disabled_idp(self) -> None:
+        """JWT from disabled IdP should return invalid_grant."""
+        self.idp.enabled = False
+        self.idp.save()
+
+        token = self._create_jwt(
+            {"iss": self.issuer, "sub": "user@example.com", "email": self.user.email}
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_client_not_allowed(self) -> None:
+        """JWT should fail if client is not in IdP's allowed list."""
+        self.idp.allowed_client_ids = ["other-client-id"]
+        self.idp.save()
+
+        token = self._create_jwt(
+            {"iss": self.issuer, "sub": "user@example.com", "email": self.user.email}
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_missing_subject_claim(self) -> None:
+        """JWT without subject claim should return invalid_grant."""
+        token = self._create_jwt(
+            {"iss": self.issuer, "email": self.user.email, "aud": "http://testserver"}
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_missing_email_claim(self) -> None:
+        """JWT without email claim should return invalid_grant."""
+        token = self._create_jwt(
+            {"iss": self.issuer, "sub": "user@example.com", "aud": "http://testserver"}
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_missing_exp_claim(self) -> None:
+        """JWT without exp claim should return invalid_grant."""
+        # Create JWT without exp claim by explicitly setting exp=None
+        # The _create_jwt auto-adds exp, so we need to create the token manually
+        claims = {
+            "iss": self.issuer,
+            "sub": "user@example.com",
+            "email": self.user.email,
+            "aud": "http://testserver",
+        }
+        # Don't use _create_jwt since it adds exp automatically
+        token = self.jwt.encode(
+            claims,
+            self.private_key_pem,
+            algorithm="RS256",
+            headers={"kid": self.kid},
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_user_not_found(self) -> None:
+        """JWT with unknown email should return invalid_grant."""
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": "unknown@example.com",
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_success(self) -> None:
+        """Valid JWT should return access token."""
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert data["token_type"] == "Bearer"
+        assert data["user"]["id"] == str(self.user.id)
+        assert data["organization_id"] == str(self.organization.id)
+
+        # Verify token was created
+        api_token = ApiToken.objects.get(token=data["access_token"])
+        assert api_token.user == self.user
+        assert api_token.application == self.application
+        assert api_token.scoping_organization_id == self.organization.id
+
+    def test_success_with_requested_scopes(self) -> None:
+        """Valid JWT with requested scopes should respect IdP scope restrictions."""
+        self.idp.allowed_scopes = ["org:read", "project:read"]
+        self.idp.save()
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "scope": "org:read event:read",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        # Should only have org:read (intersection of requested and allowed)
+        assert data["scope"] == "org:read"
+
+    def test_success_case_insensitive_email(self) -> None:
+        """Email matching should be case-insensitive."""
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email.upper(),
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+        assert json.loads(resp.content)["user"]["id"] == str(self.user.id)
+
+    def test_inactive_user_rejected(self) -> None:
+        """JWT for inactive user should return invalid_grant."""
+        self.user.is_active = False
+        self.user.save()
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_client_allowed_empty_list(self) -> None:
+        """Empty allowed_client_ids should allow all clients."""
+        self.idp.allowed_client_ids = []
+        self.idp.save()
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+    def test_client_in_allowed_list(self) -> None:
+        """Client in allowed_client_ids should succeed."""
+        self.idp.allowed_client_ids = [self.application.client_id]
+        self.idp.save()
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+    @patch("sentry.web.frontend.oauth_token.ratelimiter.is_limited")
+    def test_rate_limiting(self, mock_is_limited: MagicMock) -> None:
+        """Rate limiting should return slow_down error."""
+        mock_is_limited.return_value = True
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "slow_down"}
+
+        # Verify rate limiter was called with correct key pattern
+        mock_is_limited.assert_called_once()
+        call_args = mock_is_limited.call_args
+        assert call_args[0][0].startswith("oauth:jwt_bearer:")
+        assert call_args[1] == {"limit": 10, "window": 60}
+
+    def test_jti_replay_prevention(self) -> None:
+        """Same JWT with jti should be rejected on second use."""
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+                "jti": "unique-token-id-12345",
+            }
+        )
+
+        # First request should succeed
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        # Second request with same token should be rejected (replay)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_jwt_without_jti_still_works(self) -> None:
+        """JWT without jti claim should still be accepted (jti is optional)."""
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+                # No jti claim
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+    def test_empty_requested_scopes_results_in_empty_token_scopes(self) -> None:
+        """When no scopes are requested, token should have empty scopes, not all IdP scopes."""
+        # Configure IdP with allowed scopes
+        self.idp.allowed_scopes = ["org:read", "project:read", "event:read"]
+        self.idp.save()
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        # Request with no scope parameter - should result in empty scopes
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+                # No "scope" parameter
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        # Empty scopes should result in empty scope string (not all IdP allowed scopes)
+        assert data["scope"] == ""
+
+        # Verify token actually has empty scopes
+        api_token = ApiToken.objects.get(token=data["access_token"])
+        assert api_token.get_scopes() == []
+
+    def test_user_not_member_of_organization_rejected(self) -> None:
+        """User not a member of the IdP's organization should be rejected."""
+        # Create a different organization and IdP
+        other_org = self.create_organization(name="Other Org")
+        other_idp_issuer = "https://other.okta.com"
+
+        from sentry.models.trustedidentityprovider import TrustedIdentityProvider
+
+        TrustedIdentityProvider.objects.create(
+            organization_id=other_org.id,
+            issuer=other_idp_issuer,
+            name="Other Okta",
+            jwks_uri="https://other.okta.com/.well-known/jwks.json",
+            jwks_cache={"keys": [self.jwk]},
+            jwks_cached_at=timezone.now(),
+        )
+
+        # Create JWT with the other org's issuer
+        token = self._create_jwt(
+            {
+                "iss": other_idp_issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,  # This user is NOT a member of other_org
+                "aud": "http://testserver",
+            }
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_expired_jwt_returns_invalid_grant(self) -> None:
+        """Expired JWT should return invalid_grant, not a 500 error."""
+        import time
+
+        # Create an expired JWT
+        claims = {
+            "iss": self.issuer,
+            "sub": "user@example.com",
+            "email": self.user.email,
+            "aud": "http://testserver",
+            "exp": int(time.time()) - 3600,  # Expired 1 hour ago
+        }
+        # Don't use _create_jwt since it auto-adds exp
+        token = self.jwt.encode(
+            claims,
+            self.private_key_pem,
+            algorithm="RS256",
+            headers={"kid": self.kid},
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        # Should return 400 invalid_grant, not 500 server error
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_application_scope_intersection(self) -> None:
+        """Token scopes should be intersection of requested, IdP allowed, and application scopes."""
+        # Configure IdP with allowed scopes
+        self.idp.allowed_scopes = ["org:read", "project:read", "event:read"]
+        self.idp.save()
+
+        # Configure application with restricted scopes
+        self.application.scopes = ["org:read", "project:read", "member:read"]
+        self.application.save()
+
+        token = self._create_jwt(
+            {
+                "iss": self.issuer,
+                "sub": "user@example.com",
+                "email": self.user.email,
+                "aud": "http://testserver",
+            }
+        )
+
+        # Request scopes that overlap with IdP and app
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": token,
+                "scope": "org:read project:read event:read member:read",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        # Final scopes = (requested) ∩ (IdP allowed) ∩ (app allowed)
+        # org:read: in all three ✓
+        # project:read: in all three ✓
+        # event:read: in IdP but not in app ✗
+        # member:read: in app but not in IdP ✗
+        scope_set = set(data["scope"].split())
+        assert scope_set == {"org:read", "project:read"}

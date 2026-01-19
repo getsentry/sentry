@@ -104,6 +104,7 @@ from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettin
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
+from sentry.models.trustedidentityprovider import TrustedIdentityProvider
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.sentry_apps.logic import SentryAppUpdater
@@ -831,6 +832,12 @@ class ExhaustiveFixtures(Fixtures):
             scope_list=["org:ci"],
             date_last_used=None,
             project_last_used_id=project.id,
+        )
+        TrustedIdentityProvider.objects.create(
+            organization_id=org.id,
+            issuer=f"https://{org.slug}.okta.com",
+            name=f"Okta for {org.slug}",
+            jwks_uri=f"https://{org.slug}.okta.com/.well-known/jwks.json",
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
