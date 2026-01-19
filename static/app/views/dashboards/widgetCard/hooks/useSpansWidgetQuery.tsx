@@ -96,7 +96,6 @@ export function useSpansSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-
   // Cache the previous rawData array to prevent unnecessary rerenders
   const prevRawDataRef = useRef<SpansSeriesResponse[] | undefined>(undefined);
 
@@ -152,23 +151,18 @@ export function useSpansSeriesQuery(
     return keys;
   }, [filteredWidget, organization, pageFilters, samplingMode]);
 
-  // Use native useQueries with queue-integrated queryFn
-  // React Query auto-refetches when keys change, but API calls go through the queue
-  /* eslint-disable @tanstack/query/exhaustive-deps -- queue is provided via context and shouldn't be in query keys */
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: async (context): Promise<ApiResult<SpansSeriesResponse>> => {
-        // Cast context to have the correct queryKey type
-        const apiContext = context as typeof context & {queryKey: ApiQueryKey};
-
+  // Create stable queryFn that uses queue from ref
+  const createQueryFn = useCallback(
+    () =>
+      async (context: any): Promise<ApiResult<SpansSeriesResponse>> => {
         // If queue is available, wrap the API call to go through the queue
+        // Read from ref to avoid queryFn dependency on queue
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
               current: async () => {
                 try {
-                  const result = await fetchDataQuery<SpansSeriesResponse>(apiContext);
+                  const result = await fetchDataQuery<SpansSeriesResponse>(context);
                   resolve(result);
                 } catch (error) {
                   reject(error);
@@ -180,43 +174,32 @@ export function useSpansSeriesQuery(
         }
 
         // Fallback: call directly if queue not available
-        return fetchDataQuery<SpansSeriesResponse>(apiContext);
+        return fetchDataQuery<SpansSeriesResponse>(context);
       },
+    [queue]
+  );
+  const queryResults = useQueries({
+    queries: queryKeys.map(queryKey => ({
+      queryKey,
+      queryFn: createQueryFn(),
       staleTime: 0,
-      enabled, // Auto-fetch when enabled and when keys change
+      enabled,
       retry: false,
       // Keep data from previous query keys while fetching new data
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
-  /* eslint-enable @tanstack/query/exhaustive-deps */
 
-  // Store query results in ref for stable refetch callback
-  const queryResultsRef = useRef(queryResults);
-  queryResultsRef.current = queryResults;
-
-  // Refetch function to trigger all queries
-  const refetch = useCallback(async () => {
-    await Promise.all(queryResultsRef.current.map(q => q?.refetch()));
-  }, []);
-
-  // Transform data after all queries complete
-  const transformedData = useMemo(() => {
-    // Check if all queries have completed fetching
+  const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-
-    // Check if all queries have data (data is ApiResult tuple: [response, statusText, meta])
     const allHaveData = queryResults.every(q => q?.data?.[0]);
-
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
-    // Show loading state while fetching OR if queries don't have data yet
     if (!allHaveData || isFetching) {
       return {
         loading: true,
         errorMessage,
         rawData: EMPTY_ARRAY,
-        refetch,
       };
     }
 
@@ -230,13 +213,10 @@ export function useSpansSeriesQuery(
         return;
       }
 
-      // Extract actual data from ApiResult tuple [data, statusText, responseMeta]
       const responseData = q.data[0];
 
-      // Store raw data for callbacks
       rawData[requestIndex] = responseData;
 
-      // Transform the data
       const transformedResult = SpansConfig.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
@@ -288,10 +268,8 @@ export function useSpansSeriesQuery(
       timeseriesResultsTypes,
       timeseriesResultsUnits,
       rawData: finalRawData,
-      refetch,
     };
-    // eslint-disable-next-line @tanstack/query/no-unstable-deps -- using ref to avoid instability
-  }, [queryResults, filteredWidget, organization, refetch]);
+  })();
 
   return transformedData;
 }
@@ -308,7 +286,7 @@ export function useSpansTableQuery(
     widget,
     organization,
     pageFilters,
-    enabled = true, // Enabled by default - React Query auto-fetches when keys change
+    enabled = true,
     samplingMode,
     cursor,
     limit,
@@ -318,16 +296,12 @@ export function useSpansTableQuery(
 
   const {queue} = useWidgetQueryQueue();
 
-  // Cache the previous rawData array to prevent unnecessary rerenders
   const prevRawDataRef = useRef<SpansTableResponse[] | undefined>(undefined);
-
-  // Apply dashboard filters
   const filteredWidget = useMemo(
     () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  // Build query keys for all widget queries
   const queryKeys = useMemo(() => {
     return filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
@@ -339,7 +313,6 @@ export function useSpansTableQuery(
         dataset: DiscoverDatasets.SPANS,
       };
 
-      // Handle orderby
       let orderBy = query.orderby;
       if (orderBy) {
         if (isEquationAlias(trimStart(orderBy, '-'))) {
@@ -360,7 +333,6 @@ export function useSpansTableQuery(
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
-      // Build the API query key for events endpoint
       return [
         `/organizations/${organization.slug}/events/`,
         {
@@ -371,23 +343,15 @@ export function useSpansTableQuery(
     });
   }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
 
-  // Use native useQueries with queue-integrated queryFn
-  // React Query auto-refetches when keys change, but API calls go through the queue
-  /* eslint-disable @tanstack/query/exhaustive-deps -- queue is provided via context and shouldn't be in query keys */
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: async (context): Promise<ApiResult<SpansTableResponse>> => {
-        // Cast context to have the correct queryKey type
-        const apiContext = context as typeof context & {queryKey: ApiQueryKey};
-
-        // If queue is available, wrap the API call to go through the queue
+  const createQueryFnTable = useCallback(
+    () =>
+      async (context: any): Promise<ApiResult<SpansTableResponse>> => {
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
               current: async () => {
                 try {
-                  const result = await fetchDataQuery<SpansTableResponse>(apiContext);
+                  const result = await fetchDataQuery<SpansTableResponse>(context);
                   resolve(result);
                 } catch (error) {
                   reject(error);
@@ -397,43 +361,33 @@ export function useSpansTableQuery(
             queue.addItem({fetchDataRef: fetchFnRef});
           });
         }
-
-        // Fallback: call directly if queue not available
-        return fetchDataQuery<SpansTableResponse>(apiContext);
+        return fetchDataQuery<SpansTableResponse>(context);
       },
+    [queue]
+  );
+
+  // Use native useQueries with queue-integrated queryFn
+  // React Query auto-refetches when keys change, but API calls go through the queue
+  const queryResults = useQueries({
+    queries: queryKeys.map(queryKey => ({
+      queryKey,
+      queryFn: createQueryFnTable(),
       staleTime: 0,
       enabled,
       retry: false,
     })),
   });
-  /* eslint-enable @tanstack/query/exhaustive-deps */
 
-  // Store query results in ref for stable refetch callback
-  const queryResultsRef2 = useRef(queryResults);
-  queryResultsRef2.current = queryResults;
-
-  // Refetch function to trigger all queries
-  const refetch = useCallback(async () => {
-    await Promise.all(queryResultsRef2.current.map(q => q?.refetch()));
-  }, []);
-
-  // Transform data after all queries complete
-  const transformedData = useMemo(() => {
-    // Check if all queries have completed fetching
+  const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-
-    // Check if all queries have data (data is ApiResult tuple: [response, statusText, meta])
     const allHaveData = queryResults.every(q => q?.data?.[0]);
-
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
-    // Show loading state while fetching OR if queries don't have data yet
     if (!allHaveData || isFetching) {
       return {
         loading: true,
         errorMessage,
         rawData: EMPTY_ARRAY,
-        refetch,
       };
     }
 
@@ -446,11 +400,8 @@ export function useSpansTableQuery(
         return;
       }
 
-      // Extract actual data from ApiResult tuple [data, statusText, responseMeta]
       const responseData = q.data[0];
       const responseMeta = q.data[2];
-
-      // Store raw data for callbacks
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -502,10 +453,8 @@ export function useSpansTableQuery(
       tableResults,
       pageLinks: responsePageLinks,
       rawData: finalRawData,
-      refetch,
     };
-    // eslint-disable-next-line @tanstack/query/no-unstable-deps -- using ref to avoid instability
-  }, [queryResults, filteredWidget, organization, pageFilters, refetch]);
+  })();
 
   return transformedData;
 }

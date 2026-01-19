@@ -71,7 +71,7 @@ export interface SearchBarData {
  */
 export type WidgetQueryParams = {
   /**
-   * Whether the queries should be enabled. Used for queue integration.
+   * Whether the queries should be enabled.
    */
   enabled: boolean;
   /**

@@ -70,17 +70,12 @@ export type GenericWidgetQueriesResult = {
 
 /**
  * Result type for hook-based queries.
- * Hooks MUST always return refetch and rawData for queue/callback integration.
  */
 export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
   /**
    * Raw API response data, used for callbacks.
    */
   rawData: any[];
-  /**
-   * Refetch function for re-triggering queries.
-   */
-  refetch: () => Promise<void>;
 };
 
 export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
@@ -179,22 +174,14 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         onDemandControlContext,
         mepSetting,
         samplingMode,
-        enabled: !disabled && !propsLoading, // Auto-fetch when keys change
+        enabled: !disabled && !propsLoading,
         limit,
         cursor,
       })
     : null;
 
-  // Track previous raw data to detect when new data arrives after refetch
+  // Track previous raw data to detect when new data arrives
   const prevRawDataRef = useRef<any[] | undefined>(undefined);
-
-  // Store hookResults in a ref to avoid recreating fetchDataHook on every hookResults change
-  const hookResultsRef = useRef(hookResults);
-  hookResultsRef.current = hookResults;
-
-  // Store callback in ref to avoid dependency issues
-  const onDataFetchStartRef = useRef(onDataFetchStart);
-  onDataFetchStartRef.current = onDataFetchStart;
 
   // Watch for when hook data changes and call callbacks
   useEffect(() => {
@@ -598,24 +585,25 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   }, []);
 
   useEffect(() => {
+    if (hasHookApproach) {
+      return;
+    }
+
     if (!propsLoading && isMountedRef.current && !hasInitialFetchRef.current) {
       hasInitialFetchRef.current = true;
       prevPropsRef.current = props;
-      // For hook-based queries, React Query handles fetching automatically when enabled
-      // Only use queue for old Promise-based approach
-      if (!hasHookApproach) {
-        fetchDataWithQueueIfAvailable();
-      }
+      fetchDataWithQueueIfAvailable();
     }
-    // NOTE: Only depend on propsLoading and the callbacks, NOT the entire props object
-    // The props are stored in prevPropsRef for comparison in the update effect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propsLoading, fetchDataWithQueueIfAvailable, hasHookApproach]);
+  }, [propsLoading, fetchDataWithQueueIfAvailable, hasHookApproach, props]);
 
-  // This effect runs after EVERY render to check if props have changed
-  // We intentionally don't use dependencies to avoid infinite loops
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // This effect checks if props have changed and triggers refetch for old Promise-based approach
+  // Hook-based queries don't need this - React Query handles prop changes automatically
   useEffect(() => {
+    // Only run for non-hook approach (legacy Promise-based widgets)
+    if (hasHookApproach) {
+      return;
+    }
+
     const prevProps = prevPropsRef.current;
     if (!prevProps) {
       prevPropsRef.current = props;
@@ -710,10 +698,20 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     }
 
     prevPropsRef.current = props;
-    // NOTE: This effect runs after EVERY render to check if props have changed
-    // We don't include specific props as dependencies because they create new references
-    // on every render, causing infinite loops. Instead, we check for deep equality inside.
-  });
+  }, [
+    hasHookApproach,
+    widget,
+    dashboardFilters,
+    forceOnDemand,
+    disabled,
+    selection,
+    cursor,
+    loading,
+    rawResults,
+    fetchDataWithQueueIfAvailable,
+    organization,
+    props,
+  ]);
 
   // If using hook-based approach, return hook results
   // Otherwise, return old approach results
