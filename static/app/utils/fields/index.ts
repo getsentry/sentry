@@ -3446,10 +3446,6 @@ const getFieldDefinition = (
     ? getConventionsFallbackFieldDefinition(key, kind)
     : null;
 
-  if (conventionsFallback) {
-    logConventionsFallback({key, type, kind});
-  }
-
   switch (type) {
     case 'replay':
       if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
@@ -3473,6 +3469,7 @@ const getFieldDefinition = (
       }
 
       if (conventionsFallback) {
+        logConventionsFallback({key, type, kind});
         return conventionsFallback;
       }
 
@@ -3487,6 +3484,7 @@ const getFieldDefinition = (
       }
 
       if (conventionsFallback) {
+        logConventionsFallback({key, type, kind});
         return conventionsFallback;
       }
 
@@ -3497,6 +3495,7 @@ const getFieldDefinition = (
       }
 
       if (conventionsFallback) {
+        logConventionsFallback({key, type, kind});
         return conventionsFallback;
       }
 
@@ -3523,6 +3522,7 @@ const getFieldDefinition = (
       }
 
       if (conventionsFallback) {
+        logConventionsFallback({key, type, kind});
         return conventionsFallback;
       }
 
@@ -3550,6 +3550,7 @@ const getFieldDefinition = (
       }
 
       if (conventionsFallback) {
+        logConventionsFallback({key, type, kind});
         return conventionsFallback;
       }
 
@@ -3578,6 +3579,7 @@ const getFieldDefinition = (
       }
 
       if (conventionsFallback) {
+        logConventionsFallback({key, type, kind});
         return conventionsFallback;
       }
 
