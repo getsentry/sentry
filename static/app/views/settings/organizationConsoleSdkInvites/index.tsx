@@ -118,7 +118,6 @@ export default function ConsoleSDKInvitesSettings() {
                           if (isRevoking) {
                             return;
                           }
-                          addLoadingMessage(t('Revoking %s access...', displayName));
                           revokePlatformInvite({
                             orgSlug: organization.slug,
                             items: [{user_id: invite.user_id, platform}],
