@@ -14,6 +14,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
 
 from ..metrics import (
     CodeReviewErrorType,
@@ -71,6 +72,12 @@ WHITELISTED_ACTIONS = {
     PullRequestAction.SYNCHRONIZE,
 }
 
+ACTIONS_REQUIRING_TRIGGER_CHECK: dict[PullRequestAction, CodeReviewTrigger] = {
+    PullRequestAction.OPENED: CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    PullRequestAction.READY_FOR_REVIEW: CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    PullRequestAction.SYNCHRONIZE: CodeReviewTrigger.ON_NEW_COMMIT,
+}
+
 
 def handle_pull_request_event(
     *,
@@ -79,6 +86,7 @@ def handle_pull_request_event(
     organization: Organization,
     repo: Repository,
     integration: RpcIntegration | None = None,
+    org_code_review_settings: CodeReviewSettings | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -119,6 +127,14 @@ def handle_pull_request_event(
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
+        return
+
+    action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
+    if action_requires_trigger_permission is not None and (
+        org_code_review_settings is None
+        or action_requires_trigger_permission not in org_code_review_settings.triggers
+    ):
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
         return
 
     if pull_request.get("draft") is True:

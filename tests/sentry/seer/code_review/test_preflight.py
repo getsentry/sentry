@@ -262,7 +262,7 @@ class TestCodeReviewPreflightService(TestCase):
 
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
-    def test_returns_none_settings_for_beta_org_without_repo_settings(
+    def test_returns_default_settings_for_beta_org_without_repo_settings(
         self, mock_check_quota: MagicMock
     ) -> None:
         mock_check_quota.return_value = True
@@ -279,7 +279,10 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is True
-        assert result.settings is None
+        assert result.settings is not None
+        assert result.settings.enabled is True
+        assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
+        assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
 
     # -------------------------------------------------------------------------
     # Billing tests
