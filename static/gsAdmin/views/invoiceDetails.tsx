@@ -39,12 +39,12 @@ export default function InvoiceDetails() {
   );
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const QUERY_KEY: ApiQueryKey = [
+  const QUERY_KEY = [
     `/_admin/cells/${region}/admin-invoices/${invoiceId}/`,
     {
       host: regionInfo ? regionInfo.url : '',
     },
-  ];
+  ] as unknown as ApiQueryKey;
 
   const {
     data: invoice,
