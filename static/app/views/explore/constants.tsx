@@ -1,4 +1,5 @@
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
@@ -76,5 +77,11 @@ export const SENTRY_LOG_STRING_TAGS: string[] = [
 ];
 
 export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NUMBER];
+
+export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [
+  TraceMetricKnownFieldKey.TIMESTAMP,
+];
+
+export const SENTRY_TRACEMETRIC_NUMBER_TAGS: string[] = [];
 
 export const MAX_CROSS_EVENT_QUERIES = 2;
