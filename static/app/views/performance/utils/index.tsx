@@ -11,6 +11,7 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import toArray from 'sentry/utils/array/toArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -388,7 +389,17 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
   const project = projects.find(p => p.id === stringProjectId);
 
   return useApiQuery<{enable_images: boolean}>(
-    [`/projects/${organization.slug}/${project?.slug}/performance/configure/`],
+    [
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project?.slug!,
+          },
+        }
+      ),
+    ],
     {
       staleTime: 0,
       enabled: Boolean(project),
