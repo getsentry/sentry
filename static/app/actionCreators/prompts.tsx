@@ -3,6 +3,7 @@ import {useCallback, useMemo} from 'react';
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -113,9 +114,12 @@ export const makePromptsCheckQueryKey = ({
   organization,
   projectId,
 }: PromptCheckParams): ApiQueryKey => {
-  const url = `/organizations/${organization?.slug}/prompts-activity/`;
   return [
-    url,
+    getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
+      path: {
+        organizationIdOrSlug: organization?.slug!,
+      },
+    }),
     {query: {feature, organization_id: organization?.id, project_id: projectId}},
   ];
 };
