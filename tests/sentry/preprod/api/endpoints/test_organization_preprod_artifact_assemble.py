@@ -551,7 +551,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        # New URL format: /organizations/{org}/preprod/size/{artifact_id}?project={project}
         expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.slug}"
         assert expected_url in response.data["artifactUrl"]
 
@@ -626,7 +625,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        # New URL format: /organizations/{org}/preprod/size/{artifact_id}?project={project}
         expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.slug}"
         assert expected_url in response.data["artifactUrl"]
 
