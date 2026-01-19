@@ -88,6 +88,14 @@ describe('DetectorEdit', () => {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-window/`,
+      body: {start: 1700000000, end: 1700000001},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-buckets/`,
+      body: [],
+    });
   });
 
   describe('Metric Detector', () => {
