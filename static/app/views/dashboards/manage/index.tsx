@@ -29,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import localStorage from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -166,7 +167,9 @@ function ManageDashboards() {
     refetch: refetchDashboards,
   } = useApiQuery<DashboardListItem[]>(
     [
-      `/organizations/${organization.slug}/dashboards/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pick(location.query, ['cursor', 'query']),
