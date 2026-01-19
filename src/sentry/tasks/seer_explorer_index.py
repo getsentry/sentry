@@ -51,12 +51,14 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             return
 
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
-            if (
+            has_feature = (
                 features.batch_has(FEATURE_NAMES, project.organization)
                 and not bool(project.organization.get_option("sentry:hide_ai_features"))
                 and get_seer_org_acknowledgement(project.organization)
-            ):
-                yield project.id, project.organization_id
+            )
+
+        if has_feature:
+            yield project.id, project.organization_id
 
 
 @instrumented_task(
