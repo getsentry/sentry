@@ -196,6 +196,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     def build_signature(self, body):
         assert self.application is not None
         secret = self.application.client_secret
+        assert secret is not None, "Cannot build signature for public client"
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()

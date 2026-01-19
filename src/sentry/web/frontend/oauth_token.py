@@ -805,8 +805,6 @@ class OAuthTokenView(View):
         Returns:
             Number of tokens deleted
         """
-        if family_id is None:
-            return 0
 
         # Use unguarded_write because deleting tokens triggers SET_NULL on
         # SentryAppInstallation.api_token, which is a cross-model write
