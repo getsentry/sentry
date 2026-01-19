@@ -274,7 +274,7 @@ class Span:
         parts = s.rsplit(":", 1)
         if len(parts) != 2:
             raise ValueError(
-                "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)"
+                "span must consist of a span op and a valid 16 character hex delimited by a colon (:)"
             )
         if not is_span_id(parts[1]):
             raise ValueError(INVALID_SPAN_ID.format("spanGroup"))

@@ -4,7 +4,7 @@ import Settings from './components/settings';
 
 class SessionStackPlugin extends BasePlugin {
   displayName = 'SessionStack';
-  // should never be be called since this is a non-issue plugin
+  // should never be called since this is a non-issue plugin
   renderGroupActions() {
     return null;
   }
