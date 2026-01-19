@@ -26,7 +26,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.producer import produce_preprod_artifact_to_kafka
+from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -137,10 +137,22 @@ def assemble_preprod_artifact(
         return
 
     try:
+        has_size_quota = quotas.backend.has_usage_quota(org_id, DataCategory.SIZE_ANALYSIS)
+        has_installable_quota = quotas.backend.has_usage_quota(
+            org_id, DataCategory.INSTALLABLE_BUILD
+        )
+
+        requested_features: list[PreprodFeature] = []
+        if has_size_quota:
+            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
+        if has_installable_quota:
+            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
+            requested_features=requested_features,
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
