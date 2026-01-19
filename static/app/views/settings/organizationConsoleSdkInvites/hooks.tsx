@@ -12,7 +12,7 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
+export type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
 export interface ConsoleSdkInviteUser {
   email: string;

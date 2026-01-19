@@ -5,11 +5,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -21,7 +16,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -32,7 +26,6 @@ import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
   const user = useUser();
-  const queryClient = useQueryClient();
 
   const {
     data: invites,
