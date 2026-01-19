@@ -68,6 +68,7 @@ from __future__ import annotations
 import itertools
 import logging
 import math
+from collections import defaultdict
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
@@ -203,8 +204,8 @@ class SpansBuffer:
 
         result_meta = []
         is_root_span_count = 0
-        min_redirect_depth = float("inf")
-        max_redirect_depth = float("-inf")
+        gauge_metrics_dict: defaultdict[str, float] = defaultdict(float)
+        timing_metrics_dict: defaultdict[str, float] = defaultdict(float)
 
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
             trees = self._group_by_parent(spans)
@@ -252,18 +253,47 @@ class SpansBuffer:
             assert len(result_meta) == len(results)
 
             for (project_and_trace, parent_span_id), result in zip(result_meta, results):
-                redirect_depth, set_key, has_root_span, evalsha_latency_ms = result
+                loop_gauge_metrics = defaultdict(float)
+                loop_timing_metrics = defaultdict(float)
+                (
+                    loop_gauge_metrics["redirect_depth"],
+                    loop_gauge_metrics["redirect_table_size"],
+                    set_key,
+                    has_root_span,
+                    loop_timing_metrics["evalsha_latency_ms"],
+                    loop_timing_metrics["redirect_step_latency_ms"],
+                    loop_timing_metrics["sunionstore_args_step_latency_ms"],
+                    loop_timing_metrics["zunionstore_step_latency_ms"],
+                    loop_timing_metrics["arg_cleanup_step_latency_ms"],
+                    loop_timing_metrics["zpopmin_step_latency_ms"],
+                    loop_timing_metrics["ingested_count_step_latency_ms"],
+                    loop_gauge_metrics["zpopcalls"],
+                    loop_gauge_metrics["parent_span_set_before_size"],
+                    loop_gauge_metrics["parent_span_set_after_size"],
+                ) = result
 
                 # Log individual EVALSHA latency for this trace
-                self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
+                self._buffer_logger.log(
+                    project_and_trace, loop_timing_metrics["evalsha_latency_ms"]
+                )
 
                 shard = self.assigned_shards[
                     int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
                 ]
                 queue_key = self._get_queue_key(shard)
 
-                min_redirect_depth = min(min_redirect_depth, redirect_depth)
-                max_redirect_depth = max(max_redirect_depth, redirect_depth)
+                # Aggregate metrics
+                for key, value in loop_gauge_metrics.items():
+                    gauge_metrics_dict[f"max_{key}"] = max(gauge_metrics_dict[f"max_{key}"], value)
+                    gauge_metrics_dict[f"min_{key}"] = min(gauge_metrics_dict[f"min_{key}"], value)
+
+                for key, value in loop_timing_metrics.items():
+                    timing_metrics_dict[f"max_{key}"] = max(
+                        timing_metrics_dict[f"max_{key}"], value
+                    )
+                    timing_metrics_dict[f"min_{key}"] = min(
+                        timing_metrics_dict[f"min_{key}"], value
+                    )
 
                 # if the currently processed span is a root span, OR the buffer
                 # already had a root span inside, use a different timeout than
@@ -300,8 +330,12 @@ class SpansBuffer:
         metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
-        metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
-        metrics.gauge("spans.buffer.max_redirect_depth", max_redirect_depth)
+
+        # Log all the observability metrics
+        for key, value in gauge_metrics_dict.items():
+            metrics.gauge(f"spans.buffer.{key}", value)
+        for key, value in timing_metrics_dict.items():
+            metrics.timing(f"spans.buffer.process_spans.{key}", value)
 
     def _ensure_script(self):
         if self.add_buffer_sha is not None:
