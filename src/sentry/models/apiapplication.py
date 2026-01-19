@@ -25,6 +25,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.types.region import find_all_region_names
+from sentry.types.token import AuthTokenType
 
 logger = logging.getLogger("sentry.oauth")
 
@@ -44,9 +45,11 @@ def generate_name():
     return petname.generate(2, " ", letters=10).title()
 
 
-def generate_token():
+def generate_token(token_type: AuthTokenType | str | None = None) -> str:
     # `client_id` on `ApiApplication` is currently limited to 64 characters
     # so we need to restrict the length of the secret
+    if token_type:
+        return f"{token_type}{secrets.token_hex(nbytes=32)}"
     return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
 
 
@@ -62,7 +65,9 @@ class ApiApplication(Model):
     __relocation_scope__ = RelocationScope.Global
 
     client_id = models.CharField(max_length=64, unique=True, default=generate_token)
-    client_secret = models.TextField(default=generate_token)
+    client_secret = models.TextField(
+        default=lambda: generate_token(token_type=AuthTokenType.USER_APP)
+    )
     owner = FlexibleForeignKey("sentry.User", null=True)
     name = models.CharField(max_length=64, blank=True, default=generate_name)
     status = BoundedPositiveIntegerField(

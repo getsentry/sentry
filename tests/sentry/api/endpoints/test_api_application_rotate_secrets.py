@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.models.apiapplication import ApiApplication
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.types.token import AuthTokenType
 
 
 @control_silo_test
@@ -40,3 +41,4 @@ class ApiApplicationRotateSecretTest(APITestCase):
         new_secret = response.data["clientSecret"]
         assert len(new_secret) == len(old_secret)
         assert new_secret != old_secret
+        assert new_secret.startswith(AuthTokenType.USER_APP)

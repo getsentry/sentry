@@ -4,6 +4,7 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.types.token import AuthTokenType
 
 
 @control_silo_test
@@ -88,6 +89,7 @@ class SentryAppRotateSecretTest(APITestCase):
         new_secret = response.data["clientSecret"]
         assert len(new_secret) == len(old_secret)
         assert new_secret != old_secret
+        assert new_secret.startswith(AuthTokenType.USER_APP)
 
     def test_superuser_has_access(self) -> None:
         superuser = self.create_user(is_superuser=True)
@@ -98,6 +100,7 @@ class SentryAppRotateSecretTest(APITestCase):
         new_secret = response.data["clientSecret"]
         assert len(new_secret) == len(old_secret)
         assert new_secret != old_secret
+        assert new_secret.startswith(AuthTokenType.USER_APP)
 
     def test_no_corresponding_application_found(self) -> None:
         self.login_as(self.user)
