@@ -105,10 +105,17 @@ class UserSocialAuth(models.Model):
         """
         Return True/False if a User instance exists with the given arguments.
         Arguments are directly passed to filter() manager method.
-        TODO: consider how to ensure case-insensitive email matching
+        Email matching is case-insensitive to comply with email address standards.
         """
         kwargs = cls.username_field(kwargs)
-        return cls.user_model().objects.filter(*args, **kwargs).exists()
+        # Ensure case-insensitive email matching
+        user_model = cls.user_model()
+        email_field = getattr(user_model, "EMAIL_FIELD", "email")
+        if email_field in kwargs:
+            # Convert email to case-insensitive lookup
+            email_value = kwargs.pop(email_field)
+            kwargs[f"{email_field}__iexact"] = email_value
+        return user_model.objects.filter(*args, **kwargs).exists()
 
     @classmethod
     def create_user(cls, *args, **kwargs):
