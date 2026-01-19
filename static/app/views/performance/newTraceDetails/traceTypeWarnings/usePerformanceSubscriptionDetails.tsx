@@ -1,4 +1,4 @@
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 // Note: This does not fully represent the actual Subscription type.
@@ -45,7 +45,7 @@ export function usePerformanceSubscriptionDetails({
   const organization = useOrganization();
 
   const {data: subscription, ...rest} = useApiQuery<Subscription>(
-    [`/subscriptions/${organization.slug}/`],
+    [`/subscriptions/${organization.slug}/`] as unknown as ApiQueryKey,
     {
       staleTime: Infinity,
     }
