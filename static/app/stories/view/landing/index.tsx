@@ -192,7 +192,7 @@ const Hero = styled('div')`
   p {
     font-size: ${p => p.theme.fontSize.lg};
     text-wrap: balance;
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 
   img {

@@ -143,7 +143,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       xAxis: {show: false, type: 'time'},
       yAxis: {
         axisLabel: {
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
           formatter: (value: number) =>
             axisLabelFormatter(value, 'rate', true, undefined, RateUnit.PER_SECOND),
         },

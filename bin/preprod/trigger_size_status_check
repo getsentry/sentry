@@ -17,7 +17,14 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import (
+    _evaluate_rule_threshold,
+    _fetch_base_size_metrics,
+    _get_artifact_filter_context,
+    _get_status_check_rules,
+    _rule_matches_artifact,
+    create_preprod_status_check_task,
+)
 
 #################
 # Configuration #
@@ -259,6 +266,7 @@ def create_base_artifacts_for_comparison(
             project=project,
             app_id=build_config["app_id"],
             app_name=build_config["app_name"],
+            artifact_type=build_config["artifact_type"],
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             build_version=build_config["build_version"],
@@ -349,14 +357,113 @@ def get_artifact_state_from_config(state_str: str) -> tuple:
     return state_map.get(state_str, (PreprodArtifact.ArtifactState.PROCESSED, False, None))
 
 
+def show_rule_evaluation(artifact_id: int) -> None:
+    """Show which rules matched and which triggered for all artifacts in the commit."""
+    artifact = PreprodArtifact.objects.get(id=artifact_id)
+
+    all_artifacts = list(artifact.get_sibling_artifacts_for_commit())
+
+    rules = _get_status_check_rules(artifact.project)
+
+    if not rules:
+        logger.info("\n📋 No rules configured")
+        return
+
+    logger.info("\n📋 Rule Evaluation Results:")
+
+    base_metrics_map = _fetch_base_size_metrics(all_artifacts, artifact.project)
+
+    overall_triggered = False
+
+    for art in all_artifacts:
+        size_metrics = art.preprodartifactsizemetrics_set.filter(
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        ).first()
+
+        if not size_metrics:
+            continue
+
+        base_metric = base_metrics_map.get(art.id)
+        context = _get_artifact_filter_context(art)
+
+        logger.info("\n  📱 %s (%s):", art.app_id, context.get("build.platform", "unknown"))
+
+        if size_metrics:
+            head_install = size_metrics.max_install_size
+            head_download = size_metrics.max_download_size
+            logger.info(
+                "     Current: install=%s MB, download=%s MB",
+                round(head_install / 1024 / 1024, 2) if head_install else None,
+                round(head_download / 1024 / 1024, 2) if head_download else None,
+            )
+
+        if base_metric:
+            base_install = base_metric.max_install_size
+            base_download = base_metric.max_download_size
+            logger.info(
+                "     Base: install=%s MB, download=%s MB",
+                round(base_install / 1024 / 1024, 2) if base_install else None,
+                round(base_download / 1024 / 1024, 2) if base_download else None,
+            )
+            if size_metrics and base_install and head_install:
+                diff_mb = (head_install - base_install) / 1024 / 1024
+                diff_pct = ((head_install - base_install) / base_install) * 100
+                logger.info(
+                    "     Diff: %s%s MB (%s%s%%)",
+                    "+" if diff_mb > 0 else "",
+                    round(diff_mb, 2),
+                    "+" if diff_pct > 0 else "",
+                    round(diff_pct, 1),
+                )
+        else:
+            logger.info("     Base: No base metrics found (diff rules won't trigger)")
+
+        for rule in rules:
+            matches = _rule_matches_artifact(rule, context)
+            triggered = (
+                _evaluate_rule_threshold(rule, size_metrics, base_metric) if matches else False
+            )
+
+            if triggered:
+                status = "🔴 TRIGGERED"
+                overall_triggered = True
+            elif matches:
+                status = "✓ Matches"
+            else:
+                status = "⊘ Filtered out"
+
+            logger.info(
+                "     %s | %s %s (threshold: %s)",
+                status,
+                rule.metric,
+                rule.measurement,
+                rule.value,
+            )
+            if rule.filter_query:
+                logger.info("        Filter: %s", rule.filter_query)
+
+    if not overall_triggered:
+        logger.info("\n✅ All rules passed for all artifacts!")
+    else:
+        logger.info("\n❌ One or more rules triggered - check will fail")
+
+
 def main() -> None:
     """Main function to test size analysis status checks."""
     try:
-        # Get project
         project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
         logger.info("Found project: %s (ID: %s)", project.name, project.id)
 
-        # Get or create commit comparison
+        status_checks_enabled = project.get_option(
+            "sentry:preprod_size_status_checks_enabled", default=True
+        )
+
+        if not status_checks_enabled:
+            logger.info("⚠️  Status checks: DISABLED (no checks will be posted)")
+            sys.exit(0)
+
+        logger.info("✅ Status checks: ENABLED")
+
         commit_comparison, created = CommitComparison.objects.get_or_create(
             head_repo_name=REPO_NAME,
             head_sha=COMMIT_SHA,
@@ -522,7 +629,8 @@ def main() -> None:
         logger.info("Task result: %s", result)
         logger.info("✅ Status check function called successfully!")
 
-        # Show GitHub link
+        show_rule_evaluation(created_artifacts[0].id)
+
         logger.info("\n🔍 Check your GitHub status check at:")
         logger.info("   https://github.com/%s/commit/%s", REPO_NAME, COMMIT_SHA)
 

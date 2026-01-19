@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Change} from 'diff';
 import {diffChars, diffLines, diffWords} from 'diff';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {unreachable} from 'sentry/utils/unreachable';
 
 // @TODO(jonasbadalic): This used to be defined on the theme, but is component specific and lacks dark mode.
@@ -102,7 +104,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
           return (
             <tr key={j}>
               <Cell isRemoved={highlightRemoved}>
-                <Line>
+                <Flex wrap="wrap">
                   {getDisplayData(line, highlightAdded, highlightRemoved)
                     .filter(result => !result.added)
                     .map((result, i) => (
@@ -110,13 +112,13 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
                         {result.value}
                       </Word>
                     ))}
-                </Line>
+                </Flex>
               </Cell>
 
               <Gap />
 
               <Cell isAdded={highlightAdded}>
-                <Line>
+                <Flex wrap="wrap">
                   {getDisplayData(line, highlightAdded, highlightRemoved)
                     .filter(result => !result.removed)
                     .map((result, i) => (
@@ -124,7 +126,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
                         {result.value}
                       </Word>
                     ))}
-                </Line>
+                </Flex>
               </Cell>
             </tr>
           );
@@ -153,11 +155,6 @@ const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`
 
 const Gap = styled('td')`
   width: 20px;
-`;
-
-const Line = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
 `;
 
 const Word = styled('span')<{isAdded?: boolean; isRemoved?: boolean}>`

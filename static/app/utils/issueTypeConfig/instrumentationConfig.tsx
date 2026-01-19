@@ -6,11 +6,11 @@ const instrumentationConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     usesIssuePlatform: true,
     evidence: {title: t('Details')},
-    issueSummary: {enabled: true},
+    issueSummary: {enabled: false},
     // Instrumentation issues don't have traditional stacktraces
     stacktrace: {enabled: false},
     // Disable features that don't apply to instrumentation suggestions
-    autofix: true,
+    autofix: false,
     similarIssues: {enabled: false},
     mergedIssues: {enabled: false},
     regression: {enabled: false},
@@ -18,14 +18,14 @@ const instrumentationConfig: IssueCategoryConfigMapping = {
     tags: {enabled: false},
     stats: {enabled: false},
     header: {
-      filterBar: {enabled: false},
-      graph: {enabled: false},
+      filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
+      graph: {enabled: true, type: 'discover-events'},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
     },
     pages: {
       landingPage: Tab.DETAILS,
-      events: {enabled: false},
+      events: {enabled: true},
       openPeriods: {enabled: false},
       checkIns: {enabled: false},
       uptimeChecks: {enabled: false},
@@ -36,6 +36,7 @@ const instrumentationConfig: IssueCategoryConfigMapping = {
     },
     discover: {enabled: false},
     groupingInfo: {enabled: false},
+    instrumentationFixSection: {enabled: true},
   },
 };
 
