@@ -33,7 +33,7 @@ export default function ConsoleSDKInvitesSettings() {
     isError,
     refetch,
   } = useConsoleSdkInvites(organization.slug);
-  const {mutateAsync: revokePlatformInvite, isPending: isRevoking} =
+  const {mutate: revokePlatformInvite, isPending: isRevoking} =
     useRevokeConsoleSdkPlatformInvite();
 
   const userHasConsoleAccess = (organization.enabledConsolePlatforms?.length ?? 0) > 0;
