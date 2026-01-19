@@ -1,11 +1,9 @@
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GroupsFixture} from 'sentry-fixture/groups';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -14,8 +12,6 @@ import selectEvent from 'sentry-test/selectEvent';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
-import AlertsContainer from 'sentry/views/alerts';
-import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -89,39 +85,24 @@ describe('ProjectAlertsCreate', () => {
     jest.clearAllMocks();
   });
 
-  const createWrapper = (props = {}, location = {}) => {
-    const {organization, project, router} = initializeOrg(props);
+  const createWrapper = (
+    props = {},
+    locationOverride: {query?: Record<string, string>} = {}
+  ) => {
+    const {organization, project} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
-    const params = {orgId: organization.slug, projectId: project.slug};
-    const wrapper = render(
-      <AlertsContainer>
-        <AlertBuilderProjectProvider
-          {...RouteComponentPropsFixture()}
-          params={params}
-          organization={organization}
-        >
-          <ProjectAlertsCreate
-            {...RouteComponentPropsFixture()}
-            members={[]}
-            params={params}
-            organization={organization}
-            project={project}
-            location={LocationFixture({
-              pathname: `/organizations/org-slug/issues/alerts/rules/${project.slug}/new/`,
-              query: {createFromWizard: 'true'},
-              ...location,
-            })}
-            router={router}
-          />
-        </AlertBuilderProjectProvider>
-      </AlertsContainer>,
-      {
-        organization,
-      }
-    );
+    const {router} = render(<ProjectAlertsCreate />, {
+      organization,
+      outletContext: {project, members: []},
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/org-slug/issues/alerts/rules/${project.slug}/new/`,
+          query: {createFromWizard: 'true', ...locationOverride.query},
+        },
+      },
+    });
 
     return {
-      wrapper,
       organization,
       project,
       router,
@@ -130,17 +111,17 @@ describe('ProjectAlertsCreate', () => {
 
   it('adds default parameters if wizard was skipped', async () => {
     const location = {query: {}};
-    const wrapper = createWrapper(undefined, location);
+    const {router} = createWrapper(undefined, location);
     await waitFor(() => {
-      expect(wrapper.router.replace).toHaveBeenCalledWith(
+      expect(router.location).toEqual(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/alerts/new/metric/',
-          query: {
+          query: expect.objectContaining({
             aggregate: 'count()',
             dataset: 'events',
             eventTypes: 'error',
             project: 'project-slug',
-          },
+          }),
         })
       );
     });
@@ -316,7 +297,7 @@ describe('ProjectAlertsCreate', () => {
       });
 
       it('environment, async action and filter match', async () => {
-        const wrapper = createWrapper();
+        const {router} = createWrapper();
 
         // Change target environment
         await selectEvent.select(screen.getByText('All Environments'), ['production']);
@@ -358,14 +339,14 @@ describe('ProjectAlertsCreate', () => {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith(
+          expect(router.location.pathname).toBe(
             '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
 
       it('new condition', async () => {
-        const wrapper = createWrapper();
+        const {router} = createWrapper();
 
         // Change name of alert rule
         await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
@@ -413,14 +394,14 @@ describe('ProjectAlertsCreate', () => {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith(
+          expect(router.location.pathname).toBe(
             '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
 
       it('new filter', async () => {
-        const wrapper = createWrapper();
+        const {router} = createWrapper();
 
         // Change name of alert rule
         await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
@@ -462,14 +443,14 @@ describe('ProjectAlertsCreate', () => {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith(
+          expect(router.location.pathname).toBe(
             '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
 
       it('new action', async () => {
-        const wrapper = createWrapper();
+        const {router} = createWrapper();
 
         // Change name of alert rule
         await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -508,7 +489,7 @@ describe('ProjectAlertsCreate', () => {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith(
+          expect(router.location.pathname).toBe(
             '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });

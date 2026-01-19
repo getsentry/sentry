@@ -337,9 +337,7 @@ def trigger_coding_agent_handoff(
     )
     state = client.get_run(run_id)
 
-    short_id = None
-    if auto_create_pr:
-        short_id = group.qualified_short_id
+    short_id = group.qualified_short_id
 
     prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
 
