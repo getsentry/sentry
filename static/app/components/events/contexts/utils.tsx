@@ -192,7 +192,7 @@ export function getKnownStructuredData(
 
 /**
  * Returns the type of a given context, after coercing from its type and alias.
- * - 'type' refers the the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
+ * - 'type' refers to the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
  * - 'alias' refers to the key on event.contexts. This can be set by the user, but we have to depend on it for some contexts.
  */
 export function getContextType({alias, type}: {alias: string; type?: string}): string {
