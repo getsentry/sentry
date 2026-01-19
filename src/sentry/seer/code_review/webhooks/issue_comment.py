@@ -22,7 +22,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha, should_forward_to_seer
+from ..utils import _get_target_commit_sha
 
 logger = logging.getLogger(__name__)
 
@@ -127,26 +127,25 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
 
-    if should_forward_to_seer(github_event, event):
-        if comment_id:
-            _add_eyes_reaction_to_comment(
-                github_event,
-                GitHubIssueCommentAction(github_event_action),
-                integration,
-                organization,
-                repo,
-                str(comment_id),
-            )
-
-        target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
-
-        from .task import schedule_task
-
-        schedule_task(
-            github_event=github_event,
-            github_event_action=github_event_action,
-            event=event,
-            organization=organization,
-            repo=repo,
-            target_commit_sha=target_commit_sha,
+    if comment_id:
+        _add_eyes_reaction_to_comment(
+            github_event,
+            GitHubIssueCommentAction(github_event_action),
+            integration,
+            organization,
+            repo,
+            str(comment_id),
         )
+
+    target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
+
+    from .task import schedule_task
+
+    schedule_task(
+        github_event=github_event,
+        github_event_action=github_event_action,
+        event=event,
+        organization=organization,
+        repo=repo,
+        target_commit_sha=target_commit_sha,
+    )
