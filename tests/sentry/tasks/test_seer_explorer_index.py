@@ -7,6 +7,7 @@ import responses
 from django.conf import settings
 
 from sentry.constants import ObjectStatus
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.tasks.seer_explorer_index import (
     dispatch_explorer_index_projects,
     get_seer_explorer_enabled_projects,
@@ -33,7 +34,25 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         project4 = self.create_project(organization=org3)
         project5 = self.create_project(organization=org4)
 
-        with self.feature({"organizations:seer-explorer-index": [org1.slug, org2.slug]}):
+        PromptsActivity.objects.create(
+            organization_id=org1.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+        PromptsActivity.objects.create(
+            organization_id=org2.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org1.slug, org2.slug],
+                "organizations:seer-explorer-index": [org1.slug, org2.slug],
+            }
+        ):
             result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
@@ -51,7 +70,19 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
 
         inactive_project.update(status=ObjectStatus.PENDING_DELETION)
 
-        with self.feature({"organizations:seer-explorer-index": [org.slug]}):
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seer-explorer-index": [org.slug],
+            }
+        ):
             result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
@@ -62,8 +93,54 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
         result = list(get_seer_explorer_enabled_projects())
         assert len(result) == 0
+
+    def test_excludes_projects_with_hide_ai_features(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        org.update_option("sentry:hide_ai_features", True)
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seer-explorer-index": [org.slug],
+            }
+        ):
+            result = list(get_seer_explorer_enabled_projects())
+
+        assert len(result) == 0
+        assert project.id not in [p[0] for p in result]
+
+    def test_excludes_projects_without_seer_acknowledgement(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seer-explorer-index": [org.slug],
+            }
+        ):
+            result = list(get_seer_explorer_enabled_projects())
+
+        assert len(result) == 0
+        assert project.id not in [p[0] for p in result]
 
 
 @django_db_all
@@ -85,8 +162,22 @@ class TestScheduleExplorerIndex(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with self.options({"seer.explorer_index.enable": True}):
-            with self.feature({"organizations:seer-explorer-index": [org.slug]}):
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.options(
+            {"seer.explorer_index.enable": True, "seer.explorer_index.run_frequency.minutes": 1440}
+        ):
+            with self.feature(
+                {
+                    "organizations:gen-ai-features": [org.slug],
+                    "organizations:seer-explorer-index": [org.slug],
+                }
+            ):
                 with mock.patch(
                     "sentry.tasks.seer_explorer_index.dispatch_explorer_index_projects"
                 ) as mock_dispatch:
@@ -99,8 +190,22 @@ class TestScheduleExplorerIndex(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with self.options({"seer.explorer_index.enable": True}):
-            with self.feature({"organizations:seer-explorer-index": [org.slug]}):
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.options(
+            {"seer.explorer_index.enable": True, "seer.explorer_index.run_frequency.minutes": 1440}
+        ):
+            with self.feature(
+                {
+                    "organizations:gen-ai-features": [org.slug],
+                    "organizations:seer-explorer-index": [org.slug],
+                }
+            ):
                 with mock.patch(
                     "sentry.tasks.seer_explorer_index.dispatch_explorer_index_projects"
                 ) as mock_dispatch:
@@ -120,10 +225,11 @@ class TestDispatchExplorerIndexProjects(TestCase):
         timestamp = datetime(2024, 1, 15, 12, 0, 0, tzinfo=UTC)
         projects = [(i, 1) for i in range(150)]
 
-        with mock.patch(
-            "sentry.tasks.seer_explorer_index.run_explorer_index_for_projects.apply_async"
-        ) as mock_task:
-            result = list(dispatch_explorer_index_projects(iter(projects), timestamp))
+        with self.options({"seer.explorer_index.run_frequency.minutes": 1440}):
+            with mock.patch(
+                "sentry.tasks.seer_explorer_index.run_explorer_index_for_projects.apply_async"
+            ) as mock_task:
+                result = list(dispatch_explorer_index_projects(iter(projects), timestamp))
 
         assert mock_task.call_count == 2
         assert len(mock_task.call_args_list[0][1]["args"][0]) == 100
