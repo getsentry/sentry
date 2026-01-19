@@ -27,7 +27,6 @@ LAST_RUN_CACHE_KEY = "seer:explorer_index:last_run"
 LAST_RUN_CACHE_TIMEOUT = 24 * 60 * 60  # 24 hours
 
 EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
-EXPLORER_INDEX_RUN_FREQUENCY = timedelta(hours=24)
 # Use a larger prime number to spread indexing tasks throughout the day
 EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=127)
 
@@ -87,8 +86,6 @@ def schedule_explorer_index() -> None:
         logger.info("Index updated less than 24 hours ago, skiping")
         return
 
-    cache.set(LAST_RUN_CACHE_KEY, django_timezone.now(), LAST_RUN_CACHE_TIMEOUT)
-
     now = django_timezone.now()
 
     projects = get_seer_explorer_enabled_projects()
@@ -98,6 +95,8 @@ def schedule_explorer_index() -> None:
     scheduled_count = 0
     for _ in projects:
         scheduled_count += 1
+
+    cache.set(LAST_RUN_CACHE_KEY, now, LAST_RUN_CACHE_TIMEOUT)
 
     logger.info(
         "Successfully scheduled explorer index jobs for valid projects",
@@ -125,6 +124,10 @@ def dispatch_explorer_index_projects(
     batch: list[tuple[int, int]] = []
     count = 0
 
+    explorer_index_run_frequency = timedelta(
+        minutes=options.get("seer.explorer_index.run_frequency.minutes")
+    )
+
     for project_id, org_id in all_projects:
         batch.append((project_id, org_id))
         count += 1
@@ -135,7 +138,7 @@ def dispatch_explorer_index_projects(
                 countdown=compute_delay(
                     timestamp,
                     (count - 1) // EXPLORER_INDEX_PROJECTS_PER_BATCH,
-                    duration=EXPLORER_INDEX_RUN_FREQUENCY,
+                    duration=explorer_index_run_frequency,
                     step=EXPLORER_INDEX_DISPATCH_STEP,
                 ),
             )
@@ -150,7 +153,7 @@ def dispatch_explorer_index_projects(
             countdown=compute_delay(
                 timestamp,
                 (count - 1) // EXPLORER_INDEX_PROJECTS_PER_BATCH,
-                duration=EXPLORER_INDEX_RUN_FREQUENCY,
+                duration=explorer_index_run_frequency,
                 step=EXPLORER_INDEX_DISPATCH_STEP,
             ),
         )
