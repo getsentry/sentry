@@ -15,6 +15,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
 
 from ..metrics import (
     CodeReviewErrorType,
@@ -23,7 +24,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha, should_forward_to_seer
+from ..utils import _get_target_commit_sha
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,12 @@ WHITELISTED_ACTIONS = {
     PullRequestAction.SYNCHRONIZE,
 }
 
+ACTIONS_REQUIRING_TRIGGER_CHECK: dict[PullRequestAction, CodeReviewTrigger] = {
+    PullRequestAction.OPENED: CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    PullRequestAction.READY_FOR_REVIEW: CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    PullRequestAction.SYNCHRONIZE: CodeReviewTrigger.ON_NEW_COMMIT,
+}
+
 
 def _add_eyes_reaction_to_pull_request(
     github_event: GithubWebhookType,
@@ -119,6 +126,7 @@ def handle_pull_request_event(
     organization: Organization,
     repo: Repository,
     integration: RpcIntegration | None = None,
+    org_code_review_settings: CodeReviewSettings | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -161,32 +169,39 @@ def handle_pull_request_event(
         )
         return
 
+    action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
+    if action_requires_trigger_permission is not None and (
+        org_code_review_settings is None
+        or action_requires_trigger_permission not in org_code_review_settings.triggers
+    ):
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        return
+
     if pull_request.get("draft") is True:
         return
 
-    if should_forward_to_seer(github_event, event):
-        from .task import schedule_task
-
-        pr_number = pull_request.get("number")
-        if pr_number and action in {
-            PullRequestAction.READY_FOR_REVIEW,
-            PullRequestAction.OPENED,
-            PullRequestAction.SYNCHRONIZE,
-        }:
-            _add_eyes_reaction_to_pull_request(
-                github_event,
-                action,
-                integration,
-                organization,
-                repo,
-                str(pr_number),
-            )
-
-        schedule_task(
-            github_event=github_event,
-            github_event_action=action_value,
-            event=event,
-            organization=organization,
-            repo=repo,
-            target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
+    pr_number = pull_request.get("number")
+    if pr_number and action in {
+        PullRequestAction.READY_FOR_REVIEW,
+        PullRequestAction.OPENED,
+        PullRequestAction.SYNCHRONIZE,
+    }:
+        _add_eyes_reaction_to_pull_request(
+            github_event,
+            action,
+            integration,
+            organization,
+            repo,
+            str(pr_number),
         )
+
+    from .task import schedule_task
+
+    schedule_task(
+        github_event=github_event,
+        github_event_action=action_value,
+        event=event,
+        organization=organization,
+        repo=repo,
+        target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
+    )
