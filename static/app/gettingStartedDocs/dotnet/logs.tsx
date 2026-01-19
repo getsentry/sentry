@@ -1,10 +1,28 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import type {
-  DocsParams,
-  OnboardingConfig,
+import {
+  StepType,
+  type ContentBlock,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+
+export const logsVerify = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isLogsSelected,
+  content: [
+    {
+      type: 'text',
+      text: t('Send test logs from your app to verify logs are arriving in Sentry.'),
+    },
+    {
+      type: 'code',
+      language: 'csharp',
+      code: `SentrySdk.Logger.LogInfo("A simple log message");
+SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
+    },
+  ],
+});
 
 export const logs: OnboardingConfig = {
   install: () => [

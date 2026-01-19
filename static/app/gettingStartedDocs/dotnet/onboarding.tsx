@@ -6,6 +6,7 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -81,7 +82,6 @@ SentrySdk.Init(options =>
     }${
       params.isLogsSelected
         ? `
-
     // Enable logs to be sent to Sentry
     options.EnableLogs = true;`
         : ''
@@ -264,36 +264,12 @@ export const onboarding: OnboardingConfig = {
         ] satisfies OnboardingStep[])
       : []),
     ...(params.isLogsSelected
-      ? ([
+      ? [
           {
-            title: t('Logs'),
-            content: [
-              {
-                type: 'text',
-                text: t(
-                  'Once configured, you can send logs using the SentrySdk.Logger APIs:'
-                ),
-              },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: `SentrySdk.Logger.LogInfo("A simple log message");
-SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
-              },
-              {
-                type: 'text',
-                text: tct(
-                  'Check out [link:the Logs documentation] to learn more about custom attributes and integrations.',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/logs/" />
-                    ),
-                  }
-                ),
-              },
-            ],
+            title: t('Verify Logs'),
+            content: [logsVerify(params)],
           },
-        ] satisfies OnboardingStep[])
+        ]
       : []),
     {
       title: t('Samples'),
