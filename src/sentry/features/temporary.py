@@ -68,8 +68,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:detailed-data-for-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GenAI features such as Autofix and Issue Summary
     manager.add("organizations:autofix-seer-preferences", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable local code review for sentry-cli review command
-    manager.add("organizations:code-review-local", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False, default=False)
     # Enables Route Preloading
     manager.add("organizations:route-intent-preloading", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Prevent AI code review to run per commit

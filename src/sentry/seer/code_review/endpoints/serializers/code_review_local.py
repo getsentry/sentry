@@ -2,10 +2,17 @@ from rest_framework import serializers
 
 
 class RepositoryInfoSerializer(serializers.Serializer):
-    owner = serializers.CharField(required=True)
-    name = serializers.CharField(required=True)
-    provider = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)  # "owner/repo" format
     base_commit_sha = serializers.CharField(required=True, min_length=40, max_length=40)
+
+    def validate_name(self, value):
+        """Validate repository name is in owner/repo format."""
+        if "/" not in value or value.count("/") != 1:
+            raise serializers.ValidationError("Repository name must be in 'owner/repo' format")
+        owner, repo = value.split("/")
+        if not owner or not repo:
+            raise serializers.ValidationError("Repository name must be in 'owner/repo' format")
+        return value
 
     def validate_base_commit_sha(self, value):
         """Validate that base_commit_sha is a valid 40-character hex string"""

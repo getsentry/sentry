@@ -27,7 +27,6 @@ def trigger_code_review_local(
     diff: str,
     organization_id: int,
     organization_slug: str,
-    user_id: int,
     user_name: str,
     commit_message: str | None = None,
 ) -> dict[str, Any]:
@@ -43,7 +42,6 @@ def trigger_code_review_local(
         diff: Git diff content
         organization_id: Sentry organization ID
         organization_slug: Sentry organization slug
-        user_id: User ID making the request
         user_name: Username making the request
         commit_message: Optional commit message
 
@@ -66,7 +64,6 @@ def trigger_code_review_local(
         "diff": diff,
         "organization_id": organization_id,
         "organization_slug": organization_slug,
-        "user_id": user_id,
         "user_name": user_name,
     }
 
@@ -77,7 +74,6 @@ def trigger_code_review_local(
         "seer.cli_bug_prediction.trigger",
         extra={
             "organization_id": organization_id,
-            "user_id": user_id,
             "repo_provider": repo_provider,
             "repo_external_id": repo_external_id,
             "diff_size": len(diff),
@@ -87,7 +83,7 @@ def trigger_code_review_local(
     try:
         response = make_signed_seer_api_request(
             connection_pool=seer_cli_bug_prediction_connection_pool,
-            path="/v1/automation/codegen/cli-bug-prediction",
+            path="/v1/automation/codegen/local-code-review/",
             body=json.dumps(body_dict).encode("utf-8"),
             timeout=10,  # Initial trigger should be fast
         )
@@ -96,7 +92,6 @@ def trigger_code_review_local(
             "seer.cli_bug_prediction.trigger.timeout",
             extra={
                 "organization_id": organization_id,
-                "user_id": user_id,
             },
         )
         raise
@@ -114,7 +109,6 @@ def trigger_code_review_local(
             "seer.cli_bug_prediction.trigger.error",
             extra={
                 "organization_id": organization_id,
-                "user_id": user_id,
                 "status_code": response.status,
                 "error_detail": error_detail,
             },
@@ -128,7 +122,6 @@ def trigger_code_review_local(
             "seer.cli_bug_prediction.trigger.invalid_response",
             extra={
                 "organization_id": organization_id,
-                "user_id": user_id,
             },
         )
         raise ValueError("Invalid JSON response from Seer")
@@ -138,7 +131,6 @@ def trigger_code_review_local(
             "seer.cli_bug_prediction.trigger.missing_run_id",
             extra={
                 "organization_id": organization_id,
-                "user_id": user_id,
                 "response_data": response_data,
             },
         )
@@ -148,7 +140,6 @@ def trigger_code_review_local(
         "seer.cli_bug_prediction.trigger.success",
         extra={
             "organization_id": organization_id,
-            "user_id": user_id,
             "run_id": response_data["run_id"],
         },
     )
@@ -177,7 +168,7 @@ def get_code_review_local_status(run_id: int) -> dict[str, Any]:
         # Seer status endpoint uses GET method
         response = seer_cli_bug_prediction_connection_pool.urlopen(
             "GET",
-            f"/v1/automation/codegen/cli-bug-prediction/{run_id}",
+            f"/v1/automation/codegen/local-code-review/{run_id}",
             headers={"content-type": "application/json;charset=utf-8"},
             timeout=5,
         )

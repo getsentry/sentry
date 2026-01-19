@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
 from urllib3.exceptions import TimeoutError as UrllibTimeoutError
 
-from sentry import features, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -50,45 +49,6 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
 
         Returns 200 with predictions on success, various error codes on failure.
         """
-        # Check if feature is globally enabled
-        if not settings.CODE_REVIEW_LOCAL_ENABLED:
-            return Response(
-                {"detail": "Local code review is not enabled"},
-                status=503,
-            )
-
-        # Check feature flag
-        if not features.has("organizations:code-review-local", organization):
-            return Response(
-                {"detail": "Local code review is not enabled for this organization"},
-                status=403,
-            )
-
-        # Rate limiting
-        user_key = f"code_review_local:user:{request.user.id}"
-        org_key = f"code_review_local:org:{organization.id}"
-
-        user_limit, user_window = settings.CODE_REVIEW_LOCAL_USER_RATE_LIMIT
-        org_limit, org_window = settings.CODE_REVIEW_LOCAL_ORG_RATE_LIMIT
-
-        if ratelimits.backend.is_limited(user_key, limit=user_limit, window=user_window):
-            metrics.incr("code_review_local.rate_limited", tags={"type": "user"})
-            return Response(
-                {
-                    "detail": f"Rate limit exceeded. Maximum {user_limit} requests per {user_window // 3600} hour(s) per user"
-                },
-                status=429,
-            )
-
-        if ratelimits.backend.is_limited(org_key, limit=org_limit, window=org_window):
-            metrics.incr("code_review_local.rate_limited", tags={"type": "org"})
-            return Response(
-                {
-                    "detail": f"Organization rate limit exceeded. Maximum {org_limit} requests per {org_window // 3600} hour(s)"
-                },
-                status=429,
-            )
-
         # Validate request
         serializer = CodeReviewLocalRequestSerializer(data=request.data)
         if not serializer.is_valid():
@@ -99,23 +59,29 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
         diff = validated_data["diff"]
         commit_message = validated_data.get("commit_message")
 
+        # Parse repository name (already in "owner/repo" format)
+        full_repo_name = repo_data["name"]
+        owner, repo_name = full_repo_name.split("/")
+        provider = "github"  # GitHub-only for PoC
+
         # Resolve repository
-        # Repository names in the database are stored as "owner/name" (e.g., "getsentry/sentry")
-        full_repo_name = f"{repo_data['owner']}/{repo_data['name']}"
         try:
             repository = self._resolve_repository(
                 organization=organization,
                 repo_name=full_repo_name,
-                repo_provider=repo_data["provider"],
+                repo_provider=provider,
             )
         except Repository.DoesNotExist:
-            return Response(
-                {
-                    "detail": f"Repository {full_repo_name} not found. "
-                    "Please ensure the repository is connected to Sentry via an integration."
-                },
-                status=404,
-            )
+            msg = f"Repo {full_repo_name} not found. This will return 404 in the future"
+            logger.warning(msg)
+            repository = None
+            # return Response(
+            #     {
+            #         "detail": f"Repository {full_repo_name} not found. "
+            #         "Please ensure the repository is connected to Sentry via an integration."
+            #     },
+            #     status=404,
+            # )
 
         # Log request
         logger.info(
@@ -123,7 +89,7 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
             extra={
                 "organization_id": organization.id,
                 "user_id": request.user.id,
-                "repository_id": repository.id,
+                "repository_id": repository.id if repository else "not_found",
                 "diff_size_bytes": len(diff),
             },
         )
@@ -131,22 +97,18 @@ class OrganizationCodeReviewLocalEndpoint(OrganizationEndpoint):
         metrics.incr("code_review_local.request", tags={"org": organization.slug})
 
         # Trigger Seer
-        # user.id is guaranteed to be non-None since this endpoint requires authentication
-        user_id = request.user.id
-        assert user_id is not None
-        user_name = request.user.username or getattr(request.user, "email", None) or str(user_id)
+        user_name = request.user.username or getattr(request.user, "email", None) or ""
 
         try:
             trigger_response = trigger_code_review_local(
-                repo_provider=repo_data["provider"],
-                repo_owner=repo_data["owner"],
-                repo_name=repo_data["name"],
-                repo_external_id=repository.external_id or "",
+                repo_provider=provider,
+                repo_owner=owner,
+                repo_name=repo_name,
+                repo_external_id=repository.external_id or "" if repository else "",
                 base_commit_sha=repo_data["base_commit_sha"],
                 diff=diff,
                 organization_id=organization.id,
                 organization_slug=organization.slug,
-                user_id=user_id,
                 user_name=user_name,
                 commit_message=commit_message,
             )
