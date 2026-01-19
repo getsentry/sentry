@@ -1,5 +1,6 @@
 # Generated manually for OAuth 2.1 public client support and refresh token rotation
 
+import sentry.models.apiapplication
 from django.db import migrations, models
 
 
@@ -34,8 +35,13 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="apiapplication",
             name="client_secret",
-            field=models.TextField(blank=True, null=True, default=None),
-            # Note: default=None for new public clients; existing apps keep their secrets
+            field=models.TextField(
+                blank=True,
+                null=True,
+                default=sentry.models.apiapplication.generate_token,
+            ),
+            # Note: default still generates a token for backward compatibility
+            # Public clients are created by explicitly passing client_secret=None
         ),
         # Add token family ID for grouping related tokens
         migrations.AddField(
