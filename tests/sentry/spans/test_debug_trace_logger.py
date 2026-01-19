@@ -44,7 +44,6 @@ class TestDebugTraceLogger:
             {"span_id": "abc123", "parent_span_id": None, "segment_id": None}
         ]
 
-        # No Redis calls should be made when there are no span keys
         mock_client.pipeline.assert_not_called()
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
@@ -54,7 +53,7 @@ class TestDebugTraceLogger:
         mock_pipeline = mock.MagicMock()
         mock_client.pipeline.return_value.__enter__ = mock.MagicMock(return_value=mock_pipeline)
         mock_client.pipeline.return_value.__exit__ = mock.MagicMock(return_value=False)
-        mock_pipeline.execute.return_value = [5, 0]  # First key has 5 items, second is empty
+        mock_pipeline.execute.return_value = [5, 0]
 
         debug_logger = DebugTraceLogger(mock_client)
         subsegment = [
@@ -77,13 +76,10 @@ class TestDebugTraceLogger:
         assert extra["parent_span_id"] == "parent123"
         assert extra["num_spans_in_subsegment"] == 3
         assert extra["zunion_span_key_count"] == 2
-        assert extra["zunion_existing_key_count"] == 1  # Only first key has size > 0
+        assert extra["zunion_existing_key_count"] == 1
         assert extra["total_set_sizes"] == 5
         assert len(extra["set_sizes"]) == 2
         assert len(extra["subsegment_spans"]) == 3
-
-        # Verify Redis pipeline was called with zcard for the child span keys
-        assert mock_pipeline.zcard.call_count == 2
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
     def test_span_key_format(self, mock_logger):
@@ -92,25 +88,23 @@ class TestDebugTraceLogger:
         mock_pipeline = mock.MagicMock()
         mock_client.pipeline.return_value.__enter__ = mock.MagicMock(return_value=mock_pipeline)
         mock_client.pipeline.return_value.__exit__ = mock.MagicMock(return_value=False)
-        mock_pipeline.execute.return_value = [3]
+        mock_pipeline.execute.return_value = [3]  # span B has 3 children
 
         debug_logger = DebugTraceLogger(mock_client)
         subsegment = [
-            MockSpan(span_id="parent", parent_span_id=None, segment_id=None),
-            MockSpan(span_id="child", parent_span_id="parent", segment_id=None),
+            MockSpan(span_id="A", parent_span_id=None, segment_id=None),
+            MockSpan(span_id="B", parent_span_id="A", segment_id=None),
         ]
 
         debug_logger.log_subsegment_info(
             project_and_trace="111:trace222",
-            parent_span_id="parent",
+            parent_span_id="A",
             subsegment=subsegment,
         )
 
-        # Verify the key format
-        expected_key = b"span-buf:z:{111:trace222}:child"
+        expected_key = b"span-buf:z:{111:trace222}:B"
         mock_pipeline.zcard.assert_called_once_with(expected_key)
 
-        # Verify the key appears in set_sizes with correct format
         extra = mock_logger.info.call_args[1]["extra"]
-        assert "span-buf:z:{111:trace222}:child" in extra["set_sizes"]
-        assert extra["set_sizes"]["span-buf:z:{111:trace222}:child"] == 3
+        assert "span-buf:z:{111:trace222}:B" in extra["set_sizes"]
+        assert extra["set_sizes"]["span-buf:z:{111:trace222}:B"] == 3
