@@ -83,6 +83,7 @@ from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.spans.buffer_logger import BufferLogger
 from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.utils import metrics, redis
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -168,6 +169,7 @@ class SpansBuffer:
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
         self._buffer_logger = BufferLogger()
+        self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -179,58 +181,6 @@ class SpansBuffer:
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:z:{{{project_and_trace}}}:{span_id}".encode("ascii")
-
-    def _log_debug_trace_info(
-        self,
-        project_and_trace: str,
-        parent_span_id: str,
-        subsegment: list[Span],
-    ) -> None:
-        """
-        Debug logging for traces specified in spans.buffer.debug-traces option.
-        Logs zunionstore source set sizes and dumps spans info in the subsegment.
-        """
-        spans = []
-        span_keys = []
-        for span in subsegment:
-            # dump each span's id, segment_id and parent_span_id
-            spans.append(
-                {
-                    "span_id": span.span_id,
-                    "parent_span_id": span.parent_span_id,
-                    "segment_id": span.segment_id,
-                }
-            )
-            if span.span_id != parent_span_id:
-                span_keys.append(self._get_span_key(project_and_trace, span.span_id))
-
-        set_sizes: dict[str, int] = {}
-
-        if span_keys:
-            with self.client.pipeline(transaction=False) as p:
-                for key in span_keys:
-                    p.zcard(key)
-                results = p.execute()
-
-            for i, key in enumerate(span_keys):
-                key_str = key.decode("ascii")
-                set_sizes[key_str] = results[i]
-
-        num_existing_keys = sum(1 for size in set_sizes.values() if size > 0)
-
-        logger.info(
-            "spans.buffer.debug_subsegment",
-            extra={
-                "project_and_trace": project_and_trace,
-                "parent_span_id": parent_span_id,
-                "num_spans_in_subsegment": len(subsegment),
-                "zunion_span_key_count": len(span_keys),
-                "zunion_existing_key_count": num_existing_keys,
-                "set_sizes": set_sizes,
-                "total_set_sizes": sum(set_sizes.values()),
-                "subsegment_spans": spans,
-            },
-        )
 
     @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
@@ -282,7 +232,11 @@ class SpansBuffer:
 
                     _, _, trace_id = project_and_trace.partition(":")
                     if trace_id in debug_traces:
-                        self._log_debug_trace_info(project_and_trace, parent_span_id, subsegment)
+                        if self._debug_trace_logger is None:
+                            self._debug_trace_logger = DebugTraceLogger(self.client)
+                        self._debug_trace_logger.log_subsegment_info(
+                            project_and_trace, parent_span_id, subsegment
+                        )
 
                     p.execute_command(
                         "EVALSHA",
