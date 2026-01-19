@@ -87,7 +87,7 @@ def trigger_code_review_local(
     try:
         response = make_signed_seer_api_request(
             connection_pool=seer_cli_bug_prediction_connection_pool,
-            path="/v1/automation/codegen/cli-bug-prediction",
+            path="/v1/automation/codegen/pr-review-local/",
             body=json.dumps(body_dict).encode("utf-8"),
             timeout=10,  # Initial trigger should be fast
         )
@@ -177,7 +177,7 @@ def get_code_review_local_status(run_id: int) -> dict[str, Any]:
         # Seer status endpoint uses GET method
         response = seer_cli_bug_prediction_connection_pool.urlopen(
             "GET",
-            f"/v1/automation/codegen/cli-bug-prediction/{run_id}",
+            f"/v1/automation/codegen/pr-review-local/{run_id}",
             headers={"content-type": "application/json;charset=utf-8"},
             timeout=5,
         )
