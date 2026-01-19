@@ -64,8 +64,11 @@ class CodeReviewPreflightService:
                 return CodeReviewPreflightResult(allowed=False, denial_reason=denial_reason)
 
         settings: CodeReviewSettings | None = self._repo_settings
-        if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
+        if not self._is_seat_based_seer_plan_org() and (
+            self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org()
+        ):
             # For beta and legacy usage-based plan orgs, all repos are considered enabled for these default triggers
+            # Seat-based orgs should use their actual repo settings, so they're excluded here
             settings = CodeReviewSettings(
                 enabled=True,
                 triggers=[
@@ -115,7 +118,11 @@ class CodeReviewPreflightService:
             return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     def _check_billing(self) -> PreflightDenialReason | None:
-        if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
+        # Code review beta and legacy usage-based plan orgs are exempt from billing checks
+        # as long as they haven't purchased the new seat-based plan
+        if not self._is_seat_based_seer_plan_org() and (
+            self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org()
+        ):
             return None
 
         if self.integration_id is None or self.pr_author_external_id is None:
