@@ -179,7 +179,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_not_called()
 
     def test_pull_request_synchronize_action(self) -> None:
-        """Test that synchronize action triggers Seer request."""
+        """Test that synchronize action triggers Seer request and adds reaction."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "synchronize"
@@ -267,7 +267,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_reaction.assert_not_called()
 
     def test_pull_request_closed_action(self) -> None:
-        """Test that closed action triggers Seer request with pr-closed request type."""
+        """Test that closed action triggers Seer request with pr-closed request type and skips reaction."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "closed"
