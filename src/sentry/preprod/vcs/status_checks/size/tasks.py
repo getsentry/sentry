@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import StrEnum
@@ -45,6 +46,12 @@ RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 
 preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
+    text_operator_keys={
+        "platform",
+        "git_head_ref",
+        "app_id",
+        "build_configuration",
+    },
     key_mappings={
         "platform": ["platform"],
         "git_head_ref": ["git_head_ref"],
@@ -292,7 +299,10 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
         return []
 
     try:
-        rules_data = json.loads(rules_json)
+        # Handle bytes from project options (json.loads requires str, not bytes)
+        if isinstance(rules_json, bytes):
+            rules_json = rules_json.decode("utf-8")
+        rules_data = json.loads(rules_json) if isinstance(rules_json, str) else rules_json
         if not isinstance(rules_data, list):
             logger.warning(
                 "preprod.status_checks.rules.invalid_format",
@@ -449,9 +459,20 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
 
         group_matches = False
         for f in group_filters:
-            if f.is_in_filter:
+            if f.value.is_wildcard():
+                # Wildcard operators (contains, starts_with, ends_with)
+                # Works for both single values and IN filters
+                # For IN filters with wildcards, value is a regex alternation pattern
+                try:
+                    pattern = f.value.value
+                    matches = bool(re.search(pattern, artifact_value))
+                except (re.error, TypeError):
+                    matches = False
+            elif f.is_in_filter:
+                # Non-wildcard IN filter
                 matches = artifact_value in f.value.value
             else:
+                # Exact equality match
                 matches = artifact_value == f.value.value
 
             if f.is_negation:
