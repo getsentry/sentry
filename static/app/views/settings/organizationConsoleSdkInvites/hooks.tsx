@@ -3,6 +3,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import type {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {tct} from 'sentry/locale';
 import {
   fetchMutation,
@@ -11,8 +12,6 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-
-export type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
 export interface ConsoleSdkInviteUser {
   email: string;
