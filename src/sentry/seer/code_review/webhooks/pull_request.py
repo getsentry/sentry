@@ -114,7 +114,6 @@ def _add_eyes_reaction_to_pull_request(
     try:
         client = integration.get_installation(organization_id=organization.id).get_client()
 
-        # If Sentry bot has already reacted with eyes, skip adding another one
         existing_reactions = client.get_issue_reactions(repo.name, str(pr_number))
         for reaction in existing_reactions:
             if (

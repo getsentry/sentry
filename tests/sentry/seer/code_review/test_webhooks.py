@@ -577,6 +577,9 @@ class AddEyesReactionToPullRequestTest(TestCase):
 
     def test_calls_github_api_with_eyes_reaction(self) -> None:
         mock_client = MagicMock()
+        mock_client.get_issue_reactions.return_value = [
+            {"id": 1, "user": {"login": "other-user"}, "content": "heart"}
+        ]
         mock_installation = MagicMock()
         mock_installation.get_client.return_value = mock_client
         mock_integration = MagicMock()
@@ -591,13 +594,38 @@ class AddEyesReactionToPullRequestTest(TestCase):
             pr_number="42",
         )
 
+        mock_client.get_issue_reactions.assert_called_once_with(self.repo.name, "42")
         mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
 
+    def test_skips_creating_reaction_when_sentry_bot_has_already_reacted(self) -> None:
+        mock_client = MagicMock()
+        mock_client.get_issue_reactions.return_value = [
+            {"id": 1, "user": {"login": "other-user"}, "content": "heart"},
+            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+        ]
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
+        mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
+        _add_eyes_reaction_to_pull_request(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED,
+            integration=mock_integration,
+            organization=self.organization,
+            repo=self.repo,
+            pr_number="42",
+        )
+
+        mock_client.get_issue_reactions.assert_called_once_with(self.repo.name, "42")
+        mock_client.create_issue_reaction.assert_not_called()
+
     @patch("sentry.seer.code_review.webhooks.pull_request.logger")
     def test_logs_exception_on_api_error(self, mock_logger: MagicMock) -> None:
         mock_client = MagicMock()
+        mock_client.get_issue_reactions.return_value = []
         mock_client.create_issue_reaction.side_effect = Exception("API Error")
         mock_installation = MagicMock()
         mock_installation.get_client.return_value = mock_client
@@ -613,5 +641,29 @@ class AddEyesReactionToPullRequestTest(TestCase):
             pr_number="42",
         )
 
+        mock_logger.exception.assert_called_once()
+        assert "reaction-failed" in mock_logger.exception.call_args[0][0]
+
+    @patch("sentry.seer.code_review.webhooks.pull_request.logger")
+    def test_skips_creating_reaction_when_get_reactions_fails(self, mock_logger: MagicMock) -> None:
+        """Test that if get_issue_reactions fails, we don't create a reaction."""
+        mock_client = MagicMock()
+        mock_client.get_issue_reactions.side_effect = Exception("Failed to get reactions")
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
+        mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
+        _add_eyes_reaction_to_pull_request(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED,
+            integration=mock_integration,
+            organization=self.organization,
+            repo=self.repo,
+            pr_number="42",
+        )
+
+        mock_client.get_issue_reactions.assert_called_once_with(self.repo.name, "42")
+        mock_client.create_issue_reaction.assert_not_called()
         mock_logger.exception.assert_called_once()
         assert "reaction-failed" in mock_logger.exception.call_args[0][0]
