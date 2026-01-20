@@ -3096,6 +3096,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of trace_ids to enable debug logging for. Empty = debug off.
+# When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
+register(
+    "spans.buffer.debug-traces",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
