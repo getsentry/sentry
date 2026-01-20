@@ -157,7 +157,7 @@ export default function FiltersBar({
 
   // Release sort state management with synced URL and localStorage
   const [releaseFilterSortBy, setReleaseFilterSortBy] = useSyncedQueryParamState(
-    'sortReleasesBy',
+    'releaseFilterSort',
     'dashboards',
     ReleasesSortOption.DATE
   );
