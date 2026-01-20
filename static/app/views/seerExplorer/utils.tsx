@@ -85,16 +85,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Queried logs${projectInfo}: '${question}'`;
     }
 
-    if (dataset === 'spans' && linkParams?.mode === 'traces') {
-      return isLoading
-        ? `Querying traces${projectInfo}: '${question}'...`
-        : `Queried traces${projectInfo}: '${question}'`;
-    }
-
-    // Default to spans
+    // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
-      : `Queried spans${projectInfo}: '${question}'`;
+      : linkParams?.mode === 'traces'
+        ? `Querying traces${projectInfo}: '${question}'...`
+        : `Queried spans${projectInfo}: '${question}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
