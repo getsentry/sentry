@@ -199,7 +199,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source.detectors.set([detector])
 
         with self.assertNumQueries(1):
-            result = Detector.get_detectors_by_data_source("12345", "test")
+            result = Detector.objects.get_by_data_source_attributes("12345", "test")
 
             assert len(result) == 1
             assert result[0].id == detector.id
@@ -218,13 +218,13 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector1, detector2, detector3])
 
-        result = Detector.get_detectors_by_data_source("12345", "test")
+        result = Detector.objects.get_by_data_source_attributes("12345", "test")
 
         assert len(result) == 3
         assert {d.id for d in result} == {detector1.id, detector2.id, detector3.id}
 
     def test_get_detectors_by_data_source__not_found(self) -> None:
-        result = Detector.get_detectors_by_data_source("nonexistent", "test")
+        result = Detector.objects.get_by_data_source_attributes("nonexistent", "test")
         assert result == []
 
     def test_get_detectors_by_data_source__filters_disabled(self) -> None:
@@ -237,7 +237,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector1, detector2])
 
-        result = Detector.get_detectors_by_data_source("12345", "test")
+        result = Detector.objects.get_by_data_source_attributes("12345", "test")
 
         assert len(result) == 1
         assert result[0].id == detector1.id
@@ -258,7 +258,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         ):
             mock_cache_get.return_value = None
 
-            result = Detector.get_detectors_by_data_source("12345", "test")
+            result = Detector.objects.get_by_data_source_attributes("12345", "test")
 
             assert len(result) == 2
             assert {d.id for d in result} == {detector1.id, detector2.id}
@@ -281,7 +281,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         with patch("sentry.utils.cache.cache.get") as mock_cache_get:
             mock_cache_get.return_value = cached_detectors
 
-            result = Detector.get_detectors_by_data_source("12345", "test")
+            result = Detector.objects.get_by_data_source_attributes("12345", "test")
 
             assert result == cached_detectors
 
@@ -301,11 +301,11 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector])
 
-        result = Detector.get_detectors_by_data_source("12345", "test")
+        result = Detector.objects.get_by_data_source_attributes("12345", "test")
         assert len(result) == 1
 
         with self.assertNumQueries(0):
-            cached_result = Detector.get_detectors_by_data_source("12345", "test")
+            cached_result = Detector.objects.get_by_data_source_attributes("12345", "test")
             assert len(cached_result) == 1
             assert cached_result[0].workflow_condition_group is not None
             assert list(cached_result[0].workflow_condition_group.conditions.all())

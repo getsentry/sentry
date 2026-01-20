@@ -1,7 +1,10 @@
 from unittest import mock
 
-from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors.data_source import process_data_source
+from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.processors.data_source import (
+    bulk_fetch_enabled_detectors,
+    process_data_source,
+)
 from sentry.workflow_engine.registry import data_source_type_registry
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -129,34 +132,26 @@ class TestProcessDataSources(BaseWorkflowTest):
                         # Trigger a SQL query if not prefetched, and fail the assertion
                         assert condition.id is not None
 
-    def test_bulk_fetch_uses_cache(self) -> None:
-        from sentry.workflow_engine.models import Detector
-        from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
+    @mock.patch.object(Detector.objects, "get_by_data_source_attributes")
+    def test_bulk_fetch_uses_cache(self, mock_get) -> None:
+        mock_get.return_value = [self.detector_one]
 
-        with mock.patch.object(Detector, "get_detectors_by_data_source") as mock_get:
-            mock_get.return_value = [self.detector_one]
+        detectors = bulk_fetch_enabled_detectors(self.packet.source_id, "test")
 
-            detectors = bulk_fetch_enabled_detectors(self.packet.source_id, "test")
+        mock_get.assert_called_once_with(self.packet.source_id, "test")
+        assert len(detectors) == 1
+        assert detectors[0].id == self.detector_one.id
 
-            mock_get.assert_called_once_with(self.packet.source_id, "test")
-            assert len(detectors) == 1
-            assert detectors[0].id == self.detector_one.id
+    @mock.patch.object(Detector.objects, "get_by_data_source_attributes")
+    def test_bulk_fetch_handles_empty_cache(self, mock_get) -> None:
+        mock_get.return_value = []
 
-    def test_bulk_fetch_handles_empty_cache(self) -> None:
-        from sentry.workflow_engine.models import Detector
-        from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
+        detectors = bulk_fetch_enabled_detectors("nonexistent", "test")
 
-        with mock.patch.object(Detector, "get_detectors_by_data_source") as mock_get:
-            mock_get.return_value = []
-
-            detectors = bulk_fetch_enabled_detectors("nonexistent", "test")
-
-            assert detectors == []
-            mock_get.assert_called_once_with("nonexistent", "test")
+        assert detectors == []
+        mock_get.assert_called_once_with("nonexistent", "test")
 
     def test_bulk_fetch_filters_disabled_detectors(self) -> None:
-        from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
-
         self.detector_one.enabled = False
         self.detector_one.save()
 

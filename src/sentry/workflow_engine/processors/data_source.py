@@ -13,7 +13,7 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
     Get all of the enabled detectors for a list of detector source ids and types.
     This will also prefetch all the subsequent data models for evaluating the detector.
     """
-    return Detector.get_detectors_by_data_source(source_id, query_type)
+    return Detector.objects.get_by_data_source_attributes(source_id, query_type)
 
 
 # TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.

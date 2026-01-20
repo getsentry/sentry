@@ -77,6 +77,27 @@ class DetectorManager(BaseManager["Detector"]):
         """
         return self.get_queryset().filter(grouptype.registry.get_detector_type_filters())
 
+    def get_by_data_source_attributes(self, source_id: str, source_type: str) -> list[Detector]:
+        """
+        Get detectors by data source attributes with caching or caches the full Detectors list otherwise.
+        """
+        cache_key = get_detectors_by_data_source_cache_key(source_id, source_type)
+        detectors = cache.get(cache_key)
+        if detectors is None:
+            detectors = list(
+                self.filter(
+                    data_sources__source_id=source_id,
+                    data_sources__type=source_type,
+                    enabled=True,
+                )
+                .select_related("workflow_condition_group")
+                .prefetch_related("workflow_condition_group__conditions")
+                .distinct()
+                .order_by("id")
+            )
+            cache.set(cache_key, detectors, Detector.CACHE_TTL)
+        return detectors
+
 
 @region_silo_model
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
@@ -135,28 +156,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             detector = cls.objects.get(project_id=project_id, type=detector_type)
             cache.set(cache_key, detector, cls.CACHE_TTL)
         return detector
-
-    @classmethod
-    def get_detectors_by_data_source(cls, source_id: str, source_type: str) -> list[Detector]:
-        """
-        Caches the full detector objects to reduce db calls.
-        """
-        cache_key = get_detectors_by_data_source_cache_key(source_id, source_type)
-        detectors = cache.get(cache_key)
-        if detectors is None:
-            detectors = list(
-                cls.objects.filter(
-                    data_sources__source_id=source_id,
-                    data_sources__type=source_type,
-                    enabled=True,
-                )
-                .select_related("workflow_condition_group")
-                .prefetch_related("workflow_condition_group__conditions")
-                .distinct()
-                .order_by("id")
-            )
-            cache.set(cache_key, detectors, cls.CACHE_TTL)
-        return detectors
 
     @classmethod
     def get_error_detector_for_project(cls, project_id: int) -> Detector:
