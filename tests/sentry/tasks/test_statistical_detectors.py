@@ -1923,3 +1923,150 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 self.now.isoformat(),
             )
         assert mock_send_regression_to_platform.called
+
+
+@pytest.mark.parametrize(
+    ["detector_cls", "object_name"],
+    [
+        pytest.param(
+            EndpointRegressionDetector,
+            "transaction_1",
+            id="endpoint",
+        ),
+        pytest.param(
+            FunctionRegressionDetector,
+            123,
+            id="function",
+        ),
+    ],
+)
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_orphaned_regression_group_escalation(
+    produce_occurrence_to_kafka,
+    detector_cls,
+    object_name,
+    project,
+    timestamp,
+):
+    """Test that orphaned RegressionGroups (without corresponding issue groups) are marked as inactive during escalation checks"""
+    fingerprint = generate_fingerprint(detector_cls.regression_type, object_name)
+
+    # Create an orphaned RegressionGroup (without creating a corresponding GroupHash/Group)
+    regression_group = RegressionGroup.objects.create(
+        type=detector_cls.regression_type.value,
+        date_regressed=timestamp - timedelta(days=1),
+        version=1,
+        active=True,
+        project_id=project.id,
+        fingerprint=fingerprint,
+        baseline=100,
+        regressed=300,
+    )
+
+    # Verify the regression group starts as active
+    assert regression_group.active is True
+
+    # Create a bundle that should trigger escalation
+    payload = DetectorPayload(
+        project_id=project.id,
+        group=object_name,
+        fingerprint="",
+        count=100,
+        value=500,
+        timestamp=timestamp,
+    )
+    state = MovingAverageDetectorState(
+        timestamp=timestamp,
+        count=100,
+        moving_avg_short=500,
+        moving_avg_long=500,
+    )
+    bundle = TrendBundle(
+        type=TrendType.Unchanged,
+        score=1,
+        payload=payload,
+        state=state,
+        regression_group=regression_group,
+    )
+
+    # Run through the escalation flow
+    trends = detector_cls.get_regression_groups([bundle])
+    trends = list(detector_cls.redirect_escalations(trends, timestamp))
+
+    # Verify the orphaned regression group was marked as inactive
+    regression_group.refresh_from_db()
+    assert regression_group.active is False
+
+    # Verify no status change message was sent (since the issue group doesn't exist)
+    assert produce_occurrence_to_kafka.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ["detector_cls", "object_name"],
+    [
+        pytest.param(
+            EndpointRegressionDetector,
+            "transaction_1",
+            id="endpoint",
+        ),
+        pytest.param(
+            FunctionRegressionDetector,
+            "123",
+            id="function",
+        ),
+    ],
+)
+@django_db_all
+def test_orphaned_regression_group_get_versions(
+    detector_cls,
+    object_name,
+    project,
+    timestamp,
+):
+    """Test that orphaned RegressionGroups are marked as inactive in get_regression_versions"""
+    fingerprint = generate_fingerprint(detector_cls.regression_type, object_name)
+
+    # Create an active orphaned RegressionGroup (without creating a corresponding GroupHash/Group)
+    regression_group = RegressionGroup.objects.create(
+        type=detector_cls.regression_type.value,
+        date_regressed=timestamp,
+        version=1,
+        active=True,
+        project_id=project.id,
+        fingerprint=fingerprint,
+        baseline=100,
+        regressed=300,
+    )
+
+    # Verify the regression group starts as active
+    assert regression_group.active is True
+
+    # Create a breakpoint for the same object
+    breakpoints: list[BreakpointData] = [
+        {
+            "absolute_percentage_change": 5.0,
+            "aggregate_range_1": 100000000.0,
+            "aggregate_range_2": 500000000.0,
+            "breakpoint": 1687323600,
+            "project": str(project.id),
+            "transaction": object_name,
+            "trend_difference": 400000000.0,
+            "trend_percentage": 5.0,
+            "unweighted_p_value": 0.0,
+            "unweighted_t_value": -float("inf"),
+        }
+    ]
+
+    def mock_regressions():
+        yield from breakpoints
+
+    # Run get_regression_versions which should detect the orphaned group
+    regressions = list(detector_cls.get_regression_versions(mock_regressions()))
+
+    # Verify the orphaned regression group was marked as inactive
+    regression_group.refresh_from_db()
+    assert regression_group.active is False
+
+    # Verify no regressions were returned (orphaned group was skipped)
+    assert regressions == []

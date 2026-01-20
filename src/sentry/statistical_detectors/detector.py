@@ -495,9 +495,24 @@ class RegressionDetector(ABC):
                 [(project_id, fingerprint) for project_id, fingerprint in pairs]
             )
 
+            orphaned_groups = []
             for key, bundle in pairs.items():
                 issue_group = issue_groups.get(key)
                 if issue_group is None:
+                    # Mark orphaned RegressionGroups as inactive to prevent future lookups
+                    if bundle.regression_group is not None:
+                        bundle.regression_group.active = False
+                        orphaned_groups.append(bundle.regression_group)
+                    logger.warning(
+                        "regression_detector.orphaned_regression_group",
+                        extra={
+                            "project_id": bundle.payload.project_id,
+                            "fingerprint": generate_fingerprint(
+                                cls.regression_type, bundle.payload.group
+                            ),
+                            "regression_type": cls.regression_type.value,
+                        },
+                    )
                     sentry_sdk.capture_message("Missing issue group for regression issue")
                     continue
 
@@ -511,6 +526,16 @@ class RegressionDetector(ABC):
                     and issue_group.substatus == GroupSubStatus.UNTIL_ESCALATING
                 ):
                     yield bundle
+
+            # Bulk update orphaned groups to mark them as inactive
+            if orphaned_groups:
+                RegressionGroup.objects.bulk_update(orphaned_groups, ["active"])
+                metrics.incr(
+                    "statistical_detectors.regression_group.orphaned",
+                    amount=len(orphaned_groups),
+                    tags={"source": cls.source, "kind": cls.kind},
+                    sample_rate=1.0,
+                )
 
     @classmethod
     def get_regression_versions(
@@ -555,6 +580,7 @@ class RegressionDetector(ABC):
         # and fetching the issue group in batches for efficiency.
         for triples in chunked(active_regressions, batch_size):
             groups_to_close = []
+            orphaned_groups = []
 
             # Sync the regression group with the issue group
             issue_groups = bulk_get_groups_from_fingerprints(
@@ -564,6 +590,18 @@ class RegressionDetector(ABC):
             for key, regression_group, regression in triples:
                 issue_group = issue_groups.get(key)
                 if issue_group is None:
+                    # Mark orphaned RegressionGroups as inactive to prevent future lookups
+                    regression_group.active = False
+                    orphaned_groups.append(regression_group)
+                    project_id, fingerprint = key
+                    logger.warning(
+                        "regression_detector.orphaned_regression_group",
+                        extra={
+                            "project_id": project_id,
+                            "fingerprint": fingerprint,
+                            "regression_type": cls.regression_type.value,
+                        },
+                    )
                     sentry_sdk.capture_message("Missing issue group for regression issue")
                     continue
 
@@ -575,7 +613,19 @@ class RegressionDetector(ABC):
                     groups_to_close.append(regression_group)
                     yield regression_group.version, regression_group.date_regressed, regression
 
-            RegressionGroup.objects.bulk_update(groups_to_close, ["active"])
+            # Bulk update groups
+            groups_to_update = groups_to_close + orphaned_groups
+            if groups_to_update:
+                RegressionGroup.objects.bulk_update(groups_to_update, ["active"])
+
+            # Track orphaned groups metric
+            if orphaned_groups:
+                metrics.incr(
+                    "statistical_detectors.regression_group.orphaned",
+                    amount=len(orphaned_groups),
+                    tags={"source": cls.source, "kind": cls.kind},
+                    sample_rate=1.0,
+                )
 
         metrics.incr(
             "statistical_detectors.breakpoint.skipped",
