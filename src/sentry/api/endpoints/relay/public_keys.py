@@ -1,4 +1,3 @@
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -24,8 +23,6 @@ class RelayPublicKeysEndpoint(Endpoint):
         calling_relay = request.relay
         relay_ids = request.relay_request_data.get("relay_ids") or ()
 
-        # This log line is to verify that this endpoint is not being used before we deprecate it.
-        sentry_sdk.capture_message("relay.public_keys.post")
         legacy_public_keys = dict.fromkeys(relay_ids)
         public_keys = dict.fromkeys(relay_ids)
 
