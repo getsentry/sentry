@@ -204,7 +204,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 dataset = Spans
             else:
                 result = get_span_samples(request, snuba_params, orderby)
-                dataset = spans_indexed  # type: ignore[assignment]
+                dataset = spans_indexed
 
         return Response(
             self.handle_results_with_meta(

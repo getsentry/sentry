@@ -319,7 +319,7 @@ ignore_missing_imports = true
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "sentry.api.endpoints.organization_releases",
+    "sentry.api.endpoints.*",
     "sentry.api.paginator",
     "sentry.db.postgres.base",
     "sentry.middleware.auth",

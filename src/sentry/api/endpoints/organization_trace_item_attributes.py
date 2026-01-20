@@ -503,7 +503,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             )
 
         order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
-        versions = versions.filter_to_semver()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        versions = versions.filter_to_semver()
         versions = versions.annotate_prerelease_column()
         versions = versions.order_by(*order_by)
 
@@ -589,7 +589,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             id__in=ReleaseProject.objects.filter(
                 project_id__in=self.snuba_params.project_ids
             ).values_list("release_id", flat=True),
-        ).annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        ).annotate_prerelease_column()
 
         environment_ids = self.snuba_params.environment_ids
         if environment_ids:
