@@ -216,10 +216,11 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         extra_projects: list[Project] = []
         if extra_projects_to_fetch:
             extra_project_ids = [p for p in extra_projects_to_fetch if isinstance(p, int)]
-            extra_projects = Project.objects.filter(id__in=extra_project_ids)
             extra_project_slugs = [p for p in extra_projects_to_fetch if isinstance(p, str)]
-            extra_projects = extra_projects.union(
-                Project.objects.filter(slug__in=extra_project_slugs)
+            extra_projects = list(
+                Project.objects.filter(id__in=extra_project_ids).union(
+                    Project.objects.filter(slug__in=extra_project_slugs)
+                )
             )
         return RpcServiceHookProjectsResult(
             projects=[serialize_project(p) for p in projects],
