@@ -150,7 +150,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
 
-  const {onDataZoom, ...chartZoomProps} = useChartZoom({
+  const {
+    onDataZoom,
+    onChartReady: onChartReadyZoom,
+    ...chartZoomProps
+  } = useChartZoom({
     saveOnZoom: true,
   });
 
@@ -429,19 +433,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         plottable.handleChartRef?.(e);
       }
 
-      const echartsInstance = e.getEchartsInstance();
-      registerWithWidgetSyncContext(echartsInstance);
-
       if (hasReleaseBubblesSeries) {
         connectReleaseBubbleChartRef(e);
       }
     },
-    [
-      hasReleaseBubblesSeries,
-      connectReleaseBubbleChartRef,
-      registerWithWidgetSyncContext,
-      props.plottables,
-    ]
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, props.plottables]
+  );
+
+  const handleChartReady = useCallback(
+    (instance: echarts.ECharts) => {
+      onChartReadyZoom(instance);
+      registerWithWidgetSyncContext(instance);
+    },
+    [onChartReadyZoom, registerWithWidgetSyncContext]
   );
 
   const showXAxisProp = props.showXAxis ?? 'auto';
@@ -652,6 +656,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         brush={brush}
         onBrushStart={onBrushStart}
         onBrushEnd={onBrushEnd}
+        onChartReady={handleChartReady}
         isGroupedByDate
         useMultilineDate
         start={start ? new Date(start) : undefined}

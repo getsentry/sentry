@@ -29,6 +29,7 @@ import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueu
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
+import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import type {Position} from './layoutUtils';
 import {
@@ -393,63 +394,65 @@ function Dashboard({
   const canModifyLayout = !isMobile && isEditingDashboard;
 
   return (
-    <GridLayout
-      breakpoints={BREAKPOINTS(theme)}
-      cols={COLUMNS}
-      rowHeight={ROW_HEIGHT}
-      margin={WIDGET_MARGINS}
-      draggableHandle={`.${DRAG_HANDLE_CLASS}`}
-      draggableCancel={`.${DRAG_RESIZE_CLASS}`}
-      layouts={layouts}
-      onLayoutChange={handleLayoutChange}
-      onBreakpointChange={handleBreakpointChange}
-      isDraggable={canModifyLayout}
-      isResizable={canModifyLayout}
-      resizeHandle={
-        <ResizeHandle
-          aria-label={t('Resize Widget')}
-          data-test-id="custom-resize-handle"
-          className={DRAG_RESIZE_CLASS}
-          size="xs"
-          borderless
-          icon={<IconResize />}
-        />
-      }
-      useCSSTransforms={false}
-      isBounded
-    >
-      {widgetsWithLayout.map((widget, index) => (
-        <div key={constructGridItemKey(widget)} data-grid={widget.layout}>
-          <SortableWidget
-            widget={widget}
-            widgetLegendState={widgetLegendState}
-            isEditingDashboard={isEditingDashboard}
-            widgetLimitReached={widgetLimitReached}
-            onDelete={handleDeleteWidget(widget)}
-            onEdit={handleEditWidget(index)}
-            onDuplicate={handleDuplicateWidget(widget)}
-            onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
-            isEmbedded={isEmbedded}
-            isPreview={isPreview}
-            isPrebuiltDashboard={defined(dashboard.prebuiltId)}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
-            dashboardPermissions={dashboard.permissions}
-            dashboardCreator={dashboard.createdBy}
-            isMobile={isMobile}
-            windowWidth={windowWidth}
-            index={String(index)}
-            newlyAddedWidget={newlyAddedWidget}
-            onNewWidgetScrollComplete={onNewWidgetScrollComplete}
-            useTimeseriesVisualization={useTimeseriesVisualization}
+    <WidgetSyncContextProvider groupName={DASHBOARD_CHART_GROUP}>
+      <GridLayout
+        breakpoints={BREAKPOINTS(theme)}
+        cols={COLUMNS}
+        rowHeight={ROW_HEIGHT}
+        margin={WIDGET_MARGINS}
+        draggableHandle={`.${DRAG_HANDLE_CLASS}`}
+        draggableCancel={`.${DRAG_RESIZE_CLASS}`}
+        layouts={layouts}
+        onLayoutChange={handleLayoutChange}
+        onBreakpointChange={handleBreakpointChange}
+        isDraggable={canModifyLayout}
+        isResizable={canModifyLayout}
+        resizeHandle={
+          <ResizeHandle
+            aria-label={t('Resize Widget')}
+            data-test-id="custom-resize-handle"
+            className={DRAG_RESIZE_CLASS}
+            size="xs"
+            borderless
+            icon={<IconResize />}
           />
-        </div>
-      ))}
-      {isEditingDashboard && !widgetLimitReached && !isPreview && (
-        <AddWidgetWrapper key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={addWidgetLayout}>
-          <AddWidget onAddWidget={onAddWidget} />
-        </AddWidgetWrapper>
-      )}
-    </GridLayout>
+        }
+        useCSSTransforms={false}
+        isBounded
+      >
+        {widgetsWithLayout.map((widget, index) => (
+          <div key={constructGridItemKey(widget)} data-grid={widget.layout}>
+            <SortableWidget
+              widget={widget}
+              widgetLegendState={widgetLegendState}
+              isEditingDashboard={isEditingDashboard}
+              widgetLimitReached={widgetLimitReached}
+              onDelete={handleDeleteWidget(widget)}
+              onEdit={handleEditWidget(index)}
+              onDuplicate={handleDuplicateWidget(widget)}
+              onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
+              isEmbedded={isEmbedded}
+              isPreview={isPreview}
+              isPrebuiltDashboard={defined(dashboard.prebuiltId)}
+              dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
+              dashboardPermissions={dashboard.permissions}
+              dashboardCreator={dashboard.createdBy}
+              isMobile={isMobile}
+              windowWidth={windowWidth}
+              index={String(index)}
+              newlyAddedWidget={newlyAddedWidget}
+              onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+              useTimeseriesVisualization={useTimeseriesVisualization}
+            />
+          </div>
+        ))}
+        {isEditingDashboard && !widgetLimitReached && !isPreview && (
+          <AddWidgetWrapper key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={addWidgetLayout}>
+            <AddWidget onAddWidget={onAddWidget} />
+          </AddWidgetWrapper>
+        )}
+      </GridLayout>
+    </WidgetSyncContextProvider>
   );
 }
 
