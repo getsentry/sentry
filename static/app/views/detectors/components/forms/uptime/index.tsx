@@ -19,6 +19,8 @@ import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptim
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 
+import {PreviewSection} from './preview';
+
 const ENVIRONMENT_CONFIG: React.ComponentProps<typeof DetectorBaseFields>['environment'] =
   {includeAllEnvironments: false, fieldProps: {required: true}};
 
@@ -46,6 +48,7 @@ function UptimeDetectorForm() {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
+      <PreviewSection />
       <UptimeDetectorFormDetectSection />
       <UptimeDetectorVerificationSection />
       <UptimeDetectorResolveSection />

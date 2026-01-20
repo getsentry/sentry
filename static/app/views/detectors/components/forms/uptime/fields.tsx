@@ -1,3 +1,4 @@
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import type {
   UptimeDetector,
   UptimeDetectorUpdatePayload,
@@ -26,6 +27,39 @@ interface UptimeDetectorFormData {
   traceSampling: boolean;
   url: string;
   workflowIds: string[];
+}
+
+type UptimeDetectorFormFieldName = keyof UptimeDetectorFormData;
+
+const DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP: {
+  [K in UptimeDetectorFormFieldName]: UptimeDetectorFormData[K];
+} = {
+  assertion: null,
+  body: '',
+  description: null,
+  downtimeThreshold: UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+  environment: '',
+  headers: [],
+  intervalSeconds: 60,
+  method: 'GET',
+  name: '',
+  owner: '',
+  projectId: '',
+  recoveryThreshold: UPTIME_DEFAULT_RECOVERY_THRESHOLD,
+  timeoutMs: 10000,
+  traceSampling: false,
+  url: 'https://example.com',
+  workflowIds: [],
+};
+
+/**
+ * Small helper to automatically get the type of the form field.
+ */
+export function useUptimeDetectorFormField<T extends UptimeDetectorFormFieldName>(
+  name: T
+): UptimeDetectorFormData[T] {
+  const value = useFormField(name);
+  return value || DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP[name];
 }
 
 export function uptimeFormDataToEndpointPayload(
@@ -96,14 +130,14 @@ export function uptimeSavedDetectorToFormData(
 
   return {
     ...common,
-    intervalSeconds: 60,
-    method: 'GET',
-    timeoutMs: 10000,
-    traceSampling: false,
-    url: 'https://example.com',
-    headers: [],
-    body: '',
-    assertion: null,
+    intervalSeconds: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.intervalSeconds,
+    method: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.method,
+    timeoutMs: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.timeoutMs,
+    traceSampling: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.traceSampling,
+    url: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.url,
+    headers: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
+    body: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.body,
+    assertion: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.assertion,
     workflowIds: detector.workflowIds,
   };
 }
