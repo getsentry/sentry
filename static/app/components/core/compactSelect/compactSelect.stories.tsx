@@ -403,7 +403,7 @@ export default Storybook.story('CompactSelect', story => {
       <Fragment>
         <p>
           <code>CompactSelect</code> should always be triggered by an{' '}
-          <code>OverlayTrigger</code>. By default, it will render a{' '}
+          <code>OverlayTrigger</code>. By default, it will render an{' '}
           <code>OverlayTrigger.Button</code> for you, which is a{' '}
           <code>DropdownButton</code> under the hood. You can pass a custom trigger with
           the <code>trigger</code> prop.
