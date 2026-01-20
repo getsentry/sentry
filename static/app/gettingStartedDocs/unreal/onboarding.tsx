@@ -10,18 +10,27 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {t, tct} from 'sentry/locale';
 
-const getVerifySnippet = () => `
-#include "SentrySubsystem.h"
+const getVerifySnippet = (params: DocsParams) => {
+  const logsCode = params.isLogsSelected
+    ? `
+
+    // Send logs at different severity levels
+    SentrySubsystem->LogInfo(TEXT("A simple log message"), TEXT("GameFlow"));`
+    : '';
+
+  return `#include "SentrySubsystem.h"
 
 void Verify()
 {
     // Obtain reference to GameInstance
     UGameInstance* GameInstance = ...;
 
-    // Capture message
     USentrySubsystem* SentrySubsystem = GameInstance->GetSubsystem<USentrySubsystem>();
-    SentrySubsystem->CaptureMessage(TEXT("Capture message"));
+
+    // Capture message
+    SentrySubsystem->CaptureMessage(TEXT("Capture message"));${logsCode}
 }`;
+};
 
 const getSettingsConfigureSnippet = (params: DocsParams) => `
 #include "SentrySubsystem.h"
@@ -157,46 +166,28 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'cpp',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
+        },
+        {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'You can also automatically capture Unreal Engine [code:UE_LOG] calls. Check out [link:the Logs documentation] to learn more.',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/unreal/logs/" />
+                  ),
+                }
+              ),
+            },
+          ],
         },
       ],
     },
-    ...(params.isLogsSelected
-      ? ([
-          {
-            title: t('Logs'),
-            content: [
-              {
-                type: 'text',
-                text: t(
-                  'Once structured logging is enabled, you can send logs using the AddLog method on the Sentry subsystem:'
-                ),
-              },
-              {
-                type: 'code',
-                language: 'cpp',
-                code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
-
-// Send logs at different severity levels
-SentrySubsystem->AddLog(TEXT("A simple log message"), ESentryLevel::Info, TEXT("GameFlow"));
-SentrySubsystem->AddLog(TEXT("Failed to save game data"), ESentryLevel::Error, TEXT("SaveSystem"));`,
-              },
-              {
-                type: 'text',
-                text: tct(
-                  'You can also automatically capture Unreal Engine [code:UE_LOG] calls. Check out [link:the Logs documentation] to learn more.',
-                  {
-                    code: <code />,
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/unreal/logs/" />
-                    ),
-                  }
-                ),
-              },
-            ],
-          },
-        ] satisfies OnboardingStep[])
-      : []),
     {
       title: t('Crash Reporter Client'),
       content: [
