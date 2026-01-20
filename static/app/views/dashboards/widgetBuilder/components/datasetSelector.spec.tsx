@@ -55,8 +55,9 @@ describe('DatasetSelector', () => {
     expect(transactionsOption).toHaveAttribute('aria-disabled', 'true');
 
     expect(
-      await screen.findByText('No longer supported. Use the spans dataset.')
+      await screen.findByText(/No longer supported\. Use the spans dataset with the/)
     ).toBeInTheDocument();
+    expect(screen.getByText('is_transaction:true')).toBeInTheDocument();
   });
 
   it('allows selection of transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
