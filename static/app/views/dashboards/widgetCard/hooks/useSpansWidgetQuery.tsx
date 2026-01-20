@@ -344,11 +344,8 @@ export function useSpansTableQuery(
         requestParams.sort = toArray(orderBy);
       }
 
-      const queryStringObject = eventView.generateQueryStringObject();
-
-      // Format Date objects to proper ISO strings to avoid .toString() serialization
       const queryParams = {
-        ...queryStringObject,
+        ...eventView.generateQueryStringObject(),
         ...requestParams,
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
