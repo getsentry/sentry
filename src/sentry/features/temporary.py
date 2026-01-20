@@ -405,12 +405,16 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-coding-agent-integrations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Seer Explorer Index job
+    manager.add("organizations:seer-explorer-index", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable streaming responses for Seer Explorer
     manager.add("organizations:seer-explorer-streaming", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Autofix to use Seer Explorer instead of legacy Celery pipeline
     manager.add("organizations:autofix-on-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Workflows in Slack
     manager.add("organizations:seer-slack-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable new compact issue alert UI in Slack
+    manager.add("organizations:slack-compact-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder boolean operator select feature
     manager.add("organizations:search-query-builder-add-boolean-operator-select", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder conditionals in combobox menus

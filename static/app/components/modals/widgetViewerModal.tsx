@@ -9,6 +9,8 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 import moment from 'moment-timezone';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -100,7 +102,7 @@ import {
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -453,11 +455,7 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  function renderTable({
-    tableResults,
-    loading,
-    pageLinks,
-  }: GenericWidgetQueriesChildrenProps) {
+  function renderTable({tableResults, loading, pageLinks}: GenericWidgetQueriesResult) {
     return ViewerTableV2({
       tableResults,
       loading,
@@ -484,7 +482,7 @@ function WidgetViewerModal(props: Props) {
     loading,
     pageLinks,
     totalCount,
-  }: GenericWidgetQueriesChildrenProps) => {
+  }: GenericWidgetQueriesResult) => {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
@@ -552,8 +550,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <IssueWidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -601,8 +597,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <WidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -804,10 +798,10 @@ function WidgetViewerModal(props: Props) {
                 forceTransactions={metricsDataSide.forceTransactionsOnly}
               >
                 <Header closeButton>
-                  <WidgetHeader>
-                    <WidgetTitleRow>
+                  <Stack gap="md">
+                    <Flex align="center" gap="sm">
                       <h3>{widget.title}</h3>
-                    </WidgetTitleRow>
+                    </Flex>
                     {widget.description && (
                       <Tooltip
                         title={widget.description}
@@ -819,7 +813,7 @@ function WidgetViewerModal(props: Props) {
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       </Tooltip>
                     )}
-                  </WidgetHeader>
+                  </Stack>
                 </Header>
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
@@ -1270,18 +1264,6 @@ const ResultsContainer = styled('div')`
 
 const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
-`;
-
-const WidgetHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
-
-const WidgetTitleRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
 `;
 
 export default withPageFilters(WidgetViewerModal);

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -58,7 +60,7 @@ export default function ReplayInlineOnboardingPanel({
           <BannerDescription>
             {t('Watch the errors and latency issues your users face')}
           </BannerDescription>
-          <ActionButton>
+          <Flex gap="md">
             <Button
               type="button"
               analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
@@ -68,7 +70,7 @@ export default function ReplayInlineOnboardingPanel({
             >
               {t('Set Up Now')}
             </Button>
-          </ActionButton>
+          </Flex>
         </div>
         {!isScreenSmall && <Background image={replayInlineOnboarding} />}
         <CloseDropdownMenu
@@ -161,9 +163,4 @@ const Background = styled('div')<{image: any}>`
   background-image: url(${p => p.image});
   background-repeat: no-repeat;
   background-size: contain;
-`;
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;

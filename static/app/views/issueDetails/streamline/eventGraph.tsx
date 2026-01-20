@@ -455,7 +455,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.tokens.content.muted,
+    inactiveColor: theme.tokens.content.secondary,
   });
 
   const onLegendSelectChanged = useMemo(

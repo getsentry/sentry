@@ -183,7 +183,7 @@ const ScrollContainer = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${p => p.theme.space.xl};
   text-align: center;
 `;

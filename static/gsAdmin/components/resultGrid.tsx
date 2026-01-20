@@ -2,6 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -155,6 +157,13 @@ interface ResultGridProps extends WithRouterProps {
    */
   inPanel?: boolean | React.ComponentType<{children?: React.ReactNode}>;
   /**
+   * Is this endpoint cell-scoped? If true, the endpoint URL will be transformed
+   * to include /_admin/cells/${cell_id}/ prefix.
+   *
+   * @default false
+   */
+  isCellScoped?: boolean;
+  /**
    * Is this a regional endpoint? If so, a region selector will be rendered
    *
    * @default false
@@ -229,6 +238,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
       per_page: 50,
     },
     hasPagination: true,
+    isCellScoped: false,
     isRegional: false,
     useQueryString: true,
   };
@@ -238,6 +248,8 @@ class ResultGrid extends Component<ResultGridProps, State> {
     const queryParams = this.props.location?.query ?? {};
     const {cursor, query, sortBy, regionUrl} = queryParams;
 
+    const needsRegion = this.props.isRegional || this.props.isCellScoped;
+
     this.state = {
       rows: [],
       loading: true,
@@ -245,7 +257,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
       pageLinks: null,
       cursor: extractQuery(cursor),
       query: extractQuery(query),
-      region: this.props.isRegional
+      region: needsRegion
         ? regionUrl
           ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
           : ConfigStore.get('regions')[0]
@@ -259,7 +271,8 @@ class ResultGrid extends Component<ResultGridProps, State> {
     this.fetchData();
 
     // Remove regionalUrl after setting state
-    if (this.props.isRegional && this.props.location?.query?.regionUrl) {
+    const needsRegion = this.props.isRegional || this.props.isCellScoped;
+    if (needsRegion && this.props.location?.query?.regionUrl) {
       browserHistory.replace({
         pathname: this.props.location.pathname,
         query: {...this.props.location.query, regionUrl: undefined},
@@ -305,7 +318,15 @@ class ResultGrid extends Component<ResultGridProps, State> {
       cursor: this.state.cursor,
     };
 
-    this.props.api.request(this.props.endpoint, {
+    // Transform endpoint to cell-scoped URL if needed
+    // Currently using region.name (e.g., "us", "de") as the cell_id.
+    // In the future when there's a cell selector, we would use the actual cell ID instead.
+    const endpoint =
+      this.props.isCellScoped && this.state.region
+        ? `/_admin/cells/${this.state.region.name}${this.props.endpoint}`
+        : this.props.endpoint;
+
+    this.props.api.request(endpoint, {
       method: this.props.method,
       host: this.state.region ? this.state.region.url : undefined,
       data: queryParams,
@@ -455,10 +476,12 @@ class ResultGrid extends Component<ResultGridProps, State> {
       resultTable
     );
 
+    const needsRegion = this.props.isRegional || this.props.isCellScoped;
+
     return (
       <ResultGridContainer data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
-          {this.props.isRegional && (
+          {needsRegion && (
             <CompactSelect
               triggerProps={{prefix: 'Region'}}
               value={this.state.region ? this.state.region.url : undefined}
@@ -491,7 +514,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
             />
           )}
           {hasSearch && (
-            <SearchBar>
+            <Flex align="center" gap="xs" width="100%">
               <SearchInput
                 type="text"
                 placeholder="Search"
@@ -507,7 +530,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
                 size="sm"
                 aria-label="Search"
               />
-            </SearchBar>
+            </Flex>
           )}
         </SortSearchForm>
         {Object.keys(ensuredFilters).length > 0 && (
@@ -564,13 +587,6 @@ const FilterList = styled('div')`
   > div > button + div {
     z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
   }
-`;
-
-const SearchBar = styled('div')`
-  width: 100%;
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
 `;
 
 export const SearchInput = styled(Input)`
