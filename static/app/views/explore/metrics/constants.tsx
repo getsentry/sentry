@@ -1,4 +1,10 @@
 import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import {t} from 'sentry/locale';
+import {
+  SENTRY_TRACEMETRIC_NUMBER_TAGS,
+  SENTRY_TRACEMETRIC_STRING_TAGS,
+} from 'sentry/views/explore/constants';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -51,6 +57,17 @@ export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
 
 export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
   ...HiddenTraceMetricSearchFields,
+  TraceMetricKnownFieldKey.TIMESTAMP,
+];
+
+const TRACEMETRICS_FILTERS: FilterKeySection = {
+  value: 'tracemetrics_filters',
+  label: t('Metrics'),
+  children: [...SENTRY_TRACEMETRIC_STRING_TAGS, ...SENTRY_TRACEMETRIC_NUMBER_TAGS],
+};
+
+export const TRACEMETRICS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  TRACEMETRICS_FILTERS,
 ];
 
 export const TraceSamplesTableStatColumns: VirtualTableSampleColumnKey[] = [

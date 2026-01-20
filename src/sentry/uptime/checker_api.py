@@ -21,10 +21,17 @@ def create_preview_check(validated_data, region: UptimeRegionConfig) -> CheckCon
         "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
     }
 
-    config["request_method"] = validated_data.get("method")
-    config["request_headers"] = validated_data.get("headers")
-    config["request_body"] = validated_data.get("body")
-    config["assertion"] = validated_data.get("assertion")
+    if validated_data.get("method") is not None:
+        config["request_method"] = validated_data.get("method")
+
+    if validated_data.get("headers") is not None:
+        config["request_headers"] = validated_data.get("headers")
+
+    if validated_data.get("body") is not None:
+        config["request_body"] = validated_data.get("body")
+
+    if validated_data.get("assertion") is not None:
+        config["assertion"] = validated_data.get("assertion")
 
     return config
 

@@ -27,6 +27,8 @@ from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
 from sentry.monitors.validators import ConfigValidator
 
+MAX_UNIX_TIMESTAMP_SECONDS = 253402300799
+
 
 class SampleScheduleBucketsConfigValidator(ConfigValidator):
     """
@@ -35,13 +37,15 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
 
     - start: unix timestamp (seconds) for the first *scheduled tick* in the
       window
+    - end: unix timestamp (seconds) for the last *scheduled tick* in the
+      window
     - interval: bucket size in seconds (matches rollupConfig.interval in the
       frontend)
     """
 
-    start = serializers.IntegerField(min_value=1)
-    end = serializers.IntegerField(min_value=1)
-    interval = serializers.IntegerField(min_value=1)
+    start = serializers.IntegerField(min_value=1, max_value=MAX_UNIX_TIMESTAMP_SECONDS)
+    end = serializers.IntegerField(min_value=1, max_value=MAX_UNIX_TIMESTAMP_SECONDS)
+    interval = serializers.IntegerField(min_value=1, max_value=MAX_UNIX_TIMESTAMP_SECONDS)
 
 
 def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshold: int):
@@ -89,8 +93,8 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
 
         config = validator.validated_data
 
-        failure_threshold = config.get("failure_issue_threshold", MIN_THRESHOLD)
-        recovery_threshold = config.get("recovery_threshold", MIN_THRESHOLD)
+        failure_threshold = config.get("failure_issue_threshold") or MIN_THRESHOLD
+        recovery_threshold = config.get("recovery_threshold") or MIN_THRESHOLD
 
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")
