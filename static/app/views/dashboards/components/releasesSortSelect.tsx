@@ -50,7 +50,7 @@ export function ReleasesSortSelect({sortBy, onChange}: Props) {
             : undefined,
         };
       })}
-      trigger={triggerProps => (
+      trigger={({children: _children, ...triggerProps}) => (
         <OverlayTrigger.Button
           {...triggerProps}
           icon={<IconSort variant="muted" />}
