@@ -1,9 +1,42 @@
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {tct} from 'sentry/locale';
+
+export const logsVerify = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isLogsSelected,
+  content: [
+    {
+      type: 'text',
+      text: tct(
+        'Once logging is enabled, you can send logs using the [code:sentry_log_X()] APIs:',
+        {
+          code: <code />,
+        }
+      ),
+    },
+    {
+      type: 'code',
+      language: 'c',
+      code: `sentry_log_info("A simple log message");
+sentry_log_error("A %s log message", "formatted");`,
+    },
+    {
+      type: 'text',
+      text: tct(
+        'Check out [link:the Logs documentation] to learn more about additional attributes and options.',
+        {
+          link: <ExternalLink href="https://docs.sentry.io/platforms/native/logs/" />,
+        }
+      ),
+    },
+  ],
+});
 
 export const logs: OnboardingConfig = {
   install: () => [
@@ -47,35 +80,10 @@ sentry_init(options);`,
       ],
     },
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Once the feature is enabled on the SDK and the SDK is initialized, you can send logs using the [code:sentry_log_X()] APIs.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'The API exposes six methods that you can use to log messages at different log levels: [code:trace], [code:debug], [code:info], [code:warn], [code:error], and [code:fatal].',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          language: 'c',
-          code: `sentry_log_info("A simple log message");
-sentry_log_error("A %s log message", "formatted");`,
-        },
-      ],
+      content: [logsVerify(params)],
     },
   ],
 };
