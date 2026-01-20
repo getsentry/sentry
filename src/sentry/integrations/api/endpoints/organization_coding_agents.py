@@ -92,7 +92,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             if integration.provider != "github_copilot"
         ]
 
-        if features.has("organizations:integrations-github-copilot", organization):
+        if features.has("organizations:integrations-github-copilot-agent", organization):
             integrations_data.append(
                 {
                     "id": None,
@@ -111,9 +111,6 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization: Organization) -> Response:
         """Launch a coding agent."""
-        if not features.has("organizations:seer-coding-agent-integrations", organization):
-            return Response({"detail": "Feature not available"}, status=403)
-
         serializer = OrganizationCodingAgentLaunchSerializer(data=request.data)
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)

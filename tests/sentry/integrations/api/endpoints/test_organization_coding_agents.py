@@ -356,7 +356,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         """Test GET endpoint shows GitHub Copilot when feature flag is enabled."""
         with (
             self.feature("organizations:seer-coding-agent-integrations"),
-            self.feature("organizations:integrations-github-copilot"),
+            self.feature("organizations:integrations-github-copilot-agent"),
             self.mock_integration_service_calls(integrations=[]),
         ):
             response = self.get_success_response(self.organization.slug)
@@ -372,7 +372,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         """Test GET endpoint does not show GitHub Copilot without feature flag."""
         with (
             self.feature("organizations:seer-coding-agent-integrations"),
-            self.feature({"organizations:integrations-github-copilot": False}),
+            self.feature({"organizations:integrations-github-copilot-agent": False}),
             self.mock_integration_service_calls(integrations=[]),
         ):
             response = self.get_success_response(self.organization.slug)
@@ -405,15 +405,37 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
                 response.data["non_field_errors"]
             )
 
+    def test_both_integration_id_and_provider_provided(self):
+        """Test POST endpoint with both integration_id and provider provided."""
+        data = {"run_id": 123, "integration_id": "123", "provider": "github_copilot"}
+        with self.feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=400, **data
+            )
+            assert "non_field_errors" in response.data
+            assert "Only one of 'integration_id' or 'provider' should be provided" in str(
+                response.data["non_field_errors"]
+            )
+
     def test_invalid_integration_id(self):
         """Test POST endpoint with invalid integration_id."""
-        data = {"integration_id": "invalid_id"}
+        data = {"integration_id": "invalid_id", "run_id": 123}
 
         with self.feature({"organizations:seer-coding-agent-integrations": True}):
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=400, **data
             )
             assert "integration_id" in response.data
+
+    def test_invalid_provider(self):
+        """Test POST endpoint with invalid provider (not enabled)."""
+        data = {"provider": "github_copilot", "run_id": 123}
+
+        with self.feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=403, **data
+            )
+            assert "GitHub Copilot is not enabled" in response.data["detail"]
 
     def test_non_coding_agent_integration(self):
         """Test POST endpoint with non-coding agent integration."""
