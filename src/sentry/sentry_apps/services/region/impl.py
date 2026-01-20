@@ -190,9 +190,12 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
+        extra_projects_to_fetch: list[int | str] | None = None,
     ) -> RpcServiceHookProjectsResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ GET
+        Allows extra project IDs or slugs to be fetched for control endpoints to do access validation.
+        This has only been added for compatability with the legacy region API, and to combine RPC calls.
         """
         try:
             hook = ServiceHook.objects.get(
@@ -210,9 +213,18 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             "project_id"
         )
         projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
+        extra_projects: list[Project] = []
+        if extra_projects_to_fetch:
+            extra_project_ids = [p for p in extra_projects_to_fetch if isinstance(p, int)]
+            extra_projects = Project.objects.filter(id__in=extra_project_ids)
+            extra_project_slugs = [p for p in extra_projects_to_fetch if isinstance(p, str)]
+            extra_projects = extra_projects.union(
+                Project.objects.filter(slug__in=extra_project_slugs)
+            )
         return RpcServiceHookProjectsResult(
             projects=[serialize_project(p) for p in projects],
             service_hook_projects=[serialize_service_hook_project(hp) for hp in hook_projects],
+            extra_projects=[serialize_project(p) for p in extra_projects],
         )
 
     def set_service_hook_projects(
