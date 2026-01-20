@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, cast, overload
+from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -578,6 +578,10 @@ if ENVIRONMENT == "development":
 # To enforce CSP (block violated resources), update the following parameter to False
 CSP_REPORT_ONLY = True
 
+COOP_ENABLED = False
+COOP_REPORT_ONLY = True
+COOP_REPORT_TO: str | None = None
+
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
@@ -836,7 +840,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.nodestore",
-    "sentry.deletions.tasks.overwatch",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
@@ -952,6 +955,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
+    "sentry.tasks.seer_explorer_index",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1118,6 +1122,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "statistical-detectors-detect-regressions": {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
+        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
+    "seer-explorer-index": {
+        "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
@@ -1386,7 +1394,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
 # NOTE: Features can have their default value set when calling
@@ -2161,7 +2168,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.12.1"
+SELF_HOSTED_STABLE_VERSION = "26.1.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2856,11 +2863,6 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
-# Used to validate RPC requests from the Overwatch service
-OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
-if (val := os.environ.get("OVERWATCH_RPC_SHARED_SECRET")) is not None:
-    OVERWATCH_RPC_SHARED_SECRET = [val]
-
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
@@ -3172,12 +3174,6 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
 
-OVERWATCH_REGION_URLS: dict[str, str] = cast(
-    dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
-)
-OVERWATCH_REGION_URL: str | None = os.getenv("OVERWATCH_REGION_URL")
-OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
-
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
@@ -3257,3 +3253,7 @@ CONDUIT_PUBLISH_SECRET: str | None = os.getenv("CONDUIT_PUBLISH_SECRET")
 CONDUIT_PUBLISH_URL: str = os.getenv("CONDUIT_PUBLISH_URL", "http://127.0.0.1:9097")
 CONDUIT_PUBLISH_JWT_ISSUER: str = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "sentry.io")
 CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "conduit")
+
+SYNAPSE_HMAC_SECRET: list[str] | None = None
+if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:
+    SYNAPSE_HMAC_SECRET = [val]

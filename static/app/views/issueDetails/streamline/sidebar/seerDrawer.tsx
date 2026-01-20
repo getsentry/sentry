@@ -570,7 +570,7 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`

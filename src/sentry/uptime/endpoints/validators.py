@@ -1,24 +1,32 @@
+import logging
 from collections.abc import Sequence
 from typing import Any, override
 
 import jsonschema
+from django.conf import settings
 from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry import audit_log, quotas
-from sentry.api.fields import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
+from sentry.uptime import checker_api
 from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionDataSourceHandler,
     get_audit_log_data,
     get_uptime_subscription,
 )
+from sentry.uptime.subscriptions.regions import get_active_regions, get_region_config
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
@@ -44,6 +52,8 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 """
 The bounding upper limit on how many uptime Detectors's can exist for a single
@@ -64,6 +74,8 @@ MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
     "disabled": ObjectStatus.DISABLED,
 }
+
+logger = logging.getLogger(__name__)
 
 HEADERS_LIST_SCHEMA = {
     "type": "array",
@@ -137,8 +149,78 @@ def _validate_request_size(method, url, headers, body):
         )
 
 
+class UptimeValidatorBase(CamelSnakeSerializer):
+    url = URLField(required=True, max_length=255)
+    timeout_ms = serializers.IntegerField(
+        required=True,
+        min_value=1000,
+        max_value=60_000,
+        help_text="The number of milliseconds the request will wait for a response before timing-out.",
+    )
+    method = serializers.ChoiceField(
+        required=False,
+        choices=UptimeSubscription.SupportedHTTPMethods.choices,
+        help_text="The HTTP method used to make the check request.",
+    )
+    headers = serializers.JSONField(
+        required=False,
+        help_text="Additional headers to send with the check request.",
+    )
+    body = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The body to send with the check request.",
+    )
+    assertion = serializers.JSONField(
+        required=False,
+        allow_null=True,
+        help_text="The assertion to send with the check request.",
+    )
+
+
 @extend_schema_serializer()
-class UptimeMonitorValidator(CamelSnakeSerializer):
+class UptimeCheckPreviewValidator(UptimeValidatorBase):
+    region = serializers.ChoiceField(
+        choices=[r.slug for r in settings.UPTIME_REGIONS],
+    )
+
+    def __init__(self, assertions_enabled, **kwargs: Any):
+        super().__init__(**kwargs)
+        self.assertions_enabled = assertions_enabled
+
+    def validate(self, attrs):
+        _validate_request_size(
+            attrs.get("method", "GET"),
+            attrs.get("url", ""),
+            attrs.get("headers", []),
+            attrs.get("body", None),
+        )
+        region_config = get_region_config(attrs["region"])
+        assert region_config is not None
+        check_config = checker_api.create_preview_check(attrs, region_config)
+
+        result = checker_api.invoke_checker_validator(
+            self.assertions_enabled, check_config, region_config
+        )
+        if result is not None and result.status_code >= 400:
+            raise serializers.ValidationError({"assertion": result.json()})
+        return attrs
+
+    def validate_url(self, url):
+        return _validate_url(url)
+
+    def validate_headers(self, headers):
+        return _validate_headers(headers)
+
+    def create(self, validated_data):
+        region_config = get_region_config(validated_data["region"])
+        assert region_config is not None
+        return checker_api.create_preview_check(validated_data, region_config)
+
+
+@extend_schema_serializer()
+class UptimeMonitorValidator(UptimeValidatorBase):
     name = serializers.CharField(
         required=True,
         max_length=128,
@@ -149,7 +231,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         default="active",
         help_text="Status of the uptime monitor. Disabled uptime monitors will not perform checks and do not count against the uptime monitor quota.",
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False,
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
@@ -160,37 +242,16 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         allow_null=True,
         help_text="Name of the environment to create uptime issues in.",
     )
-    url = URLField(required=True, max_length=255)
     interval_seconds = serializers.ChoiceField(
         required=True,
         choices=UptimeSubscription.IntervalSeconds.choices,
         help_text="Time in seconds between uptime checks.",
     )
-    timeout_ms = serializers.IntegerField(
-        required=True,
-        min_value=1000,
-        max_value=60_000,
-        help_text="The number of milliseconds the request will wait for a response before timing-out.",
-    )
     mode = serializers.IntegerField(required=False)
-    method = serializers.ChoiceField(
-        required=False,
-        choices=UptimeSubscription.SupportedHTTPMethods.choices,
-        help_text="The HTTP method used to make the check request.",
-    )
-    headers = serializers.JSONField(
-        required=False,
-        help_text="Additional headers to send with the check request.",
-    )
     trace_sampling = serializers.BooleanField(
         required=False,
         default=False,
         help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
-    )
-    body = serializers.CharField(
-        required=False,
-        allow_null=True,
-        help_text="The body to send with the check request.",
     )
     recovery_threshold = serializers.IntegerField(
         required=False,
@@ -204,6 +265,10 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         min_value=1,
         help_text="Number of consecutive failed checks required to mark monitor as down.",
     )
+
+    def __init__(self, assertions_enabled, **kwargs):
+        super().__init__(**kwargs)
+        self.assertions_enabled = assertions_enabled
 
     def validate(self, attrs):
         # When creating a new uptime monitor, check if we would exceed the organization limit
@@ -233,6 +298,13 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             attrs.get("headers", headers),
             attrs.get("body", body),
         )
+
+        region = get_region_config(get_active_regions()[0].slug)
+        assert region is not None
+        check_config = checker_api.create_preview_check(attrs, region)
+        result = checker_api.invoke_checker_validator(self.assertions_enabled, check_config, region)
+        if result is not None and result.status_code >= 400:
+            raise serializers.ValidationError({"assertion": result.json()})
 
         return attrs
 
@@ -574,13 +646,37 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         # Only validate on updates when trying to enable a currently disabled detector
         if detector and value and not detector.enabled:
-            result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+            result = quotas.backend.check_assign_seat(seat_object=detector)
             if not result.assignable:
                 raise serializers.ValidationError(result.reason)
 
         return value
 
-    def create(self, validated_data):
+    @override
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        attrs = super().validate(attrs)
+
+        # Always enforce the correct uptime conditions - these are fixed for all
+        # uptime monitors and cannot be overridden by the frontend
+        attrs["condition_group"] = {
+            "conditions": [
+                {
+                    "comparison": CHECKSTATUS_FAILURE,
+                    "type": Condition.EQUAL,
+                    "condition_result": DetectorPriorityLevel.HIGH,
+                },
+                {
+                    "comparison": CHECKSTATUS_SUCCESS,
+                    "type": Condition.EQUAL,
+                    "condition_result": DetectorPriorityLevel.OK,
+                },
+            ]
+        }
+
+        return attrs
+
+    @override
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         detector = super().create(validated_data)
 
         try:
@@ -592,7 +688,11 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return detector
 
+    @override
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        # Prevent condition_group updates. These are set on creation and can't be modified by users
+        validated_data.pop("condition_group", None)
+
         # Handle seat management when enabling/disabling
         was_enabled = instance.enabled
         enabled = validated_data.get("enabled", was_enabled)
@@ -617,6 +717,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     def update_data_source(self, instance: Detector, data_source: dict[str, Any]):
         subscription = get_uptime_subscription(instance)
         update_uptime_subscription(
+            detector=instance,
             subscription=subscription,
             url=data_source.get("url", NOT_SET),
             interval_seconds=data_source.get("interval_seconds", NOT_SET),

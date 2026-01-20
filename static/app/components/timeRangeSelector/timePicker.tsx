@@ -102,7 +102,7 @@ const TimePicker = styled(
     grid-template-columns: 48% 48%;
     grid-column-gap: 4%;
     align-items: center;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     width: 100%;
     padding: 0;
   }
@@ -115,9 +115,9 @@ const Input = styled('input')`
 
   &.rdrDateDisplayItem {
     width: 100%;
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     border: 1px solid ${p => p.theme.tokens.border.primary};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     padding: ${space(0.25)} ${space(0.5)};
     box-shadow: none;
     font-variant-numeric: tabular-nums;

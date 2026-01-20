@@ -1,5 +1,6 @@
 import {
   getMetricDetectorSuffix,
+  getStaticDetectorThresholdPlaceholder,
   getStaticDetectorThresholdSuffix,
 } from './metricDetectorSuffix';
 
@@ -16,8 +17,12 @@ describe('getStaticDetectorThresholdSuffix', () => {
     expect(getStaticDetectorThresholdSuffix('any(transaction)')).toBe('');
   });
 
-  it('returns % for percentage aggregate', () => {
-    expect(getStaticDetectorThresholdSuffix('failure_rate()')).toBe('%');
+  it('returns empty string for failure_rate (stores as decimal, not percentage)', () => {
+    expect(getStaticDetectorThresholdSuffix('failure_rate()')).toBe('');
+  });
+
+  it('returns % for session percentage aggregate', () => {
+    expect(getStaticDetectorThresholdSuffix('crash_free_rate(session)')).toBe('%');
   });
 
   it('returns ms for duration aggregate', () => {
@@ -43,5 +48,27 @@ describe('getMetricDetectorSuffix', () => {
 
   it('returns ms as default for dynamic detection type with duration aggregate', () => {
     expect(getMetricDetectorSuffix('dynamic', aggregate)).toBe('ms');
+  });
+});
+
+describe('getStaticDetectorThresholdPlaceholder', () => {
+  it('returns 0 for integer aggregate', () => {
+    expect(getStaticDetectorThresholdPlaceholder('count()')).toBe('0');
+  });
+
+  it('returns 0 for number aggregate', () => {
+    expect(getStaticDetectorThresholdPlaceholder('avg(stack.colno)')).toBe('0');
+  });
+
+  it('returns 0 for duration aggregate', () => {
+    expect(getStaticDetectorThresholdPlaceholder('p95(transaction.duration)')).toBe('0');
+  });
+
+  it('returns 0.05 for failure_rate (stores as decimal)', () => {
+    expect(getStaticDetectorThresholdPlaceholder('failure_rate()')).toBe('0.05');
+  });
+
+  it('returns 5 for session percentage aggregate (stores as percentage)', () => {
+    expect(getStaticDetectorThresholdPlaceholder('crash_free_rate(session)')).toBe('5');
   });
 });

@@ -205,8 +205,8 @@ function CustomerUpgradeRequest() {
 const Divider = styled(PanelItem)`
   font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default CustomerUpgradeRequest;

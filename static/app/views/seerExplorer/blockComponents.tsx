@@ -376,12 +376,12 @@ function BlockComponent({
     >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         {block.message.role === 'user' ? (
-          <BlockRow>
+          <Flex align="start" width="100%">
             <BlockChevronIcon direction="right" size="sm" />
             <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
-          </BlockRow>
+          </Flex>
         ) : (
-          <BlockRow>
+          <Flex align="start" width="100%">
             <ResponseDot
               status={getToolStatus(block)}
               hasOnlyTools={!hasContent && hasTools}
@@ -433,7 +433,7 @@ function BlockComponent({
                       block.todos.length > 0;
 
                     return (
-                      <ToolCallWithTodos key={`${toolCall.function}-${idx}`}>
+                      <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
                         <ToolCallTextContainer>
                           {hasLink ? (
                             <ToolCallLink
@@ -472,13 +472,13 @@ function BlockComponent({
                         {showTodoList && (
                           <TodoListContent text={todosToMarkdown(block.todos!)} />
                         )}
-                      </ToolCallWithTodos>
+                      </Stack>
                     );
                   })}
                 </ToolCallStack>
               )}
             </BlockContentWrapper>
-          </BlockRow>
+          </Flex>
         )}
         {showActions && !isPolling && (
           <ActionButtonBar gap="xs">
@@ -512,14 +512,8 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   flex-shrink: 0; /* Prevent blocks from shrinking */
 `;
 
-const BlockRow = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-`;
-
 const BlockChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: 18px;
   margin-left: ${space(2)};
   margin-right: ${space(1)};
@@ -539,19 +533,19 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
-        return p.theme.colors.pink500;
+        return p.theme.tokens.content.promotion;
       case 'pending':
-        return p.theme.colors.pink500;
+        return p.theme.tokens.content.promotion;
       case 'content':
-        return p.theme.colors.blue500;
+        return p.theme.tokens.content.accent;
       case 'success':
-        return p.theme.colors.green500;
+        return p.theme.tokens.content.success;
       case 'failure':
-        return p.theme.colors.red500;
+        return p.theme.tokens.content.danger;
       case 'mixed':
-        return p.theme.colors.yellow500;
+        return p.theme.tokens.content.warning;
       default:
-        return p.theme.colors.blue500;
+        return p.theme.tokens.content.accent;
     }
   }};
 
@@ -622,19 +616,13 @@ const UserBlockContent = styled('div')`
   padding: ${space(2)} ${space(2)} ${space(2)} 0;
   white-space: pre-wrap;
   word-wrap: break-word;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ToolCallStack = styled(Stack)`
   width: 100%;
   min-width: 0;
   padding-right: ${p => p.theme.space.lg};
-`;
-
-const ToolCallWithTodos = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const ToolCallTextContainer = styled('div')`
@@ -690,7 +678,9 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
   color: ${p =>
-    p.isHighlighted ? p.theme.tokens.interactive.link.accent.hover : p.theme.subText};
+    p.isHighlighted
+      ? p.theme.tokens.interactive.link.accent.hover
+      : p.theme.tokens.content.secondary};
   flex-shrink: 0;
 `;
 
@@ -708,5 +698,5 @@ const TodoListContent = styled(MarkedText)`
   margin-bottom: -${p => p.theme.space.xl};
   font-size: ${p => p.theme.fontSize.xs};
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

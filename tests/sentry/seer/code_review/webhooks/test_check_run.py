@@ -126,18 +126,6 @@ class CheckRunEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         )
         assert response.status_code == 204
 
-    @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
-    def test_check_run_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
-        self, mock_task: MagicMock
-    ) -> None:
-        """Test that task is enqueued when code-review-beta flag is off but pr_review_test_generation is enabled."""
-        with self.code_review_setup(features={"organizations:gen-ai-features"}):
-            self._send_webhook_event(
-                GithubWebhookType.CHECK_RUN,
-                CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
-            )
-            mock_task.delay.assert_called_once()
-
     @patch("sentry.seer.code_review.utils.make_seer_request")
     def test_check_run_skips_when_hide_ai_features_enabled(
         self, mock_make_seer_request: MagicMock
@@ -151,18 +139,15 @@ class CheckRunEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             )
             mock_make_seer_request.assert_not_called()
 
-    @patch("sentry.seer.code_review.webhooks.task.get_direct_to_seer_gh_orgs")
     @patch("sentry.seer.code_review.webhooks.task.make_seer_request")
     def test_check_run_bypasses_org_whitelist_check(
-        self, mock_make_seer_request: MagicMock, mock_get_orgs: MagicMock
+        self, mock_make_seer_request: MagicMock
     ) -> None:
         """Test that CHECK_RUN events go to Seer even when org is not whitelisted.
 
         This verifies the bug fix: CHECK_RUN events should bypass the org whitelist
         check because they are user-initiated reruns from GitHub UI.
         """
-        mock_get_orgs.return_value = []
-
         with self.code_review_setup(), self.tasks():
             self._send_webhook_event(
                 GithubWebhookType.CHECK_RUN,

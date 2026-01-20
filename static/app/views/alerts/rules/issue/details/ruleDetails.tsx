@@ -28,15 +28,18 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -45,9 +48,6 @@ import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeD
 import {IssueAlertDetailsChart} from './alertChart';
 import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
-
-interface AlertRuleDetailsProps
-  extends RouteComponentProps<{projectId: string; ruleId: string}> {}
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -70,10 +70,13 @@ const getIssueAlertDetailsQueryKey = ({
   {query: {expand: 'lastTriggered'}},
 ];
 
-function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
+export default function AlertRuleDetails() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const api = useApi();
+  const location = useLocation();
+  const params = useParams<{projectId: string; ruleId: string}>();
+  const router = useRouter();
   const {projects, fetching: projectIsLoading} = useProjects();
   const project = projects.find(({slug}) => slug === params.projectId);
   const {projectId: projectSlug, ruleId} = params;
@@ -371,7 +374,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   }
 
   const {period, start, end, utc} = getDataDatetime();
-  const {cursor} = location.query;
+  const cursor = decodeScalar(location.query.cursor);
   return (
     <PageFiltersContainer
       skipInitializeUrlParams
@@ -507,8 +510,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     </PageFiltersContainer>
   );
 }
-
-export default AlertRuleDetails;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-bottom: ${space(2)};

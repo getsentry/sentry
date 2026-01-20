@@ -59,7 +59,7 @@ export default function BreadcrumbItem({
 }: Props) {
   const theme = useTheme();
   const {colorGraphicsToken, description, title, icon} = getFrameDetails(frame);
-  const colorHex = theme.tokens.graphics[colorGraphicsToken];
+  const colorHex = theme.tokens.graphics[colorGraphicsToken].vibrant;
   const replay = useReplayReader();
   const {data: extraction, isPending} = useExtractDomNodes({
     replay,

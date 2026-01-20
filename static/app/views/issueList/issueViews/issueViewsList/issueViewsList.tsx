@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/core/button';
@@ -278,9 +280,9 @@ function SortDropdown() {
   return (
     <CompactSelect
       value={sort}
-      triggerProps={{
-        icon: <IconSort />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} icon={<IconSort />} />
+      )}
       onChange={newSort => {
         trackAnalytics('issue_views.table.sort_changed', {
           organization,
@@ -479,7 +481,7 @@ const Banner = styled('div')`
 
   background: linear-gradient(
     269.35deg,
-    ${p => p.theme.backgroundTertiary} 0.32%,
+    ${p => p.theme.tokens.background.tertiary} 0.32%,
     rgba(245, 243, 247, 0) 99.69%
   );
 `;

@@ -573,12 +573,12 @@ const StyledListItem = styled(ListItem)`
 
 const LabelText = styled(Text)`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ListItemSubText = styled(Text)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InputGroup = styled('div')<{noPadding?: boolean}>`

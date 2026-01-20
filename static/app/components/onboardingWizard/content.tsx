@@ -85,7 +85,9 @@ function TaskCard({
       className={className}
     >
       {onClick && <InteractionStateLayer />}
-      <TaskCardIcon>{icon}</TaskCardIcon>
+      <Flex justify="center" align="center" height="20px">
+        {icon}
+      </Flex>
       <TaskCardDescription>
         {title}
         {description && <p>{description}</p>}
@@ -303,9 +305,9 @@ function Task({task, hidePanel}: TaskProps) {
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          <ClickIndicator>
+          <Flex justify="center" align="center" width="20px" height="100%">
             <IconChevron direction="right" size="xs" variant="muted" />
-          </ClickIndicator>
+          </Flex>
         }
       />
       {showSkipConfirmation && (
@@ -577,7 +579,8 @@ const TaskGroupWrapper = styled('div')`
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
-    color: ${p => (p.hasProgress ? p.theme.tokens.content.accent : p.theme.subText)};
+    color: ${p =>
+      p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
   }
 `;
 
@@ -591,16 +594,8 @@ const TaskGroupBody = styled('ul')`
 const TaskWrapper = styled('li')`
   gap: ${space(1)};
   p {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const ClickIndicator = styled('div')`
-  width: 20px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const TaskCardWrapper = styled('div')`
@@ -630,13 +625,6 @@ const TaskCardDescription = styled('div')`
   strong {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const TaskCardIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 20px;
 `;
 
 const TaskCardActions = styled('div')`

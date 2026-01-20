@@ -38,18 +38,6 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         )
         assert result is False
 
-    def test_returns_false_for_code_review_beta_orgs(self):
-        self.create_code_mapping(project=self.project, repo=self.repo)
-        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
-
-        with self.feature(
-            ["organizations:seat-based-seer-enabled", "organizations:code-review-beta"]
-        ):
-            result = should_create_or_increment_contributor_seat(
-                self.organization, self.repo, self.contributor
-            )
-            assert result is False
-
     def test_returns_false_when_no_code_review_or_autofix_enabled(self):
         with self.feature("organizations:seat-based-seer-enabled"):
             result = should_create_or_increment_contributor_seat(

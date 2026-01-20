@@ -83,6 +83,6 @@ const Shortcut = styled('li')`
   strong {
     display: inline-block;
     min-width: 130px;
-    color: ${p => p.theme.colors.blue400};
+    color: ${p => p.theme.tokens.content.accent};
   }
 `;

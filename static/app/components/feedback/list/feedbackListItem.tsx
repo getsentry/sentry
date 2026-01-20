@@ -78,7 +78,7 @@ export default function FeedbackListItem({
         <InteractionStateLayer />
 
         <Row
-          style={{gridArea: 'checkbox'}}
+          area="checkbox"
           onClick={e => {
             e.stopPropagation();
           }}
@@ -101,20 +101,14 @@ export default function FeedbackListItem({
         <StyledTimeSince date={feedbackItem.firstSeen} />
 
         {feedbackItem.hasSeen ? null : (
-          <DotRow style={{gridArea: 'unread'}}>
+          <DotRow area="unread">
             <Tooltip title={t('Unread')} skipWrapper>
               <UnreadIndicator />
             </Tooltip>
           </DotRow>
         )}
 
-        <PreviewRow
-          align="start"
-          justify="start"
-          style={{
-            gridArea: 'message',
-          }}
-        >
+        <PreviewRow align="start" justify="start" area="message">
           <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
         </PreviewRow>
 
@@ -184,10 +178,11 @@ const LinkedFeedbackCard = styled(Link)`
     color: ${p => p.theme.tokens.content.primary};
   }
   &[data-selected='true'] {
-    background: ${p => p.theme.colors.blue100};
-    border: 1px solid ${p => p.theme.colors.blue200};
+    background: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border: 1px solid ${p => p.theme.tokens.border.transparent.accent.muted};
     border-radius: ${space(0.75)};
-    color: ${p => p.theme.colors.blue400};
+    color: ${p => p.theme.tokens.interactive.transparent.accent.content.primary};
   }
 
   display: grid;
@@ -235,7 +230,7 @@ const DotRow = styled(Row)`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.colors.blue500};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   border-radius: 50%;
 `;
 
@@ -256,7 +251,7 @@ const ContactRow = styled(TextOverflow)`
 
 const ShortId = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTimeSince = styled(TimeSince)`

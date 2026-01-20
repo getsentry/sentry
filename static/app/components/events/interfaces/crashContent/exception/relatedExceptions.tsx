@@ -182,7 +182,7 @@ const Heading = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
   margin: ${space(1)} 0 ${space(0.5)} 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledPre = styled('pre')`

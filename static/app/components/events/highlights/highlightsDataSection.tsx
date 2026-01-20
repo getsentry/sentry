@@ -315,7 +315,7 @@ const EmptyHighlights = styled('div')`
   text-align: center;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const EmptyHighlightsContent = styled('div')`

@@ -160,7 +160,7 @@ const ProviderName = styled('div')`
 
 const ProviderDescription = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FeatureBadge = styled('div')`
@@ -169,7 +169,7 @@ const FeatureBadge = styled('div')`
 
 const ActiveIndicator = styled('div')`
   background: ${p => p.theme.colors.green400};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   padding: ${space(1)} ${space(1.5)};
   border-radius: 2px;
   font-size: 0.8em;

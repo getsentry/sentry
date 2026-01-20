@@ -9,11 +9,6 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 // for each use to avoid carrying over state
 export const TAG_VALUE_ESCAPE_PATTERN = '[:\\s\\(\\)\\\\"]';
 
-// remove leading and trailing whitespace and remove double spaces
-function formatQueryString(query: string): string {
-  return query.trim().replace(/\s+/g, ' ');
-}
-
 export function addQueryParamsToExistingUrl(
   origUrl: string,
   queryParams: Record<PropertyKey, unknown>
@@ -176,17 +171,3 @@ export const parseAsSort = createParser({
     return value.kind === 'desc' ? `-${value.field}` : value.field;
   },
 });
-
-const queryString = {
-  decodeBoolean,
-  decodeInteger,
-  decodeList,
-  decodeScalar,
-  decodeSorts,
-  formatQueryString,
-  addQueryParamsToExistingUrl,
-  appendTagCondition,
-  appendExcludeTagValuesCondition,
-};
-
-export default queryString;

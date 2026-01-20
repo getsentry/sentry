@@ -6,7 +6,6 @@ import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -38,8 +37,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+
+import {
+  AGENT_INTEGRATION_LABELS,
+  AgentIntegration,
+  NODE_AGENT_INTEGRATIONS,
+  PYTHON_AGENT_INTEGRATIONS,
+} from './utils/agentIntegrations';
 
 // Full-stack JS frameworks that support Vercel AI SDK (they have server-side capabilities)
 const fullStackJsPlatforms = [
@@ -231,26 +238,19 @@ export function Onboarding() {
     integration: {
       label: t('Integration'),
       items: isPythonPlatform
-        ? [
-            {label: 'OpenAI SDK', value: 'openai'},
-            {label: 'OpenAI Agents SDK', value: 'openai_agents'},
-            {label: 'Anthropic SDK', value: 'anthropic'},
-            {label: 'Google Gen AI SDK', value: 'google_genai'},
-            {label: 'LangChain', value: 'langchain'},
-            {label: 'LangGraph', value: 'langgraph'},
-            {label: 'LiteLLM', value: 'litellm'},
-            {label: 'Pydantic AI', value: 'pydantic_ai'},
-            {label: 'Other', value: 'manual'},
-          ]
-        : [
-            ...(hasVercelAI ? [{label: 'Vercel AI SDK', value: 'vercel_ai'}] : []),
-            {label: 'OpenAI SDK', value: 'openai'},
-            {label: 'Anthropic SDK', value: 'anthropic'},
-            {label: 'Google Gen AI SDK', value: 'google_genai'},
-            {label: 'LangChain', value: 'langchain'},
-            {label: 'LangGraph', value: 'langgraph'},
-            {label: 'Other', value: 'manual'},
-          ],
+        ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
+            label: AGENT_INTEGRATION_LABELS[integration],
+            value: integration,
+          }))
+        : (hasVercelAI
+            ? NODE_AGENT_INTEGRATIONS
+            : NODE_AGENT_INTEGRATIONS.filter(
+                integration => integration !== AgentIntegration.VERCEL_AI
+              )
+          ).map(integration => ({
+            label: AGENT_INTEGRATION_LABELS[integration],
+            value: integration,
+          })),
     },
   };
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
@@ -264,28 +264,10 @@ export function Onboarding() {
 
   if (!agentMonitoringPlatforms.has(project.platform as PlatformKey)) {
     return (
-      <OnboardingPanel project={project}>
-        <DescriptionWrapper>
-          <p>
-            {tct(
-              'Fiddlesticks. Auto instrumentation of AI Agents is not available for your [platform] project. ',
-              {
-                platform: currentPlatform?.name || project.slug,
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              'However, you can still manually instrument your agents using the Sentry SDK tracing API. See [link:custom instrumentation docs] for details.',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-                ),
-              }
-            )}
-          </p>
-        </DescriptionWrapper>
-      </OnboardingPanel>
+      <UnsupportedPlatformOnboarding
+        project={project}
+        platformName={currentPlatform?.name || project.slug}
+      />
     );
   }
 
@@ -296,25 +278,7 @@ export function Onboarding() {
   const agentMonitoringDocs = docs?.agentMonitoringOnboarding;
 
   if (!agentMonitoringDocs || !dsn || !projectKeyId) {
-    return (
-      <OnboardingPanel project={project}>
-        <DescriptionWrapper>
-          <p>
-            {tct(
-              "The agent monitoring onboarding checklist isn't available for your [project] project yet, but you can still set up the Sentry SDK to start monitoring your AI agents.",
-              {project: project.slug}
-            )}
-          </p>
-          <LinkButton
-            size="sm"
-            href="https://docs.sentry.io/product/insights/ai/agents/"
-            external
-          >
-            {t('Go to Documentation')}
-          </LinkButton>
-        </DescriptionWrapper>
-      </OnboardingPanel>
-    );
+    return <NoDocsOnboarding project={project} />;
   }
 
   const docParams: DocsParams<any> = {
@@ -369,6 +333,66 @@ export function Onboarding() {
             />
           ))}
       </GuidedSteps>
+    </OnboardingPanel>
+  );
+}
+
+function UnsupportedPlatformOnboarding({
+  project,
+  platformName,
+}: {
+  platformName: string;
+  project: Project;
+}) {
+  return (
+    <OnboardingPanel project={project}>
+      <DescriptionWrapper>
+        <p>
+          {tct(
+            'Fiddlesticks. Auto instrumentation of AI Agents is not available for your [platform] project.',
+            {
+              platform: platformName,
+            }
+          )}
+        </p>
+        <p>
+          {tct(
+            'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or use an AI coding agent to do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+              ),
+            }
+          )}
+        </p>
+        <CopyLLMPromptButton />
+      </DescriptionWrapper>
+    </OnboardingPanel>
+  );
+}
+
+function NoDocsOnboarding({project}: {project: Project}) {
+  return (
+    <OnboardingPanel project={project}>
+      <DescriptionWrapper>
+        <p>
+          {tct(
+            "The agent monitoring onboarding checklist isn't available for your [project] project yet.",
+            {project: project.slug}
+          )}
+        </p>
+        <p>
+          {tct(
+            'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
+              ),
+            }
+          )}
+        </p>
+        <CopyLLMPromptButton />
+      </DescriptionWrapper>
     </OnboardingPanel>
   );
 }

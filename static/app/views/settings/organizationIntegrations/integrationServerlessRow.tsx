@@ -186,7 +186,7 @@ const Name = styled(`span`)`
 const RuntimeAndVersion = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DetailWrapper = styled('div')`

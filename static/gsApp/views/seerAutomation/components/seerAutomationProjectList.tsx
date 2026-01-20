@@ -11,7 +11,7 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import LoadingError from 'sentry/components/loadingError';
@@ -90,22 +90,17 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 }
 
 const ValueWrapper = styled('span')<{isDangerous?: boolean}>`
-  color: ${p => (p.isDangerous ? p.theme.errorText : p.theme.subText)};
+  color: ${p =>
+    p.isDangerous ? p.theme.tokens.content.danger : p.theme.tokens.content.secondary};
 `;
 
 const Subheading = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const SeerDropdownLabel = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-`;
-
 const SeerDropdownDescription = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 function getSeerLabel(key: string, seerScannerAutomation: boolean) {
@@ -121,18 +116,18 @@ function getSeerDropdownLabel(key: string) {
   const option = SEER_THRESHOLD_OPTIONS.find(opt => opt.value === key);
   if (!option) {
     return (
-      <SeerDropdownLabel>
+      <Stack gap="2xs">
         <div>{key}</div>
         <SeerDropdownDescription />
-      </SeerDropdownLabel>
+      </Stack>
     );
   }
 
   return (
-    <SeerDropdownLabel>
+    <Stack gap="2xs">
       <div>{option.label}</div>
       <SeerDropdownDescription>{option.details}</SeerDropdownDescription>
-    </SeerDropdownLabel>
+    </Stack>
   );
 }
 
@@ -429,7 +424,7 @@ const SearchBarWrapper = styled('div')`
 `;
 
 const SeerValue = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   justify-content: flex-end;
   gap: ${space(4)};
@@ -452,7 +447,8 @@ const StyledCheckbox = styled(Checkbox)`
 const ClickablePanelItem = styled(PanelItem)`
   cursor: pointer;
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

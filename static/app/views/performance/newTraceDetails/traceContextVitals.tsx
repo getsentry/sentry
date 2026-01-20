@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -92,7 +94,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
   );
 
   return (
-    <VitalMetersContainer>
+    <Flex align="center" gap="md">
       {primaryVitals.map(vitalKey => {
         const {vitalDetails, vital} = getVitalInfo(vitalKey, collectedVitals);
         return <VitalPill key={vitalKey} vitalDetails={vitalDetails} vital={vital} />;
@@ -104,7 +106,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
           </SecondaryVitalsCount>
         </Tooltip>
       )}
-    </VitalMetersContainer>
+    </Flex>
   );
 }
 
@@ -141,24 +143,14 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
 
   const acronym = vitalDetails.acronym ?? vitalDetails.name;
   return (
-    <VitalPillContainer>
+    <Flex>
       <VitalPillName status={status}>
         <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
       </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
-    </VitalPillContainer>
+    </Flex>
   );
 }
-
-const VitalMetersContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const VitalPillContainer = styled('div')`
-  display: flex;
-`;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;
@@ -195,7 +187,7 @@ const VitalPillValue = styled('div')`
 `;
 
 const SecondaryVitalsCount = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

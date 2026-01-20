@@ -164,10 +164,10 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
 
   makeBarColor(theme: Theme): string {
     if (this.errors.size > 0) {
-      return theme.colors.red400;
+      return theme.tokens.graphics.danger.vibrant;
     }
 
-    return theme.colors.blue400;
+    return theme.tokens.graphics.accent.vibrant;
   }
 
   resolveValueFromSearchKey(_key: string): any | null {
