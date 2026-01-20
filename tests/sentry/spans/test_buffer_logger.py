@@ -18,6 +18,8 @@ class TestBufferLogger:
                 1000.0,
                 1000.0,
                 1006.0,
+                1006.0,
+                1007.0,
             ]
 
             buffer_logger = BufferLogger()
@@ -54,33 +56,12 @@ class TestBufferLogger:
 
             # Verify data was cleared after logging
             assert len(buffer_logger._data) == 0
-            assert buffer_logger._last_log_time is None
+            assert buffer_logger._last_log_time == 1006.0
 
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    @mock.patch("sentry.spans.buffer_logger.time")
-    def test_clears_old_traces_after_logging_period(self, mock_time, mock_logger):
-        with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
-            mock_time.time.side_effect = [
-                1000.0,
-                1000.0,
-                6000.0,
-                1013.0,
-            ]
-
-            buffer_logger = BufferLogger()
-
-            buffer_logger.log("old_project1:trace1", latency_ms=151)
-            assert len(buffer_logger._data) == 1
-            assert mock_logger.info.call_count == 0
-
-            buffer_logger.log("old_project1:trace1", latency_ms=170)
-            assert len(buffer_logger._data) == 0
-
-            # First logging should have occurred
+            # Log something else immediately after logging and verify we are not calling
+            # the logger again.
+            buffer_logger.log("project1:trace1", latency_ms=180)
             assert mock_logger.info.call_count == 1
-            first_call = mock_logger.info.call_args
-            first_entries = first_call[1]["extra"]["top_slow_operations"]
-            assert "old_project1:trace1:2:170" in first_entries
 
     @mock.patch("sentry.spans.buffer_logger.logger")
     @mock.patch("sentry.spans.buffer_logger.time")
@@ -90,11 +71,7 @@ class TestBufferLogger:
         Also verifies that entries with > LOGGING_ENTRIES (50) are sorted by count.
         """
         with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
-            time_calls = (
-                [1000.0, 1000.0]  # First log: set + check
-                + [1000.0] * 1200  # Logs 2-1000: check only
-                + [1006.0]  # 1000th entry triggers logging
-            )
+            time_calls = [1000.0] + [1000.0] * 1200  # Initial clock set + 1000 calls
             mock_time.time.side_effect = time_calls
 
             buffer_logger = BufferLogger()
@@ -107,14 +84,12 @@ class TestBufferLogger:
 
             assert len(buffer_logger._data) == 1000
 
-            mock_time.time.side_effect = [10000.0]
+            mock_time.time.side_effect = [10000.0, 10000.0]
 
             buffer_logger.log("trigger:trace", latency_ms=150)
 
-            # Verify logging occurred
             assert mock_logger.info.call_count == 1
 
-            # Verify exact log content
             call_args = mock_logger.info.call_args
             assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
             extra = call_args[1]["extra"]

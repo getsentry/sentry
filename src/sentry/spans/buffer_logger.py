@@ -4,6 +4,7 @@ import logging
 import time
 
 from sentry import options
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,8 @@ class BufferLogger:
         """
         Record a single EVALSHA operation and periodically log the top offenders.
         """
+        metrics.timing("spans.buffer.evalsha_latency", latency_ms)
+
         if len(self._data) < MAX_ENTRIES:
             threshold = options.get("spans.buffer.evalsha-latency-threshold")
 
@@ -67,4 +70,4 @@ class BufferLogger:
                     },
                 )
             self._data.clear()
-            self._last_log_time = None
+            self._last_log_time = time.time()
