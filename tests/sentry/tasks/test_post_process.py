@@ -84,20 +84,71 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-class EventMatcher:
-    def __init__(self, expected, group=None):
-        self.expected = expected
-        self.expected_group = group
+class ProcessWorkflowsKwargsMatcher:
+    """
+    Matcher for process_workflows_event.apply_async kwargs.
+
+    Usage:
+        mock_process_workflows_event.apply_async.assert_called_with(
+            kwargs=ProcessWorkflowsKwargsMatcher(event=event, group=group),
+            headers=ANY,
+        )
+    """
+
+    def __init__(
+        self,
+        event=None,
+        group=None,
+        is_new=None,
+        is_regression=None,
+        is_new_group_environment=None,
+        has_reappeared=None,
+        has_escalated=None,
+    ):
+        self.event = event
+        self.group = group
+        self.is_new = is_new
+        self.is_regression = is_regression
+        self.is_new_group_environment = is_new_group_environment
+        self.has_reappeared = has_reappeared
+        self.has_escalated = has_escalated
 
     def __eq__(self, other):
-        matching_id = other.event_id == self.expected.event_id
-        if self.expected_group:
-            return (
-                matching_id
-                and self.expected_group == other.group
-                and self.expected_group.id == other.group_id
-            )
-        return matching_id
+        if not isinstance(other, dict):
+            return False
+
+        # Match event_id
+        if self.event is not None and other.get("event_id") != self.event.event_id:
+            return False
+
+        # Match group_id
+        if self.group is not None and other.get("group_id") != self.group.id:
+            return False
+
+        # Match group_state fields
+        group_state = other.get("group_state", {})
+        if self.group is not None and group_state.get("id") != self.group.id:
+            return False
+        if self.is_new is not None and group_state.get("is_new") != self.is_new:
+            return False
+        if (
+            self.is_regression is not None
+            and group_state.get("is_regression") != self.is_regression
+        ):
+            return False
+        if (
+            self.is_new_group_environment is not None
+            and group_state.get("is_new_group_environment") != self.is_new_group_environment
+        ):
+            return False
+
+        # Match top-level flags
+        if self.has_reappeared is not None and other.get("has_reappeared") != self.has_reappeared:
+            return False
+        if self.has_escalated is not None and other.get("has_escalated") != self.has_escalated:
+            return False
+
+        return True
 
 
 class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -115,7 +166,13 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
     def with_feature_flags(self):
         with override_options(
             {
-                "workflow_engine.issue_alert.group.type_id.ga": [1, 1006, 2001, 1018, 6001],
+                "workflow_engine.issue_alert.group.type_id.ga": [
+                    1,
+                    1006,
+                    2001,
+                    1018,
+                    6001,
+                ],  # for postprocess tests -- error, 2 perf issue types, generic, feedback
             }
         ):
             yield
@@ -365,20 +422,15 @@ class WorkflowEngineTestMixin(BasePostProcessGroupMixin):
         )
         # Ensure that rule processing sees the merged group.
         mock_process_workflows_event.apply_async.assert_called_with(
-            kwargs={
-                "event_id": event.event_id,
-                "occurrence_id": ANY,
-                "group_id": group2.id,
-                "group_state": {
-                    "id": group2.id,
-                    "is_new": True,
-                    "is_regression": False,
-                    "is_new_group_environment": True,
-                },
-                "has_reappeared": False,
-                "has_escalated": False,
-                "start_timestamp_seconds": ANY,
-            },
+            kwargs=ProcessWorkflowsKwargsMatcher(
+                event=event,
+                group=group2,
+                has_reappeared=False,
+                has_escalated=False,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+            ),
             headers=ANY,
         )
 
@@ -533,21 +585,16 @@ class InboxTestMixin(BasePostProcessGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
 
         mock_process_workflows_event.apply_async.assert_called_with(
-            kwargs={
-                "event_id": new_event.event_id,
-                "occurrence_id": ANY,
-                "group_id": group.id,
-                "group_state": {
-                    "id": group.id,
-                    "is_new": True,
-                    "is_regression": True,
-                    "is_new_group_environment": False,
-                },
-                "has_reappeared": False,
-                "has_escalated": False,
-                "start_timestamp_seconds": ANY,
-            },
-            headers={"sentry-propagate-traces": False},
+            kwargs=ProcessWorkflowsKwargsMatcher(
+                event=new_event,
+                group=group,
+                has_reappeared=False,
+                has_escalated=False,
+                is_new=True,
+                is_regression=True,
+                is_new_group_environment=False,
+            ),
+            headers=ANY,
         )
 
         # resolve the new issue so regression actually happens
@@ -573,21 +620,16 @@ class InboxTestMixin(BasePostProcessGroupMixin):
         )
 
         mock_process_workflows_event.apply_async.assert_called_with(
-            kwargs={
-                "event_id": regressed_event.event_id,
-                "occurrence_id": ANY,
-                "group_id": group.id,
-                "group_state": {
-                    "id": group.id,
-                    "is_new": False,
-                    "is_regression": True,
-                    "is_new_group_environment": False,
-                },
-                "has_reappeared": False,
-                "has_escalated": False,
-                "start_timestamp_seconds": ANY,
-            },
-            headers={"sentry-propagate-traces": False},
+            kwargs=ProcessWorkflowsKwargsMatcher(
+                event=regressed_event,
+                group=group,
+                has_reappeared=False,
+                has_escalated=False,
+                is_new=False,
+                is_regression=True,
+                is_new_group_environment=False,
+            ),
+            headers=ANY,
         )
 
         group.refresh_from_db()
@@ -1139,11 +1181,8 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             project_id=self.project.id,
         )
 
-        assignee_cache_key = "assignee_exists:1:%s" % event.group.id
-        owner_cache_key = "owner_exists:1:%s" % event.group.id
-
-        for key in [assignee_cache_key, owner_cache_key]:
-            cache.set(key, True)
+        cache.set(ASSIGNEE_EXISTS_KEY(event.group.id), True)
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group.id), timezone.now().timestamp())
 
         self.call_post_process_group(
             is_new=False,
@@ -1222,7 +1261,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
     @patch("sentry.utils.metrics.incr")
-    def test_timestamp_invalidation_when_ownership_changes(self, mock_incr: MagicMock) -> None:
+    def test_no_debounce_when_ownership_changes(self, mock_incr: MagicMock) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1262,7 +1301,9 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         )
 
     @patch("sentry.utils.metrics.incr")
-    def test_timestamp_debounce_when_ownership_older(self, mock_incr: MagicMock) -> None:
+    def test_debounces_handle_owner_assignments_when_ownership_older(
+        self, mock_incr: MagicMock
+    ) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1568,16 +1609,13 @@ class SnoozeTestSkipSnoozeMixin(BasePostProcessGroupMixin):
         GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
         Activity.objects.filter(group=group).delete()
         mock_process_workflows_event.apply_async.assert_called_with(
-            kwargs={
-                "event_id": event.event_id,
-                "occurrence_id": ANY,
-                "group_id": group.id,
-                "group_state": ANY,
-                "has_reappeared": False,
-                "has_escalated": False,
-                "start_timestamp_seconds": ANY,
-            },
-            headers={"sentry-propagate-traces": False},
+            kwargs=ProcessWorkflowsKwargsMatcher(
+                event=event,
+                group=group,
+                has_reappeared=False,
+                has_escalated=False,
+            ),
+            headers=ANY,
         )
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
@@ -1594,16 +1632,10 @@ class SnoozeTestSkipSnoozeMixin(BasePostProcessGroupMixin):
             event=event,
         )
         mock_process_workflows_event.apply_async.assert_called_with(
-            kwargs={
-                "event_id": event.event_id,
-                "occurrence_id": ANY,
-                "group_id": event.group.id,
-                "group_state": ANY,
-                "has_reappeared": True,
-                "has_escalated": False,
-                "start_timestamp_seconds": ANY,
-            },
-            headers={"sentry-propagate-traces": False},
+            kwargs=ProcessWorkflowsKwargsMatcher(
+                event=event, group=event.group, has_reappeared=True, has_escalated=False
+            ),
+            headers=ANY,
         )
 
         if should_detect_escalation:
@@ -1656,21 +1688,16 @@ class SnoozeTestMixin(BasePostProcessGroupMixin):
         Activity.objects.filter(group=group).delete()
 
         mock_process_workflows_event.apply_async.assert_called_with(
-            kwargs={
-                "event_id": event.event_id,
-                "occurrence_id": ANY,
-                "group_id": group.id,
-                "group_state": {
-                    "id": group.id,
-                    "is_new": True,
-                    "is_regression": False,
-                    "is_new_group_environment": True,
-                },
-                "has_reappeared": False,
-                "has_escalated": False,
-                "start_timestamp_seconds": ANY,
-            },
-            headers={"sentry-propagate-traces": False},
+            kwargs=ProcessWorkflowsKwargsMatcher(
+                event=event,
+                group=group,
+                has_reappeared=False,
+                has_escalated=False,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+            ),
+            headers=ANY,
         )
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
@@ -1688,21 +1715,16 @@ class SnoozeTestMixin(BasePostProcessGroupMixin):
         )
 
         mock_process_workflows_event.apply_async.assert_called_with(
-            kwargs={
-                "event_id": event.event_id,
-                "occurrence_id": ANY,
-                "group_id": group.id,
-                "group_state": {
-                    "id": group.id,
-                    "is_new": False,
-                    "is_regression": False,
-                    "is_new_group_environment": True,
-                },
-                "has_reappeared": True,
-                "has_escalated": False,
-                "start_timestamp_seconds": ANY,
-            },
-            headers={"sentry-propagate-traces": False},
+            kwargs=ProcessWorkflowsKwargsMatcher(
+                event=event,
+                group=group,
+                has_reappeared=True,
+                has_escalated=False,
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+            ),
+            headers=ANY,
         )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
@@ -1774,20 +1796,15 @@ class SnoozeTestMixin(BasePostProcessGroupMixin):
         )
 
         mock_process_workflows_event.apply_async.assert_called_with(
-            kwargs={
-                "event_id": event.event_id,
-                "occurrence_id": ANY,
-                "group_id": group.id,
-                "group_state": {
-                    "id": group.id,
-                    "is_new": True,
-                    "is_regression": False,
-                    "is_new_group_environment": True,
-                },
-                "has_reappeared": False,
-                "has_escalated": False,
-                "start_timestamp_seconds": ANY,
-            },
+            kwargs=ProcessWorkflowsKwargsMatcher(
+                event=event,
+                group=group,
+                has_reappeared=False,
+                has_escalated=False,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+            ),
             headers=ANY,
         )
 
