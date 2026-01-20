@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.preprod.detector import PreprodStaticDetectorHandler, PreprodStaticDetectorValidator
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.types import DetectorSettings
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,27 @@ class PreprodStaticGroupType(GroupType):
     released = False
     enable_auto_resolve = True
     enable_escalation_detection = False
+    detector_settings = DetectorSettings(
+        handler=PreprodStaticDetectorHandler,
+        validator=PreprodStaticDetectorValidator,
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "Configuration for preprod static analysis detector",
+            "type": "object",
+            "properties": {
+                "metric": {
+                    "type": "string",
+                    "description": "The metric to monitor",
+                },
+                "measurement": {
+                    "type": "string",
+                    "description": "The measurement to track",
+                },
+            },
+            "required": ["metric", "measurement"],
+            "additionalProperties": False,
+        },
+    )
 
 
 @dataclass(frozen=True)
