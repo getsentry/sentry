@@ -42,7 +42,7 @@ type PromptCheckParams = {
    * The prompt feature name
    */
   feature: string | string[];
-  organization: OrganizationSummary | null;
+  organization: OrganizationSummary;
   /**
    * The numeric project ID as a string
    */
@@ -88,9 +88,6 @@ export async function promptsCheck(
   api: Client,
   params: PromptCheckParams
 ): Promise<PromptData> {
-  if (!params.organization) {
-    throw new Error('promptsCheck requires an organization');
-  }
   const query = {
     feature: params.feature,
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
@@ -115,7 +112,7 @@ export const makePromptsCheckQueryKey = ({
   organization,
   projectId,
 }: PromptCheckParams): ApiQueryKey => {
-  const url = `/organizations/${organization?.slug}/prompts-activity/`;
+  const url = `/organizations/${organization.slug}/prompts-activity/`;
   return [url, {query: {feature, project_id: projectId}}];
 };
 
@@ -146,7 +143,7 @@ export function usePrompts({
   isDismissed = promptIsDismissed,
 }: {
   features: string[];
-  organization: Organization | null;
+  organization: Organization;
   daysToSnooze?: number;
   isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
@@ -288,7 +285,7 @@ export function usePrompt({
   options,
 }: {
   feature: string;
-  organization: Organization | null;
+  organization: Organization;
   daysToSnooze?: number;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
