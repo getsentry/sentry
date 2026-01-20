@@ -12,7 +12,12 @@ describe('useQueryStateWithLocalStorage', () => {
 
   it('returns default value when neither URL nor localStorage has value', () => {
     const {result} = renderHook(
-      () => useQueryStateWithLocalStorage('testParam', 'testNamespace', 'default'),
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'testParam',
+          namespace: 'testNamespace',
+          defaultValue: 'default',
+        }),
       {
         wrapper: withNuqsTestingAdapter(),
       }
@@ -25,7 +30,12 @@ describe('useQueryStateWithLocalStorage', () => {
     localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('fromStorage'));
 
     const {result} = renderHook(
-      () => useQueryStateWithLocalStorage('testParam', 'testNamespace', 'default'),
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'testParam',
+          namespace: 'testNamespace',
+          defaultValue: 'default',
+        }),
       {
         wrapper: withNuqsTestingAdapter(),
       }
@@ -38,7 +48,12 @@ describe('useQueryStateWithLocalStorage', () => {
     localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('fromStorage'));
 
     const {result} = renderHook(
-      () => useQueryStateWithLocalStorage('testParam', 'testNamespace', 'default'),
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'testParam',
+          namespace: 'testNamespace',
+          defaultValue: 'default',
+        }),
       {
         wrapper: withNuqsTestingAdapter({
           searchParams: {testParam: 'fromURL'},
@@ -51,7 +66,12 @@ describe('useQueryStateWithLocalStorage', () => {
 
   it('syncs localStorage when URL changes', async () => {
     renderHook(
-      () => useQueryStateWithLocalStorage('testParam', 'testNamespace', 'default'),
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'testParam',
+          namespace: 'testNamespace',
+          defaultValue: 'default',
+        }),
       {
         wrapper: withNuqsTestingAdapter({
           searchParams: {testParam: 'newURLValue'},
@@ -69,7 +89,12 @@ describe('useQueryStateWithLocalStorage', () => {
     const onUrlUpdate = jest.fn();
 
     const {result} = renderHook(
-      () => useQueryStateWithLocalStorage('testParam', 'testNamespace', 'default'),
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'testParam',
+          namespace: 'testNamespace',
+          defaultValue: 'default',
+        }),
       {
         wrapper: withNuqsTestingAdapter({onUrlUpdate}),
       }
@@ -101,7 +126,12 @@ describe('useQueryStateWithLocalStorage', () => {
     const onUrlUpdate = jest.fn();
 
     const {result} = renderHook(
-      () => useQueryStateWithLocalStorage<SortOption>('sort', 'myNamespace', 'date'),
+      () =>
+        useQueryStateWithLocalStorage<SortOption>({
+          key: 'sort',
+          namespace: 'myNamespace',
+          defaultValue: 'date',
+        }),
       {
         wrapper: withNuqsTestingAdapter({onUrlUpdate}),
       }
@@ -131,7 +161,12 @@ describe('useQueryStateWithLocalStorage', () => {
     localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('sameValue'));
 
     const {result} = renderHook(
-      () => useQueryStateWithLocalStorage('testParam', 'testNamespace', 'default'),
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'testParam',
+          namespace: 'testNamespace',
+          defaultValue: 'default',
+        }),
       {
         wrapper: withNuqsTestingAdapter({
           searchParams: {testParam: 'sameValue'},

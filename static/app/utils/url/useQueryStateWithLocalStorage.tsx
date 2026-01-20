@@ -8,23 +8,28 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
  * URL takes precedence over localStorage, enabling URL sharing while
  * maintaining user preferences across sessions.
  *
- * @param key - The URL query parameter name
- * @param namespace - The localStorage namespace (key will be `namespace:key`)
- * @param defaultValue - The default value if neither source has a value
+ * @param props - Configuration object
+ * @param props.key - The URL query parameter name
+ * @param props.namespace - The localStorage namespace (key will be `namespace:key`)
+ * @param props.defaultValue - The default value if neither source has a value
  * @returns Tuple of [effectiveValue, setValue]
  *
  * @example
- * const [sortBy, setSortBy] = useQueryStateWithLocalStorage(
- *   'sortBy',
- *   'dashboards',
- *   'date'
- * );
+ * const [sortBy, setSortBy] = useQueryStateWithLocalStorage({
+ *   key: 'sortBy',
+ *   namespace: 'dashboards',
+ *   defaultValue: 'date',
+ * });
  */
-export function useQueryStateWithLocalStorage<T extends string>(
-  key: string,
-  namespace: string,
-  defaultValue: T
-): [T, (value: T) => void] {
+export function useQueryStateWithLocalStorage<T extends string>({
+  key,
+  namespace,
+  defaultValue,
+}: {
+  defaultValue: T;
+  key: string;
+  namespace: string;
+}): [T, (value: T) => void] {
   const [urlValue, setUrlValue] = useQueryState(key, parseAsString);
 
   const localStorageKey = `${namespace}:${key}`;
