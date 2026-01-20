@@ -81,6 +81,7 @@ function AccountDetails() {
     user,
     organization,
     access: new Set(), // Account details don't require org access
+    team: null,
   });
 
   return (

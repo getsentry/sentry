@@ -52,6 +52,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
         organization,
         user,
         access,
+        team: null,
       }),
     [access, organization, user]
   );

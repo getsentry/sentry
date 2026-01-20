@@ -62,8 +62,9 @@ export default function TeamSettings() {
         user,
         organization,
         access: new Set(),
+        team,
       }),
-    [user, organization]
+    [user, organization, team]
   );
 
   return (
