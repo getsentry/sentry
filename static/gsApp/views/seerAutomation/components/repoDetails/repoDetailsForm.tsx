@@ -26,10 +26,7 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
       apiEndpoint={`/organizations/${organization.slug}/repos/settings/`}
       initialData={
         {
-          enabledCodeReview:
-            repoWithSettings?.settings?.enabledCodeReview ??
-            organization.autoEnableCodeReview ??
-            true,
+          enabledCodeReview: repoWithSettings?.settings?.enabledCodeReview ?? false,
           codeReviewTriggers:
             repoWithSettings?.settings?.codeReviewTriggers ??
             organization.defaultCodeReviewTriggers ??
