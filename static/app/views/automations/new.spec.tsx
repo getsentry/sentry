@@ -167,7 +167,7 @@ describe('AutomationNewSettings', () => {
             environment: null,
             actionFilters: [
               {
-                logicType: 'any-short',
+                logicType: 'all',
                 conditions: [
                   {
                     type: 'tagged_event',
