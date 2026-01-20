@@ -179,7 +179,7 @@ describe('ConsoleSDKInvitesSettings', () => {
           ENDPOINT,
           expect.objectContaining({
             method: 'DELETE',
-            data: {items: [{user_id: '1', platform: 'playstation'}]},
+            data: {items: [{userId: '1', platform: 'playstation'}]},
           })
         );
       });

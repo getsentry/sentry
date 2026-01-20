@@ -120,7 +120,7 @@ export default function ConsoleSDKInvitesSettings() {
                           }
                           revokePlatformInvite({
                             orgSlug: organization.slug,
-                            items: [{user_id: invite.user_id, platform}],
+                            items: [{userId: invite.user_id, platform}],
                             email: invite.email,
                             platform,
                           });

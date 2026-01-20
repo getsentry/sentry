@@ -22,7 +22,7 @@ interface ConsoleSdkInviteUser {
 
 interface ConsoleSdkInviteDeleteItem {
   platform: ConsolePlatform;
-  user_id: string;
+  userId: string;
 }
 
 interface UseRevokeConsoleSdkPlatformInviteParams {
