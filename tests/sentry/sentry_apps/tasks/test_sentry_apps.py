@@ -15,7 +15,6 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
-from sentry.models.rule import Rule
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -115,7 +114,7 @@ MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPE
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(organization=self.organization)
-        self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
+        self.rule = self.create_project_rule(name="Issa Rule")
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
         )

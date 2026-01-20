@@ -393,9 +393,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             ]
             actions = [{"id": "tests.sentry.tasks.post_process.tests.MockAction"}]
             Rule.objects.filter(project=self.project).delete()
-            Rule.objects.create(
-                project=self.project, data={"conditions": conditions, "actions": actions}
-            )
+            self.create_project_rule(condition_data=conditions, action_data=actions)
 
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id

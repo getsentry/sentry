@@ -4,7 +4,6 @@ import pytest
 import responses
 
 from sentry.exceptions import PluginError
-from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.plugins.sentry_webhooks.plugin import WebHooksOptionsForm, WebHooksPlugin, validate_urls
 from sentry.testutils.cases import TestCase
@@ -23,7 +22,7 @@ class WebHooksPluginTest(TestCase):
         self.event = self.store_event(
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         self.notification = Notification(event=self.event, rule=rule)
         self.project.update_option("webhooks:urls", "http://example.com")
 

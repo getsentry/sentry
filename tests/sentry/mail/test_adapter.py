@@ -175,7 +175,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
 
-        rule: Rule = Rule.objects.create(project=self.project, label="my rule")
+        rule: Rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -237,7 +237,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -259,9 +259,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             project_id=self.project.id,
         )
 
-        rule = Rule.objects.create(
-            project=self.project, label="my rule", environment_id=environment.id
-        )
+        rule = self.create_project_rule(name="my rule", environment_id=environment.id)
         ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = Notification(event=event, rule=rule)
@@ -387,7 +385,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         event.group.type = MonitorIncidentType.type_id
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -443,7 +441,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         event.group.type = MonitorIncidentType.type_id
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -463,7 +461,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     def test_simple_notification_perf(self) -> None:
         event = self.create_performance_issue()
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -1401,7 +1399,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         event.group.substatus = GroupSubStatus.REGRESSED
         event.group.save()
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -1769,14 +1767,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             "targetType": "Member",
             "targetIdentifier": str(444),
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="a rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
-        )
+        rule = self.create_project_rule(name="a rule", action_data=[action_data])
 
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
@@ -1793,7 +1784,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.logger")
     def test_normal(self, mock_logger: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         futures = [RuleFuture(rule, {})]
         with mock.patch.object(self.adapter, "notify") as notify:
             self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
@@ -1856,7 +1847,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
 
     def test_notify_includes_uuid(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         futures = [RuleFuture(rule, {})]
         notification_uuid = str(uuid.uuid4())
         with mock.patch.object(self.adapter, "notify") as notify:
