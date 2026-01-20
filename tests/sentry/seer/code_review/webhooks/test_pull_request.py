@@ -25,6 +25,9 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         """
         mock_client_instance = MagicMock()
         mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
+        mock_client_instance.get_issue_reactions.return_value = [
+            {"id": 2, "user": {"login": "other-user"}, "content": "heart"}
+        ]
 
         with (
             patch(
@@ -34,9 +37,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             patch(
                 "sentry.integrations.github.client.GitHubApiClient.create_issue_reaction"
             ) as mock_reaction,
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.get_issue_reactions",
+                mock_client_instance.get_issue_reactions,
+            ) as mock_get_reactions,
         ):
             self.mock_get_pull_request = mock_get_pull_request
             self.mock_reaction = mock_reaction
+            self.mock_get_reactions = mock_get_reactions
             yield
 
     @pytest.fixture(autouse=True)
@@ -244,6 +252,27 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_comment_id"] is None
             assert payload["data"]["config"]["trigger_comment_type"] is None
             self.mock_reaction.assert_not_called()
+
+    def test_skips_adding_eyes_if_already_exists(self) -> None:
+        """Test that eyes reaction is not added if Sentry bot already has one."""
+        self.mock_get_reactions.return_value = [
+            {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+            {"id": 2, "user": {"login": "other-user"}, "content": "heart"},
+        ]
+
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            self.mock_get_reactions.assert_called_once_with(
+                event["repository"]["full_name"], str(event["pull_request"]["number"])
+            )
+            self.mock_reaction.assert_not_called()
+            self.mock_seer.assert_called_once()
 
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_NEW_COMMIT]

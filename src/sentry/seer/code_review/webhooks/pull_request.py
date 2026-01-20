@@ -90,6 +90,10 @@ def _add_eyes_reaction_to_pull_request(
     repo: Repository,
     pr_number: str,
 ) -> None:
+    """
+    Add 👀 reaction to acknowledge PR opening, ready for review, or new commits. Errors are logged/added to metrics but not raised.
+    This function is idempotent--ie, we skip adding another reaction if Sentry bot has already reacted with eyes, or if the call to get the existing reactions fails.
+    """
     extra = {
         "organization_id": organization.id,
         "repo": repo.name,
@@ -109,6 +113,16 @@ def _add_eyes_reaction_to_pull_request(
 
     try:
         client = integration.get_installation(organization_id=organization.id).get_client()
+
+        # If Sentry bot has already reacted with eyes, skip adding another one
+        existing_reactions = client.get_issue_reactions(repo.name, str(pr_number))
+        for reaction in existing_reactions:
+            if (
+                reaction.get("content") == GitHubReaction.EYES.value
+                and reaction.get("user", {}).get("login") == "sentry[bot]"
+            ):
+                return
+
         client.create_issue_reaction(repo.name, str(pr_number), GitHubReaction.EYES)
     except Exception:
         record_webhook_handler_error(

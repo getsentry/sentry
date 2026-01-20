@@ -435,13 +435,29 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_issue_reactions(self, get_jwt) -> None:
+        response_data = [
+            {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+            {"id": 2, "user": {"login": "other-user"}, "content": "heart"},
+        ]
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions",
+            json=response_data,
+            status=200,
+        )
+
+        result = self.github_client.get_issue_reactions(repo=self.repo.name, issue_number="42")
+        assert result == response_data
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_create_issue_reaction(self, get_jwt) -> None:
         response_data = {
             "id": 1,
             "node_id": "MDg6UmVhY3Rpb24x",
             "user": {"login": "octocat", "id": 1},
             "content": "eyes",
-            "created_at": "2016-05-20T20:09:31Z",
         }
         responses.add(
             responses.POST,
