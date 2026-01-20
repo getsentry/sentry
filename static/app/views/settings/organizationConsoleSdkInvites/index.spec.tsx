@@ -54,12 +54,12 @@ describe('ConsoleSDKInvitesSettings', () => {
   it('shows invites with platform tags', async () => {
     const invites = [
       {
-        user_id: '1',
+        userId: '1',
         email: 'user1@example.com',
         platforms: ['playstation', 'xbox'],
       },
       {
-        user_id: '2',
+        userId: '2',
         email: 'user2@example.com',
         platforms: ['nintendo-switch'],
       },
@@ -116,8 +116,8 @@ describe('ConsoleSDKInvitesSettings', () => {
     OrganizationsStore.addOrReplace(orgWithExhaustedQuota);
 
     const invites = [
-      {user_id: '1', email: 'user1@example.com', platforms: ['playstation']},
-      {user_id: '2', email: 'user2@example.com', platforms: ['playstation']},
+      {userId: '1', email: 'user1@example.com', platforms: ['playstation']},
+      {userId: '2', email: 'user2@example.com', platforms: ['playstation']},
     ];
 
     MockApiClient.addMockResponse({
@@ -140,7 +140,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
       const invites = [
         {
-          user_id: '1',
+          userId: '1',
           email: 'user1@example.com',
           platforms: ['playstation', 'xbox'],
         },
@@ -171,7 +171,7 @@ describe('ConsoleSDKInvitesSettings', () => {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
         method: 'GET',
-        body: [{user_id: '1', email: 'user1@example.com', platforms: ['xbox']}],
+        body: [{userId: '1', email: 'user1@example.com', platforms: ['xbox']}],
       });
 
       await waitFor(() => {
@@ -192,7 +192,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
       const invites = [
         {
-          user_id: '1',
+          userId: '1',
           email: 'user1@example.com',
           platforms: ['playstation'],
         },
@@ -232,7 +232,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
       const invites = [
         {
-          user_id: '1',
+          userId: '1',
           email: 'member@example.com',
           platforms: ['playstation'],
         },
@@ -277,7 +277,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
         const invites = [
           {
-            user_id: '2',
+            userId: '2',
             email: 'other-user@example.com',
             platforms: ['playstation'],
           },
@@ -311,7 +311,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
         const invites = [
           {
-            user_id: '2',
+            userId: '2',
             email: 'other-user@example.com',
             platforms: ['playstation'],
           },

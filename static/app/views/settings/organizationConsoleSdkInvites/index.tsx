@@ -92,9 +92,9 @@ export default function ConsoleSDKInvitesSettings() {
         )}
 
         {invites?.map(invite => (
-          <SimpleTable.Row key={invite.user_id}>
+          <SimpleTable.Row key={invite.userId}>
             <SimpleTable.RowCell>
-              <Link to={`/settings/${organization.slug}/members/${invite.user_id}/`}>
+              <Link to={`/settings/${organization.slug}/members/${invite.userId}/`}>
                 <Text wordBreak="break-all">{invite.email}</Text>
               </Link>
             </SimpleTable.RowCell>
@@ -120,7 +120,7 @@ export default function ConsoleSDKInvitesSettings() {
                           }
                           revokePlatformInvite({
                             orgSlug: organization.slug,
-                            items: [{userId: invite.user_id, platform}],
+                            items: [{userId: invite.userId, platform}],
                             email: invite.email,
                             platform,
                           });
