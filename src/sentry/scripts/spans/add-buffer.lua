@@ -48,9 +48,13 @@ local max_segment_bytes = tonumber(ARGV[5])
 local byte_count = tonumber(ARGV[6])
 local NUM_ARGS = 6
 
+local function get_time_ms()
+    local time = redis.call("TIME")
+    return tonumber(time[1]) * 1000 + tonumber(time[2]) / 1000
+end
+
 -- Capture start time for latency measurement
-local start_time = redis.call("TIME")
-local start_time_ms = tonumber(start_time[1]) * 1000 + tonumber(start_time[2]) / 1000
+local start_time_ms = get_time_ms()
 
 local set_span_id = parent_span_id
 local redirect_depth = 0
@@ -69,10 +73,12 @@ for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
     set_span_id = new_set_span
 end
 
-local redirect_table_size = redis.call("hlen", main_redirect_key)
-local redirect_end_time = redis.call("TIME")
-local redirect_end_time_ms = tonumber(redirect_end_time[1]) * 1000 + tonumber(redirect_end_time[2]) / 1000
-local redirect_step_latency_ms = redirect_end_time_ms - start_time_ms
+local latency_table = {}
+local metrics_table = {}
+table.insert(metrics_table, {"redirect_table_size", redis.call("hlen", main_redirect_key)})
+table.insert(metrics_table, {"redirect_depth", redirect_depth})
+local redirect_end_time_ms = get_time_ms()
+table.insert(latency_table, {"redirect_step_latency_ms", redirect_end_time_ms - start_time_ms})
 
 local set_key = string.format("span-buf:z:{%s}:%s", project_and_trace, set_span_id)
 local parent_key = string.format("span-buf:z:{%s}:%s", project_and_trace, parent_span_id)
@@ -113,26 +119,26 @@ end
 redis.call("hset", main_redirect_key, unpack(hset_args))
 redis.call("expire", main_redirect_key, set_timeout)
 
-local sunionstore_args_end_time = redis.call("TIME")
-local sunionstore_args_end_time_ms = tonumber(sunionstore_args_end_time[1]) * 1000 + tonumber(sunionstore_args_end_time[2]) / 1000
-local sunionstore_args_step_latency_ms = sunionstore_args_end_time_ms - redirect_end_time_ms
+local sunionstore_args_end_time_ms = get_time_ms()
+table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_args_end_time_ms - redirect_end_time_ms})
 
 -- Initialize all of these before the if statement in case the if statement is not executed.
-local start_output_size = 0
-local output_size = 0
-local zunionstore_step_latency_ms = 0
-local arg_cleanup_step_latency_ms = 0
-local zpopcalls = 0
-local zpopmin_step_latency_ms = 0
+-- local start_output_size = 0
+-- local output_size = 0
+-- local zunionstore_step_latency_ms = 0
+-- local arg_cleanup_step_latency_ms = 0
+-- local zpopcalls = 0
+-- local zpopmin_step_latency_ms = 0
 
 if #sunionstore_args > 0 then
     start_output_size = redis.call("zcard", set_key)
     output_size = redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
     redis.call("unlink", unpack(sunionstore_args))
 
-    local zunionstore_end_time = redis.call("TIME")
-    local zunionstore_end_time_ms = tonumber(zunionstore_end_time[1]) * 1000 + tonumber(zunionstore_end_time[2]) / 1000
-    zunionstore_step_latency_ms = zunionstore_end_time_ms - sunionstore_args_end_time_ms
+    local zunionstore_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"zunionstore_step_latency_ms", zunionstore_end_time_ms - sunionstore_args_end_time_ms})
+    table.insert(metrics_table, {"parent_span_set_before_size", start_output_size})
+    table.insert(metrics_table, {"parent_span_set_after_size", output_size})
 
     -- Merge ingested count keys for merged spans
     local ingested_count_key = string.format("span-buf:ic:%s", set_key)
@@ -153,18 +159,17 @@ if #sunionstore_args > 0 then
         redis.call("del", merged_ibc_key)
     end
 
-    local arg_cleanup_end_time = redis.call("TIME")
-    local arg_cleanup_end_time_ms = tonumber(arg_cleanup_end_time[1]) * 1000 + tonumber(arg_cleanup_end_time[2]) / 1000
-    arg_cleanup_step_latency_ms = arg_cleanup_end_time_ms - zunionstore_end_time_ms
+    local arg_cleanup_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - zunionstore_end_time_ms})
 
     while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
         redis.call("zpopmin", set_key)
         zpopcalls = zpopcalls + 1
     end
 
-    local zpopmin_end_time = redis.call("TIME")
-    local zpopmin_end_time_ms = tonumber(zpopmin_end_time[1]) * 1000 + tonumber(zpopmin_end_time[2]) / 1000
-    local zpopmin_step_latency_ms = zpopmin_end_time_ms - arg_cleanup_end_time_ms
+    local zpopmin_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"zpopmin_step_latency_ms", zpopmin_end_time_ms - arg_cleanup_end_time_ms})
+    table.insert(metrics_table, {"zpopcalls", zpopcalls})
 end
 
 
@@ -178,8 +183,8 @@ redis.call("expire", ingested_byte_count_key, set_timeout)
 
 redis.call("expire", set_key, set_timeout)
 
-local ingested_count_end_time = redis.call("TIME")
-local ingested_count_end_time_ms = tonumber(ingested_count_end_time[1]) * 1000 + tonumber(ingested_count_end_time[2]) / 1000
+local ingested_count_end_time_ms = get_time_ms()
+table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_end_time_ms - zpopmin_end_time_ms})
 if zpopmin_end_time_ms then
     local ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
 else
@@ -187,8 +192,8 @@ else
 end
 
 -- Capture end time and calculate latency in milliseconds
-local end_time = redis.call("TIME")
-local end_time_ms = tonumber(end_time[1]) * 1000 + tonumber(end_time[2]) / 1000
+local end_time_ms = get_time_ms()
 local latency_ms = end_time_ms - start_time_ms
+table.insert(latency_table, {"total_step_latency_ms", latency_ms})
 
-return {redirect_depth, redirect_table_size, set_key, has_root_span, latency_ms, redirect_step_latency_ms, sunionstore_args_step_latency_ms, zunionstore_step_latency_ms, arg_cleanup_step_latency_ms, zpopmin_step_latency_ms, ingested_count_step_latency_ms, zpopcalls, start_output_size, output_size}
+return {set_key, has_root_span, latency_ms, latency_table, metrics_table}
