@@ -1181,8 +1181,11 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             project_id=self.project.id,
         )
 
-        cache.set(ASSIGNEE_EXISTS_KEY(event.group.id), True)
-        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group.id), timezone.now().timestamp())
+        assignee_cache_key = "assignee_exists:1:%s" % event.group.id
+        owner_cache_key = "owner_exists:1:%s" % event.group.id
+
+        for key in [assignee_cache_key, owner_cache_key]:
+            cache.set(key, True)
 
         self.call_post_process_group(
             is_new=False,
@@ -1261,7 +1264,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
     @patch("sentry.utils.metrics.incr")
-    def test_no_debounce_when_ownership_changes(self, mock_incr: MagicMock) -> None:
+    def test_timestamp_invalidation_when_ownership_changes(self, mock_incr: MagicMock) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1301,9 +1304,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         )
 
     @patch("sentry.utils.metrics.incr")
-    def test_debounces_handle_owner_assignments_when_ownership_older(
-        self, mock_incr: MagicMock
-    ) -> None:
+    def test_timestamp_debounce_when_ownership_older(self, mock_incr: MagicMock) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
