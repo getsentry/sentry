@@ -1,4 +1,3 @@
-import {ExternalLink} from 'sentry/components/core/link';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -14,11 +13,9 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Logs in Native are supported in Sentry Native SDK version [link:0.11.1] and above.',
+            'Logs in Native are supported in Sentry Native SDK version [code:0.11.1] and above.',
             {
-              link: (
-                <ExternalLink href="https://github.com/getsentry/sentry-native/releases/tag/0.11.1" />
-              ),
+              code: <code />,
             }
           ),
         },
