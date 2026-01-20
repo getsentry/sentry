@@ -12,12 +12,13 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
+export type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
-interface ConsoleSdkInviteUser {
+export interface ConsoleSdkInviteUser {
   email: string;
   memberId: string;
   platforms: ConsolePlatform[];
+  userId: string;
 }
 
 interface ConsoleSdkInviteDeleteItem {
