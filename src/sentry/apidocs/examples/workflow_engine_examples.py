@@ -250,7 +250,7 @@ class WorkflowEngineExamples:
                 },
                 "openIssues": 0,
             },
-            status_codes=["201"],
+            status_codes=["200"],
             response_only=True,
         )
     ]
@@ -520,7 +520,7 @@ class WorkflowEngineExamples:
                     "openIssues": 0,
                 },
             ],
-            status_codes=["201"],
+            status_codes=["200"],
             response_only=True,
         )
     ]
@@ -686,7 +686,7 @@ class WorkflowEngineExamples:
                     "lastTriggered": None,
                 },
             ],
-            status_codes=["201"],
+            status_codes=["200"],
             response_only=True,
         )
     ]
