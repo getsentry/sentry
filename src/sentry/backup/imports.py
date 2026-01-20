@@ -11,7 +11,6 @@ from django.apps import apps
 from django.core import serializers
 from django.core.exceptions import FieldDoesNotExist
 from django.db import DatabaseError, connections, router, transaction
-from django.db.models.base import Model
 from sentry_sdk import capture_exception
 
 from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
@@ -23,6 +22,7 @@ from sentry.backup.dependencies import (
     dependencies,
     get_model_name,
     reversed_dependencies,
+    sorted_dependencies,
 )
 from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
@@ -251,8 +251,71 @@ def _import(
 
         filters.append(email_filter)
 
-    # The input JSON blob should already be ordered by model kind. We simply break it up into
-    # smaller chunks, while guaranteeing that each chunk contains at most 1 model kind.
+    # Reorder models according to dependencies to ensure correct import order.
+    # This is necessary for backward compatibility with exports created before
+    # __relocation_dependencies__ was added to models like DataSource.
+    def reorder_models_by_dependencies(models: list[dict]) -> list[dict]:
+        """
+        Reorder a list of model dictionaries to respect dependency ordering.
+
+        Models are grouped by their model name, then reordered according to
+        sorted_dependencies() to ensure dependencies are imported before
+        models that reference them.
+
+        Models not present in sorted_dependencies() (e.g., deleted models from
+        old exports, plugin models) are preserved at the end to avoid data loss.
+        """
+        # Group models by their model name
+        models_by_name: dict[NormalizedModelName, list[dict]] = {}
+        for model in models:
+            model_name = NormalizedModelName(model["model"])
+            if model_name not in models_by_name:
+                models_by_name[model_name] = []
+            models_by_name[model_name].append(model)
+
+        # Get the correct dependency order
+        correct_order = sorted_dependencies()
+
+        # Track which models we've processed
+        processed_models: set[NormalizedModelName] = set()
+
+        # Rebuild the models list in dependency order
+        reordered = []
+        for model_cls in correct_order:
+            model_name = get_model_name(model_cls)
+            if model_name in models_by_name:
+                reordered.extend(models_by_name[model_name])
+                processed_models.add(model_name)
+
+        # Append any models not in sorted_dependencies() at the end
+        # These might be deleted models, plugin models, or from newer versions
+        unordered_models = []
+        for model_name, model_list in models_by_name.items():
+            if model_name not in processed_models:
+                unordered_models.extend(model_list)
+                logger.info(
+                    "import.reorder_models.unknown_model",
+                    extra={
+                        "model_name": str(model_name),
+                        "count": len(model_list),
+                    },
+                )
+
+        if unordered_models:
+            reordered.extend(unordered_models)
+            logger.warning(
+                "import.reorder_models.unordered_models_appended",
+                extra={
+                    "unordered_count": len(unordered_models),
+                    "total_models": len(reordered),
+                },
+            )
+
+        return reordered
+
+    # The input JSON blob should already be ordered by model kind, but to ensure backward
+    # compatibility with old exports, we reorder it based on our dependency information.
+    # We then break it up into smaller chunks, guaranteeing that each chunk contains at most 1 model kind.
     #
     # This generator returns a three-tuple of values: 1. the name of the model being generated, 2. a
     # serialized JSON string containing some number of such model instances, and 3. an offset
@@ -261,8 +324,11 @@ def _import(
     def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = orjson.loads(content)
+
+        # Reorder models to respect dependencies
+        models = reorder_models_by_dependencies(models)
         last_seen_model_name: NormalizedModelName | None = None
-        batch: list[type[Model]] = []
+        batch: list[dict[str, Any]] = []
         num_current_model_instances_yielded = 0
         for model in models:
             model_name = NormalizedModelName(model["model"])
