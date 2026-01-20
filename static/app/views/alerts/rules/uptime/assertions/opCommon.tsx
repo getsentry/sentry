@@ -25,6 +25,9 @@ export function AnimatedOp({op, ...props}: AnimatedOpProps) {
 
   useEffect(() => {
     document.body.style.cursor = isDragging ? 'grabbing' : '';
+    return () => {
+      document.body.style.cursor = '';
+    };
   }, [isDragging]);
 
   return (
