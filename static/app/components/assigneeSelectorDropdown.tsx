@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -529,7 +530,7 @@ export default function AssigneeSelectorDropdown({
   };
 
   const footerInviteButton = (
-    <FooterWrapper>
+    <Flex align="center" gap="md">
       <Button
         size="xs"
         aria-label={t('Invite Member')}
@@ -543,7 +544,7 @@ export default function AssigneeSelectorDropdown({
         {t('Invite Member')}
       </Button>
       {additionalMenuFooterItems}
-    </FooterWrapper>
+    </Flex>
   );
 
   return (
@@ -606,10 +607,4 @@ const TooltipSubExternalLink = styled(ExternalLink)`
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const FooterWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;

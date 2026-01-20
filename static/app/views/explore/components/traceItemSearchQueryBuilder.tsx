@@ -14,6 +14,7 @@ import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
+import {TRACEMETRICS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/metrics/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
@@ -274,7 +275,7 @@ function itemTypeToFilterKeySections(itemType: TraceItemDataset) {
     return SPANS_FILTER_KEY_SECTIONS;
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
-    return [];
+    return TRACEMETRICS_FILTER_KEY_SECTIONS;
   }
   return LOGS_FILTER_KEY_SECTIONS;
 }
