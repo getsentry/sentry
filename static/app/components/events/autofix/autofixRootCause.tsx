@@ -248,8 +248,15 @@ function CopyRootCauseButton({
   );
 }
 
+function getPluginIdForProvider(provider: string): string {
+  if (provider === 'github_copilot') {
+    return 'github';
+  }
+  return provider;
+}
+
 function SolutionActionButton({
-  cursorIntegrations,
+  codingAgentIntegrations,
   preferredAction,
   primaryButtonPriority,
   isSelectingRootCause,
@@ -259,9 +266,9 @@ function SolutionActionButton({
   handleLaunchCodingAgent,
   findSolutionTitle,
 }: {
-  cursorIntegrations: CodingAgentIntegration[];
+  codingAgentIntegrations: CodingAgentIntegration[];
   findSolutionTitle: string;
-  handleLaunchCodingAgent: (integrationId: string, integrationName: string) => void;
+  handleLaunchCodingAgent: (integration: CodingAgentIntegration) => void;
   isLaunchingAgent: boolean;
   isLoadingAgents: boolean;
   isSelectingRootCause: boolean;
@@ -269,8 +276,11 @@ function SolutionActionButton({
   primaryButtonPriority: React.ComponentProps<typeof Button>['priority'];
   submitFindSolution: () => void;
 }) {
-  const preferredIntegration = preferredAction.startsWith('cursor:')
-    ? cursorIntegrations.find(i => i.id === preferredAction.replace('cursor:', ''))
+  const preferredIntegration = preferredAction.startsWith('agent:')
+    ? codingAgentIntegrations.find(i => {
+        const key = preferredAction.replace('agent:', '');
+        return i.id === key || (i.id === null && i.provider === key);
+      })
     : null;
 
   const effectivePreference =
@@ -280,13 +290,12 @@ function SolutionActionButton({
 
   const isSeerPreferred = effectivePreference === 'seer_solution';
 
-  // Check if there are duplicate names among integrations (need to show ID to distinguish)
   const hasDuplicateNames =
-    cursorIntegrations.length > 1 &&
-    new Set(cursorIntegrations.map(i => i.name)).size < cursorIntegrations.length;
+    codingAgentIntegrations.length > 1 &&
+    new Set(codingAgentIntegrations.map(i => i.name)).size <
+      codingAgentIntegrations.length;
 
-  // If no integrations, show simple Seer button
-  if (cursorIntegrations.length === 0) {
+  if (codingAgentIntegrations.length === 0) {
     return (
       <Button
         size="sm"
@@ -311,21 +320,28 @@ function SolutionActionButton({
             disabled: isSelectingRootCause,
           },
         ]),
-    // Show all integrations except the currently preferred one
-    ...cursorIntegrations
-      .filter(integration => `cursor:${integration.id}` !== effectivePreference)
+    ...codingAgentIntegrations
+      .filter(
+        integration =>
+          `agent:${integration.id ?? integration.provider}` !== effectivePreference
+      )
       .map(integration => ({
-        key: `cursor:${integration.id}`,
+        key: `agent:${integration.id ?? integration.provider}`,
         label: (
           <Flex gap="md" align="center">
-            <PluginIcon pluginId="cursor" size={20} />
+            <PluginIcon
+              pluginId={getPluginIdForProvider(integration.provider)}
+              size={20}
+            />
             <div>{t('Send to %s', integration.name)}</div>
             {hasDuplicateNames && (
-              <SmallIntegrationIdText>({integration.id})</SmallIntegrationIdText>
+              <SmallIntegrationIdText>
+                ({integration.id ?? integration.provider})
+              </SmallIntegrationIdText>
             )}
           </Flex>
         ),
-        onAction: () => handleLaunchCodingAgent(integration.id, integration.name),
+        onAction: () => handleLaunchCodingAgent(integration),
         disabled: isLoadingAgents || isLaunchingAgent,
       })),
   ];
@@ -333,7 +349,11 @@ function SolutionActionButton({
   const primaryButtonLabel = isSeerPreferred
     ? t('Find Solution with Seer')
     : hasDuplicateNames
-      ? t('Send to %s (%s)', preferredIntegration!.name, preferredIntegration!.id)
+      ? t(
+          'Send to %s (%s)',
+          preferredIntegration!.name,
+          preferredIntegration!.id ?? preferredIntegration!.provider
+        )
       : t('Send to %s', preferredIntegration!.name);
 
   const primaryButtonProps = isSeerPreferred
@@ -344,10 +364,14 @@ function SolutionActionButton({
         children: primaryButtonLabel,
       }
     : {
-        onClick: () =>
-          handleLaunchCodingAgent(preferredIntegration!.id, preferredIntegration!.name),
+        onClick: () => handleLaunchCodingAgent(preferredIntegration!),
         busy: isLaunchingAgent,
-        icon: <PluginIcon pluginId="cursor" size={16} />,
+        icon: (
+          <PluginIcon
+            pluginId={getPluginIdForProvider(preferredIntegration!.provider)}
+            size={16}
+          />
+        ),
         children: primaryButtonLabel,
       };
 
@@ -414,7 +438,7 @@ function AutofixRootCauseDisplay({
     runId
   );
 
-  // Stores 'seer_solution' or an integration ID (e.g., 'cursor:123')
+  // Stores 'seer_solution' or an integration ID (e.g., 'agent:123')
   const [preferredAction, setPreferredAction] = useLocalStorageState<string>(
     'autofix:rootCauseActionPreference',
     'seer_solution'
@@ -422,7 +446,6 @@ function AutofixRootCauseDisplay({
 
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
-      // Simulate a click on the description to trigger the text selection
       const clickEvent = new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
@@ -438,7 +461,6 @@ function AutofixRootCauseDisplay({
       return;
     }
 
-    // Save user preference
     setPreferredAction('seer_solution');
 
     const instruction = solutionText.trim();
@@ -463,29 +485,19 @@ function AutofixRootCauseDisplay({
     });
   };
 
-  const cursorIntegrations = codingAgentIntegrations.filter(
-    integration => integration.provider === 'cursor'
-  );
+  const handleLaunchCodingAgent = (integration: CodingAgentIntegration) => {
+    setPreferredAction(`agent:${integration.id ?? integration.provider}`);
 
-  const handleLaunchCodingAgent = (integrationId: string, integrationName: string) => {
-    const targetIntegration = cursorIntegrations.find(i => i.id === integrationId);
-
-    if (!targetIntegration) {
-      return;
-    }
-
-    // Save user preference with specific integration ID
-    setPreferredAction(`cursor:${integrationId}`);
-
-    addLoadingMessage(t('Launching %s...', integrationName), {
+    addLoadingMessage(t('Launching %s...', integration.name), {
       duration: 60000,
     });
 
     const instruction = solutionText.trim();
 
     launchCodingAgent({
-      integrationId: targetIntegration.id,
-      agentName: targetIntegration.name,
+      integrationId: integration.id,
+      provider: integration.provider,
+      agentName: integration.name,
       triggerSource: 'root_cause',
       instruction: instruction || undefined,
     });
@@ -519,17 +531,17 @@ function AutofixRootCauseDisplay({
     return (
       <CausesContainer>
         <CustomRootCausePadding>
-          <Flex justify="between" align="center" wrap="wrap" gap="md">
+          <HeaderWrapper>
             <HeaderText>
               <Flex justify="center" align="center" ref={iconFocusRef}>
                 <IconFocus size="md" variant="promotion" />
               </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
-          </Flex>
+          </HeaderWrapper>
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           <BottomDivider />
-          <Flex justify="end" align="center" paddingTop="xl" gap="md">
+          <BottomButtonContainer>
             <ButtonBar>
               <CopyRootCauseButton
                 customRootCause={rootCauseSelection.custom_root_cause}
@@ -543,7 +555,7 @@ function AutofixRootCauseDisplay({
                 runId={runId}
               />
             )}
-          </Flex>
+          </BottomButtonContainer>
         </CustomRootCausePadding>
       </CausesContainer>
     );
@@ -551,7 +563,7 @@ function AutofixRootCauseDisplay({
 
   return (
     <CausesContainer>
-      <Flex justify="between" align="center" wrap="wrap" gap="md">
+      <HeaderWrapper>
         <HeaderText>
           <Flex justify="center" align="center" ref={iconFocusRef}>
             <IconFocus size="md" variant="promotion" />
@@ -568,7 +580,7 @@ function AutofixRootCauseDisplay({
             <IconChat />
           </Button>
         </HeaderText>
-      </Flex>
+      </HeaderWrapper>
       <AnimatePresence>
         {agentCommentThread && iconFocusRef.current && (
           <AutofixHighlightPopup
@@ -600,7 +612,7 @@ function AutofixRootCauseDisplay({
         </Fragment>
       </Content>
       <BottomDivider />
-      <Flex justify="end" align="center" paddingTop="xl" gap="md">
+      <BottomButtonContainer>
         <SolutionInput
           autosize
           value={solutionText}
@@ -619,7 +631,7 @@ function AutofixRootCauseDisplay({
         <ButtonBar>
           <CopyRootCauseButton cause={cause} event={event} />
           <SolutionActionButton
-            cursorIntegrations={cursorIntegrations}
+            codingAgentIntegrations={codingAgentIntegrations}
             preferredAction={preferredAction}
             primaryButtonPriority={primaryButtonPriority}
             isSelectingRootCause={isSelectingRootCause}
@@ -633,7 +645,7 @@ function AutofixRootCauseDisplay({
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="root_cause" groupId={groupId} runId={runId} />
         )}
-      </Flex>
+      </BottomButtonContainer>
     </CausesContainer>
   );
 }
@@ -687,6 +699,14 @@ const Content = styled('div')`
   padding: ${space(1)} 0;
 `;
 
+const HeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
 const HeaderText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
@@ -710,6 +730,14 @@ const AnimationWrapper = styled(motion.div)`
 
 const BottomDivider = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+`;
+
+const BottomButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: ${space(1)};
+  padding-top: ${p => p.theme.space.xl};
 `;
 
 const SolutionInput = styled(TextArea)`

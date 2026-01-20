@@ -71,6 +71,8 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     switch (provider) {
       case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
         return t('Cursor Cloud Agent');
+      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
+        return t('GitHub Copilot');
       default:
         return t('Coding Agent');
     }
@@ -165,7 +167,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
                             >
-                              {t('Open in Cursor')}
+                              {codingAgentState.provider ===
+                              CodingAgentProvider.CURSOR_BACKGROUND_AGENT
+                                ? t('Open in Cursor')
+                                : t('View Agent')}
                             </Button>
                           </ExternalLink>
                         )}
