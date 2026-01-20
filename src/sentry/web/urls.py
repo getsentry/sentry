@@ -11,6 +11,7 @@ from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
@@ -109,6 +110,16 @@ if settings.DEBUG:
             r"^_static/[^/]+/[^/]+/images/favicon\.(ico|png)$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
+        ),
+    ]
+
+if settings.SENTRY_MODE != SentryMode.SAAS:
+    # Admin endpoint only available in self-hosted mode
+    urlpatterns += [
+        re_path(
+            r"^manage/",
+            react_page_view,
+            name="sentry-admin-overview",
         ),
     ]
 
@@ -481,12 +492,6 @@ urlpatterns += [
     ),
     # Relocation
     re_path(r"^relocation/", generic_react_page_view, name="sentry-relocation"),
-    # Admin
-    re_path(
-        r"^manage/",
-        react_page_view,
-        name="sentry-admin-overview",
-    ),
     # Admin UI (for local dev)
     re_path(
         r"^_admin/",
