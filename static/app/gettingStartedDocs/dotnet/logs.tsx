@@ -5,6 +5,10 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getInstallSnippetCoreCli,
+  getInstallSnippetPackageManager,
+} from 'sentry/gettingStartedDocs/dotnet/utils';
 import {t, tct} from 'sentry/locale';
 
 export const logsVerify = (params: DocsParams): ContentBlock => ({
@@ -13,7 +17,7 @@ export const logsVerify = (params: DocsParams): ContentBlock => ({
   content: [
     {
       type: 'text',
-      text: t('Send test logs from your app to verify logs are arriving in Sentry.'),
+      text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
     },
     {
       type: 'code',
@@ -24,8 +28,8 @@ SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
   ],
 });
 
-export const logs: OnboardingConfig = {
-  install: () => [
+export const dotnetLogs = (): OnboardingConfig => ({
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
@@ -37,6 +41,21 @@ export const logs: OnboardingConfig = {
               code: <code />,
             }
           ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Package Manager',
+              language: 'shell',
+              code: getInstallSnippetPackageManager(params),
+            },
+            {
+              label: '.NET Core CLI',
+              language: 'shell',
+              code: getInstallSnippetCoreCli(params),
+            },
+          ],
         },
       ],
     },
@@ -64,43 +83,23 @@ export const logs: OnboardingConfig = {
     options.EnableLogs = true;
 });`,
         },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Once the feature is enabled on the SDK and the SDK is initialized, you can send logs using the SentrySdk.Logger APIs.'
-          ),
-        },
-        {
-          type: 'text',
-          text: t(
-            'The SentrySdk.Logger instance exposes six methods that you can use to log messages at different log levels: Trace, Debug, Info, Warning, Error, and Fatal.'
-          ),
-        },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: `SentrySdk.Logger.LogInfo("A simple log message");
-SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
-        },
         {
           type: 'text',
           text: tct(
-            'You can also attach custom attributes via a delegate. For more information, see the [link:Integrations documentation].',
+            'For more detailed information on logging configuration, see the [link:logs documentation].',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/logs/#integrations" />
-              ),
+              link: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/logs/" />,
             }
           ),
         },
       ],
     },
   ],
-};
+  verify: (params: DocsParams) => [
+    {
+      type: StepType.VERIFY,
+      description: t('Test that logs are working by sending some test logs:'),
+      content: [logsVerify(params)],
+    },
+  ],
+});
