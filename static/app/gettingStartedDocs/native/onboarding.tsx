@@ -8,6 +8,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
+import {logsVerify} from 'sentry/gettingStartedDocs/native/logs';
 import {getVerifySnippet} from 'sentry/gettingStartedDocs/native/utils';
 import {t, tct} from 'sentry/locale';
 
@@ -117,31 +118,7 @@ export const onboarding: OnboardingConfig = {
       ? ([
           {
             title: t('Logs'),
-            content: [
-              {
-                type: 'text',
-                text: t(
-                  'Once logging is enabled, you can send logs using the sentry_log_X() APIs:'
-                ),
-              },
-              {
-                type: 'code',
-                language: 'c',
-                code: `sentry_log_info("A simple log message");
-sentry_log_error("A %s log message", "formatted");`,
-              },
-              {
-                type: 'text',
-                text: tct(
-                  'Check out [link:the Logs documentation] to learn more about additional attributes and options.',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/native/logs/" />
-                    ),
-                  }
-                ),
-              },
-            ],
+            content: [logsVerify(params)],
           },
         ] satisfies OnboardingStep[])
       : []),
