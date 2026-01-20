@@ -288,12 +288,16 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.create_project_rule(
             name="rule",
             action_data=[ALERT_LEGACY_INTEGRATIONS],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         self.create_project_rule(
             name="rule2",
             action_data=[ALERT_LEGACY_INTEGRATIONS],
             project=project2,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         with self.tasks():
@@ -402,6 +406,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.create_project_rule(
             name="rule",
             action_data=[ALERT_LEGACY_INTEGRATIONS],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
@@ -448,11 +454,15 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.create_project_rule(
             name="rule",
             action_data=[ALERT_LEGACY_INTEGRATIONS],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         rule2 = self.create_project_rule(
             name="rule2",
             action_data=[{}],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         rule2.data["actions"] = []
         rule2.save()
@@ -515,6 +525,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
                     "team": str(self.organization_integration.id) + "-pikachu",
                 },
             ],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
@@ -561,6 +573,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.create_project_rule(
             name="rule",
             action_data=[ALERT_LEGACY_INTEGRATIONS_WITH_NAME],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         with self.tasks():

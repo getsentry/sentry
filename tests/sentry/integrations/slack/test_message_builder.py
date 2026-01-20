@@ -341,7 +341,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_build_group_block_noa(self) -> None:
-        rule = self.create_project_rule(project=self.project, action_data=[{"legacy_rule_id": 123}])
+        rule = self.create_project_rule(project=self.project)
+
         release = self.create_release(project=self.project)
         event = self.store_event(
             data={
@@ -367,7 +368,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             rule=rule,
-            legacy_rule_id=123,
+            legacy_rule_id=rule.data["actions"][0]["legacy_rule_id"],
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(

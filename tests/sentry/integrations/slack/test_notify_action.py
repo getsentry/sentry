@@ -2,6 +2,7 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 import responses
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web.slack_response import SlackResponse
@@ -19,8 +20,10 @@ from sentry.testutils.helpers.analytics import (
     assert_any_analytics_event,
     assert_last_analytics_event,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import Action
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
@@ -31,6 +34,15 @@ pytestmark = [requires_snuba]
 
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
+
+    @pytest.fixture(autouse=True)
+    def with_feature_flags(self):
+        with override_options(
+            {
+                "workflow_engine.issue_alert.group.type_id.ga": [1],
+            }
+        ):
+            yield
 
     def mock_list(self, list_type, channels, result_name="channels"):
         return mock_slack_response(f"{list_type}_list", body={"ok": True, result_name: channels})
@@ -90,7 +102,15 @@ class SlackNotifyActionTest(RuleTestCase):
     ) -> None:
         event = self.get_event()
 
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+        fake_rule = self.create_project_rule()
+        action = Action.objects.all().order_by("id").first()
+        assert action
+        fake_rule.id = action.id
+
+        rule = self.get_rule(
+            data={"workspace": self.integration.id, "channel": "#my-channel"},
+            rule=fake_rule,
+        )
 
         results = list(rule.after(event=event))
         assert len(results) == 1
@@ -356,12 +376,17 @@ class SlackNotifyActionTest(RuleTestCase):
         ):
             event = self.get_event()
 
+            fake_rule = self.create_project_rule()
+            action = Action.objects.all().order_by("id").first()
+            assert action
+            fake_rule.id = action.id
             rule = self.get_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-channel",
                     "channel_id": "123",
-                }
+                },
+                rule=fake_rule,
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
