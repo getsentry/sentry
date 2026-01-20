@@ -150,7 +150,7 @@ describe('AutofixRootCause', () => {
     await userEvent.click(await screen.findByText('Send to Cursor'));
 
     expect(JSON.parse(localStorage.getItem('autofix:rootCauseActionPreference')!)).toBe(
-      'cursor:cursor-integration-id'
+      'agent:cursor-integration-id'
     );
   });
 
@@ -204,7 +204,7 @@ describe('AutofixRootCause', () => {
 
     localStorage.setItem(
       'autofix:rootCauseActionPreference',
-      JSON.stringify('cursor:cursor-integration-id')
+      JSON.stringify('agent:cursor-integration-id')
     );
 
     render(<AutofixRootCause {...defaultProps} />);
