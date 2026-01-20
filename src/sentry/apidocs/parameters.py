@@ -477,7 +477,7 @@ class WorkflowParams:
         location="path",
         required=True,
         type=int,
-        description="The ID of the workflow you'd like to query.",
+        description="The ID of the alert you'd like to query.",
     )
 
     QUERY = OpenApiParameter(
@@ -485,7 +485,7 @@ class WorkflowParams:
         location="query",
         required=False,
         type=str,
-        description="An optional search query for filtering workflows.",
+        description="An optional search query for filtering alerts.",
     )
 
     SORT_BY = OpenApiParameter(
@@ -512,7 +512,7 @@ Prefix with `-` to sort in descending order.
         location="query",
         required=False,
         type=int,
-        description="The ID of the workflow you'd like to query.",
+        description="The ID of the alert you'd like to query.",
         many=True,
     )
 

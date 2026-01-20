@@ -2,6 +2,168 @@ from drf_spectacular.utils import OpenApiExample
 
 
 class WorkflowEngineExamples:
+    GET_WORKFLOW = [
+        OpenApiExample(
+            "Fetch an Alert",
+            value={
+                "id": "6789123",
+                "name": "My Alert",
+                "organizationId": "1",
+                "createdBy": "1234567",
+                "dateCreated": "2026-01-14T20:08:32.273220Z",
+                "dateUpdated": "2026-01-14T20:08:32.273209Z",
+                "triggers": {
+                    "id": "345678",
+                    "organizationId": "1",
+                    "logicType": "any-short",
+                    "conditions": [
+                        {
+                            "id": "234",
+                            "type": "first_seen_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "567",
+                            "type": "issue_resolved_trigger",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "891",
+                            "type": "reappeared_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "789",
+                            "type": "regression_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                    ],
+                    "actions": [],
+                },
+                "actionFilters": [
+                    {
+                        "id": "345678",
+                        "organizationId": "1",
+                        "logicType": "any-short",
+                        "conditions": [
+                            {
+                                "id": "234567",
+                                "type": "issue_priority_deescalating",
+                                "comparison": True,
+                                "conditionResult": True,
+                            }
+                        ],
+                        "actions": [
+                            {
+                                "id": "45678",
+                                "type": "slack",
+                                "integrationId": "1",
+                                "data": {},
+                                "config": {
+                                    "targetType": "specific",
+                                    "targetDisplay": "@jane-doe",
+                                    "targetIdentifier": "ABCDE123456",
+                                },
+                                "status": "active",
+                            }
+                        ],
+                    }
+                ],
+                "environment": None,
+                "config": {"frequency": 1440},
+                "detectorIds": ["1234567"],
+                "enabled": True,
+                "lastTriggered": None,
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+    UPDATE_WORKFLOW = [
+        OpenApiExample(
+            "Update an Alert",
+            value={
+                "id": "1234567",
+                "name": "My Updated Alert",
+                "organizationId": "1",
+                "createdBy": "23456",
+                "dateCreated": "2026-01-14T20:08:32.273220Z",
+                "dateUpdated": "2026-01-14T21:59:45.609912Z",
+                "triggers": {
+                    "id": "12345",
+                    "organizationId": "1",
+                    "logicType": "any-short",
+                    "conditions": [
+                        {
+                            "id": "1234",
+                            "type": "first_seen_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "2345",
+                            "type": "issue_resolved_trigger",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "3456",
+                            "type": "reappeared_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "4567",
+                            "type": "regression_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                    ],
+                    "actions": [],
+                },
+                "actionFilters": [
+                    {
+                        "id": "1234567",
+                        "organizationId": "1",
+                        "logicType": "any-short",
+                        "conditions": [
+                            {
+                                "id": "345678",
+                                "type": "issue_priority_deescalating",
+                                "comparison": True,
+                                "conditionResult": True,
+                            }
+                        ],
+                        "actions": [
+                            {
+                                "id": "56789",
+                                "type": "slack",
+                                "integrationId": "1",
+                                "data": {},
+                                "config": {
+                                    "targetType": "specific",
+                                    "targetDisplay": "@jane-doe",
+                                    "targetIdentifier": "ABCDE123456",
+                                },
+                                "status": "active",
+                            }
+                        ],
+                    }
+                ],
+                "environment": None,
+                "config": {"frequency": 1440},
+                "detectorIds": ["12345678"],
+                "enabled": True,
+                "lastTriggered": None,
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
     GET_DETECTOR = [
         OpenApiExample(
             "Fetch a Monitor",
