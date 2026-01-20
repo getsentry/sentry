@@ -48,9 +48,13 @@ local max_segment_bytes = tonumber(ARGV[5])
 local byte_count = tonumber(ARGV[6])
 local NUM_ARGS = 6
 
+local function get_time_ms()
+    local time = redis.call("TIME")
+    return tonumber(time[1]) * 1000 + tonumber(time[2]) / 1000
+end
+
 -- Capture start time for latency measurement
-local start_time = redis.call("TIME")
-local start_time_ms = tonumber(start_time[1]) * 1000 + tonumber(start_time[2]) / 1000
+local start_time_ms = get_time_ms()
 
 local set_span_id = parent_span_id
 local redirect_depth = 0
@@ -68,6 +72,13 @@ for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
 
     set_span_id = new_set_span
 end
+
+local latency_table = {}
+local metrics_table = {}
+table.insert(metrics_table, {"redirect_table_size", redis.call("hlen", main_redirect_key)})
+table.insert(metrics_table, {"redirect_depth", redirect_depth})
+local redirect_end_time_ms = get_time_ms()
+table.insert(latency_table, {"redirect_step_latency_ms", redirect_end_time_ms - start_time_ms})
 
 local set_key = string.format("span-buf:z:{%s}:%s", project_and_trace, set_span_id)
 local parent_key = string.format("span-buf:z:{%s}:%s", project_and_trace, parent_span_id)
@@ -108,9 +119,21 @@ end
 redis.call("hset", main_redirect_key, unpack(hset_args))
 redis.call("expire", main_redirect_key, set_timeout)
 
+local sunionstore_args_end_time_ms = get_time_ms()
+table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_args_end_time_ms - redirect_end_time_ms})
+
+-- Merge spans into the parent span set.
+-- Used outside the if statement
+local zpopmin_end_time_ms = -1
 if #sunionstore_args > 0 then
-    redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
+    local start_output_size = redis.call("zcard", set_key)
+    local output_size = redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
     redis.call("unlink", unpack(sunionstore_args))
+
+    local zunionstore_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"zunionstore_step_latency_ms", zunionstore_end_time_ms - sunionstore_args_end_time_ms})
+    table.insert(metrics_table, {"parent_span_set_before_size", start_output_size})
+    table.insert(metrics_table, {"parent_span_set_after_size", output_size})
 
     -- Merge ingested count keys for merged spans
     local ingested_count_key = string.format("span-buf:ic:%s", set_key)
@@ -131,10 +154,20 @@ if #sunionstore_args > 0 then
         redis.call("del", merged_ibc_key)
     end
 
+    local arg_cleanup_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - zunionstore_end_time_ms})
+
+    local zpopcalls = 0
     while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
         redis.call("zpopmin", set_key)
+        zpopcalls = zpopcalls + 1
     end
+
+    zpopmin_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"zpopmin_step_latency_ms", zpopmin_end_time_ms - arg_cleanup_end_time_ms})
+    table.insert(metrics_table, {"zpopcalls", zpopcalls})
 end
+
 
 -- Track total number of spans ingested for this segment
 local ingested_count_key = string.format("span-buf:ic:%s", set_key)
@@ -146,9 +179,18 @@ redis.call("expire", ingested_byte_count_key, set_timeout)
 
 redis.call("expire", set_key, set_timeout)
 
--- Capture end time and calculate latency in milliseconds
-local end_time = redis.call("TIME")
-local end_time_ms = tonumber(end_time[1]) * 1000 + tonumber(end_time[2]) / 1000
-local latency_ms = end_time_ms - start_time_ms
+local ingested_count_end_time_ms = get_time_ms()
+local ingested_count_step_latency_ms = 0
+if zpopmin_end_time_ms >= 0 then
+    ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
+else
+    ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
+end
+table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_step_latency_ms})
 
-return {redirect_depth, set_key, has_root_span, latency_ms}
+-- Capture end time and calculate latency in milliseconds
+local end_time_ms = get_time_ms()
+local latency_ms = end_time_ms - start_time_ms
+table.insert(latency_table, {"total_step_latency_ms", latency_ms})
+
+return {set_key, has_root_span, latency_ms, latency_table, metrics_table}
