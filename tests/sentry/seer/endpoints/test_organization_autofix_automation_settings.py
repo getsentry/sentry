@@ -37,12 +37,14 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
                 "projectId": project1.id,
                 "autofixAutomationTuning": AutofixAutomationTuningSettings.OFF.value,
                 "automatedRunStoppingPoint": AutofixStoppingPoint.CODE_CHANGES.value,
+                "automationHandoff": None,
                 "reposCount": 0,
             },
             {
                 "projectId": project2.id,
                 "autofixAutomationTuning": AutofixAutomationTuningSettings.OFF.value,
                 "automatedRunStoppingPoint": AutofixStoppingPoint.CODE_CHANGES.value,
+                "automationHandoff": None,
                 "reposCount": 0,
             },
         ]
@@ -129,12 +131,14 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
                 "projectId": project1.id,
                 "autofixAutomationTuning": AutofixAutomationTuningSettings.MEDIUM.value,
                 "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+                "automationHandoff": None,
                 "reposCount": 1,
             },
             {
                 "projectId": project2.id,
                 "autofixAutomationTuning": AutofixAutomationTuningSettings.HIGH.value,
                 "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+                "automationHandoff": None,
                 "reposCount": 0,
             },
         ]
