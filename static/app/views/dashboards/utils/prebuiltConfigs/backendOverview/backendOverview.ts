@@ -327,7 +327,7 @@ const TRANSACTIONS_TABLE: Widget = {
         SpanFields.PROJECT,
       ],
       fieldAliases: [
-        'Star',
+        'Starred',
         'Http Method',
         '',
         'Operation',
