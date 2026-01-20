@@ -347,9 +347,14 @@ export function useSpansTableQuery(
       }
 
       // Always sort by is_starred_transaction first if it's in the fields
+      const existingSort = requestParams.sort || [];
       const hasStarredField = query.fields?.includes(SpanFields.IS_STARRED_TRANSACTION);
-      if (hasStarredField) {
-        const existingSort = requestParams.sort || [];
+
+      const alreadySortedByStarred = Array.isArray(existingSort)
+        ? existingSort.some(sort => sort.includes(SpanFields.IS_STARRED_TRANSACTION))
+        : existingSort.includes(SpanFields.IS_STARRED_TRANSACTION);
+
+      if (hasStarredField && !alreadySortedByStarred) {
         requestParams.sort = [
           encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
           ...existingSort,
