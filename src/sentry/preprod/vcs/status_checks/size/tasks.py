@@ -459,16 +459,18 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
 
         group_matches = False
         for f in group_filters:
-            if f.is_in_filter:
-                matches = artifact_value in f.value.value
-            elif f.value.is_wildcard():
+            if f.value.is_wildcard():
                 # Wildcard operators (contains, starts_with, ends_with)
-                # value property returns regex pattern from translate_wildcard()
+                # Works for both single values and IN filters
+                # For IN filters with wildcards, value is a regex alternation pattern
                 try:
                     pattern = f.value.value
                     matches = bool(re.search(pattern, artifact_value))
                 except (re.error, TypeError):
                     matches = False
+            elif f.is_in_filter:
+                # Non-wildcard IN filter
+                matches = artifact_value in f.value.value
             else:
                 # Exact equality match
                 matches = artifact_value == f.value.value
