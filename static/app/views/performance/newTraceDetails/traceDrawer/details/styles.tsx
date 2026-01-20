@@ -1369,6 +1369,8 @@ function MultilineJSON({
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
+  /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
+  min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
   pre {
     margin: 0;
     padding: 0;
