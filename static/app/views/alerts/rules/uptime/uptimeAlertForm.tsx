@@ -223,11 +223,15 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       onPreSubmit={() => {
+        // eslint-disable-next-line no-console
+        console.log('[FORM] onPreSubmit fired');
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
         }
         // Normalize assertion values to ensure they are within valid ranges
         const assertion = formModel.getValue<Op | undefined>('assertion');
+        // eslint-disable-next-line no-console
+        console.log('[FORM] assertion value at submit:', JSON.stringify(assertion));
         if (assertion) {
           formModel.setValue(
             'assertion',
