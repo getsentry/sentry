@@ -1,10 +1,42 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+
+export const logsVerify = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isLogsSelected,
+  content: [
+    {
+      type: 'text',
+      text: t(
+        'Once configured, you can send logs using the standard PSR-3 logger interface:'
+      ),
+    },
+    {
+      type: 'code',
+      language: 'php',
+      code: `$this->logger->info("This is an info message");
+$this->logger->warning('User {id} failed to login.', ['id' => $user->id]);
+$this->logger->error("This is an error message");`,
+    },
+    {
+      type: 'text',
+      text: tct(
+        'Check out [link:the Logs documentation] to learn more about Monolog integration.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/symfony/logs/" />
+          ),
+        }
+      ),
+    },
+  ],
+});
 
 export const logs: OnboardingConfig = {
   install: () => [
@@ -89,42 +121,10 @@ sentry:
       ],
     },
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Once you have configured the Sentry log handler, you can use your regular [code:LoggerInterface]. It will send logs to Sentry:',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          language: 'php',
-          code: `$this->logger->info("This is an info message");
-$this->logger->warning('User {id} failed to login.', ['id' => $user->id]);
-$this->logger->error("This is an error message");`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'You can pass additional attributes directly to the logging functions. These properties will be sent to Sentry, and can be searched from within the Logs UI:'
-          ),
-        },
-        {
-          type: 'code',
-          language: 'php',
-          code: `$this->logger->error('Something went wrong', [
-    'user_id' => $userId,
-    'action' => 'update_profile',
-    'additional_data' => $data,
-]);`,
-        },
-      ],
+      content: [logsVerify(params)],
     },
   ],
 };
