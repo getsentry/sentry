@@ -1,5 +1,5 @@
 from django.db import router, transaction
-from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.incidents.grouptype import MetricIssue
@@ -28,6 +29,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
+from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
     can_delete_detector,
@@ -97,7 +99,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
-        operation_id="Fetch a Detector",
+        operation_id="Fetch a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
@@ -109,12 +111,11 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.GET_DETECTOR,
     )
     def get(self, request: Request, organization: Organization, detector: Detector):
         """
-        Fetch a detector
-        `````````````````````````
-        Return details on an individual detector.
+        Return details on an individual monitor
         """
         serialized_detector = serialize(
             detector,
@@ -124,20 +125,12 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return Response(serialized_detector)
 
     @extend_schema(
-        operation_id="Update a Detector",
+        operation_id="Update a Monitor by ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
         ],
-        request=PolymorphicProxySerializer(
-            "GenericDetectorSerializer",
-            serializers=[
-                gt.detector_settings.validator
-                for gt in grouptype.registry.all()
-                if gt.detector_settings and gt.detector_settings.validator
-            ],
-            resource_type_field_name=None,
-        ),
+        request=BaseDetectorTypeValidator,
         responses={
             200: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -145,12 +138,11 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.UPDATE_DETECTOR,
     )
     def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        Update a Detector
-        ````````````````
-        Update an existing detector for a project.
+        Update an existing monitor
         """
         if not can_edit_detector(detector, request):
             raise PermissionDenied
@@ -187,7 +179,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return Response(serialize(updated_detector, request.user), status=status.HTTP_200_OK)
 
     @extend_schema(
-        operation_id="Delete a Detector",
+        operation_id="Delete a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
@@ -200,7 +192,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization, detector: Detector):
         """
-        Delete a detector
+        Delete a monitor
         """
         if not can_delete_detector(detector, request):
             raise PermissionDenied

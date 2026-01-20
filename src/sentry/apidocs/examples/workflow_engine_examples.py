@@ -2,6 +2,183 @@ from drf_spectacular.utils import OpenApiExample
 
 
 class WorkflowEngineExamples:
+    GET_DETECTOR = [
+        OpenApiExample(
+            "Fetch a Monitor",
+            value={
+                "id": "123456",
+                "projectId": "1",
+                "name": "High Number of Errors",
+                "description": None,
+                "type": "metric_issue",
+                "workflowIds": ["45678"],
+                "owner": {"type": "team", "id": "1234567", "name": "example-team"},
+                "createdBy": "789123",
+                "dateCreated": "2025-03-25T17:50:45.587657Z",
+                "dateUpdated": "2025-07-22T17:10:45.069457Z",
+                "dataSources": [
+                    {
+                        "id": "34567",
+                        "organizationId": "1",
+                        "type": "snuba_query_subscription",
+                        "sourceId": "56789",
+                        "queryObj": {
+                            "id": "23456",
+                            "status": 0,
+                            "subscription": "12/345acb678def912ghi",
+                            "snubaQuery": {
+                                "id": "12345",
+                                "dataset": "events",
+                                "query": "",
+                                "aggregate": "count()",
+                                "timeWindow": 900,
+                                "environment": None,
+                                "eventTypes": ["error"],
+                                "extrapolationMode": "unknown",
+                            },
+                        },
+                    }
+                ],
+                "conditionGroup": {
+                    "id": "345678",
+                    "organizationId": "1",
+                    "logicType": "any",
+                    "conditions": [
+                        {
+                            "id": "234567",
+                            "type": "anomaly_detection",
+                            "comparison": {
+                                "seasonality": "auto",
+                                "sensitivity": "low",
+                                "thresholdType": 0,
+                            },
+                            "conditionResult": 75,
+                        }
+                    ],
+                    "actions": [],
+                },
+                "config": {"detectionType": "dynamic", "comparisonDelta": None},
+                "enabled": True,
+                "latestGroup": {
+                    "id": "123456789",
+                    "title": "High Number of Errors",
+                    "culprit": "",
+                    "shortId": "EXAMPLE-1A2B",
+                    "level": "error",
+                    "status": "resolved",
+                    "substatus": None,
+                    "platform": "python",
+                    "project": {
+                        "id": "1",
+                        "name": "Backend",
+                        "slug": "sentry",
+                        "platform": "python",
+                    },
+                    "type": "generic",
+                    "issueType": "metric_issue",
+                    "issueCategory": "metric",
+                    "metadata": {
+                        "title": "High Number of Errors",
+                        "value": "Detected an error",
+                        "initial_priority": 75,
+                    },
+                    "numComments": 0,
+                    "firstSeen": "2025-07-21T14:46:07.845207Z",
+                    "lastSeen": "2026-01-12T16:16:26.355334Z",
+                },
+                "openIssues": 0,
+            },
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
+    UPDATE_DETECTOR = [
+        OpenApiExample(
+            "Update a Monitor",
+            value={
+                "id": "12345",
+                "projectId": "1",
+                "name": "Updated monitor",
+                "description": None,
+                "type": "metric_issue",
+                "workflowIds": [],
+                "owner": {
+                    "type": "user",
+                    "id": "4567",
+                    "name": "Jane Doe",
+                    "email": "jane@example.io",
+                },
+                "createdBy": "45678",
+                "dateCreated": "2026-01-09T18:47:41.596427Z",
+                "dateUpdated": "2026-01-12T21:30:07.354861Z",
+                "dataSources": [
+                    {
+                        "id": "2345",
+                        "organizationId": "1",
+                        "type": "snuba_query_subscription",
+                        "sourceId": "1234",
+                        "queryObj": {
+                            "id": "3456",
+                            "status": 0,
+                            "subscription": "55/abc123def456ghi789",
+                            "snubaQuery": {
+                                "id": "56789",
+                                "dataset": "events_analytics_platform",
+                                "query": "",
+                                "aggregate": "p95(measurements.lcp)",
+                                "timeWindow": 3600,
+                                "environment": None,
+                                "eventTypes": ["trace_item_span"],
+                                "extrapolationMode": "unknown",
+                            },
+                        },
+                    }
+                ],
+                "conditionGroup": {
+                    "id": "12345678",
+                    "organizationId": "1",
+                    "logicType": "any",
+                    "conditions": [
+                        {"id": "234567", "type": "gt", "comparison": 5, "conditionResult": 75},
+                        {"id": "234568", "type": "lte", "comparison": 5, "conditionResult": 0},
+                    ],
+                    "actions": [],
+                },
+                "config": {"detectionType": "static"},
+                "enabled": True,
+                "alertRuleId": None,
+                "ruleId": None,
+                "latestGroup": {
+                    "id": "123456789",
+                    "title": "Test monitor",
+                    "culprit": "",
+                    "shortId": "SENTRY-1A2B",
+                    "level": "error",
+                    "status": "resolved",
+                    "substatus": None,
+                    "platform": "python",
+                    "project": {
+                        "id": "1",
+                        "name": "Backend",
+                        "slug": "sentry",
+                        "platform": "python",
+                    },
+                    "type": "generic",
+                    "issueType": "metric_issue",
+                    "issueCategory": "metric",
+                    "metadata": {
+                        "title": "Test monitor",
+                        "value": "Critical: Number of events in the last hour above 5",
+                        "initial_priority": 75,
+                    },
+                    "numComments": 0,
+                    "firstSeen": "2026-01-09T18:48:15.250134Z",
+                    "lastSeen": "2026-01-09T18:48:15.250134Z",
+                },
+                "openIssues": 0,
+            },
+        )
+    ]
     LIST_ORG_DETECTORS = [
         OpenApiExample(
             "List all monitors in an organization",
@@ -126,8 +303,8 @@ class WorkflowEngineExamples:
                     "owner": {
                         "type": "user",
                         "id": "12345",
-                        "name": "colleen@sentry.io",
-                        "email": "colleen@sentry.io",
+                        "name": "jane@example.com",
+                        "email": "jane@example.com",
                     },
                     "createdBy": "12345",
                     "dateCreated": "2025-04-28T22:46:12.469771Z",
