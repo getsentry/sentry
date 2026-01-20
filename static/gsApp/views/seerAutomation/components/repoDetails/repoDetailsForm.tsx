@@ -1,10 +1,7 @@
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t, tct} from 'sentry/locale';
-import {
-  DEFAULT_CODE_REVIEW_TRIGGERS,
-  type RepositoryWithSettings,
-} from 'sentry/types/integrations';
+import {type RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
@@ -27,10 +24,7 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
       initialData={
         {
           enabledCodeReview: repoWithSettings?.settings?.enabledCodeReview ?? false,
-          codeReviewTriggers:
-            repoWithSettings?.settings?.codeReviewTriggers ??
-            organization.defaultCodeReviewTriggers ??
-            DEFAULT_CODE_REVIEW_TRIGGERS,
+          codeReviewTriggers: repoWithSettings?.settings?.codeReviewTriggers ?? [],
           repositoryIds: [repoWithSettings.id],
         } satisfies RepositorySettings
       }
