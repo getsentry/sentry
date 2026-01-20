@@ -290,33 +290,40 @@ class TestTransformWebhookToCodegenRequest:
 class TestExtractGithubInfo:
     def test_extract_from_pull_request_event(self) -> None:
         event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        result = extract_github_info(event)
+        result = extract_github_info(event, github_event="pull_request")
 
         assert result["github_owner"] == "baxterthehacker"
         assert result["github_repo_name"] == "public-repo"
         assert result["github_repo_full_name"] == "baxterthehacker/public-repo"
         assert result["github_event_url"] == "https://github.com/baxterthehacker/public-repo/pull/1"
+        assert result["github_event"] == "pull_request"
+        assert result["github_event_action"] == "opened"
 
     def test_extract_from_check_run_event(self) -> None:
         event = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-        result = extract_github_info(event)
+        result = extract_github_info(event, github_event="check_run")
 
         assert result["github_owner"] == "getsentry"
         assert result["github_repo_name"] == "sentry"
         assert result["github_repo_full_name"] == "getsentry/sentry"
         assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/4"
+        assert result["github_event"] == "check_run"
+        assert result["github_event_action"] == "rerequested"
 
     def test_extract_from_check_run_completed_event(self) -> None:
         event = orjson.loads(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
-        result = extract_github_info(event)
+        result = extract_github_info(event, github_event="check_run")
 
         assert result["github_owner"] == "getsentry"
         assert result["github_repo_name"] == "sentry"
         assert result["github_repo_full_name"] == "getsentry/sentry"
         assert result["github_event_url"] is None
+        assert result["github_event"] == "check_run"
+        assert result["github_event_action"] == "completed"
 
     def test_extract_from_issue_comment_event(self) -> None:
         event = {
+            "action": "created",
             "repository": {
                 "name": "comment-repo",
                 "full_name": "comment-owner/comment-repo",
@@ -333,7 +340,7 @@ class TestExtractGithubInfo:
                 "id": 123456,
             },
         }
-        result = extract_github_info(event)
+        result = extract_github_info(event, github_event="issue_comment")
 
         assert result["github_owner"] == "comment-owner"
         assert result["github_repo_name"] == "comment-repo"
@@ -342,39 +349,51 @@ class TestExtractGithubInfo:
             result["github_event_url"]
             == "https://github.com/comment-owner/comment-repo/pull/42#issuecomment-123456"
         )
+        assert result["github_event"] == "issue_comment"
+        assert result["github_event_action"] == "created"
 
     def test_comment_url_takes_precedence_over_pr_url(self) -> None:
         event = {
+            "action": "created",
             "pull_request": {"html_url": "https://github.com/owner/repo/pull/1"},
             "comment": {"html_url": "https://github.com/owner/repo/pull/1#issuecomment-999"},
         }
         result = extract_github_info(event)
 
         assert result["github_event_url"] == "https://github.com/owner/repo/pull/1#issuecomment-999"
+        assert result["github_event_action"] == "created"
 
     def test_check_run_url_takes_precedence_over_pr_url(self) -> None:
         event = {
+            "action": "completed",
             "pull_request": {"html_url": "https://github.com/owner/repo/pull/1"},
             "check_run": {"html_url": "https://github.com/owner/repo/runs/123"},
         }
         result = extract_github_info(event)
 
         assert result["github_event_url"] == "https://github.com/owner/repo/runs/123"
+        assert result["github_event_action"] == "completed"
 
     def test_issue_pr_fallback_for_event_url(self) -> None:
-        event = {"issue": {"pull_request": {"html_url": "https://github.com/owner/repo/pull/5"}}}
+        event = {
+            "action": "opened",
+            "issue": {"pull_request": {"html_url": "https://github.com/owner/repo/pull/5"}},
+        }
         result = extract_github_info(event)
 
         assert result["github_event_url"] == "https://github.com/owner/repo/pull/5"
+        assert result["github_event_action"] == "opened"
 
     def test_issue_pr_does_not_override_existing_event_url(self) -> None:
         event = {
+            "action": "rerequested",
             "check_run": {"html_url": "https://github.com/owner/repo/runs/999"},
             "issue": {"pull_request": {"html_url": "https://github.com/owner/repo/pull/1"}},
         }
         result = extract_github_info(event)
 
         assert result["github_event_url"] == "https://github.com/owner/repo/runs/999"
+        assert result["github_event_action"] == "rerequested"
 
     def test_empty_event_returns_all_none(self) -> None:
         result = extract_github_info({})
@@ -383,6 +402,8 @@ class TestExtractGithubInfo:
         assert result["github_repo_name"] is None
         assert result["github_repo_full_name"] is None
         assert result["github_event_url"] is None
+        assert result["github_event"] is None
+        assert result["github_event_action"] is None
 
     def test_missing_repository_owner_returns_none(self) -> None:
         event = {"repository": {"name": "repo-without-owner"}}
@@ -410,12 +431,14 @@ class TestExtractGithubInfo:
 
     def test_issue_without_pull_request_link_returns_comment_url(self) -> None:
         event = {
+            "action": "created",
             "issue": {"number": 42},
             "comment": {"html_url": "https://github.com/owner/repo/issues/42#comment"},
         }
         result = extract_github_info(event)
 
         assert result["github_event_url"] == "https://github.com/owner/repo/issues/42#comment"
+        assert result["github_event_action"] == "created"
 
     def test_repository_with_full_name(self) -> None:
         event = {

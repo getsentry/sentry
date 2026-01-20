@@ -296,12 +296,15 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     return None
 
 
-def extract_github_info(event: Mapping[str, Any]) -> dict[str, str | None]:
+def extract_github_info(
+    event: Mapping[str, Any], github_event: str | None = None
+) -> dict[str, str | None]:
     """
     Extract GitHub-related information from a webhook event payload.
 
     Args:
         event: The GitHub webhook event payload
+        github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
 
     Returns:
         Dictionary containing:
@@ -309,12 +312,16 @@ def extract_github_info(event: Mapping[str, Any]) -> dict[str, str | None]:
             - github_repo_name: The repository name
             - github_repo_full_name: The repository full name (owner/repo)
             - github_event_url: URL to the specific event (check_run, pull_request, or comment)
+            - github_event: The GitHub event type
+            - github_event_action: The event action (e.g., "opened", "closed", "created")
     """
     result: dict[str, str | None] = {
         "github_owner": None,
         "github_repo_name": None,
         "github_repo_full_name": None,
         "github_event_url": None,
+        "github_event": github_event,
+        "github_event_action": None,
     }
 
     repository = event.get("repository", {})
@@ -325,6 +332,9 @@ def extract_github_info(event: Mapping[str, Any]) -> dict[str, str | None]:
             result["github_repo_name"] = repo_name
         if owner_repo_name := repository.get("full_name"):
             result["github_repo_full_name"] = owner_repo_name
+
+    if action := event.get("action"):
+        result["github_event_action"] = action
 
     if pull_request := event.get("pull_request"):
         if html_url := pull_request.get("html_url"):

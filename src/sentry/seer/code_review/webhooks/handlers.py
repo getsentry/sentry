@@ -48,7 +48,7 @@ def handle_webhook_event(
         **kwargs: Additional keyword arguments
     """
     # The extracted important key values are used for debugging with logs
-    extra = extract_github_info(event)
+    extra = extract_github_info(event, github_event=github_event.value)
     extra["organization_slug"] = organization.slug
 
     # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
