@@ -103,10 +103,12 @@ function distributionToSeriesData(
   values: AttributeDistribution[number]['values'],
   cohortCount: number
 ): Array<{label: string; value: number}> {
-  return values.map(value => ({
-    label: value.label,
-    value: cohortCount === 0 ? 0 : (value.value / cohortCount) * 100,
-  }));
+  return values
+    .map(value => ({
+      label: value.label,
+      value: cohortCount === 0 ? 0 : (value.value / cohortCount) * 100,
+    }))
+    .slice(0, CHART_MAX_SERIES_LENGTH);
 }
 
 function cohortsToTableData(
