@@ -498,3 +498,5 @@ class ReactPageViewTest(TestCase):
                 f"sentry-admin-overview should exist in SINGLE_TENANT mode. "
                 f"SENTRY_MODE={django_settings.SENTRY_MODE}"
             )
+
+        reload(sentry.web.urls)
