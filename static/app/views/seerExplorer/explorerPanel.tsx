@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -23,6 +24,7 @@ import PanelContainers, {
   BlocksContainer,
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
+import SeerFab from 'sentry/views/seerExplorer/seerFab';
 import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
@@ -34,10 +36,12 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 function ExplorerPanel() {
-  const {isOpen: isVisible} = useExplorerPanel();
+  const {isOpen: isVisible, openExplorerPanel} = useExplorerPanel();
   const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
+  const location = useLocation();
+  const isSeerDrawerOpen = !!location.query?.seerDrawer;
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
@@ -731,8 +735,13 @@ function ExplorerPanel() {
     return null;
   }
 
-  // Render to portal for proper z-index management
-  return createPortal(panelContent, document.body);
+  return createPortal(
+    <Fragment>
+      {panelContent}
+      <SeerFab hide={isVisible || isSeerDrawerOpen} onOpen={openExplorerPanel} />
+    </Fragment>,
+    document.body
+  );
 }
 
 export default ExplorerPanel;
