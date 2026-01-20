@@ -19,11 +19,11 @@ import {
   bytesToMB,
   DEFAULT_ARTIFACT_TYPE,
   getDisplayUnit,
-  getMeasurementLabel,
   getMetricLabel,
+  getThresholdTypeLabel,
   mbToBytes,
-  MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
+  THRESHOLD_TYPE_OPTIONS,
 } from './types';
 
 interface Props {
@@ -72,7 +72,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
     const ruleDisplayValue =
       getDisplayUnit(rule.measurement) === '%' ? rule.value : bytesToMB(rule.value);
     const valueWithUnit = `${ruleDisplayValue} ${getDisplayUnit(rule.measurement)}`;
-    const ruleDescription = `${getMetricLabel(rule.metric)} - ${getMeasurementLabel(rule.measurement)}`;
+    const ruleDescription = `${getMetricLabel(rule.metric)} - ${getThresholdTypeLabel(rule.measurement)}`;
 
     openConfirmModal({
       header: (
@@ -105,7 +105,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
         <Text variant="muted">:</Text>
         <CompactSelect
           value={measurement}
-          options={MEASUREMENT_OPTIONS}
+          options={THRESHOLD_TYPE_OPTIONS}
           onChange={opt => setMeasurement(opt.value)}
         />
         <Text variant="muted">{t('is greater than')}</Text>

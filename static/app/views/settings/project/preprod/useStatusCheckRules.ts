@@ -12,11 +12,11 @@ import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
 import {
   ALL_ARTIFACTS_ARTIFACT_TYPE,
-  DEFAULT_MEASUREMENT_TYPE,
   DEFAULT_METRIC_TYPE,
+  DEFAULT_THRESHOLD_TYPE,
   toArtifactType,
-  toMeasurementType,
   toMetricType,
+  toThresholdType,
   type StatusCheckRule,
 } from './types';
 
@@ -24,7 +24,7 @@ const ENABLED_KEY = 'sentry:preprod_size_status_checks_enabled';
 const RULES_KEY = 'sentry:preprod_size_status_checks_rules';
 
 const DEFAULT_METRIC = DEFAULT_METRIC_TYPE;
-const DEFAULT_MEASUREMENT = DEFAULT_MEASUREMENT_TYPE;
+const DEFAULT_THRESHOLD = DEFAULT_THRESHOLD_TYPE;
 
 function parseRules(raw: unknown): StatusCheckRule[] {
   if (!Array.isArray(raw)) {
@@ -34,7 +34,7 @@ function parseRules(raw: unknown): StatusCheckRule[] {
     .filter((r): r is Record<string, unknown> => !!r && typeof r.id === 'string')
     .map(r => {
       const metric = toMetricType(r.metric, DEFAULT_METRIC);
-      const measurement = toMeasurementType(r.measurement, DEFAULT_MEASUREMENT);
+      const measurement = toThresholdType(r.measurement, DEFAULT_THRESHOLD);
       const artifactType = toArtifactType(r.artifactType);
       return {
         id: r.id as string,
@@ -138,7 +138,7 @@ export function useStatusCheckRules(project: Project) {
     return {
       id: uniqueId(),
       metric: DEFAULT_METRIC,
-      measurement: DEFAULT_MEASUREMENT,
+      measurement: DEFAULT_THRESHOLD,
       value: 0,
       filterQuery: '',
       artifactType: ALL_ARTIFACTS_ARTIFACT_TYPE,

@@ -18,8 +18,8 @@ import {
   bytesToMB,
   getArtifactTypeLabel,
   getDisplayUnit,
-  getMeasurementLabel,
   getMetricLabel,
+  getThresholdTypeLabel,
 } from './types';
 
 interface Props {
@@ -72,7 +72,7 @@ export function StatusCheckRuleItem({
   const displayUnit = getDisplayUnit(rule.measurement);
   const displayValue = displayUnit === '%' ? rule.value : bytesToMB(rule.value);
   const valueWithUnit = `${displayValue} ${displayUnit}`;
-  const title = `${getMetricLabel(rule.metric)} • ${getMeasurementLabel(rule.measurement)} • ${getArtifactTypeLabel(rule.artifactType)} • ${valueWithUnit}`;
+  const title = `${getMetricLabel(rule.metric)} • ${getThresholdTypeLabel(rule.measurement)} • ${getArtifactTypeLabel(rule.artifactType)} • ${valueWithUnit}`;
 
   return (
     <ItemContainer>

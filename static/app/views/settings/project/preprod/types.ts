@@ -1,10 +1,14 @@
 const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
 
-type MetricType = (typeof ALL_METRIC_TYPES)[number];
+export type MetricType = (typeof ALL_METRIC_TYPES)[number];
 
-const ALL_MEASUREMENT_TYPES = ['absolute', 'absolute_diff', 'relative_diff'] as const;
+const ALL_THRESHOLD_TYPES = [
+  'absolute_threshold',
+  'absolute_diff',
+  'relative_diff',
+] as const;
 
-type MeasurementType = (typeof ALL_MEASUREMENT_TYPES)[number];
+export type ThresholdType = (typeof ALL_THRESHOLD_TYPES)[number];
 
 export const ALL_ARTIFACT_TYPES = [
   'all_artifacts',
@@ -27,7 +31,7 @@ export interface StatusCheckFilter {
 
 export interface StatusCheckRule {
   id: string;
-  measurement: MeasurementType;
+  measurement: ThresholdType;
   metric: MetricType;
   value: number;
   artifactType?: ArtifactType;
@@ -47,19 +51,35 @@ export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> =
     value,
   }));
 
-export const DEFAULT_MEASUREMENT_TYPE: MeasurementType = 'absolute';
+export const DEFAULT_THRESHOLD_TYPE: ThresholdType = 'absolute_threshold';
 
-const MEASUREMENT_LABELS: Record<MeasurementType, string> = {
-  absolute: 'Absolute Size',
+const THRESHOLD_TYPE_LABELS: Record<ThresholdType, string> = {
+  absolute_threshold: 'Absolute Size',
   absolute_diff: 'Absolute Diff',
   relative_diff: 'Relative Diff',
 };
 
-export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}> =
-  ALL_MEASUREMENT_TYPES.map(value => ({
-    label: MEASUREMENT_LABELS[value],
-    value,
-  }));
+export const THRESHOLD_TYPE_OPTIONS: Array<{
+  description: string;
+  label: string;
+  value: ThresholdType;
+}> = [
+  {
+    label: 'Absolute Size',
+    value: 'absolute_threshold',
+    description: 'Thresholds based on configured size metric.',
+  },
+  {
+    label: 'Absolute Diff',
+    value: 'absolute_diff',
+    description: 'Absolute diff based on configured size metric, e.g. +10 MB',
+  },
+  {
+    label: 'Relative Diff',
+    value: 'relative_diff',
+    description: 'Relative diff based on configured size metric, e.g. +10%',
+  },
+];
 
 const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
   all_artifacts: 'All Artifact Types',
@@ -79,8 +99,8 @@ export function getMetricLabel(metric: MetricType): string {
   return METRIC_LABELS[metric];
 }
 
-export function getMeasurementLabel(measurement: MeasurementType): string {
-  return MEASUREMENT_LABELS[measurement];
+export function getThresholdTypeLabel(measurement: ThresholdType): string {
+  return THRESHOLD_TYPE_LABELS[measurement];
 }
 
 function getSafeValue<T>(value: unknown, validOptions: readonly T[], fallback: T): T {
@@ -94,11 +114,11 @@ export function toMetricType(
   return getSafeValue(value, ALL_METRIC_TYPES, fallback);
 }
 
-export function toMeasurementType(
+export function toThresholdType(
   value: unknown,
-  fallback: MeasurementType = DEFAULT_MEASUREMENT_TYPE
-): MeasurementType {
-  return getSafeValue(value, ALL_MEASUREMENT_TYPES, fallback);
+  fallback: ThresholdType = DEFAULT_THRESHOLD_TYPE
+): ThresholdType {
+  return getSafeValue(value, ALL_THRESHOLD_TYPES, fallback);
 }
 
 export function toArtifactType(
@@ -112,7 +132,7 @@ export function getArtifactTypeLabel(artifactType: ArtifactType | undefined): st
   return ARTIFACT_TYPE_LABELS[artifactType ?? DEFAULT_ARTIFACT_TYPE];
 }
 
-export function getDisplayUnit(measurement: MeasurementType): string {
+export function getDisplayUnit(measurement: ThresholdType): string {
   return measurement === 'relative_diff' ? '%' : 'MB';
 }
 
