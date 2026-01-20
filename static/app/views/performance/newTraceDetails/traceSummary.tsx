@@ -12,6 +12,7 @@ import {IconStats} from 'sentry/icons/iconStats';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -38,7 +39,9 @@ const makeTraceSummaryQueryKey = (
   organizationSlug: string,
   traceSlug: string
 ): ApiQueryKey => [
-  `/organizations/${organizationSlug}/trace-summary/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/trace-summary/`, {
+    path: {organizationIdOrSlug: organizationSlug},
+  }),
   {method: 'POST', data: {traceSlug}},
 ];
 
