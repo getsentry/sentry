@@ -89,7 +89,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
       : linkParams?.mode === 'traces'
-        ? `Querying traces${projectInfo}: '${question}'...`
+        ? `Queried traces${projectInfo}: '${question}'...`
         : `Queried spans${projectInfo}: '${question}'`;
   },
 
