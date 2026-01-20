@@ -310,7 +310,7 @@ def extract_github_info(event: Mapping[str, Any]) -> dict[str, str | None]:
             - github_repo_full_name: The repository full name (owner/repo)
             - github_event_url: URL to the specific event (check_run, pull_request, or comment)
     """
-    result = {
+    result: dict[str, str | None] = {
         "github_owner": None,
         "github_repo_name": None,
         "github_repo_full_name": None,
