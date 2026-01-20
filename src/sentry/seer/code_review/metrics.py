@@ -18,6 +18,7 @@ class WebhookFilteredReason(StrEnum):
     UNSUPPORTED_ACTION = "unsupported_action"
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
+    TRIGGER_DISABLED = "trigger_disabled"  # Trigger not enabled in repo settings
 
 
 CodeReviewFilteredReason = WebhookFilteredReason | PreflightDenialReason

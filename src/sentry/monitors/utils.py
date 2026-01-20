@@ -216,7 +216,10 @@ def fetch_associated_groups(
             group_id_data[event["group_id"]].add(event[trace_id_event_name])
 
         group_ids = group_id_data.keys()
-        for group in Group.objects.filter(project_id=project_id, id__in=group_ids):
+        groups_queryset = Group.objects.filter(
+            project_id=project_id, id__in=group_ids
+        ).select_related("project")
+        for group in groups_queryset:
             for trace_id in group_id_data[group.id]:
                 trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
 

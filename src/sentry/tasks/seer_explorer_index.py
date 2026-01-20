@@ -13,6 +13,7 @@ from django.utils import timezone as django_timezone
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.statistical_detectors import compute_delay
@@ -26,9 +27,10 @@ LAST_RUN_CACHE_KEY = "seer:explorer_index:last_run"
 LAST_RUN_CACHE_TIMEOUT = 24 * 60 * 60  # 24 hours
 
 EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
-EXPLORER_INDEX_RUN_FREQUENCY = timedelta(hours=24)
 # Use a larger prime number to spread indexing tasks throughout the day
 EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=127)
+
+FEATURE_NAMES = ["organizations:gen-ai-features", "organizations:seer-explorer-index"]
 
 
 def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
@@ -45,10 +47,29 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         result_value_getter=lambda p: p.id,
     ):
         if options.get("seer.explorer_index.killswitch.enable"):
+            logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return
 
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
-            has_feature = features.has("organizations:seer-explorer-index", project.organization)
+            batch_result = features.batch_has(FEATURE_NAMES, organization=project.organization)
+
+            if batch_result:
+                org_key = f"organization:{project.organization.id}"
+                has_all_features = all(
+                    batch_result.get(org_key, {}).get(feature_name, False)
+                    for feature_name in FEATURE_NAMES
+                )
+            else:
+                has_all_features = all(
+                    features.has(name, project.organization) for name in FEATURE_NAMES
+                )
+
+            has_feature = (
+                has_all_features
+                and not bool(project.organization.get_option("sentry:hide_ai_features"))
+                and get_seer_org_acknowledgement(project.organization)
+            )
+
         if has_feature:
             yield project.id, project.organization_id
 
@@ -56,21 +77,29 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
 @instrumented_task(
     name="sentry.tasks.seer_explorer_index.schedule_explorer_index",
     namespace=seer_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=10 * 60,
 )
 def schedule_explorer_index() -> None:
     """
     Main periodic task that runs daily to schedule explorer indexing for active projects
     in seer-enabled organizations. Spreads the load throughout the day.
     """
+    logger.info("Started schedule_explorer_index task")
+
     if not options.get("seer.explorer_index.enable"):
+        logger.info("seer.explorer_index.enable flag is disabled")
         return
 
     last_run = cache.get(LAST_RUN_CACHE_KEY)
-    if last_run and last_run > django_timezone.now() - EXPLORER_INDEX_RUN_FREQUENCY:
-        return
 
-    cache.set(LAST_RUN_CACHE_KEY, django_timezone.now(), LAST_RUN_CACHE_TIMEOUT)
+    # Default is 24 hours, making it an option so we can trigger
+    # the run at higher frequencies as we roll it out.
+    explorer_index_run_frequency = timedelta(
+        minutes=options.get("seer.explorer_index.run_frequency.minutes")
+    )
+    if last_run and last_run > django_timezone.now() - explorer_index_run_frequency:
+        logger.info("Index updated less than 24 hours ago, skiping")
+        return
 
     now = django_timezone.now()
 
@@ -78,8 +107,18 @@ def schedule_explorer_index() -> None:
     projects = dispatch_explorer_index_projects(projects, now)
 
     # Make sure to consume the generator
+    scheduled_count = 0
     for _ in projects:
-        pass
+        scheduled_count += 1
+
+    cache.set(LAST_RUN_CACHE_KEY, now, LAST_RUN_CACHE_TIMEOUT)
+
+    logger.info(
+        "Successfully scheduled explorer index jobs for valid projects",
+        extra={
+            "scheduled_count": scheduled_count,
+        },
+    )
 
 
 def dispatch_explorer_index_projects(
@@ -100,6 +139,10 @@ def dispatch_explorer_index_projects(
     batch: list[tuple[int, int]] = []
     count = 0
 
+    explorer_index_run_frequency = timedelta(
+        minutes=options.get("seer.explorer_index.run_frequency.minutes")
+    )
+
     for project_id, org_id in all_projects:
         batch.append((project_id, org_id))
         count += 1
@@ -110,10 +153,11 @@ def dispatch_explorer_index_projects(
                 countdown=compute_delay(
                     timestamp,
                     (count - 1) // EXPLORER_INDEX_PROJECTS_PER_BATCH,
-                    duration=EXPLORER_INDEX_RUN_FREQUENCY,
+                    duration=explorer_index_run_frequency,
                     step=EXPLORER_INDEX_DISPATCH_STEP,
                 ),
             )
+            logger.info("Successfully dispatched run_explorer_index_for_projects tasks in sentry")
             batch = []
 
         yield project_id, org_id
@@ -124,10 +168,11 @@ def dispatch_explorer_index_projects(
             countdown=compute_delay(
                 timestamp,
                 (count - 1) // EXPLORER_INDEX_PROJECTS_PER_BATCH,
-                duration=EXPLORER_INDEX_RUN_FREQUENCY,
+                duration=explorer_index_run_frequency,
                 step=EXPLORER_INDEX_DISPATCH_STEP,
             ),
         )
+        logger.info("Successfully dispatched run_explorer_index_for_projects tasks in sentry")
 
 
 @instrumented_task(
