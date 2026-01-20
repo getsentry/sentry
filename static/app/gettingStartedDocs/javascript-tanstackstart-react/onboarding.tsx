@@ -222,12 +222,12 @@ import { sentryTanstackStart } from "@sentry/tanstackstart-react";
 
 export default defineConfig({
   plugins: [
+    tanstackStart(),
     sentryTanstackStart({
       org: "${params.organization.slug}",
       project: "${params.project.slug}",
       authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
-    tanstackStart(),
   ],
 });`,
             },
