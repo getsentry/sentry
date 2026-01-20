@@ -23,6 +23,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 
 
 class WorkflowData:
@@ -32,14 +33,15 @@ class WorkflowData:
     def serialize(self) -> str:
         # Extract triggers
         trigger_conditions = []
-        for condition in self.workflow.when_condition_group.prefetched_trigger_conditions:
-            trigger_conditions.append(
-                {
-                    "type": condition.type,
-                    "comparison": condition.comparison,
-                    "result": condition.condition_result,
-                }
-            )
+        if self.workflow.when_condition_group is not None:
+            for condition in self.workflow.when_condition_group.prefetched_trigger_conditions:
+                trigger_conditions.append(
+                    {
+                        "type": condition.type,
+                        "comparison": condition.comparison,
+                        "result": condition.condition_result,
+                    }
+                )
 
         # Extract action groups
         action_groups = []
@@ -162,15 +164,17 @@ def deduplicate_workflows(organization: Organization):
             )
 
             # Before deleting workflows, clean up related models that won't be cascade deleted
+            # Also deletes DataConditionGroupAction
             Action.objects.filter(
                 dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id__in=workflow_ids
             ).delete()
 
-            DataConditionGroupAction.objects.filter(
-                condition_group__workflowdataconditiongroup__workflow_id__in=workflow_ids
+            # Also deletes WorkflowDataConditionGroup
+            DataConditionGroup.objects.filter(
+                workflowdataconditiongroup__workflow_id__in=workflow_ids
             ).delete()
 
-            # Now delete the duplicate workflows (cascade will handle WorkflowDataConditionGroup and DataConditionGroup)
+            # Now delete the duplicate workflows
             Workflow.objects.filter(id__in=workflow_ids).delete()
 
 
