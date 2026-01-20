@@ -18,7 +18,9 @@ export default function PreventAIPageWrapper() {
 
   useEffect(() => {
     if (showNewSeer(organization)) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`), {
+        replace: true,
+      });
     }
   }, [navigate, organization, organization.slug]);
 
