@@ -940,47 +940,10 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const deprecatedColorMappings = (colors: Colors) => ({
-  /** @deprecated */
-  get purple400() {
-    return colors.blue500;
-  },
-  /** @deprecated */
-  get purple300() {
-    return colors.blue400;
-  },
-  /** @deprecated */
-  get purple200() {
-    return colors.blue200;
-  },
-  /** @deprecated */
-  get purple100() {
-    return colors.blue100;
-  },
-
-  /** @deprecated */
-  get blue400() {
-    return colors.blue500;
-  },
-  /** @deprecated */
-  get blue300() {
-    return colors.blue400;
-  },
-  /** @deprecated */
-  get blue200() {
-    return colors.blue200;
-  },
-  /** @deprecated */
-  get blue100() {
-    return colors.blue100;
-  },
-});
-
 const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
   ...lightShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
@@ -1014,8 +977,6 @@ export const darkTheme: SentryTheme = {
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-
-  ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
   ...darkShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({

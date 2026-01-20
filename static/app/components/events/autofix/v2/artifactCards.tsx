@@ -900,7 +900,7 @@ const CodingAgentStatusTag = styled('span')<{
       case 'failed':
         return p.theme.alert.danger.backgroundLight;
       default:
-        return p.theme.blue100;
+        return p.theme.colors.blue100;
     }
   }};
   color: ${p => {
@@ -910,7 +910,7 @@ const CodingAgentStatusTag = styled('span')<{
       case 'failed':
         return p.theme.tokens.content.danger;
       default:
-        return p.theme.blue400;
+        return p.theme.tokens.content.accent;
     }
   }};
 `;
