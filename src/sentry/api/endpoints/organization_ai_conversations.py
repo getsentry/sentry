@@ -59,13 +59,85 @@ def _parse_messages(messages: str | list | None) -> list | None:
     return messages
 
 
+def _extract_content_from_parts(msg: dict) -> str | None:
+    """Extract text content from a message with parts format, concatenating multiple text parts."""
+    parts = msg.get("parts", [])
+    if not isinstance(parts, list):
+        return None
+
+    text_contents = []
+    for part in parts:
+        if isinstance(part, dict) and part.get("type") == "text":
+            content = part.get("content")
+            if content:
+                text_contents.append(content)
+
+    return "\n".join(text_contents) if text_contents else None
+
+
 def _extract_first_user_message(messages: str | list | None) -> str | None:
+    """Extract first user message, handling both old (content) and new (parts) formats."""
     parsed = _parse_messages(messages)
     if not parsed:
         return None
     for msg in parsed:
         if isinstance(msg, dict) and msg.get("role") == "user":
-            return msg.get("content")
+            # Try old format first (content field)
+            content = msg.get("content")
+            if content:
+                return content
+            # Try new parts format
+            return _extract_content_from_parts(msg)
+    return None
+
+
+def _get_first_input_message(row: dict) -> str | None:
+    """
+    Gets first user message from input attributes, checking in priority order.
+    Priority: gen_ai.input.messages > gen_ai.request.messages
+    """
+    # 1. Check new format first (gen_ai.input.messages)
+    input_messages = row.get("gen_ai.input.messages")
+    if input_messages:
+        first_user = _extract_first_user_message(input_messages)
+        if first_user:
+            return first_user
+
+    # 2. Check current format (gen_ai.request.messages)
+    request_messages = row.get("gen_ai.request.messages")
+    if request_messages:
+        return _extract_first_user_message(request_messages)
+
+    return None
+
+
+def _get_last_output(row: dict) -> str | None:
+    """
+    Gets output text from output attributes, checking in priority order.
+    Priority: gen_ai.output.messages > gen_ai.response.text
+    """
+    # 1. Check new format first (gen_ai.output.messages)
+    output_messages = row.get("gen_ai.output.messages")
+    if output_messages:
+        # Extract text from the last assistant message
+        parsed = _parse_messages(output_messages)
+        if parsed:
+            for msg in reversed(parsed):
+                if isinstance(msg, dict) and msg.get("role") == "assistant":
+                    # Try old format first (content field)
+                    content = msg.get("content")
+                    if content:
+                        return content
+                    # Try new parts format
+                    parts_content = _extract_content_from_parts(msg)
+                    if parts_content:
+                        return parts_content
+
+    # 2. Check current format (gen_ai.response.text)
+    response_text = row.get("gen_ai.response.text")
+    if response_text:
+        return response_text
+
     return None
 
 
@@ -324,6 +396,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
             selected_columns=[
                 "gen_ai.conversation.id",
+                "gen_ai.input.messages",
+                "gen_ai.output.messages",
                 "gen_ai.request.messages",
                 "gen_ai.response.text",
                 "precise.start_ts",
@@ -415,19 +489,19 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             if not conv_id:
                 continue
 
-            messages = row.get("gen_ai.request.messages")
-            response_text = row.get("gen_ai.response.text")
             finish_ts = row.get("precise.finish_ts", 0)
 
-            if conv_id not in first_input_by_conv and messages:
-                first_user_content = _extract_first_user_message(messages)
+            # Use the new helper functions for priority-based extraction
+            if conv_id not in first_input_by_conv:
+                first_user_content = _get_first_input_message(row)
                 if first_user_content:
                     first_input_by_conv[conv_id] = first_user_content
 
-            if response_text:
+            output_content = _get_last_output(row)
+            if output_content:
                 current = last_output_by_conv.get(conv_id)
                 if current is None or finish_ts > current[0]:
-                    last_output_by_conv[conv_id] = (finish_ts, response_text)
+                    last_output_by_conv[conv_id] = (finish_ts, output_content)
 
         for conv_id, conversation in conversations_map.items():
             conversation["firstInput"] = first_input_by_conv.get(conv_id)
@@ -452,6 +526,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "gen_ai.cost.total_tokens",
                 "trace",
                 "gen_ai.agent.name",
+                "gen_ai.input.messages",
+                "gen_ai.output.messages",
                 "gen_ai.request.messages",
                 "gen_ai.response.text",
                 "user.id",
@@ -555,17 +631,17 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         start_ts = row.get("precise.start_ts") or 0
         finish_ts = row.get("precise.finish_ts") or 0
-        messages = row.get("gen_ai.request.messages")
-        response_text = row.get("gen_ai.response.text")
 
-        if start_ts and start_ts < acc["first_input_ts"] and messages:
-            first_user = _extract_first_user_message(messages)
+        # Use the new helper functions for priority-based extraction
+        if start_ts and start_ts < acc["first_input_ts"]:
+            first_user = _get_first_input_message(row)
             if first_user:
                 acc["first_input"] = first_user
                 acc["first_input_ts"] = start_ts
 
-        if finish_ts and finish_ts > acc["last_output_ts"] and response_text:
-            acc["last_output"] = response_text
+        output_content = _get_last_output(row)
+        if finish_ts and finish_ts > acc["last_output_ts"] and output_content:
+            acc["last_output"] = output_content
             acc["last_output_ts"] = finish_ts
 
     def _update_user(self, acc: dict[str, Any], row: dict[str, Any]) -> None:
