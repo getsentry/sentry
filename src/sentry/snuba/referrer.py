@@ -945,6 +945,7 @@ class Referrer(StrEnum):
 
     # Getsentry scripts
     DELETE_EVENTS_FROM_FILE = "delete-events-from-file"
+    DELETE_EVENTS_BY_TAG_VALUE = "delete-events-by-tag-value"
 
     # Referrers in tests
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"
