@@ -117,14 +117,13 @@ def _get_trigger_metadata_for_pull_request(event_payload: Mapping[str, Any]) -> 
 def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) -> dict[str, Any]:
     """Extract trigger metadata for issue_comment events."""
     comment = event_payload.get("comment", {})
-    trigger_user = comment.get("user", {}).get("login")
-    trigger_comment_id = comment.get("id")
-    trigger_comment_type = "issue_comment"
+    comment_user = comment.get("user", {})
 
     return {
-        "trigger_user": trigger_user,
-        "trigger_comment_id": trigger_comment_id,
-        "trigger_comment_type": trigger_comment_type,
+        "trigger_user": comment_user.get("login"),
+        "trigger_user_id": comment_user.get("id"),
+        "trigger_comment_id": comment.get("id"),
+        "trigger_comment_type": "issue_comment",
     }
 
 
@@ -237,9 +236,10 @@ def transform_issue_comment_to_codegen_request(
     config = payload["data"]["config"]
     config["trigger"] = SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
     trigger_metadata = _get_trigger_metadata_for_issue_comment(event_payload)
+    config["trigger_user"] = trigger_metadata["trigger_user"]
+    config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
-    config["trigger_user"] = trigger_metadata["trigger_user"]
     return payload
 
 

@@ -23,12 +23,13 @@ class TestGetTriggerMetadata:
         event_payload = {
             "comment": {
                 "id": 12345,
-                "user": {"login": "test-user"},
+                "user": {"login": "test-user", "id": 99999},
             }
         }
         result = _get_trigger_metadata_for_issue_comment(event_payload)
         assert result["trigger_comment_id"] == 12345
         assert result["trigger_user"] == "test-user"
+        assert result["trigger_user_id"] == 99999
         assert result["trigger_comment_type"] == "issue_comment"
 
     def test_pull_request_uses_sender_rather_than_pr_author(self) -> None:

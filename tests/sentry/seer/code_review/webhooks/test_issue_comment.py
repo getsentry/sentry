@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -58,7 +59,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         github_org: str = "sentry-ecosystem",
         is_pr_comment: bool = True,
     ) -> bytes:
-        event = {
+        event: dict[str, Any] = {
             "action": "created",
             "comment": {
                 "body": comment_body,
@@ -86,7 +87,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             },
         }
         if is_pr_comment:
-            issue = event["issue"]
+            issue: dict[str, Any] = event["issue"]
             issue["pull_request"] = {
                 "url": f"https://api.github.com/repos/{github_org}/repo/pulls/42"
             }
