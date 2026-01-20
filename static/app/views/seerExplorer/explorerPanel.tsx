@@ -54,6 +54,8 @@ function ExplorerPanel() {
   const allowHoverFocusChange = useRef<boolean>(true);
   const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
+  const [wasJustInterrupted, setWasJustInterrupted] = useState(false);
+  const prevInterruptRequestedRef = useRef<boolean>(false);
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
 
@@ -104,6 +106,26 @@ function ExplorerPanel() {
     sessionBlocks: sessionData?.blocks,
     onUnminimize: useCallback(() => setIsMinimized(false), []),
   });
+
+  // Detect when interrupt succeeds: interruptRequested goes from true → false while not polling
+  useEffect(() => {
+    const wasRequested = prevInterruptRequestedRef.current;
+    const isNowRequested = interruptRequested;
+
+    if (wasRequested && !isNowRequested && !isPolling) {
+      // Interrupt succeeded - set the flag
+      setWasJustInterrupted(true);
+    }
+
+    prevInterruptRequestedRef.current = isNowRequested;
+  }, [interruptRequested, isPolling]);
+
+  // Clear wasJustInterrupted when user starts typing
+  useEffect(() => {
+    if (inputValue.length > 0 && wasJustInterrupted) {
+      setWasJustInterrupted(false);
+    }
+  }, [inputValue, wasJustInterrupted]);
 
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
@@ -684,6 +706,7 @@ function ExplorerPanel() {
         isMinimized={isMinimized}
         isPolling={isPolling}
         isVisible={isVisible}
+        wasJustInterrupted={wasJustInterrupted}
         onClear={() => setInputValue('')}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
