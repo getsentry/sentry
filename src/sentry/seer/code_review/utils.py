@@ -179,10 +179,8 @@ def transform_webhook_to_codegen_request(
     Returns:
         Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
         or None if the event is not PR-related (e.g., issue_comment on regular issues)
-
-    Raises:
-        ValueError: If required fields are missing from the webhook payload
     """
+    payload = None
     if github_event == GithubWebhookType.ISSUE_COMMENT:
         payload = transform_issue_comment_to_codegen_request(
             event_payload, organization, repo, target_commit_sha
@@ -191,9 +189,6 @@ def transform_webhook_to_codegen_request(
         payload = transform_pull_request_to_codegen_request(
             github_event_action, event_payload, organization, repo, target_commit_sha
         )
-    else:
-        raise ValueError(f"unsupported-event-type-for-codegen-request: {github_event}")
-
     return payload
 
 
@@ -220,7 +215,7 @@ def transform_issue_comment_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     """
     Transform an issue comment on a PR into a CodecovTaskRequest for Seer.
     """
@@ -230,14 +225,17 @@ def transform_issue_comment_to_codegen_request(
         target_commit_sha=target_commit_sha,
         organization=organization,
     )
-    payload["data"]["pr_id"] = event_payload["issue"]["number"]
+    if "pull_request" in event_payload["issue"]:
+        payload["data"]["pr_id"] = event_payload["issue"]["pull_request"]["number"]
+    else:
+        # Not a PR-related event (e.g., issue_comment on regular issues)
+        return None
     config = payload["data"]["config"]
     config["trigger"] = SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
-    comment = event_payload.get("comment", {})
-    config["trigger_comment_id"] = comment.get("id")
-    config["trigger_comment_type"] = "issue_comment"
-    config["trigger_user"] = comment.get("user", {}).get("login")
-    config["trigger_user_id"] = comment.get("user", {}).get("id")
+    trigger_metadata = _get_trigger_metadata_for_issue_comment(event_payload)
+    config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
+    config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
+    config["trigger_user"] = trigger_metadata["trigger_user"]
     return payload
 
 
@@ -247,7 +245,7 @@ def transform_pull_request_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     review_request_trigger = SeerCodeReviewTrigger.UNKNOWN
     match github_event_action:
         case "opened" | "ready_for_review":
@@ -267,12 +265,14 @@ def transform_pull_request_to_codegen_request(
     pull_request = event_payload.get("pull_request", {})
     payload["data"]["pr_id"] = pull_request.get("number")
     config = payload["data"]["config"]
+    trigger_metadata = _get_trigger_metadata_for_pull_request(event_payload)
     # In Seer, used here:
     # src/seer/automation/codegen/tasks.py
     # src/seer/automation/codegen/pr_review_step.py
     config["trigger"] = review_request_trigger.value
-    config["trigger_comment_id"] = None
-    config["trigger_comment_type"] = None
+    config["trigger_user"] = trigger_metadata["trigger_user"]
+    config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
+    config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
 
     # Prioritize sender (person who triggered the action) over PR author
     # This ensures correct attribution when someone other than the PR author
