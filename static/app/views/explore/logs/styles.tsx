@@ -242,7 +242,6 @@ export const ColoredLogText = styled('span')<{
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
-  color: ${p => p.theme.tokens.content.secondary};
   text-align: ${p => p.align || 'left'};
 `;
 

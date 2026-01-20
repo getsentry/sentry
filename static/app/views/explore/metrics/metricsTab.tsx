@@ -12,7 +12,6 @@ import {
   ExploreBodyContent,
   ExploreBodySearch,
   ExploreContentSection,
-  ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -114,7 +113,6 @@ function MetricsTabBodySection() {
 
   return (
     <ExploreBodyContent>
-      <ExploreControlSection expanded={false} />
       <ExploreContentSection expanded={false}>
         <Flex direction="column" gap="lg">
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
