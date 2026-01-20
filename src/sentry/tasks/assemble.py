@@ -373,9 +373,9 @@ class ArtifactBundlePostAssembler:
         self.release = self.release or self.archive.manifest.get("release")
         self.dist = self.dist or self.archive.manifest.get("dist")
 
-        # In case we have a release bundle migration, we are fetching *all*
-        # the projects associated with a release, which can be quite a lot.
-        # We rather use the `project` of the bundle manifest instead.
+        # In case we have a release bundle migration, we are fetching *all* the projects associated with a release,
+        # which can be quite a lot. We rather use the `project` of the bundle manifest instead, but ONLY if that
+        # project is already in the authorized project_ids list to prevent an IDOR.
         if len(self.project_ids) > 2 and self.is_release_bundle_migration:
             if project_in_manifest := self.archive.manifest.get("project"):
                 project_ids = list(
@@ -383,6 +383,7 @@ class ArtifactBundlePostAssembler:
                         organization=self.organization,
                         status=ObjectStatus.ACTIVE,
                         slug=project_in_manifest,
+                        id__in=self.project_ids,
                     ).values_list("id", flat=True)
                 )
                 if len(project_ids) > 0:
