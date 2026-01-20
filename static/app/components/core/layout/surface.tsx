@@ -54,7 +54,11 @@ export const Surface = styled(
 
 function getShadow({variant, elevation, theme}: SurfaceProps & {theme: Theme}) {
   if (variant === 'overlay') {
-    return theme.shadow[elevation] as string;
+    // TODO(design-eng): use shadow tokens
+    const shadowLow = `0 ${theme.shadow.sm} 0 0 ${theme.tokens.shadow.elevationLow}`;
+    const shadowHigh = `0 ${theme.shadow.sm} 0 0 ${theme.tokens.shadow.elevationLow}, 0 ${theme.shadow.xl} 0 0 ${theme.tokens.shadow.elevationMedium}`;
+    const shadow = elevation === 'low' ? shadowLow : shadowHigh;
+    return shadow;
   }
   return undefined;
 }
