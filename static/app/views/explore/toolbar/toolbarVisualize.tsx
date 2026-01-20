@@ -197,8 +197,8 @@ function VisualizeDropdown({
   onSearch,
   onClose,
 }: VisualizeDropdownProps & {onClose: () => void; onSearch: (search: string) => void}) {
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
 
   const aggregateOptions = useMemo(
     () =>
@@ -261,6 +261,7 @@ function VisualizeDropdown({
       onDelete={onDelete}
       parsedFunction={parsedFunction}
       label={label}
+      loading={numberTagsLoading || stringTagsLoading}
       onSearch={onSearch}
       onClose={onClose}
     />
