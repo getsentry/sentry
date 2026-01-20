@@ -190,46 +190,47 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         if raw_query := request.GET.get("query"):
             try:
-                for filter in parse_detector_query(raw_query):
-                    assert isinstance(filter, SearchFilter)
-                    match filter:
-                        case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
-                            queryset = apply_filter(queryset, filter, "name")
-                        case SearchFilter(key=SearchKey("type"), operator=("=" | "IN" | "!=")):
-                            values = (
-                                filter.value.value
-                                if isinstance(filter.value.value, list)
-                                else [filter.value.value]
-                            )
-                            values = [DETECTOR_TYPE_ALIASES.get(value, value) for value in values]
-
-                            if filter.operator == "!=":
-                                queryset = queryset.exclude(type__in=values)
-                            else:
-                                queryset = queryset.filter(type__in=values)
-                        case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
-                            # Filter values can be emails, team slugs, "me", "my_teams", "none"
-                            values = (
-                                filter.value.value
-                                if isinstance(filter.value.value, list)
-                                else [filter.value.value]
-                            )
-                            assignee_q = convert_assignee_values(values, projects, request.user)
-
-                            if filter.operator == "!=":
-                                queryset = queryset.exclude(assignee_q)
-                            else:
-                                queryset = queryset.filter(assignee_q)
-                        case SearchFilter(key=SearchKey("query"), operator="="):
-                            # 'query' is our free text key; all free text gets returned here
-                            # as '=', and we search any relevant fields for it.
-                            queryset = queryset.filter(
-                                Q(description__icontains=filter.value.value)
-                                | Q(name__icontains=filter.value.value)
-                                | Q(type__icontains=filter.value.value)
-                            ).distinct()
+                parsed_filters = parse_detector_query(raw_query)
             except InvalidSearchQuery as e:
                 raise ValidationError({"query": [str(e)]})
+            for filter in parsed_filters:
+                assert isinstance(filter, SearchFilter)
+                match filter:
+                    case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
+                        queryset = apply_filter(queryset, filter, "name")
+                    case SearchFilter(key=SearchKey("type"), operator=("=" | "IN" | "!=")):
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        values = [DETECTOR_TYPE_ALIASES.get(value, value) for value in values]
+
+                        if filter.operator == "!=":
+                            queryset = queryset.exclude(type__in=values)
+                        else:
+                            queryset = queryset.filter(type__in=values)
+                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                        # Filter values can be emails, team slugs, "me", "my_teams", "none"
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        assignee_q = convert_assignee_values(values, projects, request.user)
+
+                        if filter.operator == "!=":
+                            queryset = queryset.exclude(assignee_q)
+                        else:
+                            queryset = queryset.filter(assignee_q)
+                    case SearchFilter(key=SearchKey("query"), operator="="):
+                        # 'query' is our free text key; all free text gets returned here
+                        # as '=', and we search any relevant fields for it.
+                        queryset = queryset.filter(
+                            Q(description__icontains=filter.value.value)
+                            | Q(name__icontains=filter.value.value)
+                            | Q(type__icontains=filter.value.value)
+                        ).distinct()
 
         return queryset
 
