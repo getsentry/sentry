@@ -802,6 +802,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         conditions.append(
             {
@@ -815,6 +817,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         conditions.pop(1)
         payload = {
@@ -842,11 +846,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=self.first_seen_condition,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         env_rule = self.create_project_rule(
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=self.first_seen_condition,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         payload = {
             "name": "hello world",
@@ -887,12 +895,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             condition_data=self.first_seen_condition,
             name="rule_with_env",
             environment_id=self.environment.id,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         rule2 = self.create_project_rule(
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=self.first_seen_condition,
             name="rule_wo_env",
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         payload = {
             "name": "hello world",
