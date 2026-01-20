@@ -317,7 +317,10 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
 
-        emit_observability_metrics(latency_metrics, gauge_metrics, longest_evalsha_data)
+        try:
+            emit_observability_metrics(latency_metrics, gauge_metrics, longest_evalsha_data)
+        except Exception as e:
+            logger.exception("Error emitting observability metrics: %s", e)
 
     def _ensure_script(self):
         if self.add_buffer_sha is not None:
