@@ -46,9 +46,7 @@ type ComparisonModeOptions = {
   mode: 'comparison';
 };
 
-export type AttributeBreakdownViewerModalOptions =
-  | SingleModeOptions
-  | ComparisonModeOptions;
+type AttributeBreakdownViewerModalOptions = SingleModeOptions | ComparisonModeOptions;
 
 type Props = ModalRenderProps & AttributeBreakdownViewerModalOptions;
 
