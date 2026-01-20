@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -18,6 +19,7 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import testableTransition from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -303,4 +305,23 @@ const BottomButtonContainer = styled('div')`
   justify-content: flex-end;
   padding-top: ${p => p.theme.space.xl};
   padding-bottom: ${p => p.theme.space.xl};
+`;
+
+const ResultsSection = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.sm};
+`;
+
+const ResultItem = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const ResultDescription = styled('span')<{status: CodingAgentStatus}>`
+  color: ${p =>
+    p.status === CodingAgentStatus.FAILED
+      ? p.theme.tokens.content.danger
+      : p.theme.tokens.content.primary};
 `;

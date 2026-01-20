@@ -233,7 +233,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'cursor_handoff'
     ) => {
       if (value === 'cursor_handoff') {
-        if (!cursorIntegration || cursorIntegration.id === null) {
+        if (!cursorIntegration?.id) {
           throw new Error('Cursor integration not found');
         }
         updateProjectSeerPreferences({
@@ -334,7 +334,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const handleCursorHandoffChange = useCallback(
     (value: boolean) => {
       if (value) {
-        if (!cursorIntegration || cursorIntegration.id === null) {
+        if (!cursorIntegration?.id) {
           addErrorMessage(
             t('Cursor integration not found. Please refresh the page and try again.')
           );
