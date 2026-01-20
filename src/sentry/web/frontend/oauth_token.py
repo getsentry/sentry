@@ -720,13 +720,14 @@ class OAuthTokenView(View):
         # Hash the incoming refresh token for secure lookup
         hashed_refresh = hashlib.sha256(refresh_token_code.encode()).hexdigest()
 
-        # Try to find the token by its hashed refresh token
-        try:
-            old_token = ApiToken.objects.get(
-                application=application,
-                hashed_refresh_token=hashed_refresh,
-            )
-        except ApiToken.DoesNotExist:
+        # First, do a quick check without locking to handle the common error cases
+        # (invalid token, replay detection). This avoids holding locks for error paths.
+        token_exists = ApiToken.objects.filter(
+            application=application,
+            hashed_refresh_token=hashed_refresh,
+        ).exists()
+
+        if not token_exists:
             # Token not found - check if this is a replay of a rotated-out token
             # (i.e., someone is using a refresh token that was already exchanged)
             replayed_token = ApiToken.objects.filter(
@@ -752,46 +753,76 @@ class OAuthTokenView(View):
                 reason="invalid refresh_token",
             )
 
-        # Check if this token's refresh capability is still active
-        # (False means it was already rotated - replay attack)
-        if old_token.is_refresh_token_active is False:
-            if old_token.token_family_id:
-                self._revoke_token_family(
-                    old_token.token_family_id,
-                    reason="inactive_token_reuse",
+        # Perform atomic rotation with row-level locking to prevent race conditions.
+        # We use select_for_update() to ensure only one request can rotate at a time.
+        # This prevents two concurrent requests from both successfully rotating the same token.
+        new_token: ApiToken | None = None
+        family_to_revoke: uuid.UUID | None = None
+
+        with transaction.atomic(router.db_for_write(ApiToken)):
+            # Re-fetch the token with a lock to prevent concurrent rotation
+            try:
+                old_token = ApiToken.objects.select_for_update().get(
+                    application=application,
+                    hashed_refresh_token=hashed_refresh,
                 )
+            except ApiToken.DoesNotExist:
+                # Token was deleted between our exists() check and now (rare)
+                return self.error(
+                    request=request,
+                    name="invalid_grant",
+                    reason="invalid refresh_token",
+                )
+
+            # Check if this token's refresh capability is still active
+            # (False means it was already rotated - replay attack)
+            # This check is now inside the transaction with the lock held.
+            if old_token.is_refresh_token_active is False:
+                # Store family ID for revocation after transaction completes
+                # (to avoid holding the row lock during the revocation operation)
+                family_to_revoke = old_token.token_family_id
+            else:
+                # Assign family ID if this is a legacy token (first rotation)
+                # This enables lazy migration of existing tokens to the rotation system
+                family_id = old_token.token_family_id or uuid.uuid4()
+
+                # Mark old token's refresh capability as used
+                old_token.is_refresh_token_active = False
+                old_token.token_family_id = family_id  # Ensure family is set
+                old_token.save(update_fields=["is_refresh_token_active", "token_family_id"])
+
+                # Create new token in the same family
+                new_token = ApiToken.objects.create(
+                    application=application,
+                    user=old_token.user,
+                    scope_list=old_token.get_scopes(),
+                    scoping_organization_id=old_token.scoping_organization_id,
+                    token_family_id=family_id,
+                    previous_refresh_token_hash=old_token.hashed_refresh_token,
+                )
+
+        # Handle replay detection (outside transaction to avoid holding lock during revocation)
+        if family_to_revoke:
+            self._revoke_token_family(
+                family_to_revoke,
+                reason="inactive_token_reuse",
+            )
             return self.error(
                 request=request,
                 name="invalid_grant",
                 reason="token reuse detected",
             )
 
-        # Assign family ID if this is a legacy token (first rotation)
-        # This enables lazy migration of existing tokens to the rotation system
-        family_id = old_token.token_family_id or uuid.uuid4()
-
-        # Perform atomic rotation: invalidate old, create new
-        with transaction.atomic(router.db_for_write(ApiToken)):
-            # Mark old token's refresh capability as used
-            old_token.is_refresh_token_active = False
-            old_token.token_family_id = family_id  # Ensure family is set
-            old_token.save(update_fields=["is_refresh_token_active", "token_family_id"])
-
-            # Create new token in the same family
-            new_token = ApiToken.objects.create(
-                application=application,
-                user=old_token.user,
-                scope_list=old_token.get_scopes(),
-                scoping_organization_id=old_token.scoping_organization_id,
-                token_family_id=family_id,
-                previous_refresh_token_hash=old_token.hashed_refresh_token,
-            )
+        # new_token is guaranteed to be set here because:
+        # - If family_to_revoke is set, we returned above
+        # - Otherwise, we went through the else branch that creates new_token
+        assert new_token is not None
 
         metrics.incr("oauth.public_client_refresh_rotated", sample_rate=1.0)
         logger.info(
             "oauth.refresh-token-rotated",
             extra={
-                "family_id": str(family_id),
+                "family_id": str(new_token.token_family_id),
                 "old_token_id": old_token.id,
                 "new_token_id": new_token.id,
                 "application_id": application.id,
