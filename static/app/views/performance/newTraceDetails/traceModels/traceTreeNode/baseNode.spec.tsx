@@ -1656,4 +1656,122 @@ describe('BaseNode', () => {
       expect(node.hasOccurrences).toBe(true);
     });
   });
+
+  describe('cycle detection in traversal methods', () => {
+    it('should handle cycles in forEachChild without infinite loop', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child1 = new TestNode(
+        parent,
+        createMockValue({event_id: 'child1'}),
+        extra
+      );
+      const child2 = new TestNode(
+        parent,
+        createMockValue({event_id: 'child2'}),
+        extra
+      );
+
+      parent.children = [child1, child2];
+      // Create a cycle: child1 points back to parent
+      child1.children = [parent];
+
+      const visitedIds: string[] = [];
+      // This should not throw RangeError or hang
+      expect(() => {
+        parent.forEachChild(node => {
+          visitedIds.push(node.id);
+        });
+      }).not.toThrow();
+
+      // All direct children should be visited, and parent is visited via the cycle
+      // but the cycle is detected so parent is not re-processed
+      expect(visitedIds.length).toBeGreaterThan(0);
+      expect(visitedIds).toContain('child1');
+      expect(visitedIds).toContain('child2');
+    });
+
+    it('should handle cycles in findChild without infinite loop', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child1 = new TestNode(
+        parent,
+        createMockValue({event_id: 'child1'}),
+        extra
+      );
+      const child2 = new TestNode(
+        parent,
+        createMockValue({event_id: 'child2'}),
+        extra
+      );
+
+      parent.children = [child1, child2];
+      // Create a cycle
+      child1.children = [parent];
+
+      // This should not throw RangeError or hang
+      let found;
+      expect(() => {
+        found = parent.findChild(node => node.id === 'child2');
+      }).not.toThrow();
+      expect(found?.id).toBe('child2');
+    });
+
+    it('should handle cycles in findAllChildren without infinite loop', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child1 = new TestNode(
+        parent,
+        createMockValue({event_id: 'child1'}),
+        extra
+      );
+      const child2 = new TestNode(
+        parent,
+        createMockValue({event_id: 'child2'}),
+        extra
+      );
+
+      parent.children = [child1, child2];
+      // Create a cycle
+      child1.children = [parent];
+
+      // This should not throw RangeError or hang
+      let found: TestNode[] = [];
+      expect(() => {
+        found = parent.findAllChildren(node => node.id.startsWith('child'));
+      }).not.toThrow();
+      expect(found.length).toBe(2);
+      expect(found.map(n => n.id).sort()).toEqual(['child1', 'child2']);
+    });
+
+    it('should handle cycles in visibleChildren without infinite loop', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child1 = new TestNode(
+        parent,
+        createMockValue({event_id: 'child1'}),
+        extra
+      );
+      const child2 = new TestNode(
+        parent,
+        createMockValue({event_id: 'child2'}),
+        extra
+      );
+
+      parent.children = [child1, child2];
+      // Create a cycle
+      child1.children = [parent];
+
+      // This should not throw RangeError or hang
+      let visible: BaseNode[] = [];
+      expect(() => {
+        visible = parent.visibleChildren;
+      }).not.toThrow();
+      // Should visit at least the two children
+      expect(visible.length).toBeGreaterThanOrEqual(2);
+      const visibleIds = visible.map(n => n.id);
+      expect(visibleIds).toContain('child1');
+      expect(visibleIds).toContain('child2');
+    });
+  });
 });
