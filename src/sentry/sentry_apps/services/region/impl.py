@@ -321,7 +321,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             )
         with transaction.atomic(router.db_for_write(ServiceHookProject)):
             # Materialize the queryset once to avoid TOCTOU between validation and deletion
-            hook_projects = list(ServiceHookProject.objects.filter(service_hook_id=hook.id))
+            hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
             # Validate that the service hooks the caller is attempting to modify match
             # the database. Prevents a TOCTOU race condition.
             current_project_ids = {hp.project_id for hp in hook_projects}
@@ -333,7 +333,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                         status_code=409,
                     ),
                 )
-            deletions.exec_sync_many(hook_projects)
+            deletions.exec_sync_many(list(hook_projects))
 
         return RpcEmptyResult()
 
