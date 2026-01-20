@@ -205,7 +205,7 @@ export default createServerEntry(
         {
           type: 'text',
           text: tct(
-            'Add the [code:sentryTanstackStart] plugin to your [configFile:vite.config.ts] file:',
+            'Add the [code:sentryTanstackStart] Vite plugin to your [configFile:vite.config.ts] file:',
             {code: <code />, configFile: <code />}
           ),
         },
@@ -217,8 +217,8 @@ export default createServerEntry(
               language: 'typescript',
               filename: 'vite.config.ts',
               code: `import { defineConfig } from "vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { sentryTanstackStart } from "@sentry/tanstackstart-react";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
 export default defineConfig({
   plugins: [
