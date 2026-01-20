@@ -99,12 +99,16 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
 
 def _get_trigger_metadata_for_pull_request(event_payload: Mapping[str, Any]) -> dict[str, Any]:
     """Extract trigger metadata for pull_request events."""
-    trigger_user = event_payload.get("sender", {}).get("login") or event_payload.get(
-        "pull_request", {}
-    ).get("user", {}).get("login")
+    # Prioritize sender (person who triggered the action) over PR author
+    # This ensures correct attribution when someone other than the PR author
+    # triggers an event (e.g., collaborator pushes commits, admin closes PR
+    # or makes ready for review)
+    sender = event_payload.get("sender", {})
+    pr_author = event_payload.get("pull_request", {}).get("user", {})
 
     return {
-        "trigger_user": trigger_user,
+        "trigger_user": sender.get("login") or pr_author.get("login"),
+        "trigger_user_id": sender.get("id") or pr_author.get("id"),
         "trigger_comment_id": None,
         "trigger_comment_type": None,
     }
@@ -271,18 +275,9 @@ def transform_pull_request_to_codegen_request(
     # src/seer/automation/codegen/pr_review_step.py
     config["trigger"] = review_request_trigger.value
     config["trigger_user"] = trigger_metadata["trigger_user"]
+    config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
-
-    # Prioritize sender (person who triggered the action) over PR author
-    # This ensures correct attribution when someone other than the PR author
-    # triggers an event (e.g., collaborator pushes commits, admin closes PR
-    # or makes ready for review)
-    sender = event_payload.get("sender", {})
-    pr_user = pull_request.get("user", {})
-
-    config["trigger_user"] = sender.get("login") or pr_user.get("login")
-    config["trigger_user_id"] = sender.get("id") or pr_user.get("id")
     return payload
 
 

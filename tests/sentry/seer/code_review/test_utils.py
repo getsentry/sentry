@@ -31,21 +31,24 @@ class TestGetTriggerMetadata:
         assert result["trigger_user"] == "test-user"
         assert result["trigger_comment_type"] == "issue_comment"
 
-    def test_pull_request_uses_sender(self) -> None:
+    def test_pull_request_uses_sender_rather_than_pr_author(self) -> None:
         event_payload = {
-            "sender": {"login": "sender-user"},
+            "sender": {"login": "sender-user", "id": 12345},
+            "pull_request": {"user": {"login": "pr-author", "id": 67890}},
         }
         result = _get_trigger_metadata_for_pull_request(event_payload)
         assert result["trigger_user"] == "sender-user"
+        assert result["trigger_user_id"] == 12345
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
 
     def test_pull_request_falls_back_to_pr_user(self) -> None:
         event_payload = {
-            "pull_request": {"user": {"login": "pr-author"}},
+            "pull_request": {"user": {"login": "pr-author", "id": 67890}},
         }
         result = _get_trigger_metadata_for_pull_request(event_payload)
         assert result["trigger_user"] == "pr-author"
+        assert result["trigger_user_id"] == 67890
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
 
@@ -54,6 +57,7 @@ class TestGetTriggerMetadata:
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
         assert result["trigger_user"] is None
+        assert result["trigger_user_id"] is None
 
 
 class GetTargetCommitShaTest(TestCase):
