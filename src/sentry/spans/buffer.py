@@ -232,11 +232,14 @@ class SpansBuffer:
 
                     _, _, trace_id = project_and_trace.partition(":")
                     if trace_id in debug_traces:
-                        if self._debug_trace_logger is None:
-                            self._debug_trace_logger = DebugTraceLogger(self.client)
-                        self._debug_trace_logger.log_subsegment_info(
-                            project_and_trace, parent_span_id, subsegment
-                        )
+                        try:
+                            if self._debug_trace_logger is None:
+                                self._debug_trace_logger = DebugTraceLogger(self.client)
+                            self._debug_trace_logger.log_subsegment_info(
+                                project_and_trace, parent_span_id, subsegment
+                            )
+                        except Exception:
+                            logger.exception("Failed to log debug trace info")
 
                     p.execute_command(
                         "EVALSHA",
