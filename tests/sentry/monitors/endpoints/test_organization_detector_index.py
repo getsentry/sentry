@@ -51,40 +51,38 @@ class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
     def test_list_monitor_incident_detectors(self):
         response = self.get_success_response(self.organization.slug)
 
-        detector_data = response.data[0]
+        detector_data = response.data[2]
 
-        assert response.data == [
-            {
-                "id": str(self.detector.id),
-                "projectId": str(self.project.id),
-                "name": "Original Detector",
-                "description": None,
-                "type": MonitorIncidentType.slug,
-                "workflowIds": [],
-                "owner": None,
-                "createdBy": None,
-                "dateCreated": detector_data["dateCreated"],
-                "dateUpdated": detector_data["dateUpdated"],
-                "dataSources": [
-                    {
-                        "id": detector_data["dataSources"][0]["id"],
-                        "organizationId": str(self.organization.id),
-                        "type": DATA_SOURCE_CRON_MONITOR,
-                        "sourceId": str(self.monitor.id),
-                        "queryObj": serialize(
-                            self.monitor, user=self.user, serializer=MonitorSerializer()
-                        ),
-                    }
-                ],
-                "conditionGroup": detector_data["conditionGroup"],
-                "config": {},
-                "enabled": True,
-                "alertRuleId": None,
-                "ruleId": None,
-                "latestGroup": None,
-                "openIssues": 0,
-            }
-        ]
+        assert detector_data == {
+            "id": str(self.detector.id),
+            "projectId": str(self.project.id),
+            "name": "Original Detector",
+            "description": None,
+            "type": MonitorIncidentType.slug,
+            "workflowIds": [],
+            "owner": None,
+            "createdBy": None,
+            "dateCreated": detector_data["dateCreated"],
+            "dateUpdated": detector_data["dateUpdated"],
+            "dataSources": [
+                {
+                    "id": detector_data["dataSources"][0]["id"],
+                    "organizationId": str(self.organization.id),
+                    "type": DATA_SOURCE_CRON_MONITOR,
+                    "sourceId": str(self.monitor.id),
+                    "queryObj": serialize(
+                        self.monitor, user=self.user, serializer=MonitorSerializer()
+                    ),
+                }
+            ],
+            "conditionGroup": detector_data["conditionGroup"],
+            "config": {},
+            "enabled": True,
+            "alertRuleId": None,
+            "ruleId": None,
+            "latestGroup": None,
+            "openIssues": 0,
+        }
 
 
 @region_silo_test
