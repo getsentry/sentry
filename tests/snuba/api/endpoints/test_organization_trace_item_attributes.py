@@ -841,6 +841,36 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "tags[is_debug,boolean]" in keys
         assert "tags[is_production,boolean]" in keys
 
+    def test_aliased_attribute(self) -> None:
+        span1 = self.create_span(
+            {"sentry_tags": {"op": "foo"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"op": "bar"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        self.store_spans([span1, span2], is_eap=True)
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "span.op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 1
+        assert "span.op" in keys
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 2
+        assert "transaction.op" in keys
+        assert "span.op" in keys
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "sentry.op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 0
+
 
 class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
     OrganizationTraceItemAttributesEndpointTestBase, TraceMetricsTestCase
