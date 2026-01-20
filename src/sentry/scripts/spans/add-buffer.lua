@@ -124,7 +124,7 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 
 -- Merge spans into the parent span set.
 -- Used outside the if statement
-local zpopmin_end_time_ms = 0
+local zpopmin_end_time_ms = -1
 if #sunionstore_args > 0 then
     local start_output_size = redis.call("zcard", set_key)
     local output_size = redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
@@ -181,7 +181,7 @@ redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time_ms = get_time_ms()
 table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_end_time_ms - zpopmin_end_time_ms})
-if zpopmin_end_time_ms > 0 then
+if zpopmin_end_time_ms >= 0 then
     local ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
 else
     local ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
