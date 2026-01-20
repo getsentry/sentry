@@ -1622,6 +1622,7 @@ class OAuthTokenDeviceCodeTest(TestCase):
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_client"}
 
+
 @control_silo_test
 class OAuthTokenPublicClientRefreshTest(TestCase):
     """Tests for public client refresh token rotation.
