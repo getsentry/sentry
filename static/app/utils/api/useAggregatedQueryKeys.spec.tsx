@@ -139,7 +139,7 @@ describe('useAggregatedQueryKeys', () => {
       '1111': 5,
     };
     MockApiClient.addMockResponse({
-      url: `/api/test/`,
+      url: `/api-tokens/`,
       body: mockResponse,
     });
 
@@ -165,7 +165,7 @@ describe('useAggregatedQueryKeys', () => {
   it('should separate callsites that have different cacheKeys', async () => {
     const wrapper = makeWrapper(makeTestQueryClient());
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/api/test/`,
+      url: `/api-tokens/`,
     });
     const responseReducer1 = jest.fn((prevState: any, response: ApiResult) => {
       return {

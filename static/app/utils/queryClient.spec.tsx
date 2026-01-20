@@ -138,7 +138,7 @@ describe('queryClient', () => {
 
     it('can return error state', async () => {
       MockApiClient.addMockResponse({
-        url: '/api-tokens',
+        url: '/api-tokens/',
         statusCode: 500,
       });
 
