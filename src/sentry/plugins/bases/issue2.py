@@ -11,13 +11,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.api.helpers.deprecation import deprecated
-from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 
 # api compat
