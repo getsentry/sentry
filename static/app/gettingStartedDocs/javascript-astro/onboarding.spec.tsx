@@ -214,6 +214,6 @@ describe('javascript-astro onboarding docs', () => {
       ],
     });
 
-    expect(screen.queryByRole('link', {name: 'Metrics'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
   });
 });

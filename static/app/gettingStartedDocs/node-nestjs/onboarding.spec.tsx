@@ -208,7 +208,7 @@ describe('Nest.js onboarding docs', () => {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
     });
 
-    expect(screen.getByRole('link', {name: 'Metrics'})).toBeInTheDocument();
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
   });
 
   it('does not display Metrics in next steps when metrics are not selected', () => {
@@ -216,6 +216,6 @@ describe('Nest.js onboarding docs', () => {
       selectedProducts: [ProductSolution.ERROR_MONITORING],
     });
 
-    expect(screen.queryByRole('link', {name: 'Metrics'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
   });
 });

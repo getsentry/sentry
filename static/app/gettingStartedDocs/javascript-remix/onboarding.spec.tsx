@@ -36,7 +36,6 @@ describe('javascript-remix onboarding docs', () => {
       ],
     });
 
-    // Use link role so we don't match the product selection label.
-    expect(screen.queryByRole('link', {name: 'Metrics'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
   });
 });
