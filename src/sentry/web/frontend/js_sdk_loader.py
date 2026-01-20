@@ -30,6 +30,7 @@ class SdkConfig(TypedDict):
     replaysSessionSampleRate: NotRequired[float]
     replaysOnErrorSampleRate: NotRequired[float]
     debug: NotRequired[bool]
+    autoInjectFeedback: NotRequired[bool]
 
 
 class LoaderInternalConfig(TypedDict):
@@ -171,6 +172,9 @@ class JavaScriptSdkLoader(View):
         if loader_config["hasReplay"]:
             config["replaysSessionSampleRate"] = 0.1
             config["replaysOnErrorSampleRate"] = 1
+
+        if loader_config["hasFeedback"]:
+            config["autoInjectFeedback"] = True
 
         return (
             {

@@ -181,6 +181,12 @@ declare const __LOADER__IS_LAZY__: any;
       }
     }
 
+    if (config.autoInjectFeedback && integrationNames.indexOf('Feedback') === -1) {
+      if (SDK.feedbackIntegration) {
+        integrations.push(SDK.feedbackIntegration());
+      }
+    }
+
     config.integrations = integrations;
   }
 
