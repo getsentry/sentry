@@ -294,3 +294,54 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
         return str(user_id)
 
     return None
+
+
+def extract_github_info(event: Mapping[str, Any]) -> dict[str, str | None]:
+    """
+    Extract GitHub-related information from a webhook event payload.
+
+    Args:
+        event: The GitHub webhook event payload
+
+    Returns:
+        Dictionary containing:
+            - github_owner: The repository owner/organization name
+            - github_repo_name: The repository name
+            - github_repo_full_name: The repository full name (owner/repo)
+            - github_event_url: URL to the specific event (check_run, pull_request, or comment)
+    """
+    result = {
+        "github_owner": None,
+        "github_repo_name": None,
+        "github_repo_full_name": None,
+        "github_event_url": None,
+    }
+
+    repository = event.get("repository", {})
+    if repository:
+        if owner := repository.get("owner", {}).get("login"):
+            result["github_owner"] = owner
+        if repo_name := repository.get("name"):
+            result["github_repo_name"] = repo_name
+        if owner_repo_name := repository.get("full_name"):
+            result["github_repo_full_name"] = owner_repo_name
+
+    if pull_request := event.get("pull_request"):
+        if html_url := pull_request.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if check_run := event.get("check_run"):
+        if html_url := check_run.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if comment := event.get("comment"):
+        if html_url := comment.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if issue := event.get("issue"):
+        if pull_request_data := issue.get("pull_request"):
+            if html_url := pull_request_data.get("html_url"):
+                if result["github_event_url"] is None:
+                    result["github_event_url"] = html_url
+
+    return result
