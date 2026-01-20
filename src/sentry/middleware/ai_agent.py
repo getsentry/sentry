@@ -48,28 +48,28 @@ def _build_ai_agent_guidance(request: HttpRequest) -> str:
     mcp_config_json = json.dumps(mcp_config, indent=2)
 
     return f"""\
-# Hey, you've hit the Sentry web UI
+# This Is the Web UI
 
-This URL serves HTML for humans in browsers. You probably want one of these instead:
+It's HTML all the way down. You probably don't want to parse that.
 
-## MCP Server (recommended for AI agents)
+## MCP Server
 
-This is an HTTP streaming MCP endpoint that uses OAuth for authentication.
+OAuth-authenticated, HTTP streaming—no `<div>` soup.
 
 ```json
 {mcp_config_json}
 ```
 
-More info: https://mcp.sentry.dev
+Docs: https://mcp.sentry.dev
 
-## REST API (for scripts and integrations)
+## REST API
 
 ```
 curl https://sentry.io/api/0/projects/ \\
   -H "Authorization: Bearer <token>"
 ```
 
-Your user can generate a token at: https://sentry.io/settings/account/api/auth-tokens/
+Your human can get a token at https://sentry.io/settings/account/api/auth-tokens/
 
 Docs: https://docs.sentry.io/api/
 """
