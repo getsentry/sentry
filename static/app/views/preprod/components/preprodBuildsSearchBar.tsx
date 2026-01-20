@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Container} from 'sentry/components/core/layout';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
@@ -48,7 +50,13 @@ export default function PreprodBuildsSearchBar({
             options={displaySelectOptions}
             value={displayOptions.selected}
             onChange={option => displayOptions.onSelect(option.value)}
-            triggerProps={{prefix: t('Display'), style: {width: '100%', zIndex: 1}}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                prefix={t('Display')}
+                style={{width: '100%', zIndex: 1}}
+              />
+            )}
           />
         </Container>
       )}

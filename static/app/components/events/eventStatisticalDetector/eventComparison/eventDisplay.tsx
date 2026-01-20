@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -218,18 +219,20 @@ function EventDisplay({
               }))}
               value={selectedEventId}
               onChange={({value}) => setSelectedEventId(value)}
-              triggerProps={{
-                children: (
-                  <ButtonLabelWrapper>
-                    <TextOverflow>
-                      {eventSelectLabel}:{' '}
-                      <SelectionTextWrapper>
-                        {getShortEventId(selectedEventId)}
-                      </SelectionTextWrapper>
-                    </TextOverflow>
-                  </ButtonLabelWrapper>
-                ),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps}>
+                  {
+                    <ButtonLabelWrapper>
+                      <TextOverflow>
+                        {eventSelectLabel}:{' '}
+                        <SelectionTextWrapper>
+                          {getShortEventId(selectedEventId)}
+                        </SelectionTextWrapper>
+                      </TextOverflow>
+                    </ButtonLabelWrapper>
+                  }
+                </OverlayTrigger.Button>
+              )}
             />
             <LinkButton
               title={t('Full Event Details')}

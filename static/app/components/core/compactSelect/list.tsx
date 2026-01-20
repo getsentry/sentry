@@ -8,7 +8,7 @@ import {useListState} from '@react-stately/list';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from './control';
+import {ControlContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
 import type {
@@ -172,7 +172,7 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, overlayIsOpen} = useContext(SelectContext);
+  const {overlayState, search, overlayIsOpen} = useContext(ControlContext);
 
   const hiddenOptions = useMemo(
     () => getHiddenOptions(items, search, sizeLimit),

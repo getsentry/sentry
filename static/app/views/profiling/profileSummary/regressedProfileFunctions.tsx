@@ -2,6 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Link} from 'sentry/components/core/link';
@@ -174,7 +176,9 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           value={trendType}
           options={TREND_FUNCTION_OPTIONS}
           onChange={onChangeTrendType}
-          triggerProps={TRIGGER_PROPS}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+          )}
           offset={4}
         />
         <RegressedFunctionsPagination
@@ -481,7 +485,6 @@ const RegressedFunctionsQueryState = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
 const TREND_FUNCTION_OPTIONS: Array<SelectOption<TrendType>> = [
   {
     label: t('Most Regressed Functions'),

@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -77,7 +79,11 @@ function FlamegraphOptionsMenu({
         {t('Reset Zoom')}
       </Button>
       <CompactSelect
-        triggerProps={{children: t('Color Coding'), icon: <IconSliders />, size: 'xs'}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} icon={<IconSliders />} size="xs">
+            {t('Color Coding')}
+          </OverlayTrigger.Button>
+        )}
         options={colorCodingOptions}
         position="bottom-end"
         value={colorCoding}

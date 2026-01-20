@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {Badge} from 'sentry/components/core/badge';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -104,17 +106,18 @@ function ReleasesSelectControl({
         }
       }}
       value={activeReleases}
-      triggerProps={{
-        icon: <IconReleases />,
-        children: (
-          <ButtonLabelWrapper>
-            {triggerLabel}{' '}
-            {activeReleases.length > 1 && (
-              <StyledBadge variant="muted">{`+${activeReleases.length - 1}`}</StyledBadge>
-            )}
-          </ButtonLabelWrapper>
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} icon={<IconReleases />}>
+          {
+            <ButtonLabelWrapper>
+              {triggerLabel}{' '}
+              {activeReleases.length > 1 && (
+                <StyledBadge variant="muted">{`+${activeReleases.length - 1}`}</StyledBadge>
+              )}
+            </ButtonLabelWrapper>
+          }
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

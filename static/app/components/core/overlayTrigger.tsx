@@ -3,19 +3,21 @@ import type {DistributedOmit, SetRequired} from 'type-fest';
 
 import DropdownButton, {type DropdownButtonProps} from 'sentry/components/dropdownButton';
 
-import {SelectContext} from './control';
+import {ControlContext} from './compactSelect/control';
 
 type TriggerEl =
   | HTMLButtonElement
   | (Omit<HTMLButtonElement, 'type'> & {
-      type: 'only use SelectTrigger for the trigger prop!';
+      type: 'only use `Trigger.Button` or `Trigger.IconButton` for the trigger prop!';
     });
 
-export type SelectTriggerProps = React.HTMLAttributes<TriggerEl> & {
+export type TriggerProps = Omit<React.HTMLAttributes<TriggerEl>, 'children'> & {
+  children: NonNullable<React.ReactNode>;
   ref?: React.Ref<TriggerEl>;
 };
 
-export type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref'> & {
+type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref' | 'children'> & {
+  children: NonNullable<React.ReactNode>;
   ref?: React.Ref<TriggerEl>;
 };
 
@@ -27,7 +29,7 @@ type IconButtonTriggerProps = SetRequired<
 };
 
 const useContextProps = () => {
-  const selectContext = React.useContext(SelectContext);
+  const selectContext = React.useContext(ControlContext);
   return {
     size: selectContext.size,
     isOpen: selectContext.overlayIsOpen,
@@ -35,7 +37,7 @@ const useContextProps = () => {
   };
 };
 
-export const SelectTrigger = {
+export const OverlayTrigger = {
   Button({ref, ...props}: ButtonTriggerProps) {
     return (
       <DropdownButton

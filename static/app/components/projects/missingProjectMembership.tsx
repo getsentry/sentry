@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
@@ -133,9 +134,11 @@ export default function MissingProjectMembership({
               <StyledCompactSelect
                 searchable
                 value={selectedTeam || undefined}
-                triggerProps={{
-                  children: selectedTeam ? `#${selectedTeam}` : t('Select a Team'),
-                }}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps}>
+                    {selectedTeam ? `#${selectedTeam}` : t('Select a Team')}
+                  </OverlayTrigger.Button>
+                )}
                 emptyMessage={t('No teams found')}
                 options={teamOptions}
                 onChange={option => {

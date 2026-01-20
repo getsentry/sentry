@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -45,10 +47,11 @@ function FilterBar({
         {hasTypeFilter && (
           <CompactSelect
             multiple
-            triggerProps={{
-              prefix: t('Alert Type'),
-              children: selectedAlertTypes.length === 0 ? t('All') : undefined,
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Alert Type')}>
+                {selectedAlertTypes.length === 0 ? t('All') : triggerProps.children}
+              </OverlayTrigger.Button>
+            )}
             menuFooter={
               <ButtonBar>
                 <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
@@ -83,9 +86,9 @@ function FilterBar({
         )}
         {hasStatusFilters && onChangeStatus && (
           <CompactSelect
-            triggerProps={{
-              prefix: t('Status'),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
+            )}
             options={[
               {
                 value: 'all',

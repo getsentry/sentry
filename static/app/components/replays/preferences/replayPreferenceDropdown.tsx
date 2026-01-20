@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {Flex} from 'sentry/components/core/layout';
@@ -47,7 +47,7 @@ export default function ReplayPreferenceDropdown({
       size="sm"
       disabled={isLoading}
       trigger={triggerProps => (
-        <SelectTrigger.IconButton
+        <OverlayTrigger.IconButton
           {...triggerProps}
           title={t('Settings')}
           aria-label={t('Settings')}

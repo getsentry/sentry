@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow} from 'sentry/icons';
@@ -133,20 +135,21 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
       value={activeThread.id}
       options={items}
       menuWidth={450}
-      triggerProps={{
-        size: 'xs',
-        children: (
-          <ThreadName>
-            {t('Thread #%s: ', activeThread.id)}
-            <ActiveThreadName>
-              {getThreadLabel(
-                filterThreadInfo(event, activeThread, exception),
-                activeThread.name
-              )}
-            </ActiveThreadName>
-          </ThreadName>
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} size="xs">
+          {
+            <ThreadName>
+              {t('Thread #%s: ', activeThread.id)}
+              <ActiveThreadName>
+                {getThreadLabel(
+                  filterThreadInfo(event, activeThread, exception),
+                  activeThread.name
+                )}
+              </ActiveThreadName>
+            </ThreadName>
+          }
+        </OverlayTrigger.Button>
+      )}
       menuBody={
         <StyledGrid hasThreadStates={hasThreadStates}>
           <ThreadSelectorGridCell />

@@ -1,6 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -124,7 +126,11 @@ export default function TeamProjects() {
                 }
               }}
               menuTitle={t('Projects')}
-              triggerProps={{children: t('Add Project')}}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps}>
+                  {t('Add Project')}
+                </OverlayTrigger.Button>
+              )}
               searchPlaceholder={t('Search Projects')}
               emptyMessage={t('No projects')}
               loading={loadingUnlinkedProjects}
