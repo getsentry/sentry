@@ -58,12 +58,12 @@ interface InviteRowProps {
 }
 
 function InviteRow({invite, onRevoke}: InviteRowProps) {
-  const {email, platforms, user_id} = invite;
+  const {email, platforms, userId} = invite;
 
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell>
-        <Link to={`/_admin/users/${user_id}`}>
+        <Link to={`/_admin/users/${userId}`}>
           <Text wordBreak="break-all">{email}</Text>
         </Link>
       </SimpleTable.RowCell>
@@ -77,7 +77,7 @@ function InviteRow({invite, onRevoke}: InviteRowProps) {
               <Tag
                 key={platform}
                 variant="info"
-                onDismiss={() => onRevoke({userId: user_id, platform})}
+                onDismiss={() => onRevoke({userId, platform})}
               >
                 {displayName}
               </Tag>
