@@ -122,17 +122,12 @@ redis.call("expire", main_redirect_key, set_timeout)
 local sunionstore_args_end_time_ms = get_time_ms()
 table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_args_end_time_ms - redirect_end_time_ms})
 
--- Initialize all of these before the if statement in case the if statement is not executed.
--- local start_output_size = 0
--- local output_size = 0
--- local zunionstore_step_latency_ms = 0
--- local arg_cleanup_step_latency_ms = 0
--- local zpopcalls = 0
--- local zpopmin_step_latency_ms = 0
-
+-- Merge spans into the parent span set.
+-- Used outside the if statement
+local zpopmin_end_time_ms = 0
 if #sunionstore_args > 0 then
-    start_output_size = redis.call("zcard", set_key)
-    output_size = redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
+    local start_output_size = redis.call("zcard", set_key)
+    local output_size = redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
     redis.call("unlink", unpack(sunionstore_args))
 
     local zunionstore_end_time_ms = get_time_ms()
@@ -162,12 +157,13 @@ if #sunionstore_args > 0 then
     local arg_cleanup_end_time_ms = get_time_ms()
     table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - zunionstore_end_time_ms})
 
+    local zpopcalls = 0
     while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
         redis.call("zpopmin", set_key)
         zpopcalls = zpopcalls + 1
     end
 
-    local zpopmin_end_time_ms = get_time_ms()
+    zpopmin_end_time_ms = get_time_ms()
     table.insert(latency_table, {"zpopmin_step_latency_ms", zpopmin_end_time_ms - arg_cleanup_end_time_ms})
     table.insert(metrics_table, {"zpopcalls", zpopcalls})
 end
@@ -185,7 +181,7 @@ redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time_ms = get_time_ms()
 table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_end_time_ms - zpopmin_end_time_ms})
-if zpopmin_end_time_ms then
+if zpopmin_end_time_ms > 0 then
     local ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
 else
     local ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms

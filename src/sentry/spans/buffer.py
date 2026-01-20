@@ -81,7 +81,7 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
-from sentry.spans.buffer_logger import BufferLogger, emit_observability_metrics
+from sentry.spans.buffer_logger import BufferLogger, EvalshaData, emit_observability_metrics
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics, redis
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -248,16 +248,30 @@ class SpansBuffer:
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
             latency_metrics = []
             gauge_metrics = []
-            longest_evalsha_data = (0.0, [], [])  # (latency_ms, latency_metrics, gauge_metrics)
+            longest_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+                -1.0,
+                [],
+                [],
+            )  # (latency_ms, latency_metrics, gauge_metrics)
 
             assert len(result_meta) == len(results)
 
             for (project_and_trace, parent_span_id), result in zip(result_meta, results):
-                set_key, has_root_span, evalsha_latency_ms, latency_metrics, gauge_metrics = result
-                latency_metrics.append(latency_metrics)
-                gauge_metrics.append(gauge_metrics)
+                (
+                    set_key,
+                    has_root_span,
+                    evalsha_latency_ms,
+                    evalsha_latency_metrics,
+                    evalsha_gauge_metrics,
+                ) = result
+                latency_metrics.append(evalsha_latency_metrics)
+                gauge_metrics.append(evalsha_gauge_metrics)
                 if evalsha_latency_ms > longest_evalsha_data[0]:
-                    longest_evalsha_data = (evalsha_latency_ms, latency_metrics, gauge_metrics)
+                    longest_evalsha_data = (
+                        evalsha_latency_ms,
+                        evalsha_latency_metrics,
+                        evalsha_gauge_metrics,
+                    )
 
                 # Log individual EVALSHA latency for this trace
                 self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
