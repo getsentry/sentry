@@ -212,6 +212,8 @@ class Organization(ReplicatedRegionModel):
 
     # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
     customer_id: str | None = None
+    # Cached value for default_owner_id property
+    _default_owner_id: int | None
 
     class Meta:
         app_label = "sentry"
