@@ -54,11 +54,11 @@ function QuotaAlert() {
 
 interface InviteRowProps {
   invite: ConsoleSdkInviteUser;
-  onRevoke: (params: {platform: ConsolePlatform; userId: string}) => void;
+  onRevoke: (params: {memberId: string; platform: ConsolePlatform}) => void;
 }
 
 function InviteRow({invite, onRevoke}: InviteRowProps) {
-  const {email, platforms, userId} = invite;
+  const {email, platforms, userId, memberId} = invite;
 
   return (
     <SimpleTable.Row>
@@ -77,7 +77,7 @@ function InviteRow({invite, onRevoke}: InviteRowProps) {
               <Tag
                 key={platform}
                 variant="info"
-                onDismiss={() => onRevoke({userId, platform})}
+                onDismiss={() => onRevoke({memberId, platform})}
               >
                 {displayName}
               </Tag>
@@ -94,7 +94,7 @@ interface InvitesTableProps {
   isError: boolean;
   isPending: boolean;
   onRefetch: () => void;
-  onRevoke: (params: {platform: ConsolePlatform; userId: string}) => void;
+  onRevoke: (params: {memberId: string; platform: ConsolePlatform}) => void;
 }
 
 function InvitesTableContent({
@@ -125,7 +125,7 @@ function InvitesTableContent({
   }
 
   return invites.map(invite => (
-    <InviteRow key={invite.userId} invite={invite} onRevoke={onRevoke} />
+    <InviteRow key={invite.memberId} invite={invite} onRevoke={onRevoke} />
   ));
 }
 
@@ -144,7 +144,7 @@ function ToggleConsolePlatformsModal({
   const {enabledConsolePlatforms = [], consoleSdkInviteQuota = 0} = organization;
 
   const [pendingRevocations, setPendingRevocations] = useState<
-    Array<{platform: ConsolePlatform; userId: string}>
+    Array<{memberId: string; platform: ConsolePlatform}>
   >([]);
 
   const {
@@ -158,7 +158,10 @@ function ToggleConsolePlatformsModal({
   const displayedInvites = userInvites
     .map(invite => {
       const filteredPlatforms = invite.platforms.filter(
-        p => !pendingRevocations.some(r => r.userId === invite.userId && r.platform === p)
+        p =>
+          !pendingRevocations.some(
+            r => r.memberId === invite.memberId && r.platform === p
+          )
       );
       return {...invite, platforms: filteredPlatforms};
     })
@@ -189,13 +192,13 @@ function ToggleConsolePlatformsModal({
   });
 
   const handleRevoke = ({
-    userId,
+    memberId,
     platform,
   }: {
+    memberId: string;
     platform: ConsolePlatform;
-    userId: string;
   }) => {
-    setPendingRevocations(prev => [...prev, {userId, platform}]);
+    setPendingRevocations(prev => [...prev, {memberId, platform}]);
   };
 
   const handleSubmit = async (data: Record<string, boolean | number>) => {
