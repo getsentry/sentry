@@ -65,7 +65,7 @@ class ApiApplication(Model):
     # Empty string for public clients (RFC 6749 §2.1) - CLIs, native apps, SPAs
     # Public clients cannot securely store secrets, so they use PKCE and/or
     # refresh token rotation instead of client authentication.
-    # Set client_secret="" explicitly when creating a public client.
+    # Use is_public=True in the constructor to create a public client.
     client_secret = models.TextField(blank=True, default=generate_token)
     owner = FlexibleForeignKey("sentry.User", null=True)
     name = models.CharField(max_length=64, blank=True, default=generate_name)
@@ -113,6 +113,13 @@ class ApiApplication(Model):
         db_table = "sentry_apiapplication"
 
     __repr__ = sane_repr("name", "owner_id")
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Support is_public=True as a clearer way to create public clients
+        # instead of requiring client_secret=""
+        if kwargs.pop("is_public", False):
+            kwargs["client_secret"] = ""
+        super().__init__(*args, **kwargs)
 
     def __str__(self) -> str:
         return self.name

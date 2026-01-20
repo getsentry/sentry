@@ -5,8 +5,18 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiApplicationTest(TestCase):
+    def test_is_public_constructor_param(self) -> None:
+        """Public clients can be created with is_public=True."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com",
+            is_public=True,
+        )
+        assert app.is_public is True
+        assert app.client_secret == ""
+
     def test_is_public_with_empty_string_secret(self) -> None:
-        """Public clients have client_secret="" (empty string)."""
+        """Public clients can also be created with client_secret="" directly."""
         app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="http://example.com",
