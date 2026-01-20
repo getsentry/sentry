@@ -1800,6 +1800,33 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_client"}
 
+    def test_confidential_client_refresh_with_empty_secret_fails(self) -> None:
+        """Sending client_secret='' should NOT authenticate a confidential client.
+
+        This tests that an empty string secret doesn't bypass authentication
+        by being treated as "no secret provided" for a public client.
+        """
+        confidential_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+        )
+        token = ApiToken.objects.create(
+            application=confidential_app,
+            user=self.user,
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": token.refresh_token,
+                "client_id": confidential_app.client_id,
+                "client_secret": "",  # Empty string, not missing
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
     def test_confidential_client_refresh_rotates_in_place(self) -> None:
         """Confidential clients rotate tokens in-place (same DB record).
 
