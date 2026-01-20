@@ -1643,6 +1643,42 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
     @patch("sentry.utils.metrics.incr")
+    def test_caches_assignee_does_not_exist(self, mock_incr: MagicMock) -> None:
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        # No assignee for this group
+
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert assignee_cache_value is None
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Cache should store (False, timestamp)
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert assignee_cache_value is not None
+        assert isinstance(assignee_cache_value, tuple)
+        cached_assignee_exists, cached_timestamp = assignee_cache_value
+        assert cached_assignee_exists is False
+        assert isinstance(cached_timestamp, float)
+
+        # Should NOT return early - proceeds to ownership evaluation
+        assert (
+            mock.call("sentry.task.post_process.handle_owner_assignment.assignee_exists")
+            not in mock_incr.call_args_list
+        )
+
+    @patch("sentry.utils.metrics.incr")
     def test_issue_owners_should_ratelimit(self, mock_incr: MagicMock) -> None:
         cache.set(
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
