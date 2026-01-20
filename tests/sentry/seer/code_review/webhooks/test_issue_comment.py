@@ -86,7 +86,8 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             },
         }
         if is_pr_comment:
-            event["issue"]["pull_request"] = {
+            issue = event["issue"]
+            issue["pull_request"] = {
                 "url": f"https://api.github.com/repos/{github_org}/repo/pulls/42"
             }
         return orjson.dumps(event)
