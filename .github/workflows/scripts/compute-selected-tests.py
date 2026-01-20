@@ -112,11 +112,11 @@ def main() -> int:
             print(f"Error querying coverage database: {e}", file=sys.stderr)
             return 1
 
-    # Also include any test files that were directly changed/added in the PR
-    changed_test_files = get_changed_test_files(changed_files)
-    if changed_test_files:
-        print(f"Including {len(changed_test_files)} directly changed test files")
-        affected_test_files.update(changed_test_files)
+        # Also include any test files that were directly changed/added in the PR
+        changed_test_files = get_changed_test_files(changed_files)
+        if changed_test_files:
+            print(f"Including {len(changed_test_files)} directly changed test files")
+            affected_test_files.update(changed_test_files)
 
     print(f"Found {len(affected_test_files)} affected test files")
 
