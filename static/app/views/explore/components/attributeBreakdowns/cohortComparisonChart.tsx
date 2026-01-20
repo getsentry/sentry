@@ -1,30 +1,31 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
+import {Button} from '@sentry/scraps/button/button';
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
+import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
 import {Flex} from 'sentry/components/core/layout';
-import {tct} from 'sentry/locale';
+import {IconExpand} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {escape} from 'sentry/utils';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import {
+  CHART_BASELINE_SERIES_NAME,
   CHART_MAX_BAR_WIDTH,
   CHART_MAX_SERIES_LENGTH,
-  CHART_TOOLTIP_MAX_VALUE_LENGTH,
+  CHART_SELECTED_SERIES_NAME,
+  COHORT_2_COLOR,
 } from './constants';
 import {AttributeBreakdownsComponent} from './styles';
+import {formatComparisonModeTooltip} from './tooltips';
 import {
-  calculateAttrubutePopulationPercentage,
+  calculateAttributePopulationPercentage,
   percentageFormatter,
   tooltipActionsHtmlRenderer,
 } from './utils';
-
-const CHART_SELECTED_SERIES_NAME = 'selected';
-const CHART_BASELINE_SERIES_NAME = 'baseline';
 
 type CohortData = AttributeBreakdownsComparison['rankedAttributes'][number]['cohort1'];
 
@@ -100,7 +101,7 @@ export function Chart({
   const [chartWidth, setChartWidth] = useState(0);
 
   const cohort1Color = theme.chart.getColorPalette(0)?.[0];
-  const cohort2Color = '#A29FAA';
+  const cohort2Color = COHORT_2_COLOR;
 
   const seriesTotals = useMemo(
     () => ({
@@ -131,59 +132,15 @@ export function Chart({
 
   const populationPercentages = useMemo(
     () => ({
-      selected: calculateAttrubutePopulationPercentage(attribute.cohort1, cohort1Total),
-      baseline: calculateAttrubutePopulationPercentage(attribute.cohort2, cohort2Total),
+      selected: calculateAttributePopulationPercentage(attribute.cohort1, cohort1Total),
+      baseline: calculateAttributePopulationPercentage(attribute.cohort2, cohort2Total),
     }),
     [attribute.cohort1, attribute.cohort2, cohort1Total, cohort2Total]
   );
 
   const toolTipFormatter = useCallback(
-    (p: TooltipComponentFormatterCallbackParams) => {
-      if (!Array.isArray(p)) {
-        return '\u2014';
-      }
-
-      const selectedParam = p.find(s => s.seriesName === CHART_SELECTED_SERIES_NAME);
-      const baselineParam = p.find(s => s.seriesName === CHART_BASELINE_SERIES_NAME);
-
-      if (!selectedParam || !baselineParam) {
-        throw new Error('selectedParam or baselineParam is not defined');
-      }
-
-      const selectedValue = selectedParam.value;
-      const baselineValue = baselineParam.value;
-      const selectedPct = percentageFormatter(Number(selectedValue));
-      const baselinePct = percentageFormatter(Number(baselineValue));
-
-      const name = selectedParam.name ?? baselineParam.name ?? '';
-      const truncatedName =
-        name.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
-          ? `${name.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
-          : name;
-      const escapedTruncatedName = escape(truncatedName);
-
-      return `
-      <div class="tooltip-series" style="padding: 0;">
-        <div class="tooltip-label" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 0 auto; padding: 8px 15px; min-width: 100px; max-width: 300px; cursor: default;">
-          <strong style="word-break: break-word; white-space: normal; overflow-wrap: anywhere; text-align: center;">${escapedTruncatedName}</strong>
-          <span style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
-            <span style="display: flex; align-items: center; gap: 6px;">
-              <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${cohort1Color}; display: inline-block;"></span>
-              selected
-            </span>
-            <span>${selectedPct}</span>
-          </span>
-          <span style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
-            <span style="display: flex; align-items: center; gap: 6px;">
-              <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${cohort2Color}; display: inline-block;"></span>
-              baseline
-            </span>
-            <span>${baselinePct}</span>
-          </span>
-        </div>
-      </div>
-    `.trim();
-    },
+    (p: Parameters<typeof formatComparisonModeTooltip>[0]) =>
+      formatComparisonModeTooltip(p, cohort1Color, cohort2Color),
     [cohort1Color, cohort2Color]
   );
 
@@ -221,7 +178,7 @@ export function Chart({
             {attribute.attributeName}
           </AttributeBreakdownsComponent.ChartTitle>
         </Tooltip>
-        <Flex gap="sm">
+        <Flex gap="sm" align="center">
           <AttributeBreakdownsComponent.PopulationIndicator color={cohort1Color}>
             <Tooltip
               showUnderline
@@ -242,6 +199,20 @@ export function Chart({
               {percentageFormatter(populationPercentages.baseline)}
             </Tooltip>
           </AttributeBreakdownsComponent.PopulationIndicator>
+          <Button
+            size="zero"
+            borderless
+            icon={<IconExpand size="xs" />}
+            aria-label={t('Expand chart')}
+            onClick={() =>
+              openAttributeBreakdownViewerModal({
+                mode: 'comparison',
+                attribute,
+                cohort1Total,
+                cohort2Total,
+              })
+            }
+          />
         </Flex>
       </AttributeBreakdownsComponent.ChartHeaderWrapper>
       <AttributeBreakdownsComponent.Chart
