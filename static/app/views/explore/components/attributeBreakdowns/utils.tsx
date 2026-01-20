@@ -1,9 +1,10 @@
 import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
 import type {Theme} from 'sentry/utils/theme';
+import type {AttributeDistribution} from 'sentry/views/explore/components/attributeBreakdowns/attributeDistributionContent';
 import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
-import {CHART_AXIS_LABEL_FONT_SIZE} from './constants';
+import {CHART_AXIS_LABEL_FONT_SIZE, CHART_MAX_SERIES_LENGTH} from './constants';
 
 export function calculateAttributePopulationPercentage(
   values: Array<{
@@ -124,4 +125,16 @@ export function tooltipActionsHtmlRenderer(
   ]
     .join('\n')
     .trim();
+}
+
+export function distributionToSeriesData(
+  values: AttributeDistribution[number]['values'],
+  cohortCount: number
+): Array<{label: string; value: number}> {
+  return values
+    .map(value => ({
+      label: value.label,
+      value: cohortCount === 0 ? 0 : (value.value / cohortCount) * 100,
+    }))
+    .slice(0, CHART_MAX_SERIES_LENGTH);
 }

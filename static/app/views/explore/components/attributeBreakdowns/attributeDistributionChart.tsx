@@ -12,26 +12,15 @@ import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
-import {CHART_MAX_BAR_WIDTH, CHART_MAX_SERIES_LENGTH} from './constants';
+import {CHART_MAX_BAR_WIDTH} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 import {formatSingleModeTooltip} from './tooltips';
 import {
   calculateAttributePopulationPercentage,
+  distributionToSeriesData,
   percentageFormatter,
   tooltipActionsHtmlRenderer,
 } from './utils';
-
-function distributionToSeriesData(
-  values: AttributeDistribution[number]['values'],
-  cohortCount: number
-): Array<{label: string; value: number}> {
-  const seriesData = values.slice(0, CHART_MAX_SERIES_LENGTH).map(value => ({
-    label: value.label,
-    value: cohortCount === 0 ? 0 : (value.value / cohortCount) * 100,
-  }));
-
-  return seriesData;
-}
 
 export function Chart({
   attributeDistribution,

@@ -27,7 +27,11 @@ import {
   MODAL_CHART_HEIGHT,
 } from './constants';
 import {formatComparisonModeTooltip, formatSingleModeTooltip} from './tooltips';
-import {calculateAttributePopulationPercentage, percentageFormatter} from './utils';
+import {
+  calculateAttributePopulationPercentage,
+  distributionToSeriesData,
+  percentageFormatter,
+} from './utils';
 
 type RankedAttribute = AttributeBreakdownsComparison['rankedAttributes'][number];
 type CohortData = RankedAttribute['cohort1'];
@@ -97,18 +101,6 @@ function distributionToTableData(
       },
     },
   };
-}
-
-function distributionToSeriesData(
-  values: AttributeDistribution[number]['values'],
-  cohortCount: number
-): Array<{label: string; value: number}> {
-  return values
-    .map(value => ({
-      label: value.label,
-      value: cohortCount === 0 ? 0 : (value.value / cohortCount) * 100,
-    }))
-    .slice(0, CHART_MAX_SERIES_LENGTH);
 }
 
 function cohortsToTableData(
