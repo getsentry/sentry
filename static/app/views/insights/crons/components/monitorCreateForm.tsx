@@ -153,7 +153,7 @@ export default function MonitorCreateForm() {
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
                           css={css`
                             input {
-                              font-family: ${theme.font.family.sans};
+                              font-family: ${theme.font.family.mono};
                             }
                           `}
                           required={selectedCrontab}
