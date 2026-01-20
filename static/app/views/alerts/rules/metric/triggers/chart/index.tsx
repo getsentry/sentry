@@ -6,6 +6,8 @@ import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -434,10 +436,13 @@ class TriggersChart extends PureComponent<Props, State> {
               value={period}
               onChange={opt => this.handleStatsPeriodChange(opt.value)}
               position="bottom-end"
-              triggerProps={{
-                borderless: true,
-                prefix: t('Display'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  borderless
+                  prefix={t('Display')}
+                />
+              )}
             />
           </InlineContainer>
         </ChartControls>

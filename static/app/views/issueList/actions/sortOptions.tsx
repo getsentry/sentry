@@ -1,3 +1,5 @@
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
@@ -65,10 +67,13 @@ function IssueListSortOptions({
       }))}
       menuWidth={240}
       value={sortKey}
-      triggerProps={{
-        size: triggerSize,
-        icon: showIcon && <IconSort />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          size={triggerSize}
+          icon={showIcon && <IconSort />}
+        />
+      )}
     />
   );
 }

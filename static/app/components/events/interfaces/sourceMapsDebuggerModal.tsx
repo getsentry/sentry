@@ -1523,7 +1523,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
         </p>
         <p>
           {tct(
-            'Read the [link:Sentry Source Maps Documentation] to learn how to to upload your build artifacts to Sentry.',
+            'Read the [link:Sentry Source Maps Documentation] to learn how to upload your build artifacts to Sentry.',
             {
               link: defined(sourceMapsDocLinks.legacyUploadingMethods) ? (
                 <ExternalLinkWithIcon href={sourceMapsDocLinks.legacyUploadingMethods} />

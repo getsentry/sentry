@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -182,18 +184,22 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       disabled={isDisabled}
       options={eventNavDropdownOptions}
       value={selectedValue ? selectedValue : EventNavDropdownOption.CUSTOM}
-      triggerProps={{
-        children: selectedValue ? (
-          selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-            t('Recommended')
-          ) : undefined
-        ) : (
-          <TimeSince
-            date={event.dateCreated ?? event.dateReceived}
-            disabledAbsoluteTooltip
-          />
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {selectedValue ? (
+            selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+              t('Recommended')
+            ) : (
+              triggerProps.children
+            )
+          ) : (
+            <TimeSince
+              date={event.dateCreated ?? event.dateReceived}
+              disabledAbsoluteTooltip
+            />
+          )}
+        </OverlayTrigger.Button>
+      )}
       menuWidth={232}
       onChange={selectedOption => {
         trackAnalytics('issue_details.event_dropdown_option_selected', {

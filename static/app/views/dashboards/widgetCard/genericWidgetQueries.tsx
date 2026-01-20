@@ -68,6 +68,16 @@ export type GenericWidgetQueriesResult = {
   totalCount?: string;
 };
 
+/**
+ * Result type for hook-based queries.
+ */
+export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
+  /**
+   * Raw API response data, used for callbacks in genericWidgetQueries.tsx
+   */
+  rawData: any[];
+};
+
 export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
   widget: Widget;
@@ -138,6 +148,125 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   // Use override selection if provided (for modal zoom), otherwise use hook
   const selection = propsSelection ?? hookPageFilters.selection;
 
+  // Store config in ref to avoid it being a dependency that changes on every render
+  const configRef = useRef(config);
+  configRef.current = config;
+
+  // Store customDidUpdateComparator in ref to avoid dependency issues if not memoized
+  const customDidUpdateComparatorRef = useRef(customDidUpdateComparator);
+  customDidUpdateComparatorRef.current = customDidUpdateComparator;
+
+  // Check if new hook-based approach is available
+  const isChartDisplay = isChartDisplayType(widget.displayType);
+
+  const hookSeriesResults = config.useSeriesQuery?.({
+    widget,
+    organization,
+    pageFilters: selection,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    onDemandControlContext,
+    mepSetting,
+    samplingMode,
+    enabled: isChartDisplay && !disabled && !propsLoading,
+    limit,
+    cursor,
+  });
+
+  const hookTableResults = config.useTableQuery?.({
+    widget,
+    organization,
+    pageFilters: selection,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    onDemandControlContext,
+    mepSetting,
+    samplingMode,
+    enabled: !isChartDisplay && !disabled && !propsLoading,
+    limit,
+    cursor,
+  });
+
+  // Use the appropriate results based on display type
+  const hookResults = isChartDisplay ? hookSeriesResults : hookTableResults;
+  const hasHookApproach = isChartDisplay
+    ? !!config.useSeriesQuery
+    : !!config.useTableQuery;
+
+  // Track previous raw data to detect when new data arrives
+  const prevRawDataRef = useRef<any[] | undefined>(undefined);
+  // Track previous loading state to detect when fetching starts
+  const prevLoadingRef = useRef(false);
+
+  // Call onDataFetchStart when loading begins
+  useEffect(() => {
+    if (!hasHookApproach) {
+      return;
+    }
+
+    const isLoadingNow = hookResults?.loading ?? false;
+
+    // Detect transition from not loading to loading (fetch start)
+    if (isLoadingNow && !prevLoadingRef.current) {
+      onDataFetchStart?.();
+    }
+
+    prevLoadingRef.current = isLoadingNow;
+  }, [hasHookApproach, hookResults?.loading, onDataFetchStart]);
+
+  // Watch for when hook data changes and call callbacks
+  useEffect(() => {
+    if (!hasHookApproach || !hookResults?.rawData) {
+      return;
+    }
+
+    // Only process if this is new data (not initial mount)
+    if (hookResults.rawData === prevRawDataRef.current) {
+      return;
+    }
+
+    prevRawDataRef.current = hookResults.rawData;
+
+    // Call afterFetch callbacks with raw data
+    if (isChartDisplay) {
+      hookResults.rawData.forEach((data: any) => {
+        afterFetchSeriesData?.(data as SeriesResponse);
+      });
+
+      // Call onDataFetched with transformed results
+      onDataFetched?.({
+        timeseriesResults: (hookResults as any).timeseriesResults,
+        timeseriesResultsTypes: (hookResults as any).timeseriesResultsTypes,
+        timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
+      });
+    } else {
+      // Collect any results from afterFetchTableData callbacks
+      let mergedCallbackData = {};
+      hookResults.rawData.forEach((data: any) => {
+        const result = afterFetchTableData?.(data as TableResponse);
+        if (result) {
+          mergedCallbackData = {...mergedCallbackData, ...result};
+        }
+      });
+
+      // Always call onDataFetched, merging any callback results
+      onDataFetched?.({
+        tableResults: (hookResults as any).tableResults,
+        pageLinks: (hookResults as any).pageLinks,
+        ...mergedCallbackData,
+      });
+    }
+  }, [
+    hasHookApproach,
+    hookResults,
+    isChartDisplay,
+    afterFetchSeriesData,
+    afterFetchTableData,
+    onDataFetched,
+  ]);
+
+  // OLD APPROACH: Use existing Promise-based logic for non-migrated datasets
+  // These hooks are only used when hasHookApproach is false
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [timeseriesResults, setTimeseriesResults] = useState<Series[] | undefined>(
@@ -483,14 +612,25 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   }, []);
 
   useEffect(() => {
+    if (hasHookApproach) {
+      return;
+    }
+
     if (!propsLoading && isMountedRef.current && !hasInitialFetchRef.current) {
       hasInitialFetchRef.current = true;
       prevPropsRef.current = props;
       fetchDataWithQueueIfAvailable();
     }
-  }, [propsLoading, fetchDataWithQueueIfAvailable, props]);
+  }, [propsLoading, fetchDataWithQueueIfAvailable, hasHookApproach, props]);
 
+  // This effect checks if props have changed and triggers refetch for old Promise-based approach
+  // Hook-based queries don't need this - React Query handles prop changes automatically
   useEffect(() => {
+    // Only run for non-hook approach (legacy Promise-based widgets)
+    if (hasHookApproach) {
+      return;
+    }
+
     const prevProps = prevPropsRef.current;
     if (!prevProps) {
       prevPropsRef.current = props;
@@ -533,21 +673,32 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
       [[], []]
     );
 
-    if (
-      customDidUpdateComparator
-        ? customDidUpdateComparator(prevProps, props)
-        : widget.limit !== prevProps.widget.limit ||
-          !isEqual(widget.widgetType, prevProps.widget.widgetType) ||
-          !isEqual(widget.displayType, prevProps.widget.displayType) ||
-          !isEqual(widget.interval, prevProps.widget.interval) ||
-          !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
-          !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
-          !isEqual(forceOnDemand, prevProps.forceOnDemand) ||
-          !isEqual(disabled, prevProps.disabled) ||
-          !isSelectionEqual(selection, prevSelectionRef.current) ||
-          cursor !== prevProps.cursor
-    ) {
-      fetchDataWithQueueIfAvailable();
+    // Read customDidUpdateComparator from ref to avoid dependency issues
+    const currentCustomComparator = customDidUpdateComparatorRef.current;
+    const refetchReasons = {
+      customComparator: currentCustomComparator?.(prevProps, props),
+      limit: widget.limit !== prevProps.widget.limit,
+      widgetType: !isEqual(widget.widgetType, prevProps.widget.widgetType),
+      displayType: !isEqual(widget.displayType, prevProps.widget.displayType),
+      interval: !isEqual(widget.interval, prevProps.widget.interval),
+      queries: !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)),
+      dashboardFilters: !isEqual(dashboardFilters, prevProps.dashboardFilters),
+      forceOnDemand: !isEqual(forceOnDemand, prevProps.forceOnDemand),
+      disabled: !isEqual(disabled, prevProps.disabled),
+      selection: !isSelectionEqual(selection, prevSelectionRef.current),
+      cursor: cursor !== prevProps.cursor,
+    };
+
+    const shouldRefetch = currentCustomComparator
+      ? refetchReasons.customComparator
+      : Object.values(refetchReasons).some(Boolean);
+
+    if (shouldRefetch) {
+      // For hook-based queries, React Query auto-refetches when query keys change
+      // We only need to manually refetch for old Promise-based approach
+      if (!hasHookApproach) {
+        fetchDataWithQueueIfAvailable();
+      }
       prevPropsRef.current = props;
       prevSelectionRef.current = selection;
       return;
@@ -559,10 +710,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
       rawResults?.length === widget.queries.length
     ) {
       // If the query names has changed, then update timeseries labels
+      // Read config from ref to avoid dependency issues
+      const currentConfig = configRef.current;
       const newTimeseriesResults = widget.queries.reduce(
         (acc: Series[], query, index) => {
           return acc.concat(
-            config.transformSeries!(rawResults[index]!, query, organization)
+            currentConfig.transformSeries!(rawResults[index]!, query, organization)
           );
         },
         []
@@ -573,20 +726,25 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
     prevPropsRef.current = props;
   }, [
+    hasHookApproach,
     widget,
-    selection,
-    cursor,
-    organization,
-    config,
-    customDidUpdateComparator,
     dashboardFilters,
     forceOnDemand,
     disabled,
+    selection,
+    cursor,
     loading,
     rawResults,
     fetchDataWithQueueIfAvailable,
+    organization,
     props,
   ]);
+
+  // If using hook-based approach, return hook results
+  // Otherwise, return old approach results
+  if (hasHookApproach && hookResults) {
+    return hookResults;
+  }
 
   return {
     loading,
