@@ -46,17 +46,11 @@ export function AssertionOpStatusCode({
   const handleInputBlur: FocusEventHandler<HTMLInputElement> = e => {
     const newValue = parseInt(e.target.value, 10);
     // Clamp status code to valid HTTP range (100-599) on blur
-    // eslint-disable-next-line no-console
-    console.log('[STATUS CODE] blur fired, raw value:', e.target.value, 'parsed:', newValue);
     if (isNaN(newValue)) {
-      // eslint-disable-next-line no-console
-      console.log('[STATUS CODE] blur: resetting NaN to 100');
       onChange({...value, value: 100});
     } else {
       const clampedValue = Math.max(100, Math.min(599, newValue));
       if (clampedValue !== value.value) {
-        // eslint-disable-next-line no-console
-        console.log('[STATUS CODE] blur: clamping', newValue, 'to', clampedValue);
         onChange({...value, value: clampedValue});
       }
     }
