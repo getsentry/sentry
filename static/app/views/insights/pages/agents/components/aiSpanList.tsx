@@ -93,16 +93,15 @@ export function AISpanList({
 
   return (
     <Stack padding="2xs" gap="xs" overflow="hidden">
-      {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
-        <Fragment key={transaction.id}>
-          <TransactionWrapper
-            canCollapse={nodesByTransaction.size > 1}
-            transaction={transaction}
-            nodes={transactionNodes}
-            onSelectNode={onSelectNode}
-            selectedNodeKey={selectedNodeKey}
-          />
-        </Fragment>
+      {Array.from(nodesByTransaction.entries()).map(([transaction, transactionNodes]) => (
+        <TransactionWrapper
+          key={transaction.id}
+          canCollapse={nodesByTransaction.size > 1}
+          transaction={transaction}
+          nodes={transactionNodes}
+          onSelectNode={onSelectNode}
+          selectedNodeKey={selectedNodeKey}
+        />
       ))}
     </Stack>
   );
