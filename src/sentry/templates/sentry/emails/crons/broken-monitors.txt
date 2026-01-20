@@ -10,4 +10,4 @@ To bring your monitors back to a healthy status, we recommend checking out our t
 
 View Monitors: {{ view_monitors_link }}
 
-Still facing issues? Reach our to our support team "https://sentry.zendesk.com/hc/en-us/requests/new".
+Still facing issues? Reach out to our support team "https://sentry.zendesk.com/hc/en-us/requests/new".
