@@ -339,6 +339,8 @@ class WorkflowEngineExamples:
                 },
                 "openIssues": 0,
             },
+            status_codes=["200"],
+            response_only=True,
         )
     ]
     LIST_ORG_DETECTORS = [
