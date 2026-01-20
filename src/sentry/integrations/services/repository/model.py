@@ -5,6 +5,8 @@
 
 from typing import Any
 
+from pydantic import Field
+
 from sentry.hybridcloud.rpc import RpcModel
 
 
@@ -13,7 +15,7 @@ class RpcRepository(RpcModel):
     organization_id: int
     name: str
     external_id: str | None
-    config: dict[str, Any]
+    config: dict[str, Any] = Field(repr=False)
     integration_id: int | None
     provider: str | None
     status: int
@@ -23,7 +25,7 @@ class RpcRepository(RpcModel):
 class RpcCreateRepository(RpcModel):
     name: str
     external_id: str | None
-    config: dict[str, Any]
+    config: dict[str, Any] = Field(repr=False)
     integration_id: int
     provider: str
     status: int

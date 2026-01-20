@@ -91,7 +91,7 @@ class RpcSentryApp(RpcModel):
     is_internal: bool = True
     is_publish_request_inprogress: bool = False
     status: str = ""
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(repr=False, default_factory=dict)
     avatars: list[RpcSentryAppAvatar] = Field(default_factory=list)
 
     def show_auth_info(self, access: Any) -> bool:

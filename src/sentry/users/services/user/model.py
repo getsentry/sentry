@@ -31,7 +31,7 @@ class RpcAuthenticator(RpcModel):
     created_at: datetime.datetime = DEFAULT_DATE
     last_used_at: datetime.datetime | None = None
     type: int = -1
-    config: Any = None
+    config: Any = Field(repr=False, default=None)
 
 
 class RpcUserProfile(RpcModel):
@@ -55,7 +55,7 @@ class RpcUserProfile(RpcModel):
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
-    session_nonce: str | None = None
+    session_nonce: str | None = Field(repr=False, default=None)
 
 
 class RpcUser(RpcUserProfile):
