@@ -10,6 +10,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import toArray from 'sentry/utils/array/toArray';
+import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
   TableData,
@@ -145,6 +146,13 @@ export function useSpansSeriesQuery(
         ...restParams,
         ...(period ? {statsPeriod: period} : {}),
       };
+
+      if (queryParams.start) {
+        queryParams.start = getUtcDateString(queryParams.start);
+      }
+      if (queryParams.end) {
+        queryParams.end = getUtcDateString(queryParams.end);
+      }
 
       // Build the API query key for events-stats endpoint
       return [
@@ -336,8 +344,11 @@ export function useSpansTableQuery(
         requestParams.sort = toArray(orderBy);
       }
 
+      const queryStringObject = eventView.generateQueryStringObject();
+
+      // Format Date objects to proper ISO strings to avoid .toString() serialization
       const queryParams = {
-        ...eventView.generateQueryStringObject(),
+        ...queryStringObject,
         ...requestParams,
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
