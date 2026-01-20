@@ -342,6 +342,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-frontend-routes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod issue reporting
     manager.add("organizations:preprod-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable preprod kafka producing via confluent producer to get additional logging
+    manager.add("organizations:preprod-use-confluent-producer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable flag for internal distribution features
     manager.add("organizations:preprod-internal-build-distribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable writing preprod size metrics to EAP for querying
