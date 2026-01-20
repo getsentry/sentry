@@ -98,12 +98,7 @@ function PanelContainers({
                 onClick={onUnminimize}
               >
                 <MinimizedCorner>
-                  <Flex
-                    direction="column"
-                    align="center"
-                    gap="sm"
-                    style={{width: '100%'}}
-                  >
+                  <Flex direction="column" align="center" gap="sm" width="100%">
                     <IconSeer animation={isPolling ? 'loading' : 'waiting'} size="lg" />
                     <Text size="xs">{t('Tab ⇥ to continue')}</Text>
                     <Text size="xs" variant="muted" ellipsis style={{maxWidth: '100%'}}>

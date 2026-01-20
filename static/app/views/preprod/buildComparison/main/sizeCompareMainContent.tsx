@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
@@ -51,7 +50,7 @@ function getMainComparison(
 export function SizeCompareMainContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const theme = useTheme();
+
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
   const [hideSmallChanges, setHideSmallChanges] = useQueryState(
     'hideSmallChanges',
@@ -169,7 +168,8 @@ export function SizeCompareMainContent() {
         direction="column"
         align="center"
         justify="center"
-        style={{minHeight: '60vh', padding: theme.space.md}}
+        minHeight="60vh"
+        padding="md"
       >
         <LoadingIndicator />
       </Flex>

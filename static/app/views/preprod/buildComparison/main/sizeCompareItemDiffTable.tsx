@@ -202,7 +202,7 @@ export function SizeCompareItemDiffTable({
                   {changeTypeLabel}
                 </Tag>
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
+              <SimpleTable.RowCell justify="start" minWidth="0">
                 <Tooltip
                   title={
                     diffItem.path ? (

@@ -431,7 +431,8 @@ function AgentTags({agents}: {agents: string[]}) {
         position="absolute"
         background="primary"
         padding="2xs xs 0 xl"
-        style={{bottom: '0', right: '0'}}
+        bottom="0"
+        right="0"
       >
         <Button priority="link" size="xs" onClick={handleShowAll}>
           {showAll ? t('Show less') : t('Show all')}

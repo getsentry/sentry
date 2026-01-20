@@ -154,9 +154,7 @@ function EditAccessSelector({
               align="center"
               gap="md"
               key={team.id}
-              style={{
-                marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
-              }}
+              marginBottom={index === allSelectedTeams.length - 1 ? '0' : 'md'}
             >
               <TeamAvatar team={team} size={18} />
               <div>#{team.name}</div>

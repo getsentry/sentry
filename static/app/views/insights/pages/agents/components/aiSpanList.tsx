@@ -245,7 +245,9 @@ const TraceListItem = memo(function TraceListItem({
             <Container
               position="absolute"
               radius="full"
-              style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
+              bottom="-6px"
+              right="-6px"
+              padding="2xs"
             >
               <IconFire display="block" size="xs" variant="danger" />
             </Container>

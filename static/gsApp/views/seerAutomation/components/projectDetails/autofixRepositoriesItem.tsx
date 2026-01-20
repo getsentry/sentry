@@ -104,14 +104,7 @@ export function AutofixRepositoriesItem({
 
   return (
     <Fragment>
-      <Flex
-        align="center"
-        gap="sm"
-        height="100%"
-        position="relative"
-        padding="0"
-        style={isExpanded ? {borderBottom: 'none'} : {}}
-      >
+      <Flex align="center" gap="sm" height="100%" position="relative" padding="0">
         <RowButton
           icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
           onClick={() => setIsExpanded(!isExpanded)}
@@ -123,16 +116,11 @@ export function AutofixRepositoriesItem({
         </RowButton>
       </Flex>
 
-      <Flex
-        gap="lg"
-        align="center"
-        justify="end"
-        style={isExpanded ? {borderBottom: 'none'} : {}}
-      >
+      <Flex gap="lg" align="center" justify="end">
         <Text size="sm">{repository.provider}</Text>
       </Flex>
 
-      <Flex align="center" style={isExpanded ? {borderBottom: 'none'} : {}}>
+      <Flex align="center">
         <Confirm
           disabled={!canWrite}
           onConfirm={onRemoveRepo}
