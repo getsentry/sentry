@@ -16,6 +16,7 @@ import type {
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   getEquationAliasIndex,
@@ -349,7 +350,10 @@ export function useSpansTableQuery(
       const hasStarredField = query.fields?.includes(SpanFields.IS_STARRED_TRANSACTION);
       if (hasStarredField) {
         const existingSort = requestParams.sort || [];
-        requestParams.sort = [`-${SpanFields.IS_STARRED_TRANSACTION}`, ...existingSort];
+        requestParams.sort = [
+          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
+          ...existingSort,
+        ];
       }
 
       const queryParams = {
