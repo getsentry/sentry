@@ -88,9 +88,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return args, kwargs
 
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
 
