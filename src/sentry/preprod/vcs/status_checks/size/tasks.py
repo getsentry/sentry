@@ -850,7 +850,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 check_id = response.get("id")
                 return str(check_id) if check_id else None
             except ApiForbiddenError as e:
-                lifecycle.record_failure(e)
+                lifecycle.record_halt(e)
                 error_message = str(e).lower()
                 if "rate limit exceeded" in error_message:
                     raise ApiRateLimitedError("GitHub rate limit exceeded") from e
@@ -859,7 +859,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     or "insufficient" in error_message
                     or "permission" in error_message
                 ):
-                    logger.exception(
+                    logger.warning(
                         "preprod.status_checks.create.insufficient_permissions",
                         extra={
                             "organization_id": self.organization_id,
@@ -874,11 +874,15 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                         "the organization has accepted any updated permissions."
                     ) from e
                 raise
+            except ApiRateLimitedError as e:
+                lifecycle.record_halt(e)
+                raise
             except ApiError as e:
-                lifecycle.record_failure(e)
+                lifecycle.record_halt(e)
                 # 403s are handled by ApiForbiddenError above
+                # 4xx errors are typically user/config issues, not bugs
                 if e.code and 400 <= e.code < 500 and e.code not in (403, 429):
-                    logger.exception(
+                    logger.warning(
                         "preprod.status_checks.create.client_error",
                         extra={
                             "organization_id": self.organization_id,
@@ -890,8 +894,6 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     raise IntegrationConfigurationError(
                         f"GitHub API returned {e.code} client error when creating check run"
                     ) from e
-
-                # For non-permission 403s, 429s, 5xx, and other error
                 raise
 
 
