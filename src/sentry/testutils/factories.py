@@ -620,8 +620,8 @@ class Factories:
         action_match="all",
         filter_match="all",
         frequency=30,
-        exclude_legacy_rule_id=False,
-        exclude_workflow_id=False,
+        include_legacy_rule_id=True,
+        include_workflow_id=True,
         **kwargs,
     ):
         actions = None
@@ -667,9 +667,9 @@ class Factories:
         workflow = IssueAlertMigrator(rule).run()
 
         # annotate the rule with legacy_rule_id and workflow_id
-        if not exclude_legacy_rule_id:
+        if include_legacy_rule_id:
             rule.data["actions"][0]["legacy_rule_id"] = rule.id
-        if not exclude_workflow_id:
+        if include_workflow_id:
             rule.data["actions"][0]["workflow_id"] = workflow.id
 
         return rule

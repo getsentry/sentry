@@ -97,7 +97,7 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        rule = self.create_project_rule(action_data=[self.action_data], exclude_workflow_id=True)
+        rule = self.create_project_rule(action_data=[self.action_data], include_workflow_id=False)
         rule.id = self.action.id
         rule.environment_id = None
 
@@ -143,7 +143,7 @@ class TestInit(RuleTestCase):
             ),
         )
 
-        rule = self.create_project_rule(action_data=[self.action_data], exclude_workflow_id=True)
+        rule = self.create_project_rule(action_data=[self.action_data], include_workflow_id=False)
         rule.id = self.action.id
         rule.environment_id = None
 
@@ -195,7 +195,7 @@ class TestInit(RuleTestCase):
             ),
         )
         # tests error flow because we're actually trying to POST
-        rule = self.create_project_rule(action_data=[self.action_data], exclude_workflow_id=True)
+        rule = self.create_project_rule(action_data=[self.action_data], include_workflow_id=False)
         rule.id = self.action.id
         rule.environment_id = None
 
@@ -272,7 +272,9 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        rule = self.create_project_rule(action_data=[self.action_data], exclude_legacy_rule_id=True)
+        rule = self.create_project_rule(
+            action_data=[self.action_data], include_legacy_rule_id=False
+        )
         rule.id = self.action.id
         rule.environment_id = None
 

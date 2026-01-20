@@ -245,7 +245,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         rule = self.create_project_rule(
             project=self.project,
             name="ja rule",
-            exclude_legacy_rule_id=True,
+            include_legacy_rule_id=False,
         )
 
         notification = AlertRuleNotification(

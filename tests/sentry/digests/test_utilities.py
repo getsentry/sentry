@@ -81,7 +81,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
     def test_event_to_record_with_workflow_id(self) -> None:
         project = self.create_project(fire_project_created=True)
-        rule = self.create_project_rule(project, exclude_legacy_rule_id=True)
+        rule = self.create_project_rule(project, include_legacy_rule_id=False)
 
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
@@ -96,7 +96,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
     def test_event_to_record_with_legacy_rule_id(self) -> None:
         project = self.create_project(fire_project_created=True)
-        rule = self.create_project_rule(project, exclude_workflow_id=True)
+        rule = self.create_project_rule(project, include_workflow_id=False)
 
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
@@ -214,8 +214,8 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
 
         self.rule = self.create_project_rule()
 
-        self.rule_with_workflow_id = self.create_project_rule(exclude_legacy_rule_id=True)
-        self.rule_with_legacy_rule_id = self.create_project_rule(exclude_workflow_id=True)
+        self.rule_with_workflow_id = self.create_project_rule(include_legacy_rule_id=False)
+        self.rule_with_legacy_rule_id = self.create_project_rule(include_workflow_id=False)
 
     def create_events_from_filenames(
         self, project: Project, filenames: Sequence[str] | None = None
@@ -368,7 +368,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
     def test_team_without_members_with_legacy_rule_id(self) -> None:
         team = self.create_team()
         project = self.create_project(teams=[team], fire_project_created=True)
-        rule = self.create_project_rule(project, exclude_workflow_id=True)
+        rule = self.create_project_rule(project, include_workflow_id=False)
         ProjectOwnership.objects.create(
             project_id=project.id,
             schema=dump_schema([Rule(Matcher("path", "*.cpp"), [Owner("team", team.slug)])]),
