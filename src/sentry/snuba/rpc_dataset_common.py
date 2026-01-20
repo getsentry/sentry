@@ -679,6 +679,7 @@ class RPCBase:
         )
 
     @classmethod
+    @sentry_sdk.trace
     def run_timeseries_query(
         cls,
         *,
