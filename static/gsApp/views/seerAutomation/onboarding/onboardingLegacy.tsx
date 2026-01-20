@@ -13,7 +13,7 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -706,10 +706,10 @@ function SeerAutomationOnboarding() {
               )}
             </StepDescription>
 
-            <AutoFixActionWrapper>
+            <Stack align="start" marginBottom="2xl" gap="xl">
               {projectsWithRepos.length > 0 && (
                 <Fragment>
-                  <ThresholdSelectorWrapper>
+                  <Flex align="center" gap="xl" width="100%">
                     <Flex gap="md" align="center">
                       <SelectorLabel>
                         {t('Automatically diagnose issues that are...')}
@@ -725,7 +725,7 @@ function SeerAutomationOnboarding() {
                         strategy="fixed"
                       />
                     </Flex>
-                  </ThresholdSelectorWrapper>
+                  </Flex>
                   <AutoTriggerFixesButton
                     fetching={fetching}
                     projectsWithRepos={projectsWithRepos}
@@ -739,7 +739,7 @@ function SeerAutomationOnboarding() {
                   {t('No projects recommended for auto-triggered fixes')}
                 </EmptyProjectsMessage>
               )}
-            </AutoFixActionWrapper>
+            </Stack>
 
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
@@ -760,7 +760,7 @@ function SeerAutomationOnboarding() {
               )}
             </StepDescription>
 
-            <ScanActionWrapper>
+            <Stack align="start" marginBottom="2xl" gap="md">
               <EnableIssueScansButton
                 fetching={fetching}
                 projectsWithoutRepos={projectsWithoutRepos}
@@ -770,7 +770,7 @@ function SeerAutomationOnboarding() {
                   {t('All projects are set up with Seer!')}
                 </EmptyProjectsMessage>
               )}
-            </ScanActionWrapper>
+            </Stack>
 
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
@@ -870,32 +870,9 @@ const ClickablePanelItem = styled(PanelItem)`
   }
 `;
 
-const ScanActionWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${space(1)};
-`;
-
 const EmptyProjectsMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const AutoFixActionWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${space(2)};
-`;
-
-const ThresholdSelectorWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-  width: 100%;
 `;
 
 const SelectorLabel = styled('div')`

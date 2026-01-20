@@ -184,6 +184,7 @@ from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -558,7 +559,7 @@ class Factories:
         organization=None,
         teams=None,
         fire_project_created=False,
-        create_default_detectors=False,
+        create_default_detectors=True,
         **kwargs,
     ) -> Project:
         from sentry.receivers.project_detectors import disable_default_detector_creation
@@ -619,6 +620,8 @@ class Factories:
         action_match="all",
         filter_match="all",
         frequency=30,
+        include_legacy_rule_id=True,
+        include_workflow_id=True,
         **kwargs,
     ):
         actions = None
@@ -654,12 +657,22 @@ class Factories:
         if actions:
             data["actions"] = actions
 
-        return Rule.objects.create(
+        rule = Rule.objects.create(
             label=name,
             project=project,
             data=data,
             **kwargs,
         )
+        # dual write the rule to the workflow engine
+        workflow = IssueAlertMigrator(rule).run()
+
+        # annotate the rule with legacy_rule_id and workflow_id
+        if include_legacy_rule_id:
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        if include_workflow_id:
+            rule.data["actions"][0]["workflow_id"] = workflow.id
+
+        return rule
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
