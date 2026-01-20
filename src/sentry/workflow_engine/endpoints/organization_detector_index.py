@@ -336,9 +336,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         print("+post")
         # Restrict creating metric issue detectors by plan type
-        #if detector_type == MetricIssue.slug and not features.has(
+        # if detector_type == MetricIssue.slug and not features.has(
         #    "organizations:incidents", organization, actor=request.user
-        #):
+        # ):
         #    print("+checkplan")
         #    raise ResourceDoesNotExist
 
