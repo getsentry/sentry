@@ -89,7 +89,7 @@ function createSearchMap({
   // There are currently two ways to define forms (TODO(billy): Turn this into one):
   // If `formGroups` is defined, then return a flattened list of fields in all formGroups
   // Otherwise `fields` is a map of fieldName -> fieldObject -- create a list of fields
-  const listOfFields = formGroups
+  const listOfFields = formGroups.length > 0
     ? formGroups.flatMap(formGroup => formGroup.fields)
     : Object.keys(fields).map(fieldName => fields[fieldName]);
 
