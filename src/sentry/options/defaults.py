@@ -1255,12 +1255,7 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "seer.explorer_index.run_frequency.minutes",
-    type=Int,
-    default=1440,  # 24 hours
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
+
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
 # {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
 register(
@@ -3099,6 +3094,15 @@ register(
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of trace_ids to enable debug logging for. Empty = debug off.
+# When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
+register(
+    "spans.buffer.debug-traces",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer
