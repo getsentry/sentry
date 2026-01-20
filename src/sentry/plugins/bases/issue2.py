@@ -11,6 +11,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -34,6 +36,15 @@ if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
 
+# Asana plugin endpoints deprecated for cellularization - only non-org-scoped URLs
+ASANA_DEPRECATED_URL_NAMES = [
+    "sentry-api-0-plugins-asana-create",
+    "sentry-api-0-plugins-asana-link",
+    "sentry-api-0-plugins-asana-unlink",
+    "sentry-api-0-plugins-asana-autocomplete",
+]
+
+
 @region_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
     publish_status = {
@@ -47,9 +58,11 @@ class PluginGroupEndpoint(GroupEndpoint):
 
         return self.view(request, group, *args, **kwargs)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=ASANA_DEPRECATED_URL_NAMES)
     def get(self, request: Request, group, *args, **kwargs) -> Response:
         return self._handle(request, group, *args, **kwargs)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=ASANA_DEPRECATED_URL_NAMES)
     def post(self, request: Request, group, *args, **kwargs) -> Response:
         return self._handle(request, group, *args, **kwargs)
 
