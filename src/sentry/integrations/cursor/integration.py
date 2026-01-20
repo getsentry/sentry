@@ -111,20 +111,29 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
         webhook_secret = generate_token()
         api_key = config["api_key"]
 
-        api_key_name = None
-        user_email = None
         try:
             client = CursorAgentClient(api_key=api_key, webhook_secret=webhook_secret)
             cursor_metadata = client.get_api_key_metadata()
             api_key_name = cursor_metadata.apiKeyName
             user_email = cursor_metadata.userEmail
-        except (HTTPError, ApiError):
-            self.get_logger().exception(
-                "cursor.build_integration.metadata_fetch_failed",
+        except (HTTPError, ApiError) as e:
+            self.get_logger().exception("cursor.build_integration.metadata_fetch_failed")
+            status_code: int | None = None
+            if isinstance(e, ApiError):
+                status_code = e.code
+            elif isinstance(e, HTTPError) and e.response is not None:
+                status_code = e.response.status_code
+            if status_code in (401, 403):
+                raise IntegrationConfigurationError(
+                    "Invalid Cursor API key. Please verify that your API key is correct and has not been revoked."
+                )
+            raise IntegrationConfigurationError(
+                "Unable to validate Cursor API key. Please try again or contact support if the issue persists."
             )
         except ValidationError:
-            self.get_logger().exception(
-                "cursor.build_integration.metadata_validation_failed",
+            self.get_logger().exception("cursor.build_integration.metadata_validation_failed")
+            raise IntegrationConfigurationError(
+                "Received unexpected response from Cursor API. Please try again."
             )
 
         integration_name = (
@@ -183,13 +192,42 @@ class CursorAgentIntegration(CodingAgentIntegration):
             raise IntegrationConfigurationError("API key is required")
 
         metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
-        metadata.api_key = api_key
+
+        try:
+            client = CursorAgentClient(api_key=api_key, webhook_secret=metadata.webhook_secret)
+            cursor_metadata = client.get_api_key_metadata()
+            metadata.api_key = api_key
+            metadata.api_key_name = cursor_metadata.apiKeyName
+            metadata.user_email = cursor_metadata.userEmail
+        except (HTTPError, ApiError) as e:
+            status_code: int | None = None
+            if isinstance(e, ApiError):
+                status_code = e.code
+            elif isinstance(e, HTTPError) and e.response is not None:
+                status_code = e.response.status_code
+            if status_code in (401, 403):
+                raise IntegrationConfigurationError(
+                    "Invalid Cursor API key. Please verify that your API key is correct and has not been revoked."
+                )
+            raise IntegrationConfigurationError(
+                "Unable to validate Cursor API key. Please try again or contact support if the issue persists."
+            )
+        except ValidationError:
+            raise IntegrationConfigurationError(
+                "Received unexpected response from Cursor API. Please try again."
+            )
+
+        integration_name = (
+            f"Cursor Cloud Agent - {metadata.user_email}/{metadata.api_key_name}"
+            if metadata.user_email and metadata.api_key_name
+            else "Cursor Cloud Agent"
+        )
+
         integration_service.update_integration(
-            integration_id=self.model.id, metadata=metadata.dict()
+            integration_id=self.model.id, name=integration_name, metadata=metadata.dict()
         )
         self.model.metadata = metadata.dict()
 
-        # Do not store API key in org config; clear any submitted value
         super().update_organization_config({})
 
     def get_client(self):
