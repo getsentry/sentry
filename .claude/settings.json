@@ -8,6 +8,8 @@
       "WebFetch(domain:docs.anthropic.com)",
       "Bash(grep:*)",
       "Bash(pnpm run test:*)",
+      "Bash(pnpm run typecheck:*)",
+      "Bash(pnpm typecheck:*)",
       "Bash(pytest:*)",
       "Bash(mypy:*)",
       "Bash(pre-commit run:*)",
