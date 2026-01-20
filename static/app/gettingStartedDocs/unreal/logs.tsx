@@ -1,10 +1,42 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+
+export const logsVerify = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isLogsSelected,
+  content: [
+    {
+      type: 'text',
+      text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+    },
+    {
+      type: 'code',
+      language: 'cpp',
+      code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
+
+// Send logs at different severity levels
+SentrySubsystem->LogInfo(TEXT("Test log message"), TEXT("Test"));
+SentrySubsystem->LogWarning(TEXT("Warning message"), TEXT("Test"));
+SentrySubsystem->LogError(TEXT("Error message"), TEXT("Test"));`,
+    },
+    {
+      type: 'text',
+      text: tct(
+        'You can also automatically capture Unreal Engine [code:UE_LOG] calls. Check out [link:the Logs documentation] to learn more.',
+        {
+          code: <code />,
+          link: <ExternalLink href="https://docs.sentry.io/platforms/unreal/logs/" />,
+        }
+      ),
+    },
+  ],
+});
 
 export const logs: OnboardingConfig = {
   install: () => [
@@ -63,35 +95,10 @@ SentrySubsystem->InitializeWithSettings(FConfigureSettingsNativeDelegate::Create
       ],
     },
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
-        },
-        {
-          type: 'code',
-          language: 'cpp',
-          code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
-
-// Send logs at different severity levels
-SentrySubsystem->LogInfo(TEXT("Test log message"), TEXT("Test"));
-SentrySubsystem->LogWarning(TEXT("Warning message"), TEXT("Test"));
-SentrySubsystem->LogError(TEXT("Error message"), TEXT("Test"));`,
-        },
-        {
-          type: 'text',
-          text: tct(
-            'You can also automatically capture Unreal Engine [code:UE_LOG] calls. For more information, see the [link:logs documentation].',
-            {
-              code: <code />,
-              link: <ExternalLink href="https://docs.sentry.io/platforms/unreal/logs/" />,
-            }
-          ),
-        },
-      ],
+      content: [logsVerify(params)],
     },
   ],
 };
