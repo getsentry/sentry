@@ -149,9 +149,6 @@ def should_create_or_increment_contributor_seat(
     if not features.has("organizations:seat-based-seer-enabled", organization):
         return False
 
-    if features.has("organizations:code-review-beta", organization):
-        return False
-
     if not _has_code_review_or_autofix_enabled(organization.id, repo.id):
         return False
 
