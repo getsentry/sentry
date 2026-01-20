@@ -348,6 +348,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-build-distribution-eap-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod app size dashboard widget
     manager.add("organizations:preprod-app-size-dashboard", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable enforcement of preprod quota checks (when disabled, quota checks always return True)
+    manager.add("organizations:preprod-enforce-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables PR page
     manager.add("organizations:pr-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay

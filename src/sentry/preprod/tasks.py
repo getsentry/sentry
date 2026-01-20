@@ -19,13 +19,15 @@ from sentry.preprod.eap.write import (
     produce_preprod_build_distribution_to_eap,
     produce_preprod_size_metric_to_eap,
 )
+from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.producer import produce_preprod_artifact_to_kafka
+from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
+from sentry.preprod.quota import has_installable_quota, has_size_quota
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -136,10 +138,17 @@ def assemble_preprod_artifact(
         return
 
     try:
+        requested_features: list[PreprodFeature] = []
+        if has_size_quota(organization):
+            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
+        if has_installable_quota(organization):
+            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
+            requested_features=requested_features,
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
@@ -197,6 +206,24 @@ def create_preprod_artifact(
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
+        # Check if organization has quota for either SIZE_ANALYSIS or INSTALLABLE_BUILD
+        org_has_size_quota = has_size_quota(organization)
+        org_has_installable_quota = has_installable_quota(organization)
+        if not org_has_size_quota and not org_has_installable_quota:
+            logger.info(
+                "No quota available for preprod artifact creation",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": org_id,
+                    "checksum": checksum,
+                    "has_size_quota": org_has_size_quota,
+                    "has_installable_quota": org_has_installable_quota,
+                },
+            )
+            raise NoPreprodQuota(
+                "Organization does not have quota for preprod features (SIZE_ANALYSIS or INSTALLABLE_BUILD)"
+            )
+
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             # Create CommitComparison if git information is provided
             commit_comparison = None
@@ -249,7 +276,6 @@ def create_preprod_artifact(
                 extras=extras,
             )
 
-            # TODO(preprod): add gating to only create if has quota
             PreprodArtifactSizeMetrics.objects.get_or_create(
                 preprod_artifact=preprod_artifact,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -270,6 +296,8 @@ def create_preprod_artifact(
 
             return preprod_artifact
 
+    except NoPreprodQuota:
+        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(

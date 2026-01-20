@@ -14,6 +14,7 @@ from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import 
     validate_preprod_artifact_schema,
     validate_vcs_parameters,
 )
+from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.tasks import create_preprod_artifact
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
@@ -1025,3 +1026,29 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 400, response.content
         assert "error" in response.data
         assert "Head SHA is required when base SHA is provided" in response.data["error"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_no_quota_returns_403(self, mock_create_preprod_artifact: MagicMock) -> None:
+        """Test that endpoint returns 403 when organization has no quota."""
+        content = b"test no quota content"
+        total_checksum = sha1(content).hexdigest()
+
+        mock_create_preprod_artifact.side_effect = NoPreprodQuota(
+            "Organization does not have quota for preprod features"
+        )
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 403, response.content
+        assert response.data["detail"] == "Organization does not have quota for preprod features"
