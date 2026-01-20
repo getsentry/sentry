@@ -651,5 +651,3 @@ class OAuthTokenView(View):
             json.dumps(token_information),
             content_type="application/json",
         )
-
-
