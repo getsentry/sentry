@@ -291,6 +291,38 @@ class TestSentryAppRegionService(TestCase):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert not ServiceHookProject.objects.filter(service_hook_id=hook.id).exists()
 
+    def test_update_service_hook_projects_error(self) -> None:
+        project2 = self.create_project(organization=self.org)
+        project3 = self.create_project(organization=self.org)
+
+        self.create_service_hook_project(project_id=self.project.id)
+        self.create_service_hook_project(project_id=project2.id)
+
+        set_result = sentry_app_region_service.set_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            project_ids=[project2.id, project3.id],
+            # Assume a parallel request has added Project 2, but it was after the initial fetch.
+            existing_project_ids=[self.project.id],
+        )
+        delete_result = sentry_app_region_service.delete_service_hook_projects(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            # Assume a parallel request has added Project 2, but it was after the initial fetch.
+            existing_project_ids=[self.project.id],
+        )
+
+        for error in [set_result.error, delete_result.error]:
+            assert error is not None
+            assert error.status_code == 409
+            assert (
+                error.message
+                == "The service hooks have changed during your request. Please try again after a moment."
+            )
+        with assume_test_silo_mode_of(ServiceHook):
+            assert ServiceHookProject.objects.filter(project_id=self.project.id).exists()
+            assert ServiceHookProject.objects.filter(project_id=project2.id).exists()
+
     def test_get_interaction_stats(self) -> None:
         now = before_now(days=1)
         since = (now - timedelta(minutes=5)).timestamp()

@@ -329,7 +329,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 success=False,
                 error=RpcSentryAppError(
                     message="The service hooks have changed during your request. Please try again after a moment.",
-                    status_code=400,
+                    status_code=409,
                 ),
             )
         deletions.exec_sync_many(list(hook_projects))
