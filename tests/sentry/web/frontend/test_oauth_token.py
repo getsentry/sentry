@@ -1172,11 +1172,11 @@ class OAuthTokenPublicClientAuthCodeTest(TestCase):
         data = json.loads(resp.content)
         assert "access_token" in data
 
-    def test_public_client_authorization_code_with_secret_still_works(self) -> None:
-        """If a public client provides a secret, it's ignored (they don't have one).
+    def test_public_client_with_wrong_secret_fails(self) -> None:
+        """Providing a wrong secret for a public client should fail.
 
-        This tests the client authentication flow where no secret is provided
-        for a public client. The client_id is sufficient for identification.
+        Public clients have client_secret="" (empty string), so any provided
+        secret will not match and authentication should fail.
         """
         code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
         code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
@@ -1189,8 +1189,6 @@ class OAuthTokenPublicClientAuthCodeTest(TestCase):
             code_challenge_method="S256",
         )
 
-        # Even if someone provides a secret for a public client,
-        # it won't match (public clients have client_secret="")
         resp = self.client.post(
             self.path,
             {
@@ -1199,11 +1197,10 @@ class OAuthTokenPublicClientAuthCodeTest(TestCase):
                 "code": grant.code,
                 "code_verifier": code_verifier,
                 "client_id": self.public_application.client_id,
-                "client_secret": "some_random_secret",  # This shouldn't work
+                "client_secret": "some_random_secret",
             },
         )
 
-        # Should fail because the secret doesn't match (public client has None)
         assert resp.status_code == 401
         data = json.loads(resp.content)
         assert data["error"] == "invalid_client"
