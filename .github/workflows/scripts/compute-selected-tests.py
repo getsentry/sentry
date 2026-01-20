@@ -8,7 +8,13 @@ import sys
 from pathlib import Path
 
 # Files that, if changed, should trigger the full test suite (can't determine affected tests)
-FULL_SUITE_TRIGGER_FILES = ["sentry/testutils/pytest/sentry.py", "pyproject.toml", "Makefile"]
+FULL_SUITE_TRIGGER_FILES = [
+    "sentry/testutils/pytest/sentry.py",
+    "pyproject.toml",
+    "Makefile",
+    "sentry/conf/server.py",
+    "sentry/web/urls.py",
+]
 
 
 def should_run_full_suite(changed_files: list[str]) -> bool:
@@ -16,6 +22,15 @@ def should_run_full_suite(changed_files: list[str]) -> bool:
         if any(file_path.endswith(trigger) for trigger in FULL_SUITE_TRIGGER_FILES):
             return True
     return False
+
+
+def get_changed_test_files(changed_files: list[str]) -> set[str]:
+    test_files: set[str] = set()
+    for file_path in changed_files:
+        # Match test files in the tests/ directory
+        if file_path.startswith("tests/") and file_path.endswith(".py"):
+            test_files.add(file_path)
+    return test_files
 
 
 def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> set[str]:
@@ -37,9 +52,6 @@ def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> 
     test_contexts: set[str] = set()
 
     for file_path in changed_files:
-        cleaned_file_path = file_path
-        if cleaned_file_path.startswith("/src"):
-            cleaned_file_path = cleaned_file_path[len("/src") :]
 
         cur.execute(
             """
@@ -50,7 +62,7 @@ def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> 
             WHERE f.path LIKE '%' || ?
               AND c.context != ''
         """,
-            (f"%{cleaned_file_path}",),
+            (f"%{file_path}",),
         )
 
         for context, bitblob in cur.fetchall():
@@ -100,6 +112,12 @@ def main() -> int:
         except sqlite3.Error as e:
             print(f"Error querying coverage database: {e}", file=sys.stderr)
             return 1
+
+    # Also include any test files that were directly changed/added in the PR
+    changed_test_files = get_changed_test_files(changed_files)
+    if changed_test_files:
+        print(f"Including {len(changed_test_files)} directly changed test files")
+        affected_test_files.update(changed_test_files)
 
     print(f"Found {len(affected_test_files)} affected test files")
 

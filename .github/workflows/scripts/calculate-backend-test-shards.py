@@ -23,7 +23,8 @@ PYTEST_BASE_ARGS = [
 ]
 
 
-def collect_test_count():
+def collect_test_count() -> int | None:
+    """Collect the number of tests to run, either from selected files or full suite."""
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
 
     if selected_tests_file:
@@ -75,7 +76,7 @@ def collect_test_count():
         return None
 
 
-def calculate_shards(test_count):
+def calculate_shards(test_count: int | None) -> int:
     if test_count is None:
         print(f"Using default shard count: {DEFAULT_SHARDS}", file=sys.stderr)
         return DEFAULT_SHARDS
@@ -101,7 +102,7 @@ def calculate_shards(test_count):
     return bounded
 
 
-def main():
+def main() -> int:
     test_count = collect_test_count()
     shard_count = calculate_shards(test_count)
     shard_indices = json.dumps(list(range(shard_count)))
