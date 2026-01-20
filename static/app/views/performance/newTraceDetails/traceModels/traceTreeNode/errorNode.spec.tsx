@@ -490,7 +490,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      expect(node.makeBarColor(theme)).toBe(theme.level.warning);
+      expect(node.makeBarColor(theme)).toBe(theme.colors.yellow400);
     });
 
     it('should return theme level color for info', () => {
@@ -503,7 +503,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      expect(node.makeBarColor(theme)).toBe(theme.level.info);
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.accent);
     });
 
     it('should return theme level color for sample', () => {
@@ -516,7 +516,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      expect(node.makeBarColor(theme)).toBe(theme.level.sample);
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.accent);
     });
 
     it('should return red fallback for level not in theme.level', () => {
@@ -560,7 +560,7 @@ describe('ErrorNode', () => {
       const errorNode = new ErrorNode(null, errorValue, extra);
       const theme = ThemeFixture();
 
-      expect(warningNode.makeBarColor(theme)).toBe(theme.level.warning);
+      expect(warningNode.makeBarColor(theme)).toBe(theme.colors.yellow400);
       expect(errorNode.makeBarColor(theme)).toBe(theme.colors.red400); // red400 for error
     });
 
