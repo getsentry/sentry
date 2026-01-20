@@ -70,10 +70,18 @@ def produce_preprod_artifact_to_kafka(
     partition_key = f"{project_id}-{artifact_id}".encode()
     payload = KafkaPayload(partition_key, json.dumps(payload_data).encode("utf-8"), [])
 
+    # Determine which producer to use based on feature flag
+    use_confluent = False
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
         use_confluent = features.has("organizations:preprod-use-confluent-producer", organization)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "Organization not found for preprod artifact, using default producer",
+            extra={"artifact_id": artifact_id, "organization_id": organization_id},
+        )
 
+    try:
         topic = get_topic_definition(Topic.PREPROD_ARTIFACT_EVENTS)["real_topic_name"]
 
         if use_confluent:
