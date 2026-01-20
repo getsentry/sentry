@@ -185,24 +185,16 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert len(result) == 0
         assert project.id not in [p[0] for p in result]
 
-    @freeze_time("2024-01-15 12:00:00")
     def test_includes_only_projects_matching_hour_shard(self):
         org = self.create_organization()
 
-        matching_project = None
-        non_matching_project = None
+        project1 = self.create_project(organization=org)
+        project2 = self.create_project(organization=org)
 
-        for i in range(100):
-            p = self.create_project(organization=org)
-            p.flags.has_transactions = True
-            p.save()
-            if p.id % 23 == 12 and matching_project is None:
-                matching_project = p
-            elif p.id % 23 != 12 and non_matching_project is None:
-                non_matching_project = p
-
-            if matching_project and non_matching_project:
-                break
+        project1.flags.has_transactions = True
+        project1.save()
+        project2.flags.has_transactions = True
+        project2.save()
 
         PromptsActivity.objects.create(
             organization_id=org.id,
@@ -211,19 +203,24 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             feature="seer_autofix_setup_acknowledged",
         )
 
+        target_hour = project1.id % 23
+
         with self.feature(
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
-            result = list(get_seer_explorer_enabled_projects())
+            with freeze_time(f"2024-01-15 {target_hour:02d}:00:00"):
+                result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
-        if matching_project:
-            assert matching_project.id in project_ids
-        if non_matching_project:
-            assert non_matching_project.id not in project_ids
+        assert project1.id in project_ids
+
+        if project2.id % 23 == target_hour:
+            assert project2.id in project_ids
+        else:
+            assert project2.id not in project_ids
 
 
 @django_db_all
