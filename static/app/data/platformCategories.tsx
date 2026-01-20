@@ -392,6 +392,15 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
+  'dotnet',
+  'dotnet-aspnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'dotnet-xamarin',
   'javascript',
   'javascript-angular',
   'javascript-astro',
