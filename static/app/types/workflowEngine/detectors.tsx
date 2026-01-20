@@ -13,6 +13,12 @@ import type {
 } from 'sentry/views/alerts/rules/metric/types';
 import type {Assertion, UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
+import type {
+  MeasurementType as PreprodMeasurement,
+  MetricType as PreprodMetric,
+} from 'sentry/views/settings/project/preprod/types';
+
+export type {PreprodMeasurement, PreprodMetric};
 
 /**
  * See SnubaQuerySerializer
@@ -38,7 +44,11 @@ interface BaseDataSource {
   id: string;
   organizationId: string;
   sourceId: string;
-  type: 'snuba_query_subscription' | 'uptime_subscription' | 'cron_monitor';
+  type:
+    | 'snuba_query_subscription'
+    | 'uptime_subscription'
+    | 'cron_monitor'
+    | 'preprod_subscription';
 }
 
 export interface SnubaQueryDataSource extends BaseDataSource {
@@ -81,7 +91,8 @@ export type DetectorType =
   | 'metric_issue'
   | 'monitor_check_in_failure'
   | 'uptime_domain_failure'
-  | 'issue_stream';
+  | 'issue_stream'
+  | 'preprod_static';
 
 /**
  * Configuration for static/threshold-based detection
@@ -162,12 +173,45 @@ export interface IssueStreamDetector extends BaseDetector {
   readonly type: 'issue_stream';
 }
 
+/**
+ * Filter for preprod builds
+ */
+export interface PreprodFilter {
+  key: 'build.platform' | 'build.package' | 'build.build_configuration' | 'build.branch';
+  value: string;
+}
+
+/**
+ * Configuration for preprod/mobile builds detection
+ */
+interface PreprodDetectorConfig {
+  environment: string | null;
+  measurement: PreprodMeasurement;
+  metric: PreprodMetric;
+}
+
+export interface PreprodDataSource extends BaseDataSource {
+  queryObj: {
+    filters: PreprodFilter[];
+    sourceId: string;
+  };
+  type: 'preprod_subscription';
+}
+
+export interface PreprodDetector extends BaseDetector {
+  readonly conditionGroup: MetricConditionGroup | null;
+  readonly config: PreprodDetectorConfig;
+  readonly dataSources: [PreprodDataSource];
+  readonly type: 'preprod_static';
+}
+
 export type Detector =
   | MetricDetector
   | UptimeDetector
   | CronDetector
   | ErrorDetector
-  | IssueStreamDetector;
+  | IssueStreamDetector
+  | PreprodDetector;
 
 interface UpdateConditionGroupPayload {
   conditions: Array<Omit<MetricCondition, 'id'>>;
@@ -225,6 +269,22 @@ export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
     name: string;
   }>;
   type: 'monitor_check_in_failure';
+}
+
+interface UpdatePreprodDataSourcePayload {
+  filters: PreprodFilter[];
+  sourceId: string;
+}
+
+export interface PreprodDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  conditionGroup: UpdateConditionGroupPayload;
+  config: {
+    environment: string | null;
+    measurement: PreprodMeasurement;
+    metric: PreprodMetric;
+  };
+  dataSources: UpdatePreprodDataSourcePayload[];
+  type: 'preprod_static';
 }
 
 export interface MetricConditionGroup {

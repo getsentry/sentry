@@ -41,6 +41,11 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
     label: t('Issue Stream'),
     systemCreatedNotice: () => t('This monitor is managed by Sentry'),
   },
+  preprod_static: {
+    label: t('Mobile Builds'),
+    path: 'mobile-builds',
+    userCreateable: true,
+  },
 };
 
 export function isValidDetectorType(detectorType: DetectorType) {

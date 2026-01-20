@@ -4,6 +4,7 @@ import type {
   MetricDetector,
   SnubaQuery,
   UptimeDetector,
+  PreprodDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import type {MonitorConfig} from 'sentry/views/insights/crons/types';
 
@@ -24,13 +25,21 @@ type MonitorDetectorAnalytics = {
 };
 
 type ErrorDetectorAnalytics = {
-  detector_type: Extract<Detector['type'], 'error' | 'issue_stream'>;
+  detector_type: Extract<
+    Detector['type'],
+    'error' | 'issue_stream'
+  >;
+};
+
+type PreprodDetectorAnalytics = {
+  detector_type: PreprodDetector['type'];
 };
 
 type DetectorAnalyticsPayload =
   | MetricDetectorAnalytics
   | UptimeDetectorAnalytics
   | MonitorDetectorAnalytics
+  | PreprodDetectorAnalytics
   | ErrorDetectorAnalytics;
 
 export function getDetectorAnalyticsPayload(
@@ -56,6 +65,9 @@ export function getDetectorAnalyticsPayload(
         cron_schedule_type: monitorConfig?.schedule_type,
         detector_type: detector.type,
       };
+    }
+    case 'preprod_static': {
+      return {detector_type: detector.type};
     }
     default:
       return {detector_type: detector.type};
