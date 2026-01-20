@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import {type SelectOption} from 'sentry/components/core/compactSelect';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
@@ -236,13 +237,16 @@ export function AssertionOpGroup({
       </GroupHeading>
       <Stack gap="md">
         {isEmptyGroup && (
-          <DroppableHitbox
-            op={groupOp}
-            groupId={groupOp.id}
-            idIndex={-1}
-            position="inside"
-            disabled={innerDroppableDisabled}
-          />
+          <Container position="relative">
+            <DroppableHitbox
+              op={groupOp}
+              groupId={groupOp.id}
+              idIndex={-1}
+              position="inside"
+              disabled={innerDroppableDisabled}
+            />
+            <Text size="xs">{t('Empty assertion group')}</Text>
+          </Container>
         )}
         {opList}
         <Container paddingTop="md">
@@ -252,6 +256,8 @@ export function AssertionOpGroup({
               borderless: true,
               size: 'zero',
               icon: <IconAdd size="xs" />,
+              title: t('Add assertion to group'),
+              'aria-label': t('Add assertion to group'),
             }}
             triggerLabel={t('Add Assertion')}
             onAddOp={handleAddOp}
