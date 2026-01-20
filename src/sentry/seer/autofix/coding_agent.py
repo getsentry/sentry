@@ -16,6 +16,7 @@ from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
@@ -403,10 +404,6 @@ def launch_coding_agents_for_run(
             raise PermissionDenied("GitHub Copilot is not enabled for this organization")
         user_access_token: str | None = None
         if user_id is not None:
-            from sentry.integrations.services.github_copilot_identity import (
-                github_copilot_identity_service,
-            )
-
             user_access_token = github_copilot_identity_service.get_access_token_for_user(
                 user_id=user_id
             )
