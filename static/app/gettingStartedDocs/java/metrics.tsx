@@ -80,9 +80,9 @@ export const metrics = <
         {
           type: 'text',
           text: tct(
-            "To start using metrics, make sure your Sentry Java SDK version is [code:8.30.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
+            "To start using metrics, make sure your Sentry Java SDK version is [version:8.30.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
             {
-              code: <code />,
+              version: <code />,
               link: (
                 <ExternalLink
                   href={

@@ -2,12 +2,10 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
   type BasePlatformOptions,
-  type ContentBlock,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {t, tct} from 'sentry/locale';
-import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {tct} from 'sentry/locale';
 
 const getMetricsCodeJava = () => `// Counter metric - track occurrences
 Sentry.metrics().count("button_click", 1.0);
@@ -27,61 +25,19 @@ Sentry.metrics().gauge("queue_size", 42.0)
 // Distribution metric - track a value distribution
 Sentry.metrics().distribution("response_time", 150.0)`;
 
-export const getMetricsVerifyJavaSnippet = () => `import io.sentry.Sentry;
-
-${getMetricsCodeJava()}`;
-
-export const getMetricsVerifyKotlinSnippet = () => `import io.sentry.Sentry
-
-${getMetricsCodeKotlin()}`;
-
-export const metricsVerify = <
-  PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
->(
-  params: DocsParams<PlatformOptions>
-): ContentBlock => ({
-  type: 'conditional',
-  condition: params.isMetricsSelected,
-  content: [
-    {
-      type: 'text',
-      text: t(
-        'Send test metrics from your app to verify metrics are arriving in Sentry.'
-      ),
-    },
-    {
-      type: 'code',
-      tabs: [
-        {
-          label: 'Java',
-          language: 'java',
-          code: getMetricsVerifyJavaSnippet(),
-        },
-        {
-          label: 'Kotlin',
-          language: 'kotlin',
-          code: getMetricsVerifyKotlinSnippet(),
-        },
-      ],
-    },
-  ],
-});
-
 export const metrics = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >(): OnboardingConfig<PlatformOptions> => ({
-  install: params => [
+  install: () => [
     {
       type: StepType.INSTALL,
       content: [
         {
           type: 'text',
           text: tct(
-            "To start using metrics, make sure your Sentry Android SDK version is [version] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
+            "To start using metrics, make sure your Sentry Android SDK version is [version:8.30.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
             {
-              version: (
-                <code>{getPackageVersion(params, 'sentry.java.android', '8.30.0')}</code>
-              ),
+              version: <code />,
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/android/migration/" />
               ),
