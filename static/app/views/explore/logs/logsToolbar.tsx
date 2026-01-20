@@ -1,11 +1,11 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {
   ToolbarFooter,
@@ -24,6 +24,10 @@ import {
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
 } from 'sentry/views/explore/logs/types';
@@ -41,6 +45,8 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {HiddenLogSearchFields} from './constants';
 
 export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
   {
@@ -89,21 +95,58 @@ export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
   },
 ];
 
-interface LogsToolbarProps {
-  numberTags: TagCollection;
-  stringTags: TagCollection;
-}
-
-export function LogsToolbar({numberTags, stringTags}: LogsToolbarProps) {
+export function LogsToolbar() {
   return (
     <Container data-test-id="logs-toolbar">
-      <ToolbarVisualize numberTags={numberTags} stringTags={stringTags} />
-      <ToolbarGroupBy numberTags={numberTags} stringTags={stringTags} />
+      <LogsToolbarVisualizeWrapper />
+      <LogsToolbarGroupByWrapper />
     </Container>
   );
 }
 
-function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
+function LogsToolbarVisualizeWrapper() {
+  const [search, setSearch] = useState<string | undefined>(undefined);
+  const debouncedSearch = useDebouncedValue(search, 200);
+  return (
+    <TraceItemAttributeProvider
+      enabled
+      search={debouncedSearch}
+      traceItemType={TraceItemDataset.LOGS}
+    >
+      <ToolbarVisualize onSearch={setSearch} onClose={() => setSearch(undefined)} />
+    </TraceItemAttributeProvider>
+  );
+}
+
+function LogsToolbarGroupByWrapper() {
+  const [search, setSearch] = useState<string | undefined>(undefined);
+  const debouncedSearch = useDebouncedValue(search, 200);
+  return (
+    <TraceItemAttributeProvider
+      enabled
+      search={debouncedSearch}
+      traceItemType={TraceItemDataset.LOGS}
+    >
+      <ToolbarGroupBy onSearch={setSearch} onClose={() => setSearch(undefined)} />
+    </TraceItemAttributeProvider>
+  );
+}
+
+interface LogsToolbarProps {
+  onClose: () => void;
+  onSearch: (search: string) => void;
+}
+
+function ToolbarVisualize({onSearch, onClose}: LogsToolbarProps) {
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
+    'string',
+    HiddenLogSearchFields
+  );
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
+    'number',
+    HiddenLogSearchFields
+  );
+
   const sortedNumberKeys: string[] = useMemo(() => {
     const keys = Object.keys(numberTags);
     keys.sort();
@@ -166,6 +209,9 @@ function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
               visualize={visualize}
               sortedNumberKeys={sortedNumberKeys}
               sortedStringKeys={sortedStringKeys}
+              onSearch={onSearch}
+              onClose={onClose}
+              loading={numberTagsLoading || stringTagsLoading}
             />
           );
         }
@@ -183,8 +229,11 @@ function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
 
 interface VisualizeDropdownProps {
   canDelete: boolean;
+  loading: boolean;
+  onClose: () => void;
   onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
+  onSearch: (search: string) => void;
   sortedNumberKeys: string[];
   sortedStringKeys: string[];
   visualize: VisualizeFunction;
@@ -192,8 +241,11 @@ interface VisualizeDropdownProps {
 
 function VisualizeDropdown({
   canDelete,
+  loading,
   onDelete,
   onReplace,
+  onSearch,
+  onClose,
   visualize,
   sortedNumberKeys,
   sortedStringKeys,
@@ -313,11 +365,22 @@ function VisualizeDropdown({
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
       parsedFunction={visualize.parsedFunction}
+      onClose={onClose}
+      onSearch={onSearch}
+      loading={loading}
     />
   );
 }
 
-function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
+function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
+    'number',
+    HiddenLogSearchFields
+  );
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
+    'string',
+    HiddenLogSearchFields
+  );
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
@@ -398,6 +461,9 @@ function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
               onColumnChange={c => updateColumnAtIndex(i, c)}
               onColumnDelete={() => deleteColumnAtIndex(i)}
               options={options}
+              onSearch={onSearch}
+              onClose={onClose}
+              loading={numberTagsLoading || stringTagsLoading}
             />
           ))}
           <ToolbarFooter>
