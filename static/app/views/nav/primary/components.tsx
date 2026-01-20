@@ -2,6 +2,8 @@ import {Fragment, type MouseEventHandler} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -83,7 +85,9 @@ function SidebarItem({
         skipWrapper
         delay={0}
       >
-        <SidebarListItem {...props}>{children}</SidebarListItem>
+        <Flex as="li" justify="center" align="center" {...props}>
+          {children}
+        </Flex>
       </Tooltip>
     </IconDefaultsProvider>
   );
@@ -277,12 +281,6 @@ export function SeparatorItem({
   );
 }
 
-const SidebarListItem = styled('li')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
@@ -358,7 +356,7 @@ const NavLink = styled(Link, {
     width: 4px;
     height: 20px;
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
@@ -443,7 +441,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   font-size: ${p => p.theme.fontSize.xs};
   background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;

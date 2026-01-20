@@ -1,5 +1,4 @@
-import {t} from 'sentry/locale';
-import type {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -49,94 +48,6 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   }
 
   return breadcrumb;
-}
-
-function getCrumbDescriptionAndColor(
-  type: BreadcrumbType
-): Pick<Crumb, 'variant' | 'description'> {
-  switch (type) {
-    case BreadcrumbType.USER:
-    case BreadcrumbType.UI:
-      return {
-        variant: 'accent',
-        description: t('User Action'),
-      };
-
-    case BreadcrumbType.NAVIGATION:
-      return {
-        variant: 'success',
-        description: t('Navigation'),
-      };
-
-    case BreadcrumbType.DEBUG:
-      return {
-        variant: 'accent',
-        description: t('Debug'),
-      };
-
-    case BreadcrumbType.INFO:
-      return {
-        variant: 'accent',
-        description: t('Info'),
-      };
-
-    case BreadcrumbType.ERROR:
-      return {
-        variant: 'danger',
-        description: t('Error'),
-      };
-
-    case BreadcrumbType.HTTP:
-      return {
-        variant: 'success',
-        description: t('HTTP request'),
-      };
-
-    case BreadcrumbType.WARNING:
-      return {
-        variant: 'warning',
-        description: t('Warning'),
-      };
-    case BreadcrumbType.QUERY:
-      return {
-        variant: 'accent',
-        description: t('Query'),
-      };
-    case BreadcrumbType.SYSTEM:
-      return {
-        variant: 'promotion',
-        description: t('System'),
-      };
-    case BreadcrumbType.SESSION:
-      return {
-        variant: 'promotion',
-        description: t('Session'),
-      };
-    case BreadcrumbType.TRANSACTION:
-      return {
-        variant: 'promotion',
-        description: t('Transaction'),
-      };
-    default:
-      return {
-        variant: 'muted',
-        description: t('Default'),
-      };
-  }
-}
-
-export function transformCrumbs(breadcrumbs: RawCrumb[]): Crumb[] {
-  return breadcrumbs.map((breadcrumb, index) => {
-    const convertedCrumbType = convertCrumbType(breadcrumb);
-    const {variant, description} = getCrumbDescriptionAndColor(convertedCrumbType.type);
-    return {
-      ...convertedCrumbType,
-      id: index,
-      variant,
-      description,
-      level: convertedCrumbType.level ?? BreadcrumbLevelType.UNDEFINED,
-    };
-  });
 }
 
 function moduleToCategory(module: string | null | undefined) {

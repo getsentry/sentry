@@ -29,6 +29,17 @@ export default function BackgroundAgentPicker({
 }: Props) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
+  const isAutoTriggeredFixesEnabled = Boolean(
+    project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
+  );
+
+  const isDisabled = !canWrite || !isAutoTriggeredFixesEnabled;
+
+  let disabledReason: string | null = null;
+  if (!isAutoTriggeredFixesEnabled) {
+    disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
+  }
+
   if (supportedIntegrations.length === 0) {
     // There are no supported integrations, so we don't need to show anything
     // Users will need to add an integration first (See <BackgroundAgentSetup />)
@@ -43,7 +54,8 @@ export default function BackgroundAgentPicker({
       case 'cursor':
         return (
           <BooleanField
-            disabled={!canWrite}
+            disabled={isDisabled}
+            disabledReason={disabledReason ?? undefined}
             name="connectCursorIntegration"
             label={
               <Flex align="center" gap="sm">
@@ -52,10 +64,10 @@ export default function BackgroundAgentPicker({
               </Flex>
             }
             help={tct(
-              '[docsLink:Read the docs] to learn more about Cursor Cloud Agents integration.',
+              'Seer will identify the root cause and hand off to an external coding agent for solutions and fixes. [docsLink:Read the docs] to learn more.',
               {
                 docsLink: (
-                  <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />
                 ),
               }
             )}
@@ -109,9 +121,16 @@ export default function BackgroundAgentPicker({
 
   return (
     <SelectField
-      disabled={!canWrite}
+      disabled={isDisabled}
+      disabledReason={disabledReason ?? undefined}
       name="integrationId"
       label={t('Coding Agent Integration')}
+      help={tct(
+        'Seer will identify the root cause and hand off to an external coding agent for solutions and fixes. [docsLink:Read the docs] to learn more.',
+        {
+          docsLink: <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />,
+        }
+      )}
       allowEmpty
       allowClear
       options={options}

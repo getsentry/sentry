@@ -1204,7 +1204,7 @@ const TraceStylingWrapper = styled('div')`
       svg {
         width: 12px;
         height: 12px;
-        fill: ${p => p.theme.white};
+        fill: ${p => p.theme.colors.white};
       }
 
       &.profile svg {

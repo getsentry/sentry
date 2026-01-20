@@ -2,6 +2,8 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {FeatureBadge} from 'sentry/components/core/badge';
 import type {
   MultipleSelectProps,
@@ -125,15 +127,18 @@ function OptionSelector({
       options={mappedOptions}
       isOptionDisabled={isOptionDisabled}
       position="bottom-end"
-      triggerProps={{
-        borderless: true,
-        prefix: (
-          <Fragment>
-            {title}
-            {defined(featureType) ? <StyledFeatureBadge type={featureType} /> : null}
-          </Fragment>
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          borderless
+          prefix={
+            <Fragment>
+              {title}
+              {defined(featureType) ? <StyledFeatureBadge type={featureType} /> : null}
+            </Fragment>
+          }
+        />
+      )}
     />
   );
 }

@@ -23,11 +23,11 @@ We can use this as a basepoint to build out our templating system in the future
 """
 
 
-def create_link_to_workflow(organization_id: int, workflow_id: str) -> str:
+def create_link_to_workflow(organization_slug: str, workflow_id: str) -> str:
     """
     Create a link to a workflow
     """
-    return f"/organizations/{organization_id}/monitors/alerts/{workflow_id}/"
+    return f"/organizations/{organization_slug}/monitors/alerts/{workflow_id}/"
 
 
 def get_email_link_extra_params(
@@ -152,9 +152,9 @@ def get_workflow_links(
             NotificationRuleDetails(
                 int(workflow_id),
                 rule.label,
-                create_link_to_workflow(organization.id, workflow_id),
+                create_link_to_workflow(organization.slug, workflow_id),
                 # TODO(iamrajjoshi): Add status url (whatever it is)
-                create_link_to_workflow(organization.id, workflow_id),
+                create_link_to_workflow(organization.slug, workflow_id),
             )
         )
     return workflow_links

@@ -16,7 +16,7 @@ type QueueItem = {
   fetchDataRef: RefObject<FetchDataFn>;
 };
 
-export type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
+type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
 
 type Context = {
   queue: WidgetQueryQueue;

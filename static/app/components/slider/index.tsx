@@ -6,6 +6,8 @@ import type {AriaSliderProps, AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 
@@ -208,7 +210,7 @@ export function Slider({
     >
       <SliderGroup {...groupProps} className={className}>
         {label && (
-          <SliderLabelWrapper className="label-container">
+          <Flex justify="between" marginBottom="lg" className="label-container">
             <SliderLabel {...labelProps}>{label}</SliderLabel>
             <SliderLabelOutput {...outputProps}>
               {nThumbs > 1 ? (
@@ -221,7 +223,7 @@ export function Slider({
                 getFormattedValue(selectedRange[1]!)
               )}
             </SliderLabelOutput>
-          </SliderLabelWrapper>
+          </Flex>
         )}
 
         <SliderTrack
@@ -305,12 +307,6 @@ const SliderGroup = styled('div')`
   flex-direction: column;
   justify-content: center;
   white-space: nowrap;
-`;
-
-const SliderLabelWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1.5)};
 `;
 
 const SliderLabel = styled('label')`
