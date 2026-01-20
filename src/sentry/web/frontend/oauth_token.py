@@ -157,8 +157,11 @@ class OAuthTokenView(View):
         # - Device flow (RFC 8628 §5.6)
         # - Refresh token with rotation (RFC 9700 §4.14.2)
         #
-        # We first look up the application by client_id to determine if it's public,
-        # then validate the secret only if the application is confidential.
+        # SECURITY: To prevent client_id enumeration (oracle attack), we must return
+        # the same error whether the client_id doesn't exist or the secret is wrong.
+        # We use different lookup strategies based on whether a secret was provided:
+        # - With secret: combined lookup (client_id + client_secret) - no oracle
+        # - Without secret: lookup by client_id, then verify it's a public client
 
         if not client_id:
             return self.error(
@@ -168,49 +171,57 @@ class OAuthTokenView(View):
                 status=401,
             )
 
-        try:
-            application = ApiApplication.objects.get(client_id=client_id)
-        except ApiApplication.DoesNotExist:
-            metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
-            logger.warning("Invalid client_id", extra={"client_id": client_id})
-            return self.error(
-                request=request,
-                name="invalid_client",
-                reason="invalid client_id",
-                status=401,
-            )
-
-        # Determine if this is a public or confidential client
-        is_public_client = application.is_public
-
-        # For confidential clients, validate the secret
-        if not is_public_client:
-            if not client_secret:
-                # Confidential client must provide secret
-                return self.error(
-                    request=request,
-                    name="invalid_client",
-                    reason="missing client_secret",
-                    status=401,
+        if client_secret:
+            # Confidential client flow: validate client_id + client_secret together
+            # to prevent oracle attacks (same error for invalid id vs invalid secret)
+            try:
+                application = ApiApplication.objects.get(
+                    client_id=client_id,
+                    client_secret=client_secret,
                 )
-            if application.client_secret != client_secret:
+                is_public_client = False  # Has a secret, so it's confidential
+            except ApiApplication.DoesNotExist:
                 metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
                 logger.warning(
-                    "Invalid client_secret",
+                    "Invalid client_id / secret pair",
                     extra={"client_id": client_id},
                 )
                 return self.error(
                     request=request,
                     name="invalid_client",
-                    reason="invalid client_secret",
+                    reason="invalid client_id or client_secret",
                     status=401,
                 )
         else:
-            # Public client - log if they provided a secret (shouldn't happen)
-            if client_secret:
-                logger.info(
-                    "Public client provided client_secret (ignored)",
+            # No secret provided - must be a public client
+            # Look up by client_id and verify it's actually public
+            try:
+                application = ApiApplication.objects.get(client_id=client_id)
+            except ApiApplication.DoesNotExist:
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                logger.warning("Invalid client_id", extra={"client_id": client_id})
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="invalid client_id or client_secret",
+                    status=401,
+                )
+
+            is_public_client = application.is_public
+
+            if not is_public_client:
+                # Confidential client tried to authenticate without a secret
+                # Return same error as invalid credentials to prevent oracle
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                logger.warning(
+                    "Confidential client missing secret",
                     extra={"client_id": client_id},
+                )
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="invalid client_id or client_secret",
+                    status=401,
                 )
 
         # Public clients can only use certain grant types
