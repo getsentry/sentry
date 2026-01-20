@@ -194,7 +194,9 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Console SDK Invites'),
           description: t('Manage access to our private console SDK repositories'),
           show: ({organization}) =>
-            !!organization && (organization.enabledConsolePlatforms?.length ?? 0) > 0,
+            !!organization &&
+            organization.features.includes('github-console-sdk-self-invite') &&
+            (organization.enabledConsolePlatforms?.length ?? 0) > 0,
           id: 'console-sdk-invites',
         },
       ],
