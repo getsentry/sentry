@@ -28,7 +28,7 @@ SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
   ],
 });
 
-export const logs = (): OnboardingConfig => ({
+export const dotnetLogs = (): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,

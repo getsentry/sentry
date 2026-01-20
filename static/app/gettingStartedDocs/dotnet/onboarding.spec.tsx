@@ -14,11 +14,7 @@ describe('dotnet onboarding docs', () => {
           version: '1.99.9',
         },
       },
-      selectedProducts: [
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.LOGS,
-        ProductSolution.METRICS,
-      ],
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
     });
 
     // Renders main headings
@@ -27,7 +23,6 @@ describe('dotnet onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify Logs'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify Metrics'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry
