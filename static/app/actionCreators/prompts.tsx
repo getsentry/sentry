@@ -112,7 +112,10 @@ export const makePromptsCheckQueryKey = ({
   organization,
   projectId,
 }: PromptCheckParams): ApiQueryKey => {
-  const url = `/organizations/${organization.slug}/prompts-activity/`;
+  // Use optional chaining because query keys are generated even when the query
+  // is disabled. Some callers use `organization!` with `enabled: false` when
+  // organization may be null (e.g., stacktraceBanners.tsx with allowNull: true).
+  const url = `/organizations/${organization?.slug}/prompts-activity/`;
   return [url, {query: {feature, project_id: projectId}}];
 };
 
