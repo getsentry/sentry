@@ -154,7 +154,7 @@ const Wrapper = styled('div')`
 
 const Card = styled(Panel)`
   width: 80%;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${space(2)};
 `;
 
@@ -211,7 +211,7 @@ const QueryButton = styled('button')`
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px ${p => p.theme.button.default.focusBorder};
+    box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
   }
 `;
 

@@ -43,6 +43,7 @@ import {
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
@@ -60,7 +61,10 @@ import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/u
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {isMultiSeriesEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import {
+  isGroupedMultiSeriesEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
@@ -71,7 +75,9 @@ import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/componen
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -174,6 +180,73 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   };
 }
 
+/**
+ * Generic helper to extract metadata (units or types) from events-stats series data.
+ * Handles both MultiSeriesEventsStats and GroupedMultiSeriesEventsStats responses.
+ */
+function extractSeriesMetadata<T>({
+  data,
+  getFieldMetaValue,
+  getMetaField,
+  widgetQuery,
+}: {
+  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
+  getFieldMetaValue: (meta: NonNullable<WidgetQuery['fieldMeta']>[number] | null) => T;
+  getMetaField: (seriesMeta: EventsStats['meta'], aggregate: string) => T;
+  widgetQuery: WidgetQuery;
+}): Record<string, T> {
+  const result: Record<string, T> = {};
+
+  // Initialize from fieldMeta if available
+  widgetQuery.fieldMeta?.forEach((meta, index) => {
+    if (meta && widgetQuery.fields?.[index]) {
+      result[widgetQuery.fields[index]] = getFieldMetaValue(meta);
+    }
+  });
+
+  if (isMultiSeriesEventsStats(data)) {
+    // If there's only one aggregate and multiple groupings, series names are group names
+    // In this case, we can use the first meta value for all series
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
+    const isSingleAggregateMultiGroup =
+      firstMeta &&
+      widgetQuery.aggregates?.length === 1 &&
+      widgetQuery.columns?.length > 0;
+
+    if (isSingleAggregateMultiGroup) {
+      // Use hardcoded config for all series
+      Object.keys(data).forEach(seriesName => {
+        result[seriesName] = getFieldMetaValue(firstMeta);
+      });
+    } else {
+      Object.keys(data).forEach(seriesName => {
+        const seriesData = data[seriesName];
+        if (!seriesData?.meta) {
+          return;
+        }
+        widgetQuery.aggregates?.forEach(aggregate => {
+          // Multi-series can be keyed by aggregate or series name depending on aggregate count
+          const key = widgetQuery.aggregates?.length > 1 ? aggregate : seriesName;
+          if (seriesData.meta) {
+            result[key] = getMetaField(seriesData.meta, aggregate);
+          }
+        });
+      });
+    }
+  } else if (isGroupedMultiSeriesEventsStats(data)) {
+    Object.keys(data).forEach(groupName => {
+      widgetQuery.aggregates?.forEach(aggregate => {
+        const seriesData = data[groupName]?.[aggregate] as EventsStats;
+        if (seriesData?.meta && aggregate) {
+          result[aggregate] = getMetaField(seriesData.meta, aggregate);
+        }
+      });
+    });
+  }
+
+  return result;
+}
+
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
@@ -238,58 +311,27 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
+    if (field === 'transaction') {
+      return renderTransactionAsLinkable;
+    }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getSeriesResultUnit: (data, widgetQuery) => {
-    const resultUnits: Record<string, DataUnit> = {};
-    widgetQuery.fieldMeta?.forEach((meta, index) => {
-      if (meta && widgetQuery.fields) {
-        resultUnits[widgetQuery.fields[index]!] = meta.valueUnit;
-      }
+    return extractSeriesMetadata({
+      data,
+      widgetQuery,
+      getFieldMetaValue: meta => meta?.valueUnit as DataUnit,
+      getMetaField: (seriesMeta, aggregate) => seriesMeta?.units?.[aggregate] as DataUnit,
     });
-    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
-
-    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
-    // But we can just assume the units is for all the series
-    // TODO: This doesn't work with multiple aggregates
-    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
-    if (
-      isMultiSeriesStats &&
-      firstMeta &&
-      widgetQuery.aggregates?.length === 1 &&
-      widgetQuery.columns?.length > 0
-    ) {
-      Object.keys(data).forEach(seriesName => {
-        resultUnits[seriesName] = firstMeta.valueUnit;
-      });
-    }
-    return resultUnits;
   },
   getSeriesResultType: (data, widgetQuery) => {
-    const resultTypes: Record<string, AggregationOutputType> = {};
-    widgetQuery.fieldMeta?.forEach((meta, index) => {
-      if (meta && widgetQuery.fields) {
-        resultTypes[widgetQuery.fields[index]!] = meta.valueType as AggregationOutputType;
-      }
+    return extractSeriesMetadata({
+      data,
+      widgetQuery,
+      getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
+      getMetaField: (seriesMeta, aggregate) =>
+        seriesMeta?.fields?.[aggregate] as AggregationOutputType,
     });
-
-    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
-
-    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
-    // But we can just assume the units is for all the series
-    // TODO: This doesn't work with multiple aggregates
-    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
-    if (
-      isMultiSeriesStats &&
-      firstMeta &&
-      widgetQuery.aggregates?.length === 1 &&
-      widgetQuery.columns?.length > 0
-    ) {
-      Object.keys(data).forEach(seriesName => {
-        resultTypes[seriesName] = firstMeta.valueType as AggregationOutputType;
-      });
-    }
-    return resultTypes;
   },
 };
 
@@ -480,6 +522,52 @@ function renderEventInTraceView(
   return (
     <Link to={target}>
       <Container>{getShortEventId(spanId)}</Container>
+    </Link>
+  );
+}
+
+function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBaggage) {
+  const transaction = data.transaction;
+  if (!transaction || typeof transaction !== 'string') {
+    return <Container>{emptyStringValue}</Container>;
+  }
+
+  const {organization, location, projects} = baggage;
+
+  let projectID: string | string[] | undefined;
+  const filterProjects = location?.query.project;
+
+  if (typeof filterProjects === 'string' && filterProjects !== '-1') {
+    projectID = filterProjects;
+  } else {
+    const projectMatch = projects?.find(
+      project =>
+        project.slug && [data['project.name'], data.project].includes(project.slug)
+    );
+    projectID = projectMatch ? [projectMatch.id] : undefined;
+  }
+
+  const filters = new MutableSearch('');
+
+  // Filters on the transaction summary page won't match the dashboard because transaction summary isn't on eap yet.
+  if (data[SpanFields.SPAN_OP]) {
+    filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
+  }
+  if (data[SpanFields.REQUEST_METHOD]) {
+    filters.addFilterValue('http.method', data[SpanFields.REQUEST_METHOD]);
+  }
+
+  const target = transactionSummaryRouteWithQuery({
+    organization,
+    transaction: String(transaction),
+    projectID,
+    query: location?.query,
+    additionalQuery: {query: filters.formatString()},
+  });
+
+  return (
+    <Link to={target}>
+      <Container>{transaction}</Container>
     </Link>
   );
 }

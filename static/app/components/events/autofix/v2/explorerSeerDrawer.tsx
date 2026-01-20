@@ -60,10 +60,10 @@ interface ExplorerSeerDrawerProps {
 const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
   {
     label: (
-      <CrumbContainer>
+      <Flex align="center" gap="md">
         <ProjectAvatar project={project} />
         <ShortId>{group.shortId}</ShortId>
-      </CrumbContainer>
+      </Flex>
     ),
   },
   {label: getShortEventId(event.id)},
@@ -92,10 +92,10 @@ function DrawerNavigator({
 }: DrawerNavigatorProps) {
   return (
     <SeerDrawerNavigator>
-      <HeaderContainer>
+      <Flex align="center" gap="sm">
         <Header>{t('Seer')}</Header>
         <IconSeer animation={iconAnimation} size="md" />
-      </HeaderContainer>
+      </Flex>
       <ButtonWrapper>
         <AutofixFeedback iconOnly />
 
@@ -422,7 +422,7 @@ const DrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto 1fr;
   position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`
@@ -436,7 +436,7 @@ const SeerDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space['2xl']};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
@@ -453,12 +453,6 @@ const SeerDrawerBody = styled(DrawerBody)`
   }
 `;
 
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
-
 const Header = styled('h3')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -468,12 +462,6 @@ const Header = styled('h3')`
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
   padding: 0;
-`;
-
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;
 
 const ShortId = styled('div')`

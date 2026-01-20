@@ -4,9 +4,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Member, Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
@@ -14,14 +11,20 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
-import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
@@ -41,28 +44,23 @@ type RouteParams = {
   projectId?: string;
 };
 
-type Props = RouteComponentProps<RouteParams> & {
-  hasMetricAlerts: boolean;
-  members: Member[] | undefined;
-  organization: Organization;
-  project: Project;
-};
+export default function Create() {
+  const organization = useOrganization();
+  const location = useLocation();
+  const params = useParams<RouteParams>();
+  const router = useRouter();
+  const routes = useRoutes();
+  const {project, members} = useAlertBuilderOutlet();
+  const hasMetricAlerts = organization.features.includes('incidents');
 
-function Create(props: Props) {
-  const {hasMetricAlerts, organization, project, location, members, params, router} =
-    props;
-  const {
-    aggregate,
-    dataset,
-    createFromDuplicate,
-    duplicateRuleId,
-    createFromDiscover,
-    query,
-    createFromWizard,
-  } = location?.query ?? {};
-  const eventTypes = location?.query?.eventTypes
-    ? (decodeScalar(location.query.eventTypes) as EventTypes)
-    : undefined;
+  const aggregate = decodeScalar(location.query.aggregate);
+  const dataset = decodeScalar(location.query.dataset) as Dataset | undefined;
+  const createFromDuplicate = decodeScalar(location.query.createFromDuplicate);
+  const duplicateRuleId = decodeScalar(location.query.duplicateRuleId);
+  const createFromDiscover = decodeScalar(location.query.createFromDiscover);
+  const query = decodeScalar(location.query.query);
+  const createFromWizard = decodeScalar(location.query.createFromWizard);
+  const eventTypes = decodeScalar(location.query.eventTypes) as EventTypes | undefined;
 
   const alertType = params.alertType || AlertRuleType.METRIC;
 
@@ -183,7 +181,13 @@ function Create(props: Props) {
               />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
-                {...props}
+                location={location}
+                params={params}
+                router={router}
+                routes={routes}
+                route={{}}
+                routeParams={params}
+                project={project}
                 userTeamIds={teams.map(({id}) => id)}
                 members={members}
               />
@@ -192,7 +196,13 @@ function Create(props: Props) {
               alertType === AlertRuleType.METRIC &&
               (isDuplicateRule ? (
                 <MetricRuleDuplicate
-                  {...props}
+                  location={location}
+                  params={params}
+                  router={router}
+                  routes={routes}
+                  route={{}}
+                  routeParams={params}
+                  project={project}
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
@@ -200,7 +210,14 @@ function Create(props: Props) {
                 />
               ) : (
                 <MetricRulesCreate
-                  {...props}
+                  location={location}
+                  params={params}
+                  router={router}
+                  routes={routes}
+                  route={{}}
+                  routeParams={params}
+                  organization={organization}
+                  project={project}
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
@@ -214,5 +231,3 @@ function Create(props: Props) {
     </Fragment>
   );
 }
-
-export default Create;

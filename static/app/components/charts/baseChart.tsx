@@ -734,7 +734,11 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
   .tooltip-label {
     margin-right: ${space(1)};
-    ${p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .tooltip-label strong {
     font-weight: ${p.theme.fontWeight.normal};
@@ -814,7 +818,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
 
   /* Tooltip description styling */
   .tooltip-description {
-    color: ${p.theme.white};
+    color: ${p.theme.colors.white};
     border-radius: ${p.theme.radius.md};
     background: #000;
     opacity: 0.9;

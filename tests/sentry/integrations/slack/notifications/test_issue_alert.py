@@ -30,7 +30,6 @@ from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
@@ -56,13 +55,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        self.rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        self.rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
     def test_issue_alert_user_block(self) -> None:
@@ -276,7 +271,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @with_feature("organizations:workflow-engine-ui-links")
     def test_generic_issue_alert_user_block_workflow_engine_ui_links(
         self, occurrence: MagicMock
     ) -> None:
@@ -305,7 +299,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # Assert we are using the workflow id and created a link to the workflow
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.id}/monitors/alerts/1234567890/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/1234567890/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
 
@@ -352,13 +346,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
         ProjectOwnership.objects.create(project_id=self.project.id)
 
@@ -466,60 +456,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         self._assert_issue_owners_env_block(rule, environment)
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
-    @with_feature("organizations:workflow-engine-ui-links")
-    def test_issue_alert_issue_owners_environment_block__workflow_engine_ui_links(self) -> None:
-        environment = self.create_environment(self.project, name="production")
-        ProjectOwnership.objects.create(project_id=self.project.id)
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-            "targetIdentifier": "",
-        }
-        rule = self.create_project_rule(
-            project=self.project,
-            action_data=[action_data],
-            name="ja rule",
-            environment_id=environment.id,
-        )
-        # attach legacy_rule_id to the rule
-        rule.data["actions"][0]["legacy_rule_id"] = rule.id
-        workflow = IssueAlertMigrator(rule).run()
-
-        rule.data["actions"][0]["workflow_id"] = workflow.id
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error", "environment": environment.name},
-            project_id=self.project.id,
-        )
-
-        notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
-            ActionTargetType.ISSUE_OWNERS,
-            self.user.id,
-            FallthroughChoiceType.ACTIVE_MEMBERS,
-        )
-
-        with self.tasks():
-            notification.send()
-
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        fallback_text = self.mock_post.call_args.kwargs["text"]
-        notification_uuid = notification.notification_uuid
-        assert (
-            fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.id}/monitors/alerts/{workflow.id}/|ja rule>"
-        )
-        assert blocks[0]["text"]["text"] == fallback_text
-        assert event.group
-        assert (
-            blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment=production&workflow_id={workflow.id}&alert_type=issue|*Hello world*>"
-        )
-        assert (
-            blocks[4]["elements"][0]["text"]
-            == f"{event.project.slug} | {environment.name} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
-        )
-
     @responses.activate
     def test_issue_alert_team_issue_owners_block(self) -> None:
         """
@@ -577,13 +513,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
         notification = AlertRuleNotification(
@@ -656,13 +588,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
         notification = AlertRuleNotification(
@@ -746,13 +674,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
         key = f"mail:p:{self.project.id}"
@@ -826,13 +750,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
         notification = Notification(event=event, rule=rule)
 
@@ -912,13 +832,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
-        rule = Rule.objects.create(
+        rule = self.create_project_rule(
             project=project2,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+            name="ja rule",
+            action_data=[action_data],
         )
         notification = Notification(event=event, rule=rule)
 
@@ -974,13 +891,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
-        rule = Rule.objects.create(
+        rule = self.create_project_rule(
             project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+            name="ja rule",
+            action_data=[action_data],
         )
         notification = Notification(event=event, rule=rule)
 
@@ -1011,13 +925,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
         notification = Notification(event=event, rule=rule)
 

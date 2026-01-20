@@ -3,6 +3,9 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -128,12 +131,14 @@ export function ServiceEntrySpansTable({
     <Fragment>
       <Header>
         <CompactSelect
-          triggerProps={{prefix: t('Filter'), size: 'xs'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
+          )}
           value={selected.value}
           options={options}
           onChange={opt => handleDropdownChange(opt.value)}
         />
-        <HeaderButtonWrapper>
+        <Flex>
           {supportsInvestigationRule && (
             <InvestigationRuleWrapper>
               <InvestigationRuleCreation
@@ -152,7 +157,7 @@ export function ServiceEntrySpansTable({
               {t('View Sampled Events')}
             </Button>
           )}
-        </HeaderButtonWrapper>
+        </Flex>
         <CustomPagination
           pageLinks={pageLinks}
           onCursor={handleCursor}
@@ -295,10 +300,6 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
-`;
-
-const HeaderButtonWrapper = styled('div')`
-  display: flex;
 `;
 
 const InvestigationRuleWrapper = styled('div')`

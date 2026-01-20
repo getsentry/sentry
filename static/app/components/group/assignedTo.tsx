@@ -2,6 +2,8 @@ import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
@@ -249,9 +251,9 @@ function AssignedTo({
               size={24}
             />
           ) : (
-            <IconWrapper>
+            <Flex padding="2xs">
               <IconUser size="md" />
-            </IconWrapper>
+            </Flex>
           )}
           <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
         </ActorWrapper>
@@ -327,14 +329,13 @@ const ActorWrapper = styled('div')`
   line-height: 1;
 `;
 
-const IconWrapper = styled('div')`
-  display: flex;
-  padding: ${space(0.25)};
-`;
-
 const ActorName = styled('div')`
   line-height: 1.2;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`

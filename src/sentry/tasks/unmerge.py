@@ -272,7 +272,9 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
         [str(group.id)],
     )
 
-    similarity.delete(project, group)
+    # Don't do MinHash work if we use embeddings-based similarity.
+    if not project.get_option("sentry:similarity_backfill_completed"):
+        similarity.delete(project, group)
 
 
 def collect_group_environment_data(
@@ -458,8 +460,7 @@ def repair_denormalizations(
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
-    # Skip MinHash similarity indexing for projects that have been backfilled to Seer.
-    # Those projects use Seer's embeddings-based similarity instead.
+    # Don't do MinHash work if we use embeddings-based similarity.
     if not project.get_option("sentry:similarity_backfill_completed"):
         for event in events:
             similarity.record(project, [event])

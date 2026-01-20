@@ -183,6 +183,7 @@ function Thresholds() {
         <NumberField
           name="failureIssueThreshold"
           min={1}
+          max={720}
           placeholder="1"
           defaultValue={CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD}
           help={t(

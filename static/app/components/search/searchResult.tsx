@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import IdBadge from 'sentry/components/idBadge';
@@ -91,10 +93,10 @@ function SearchResult({item, matches, highlighted}: Props) {
   }
 
   return (
-    <Wrapper>
-      <Content>{renderContent()}</Content>
+    <Flex justify="between" align="center" gap="md">
+      <Stack>{renderContent()}</Stack>
       <div>{renderResultType(item)}</div>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -115,19 +117,7 @@ const ExtraDetail = styled('div')`
 
 const BadgeDetail = styled('div')<{highlighted: boolean}>`
   line-height: 1.3;
-  color: ${p => (p.highlighted ? p.theme.activeText : null)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
+  color: ${p => (p.highlighted ? p.theme.tokens.interactive.link.accent.rest : null)};
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
@@ -138,5 +128,5 @@ const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.active};
+  color: ${p => p.theme.tokens.interactive.link.accent.active};
 `;
