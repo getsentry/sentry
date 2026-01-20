@@ -5,17 +5,17 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 TESTS_PER_SHARD = 1200
 MIN_SHARDS = 1
 MAX_SHARDS = 22
 DEFAULT_SHARDS = 22
 
-PYTEST_ARGS = [
+PYTEST_BASE_ARGS = [
     "pytest",
     "--collect-only",
     "--quiet",
-    "tests",
     "--ignore=tests/acceptance",
     "--ignore=tests/apidocs",
     "--ignore=tests/js",
@@ -23,10 +23,31 @@ PYTEST_ARGS = [
 ]
 
 
-def collect_test_count():
+def collect_test_count() -> int | None:
+    """Collect the number of tests to run, either from selected files or full suite."""
+    selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
+
+    if selected_tests_file:
+        path = Path(selected_tests_file)
+        if not path.exists():
+            print(f"Selected tests file not found: {selected_tests_file}", file=sys.stderr)
+            return None
+
+        with path.open() as f:
+            selected_files = [line.strip() for line in f if line.strip()]
+
+        if not selected_files:
+            print("No selected test files, running 0 tests", file=sys.stderr)
+            return 0
+
+        print(f"Counting tests in {len(selected_files)} selected files", file=sys.stderr)
+        pytest_args = PYTEST_BASE_ARGS + selected_files
+    else:
+        pytest_args = PYTEST_BASE_ARGS + ["tests"]
+
     try:
         result = subprocess.run(
-            PYTEST_ARGS,
+            pytest_args,
             capture_output=True,
             text=True,
             check=False,
@@ -40,7 +61,6 @@ def collect_test_count():
             print(f"Collected {count} tests", file=sys.stderr)
             return count
 
-        # If no match, check if pytest failed
         if result.returncode != 0:
             print(
                 f"Pytest collection failed (exit {result.returncode})",
@@ -56,7 +76,7 @@ def collect_test_count():
         return None
 
 
-def calculate_shards(test_count):
+def calculate_shards(test_count: int | None) -> int:
     if test_count is None:
         print(f"Using default shard count: {DEFAULT_SHARDS}", file=sys.stderr)
         return DEFAULT_SHARDS
@@ -82,10 +102,9 @@ def calculate_shards(test_count):
     return bounded
 
 
-def main():
+def main() -> int:
     test_count = collect_test_count()
     shard_count = calculate_shards(test_count)
-    # Generate a JSON array of shard indices [0, 1, 2, ..., shard_count-1]
     shard_indices = json.dumps(list(range(shard_count)))
 
     github_output = os.getenv("GITHUB_OUTPUT")
