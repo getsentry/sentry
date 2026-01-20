@@ -154,11 +154,13 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         }
 
     def assert_valid_uptime_conditions(self, detector):
-        """Verify detector has correct uptime DataConditions."""
-        assert detector.workflow_condition_group is not None
-        conditions = sorted(
-            detector.workflow_condition_group.conditions.all(), key=lambda c: c.comparison
-        )
+        """Verify detector has correct uptime DataConditionGroup and DataConditions."""
+        condition_group = detector.workflow_condition_group
+        assert condition_group is not None
+        assert condition_group.logic_type == "any"
+        assert condition_group.organization_id == detector.project.organization_id
+
+        conditions = sorted(condition_group.conditions.all(), key=lambda c: c.comparison)
         assert len(conditions) == 2
 
         assert conditions[0].comparison == CHECKSTATUS_FAILURE
