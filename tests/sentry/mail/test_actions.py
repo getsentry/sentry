@@ -335,9 +335,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(self.user.id),
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -363,9 +364,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -391,9 +393,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "fallthroughType": FallthroughChoiceType.NO_ONE.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -415,9 +418,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetType": ActionTargetType.ISSUE_OWNERS.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -448,9 +452,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(self.user.id),
         }
         Rule.objects.filter(project=event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with (
@@ -491,9 +496,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(team_workflow.id),
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data, inject_workflow]},
+            condition_data=[self.condition_data],
+            action_data=[action_data, inject_workflow],
         )
 
         with self.tasks():
