@@ -146,8 +146,12 @@ class ApiApplication(Model):
         credentials, so they have no client_secret. They rely on PKCE
         for authorization code flow and refresh token rotation for
         token refresh (RFC 9700 §4.14.2).
+
+        Note: We explicitly check for None rather than falsy values to ensure
+        that only clients created with client_secret=None are treated as public.
+        An empty string would be treated as a confidential client (safer default).
         """
-        return not self.client_secret
+        return self.client_secret is None
 
     def is_allowed_response_type(self, value: object) -> TypeIs[Literal["code", "token"]]:
         return value in ("code", "token")
