@@ -95,7 +95,7 @@ const ValueWrapper = styled('span')<{isDangerous?: boolean}>`
 `;
 
 const Subheading = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SeerDropdownLabel = styled('div')`
@@ -105,7 +105,7 @@ const SeerDropdownLabel = styled('div')`
 `;
 
 const SeerDropdownDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -459,5 +459,5 @@ const ClickablePanelItem = styled(PanelItem)`
 `;
 
 const ProjectName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

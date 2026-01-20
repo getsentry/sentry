@@ -111,7 +111,7 @@ const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   gap: ${space(0.5)};
   display: flex;
   justify-content: flex-start;
@@ -119,7 +119,7 @@ const Subheader = styled('div')`
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
@@ -135,7 +135,7 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const InnerContent = styled('div')`
   padding: 20px 30px 20px;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const PriceWrapper = styled('div')`
@@ -144,7 +144,7 @@ const PriceWrapper = styled('div')`
 `;
 
 const SeatText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

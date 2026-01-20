@@ -221,7 +221,7 @@ const DetailsPanel = styled('div')`
 `;
 
 const PanelHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   padding: ${p => p.theme.space.md} 0;
   margin: 0;
@@ -235,6 +235,6 @@ const StyledDrawerHeader = styled(DrawerHeader)`
 
 const ConversationIdLabel = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 `;

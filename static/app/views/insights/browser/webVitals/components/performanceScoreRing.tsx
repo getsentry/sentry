@@ -47,7 +47,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   height: 100%;
   width: 100%;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   transition: color 300ms;
   ${p => p.textCss?.(p)}
 `;

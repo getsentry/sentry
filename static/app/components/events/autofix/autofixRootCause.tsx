@@ -688,8 +688,8 @@ const Content = styled('div')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -700,7 +700,7 @@ const CustomRootCausePadding = styled('div')`
 `;
 
 const CauseDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-top: ${space(0.5)};
 `;
 
@@ -727,6 +727,6 @@ const DropdownTrigger = styled(Button)`
 `;
 
 const SmallIntegrationIdText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;

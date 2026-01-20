@@ -827,7 +827,7 @@ function SeerAutomationOnboarding() {
 }
 
 const ProjectName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StepDescription = styled('div')`
@@ -836,7 +836,7 @@ const StepDescription = styled('div')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const EmptyState = styled('div')`
@@ -880,7 +880,7 @@ const ScanActionWrapper = styled('div')`
 
 const EmptyProjectsMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const AutoFixActionWrapper = styled('div')`
@@ -899,7 +899,7 @@ const ThresholdSelectorWrapper = styled('div')`
 `;
 
 const SelectorLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const CustomizationList = styled('ul')`
