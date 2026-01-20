@@ -605,14 +605,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Extract spans only from a random fraction of transactions.
-#
-# NOTE: Any value below 1.0 will break the product. Do not override in production.
-register(
-    "relay.span-extraction.sample-rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Allow the Relay to skip normalization of spans for certain hosts.
 register(
