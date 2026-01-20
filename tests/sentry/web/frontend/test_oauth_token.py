@@ -1786,6 +1786,84 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         token.refresh_from_db()
         assert token.token == data["access_token"]
 
+    def test_confidential_client_refresh_with_wrong_secret_fails(self) -> None:
+        """Confidential clients with incorrect client_secret should fail."""
+        confidential_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+        )
+        token = ApiToken.objects.create(
+            application=confidential_app,
+            user=self.user,
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": token.refresh_token,
+                "client_id": confidential_app.client_id,
+                "client_secret": "wrong_secret",
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_confidential_client_refresh_rotates_in_place(self) -> None:
+        """Confidential clients rotate tokens in-place (same DB record).
+
+        Both confidential and public clients rotate refresh tokens, but:
+        - Confidential: updates the same token record (in-place rotation)
+        - Public: creates new token record, deletes old one
+
+        This test verifies the confidential client behavior.
+        """
+        confidential_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+        )
+        client_secret = confidential_app.client_secret
+        token = ApiToken.objects.create(
+            application=confidential_app,
+            user=self.user,
+        )
+        original_token_id = token.id
+        original_refresh_token = token.refresh_token
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": original_refresh_token,
+                "client_id": confidential_app.client_id,
+                "client_secret": client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+
+        # Same token object should still exist (in-place update)
+        assert ApiToken.objects.filter(id=original_token_id).exists()
+
+        # Refresh token IS rotated (new value)
+        token.refresh_from_db()
+        assert token.refresh_token != original_refresh_token
+        assert token.refresh_token == data["refresh_token"]
+
+        # Old refresh token can NOT be reused
+        resp2 = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": original_refresh_token,
+                "client_id": confidential_app.client_id,
+                "client_secret": client_secret,
+            },
+        )
+        assert resp2.status_code == 400
+        assert json.loads(resp2.content) == {"error": "invalid_grant"}
+
     def test_refresh_preserves_scopes(self) -> None:
         """Refreshed token should have the same scopes as the original."""
         self.token.scope_list = ["project:read", "org:read"]
