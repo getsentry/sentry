@@ -340,6 +340,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             trace_sampling=validated_data.get("trace_sampling", False),
             recovery_threshold=validated_data["recovery_threshold"],
             downtime_threshold=validated_data["downtime_threshold"],
+            assertion=validated_data.get("assertion", None),
             **method_headers_body,
         )
 
@@ -363,6 +364,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             else uptime_subscription.interval_seconds
         )
         timeout_ms = data["timeout_ms"] if "timeout_ms" in data else uptime_subscription.timeout_ms
+        assertion = data["assertion"] if "assertion" in data else uptime_subscription.assertion
         method = data["method"] if "method" in data else uptime_subscription.method
         headers = data["headers"] if "headers" in data else uptime_subscription.headers
         body = data["body"] if "body" in data else uptime_subscription.body
@@ -415,6 +417,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
                 status=status,
                 recovery_threshold=recovery_threshold,
                 downtime_threshold=downtime_threshold,
+                assertion=assertion,
             )
         except UptimeMonitorNoSeatAvailable as err:
             # Nest seat availability errors under status. Since this is the
