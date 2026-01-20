@@ -1,5 +1,5 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logs} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {dotnetLogs} from 'sentry/gettingStartedDocs/dotnet/logs';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
@@ -11,7 +11,7 @@ const docs: Docs = {
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
-  logsOnboarding: logs(),
+  logsOnboarding: dotnetLogs(),
 };
 
 export default docs;
