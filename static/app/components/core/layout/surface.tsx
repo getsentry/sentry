@@ -1,12 +1,15 @@
-import type {ComponentProps} from 'react';
-import {useTheme} from '@emotion/react';
+import isPropValid from '@emotion/is-prop-valid';
+import type {Theme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout/container';
+import type {Responsive} from '@sentry/scraps/layout/styles';
 
-import type {SurfaceVariant} from 'sentry/utils/theme';
+import type {RadiusSize, SurfaceVariant} from 'sentry/utils/theme';
 
 interface BaseSurfaceProps {
   children?: React.ReactNode;
+  radius?: Responsive<RadiusSize>;
 }
 interface FlatSurfaceProps extends BaseSurfaceProps {
   elevation?: never;
@@ -16,47 +19,42 @@ interface OverlaySurfaceProps extends BaseSurfaceProps {
   variant: 'overlay';
   elevation?: 'low' | 'high';
 }
-interface WellSurfaceProps extends BaseSurfaceProps {
-  variant: 'well';
-  elevation?: never;
-}
 
-type SurfaceProps = FlatSurfaceProps | OverlaySurfaceProps | WellSurfaceProps;
+export type SurfaceProps = FlatSurfaceProps | OverlaySurfaceProps;
 
-export function Surface(props: SurfaceProps) {
-  const {variant, elevation} = props;
-  const baseProps = {as: 'div', padding: 'md'} as Omit<
-    ComponentProps<typeof Container<'div'>>,
-    'children'
-  >;
-  const theme = useTheme();
+const omitSurfaceProps = new Set(['variant', 'elevation', 'radius']);
+
+export const Surface = styled(
+  (props: SurfaceProps) => {
+    const {variant, elevation: _elevation, radius, ...rest} = props;
+
+    if (variant === 'overlay') {
+      return (
+        <Container
+          background="overlay"
+          border="primary"
+          radius={radius ?? 'md'}
+          {...rest}
+        />
+      );
+    }
+    return <Container background={variant} radius={radius} {...rest} />;
+  },
+  {
+    shouldForwardProp: prop => {
+      if (omitSurfaceProps.has(prop)) {
+        return false;
+      }
+      return isPropValid(prop);
+    },
+  }
+)`
+  box-shadow: ${p => getShadow(p)};
+`;
+
+function getShadow({variant, elevation, theme}: SurfaceProps & {theme: Theme}) {
   if (variant === 'overlay') {
-    const shadowLow = `0 ${theme.shadow.sm} 0 0 ${theme.tokens.shadow.elevationLow}`;
-    const shadowHigh = `0 ${theme.shadow.sm} 0 0 ${theme.tokens.shadow.elevationLow}, 0 ${theme.shadow.xl} 0 0 ${theme.tokens.shadow.elevationMedium}`;
-    const shadow = elevation === 'low' ? {boxShadow: shadowLow} : {boxShadow: shadowHigh};
-    return (
-      <Container
-        {...baseProps}
-        background="overlay"
-        border="primary"
-        radius="md"
-        style={{...shadow}}
-        {...props}
-      />
-    );
+    return theme.shadow[elevation] as string;
   }
-  if (variant === 'well') {
-    const background = theme.tokens.interactive.chonky.debossed.neutral.background;
-    const boxShadow = `inset 0 ${theme.shadow.md} 0 0 ${theme.tokens.interactive.chonky.debossed.neutral.chonk}`;
-    return (
-      <Container
-        {...baseProps}
-        border="primary"
-        style={{background, boxShadow}}
-        radius="md"
-        {...props}
-      />
-    );
-  }
-  return <Container {...baseProps} background={variant} {...props} />;
+  return undefined;
 }
