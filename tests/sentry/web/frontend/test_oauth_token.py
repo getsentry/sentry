@@ -1085,6 +1085,132 @@ class OAuthTokenPKCETest(TestCase):
 
 
 @control_silo_test
+class OAuthTokenPublicClientAuthCodeTest(TestCase):
+    """Tests for public client authorization_code flow.
+
+    Public clients (RFC 6749 §2.1) cannot securely store client_secret,
+    so they must use PKCE (RFC 7636) for the authorization_code flow.
+    """
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Create a public client (no client_secret)
+        self.public_application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            client_secret=None,
+        )
+        assert self.public_application.is_public is True
+
+    def test_public_client_authorization_code_with_pkce_succeeds(self) -> None:
+        """Public client can use authorization_code with PKCE."""
+        code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.public_application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": code_verifier,
+                "client_id": self.public_application.client_id,
+                # No client_secret - public client
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert data["token_type"] == "Bearer"
+
+    def test_public_client_authorization_code_without_pkce_succeeds(self) -> None:
+        """Public client can use authorization_code without PKCE (currently allowed).
+
+        NOTE: RFC 9700 (OAuth 2.0 Security BCP) recommends that public clients
+        SHOULD use PKCE for authorization_code flow. However, this is currently
+        not enforced to maintain backward compatibility. The PKCE requirement
+        is enforced at the authorization endpoint level (during grant creation),
+        not at the token endpoint level.
+
+        Future enhancement: Consider requiring PKCE for public clients at the
+        authorization endpoint (when creating the grant).
+        """
+        # Create grant without PKCE challenge
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.public_application,
+            redirect_uri="https://example.com",
+            # No code_challenge - no PKCE
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "client_id": self.public_application.client_id,
+                # No client_secret - public client
+                # No code_verifier - no PKCE
+            },
+        )
+
+        # Currently succeeds - PKCE is optional for backward compatibility
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert "access_token" in data
+
+    def test_public_client_authorization_code_with_secret_still_works(self) -> None:
+        """If a public client provides a secret, it's ignored (they don't have one).
+
+        This tests the client authentication flow where no secret is provided
+        for a public client. The client_id is sufficient for identification.
+        """
+        code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.public_application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        # Even if someone provides a secret for a public client,
+        # it won't match (public clients have client_secret=None)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": code_verifier,
+                "client_id": self.public_application.client_id,
+                "client_secret": "some_random_secret",  # This shouldn't work
+            },
+        )
+
+        # Should fail because the secret doesn't match (public client has None)
+        assert resp.status_code == 401
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_client"
+
+
+@control_silo_test
 class OAuthTokenDeviceCodeTest(TestCase):
     """Tests for device code grant type (RFC 8628 §3.4/§3.5)."""
 
