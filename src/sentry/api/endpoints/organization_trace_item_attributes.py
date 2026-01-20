@@ -333,7 +333,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             attribute_keys[attr_key["name"]] = attr_key
                     for aliased_attr in aliased_attributes:
                         attr_key = as_attribute_key(
-                            aliased_attr.public_alias,
+                            aliased_attr.internal_name,
                             serialized["attribute_type"],
                             trace_item_type,
                         )
@@ -372,7 +372,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 )
                 for aliased_attr in aliased_attributes:
                     if can_expose_attribute(
-                        aliased_attr.public_alias, item_type, include_internal=include_internal
+                        aliased_attr.public_alias,
+                        trace_item_type,
+                        include_internal=include_internal,
                     ):
                         attr_key = as_attribute_key(
                             aliased_attr.internal_name,
