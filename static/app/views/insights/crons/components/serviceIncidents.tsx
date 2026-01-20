@@ -157,6 +157,7 @@ const IncidentIndicator = styled('div')`
   align-items: center;
   z-index: 2;
   height: 20px;
+  pointer-events: auto;
 
   > svg,
   &:before {
