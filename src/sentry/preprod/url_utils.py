@@ -12,8 +12,9 @@ def get_preprod_artifact_url(preprod_artifact: PreprodArtifact, view_type: str =
         id=preprod_artifact.project.organization_id
     )
 
-    path = f"/organizations/{organization.slug}/preprod/{view_type}/{preprod_artifact.id}?project={preprod_artifact.project.slug}"
-    return organization.absolute_url(path)
+    path = f"/organizations/{organization.slug}/preprod/{view_type}/{preprod_artifact.id}"
+    query = f"project={preprod_artifact.project.slug}"
+    return organization.absolute_url(path, query=query)
 
 
 def get_preprod_artifact_comparison_url(
@@ -25,5 +26,6 @@ def get_preprod_artifact_comparison_url(
     organization: Organization = Organization.objects.get_from_cache(
         id=preprod_artifact.project.organization_id
     )
-    path = f"/organizations/{organization.slug}/preprod/{comparison_type}/compare/{preprod_artifact.id}/{base_artifact.id}?project={preprod_artifact.project.slug}"
-    return organization.absolute_url(path)
+    path = f"/organizations/{organization.slug}/preprod/{comparison_type}/compare/{preprod_artifact.id}/{base_artifact.id}"
+    query = f"project={preprod_artifact.project.slug}"
+    return organization.absolute_url(path, query=query)

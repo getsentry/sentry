@@ -91,7 +91,7 @@ def format_status_check_messages(
         summary = _format_artifact_summary(artifacts, size_metrics_map)
         base_url = f"/settings/projects/{project.slug}/preprod/"
         expanded_params = "&".join(f"expanded={rule.id}" for rule in triggered_rules)
-        settings_url = project.organization.absolute_url(f"{base_url}?{expanded_params}")
+        settings_url = project.organization.absolute_url(base_url, query=expanded_params)
         summary += str(
             _(
                 "\n\n**Status check failed due to size threshold rules.** "
