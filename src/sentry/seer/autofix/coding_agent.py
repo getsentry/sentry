@@ -200,7 +200,12 @@ def _launch_agents_for_repos(
     webhook_url: str = "",
     installation: CodingAgentIntegration | None = None,
 ) -> dict[str, list]:
-    """Launch coding agents for all repositories in the solution."""
+    """
+    Launch coding agents for all repositories in the solution.
+
+    Returns:
+        Dictionary with 'successes' and 'failures' lists
+    """
 
     # Fetch project preferences to get auto_create_pr setting from automation_handoff
     auto_create_pr = False
