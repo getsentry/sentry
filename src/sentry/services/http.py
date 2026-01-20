@@ -18,7 +18,7 @@ def _run_server(options: dict[str, Any]):
         interface=GranianInterfaces.WSGI,
         workers=options["workers"],
         backlog=options["backlog"],
-        workers_kill_timeout=30,
+        workers_kill_timeout=options["workers-kill-timeout"],
         blocking_threads=options["threads"],
         respawn_failed_workers=True,
         reload=options["reload"],
