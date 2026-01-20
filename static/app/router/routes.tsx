@@ -1469,7 +1469,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':projectId/',
