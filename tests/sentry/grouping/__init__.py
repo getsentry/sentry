@@ -22,11 +22,11 @@ from sentry.grouping.api import (
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
+from sentry.grouping.fingerprinting.utils import expand_title_template
 from sentry.grouping.strategies.configurations import (
     GROUPING_CONFIG_CLASSES,
     register_grouping_config,
 )
-from sentry.grouping.utils import expand_title_template
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.services import eventstore

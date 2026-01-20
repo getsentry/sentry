@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 
@@ -16,15 +16,16 @@ from sentry.grouping.enhancer import (
     get_enhancements_version,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.strategies.base import GroupingContext
-from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
-from sentry.grouping.utils import (
+from sentry.grouping.fingerprinting.types import FingerprintInfo
+from sentry.grouping.fingerprinting.utils import (
     expand_title_template,
     get_fingerprint_type,
-    hash_from_values,
     is_default_fingerprint_var,
     resolve_fingerprint_values,
 )
+from sentry.grouping.strategies.base import GroupingContext
+from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
+from sentry.grouping.utils import hash_from_values
 from sentry.grouping.variants import (
     BaseVariant,
     ChecksumVariant,
@@ -42,17 +43,11 @@ from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.fingerprinting import FingerprintingConfig
-    from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
     from sentry.services.eventstore.models import Event
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
-
-
-class FingerprintInfo(TypedDict):
-    client_fingerprint: NotRequired[list[str]]
-    matched_rule: NotRequired[FingerprintRuleJSON]
 
 
 @dataclass
