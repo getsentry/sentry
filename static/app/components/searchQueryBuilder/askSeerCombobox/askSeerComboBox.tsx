@@ -5,6 +5,8 @@ import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
@@ -447,35 +449,35 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           overlayProps={overlayProps}
         >
           {isPending ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader title={t('Let me think about that...')} loading />
               <AskSeerSearchSkeleton />
-            </SeerContent>
+            </Stack>
           ) : isError ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader
                 title={t('An error occurred while fetching Seer queries')}
               />
-            </SeerContent>
+            </Stack>
           ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
-            <SeerContent onMouseLeave={onMouseLeave}>
+            <Stack flex="1" onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
               <AskSeerSearchListBox
                 {...listBoxProps}
                 listBoxRef={listBoxRef}
                 state={state}
               />
-            </SeerContent>
+            </Stack>
           ) : data?.unsupported_reason ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader
                 title={data?.unsupported_reason || 'This query is not supported'}
               />
-            </SeerContent>
+            </Stack>
           ) : (
-            <SeerContent onMouseLeave={onMouseLeave}>
+            <Stack flex="1" onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
-            </SeerContent>
+            </Stack>
           )}
           <SeerFooter>
             {openForm && (
@@ -580,10 +582,4 @@ const SeerFooter = styled('div')`
   padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
-`;
-
-const SeerContent = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
 `;

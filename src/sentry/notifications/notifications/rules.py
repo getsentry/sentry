@@ -302,7 +302,7 @@ class AlertRuleNotification(ProjectNotification):
 
             match key:
                 case "workflow_id":
-                    rule_url = absolute_uri(create_link_to_workflow(self.organization.id, value))
+                    rule_url = absolute_uri(create_link_to_workflow(self.organization.slug, value))
                 case "legacy_rule_id":
                     rule_url = build_rule_url(self.rules[0], self.group, self.project)
 

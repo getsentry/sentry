@@ -117,6 +117,10 @@ interface UseExternalOpenOptions {
   sessionRunId: number | undefined;
   startNewSession: () => void;
   switchToRun: (runId: number) => void;
+  /**
+   * Callback to un-minimize the panel when it's already open but minimized.
+   */
+  onUnminimize?: () => void;
 }
 
 /**
@@ -130,6 +134,7 @@ export function useExternalOpen({
   switchToRun,
   sessionRunId,
   sessionBlocks,
+  onUnminimize,
 }: UseExternalOpenOptions) {
   const pendingOptionsRef = useRef<OpenSeerExplorerOptions | null>(null);
   const onRunCreatedRef = useRef<((runId: number) => void) | null>(null);
@@ -171,7 +176,8 @@ export function useExternalOpen({
       pendingOptionsRef.current = options;
 
       if (isVisible) {
-        // Panel is already open - process immediately since visibility won't change
+        // Panel is already open - un-minimize and process immediately
+        onUnminimize?.();
         const storedOptions = pendingOptionsRef.current;
         pendingOptionsRef.current = null;
         processPendingOptions(storedOptions);
@@ -185,7 +191,7 @@ export function useExternalOpen({
     return () => {
       document.removeEventListener(SEER_EXPLORER_OPEN_EVENT, handleOpenEvent);
     };
-  }, [isVisible, processPendingOptions]);
+  }, [isVisible, onUnminimize, processPendingOptions]);
 
   // Handle pending options when the panel becomes visible
   useEffect(() => {

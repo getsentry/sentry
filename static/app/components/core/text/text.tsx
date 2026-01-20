@@ -81,7 +81,7 @@ export interface BaseTextProps {
    * Variant determines the style of the text.
    * @default primary
    */
-  variant?: ContentVariant;
+  variant?: ContentVariant | 'muted';
 
   /**
    * Determines where line breaks appear when wrapping the text.
@@ -152,7 +152,8 @@ export const Text = styled(
 
   color: ${p =>
     p.variant
-      ? (p.theme.tokens.content[p.variant] ?? p.theme.tokens.content.primary)
+      ? (p.theme.tokens.content[p.variant === 'muted' ? 'secondary' : p.variant] ??
+        p.theme.tokens.content.primary)
       : p.theme.tokens.content.primary};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};

@@ -1,15 +1,16 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
 import AllocationRow from './components/allocationRow';
-import {Centered, Divider, HalvedWithDivider} from './components/styles';
+import {Cell, Centered, Divider, HalvedWithDivider} from './components/styles';
 import type {SpendAllocation} from './components/types';
 import type {BigNumUnits} from './utils';
 import {midPeriod} from './utils';
@@ -45,7 +46,7 @@ function ProjectAllocationsTable({
   }, [spendAllocations, selectedMetric]);
 
   return (
-    <Wrapper>
+    <Container margin="xl 0">
       <Table data-test-id="allocations-table">
         <colgroup>
           <col />
@@ -59,7 +60,11 @@ function ProjectAllocationsTable({
           <tr>
             <HeaderCell>{t('Project')}</HeaderCell>
             <HeaderCell style={{textAlign: 'right'}}>
-              <Tooltip title="Allocated events are guaranteed for your specified projects. If your project goes past its allocated amount, the extra events will consume the root allocation for the organization">
+              <Tooltip
+                title={t(
+                  'Allocated events are guaranteed for your specified projects. If your project goes past its allocated amount, the extra events will consume the root allocation for the organization'
+                )}
+              >
                 {t('Allocated')}
               </Tooltip>
             </HeaderCell>
@@ -73,17 +78,17 @@ function ProjectAllocationsTable({
               </HalvedWithDivider>
             </HeaderCell>
             <HeaderCell style={{textAlign: 'right'}}>
-              <Tooltip title="Consumed events indicate your usage per allocation">
+              <Tooltip title={t('Consumed events indicate your usage per allocation')}>
                 {t('Consumed')}
               </Tooltip>
             </HeaderCell>
             <HeaderCell>
               <HalvedWithDivider>
-                <Centered>Spend</Centered>
+                <Centered>{t('Spend')}</Centered>
                 <Centered>
                   <Divider />
                 </Centered>
-                <Centered>Events</Centered>
+                <Centered>{t('Events')}</Centered>
               </HalvedWithDivider>
             </HeaderCell>
             <HeaderCell />
@@ -104,22 +109,16 @@ function ProjectAllocationsTable({
           ))}
           {!filteredMetrics.length && (
             <tr>
-              <TableData data-test-id="no-allocations">
-                {t('No allocations set')}
-              </TableData>
+              <Cell data-test-id="no-allocations">{t('No allocations set')}</Cell>
             </tr>
           )}
         </tbody>
       </Table>
-    </Wrapper>
+    </Container>
   );
 }
 
 export default ProjectAllocationsTable;
-
-const Wrapper = styled('div')`
-  margin: ${space(2)} 0;
-`;
 
 const Table = styled('table')`
   background: ${p => p.theme.tokens.background.primary};
@@ -127,7 +126,7 @@ const Table = styled('table')`
   border-collapse: separate;
   border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
   box-shadow: ${p => p.theme.dropShadowMedium};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;
 
@@ -138,9 +137,5 @@ const HeaderCell = styled('th')`
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background: ${p => p.theme.tokens.background.secondary};
-  padding: ${space(1)} ${space(2)};
-`;
-
-const TableData = styled('td')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
