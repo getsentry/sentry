@@ -77,7 +77,7 @@ function FullscreenModalContent({
           </InputGroup.TrailingItems>
         )}
       </InputGroup>
-      <Container height="100%" width="100%" style={{flex: 1, minHeight: 0}}>
+      <Container height="100%" width="100%" flex={1} minHeight={0}>
         <AppSizeTreemap
           root={filteredRoot}
           searchQuery={localSearch}
@@ -394,7 +394,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         width="100%"
         position="relative"
         onMouseDown={handleContainerMouseDown}
-        style={{flex: 1, minHeight: 0}}
+        flex={1}
+        minHeight={0}
       >
         <BaseChart
           autoHeightResize

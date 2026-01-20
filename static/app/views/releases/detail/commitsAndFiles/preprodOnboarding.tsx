@@ -82,7 +82,7 @@ export function PreprodOnboarding(props: PreprodOnboardingProps) {
               </ListItem>
               <ListItem>{t('Distribute pre-release builds to your team')}</ListItem>
             </List>
-            <Flex gap="md" wrap="wrap" style={{marginTop: theme.space.lg}}>
+            <Flex gap="md" wrap="wrap" marginTop="lg">
               <LinkButton href={PRODUCT_DOC_URL} external priority="primary" size="md">
                 {t('Product Docs')}
               </LinkButton>
