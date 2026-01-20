@@ -34,4 +34,10 @@ def custom_exception_handler(exc, context):
             detail="Rate limit exceeded. Please try your query with a smaller date range or fewer projects."
         )
 
-    return exception_handler(exc, context)
+    response = exception_handler(exc, context)
+
+    # RFC 6750 Section 3: Add WWW-Authenticate header if exception defines one
+    if response is not None and hasattr(exc, "auth_header"):
+        response["WWW-Authenticate"] = exc.auth_header
+
+    return response
