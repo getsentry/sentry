@@ -49,6 +49,12 @@ type PromptCheckParams = {
   projectId?: string;
 };
 
+type PromptCheckHookParams = {
+  feature: string | string[];
+  organization: OrganizationSummary | null;
+  projectId?: string;
+};
+
 /**
  * Raw response data from the endpoint
  */
@@ -111,16 +117,13 @@ export const makePromptsCheckQueryKey = ({
   feature,
   organization,
   projectId,
-}: PromptCheckParams): ApiQueryKey => {
-  // Use optional chaining because query keys are generated even when the query
-  // is disabled. Some callers use `organization!` with `enabled: false` when
-  // organization may be null (e.g., stacktraceBanners.tsx with allowNull: true).
+}: PromptCheckHookParams): ApiQueryKey => {
   const url = `/organizations/${organization?.slug}/prompts-activity/`;
   return [url, {query: {feature, project_id: projectId}}];
 };
 
 export function usePromptsCheck(
-  {feature, organization, projectId}: PromptCheckParams,
+  {feature, organization, projectId}: PromptCheckHookParams,
   {enabled = true, ...options}: Partial<UseApiQueryOptions<PromptResponse>> = {}
 ) {
   return useApiQuery<PromptResponse>(
@@ -146,7 +149,7 @@ export function usePrompts({
   isDismissed = promptIsDismissed,
 }: {
   features: string[];
-  organization: Organization;
+  organization: Organization | null;
   daysToSnooze?: number;
   isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
@@ -288,7 +291,7 @@ export function usePrompt({
   options,
 }: {
   feature: string;
-  organization: Organization;
+  organization: Organization | null;
   daysToSnooze?: number;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
