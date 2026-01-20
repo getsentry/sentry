@@ -10,11 +10,7 @@ export const getInstallSnippetPackageManager = (params: DocsParams) => {
   }
 
   return `
-    Install-Package Sentry -Version ${getPackageVersion(
-      params,
-      'sentry.dotnet',
-      version
-    )}`;
+Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', version)}`;
 };
 
 export const getInstallSnippetCoreCli = (params: DocsParams) => {
@@ -26,5 +22,5 @@ export const getInstallSnippetCoreCli = (params: DocsParams) => {
   }
 
   return `
-    dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', version)}`;
+dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', version)}`;
 };
