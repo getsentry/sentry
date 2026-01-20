@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import upperFirst from 'lodash/upperFirst';
 
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -159,10 +160,11 @@ export default function UsageLog() {
           onChange={option => {
             handleEventFilter(option?.value);
           }}
-          triggerProps={{
-            size: 'sm',
-            children: selectedEventName ? undefined : t('Select Action'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} size="sm">
+              {selectedEventName ? triggerProps.children : t('Select Action')}
+            </OverlayTrigger.Button>
+          )}
         />
         {isError ? (
           <LoadingError onRetry={refetch} />
@@ -176,8 +178,14 @@ export default function UsageLog() {
                   <Timeline.Item
                     key={entry.id}
                     colorConfig={{
-                      icon: index === 0 ? theme.active : theme.colors.gray400,
-                      iconBorder: index === 0 ? theme.active : theme.colors.gray400,
+                      icon:
+                        index === 0
+                          ? theme.tokens.interactive.link.accent.active
+                          : theme.colors.gray400,
+                      iconBorder:
+                        index === 0
+                          ? theme.tokens.interactive.link.accent.active
+                          : theme.colors.gray400,
                       title: theme.tokens.content.primary,
                     }}
                     icon={<IconCircleFill />}

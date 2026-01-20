@@ -18,13 +18,11 @@ from sentry.models.repository import Repository
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
-    record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha
-from .config import get_direct_to_seer_gh_orgs
+from ..utils import _get_target_commit_sha
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +93,6 @@ def handle_issue_comment_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
-    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
     **kwargs: Any,
@@ -130,28 +127,25 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
 
-    if github_org in get_direct_to_seer_gh_orgs():
-        if comment_id:
-            _add_eyes_reaction_to_comment(
-                github_event,
-                GitHubIssueCommentAction(github_event_action),
-                integration,
-                organization,
-                repo,
-                str(comment_id),
-            )
-
-        target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
-
-        from .task import schedule_task
-
-        schedule_task(
-            github_event=github_event,
-            github_event_action=github_event_action,
-            event=event,
-            organization=organization,
-            repo=repo,
-            target_commit_sha=target_commit_sha,
-            trigger=SeerCodeReviewTrigger.ON_COMMAND_PHRASE,
+    if comment_id:
+        _add_eyes_reaction_to_comment(
+            github_event,
+            GitHubIssueCommentAction(github_event_action),
+            integration,
+            organization,
+            repo,
+            str(comment_id),
         )
-        record_webhook_enqueued(github_event, github_event_action)
+
+    target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
+
+    from .task import schedule_task
+
+    schedule_task(
+        github_event=github_event,
+        github_event_action=github_event_action,
+        event=event,
+        organization=organization,
+        repo=repo,
+        target_commit_sha=target_commit_sha,
+    )

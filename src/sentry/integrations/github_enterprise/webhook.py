@@ -20,6 +20,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
+    IssuesEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
     get_github_external_id,
@@ -108,6 +109,10 @@ class GitHubEnterprisePushEventWebhook(GitHubEnterpriseWebhook, PushEventWebhook
 
 
 class GitHubEnterprisePullRequestEventWebhook(GitHubEnterpriseWebhook, PullRequestEventWebhook):
+    pass
+
+
+class GitHubEnterpriseIssuesEventWebhook(GitHubEnterpriseWebhook, IssuesEventWebhook):
     pass
 
 
@@ -305,6 +310,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         "push": GitHubEnterprisePushEventWebhook,
         "pull_request": GitHubEnterprisePullRequestEventWebhook,
         "installation": GitHubEnterpriseInstallationEventWebhook,
+        "issues": GitHubEnterpriseIssuesEventWebhook,
     }
 
     @method_decorator(csrf_exempt)

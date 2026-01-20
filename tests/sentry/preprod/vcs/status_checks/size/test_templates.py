@@ -6,6 +6,7 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
     PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
@@ -41,12 +42,15 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                     project=self.project,
                     state=state,
                     app_id="com.example.app",
+                )
+                PreprodArtifactMobileAppInfo.objects.create(
+                    preprod_artifact=artifact,
                     build_version="1.0.0",
                     build_number=1,
                 )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.IN_PROGRESS
+                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project
                 )
 
                 assert title == "Size Analysis"
@@ -61,12 +65,15 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
 
         with pytest.raises(ValueError, match="No metrics exist for VCS size status check"):
-            format_status_check_messages([artifact], {}, StatusCheckStatus.SUCCESS)
+            format_status_check_messages([artifact], {}, StatusCheckStatus.SUCCESS, self.project)
 
     def test_processed_state_with_metrics_no_previous(self):
         """Test formatting for processed state with metrics but no previous build."""
@@ -74,6 +81,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -91,7 +101,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [size_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -116,12 +126,16 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                     project=self.project,
                     state=PreprodArtifact.ArtifactState.UPLOADING,
                     app_id="com.example.app",
-                    build_version=version,
-                    build_number=build_number,
                 )
+                if version is not None or build_number is not None:
+                    PreprodArtifactMobileAppInfo.objects.create(
+                        preprod_artifact=artifact,
+                        build_version=version,
+                        build_number=build_number,
+                    )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.IN_PROGRESS
+                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project
                 )
 
                 assert expected in summary
@@ -135,18 +149,20 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 PreprodArtifact.ArtifactState.UPLOADED,
             ]
         ):
-            artifacts.append(
-                PreprodArtifact.objects.create(
-                    project=self.project,
-                    state=state,
-                    app_id=f"com.example.app{i}",
-                    build_version="1.0.0",
-                    build_number=i + 1,
-                )
+            artifact = PreprodArtifact.objects.create(
+                project=self.project,
+                state=state,
+                app_id=f"com.example.app{i}",
             )
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=artifact,
+                build_version="1.0.0",
+                build_number=i + 1,
+            )
+            artifacts.append(artifact)
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, {}, StatusCheckStatus.IN_PROGRESS
+            artifacts, {}, StatusCheckStatus.IN_PROGRESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -161,6 +177,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -190,7 +209,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -207,6 +226,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.processing",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="2.1.0",
             build_number=15,
         )
@@ -224,7 +246,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [pending_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -252,13 +274,16 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,
             app_id="com.example.app",
+            error_message="Build timeout",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
-            error_message="Build timeout",
         )
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], {}, StatusCheckStatus.FAILURE
+            [artifact], {}, StatusCheckStatus.FAILURE, self.project
         )
 
         assert title == "Size Analysis"
@@ -286,7 +311,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
                 )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.FAILURE
+                    [artifact], {}, StatusCheckStatus.FAILURE, self.project
                 )
 
                 assert expected_error in summary
@@ -300,6 +325,9 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.processed",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=processed_artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -320,6 +348,9 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,
             app_id="com.example.uploading",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=uploading_artifact,
             build_version="1.0.0",
             build_number=2,
         )
@@ -329,14 +360,17 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,
             app_id="com.example.failed",
+            error_message="Upload timeout",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=failed_artifact,
             build_version="1.0.0",
             build_number=3,
-            error_message="Upload timeout",
         )
         artifacts.append(failed_artifact)
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, size_metrics_map, StatusCheckStatus.FAILURE
+            artifacts, size_metrics_map, StatusCheckStatus.FAILURE, self.project
         )
 
         assert title == "Size Analysis"
@@ -362,6 +396,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
                 project=self.project,
                 state=PreprodArtifact.ArtifactState.PROCESSED,
                 app_id=f"com.example.app{i}",
+            )
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=artifact,
                 build_version="1.0.0",
                 build_number=i + 1,
             )
@@ -379,7 +416,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             size_metrics_map[artifact.id] = [size_metrics]
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS
+            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -395,6 +432,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -422,7 +462,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -452,6 +492,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -480,7 +523,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, feature_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -514,6 +557,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
             build_version="1.0.2",
             build_number=41,
         )
@@ -533,6 +579,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_artifact,
             build_version="1.0.3",
             build_number=42,
         )
@@ -550,7 +599,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_size_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -570,6 +619,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -587,7 +639,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [size_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         assert title == "Size Analysis"
@@ -623,6 +675,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
             build_version="1.0.1",
             build_number=10,
         )
@@ -643,6 +698,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_artifact,
             build_version="1.0.2",
             build_number=11,
         )
@@ -670,7 +728,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_main_metrics, head_watch_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Main artifact should show changes (has matching base)
@@ -691,9 +749,12 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=android_artifact,
             build_version="1.0.0",
             build_number=1,
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
         )
 
         android_size_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -709,7 +770,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         android_size_metrics_map = {android_artifact.id: [android_size_metrics]}
 
         title, subtitle, android_summary = format_status_check_messages(
-            [android_artifact], android_size_metrics_map, StatusCheckStatus.SUCCESS
+            [android_artifact], android_size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Android app should show "Uncompressed" instead of "Install"
@@ -721,9 +782,12 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=ios_artifact,
             build_version="1.0.0",
             build_number=1,
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
         )
 
         ios_size_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -739,7 +803,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         ios_size_metrics_map = {ios_artifact.id: [ios_size_metrics]}
 
         title, subtitle, ios_summary = format_status_check_messages(
-            [ios_artifact], ios_size_metrics_map, StatusCheckStatus.SUCCESS
+            [ios_artifact], ios_size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # iOS app should show "Install" not "Uncompressed"
@@ -752,17 +816,23 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=android_artifact,
             build_version="1.0.0",
             build_number=1,
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
         )
         ios_artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=ios_artifact,
             build_version="2.0.0",
             build_number=2,
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
         )
 
         android_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -790,7 +860,10 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         }
 
         _, _, summary = format_status_check_messages(
-            [android_artifact, ios_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [android_artifact, ios_artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
         )
 
         # Build expected URLs
@@ -844,9 +917,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
+            build_configuration=release_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_release_artifact,
             build_version="1.0.0",
             build_number=100,
-            build_configuration=release_config,
         )
 
         PreprodArtifactSizeMetrics.objects.create(
@@ -864,9 +940,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
+            build_configuration=debug_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_debug_artifact,
             build_version="1.0.0",
             build_number=100,
-            build_configuration=debug_config,
         )
 
         PreprodArtifactSizeMetrics.objects.create(
@@ -884,9 +963,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
+            build_configuration=debug_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_debug_artifact,
             build_version="1.0.1",
             build_number=101,
-            build_configuration=debug_config,
         )
 
         head_debug_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -902,7 +984,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         size_metrics_map = {head_debug_artifact.id: [head_debug_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_debug_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_debug_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Verify current sizes are shown
@@ -945,9 +1027,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.release",
+            build_configuration=release_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
             build_version="1.0.0",
             build_number=50,
-            build_configuration=release_config,
         )
 
         PreprodArtifactSizeMetrics.objects.create(
@@ -965,9 +1050,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.release",
+            build_configuration=release_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_artifact,
             build_version="1.0.1",
             build_number=51,
-            build_configuration=release_config,
         )
 
         head_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -983,7 +1071,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Verify that comparison works properly for same configuration
@@ -1018,9 +1106,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.nomatch",
+            build_configuration=release_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
             build_version="1.0.0",
             build_number=25,
-            build_configuration=release_config,
         )
 
         PreprodArtifactSizeMetrics.objects.create(
@@ -1038,9 +1129,12 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.nomatch",
+            build_configuration=debug_config,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=head_artifact,
             build_version="1.0.1",
             build_number=26,
-            build_configuration=debug_config,
         )
 
         head_metrics = PreprodArtifactSizeMetrics.objects.create(
@@ -1056,7 +1150,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
         )
 
         # Verify current sizes are shown

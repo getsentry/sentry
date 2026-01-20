@@ -3,6 +3,7 @@ import {Outlet} from 'react-router-dom';
 import {Flex} from '@sentry/scraps/layout';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import NotFound from 'sentry/components/errors/notFound';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
@@ -12,6 +13,10 @@ import {TESTS_PAGE_TITLE} from 'sentry/views/prevent/settings';
 
 export default function TestAnalyticsPageWrapper() {
   const organization = useOrganization();
+
+  if (!organization.features.includes('prevent-test-analytics')) {
+    return <NotFound />;
+  }
 
   return (
     <SentryDocumentTitle title={TESTS_PAGE_TITLE} orgSlug={organization.slug}>

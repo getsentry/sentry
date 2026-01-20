@@ -17,6 +17,7 @@ from sentry.replays.testutils import mock_replay
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
+    _get_recommended_event,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -31,7 +32,7 @@ from sentry.seer.explorer.tools import (
     rpc_get_profile_flamegraph,
 )
 from sentry.seer.sentry_data_models import EAPTrace
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
     APITestCase,
     APITransactionTestCase,
@@ -1478,6 +1479,82 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
 
             # Ensure next iteration makes a fresh group.
             group.delete()
+
+
+class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
+    def test_get_recommended_event_start_clamped_to_retention(self):
+        """
+        Start is clamped to retention boundary. Spans query should also
+        """
+        project = self.create_project()
+
+        now = datetime.now(UTC)
+        start = now - timedelta(days=11)
+        end = now
+
+        retention_days = 5
+        retention_boundary = now - timedelta(days=retention_days)
+
+        # Event right after boundary to test spans query clamping to boundary
+        data = load_data("python", timestamp=retention_boundary + timedelta(hours=1))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        data["contexts"] = data.get("contexts", {})
+        data["contexts"]["trace"] = {
+            "trace_id": uuid.uuid4().hex,
+            "span_id": "1" + uuid.uuid4().hex[:15],
+        }
+        event = self.store_event(
+            data=data,
+            project_id=project.id,
+        )
+
+        with patch(
+            "sentry.seer.explorer.tools.quotas.backend.get_event_retention",
+            return_value=retention_days,
+        ):
+            with patch(
+                "sentry.seer.explorer.tools.execute_table_query"
+            ) as mock_execute_table_query:
+                mock_execute_table_query.return_value = {"data": []}
+                result = _get_recommended_event(
+                    group=event.group,
+                    organization=project.organization,
+                    start=start,
+                    end=end,
+                )
+
+                assert isinstance(result, GroupEvent)
+                assert result.event_id == event.event_id
+
+                # spans query should use retention boundary
+                spans_start = datetime.fromisoformat(mock_execute_table_query.call_args[1]["start"])
+                assert abs(spans_start - retention_boundary) < timedelta(minutes=1)
+
+    def test_get_recommended_event_end_outside_retention(self):
+        """
+        No queries are made and returns None if both start and end are outside retention.
+        """
+        project = self.create_project()
+        now = datetime.now(UTC)
+        start = now - timedelta(days=11)
+        end = now - timedelta(days=9)
+
+        data = load_data("python", timestamp=now - timedelta(days=1))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(
+            data=data,
+            project_id=project.id,
+        )
+
+        with patch("sentry.seer.explorer.tools.quotas.backend.get_event_retention", return_value=5):
+            result = _get_recommended_event(
+                group=event.group,
+                organization=project.organization,
+                start=start,
+                end=end,
+            )
+
+        assert result is None
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):

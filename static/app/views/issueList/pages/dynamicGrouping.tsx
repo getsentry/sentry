@@ -7,6 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -715,8 +716,9 @@ function DynamicGrouping() {
           >
             <Flex align="center" gap="md">
               <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-                {t('Top Issues (Experimental)')}
+                {t('Top Issues')}
               </ClickableHeading>
+              <FeatureBadge type="experimental" />
               {isUsingCustomData && (
                 <CustomDataBadge>
                   <Text size="xs" bold>

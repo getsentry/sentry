@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -23,6 +24,7 @@ import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -208,16 +210,23 @@ function Details({detector}: {detector: Detector}) {
 export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
   const org = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId});
+  const location = useLocation();
 
   const detectorName =
     detector.type === 'issue_stream'
       ? t('All Issues in %s', project?.slug || 'project')
       : detector.name;
 
+  // Preserve page filters when navigating to detector details
+  const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
+
   const detectorLink =
     detector.type === 'issue_stream'
       ? null
-      : makeMonitorDetailsPathname(org.slug, detector.id);
+      : {
+          pathname: makeMonitorDetailsPathname(org.slug, detector.id),
+          query,
+        };
 
   return (
     <TitleCell
