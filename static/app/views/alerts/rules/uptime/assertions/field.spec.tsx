@@ -35,7 +35,7 @@ describe('UptimeAssertionsField', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Status Code'}));
 
     // Should render the status code input
-    expect(await screen.findByRole('spinbutton')).toBeInTheDocument();
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
     // Verify the model has been updated with the assertion structure
     const fieldValue = model.fields.get('assertion') as unknown as Assertion;
@@ -79,8 +79,8 @@ describe('UptimeAssertionsField', () => {
     );
 
     // Should render the status code assertion
-    const statusCodeInput = await screen.findByRole('spinbutton');
-    expect(statusCodeInput).toHaveValue(200);
+    const statusCodeInput = await screen.findByDisplayValue('200');
+    expect(statusCodeInput).toBeInTheDocument();
 
     // Should render the JSON path assertion
     const jsonPathInput = screen.getByDisplayValue('$.data.status');
