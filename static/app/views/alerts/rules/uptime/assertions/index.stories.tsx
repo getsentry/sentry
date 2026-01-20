@@ -5,6 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import type {
+  AndOp,
   HeaderCheckOp,
   JsonPathOp,
   LogicalOp,
@@ -12,6 +13,7 @@ import type {
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AddOpButton} from './addOpButton';
+import {AssertionsDndContext, DropHandler} from './dragDrop';
 import {AssertionOpGroup} from './opGroup';
 import {AssertionOpHeader} from './opHeader';
 import {AssertionOpJsonPath} from './opJsonPath';
@@ -493,6 +495,103 @@ export default Storybook.story('Uptime Assertions', story => {
           starting point for building assertions.
         </p>
         <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
+        <CodeBlock language="javascript">{JSON.stringify(rootGroup, null, 2)}</CodeBlock>
+      </Fragment>
+    );
+  });
+
+  story('Drag and Drop - Reordering', () => {
+    const [rootGroup, setRootGroup] = useState<AndOp>({
+      id: 'story-dnd-1',
+      op: 'and',
+      children: [
+        {
+          id: 'story-status-dnd-1',
+          op: 'status_code_check',
+          operator: {cmp: 'less_than'},
+          value: 400,
+        },
+        {
+          id: 'story-json-dnd-1',
+          op: 'json_path',
+          value: '$.success',
+        },
+        {
+          id: 'story-header-dnd-1',
+          op: 'header_check',
+          key_op: {cmp: 'equals'},
+          key_operand: {header_op: 'literal', value: 'Content-Type'},
+          value_op: {cmp: 'equals'},
+          value_operand: {header_op: 'literal', value: 'application/json'},
+        },
+      ],
+    });
+
+    return (
+      <Fragment>
+        <p>
+          Assertions can be reordered using drag and drop. Click and drag the{' '}
+          <strong>grip handle</strong> (⠿) next to each assertion label to reorder them.
+          The tree structure updates in real-time as items are dragged.
+        </p>
+        <AssertionsDndContext>
+          <DropHandler rootOp={rootGroup} onChange={setRootGroup} />
+          <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
+        </AssertionsDndContext>
+        <CodeBlock language="javascript">{JSON.stringify(rootGroup, null, 2)}</CodeBlock>
+      </Fragment>
+    );
+  });
+
+  story('Drag and Drop - Between Groups', () => {
+    const [rootGroup, setRootGroup] = useState<AndOp>({
+      id: 'story-dnd-2',
+      op: 'and',
+      children: [
+        {
+          id: 'story-status-dnd-2',
+          op: 'status_code_check',
+          operator: {cmp: 'less_than'},
+          value: 400,
+        },
+        {
+          id: 'story-or-dnd-1',
+          op: 'or',
+          children: [
+            {
+              id: 'story-json-dnd-2',
+              op: 'json_path',
+              value: '$.data.id',
+            },
+            {
+              id: 'story-json-dnd-3',
+              op: 'json_path',
+              value: '$.data.name',
+            },
+          ],
+        },
+        {
+          id: 'story-header-dnd-2',
+          op: 'header_check',
+          key_op: {cmp: 'equals'},
+          key_operand: {header_op: 'literal', value: 'X-Request-Id'},
+          value_op: {cmp: 'always'},
+          value_operand: {header_op: 'none'},
+        },
+      ],
+    });
+
+    return (
+      <Fragment>
+        <p>
+          Assertions can be moved between groups. Drag an assertion from the root level
+          into the nested "Assert Any" group, or drag items out of the group to the root
+          level. You can also drag items into empty groups.
+        </p>
+        <AssertionsDndContext>
+          <DropHandler rootOp={rootGroup} onChange={setRootGroup} />
+          <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
+        </AssertionsDndContext>
         <CodeBlock language="javascript">{JSON.stringify(rootGroup, null, 2)}</CodeBlock>
       </Fragment>
     );
