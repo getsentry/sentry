@@ -18,11 +18,9 @@ class GitHubCopilotIdentityService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        class_path = getattr(
-            settings,
-            "GITHUB_COPILOT_IDENTITY_SERVICE",
-            "sentry.integrations.services.github_copilot_identity.impl.DatabaseBackedGitHubCopilotIdentityService",
-        )
+        class_path = getattr(settings, "GITHUB_COPILOT_IDENTITY_SERVICE", None)
+        if class_path is None:
+            return _DefaultGitHubCopilotIdentityService()
         impl_class = import_string(class_path)
         return impl_class()
 
@@ -30,6 +28,11 @@ class GitHubCopilotIdentityService(RpcService):
     @abc.abstractmethod
     def get_access_token_for_user(self, *, user_id: int) -> str | None:
         pass
+
+
+class _DefaultGitHubCopilotIdentityService(GitHubCopilotIdentityService):
+    def get_access_token_for_user(self, *, user_id: int) -> str | None:
+        return None
 
 
 github_copilot_identity_service = GitHubCopilotIdentityService.create_delegation()
