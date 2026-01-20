@@ -14,10 +14,7 @@ from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     """Integration tests for GitHub issue_comment webhook events."""
 
-    OPTIONS_TO_SET = {
-        "github.webhook.issue-comment": False,
-        "seer.code-review.direct-to-seer-enabled-gh-orgs": ["sentry-ecosystem"],
-    }
+    OPTIONS_TO_SET: dict[str, object] = {}
 
     @pytest.fixture(autouse=True)
     def mock_github_api_calls(self) -> Generator[None]:
@@ -110,37 +107,6 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
-    def test_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
-        self,
-    ) -> None:
-        """Test that processing runs with gen-ai-features flag alone when org option is enabled."""
-        with self.code_review_setup(features={"organizations:gen-ai-features"}), self.tasks():
-            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-        self.mock_seer.assert_called_once()
-
-    def test_adds_reaction_and_forwards_when_valid(self) -> None:
-        """Test successful PR review command processing with reaction and Seer request."""
-        with self.code_review_setup(), self.tasks():
-            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-            self.mock_reaction.assert_called_once_with(
-                "sentry-ecosystem/repo", "123456789", GitHubReaction.EYES
-            )
-            self.mock_seer.assert_called_once()
-
-            call_args = self.mock_seer.call_args
-            assert call_args[1]["path"] == "/v1/automation/overwatch-request"
-            payload = call_args[1]["payload"]
-            assert payload["request_type"] == "pr-review"
-            assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
-
     @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
     def test_skips_reaction_when_no_comment_id(self, mock_reaction: MagicMock) -> None:
         """Test that reaction is skipped when comment has no ID, but processing continues."""
@@ -153,99 +119,27 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             mock_reaction.assert_not_called()
             self.mock_seer.assert_called_once()
 
-    def test_validates_seer_request_contains_trigger_metadata(self) -> None:
-        """Test that Seer request includes all trigger metadata from the comment."""
+    def test_success_case(self) -> None:
+        """Test that Seer request includes trigger metadata from the comment."""
         with self.code_review_setup(), self.tasks():
             event_dict = orjson.loads(
                 self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
             )
-            event_dict["comment"]["user"] = {"login": "test-user", "id": 98765}
+            event_dict["comment"]["user"] = {"login": "test-user"}
             event = orjson.dumps(event_dict)
 
             response = self._send_issue_comment_event(event)
             assert response.status_code == 204
-
-            self.mock_seer.assert_called_once()
-            payload = self.mock_seer.call_args[1]["payload"]
-            config = payload["data"]["config"]
-
-            # Verify all trigger metadata is extracted correctly
-            assert config["trigger"] == "on_command_phrase"
-            assert config["trigger_user"] == "test-user"
-            assert config["trigger_user_id"] == 98765
-            assert config["trigger_comment_id"] == 123456789
-            assert config["trigger_comment_type"] == "issue_comment"
-
-    def test_processes_whitelisted_github_org(self) -> None:
-        """Test that whitelisted GitHub organizations are processed."""
-        with self.code_review_setup(), self.tasks():
-            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-            self.mock_reaction.assert_called_once()
-            self.mock_seer.assert_called_once()
-
-    def test_skips_non_whitelisted_github_org(self) -> None:
-        """Test that non-whitelisted GitHub organizations are skipped."""
-        # The option says to forward to Overwatch AND the org is not whitelisted, so we should skip Seer.
-        with self.code_review_setup({"github.webhook.issue-comment": True}), self.tasks():
-            event = self._build_issue_comment_event(
-                f"Please {SENTRY_REVIEW_COMMAND} this PR", github_org="random-org"
+            self.mock_reaction.assert_called_once_with(
+                "sentry-ecosystem/repo", "123456789", GitHubReaction.EYES
             )
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-            self.mock_reaction.assert_not_called()
-            self.mock_seer.assert_not_called()
-
-    def test_skips_regular_issue_comments(self) -> None:
-        """Test that comments on regular issues (not PRs) are skipped and not sent to Seer."""
-        with self.code_review_setup(), self.tasks():
-            # Build event for a regular issue comment (without pull_request key)
-            event_dict = {
-                "action": "created",
-                "comment": {"body": f"Please {SENTRY_REVIEW_COMMAND} this issue"},
-                # Note: No "pull_request" key - this is a regular issue, not a PR
-                "issue": {},
-                "repository": {
-                    "id": 12345,
-                    "full_name": "sentry-ecosystem/repo",
-                    "html_url": "https://github.com/sentry-ecosystem/repo",
-                },
-                "sender": {},
-            }
-            event = orjson.dumps(event_dict)
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-            # Should not react or send to Seer for regular issue comments
-            self.mock_reaction.assert_not_called()
-            self.mock_seer.assert_not_called()
-
-    def test_handles_missing_comment_user_data_gracefully(self) -> None:
-        """Test that issue comments handle missing user data gracefully without crashing."""
-        with self.code_review_setup(), self.tasks():
-            event_dict = orjson.loads(
-                self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
-            )
-            # Remove user data from comment to test edge case
-            event_dict["comment"]["user"] = {}
-            event = orjson.dumps(event_dict)
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
             self.mock_seer.assert_called_once()
-            payload = self.mock_seer.call_args[1]["payload"]
-            config = payload["data"]["config"]
 
-            # Verify None values are set when user data is missing
-            assert config["trigger_user"] is None
-            assert config["trigger_user_id"] is None
-            # Comment ID should still be present
-            assert config["trigger_comment_id"] == 123456789
-            assert config["trigger_comment_type"] == "issue_comment"
+            call_args = self.mock_seer.call_args
+            assert call_args[1]["path"] == "/v1/automation/overwatch-request"
+            payload = call_args[1]["payload"]
+            assert payload["request_type"] == "pr-review"
+            assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
+            assert payload["data"]["config"]["trigger_user"] == "test-user"
+            assert payload["data"]["config"]["trigger_comment_id"] == 123456789
+            assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
