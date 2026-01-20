@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -298,6 +299,7 @@ const TRANSACTIONS_TABLE: Widget = {
     {
       name: '',
       fields: [
+        SpanFields.IS_STARRED_TRANSACTION,
         SpanFields.REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
@@ -318,24 +320,27 @@ const TRANSACTIONS_TABLE: Widget = {
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [
+        SpanFields.IS_STARRED_TRANSACTION,
         SpanFields.REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
         SpanFields.PROJECT,
       ],
       fieldAliases: [
+        t('Starred'),
         'Http Method',
-        '',
-        'Operation',
-        '',
-        'TPM',
+        t('Transaction'),
+        t('Operation'),
+        t('Project'),
+        t('TPM'),
         'P50()',
         'P95()',
-        'Failure rate',
-        'Users',
-        'Time Spent',
+        t('Failure rate'),
+        t('Users'),
+        t('Time Spent'),
       ],
       fieldMeta: [
+        null,
         null,
         null,
         null,
@@ -365,7 +370,17 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   title: DASHBOARD_TITLE,
   filters: {
-    globalFilter: [],
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: SpanFields.TRANSACTION,
+          name: SpanFields.TRANSACTION,
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
   },
   widgets: [
     ...FIRST_ROW_WIDGETS,

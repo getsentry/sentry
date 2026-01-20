@@ -102,6 +102,7 @@ function ExplorerPanel() {
     switchToRun,
     sessionRunId: runId ?? undefined,
     sessionBlocks: sessionData?.blocks,
+    onUnminimize: useCallback(() => setIsMinimized(false), []),
   });
 
   // Extract repo_pr_states from session
@@ -561,6 +562,8 @@ function ExplorerPanel() {
       isOpen={isVisible}
       isMinimized={isMinimized}
       panelSize={panelSize}
+      blocks={blocks}
+      isPolling={isPolling}
       onUnminimize={handleUnminimize}
     >
       <TopBar
