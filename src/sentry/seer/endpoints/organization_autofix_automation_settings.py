@@ -171,17 +171,15 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 or AutofixAutomationTuningSettings.OFF.value
             )
             seer_pref = seer_preferences_map.get(str(project.id)) or {}
-            automated_run_stopping_point = seer_pref.get(
-                "automated_run_stopping_point", AutofixStoppingPoint.CODE_CHANGES.value
-            )
-            repos_count = len(seer_pref.get("repositories") or [])
-
             results.append(
                 {
                     "projectId": project.id,
-                    "autofixAutomationTuning": autofix_automation_tuning,
-                    "automatedRunStoppingPoint": automated_run_stopping_point,
-                    "reposCount": repos_count,
+                    "autofixAutomationTuning": autofix_automation_tuning,  # project options
+                    "automatedRunStoppingPoint": seer_pref.get(
+                        "automated_run_stopping_point", AutofixStoppingPoint.CODE_CHANGES.value
+                    ),
+                    "automationHandoff": seer_pref.get("automation_handoff"),
+                    "reposCount": len(seer_pref.get("repositories") or []),
                 }
             )
         return results
