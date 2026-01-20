@@ -452,7 +452,7 @@ describe('ErrorNode', () => {
   });
 
   describe('makeBarColor', () => {
-    it('should return red400 for error level (overriding theme.level.error)', () => {
+    it('should return red400 for error level (overriding error)', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Test Error',
@@ -462,11 +462,11 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      // ErrorNode specifically returns red400 for errors, not theme.level.error
+      // ErrorNode specifically returns red400 for errors, not error
       expect(node.makeBarColor(theme)).toBe(theme.colors.red400);
     });
 
-    it('should return red400 for fatal level (overriding theme.level.fatal)', () => {
+    it('should return red400 for fatal level (overriding fatal)', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Test Error',
@@ -476,7 +476,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      // ErrorNode specifically returns red400 for fatal, not theme.level.fatal
+      // ErrorNode specifically returns red400 for fatal, not fatal
       expect(node.makeBarColor(theme)).toBe(theme.colors.red400);
     });
 
