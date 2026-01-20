@@ -159,7 +159,7 @@ class EventRedisData:
         for key, value in redis_data.items():
             try:
                 event_key = EventKey.from_redis_key(key)
-                event_instance = EventInstance.parse_raw(value)
+                event_instance = EventInstance.model_validate_json(value)
                 events[event_key] = event_instance
             except Exception as e:
                 logger.exception(

@@ -440,8 +440,12 @@ def _run_size_analysis_comparison(
             comparison.save()
         return
 
-    head_size_analysis_results = SizeAnalysisResults.parse_raw(head_analysis_file.getfile().read())
-    base_size_analysis_results = SizeAnalysisResults.parse_raw(base_analysis_file.getfile().read())
+    head_size_analysis_results = SizeAnalysisResults.model_validate_json(
+        head_analysis_file.getfile().read()
+    )
+    base_size_analysis_results = SizeAnalysisResults.model_validate_json(
+        base_analysis_file.getfile().read()
+    )
 
     logger.info(
         "preprod.size_analysis.compare.running_comparison",
