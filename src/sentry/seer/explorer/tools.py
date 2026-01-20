@@ -739,17 +739,6 @@ def _get_issue_event_timeseries(
     start_dt = datetime.fromisoformat(start) if start else None
     end_dt = datetime.fromisoformat(end) if end else None
     start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
-    if start_dt >= end_dt:
-        logger.warning(
-            "_get_issue_event_timeseries: Time range outside retention",
-            extra={
-                "group_id": group.id,
-                "organization_id": organization.id,
-                "start": start_dt,
-                "end": end_dt,
-            },
-        )
-        return None
 
     # Round up to nearest supported period
     delta = end_dt - start_dt
@@ -802,17 +791,6 @@ def _get_recommended_event(
     If no events are valid, return the highest recommended event.
     """
     start, end = get_group_date_range(group, organization, start, end)
-    if start >= end:
-        logger.warning(
-            "_get_recommended_event: Time range outside retention",
-            extra={
-                "group_id": group.id,
-                "organization_id": organization.id,
-                "start": start,
-                "end": end,
-            },
-        )
-        return None
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
