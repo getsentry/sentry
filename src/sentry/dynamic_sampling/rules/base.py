@@ -13,9 +13,9 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_project_mode_sampling
-from sentry.metrics import metrics
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils import metrics
 
 # These rules types will always be added to the generated rules, irrespectively of the base sample rate.
 ALWAYS_INCLUDED_RULE_TYPES = {
