@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from typing import Any
 
+from django.db import router, transaction
+
 from sentry import deletions, tsdb
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -224,8 +226,6 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ POST
         """
-        from django.db import router, transaction
-
         if not project_ids:
             return RpcServiceHookProjectsResult(
                 error=RpcSentryAppError(
@@ -319,20 +319,21 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                     status_code=404,
                 ),
             )
-
-        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
-        # Validate that the service hooks the caller is attempting to modify match
-        # the database. Prevents a TOCTOU race condition.
-        current_project_ids = {hp.project_id for hp in hook_projects}
-        if current_project_ids != set(existing_project_ids):
-            return RpcEmptyResult(
-                success=False,
-                error=RpcSentryAppError(
-                    message="The service hooks have changed during your request. Please try again after a moment.",
-                    status_code=409,
-                ),
-            )
-        deletions.exec_sync_many(list(hook_projects))
+        with transaction.atomic(router.db_for_write(ServiceHookProject)):
+            # Materialize the queryset once to avoid TOCTOU between validation and deletion
+            hook_projects = list(ServiceHookProject.objects.filter(service_hook_id=hook.id))
+            # Validate that the service hooks the caller is attempting to modify match
+            # the database. Prevents a TOCTOU race condition.
+            current_project_ids = {hp.project_id for hp in hook_projects}
+            if current_project_ids != set(existing_project_ids):
+                return RpcEmptyResult(
+                    success=False,
+                    error=RpcSentryAppError(
+                        message="The service hooks have changed during your request. Please try again after a moment.",
+                        status_code=409,
+                    ),
+                )
+            deletions.exec_sync_many(hook_projects)
 
         return RpcEmptyResult()
 
