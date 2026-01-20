@@ -491,7 +491,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       },
       yAxis: {
         axisLabel: {
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
@@ -502,7 +502,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
       },
     };
-  }, [theme.tokens.content.muted]);
+  }, [theme.tokens.content.secondary]);
 
   return (
     <ChartZoom {...selection.datetime}>

@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {ReleasesSortOption} from 'sentry/constants/releases';
@@ -51,7 +51,7 @@ export function ReleasesSortSelect({sortBy, onChange}: Props) {
         };
       })}
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <OverlayTrigger.Button
           {...triggerProps}
           icon={<IconSort variant="muted" />}
           aria-label={t('Sort Releases')}

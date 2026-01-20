@@ -18,7 +18,7 @@ const cellBackground = (p: CellProps & {theme: Theme}) => {
 
 const cellColor = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    const color = p.theme.white;
+    const color = p.theme.colors.white;
     return `color: ${color};`;
   }
 

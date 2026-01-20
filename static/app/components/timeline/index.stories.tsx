@@ -45,7 +45,7 @@ export default Storybook.story('Timeline', story => {
           timestamp={<DateTime date={now} />}
           colorConfig={{
             title: theme.tokens.content.danger,
-            icon: theme.tokens.graphics.danger,
+            icon: theme.tokens.graphics.danger.vibrant,
             iconBorder: theme.tokens.border.danger.vibrant,
           }}
           isActive
@@ -81,7 +81,7 @@ export default Storybook.story('Timeline', story => {
           timestamp={<DateTime date={now} />}
           colorConfig={{
             title: theme.tokens.content.success,
-            icon: theme.tokens.graphics.success,
+            icon: theme.tokens.graphics.success.vibrant,
             iconBorder: theme.tokens.border.success.vibrant,
           }}
         >
@@ -144,7 +144,7 @@ export default Storybook.story('Timeline', story => {
           timestamp={<span style={{color: 'blue'}}>my cool timestamp</span>}
           colorConfig={{
             title: theme.tokens.content.danger,
-            icon: theme.tokens.graphics.danger,
+            icon: theme.tokens.graphics.danger.vibrant,
             iconBorder: theme.tokens.border.danger.vibrant,
           }}
         />
@@ -153,7 +153,7 @@ export default Storybook.story('Timeline', story => {
           icon={<IconCursorArrow size="xs" />}
           colorConfig={{
             title: theme.tokens.content.accent,
-            icon: theme.tokens.graphics.accent,
+            icon: theme.tokens.graphics.accent.vibrant,
             iconBorder: theme.tokens.border.accent.vibrant,
           }}
           isActive
@@ -172,7 +172,7 @@ export default Storybook.story('Timeline', story => {
           }
           colorConfig={{
             title: theme.tokens.content.promotion,
-            icon: theme.tokens.graphics.promotion,
+            icon: theme.tokens.graphics.promotion.vibrant,
             iconBorder: theme.tokens.border.promotion.vibrant,
           }}
         >
@@ -190,7 +190,7 @@ export default Storybook.story('Timeline', story => {
           icon={<IconClock size="xs" />}
           colorConfig={{
             title: theme.tokens.content.accent,
-            icon: theme.tokens.graphics.accent,
+            icon: theme.tokens.graphics.accent.vibrant,
             iconBorder: theme.tokens.border.accent.vibrant,
           }}
         >
@@ -216,7 +216,7 @@ export default Storybook.story('Timeline', story => {
             icon={<IconFire size="xs" />}
             colorConfig={{
               title: theme.tokens.content.danger,
-              icon: theme.tokens.graphics.danger,
+              icon: theme.tokens.graphics.danger.vibrant,
               iconBorder: theme.tokens.border.danger.vibrant,
             }}
           >
@@ -229,7 +229,7 @@ export default Storybook.story('Timeline', story => {
             timestamp={<DateTime date={now} />}
             colorConfig={{
               title: theme.tokens.content.success,
-              icon: theme.tokens.graphics.success,
+              icon: theme.tokens.graphics.success.vibrant,
               iconBorder: theme.tokens.border.success.vibrant,
             }}
           >
@@ -250,7 +250,7 @@ export default Storybook.story('Timeline', story => {
             timestamp={<DateTime date={now} />}
             colorConfig={{
               title: theme.tokens.content.accent,
-              icon: theme.tokens.graphics.accent,
+              icon: theme.tokens.graphics.accent.vibrant,
               iconBorder: theme.tokens.border.primary,
             }}
           >
@@ -263,7 +263,7 @@ export default Storybook.story('Timeline', story => {
             timestamp={<DateTime date={now} />}
             colorConfig={{
               title: theme.tokens.content.accent,
-              icon: theme.tokens.graphics.accent,
+              icon: theme.tokens.graphics.accent.vibrant,
               iconBorder: theme.tokens.border.accent.vibrant,
             }}
           >

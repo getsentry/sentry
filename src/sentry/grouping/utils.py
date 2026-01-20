@@ -88,7 +88,9 @@ def bool_from_string(value: str) -> bool | None:
 
 
 def resolve_fingerprint_variable(
-    variable_key: str, event_data: NodeData | Mapping[str, Any]
+    variable_key: str,
+    event_data: NodeData | Mapping[str, Any],
+    use_legacy_unknown_variable_handling: bool,
 ) -> str | None:
     if variable_key == "transaction":
         return event_data.get("transaction") or "<no-transaction>"
@@ -151,17 +153,35 @@ def resolve_fingerprint_variable(
                 return tag_value
         return "<no-value-for-tag-%s>" % requested_tag
     else:
-        return None
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove `use_legacy_unknown_variable_handling` and just return the string. (At that
+        # point we can also change the return type of this function to just be `str`.)
+        return (
+            None
+            if use_legacy_unknown_variable_handling
+            else "<unrecognized-variable-%s>" % variable_key
+        )
 
 
-def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> list[str]:
+def resolve_fingerprint_values(
+    fingerprint: list[str], event_data: NodeData, use_legacy_unknown_variable_handling: bool = False
+) -> list[str]:
     def _resolve_single_entry(entry: str) -> str:
         variable_key = parse_fingerprint_entry_as_variable(entry)
         if variable_key == "default":  # entry is some variation of `{{ default }}`
             return DEFAULT_FINGERPRINT_VARIABLE
         if variable_key is None:  # entry isn't a variable
             return entry
-        resolved_value = resolve_fingerprint_variable(variable_key, event_data)
+
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
+        # `resolve_fingerprint_variable`
+        resolved_value = resolve_fingerprint_variable(
+            variable_key, event_data, use_legacy_unknown_variable_handling
+        )
+
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove this
         if resolved_value is None:  # variable wasn't recognized
             return entry
         return resolved_value
@@ -169,10 +189,20 @@ def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> 
     return [_resolve_single_entry(entry) for entry in fingerprint]
 
 
-def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
+def expand_title_template(
+    template: str, event_data: Mapping[str, Any], use_legacy_unknown_variable_handling: bool = False
+) -> str:
     def _handle_match(match: Match[str]) -> str:
         variable_key = match.group(1)
-        resolved_value = resolve_fingerprint_variable(variable_key, event_data)
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
+        # `resolve_fingerprint_variable`
+        resolved_value = resolve_fingerprint_variable(
+            variable_key, event_data, use_legacy_unknown_variable_handling
+        )
+
+        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
+        # can remove this
         if resolved_value is not None:
             return resolved_value
         # If the variable can't be resolved, return it as is

@@ -187,11 +187,11 @@ const TrialInfo = styled('div')<{status?: string}>`
   font-size: ${p => p.theme.fontSize.md};
   background: ${p => p.theme.tokens.background.secondary};
   border-radius: 3px;
-  ${p => p.status === 'error' && `color: ${p.theme.red300}`};
+  ${p => p.status === 'error' && `color: ${p.theme.colors.red400}`};
 
   > :first-child {
     justify-self: center;
-    ${p => p.status === 'success' && `color: ${p.theme.green300}`};
+    ${p => p.status === 'success' && `color: ${p.theme.colors.green400}`};
   }
 `;
 

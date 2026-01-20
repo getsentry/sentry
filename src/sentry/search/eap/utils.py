@@ -63,7 +63,7 @@ def add_start_end_conditions(
 
 
 INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
-    SupportedTraceItemType, dict[Literal["string", "number"], dict[str, str]]
+    SupportedTraceItemType, dict[Literal["string", "number", "boolean"], dict[str, str]]
 ] = {
     SupportedTraceItemType.SPANS: SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
@@ -125,7 +125,7 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
 
 def translate_internal_to_public_alias(
     internal_alias: str,
-    type: Literal["string", "number"],
+    type: Literal["string", "number", "boolean"],
     item_type: SupportedTraceItemType,
 ) -> tuple[str | None, str | None, AttributeSource]:
     mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(type, {})

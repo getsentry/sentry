@@ -64,7 +64,7 @@ const NotificationLinkButton = styled(LinkButton, {
   position: relative;
   display: block;
   color: ${p =>
-    p.active ? p.theme.tokens.content.success : p.theme.tokens.content.muted};
+    p.active ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.normal};
   text-align: left;
   /* Undo some button styles */
@@ -83,7 +83,7 @@ const NotificationLinkButton = styled(LinkButton, {
     width: 4px;
     top: 50%;
     transform: translateY(-50%);
-    background: ${p => p.theme.tokens.graphics.success};
+    background: ${p => p.theme.tokens.graphics.success.vibrant};
     border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
   }
