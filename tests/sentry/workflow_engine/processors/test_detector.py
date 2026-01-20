@@ -1024,32 +1024,8 @@ class TestGetPreferredDetector(TestCase):
 
         assert result == self.detector
 
-    def test_no_detector_id(self) -> None:
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            project_id=1,
-            event_id="asdf",
-            fingerprint=["asdf"],
-            issue_title="title",
-            subtitle="subtitle",
-            resource_id=None,
-            evidence_data={},
-            evidence_display=[],
-            type=MetricIssue,
-            detection_time=timezone.now(),
-            level="error",
-            culprit="",
-        )
-
-        group_event = GroupEvent.from_event(self.event, self.group)
-        group_event.occurrence = occurrence
-
-        event_data = WorkflowEventData(event=group_event, group=self.group)
-
-        with pytest.raises(Detector.DoesNotExist):
-            get_preferred_detector(event_data)
-
-    def test_errors_on_no_detector(self) -> None:
+    def test_issue_stream_detector_fallback(self) -> None:
+        # falls back to issue stream
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=self.project.id,
@@ -1072,8 +1048,8 @@ class TestGetPreferredDetector(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        with pytest.raises(Detector.DoesNotExist):
-            get_preferred_detector(event_data)
+        detector = get_preferred_detector(event_data)
+        assert detector == Detector.get_issue_stream_detector_for_project(self.project.id)
 
 
 class TestAssociateNewGroupWithDetector(TestCase):
