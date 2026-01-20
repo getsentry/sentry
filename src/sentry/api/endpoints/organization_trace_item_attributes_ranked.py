@@ -305,6 +305,22 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         )
         total_baseline = total_spans - total_outliers
 
+        ranked_distribution: dict[str, Any] = {
+            "rankedAttributes": [],
+            "rankingInfo": {
+                "function": function_string,
+                "value": function_value if function_value else "N/A",
+                "above": above,
+            },
+            "cohort1Total": total_outliers,
+            "cohort2Total": total_baseline,
+        }
+
+        # If baseline is empty or negative, comparison is not meaningful
+        if total_baseline <= 0:
+            logger.warning("total_baseline is <= 0 (%s). Returning empty response", total_baseline)
+            return Response(ranked_distribution)
+
         logger.info(
             "compare_distributions params: baseline=%s, outliers=%s, total_outliers=%s, total_baseline=%s, config=%s, meta=%s",
             cohort_2_distribution,
@@ -331,17 +347,6 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         logger.info("scored_attrs_rrr: %s", scored_attrs_rrr)
 
         rrr_results = scored_attrs_rrr.get("results", [])
-
-        ranked_distribution: dict[str, Any] = {
-            "rankedAttributes": [],
-            "rankingInfo": {
-                "function": function_string,
-                "value": function_value if function_value else "N/A",
-                "above": above,
-            },
-            "cohort1Total": total_outliers,
-            "cohort2Total": total_baseline,
-        }
 
         for i, (attr, _) in enumerate(rrr_results):
             public_alias, _, _ = translate_internal_to_public_alias(
