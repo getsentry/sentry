@@ -97,6 +97,15 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Organization
+register(
+    "organization.default-owner-id-cache-ttl",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
@@ -605,14 +614,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Extract spans only from a random fraction of transactions.
-#
-# NOTE: Any value below 1.0 will break the product. Do not override in production.
-register(
-    "relay.span-extraction.sample-rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Allow the Relay to skip normalization of spans for certain hosts.
 register(
@@ -1254,12 +1255,7 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "seer.explorer_index.run_frequency.minutes",
-    type=Int,
-    default=1440,  # 24 hours
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
+
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
 # {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
 register(
