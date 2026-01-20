@@ -29,7 +29,6 @@ from sentry.preprod.size_analysis.models import (
 logger = logging.getLogger(__name__)
 
 
-# Placeholder
 def compare_size_analysis(
     head_size_analysis: PreprodArtifactSizeMetrics,
     head_size_analysis_results: SizeAnalysisResults,
