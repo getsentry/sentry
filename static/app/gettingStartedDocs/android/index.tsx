@@ -14,7 +14,7 @@ const docs: Docs = {
   profilingOnboarding: profiling,
   replayOnboarding: sessionReplay,
   logsOnboarding: logs,
-  metricsOnboarding: metrics(),
+  metricsOnboarding: metrics,
 };
 
 export default docs;

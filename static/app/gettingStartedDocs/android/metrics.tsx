@@ -25,9 +25,7 @@ Sentry.metrics().gauge("queue_size", 42.0)
 // Distribution metric - track a value distribution
 Sentry.metrics().distribution("response_time", 150.0)`;
 
-export const metrics = <
-  PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
->(): OnboardingConfig<PlatformOptions> => ({
+export const metrics: OnboardingConfig<BasePlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -48,7 +46,7 @@ export const metrics = <
     },
   ],
   configure: () => [],
-  verify: (params: DocsParams<PlatformOptions>) => [
+  verify: (params: DocsParams<BasePlatformOptions>) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -116,4 +114,4 @@ ${getMetricsCodeKotlin()}`,
       ],
     },
   ],
-});
+};
