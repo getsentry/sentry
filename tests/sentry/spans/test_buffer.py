@@ -23,6 +23,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.compression.level": 0,
     "spans.buffer.evalsha-latency-threshold": 100,
+    "spans.buffer.debug-traces": [],
 }
 
 

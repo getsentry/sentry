@@ -7,7 +7,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -103,7 +103,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   }
 
   return (
-    <ConsentItemsContainer>
+    <Stack gap="xl">
       <Flex align="center" gap="md">
         <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
@@ -146,7 +146,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             </TouchCustomerMessage>
           ) : (
             <Fragment>
-              <ButtonWrapper>
+              <Flex align="center" gap="md">
                 {canStartTrial ? (
                   <StartTrialButton
                     organization={organization}
@@ -245,7 +245,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                 {autofixAcknowledgeMutation.isError && (
                   <ErrorText>{t('Something went wrong.')}</ErrorText>
                 )}
-              </ButtonWrapper>
+              </Flex>
               {canStartTrial && (
                 <LegalText>
                   {t(
@@ -257,7 +257,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           )
         ) : (
           <Fragment>
-            <ButtonWrapper>
+            <Flex align="center" gap="md">
               <Button
                 priority="primary"
                 onClick={() => autofixAcknowledgeMutation.mutate()}
@@ -280,7 +280,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
               {autofixAcknowledgeMutation.isError && (
                 <ErrorText>{t('Something went wrong.')}</ErrorText>
               )}
-            </ButtonWrapper>
+            </Flex>
           </Fragment>
         )}
         <LegalText>
@@ -294,17 +294,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           )}
         </Alert>
       )}
-    </ConsentItemsContainer>
+    </Stack>
   );
 }
 
 export default AiSetupDataConsent;
-
-const ConsentItemsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const SayHelloHeader = styled('h3')`
   margin: 0;
@@ -346,12 +340,6 @@ const LegalText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
