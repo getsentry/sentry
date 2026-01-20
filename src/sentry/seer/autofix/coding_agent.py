@@ -200,22 +200,7 @@ def _launch_agents_for_repos(
     webhook_url: str = "",
     installation: CodingAgentIntegration | None = None,
 ) -> dict[str, list]:
-    """
-    Launch coding agents for all repositories in the solution.
-
-    Args:
-        autofix_state: The autofix state
-        run_id: The autofix run ID
-        organization: The organization
-        trigger_source: The trigger source (ROOT_CAUSE or SOLUTION)
-        instruction: Optional custom instruction to append to the prompt
-        client: The coding agent client (for user-authenticated providers)
-        webhook_url: The webhook URL for the client (only used with client param)
-        installation: The coding agent integration installation (for org-installed integrations)
-
-    Returns:
-        Dictionary with 'successes' and 'failures' lists
-    """
+    """Launch coding agents for all repositories in the solution."""
 
     # Fetch project preferences to get auto_create_pr setting from automation_handoff
     auto_create_pr = False
