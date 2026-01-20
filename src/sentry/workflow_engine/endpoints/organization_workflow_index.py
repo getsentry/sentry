@@ -270,10 +270,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Workflow",
+        operation_id="Create an Alert",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
+        request=WorkflowValidator,
         responses={
             201: WorkflowSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -281,16 +282,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
     def post(self, request, organization):
         """
-        Creates a workflow for an organization
-        `````````````````````````````````````
-        :param string name: The name of the workflow
-        :param bool enabled: Whether the workflow is enabled or not
-        :param object config: The configuration of the workflow
-        :param object triggers: The Data Condition and DataConditionGroup for the when condition of a workflow
-        :param object action_filters: The Data Conditions, Data Condition Group, and Actions to invoke when a workflow is triggered
+        Creates an alert for an organization
         """
         validator = WorkflowValidator(
             data=request.data,
