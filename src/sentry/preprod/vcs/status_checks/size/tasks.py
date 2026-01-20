@@ -831,37 +831,32 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
             except ApiForbiddenError as e:
                 lifecycle.record_failure(e)
                 error_message = str(e).lower()
-                # Github uses 403 codes for some rate limiting errors which are captured as ApiForbiddenError
                 if "rate limit exceeded" in error_message:
                     raise ApiRateLimitedError("GitHub rate limit exceeded") from e
-
+                if (
+                    "resource not accessible" in error_message
+                    or "insufficient" in error_message
+                    or "permission" in error_message
+                ):
+                    logger.exception(
+                        "preprod.status_checks.create.insufficient_permissions",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "integration_id": self.integration_id,
+                            "repo": repo,
+                            "error_message": str(e),
+                        },
+                    )
+                    raise IntegrationConfigurationError(
+                        "GitHub App lacks permissions to create check runs. "
+                        "Please ensure the app has the required permissions and that "
+                        "the organization has accepted any updated permissions."
+                    ) from e
                 raise
             except ApiError as e:
                 lifecycle.record_failure(e)
-                # Only convert specific permission 403s as IntegrationConfigurationError
-                # GitHub can return 403 for various reasons (rate limits, temporary issues, permissions)
-                if e.code == 403:
-                    error_message = str(e).lower()
-                    if (
-                        "resource not accessible" in error_message
-                        or "insufficient" in error_message
-                        or "permission" in error_message
-                    ):
-                        logger.exception(
-                            "preprod.status_checks.create.insufficient_permissions",
-                            extra={
-                                "organization_id": self.organization_id,
-                                "integration_id": self.integration_id,
-                                "repo": repo,
-                                "error_message": str(e),
-                            },
-                        )
-                        raise IntegrationConfigurationError(
-                            "GitHub App lacks permissions to create check runs. "
-                            "Please ensure the app has the required permissions and that "
-                            "the organization has accepted any updated permissions."
-                        ) from e
-                elif e.code and 400 <= e.code < 500 and e.code != 429:
+                # 403s are handled by ApiForbiddenError above
+                if e.code and 400 <= e.code < 500 and e.code not in (403, 429):
                     logger.exception(
                         "preprod.status_checks.create.client_error",
                         extra={
