@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {SchedulePreview} from 'sentry/views/detectors/components/forms/common/schedulePreview';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
+import type {Schedule} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import {useUptimeDetectorFormField} from './fields';
@@ -19,13 +20,16 @@ export function PreviewSection() {
   const intervalSeconds = useUptimeDetectorFormField('intervalSeconds');
   const intervalMinutes = Math.floor(intervalSeconds / 60);
 
+  const schedule: Schedule = {
+    type: ScheduleType.INTERVAL,
+    value: intervalMinutes,
+    unit: 'minute',
+  };
+
   return (
     <SchedulePreview
       statusToText={statusToText}
-      scheduleType={ScheduleType.INTERVAL}
-      scheduleCrontab=""
-      scheduleIntervalValue={intervalMinutes}
-      scheduleIntervalUnit="minute"
+      schedule={schedule}
       timezone="UTC"
       failureIssueThreshold={downtimeThreshold}
       recoveryThreshold={recoveryThreshold}

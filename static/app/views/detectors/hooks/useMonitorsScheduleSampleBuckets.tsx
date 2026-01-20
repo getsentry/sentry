@@ -1,28 +1,23 @@
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ScheduleType} from 'sentry/views/insights/crons/types';
 
-interface UseMonitorsScheduleSampleBucketsOptions {
+import type {UseMonitorsScheduleSamplesOptions} from './useMonitorsScheduleSamples';
+
+interface UseMonitorsScheduleSampleBucketsOptions
+  extends UseMonitorsScheduleSamplesOptions {
   /**
    * The end timestamp of the sample window in seconds
    */
   end: number | undefined;
-  failureIssueThreshold: number;
   /**
    * The interval of the sample window in seconds
    */
   interval: number | undefined;
-  recoveryThreshold: number;
-  scheduleCrontab: string;
-  scheduleIntervalUnit: string;
-  scheduleIntervalValue: number;
-  scheduleType: ScheduleType;
   /**
    * The start timestamp of the sample window in seconds
    */
   start: number | undefined;
-  timezone: string;
 }
 
 export enum SchedulePreviewStatus {
@@ -36,27 +31,22 @@ export function useMonitorsScheduleSampleBuckets({
   start,
   end,
   interval,
-  scheduleType,
-  scheduleCrontab,
-  scheduleIntervalValue,
-  scheduleIntervalUnit,
+  schedule,
   timezone,
   failureIssueThreshold,
   recoveryThreshold,
 }: UseMonitorsScheduleSampleBucketsOptions) {
   const organization = useOrganization();
 
-  const schedule =
-    scheduleType === ScheduleType.INTERVAL
-      ? [scheduleIntervalValue, scheduleIntervalUnit]
-      : scheduleCrontab;
+  const scheduleType = schedule.type;
+  const scheduleValue = schedule.unit ? [schedule.value, schedule.unit] : schedule.value;
 
   const query = {
     failure_issue_threshold: failureIssueThreshold,
     recovery_threshold: recoveryThreshold,
-    schedule_type: scheduleType,
     timezone,
-    schedule,
+    schedule: scheduleValue,
+    schedule_type: scheduleType,
     start,
     end,
     interval,

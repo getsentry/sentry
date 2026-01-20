@@ -34,7 +34,7 @@ interface CronDetectorFormData {
   scheduleCrontab: string;
   scheduleIntervalUnit: MonitorIntervalUnit;
   scheduleIntervalValue: number;
-  scheduleType: 'crontab' | 'interval';
+  scheduleType: ScheduleType;
   timezone: string;
   workflowIds: string[];
 }

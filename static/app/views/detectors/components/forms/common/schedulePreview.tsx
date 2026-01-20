@@ -19,19 +19,14 @@ import LoadingError from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
-import {useMonitorsScheduleSamples} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
-import type {ScheduleType} from 'sentry/views/insights/crons/types';
+import {
+  useMonitorsScheduleSamples,
+  type UseMonitorsScheduleSamplesOptions,
+} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
 
-type SchedulePreviewProps = {
-  failureIssueThreshold: number;
-  recoveryThreshold: number;
-  scheduleCrontab: string;
-  scheduleIntervalUnit: string;
-  scheduleIntervalValue: number;
-  scheduleType: ScheduleType;
+interface SchedulePreviewProps extends UseMonitorsScheduleSamplesOptions {
   statusToText: Record<SchedulePreviewStatus, string>;
-  timezone: string;
-};
+}
 
 const statusPrecedent: SchedulePreviewStatus[] = [
   SchedulePreviewStatus.SUB_FAILURE_ERROR,
