@@ -36,6 +36,7 @@ export enum DataConditionType {
   ISSUE_PRIORITY_EQUALS = 'issue_priority_equals',
   ISSUE_PRIORITY_GREATER_OR_EQUAL = 'issue_priority_greater_or_equal',
   ISSUE_PRIORITY_DEESCALATING = 'issue_priority_deescalating',
+  ISSUE_TYPE = 'issue_type',
 
   // frequency
   EVENT_FREQUENCY_COUNT = 'event_frequency_count',
