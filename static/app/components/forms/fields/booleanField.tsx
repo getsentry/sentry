@@ -1,3 +1,5 @@
+import type {FormEvent, ReactNode} from 'react';
+
 import Confirm from 'sentry/components/confirm';
 import {Switch, type SwitchProps} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -8,9 +10,9 @@ import type {InputFieldProps, OnEvent} from './inputField';
 
 export interface BooleanFieldProps extends InputFieldProps {
   confirm?: {
-    false?: React.ReactNode;
+    false?: ReactNode;
     isDangerous?: boolean;
-    true?: React.ReactNode;
+    true?: ReactNode;
   };
 }
 
@@ -27,14 +29,14 @@ export default function BooleanField({confirm, ...fieldProps}: BooleanFieldProps
         ...props
       }: {
         disabled: boolean;
-        disabledReason: boolean;
+        disabledReason: ReactNode;
         onBlur: OnEvent;
         onChange: OnEvent;
         type: string;
         value: any;
-        children?: React.ReactNode;
+        children?: ReactNode;
       }) => {
-        const handleChange = (event: React.FormEvent<HTMLInputElement>) => {
+        const handleChange = (event: FormEvent<HTMLInputElement>) => {
           const newValue = !value;
           onChange(newValue, event);
           onBlur(newValue, event);
@@ -54,7 +56,7 @@ export default function BooleanField({confirm, ...fieldProps}: BooleanFieldProps
           return (
             <Confirm
               renderMessage={() => confirmMessage}
-              onConfirm={() => handleChange({} as React.FormEvent<HTMLInputElement>)}
+              onConfirm={() => handleChange({} as FormEvent<HTMLInputElement>)}
               isDangerous={confirm.isDangerous}
             >
               {({open}) => (
