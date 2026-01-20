@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -370,13 +372,13 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
           {sdkDeprecations.values().map(sdk => {
             const key = `${sdk.projectId}-${sdk.sdkName}-${sdk.sdkVersion}`;
             return (
-              <SDKDeprecationContainer key={key}>
+              <Flex as="li" align="baseline" key={key}>
                 <Dot />
                 {tct('[name] minimum version [version]', {
                   name: <code>{sdk.sdkName}</code>,
                   version: <code>{sdk.minimumVersion}</code>,
                 })}
-              </SDKDeprecationContainer>
+              </Flex>
             );
           })}
         </SDKDeprecationsContainer>
@@ -633,12 +635,6 @@ function useSDKDeprecations() {
 
 const SDKDeprecationsContainer = styled('ul')`
   margin: 0;
-`;
-
-const SDKDeprecationContainer = styled('li')`
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
 `;
 
 const Dot = styled('span')`

@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 
@@ -17,11 +19,9 @@ export const StepContent = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-export const ActionSection = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  display: flex;
-  gap: ${p => p.theme.space.md};
-`;
+export function ActionSection(props: FlexProps<'div'>) {
+  return <Flex marginTop="xl" gap="md" {...props} />;
+}
 
 export const Field = styled(PanelItem)`
   align-items: start;
