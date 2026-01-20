@@ -33,6 +33,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
@@ -312,6 +313,11 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             dataset_module = OurLogs
         elif is_trace_metric:
             dataset_module = TraceMetrics
+        elif (
+            self.event_types
+            and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_PREPROD
+        ):
+            dataset_module = PreprodSize
         else:
             dataset_module = Spans
         now = datetime.now(tz=timezone.utc)
