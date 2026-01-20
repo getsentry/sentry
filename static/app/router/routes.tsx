@@ -1498,7 +1498,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: 'uptime/',
