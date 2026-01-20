@@ -76,7 +76,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       label: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: theme.white,
+        color: theme.colors.white,
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
@@ -85,7 +85,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       },
       upperLabel: {
         show: true,
-        color: theme.white,
+        color: theme.colors.white,
         backgroundColor: 'transparent',
         height: 24,
         fontSize: 12,
@@ -141,7 +141,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
             fontSize: 12,
             fontWeight: 'bold',
             fontFamily: 'Rubik',
-            color: theme.white,
+            color: theme.colors.white,
           },
         },
       },

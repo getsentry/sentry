@@ -146,8 +146,9 @@ def group_categories_from_search_filters(
 
     if not group_categories:
         group_categories = set(get_search_strategies().keys())
-        # if we're not searching for feedbacks, then hide them by default
+        # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
+        group_categories.discard(GroupCategory.INSTRUMENTATION.value)
 
     if not features.has("organizations:performance-issues-search", organization):
         group_categories.discard(GroupCategory.PERFORMANCE.value)
