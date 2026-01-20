@@ -12,7 +12,10 @@ from sentry.api.event_search import SearchConfig, SearchFilter, parse_search_que
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.github.status_check import GitHubCheckConclusion, GitHubCheckStatus
+from sentry.integrations.github.status_check import (
+    GitHubCheckConclusion,
+    GitHubCheckStatus,
+)
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.metrics import (
@@ -31,7 +34,12 @@ from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiRateLimitedError,
+    IntegrationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
@@ -823,6 +831,14 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 response = self.client.create_check_run(repo=repo, data=check_data)
                 check_id = response.get("id")
                 return str(check_id) if check_id else None
+            except ApiForbiddenError as e:
+                lifecycle.record_failure(e)
+                error_message = str(e).lower()
+                # Github uses 403 codes for some rate limiting errors which are captured as ApiForbiddenError
+                if "rate limit exceeded" in error_message:
+                    raise ApiRateLimitedError("GitHub rate limit exceeded") from e
+
+                raise
             except ApiError as e:
                 lifecycle.record_failure(e)
                 # Only convert specific permission 403s as IntegrationConfigurationError
