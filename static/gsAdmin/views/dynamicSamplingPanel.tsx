@@ -4,6 +4,7 @@ import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
@@ -245,7 +246,9 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
           <PanelHeaderRight>
             {selectedConfigId && (
               <CompactSelect
-                triggerProps={{size: 'xs', prefix: 'DSN'}}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} size="xs" prefix="DSN" />
+                )}
                 value={selectedConfigId}
                 options={Object.keys(projectConfig.configs).map(id => ({
                   value: id,

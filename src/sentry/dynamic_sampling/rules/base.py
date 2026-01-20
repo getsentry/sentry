@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
@@ -15,6 +15,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_project_mode_sampling
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils import metrics
 
 # These rules types will always be added to the generated rules, irrespectively of the base sample rate.
 ALWAYS_INCLUDED_RULE_TYPES = {
@@ -109,7 +110,15 @@ def _get_rules_of_enabled_biases(
             or (rule_type.value in enabled_biases and rule_type in ALWAYS_ALLOWED_RULE_TYPES)
         ):
             try:
-                rules += bias.generate_rules(project, base_sample_rate)
+                generated_rules = bias.generate_rules(project, base_sample_rate)
+                rules += generated_rules
+                if generated_rules and features.has(
+                    "organizations:dynamic-sampling-count-biases", project.organization
+                ):
+                    metrics.incr(
+                        "dynamic_sampling.rule_emitted",
+                        tags={"bias": bias.__class__.__name__},
+                    )
             except Exception:
                 logger.exception("Rule generator %s failed.", rule_type)
 

@@ -12,7 +12,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 class TestCodeReviewPreflightService(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.organization = self.create_organization()
+        self.user = self.create_user(email="owner@example.com")
+        self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(project=self.project)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -99,24 +100,15 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason is None
 
     @with_feature("organizations:gen-ai-features")
-    def test_allowed_when_org_is_legacy_opt_in_without_beta_flag(self) -> None:
+    def test_denied_when_legacy_opt_in_enabled_without_beta_flag(self) -> None:
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            external_identifier=self.external_identifier,
-        )
+        service = self._create_service()
+        result = service.check()
 
-        with patch(
-            "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
-            return_value=True,
-        ):
-            service = self._create_service()
-            result = service.check()
-
-        assert result.allowed is True
-        assert result.denial_reason is None
+        # Should be denied because org doesn't have code-review-beta, seer-added, or seat-based-seer-enabled
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
     # -------------------------------------------------------------------------
     # Seer-added (legacy usage-based) org tests
@@ -262,7 +254,7 @@ class TestCodeReviewPreflightService(TestCase):
 
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
-    def test_returns_none_settings_for_beta_org_without_repo_settings(
+    def test_returns_default_settings_for_beta_org_without_repo_settings(
         self, mock_check_quota: MagicMock
     ) -> None:
         mock_check_quota.return_value = True
@@ -279,7 +271,45 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is True
-        assert result.settings is None
+        assert result.settings is not None
+        assert result.settings.enabled is True
+        assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
+        assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
+
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @with_feature(
+        [
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seat-based-seer-enabled",
+        ]
+    )
+    def test_uses_repo_settings_when_has_both_code_review_beta_and_seat_based_features(
+        self, mock_check_quota: MagicMock
+    ) -> None:
+        mock_check_quota.return_value = True
+
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is True
+        assert result.settings is not None
+        assert result.settings.enabled is True
+        # Should have the actual repo settings, not defaults
+        assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
+        assert CodeReviewTrigger.ON_READY_FOR_REVIEW not in result.settings.triggers
 
     # -------------------------------------------------------------------------
     # Billing tests
@@ -355,3 +385,40 @@ class TestCodeReviewPreflightService(TestCase):
 
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
+
+    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @with_feature(
+        [
+            "organizations:gen-ai-features",
+            "organizations:seat-based-seer-enabled",
+            "organizations:code-review-beta",
+        ]
+    )
+    def test_checks_seats_when_both_code_review_beta_and_seat_based_features_are_enabled(
+        self, mock_check_quota: MagicMock
+    ) -> None:
+        mock_check_quota.return_value = True
+
+        RepositorySettings.objects.create(
+            repository=self.repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is True
+        assert result.denial_reason is None
+        assert result.settings is not None
+        assert result.settings.enabled is True
+        assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
+        assert CodeReviewTrigger.ON_READY_FOR_REVIEW not in result.settings.triggers
+
+        mock_check_quota.assert_called_once()

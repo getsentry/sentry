@@ -42,6 +42,8 @@
       "Bash(pnpm knip:prod:*)",
       "Bash(pnpm lint:*)",
       "Bash(pnpm list:*)",
+      "Bash(pnpm run test:*)",
+      "Bash(pnpm run typecheck:*)",
       "Bash(pnpm test-ci:*)",
       "Bash(pnpm test:*)",
       "Bash(pnpm typecheck:*)",

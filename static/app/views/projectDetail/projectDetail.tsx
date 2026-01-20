@@ -91,7 +91,7 @@ export default function ProjectDetail() {
         {
           settingsLink: <Link to={`/settings/${orgId}/projects/${projectSlug}/`} />,
           sessionHealth: (
-            <Link to={`/organizations/${orgId}/insights/frontend/sessions/`} />
+            <Link to={`/organizations/${orgId}/insights/mobile/sessions/`} />
           ),
           backendOverview: <Link to={`/organizations/${orgId}/insights/backend/`} />,
         }
