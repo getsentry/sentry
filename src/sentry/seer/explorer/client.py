@@ -254,7 +254,7 @@ class SeerExplorerClient:
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
-            payload["artifact_schema"] = artifact_schema.schema()
+            payload["artifact_schema"] = artifact_schema.model_json_schema()
 
         # Extract and add custom tool definitions
         if self.custom_tools:
@@ -344,7 +344,7 @@ class SeerExplorerClient:
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
-            payload["artifact_schema"] = artifact_schema.schema()
+            payload["artifact_schema"] = artifact_schema.model_json_schema()
 
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:

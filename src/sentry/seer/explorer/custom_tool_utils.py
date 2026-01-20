@@ -97,7 +97,7 @@ def extract_tool_schema(tool_class: type[ExplorerTool[Any]]) -> CustomToolDefini
         name=tool_class.__name__,
         module_path=tool_class.get_module_path(),
         description=tool_class.get_description(),
-        param_schema=tool_class.params_model.schema(),
+        param_schema=tool_class.params_model.model_json_schema(),
     )
 
 
