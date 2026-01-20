@@ -5,7 +5,7 @@ import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip'
 
 import {CHART_AXIS_LABEL_FONT_SIZE} from './constants';
 
-export function calculateAttrubutePopulationPercentage(
+export function calculateAttributePopulationPercentage(
   values: Array<{
     label: string;
     value: number;
