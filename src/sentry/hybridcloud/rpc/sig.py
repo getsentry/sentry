@@ -127,16 +127,16 @@ class SerializableFunctionSignature:
             model_instance = self._parameter_model(**raw_arguments)
         except Exception as e:
             raise SerializableFunctionValueException(self, "Could not serialize arguments") from e
-        return model_instance.dict()
+        return model_instance.model_dump()
 
     def deserialize_arguments(self, serial_arguments: ArgumentDict) -> pydantic.BaseModel:
         try:
-            return self._parameter_model.parse_obj(serial_arguments)
+            return self._parameter_model.model_validate(serial_arguments)
         except Exception as e:
             raise SerializableFunctionValueException(self, "Could not deserialize arguments") from e
 
     def deserialize_return_value(self, value: Any) -> Any:
-        parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
+        parsed = self._return_model.model_validate({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
 
     def get_schemas(self) -> tuple[type[pydantic.BaseModel], type[pydantic.BaseModel]]:

@@ -232,7 +232,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             base_build_details=base_build_details,
             comparisons=comparisons,
         )
-        return Response(response.dict())
+        return Response(response.model_dump())
 
     def post(
         self,
@@ -306,7 +306,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 message=f"Head PreprodArtifact with id {head_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
             )
             return Response(
-                body.dict(),
+                body.model_dump(),
                 status=202,  # Accepted, processing not complete
             )
 
@@ -331,7 +331,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 message=f"Base PreprodArtifact with id {base_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
             )
             return Response(
-                body.dict(),
+                body.model_dump(),
                 status=202,  # Accepted, processing not complete
             )
 
@@ -384,7 +384,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 message="A comparison already exists for the head and base size metrics.",
                 comparisons=comparison_models,
             )
-            return Response(body.dict(), status=200)
+            return Response(body.model_dump(), status=200)
 
         logger.info(
             "preprod.size_analysis.compare.api.post.creating_pending_comparisons",
@@ -453,4 +453,4 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             message="Comparison records created and processing started.",
             comparisons=created_comparisons,
         )
-        return Response(body.dict(), status=200)
+        return Response(body.model_dump(), status=200)

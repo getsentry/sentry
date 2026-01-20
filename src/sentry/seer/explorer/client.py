@@ -259,12 +259,14 @@ class SeerExplorerClient:
         # Extract and add custom tool definitions
         if self.custom_tools:
             payload["custom_tools"] = [
-                extract_tool_schema(tool).dict() for tool in self.custom_tools
+                extract_tool_schema(tool).model_dump() for tool in self.custom_tools
             ]
 
         # Add on-completion hook if provided
         if self.on_completion_hook:
-            payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
+            payload["on_completion_hook"] = extract_hook_definition(
+                self.on_completion_hook
+            ).model_dump()
 
         if self.category_key and self.category_value:
             payload["category_key"] = self.category_key

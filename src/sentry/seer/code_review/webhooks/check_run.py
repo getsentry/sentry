@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError  # noqa: F401
+from pydantic import BaseModel, ConfigDict, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 
@@ -46,11 +46,10 @@ class GitHubCheckRunAction(StrEnum):
 class GitHubCheckRunData(BaseModel):
     """GitHub check_run object structure."""
 
+    model_config = ConfigDict(extra="allow")
+
     external_id: str = Field(..., description="The external ID set by Seer")
     html_url: str = Field(..., description="The URL to view the check run on GitHub")
-
-    class Config:
-        extra = "allow"  # Allow additional fields from GitHub (Pydantic v1 syntax)
 
 
 class GitHubCheckRunEvent(BaseModel):
@@ -59,11 +58,10 @@ class GitHubCheckRunEvent(BaseModel):
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
     """
 
+    model_config = ConfigDict(extra="allow")
+
     action: str = Field(..., description="The action performed (e.g., 'rerequested')")
     check_run: GitHubCheckRunData = Field(..., description="The check run data")
-
-    class Config:
-        extra = "allow"  # Allow additional fields from GitHub (Pydantic v1 syntax)
 
 
 def handle_check_run_event(
@@ -140,6 +138,6 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
         ValidationError: If the event payload is invalid
         ValueError: If external_id is not numeric
     """
-    validated_event = GitHubCheckRunEvent.parse_obj(event)
+    validated_event = GitHubCheckRunEvent.model_validate(event)
     int(validated_event.check_run.external_id)  # Raises ValueError if not numeric
     return validated_event

@@ -272,7 +272,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             response = make_signed_seer_api_request(
                 connection_pool=seer_issue_detection_connection_pool,
                 path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
-                body=json.dumps(seer_request.dict()).encode("utf-8"),
+                body=json.dumps(seer_request.model_dump()).encode("utf-8"),
                 timeout=SEER_TIMEOUT_S,
                 retries=0,
             )
@@ -292,7 +292,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             continue
 
         raw_response_data = response.json()
-        response_data = IssueDetectionResponse.parse_obj(raw_response_data)
+        response_data = IssueDetectionResponse.model_validate(raw_response_data)
         processed_traces += response_data.traces_analyzed
 
         for detected_issue in response_data.issues:

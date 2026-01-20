@@ -7,7 +7,7 @@ import orjson
 import pydantic
 import requests
 from django.conf import settings
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from rest_framework import serializers
 from urllib3 import Retry
 
@@ -50,13 +50,12 @@ class AutofixStoppingPoint(StrEnum):
 
 
 class AutofixRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     organization_id: int
     project_id: int
     issue: AutofixIssue
     repos: list[SeerRepoDefinition]
-
-    class Config:
-        extra = "allow"
 
 
 class FileChange(BaseModel):
@@ -116,6 +115,8 @@ class CodebaseState(BaseModel):
 
 
 class AutofixState(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     run_id: int
     request: AutofixRequest
     updated_at: datetime
@@ -124,9 +125,6 @@ class AutofixState(BaseModel):
     codebases: dict[str, CodebaseState] = {}
     steps: list[dict] = []
     coding_agents: dict[str, CodingAgentState] = {}
-
-    class Config:
-        extra = "allow"
 
 
 class CodingAgentStateUpdate(BaseModel):
@@ -211,7 +209,7 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
 def set_project_seer_preference(preference: SeerProjectPreference) -> None:
     """Set Seer project preference for a single project."""
     path = "/v1/project-preference/set"
-    body = orjson.dumps({"preference": preference.dict()})
+    body = orjson.dumps({"preference": preference.model_dump()})
 
     response = make_signed_seer_api_request(
         autofix_connection_pool,
@@ -673,7 +671,7 @@ def update_coding_agent_state(
     updates = CodingAgentStateUpdate(
         status=status,
         agent_url=agent_url,
-        results=[result.dict()] if result is not None else None,
+        results=[result.model_dump()] if result is not None else None,
     )
 
     update_data = CodingAgentStateUpdateRequest(

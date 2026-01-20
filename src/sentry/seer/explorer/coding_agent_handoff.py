@@ -117,7 +117,7 @@ def launch_coding_agents(
         successes.append(
             {
                 "repo_name": repo_name,
-                "coding_agent_state": coding_agent_state.dict(),
+                "coding_agent_state": coding_agent_state.model_dump(),
             }
         )
 

@@ -15,7 +15,7 @@ def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> N
     if result.error_type is None:
         raise SentryAppSentryError(
             message="Missing error type from alert rule action creator response",
-            webhook_context={**result.dict()},
+            webhook_context={**result.model_dump()},
         )
 
     error_type = SentryAppErrorType(result.error_type)

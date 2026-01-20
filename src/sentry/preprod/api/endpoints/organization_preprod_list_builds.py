@@ -173,7 +173,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             for artifact in results:
                 try:
                     build_details = transform_preprod_artifact_to_build_details(artifact)
-                    build_details_list.append(build_details.dict())
+                    build_details_list.append(build_details.model_dump())
                 except Exception as e:
                     logger.warning("Failed to transform artifact %s: %s", artifact.id, str(e))
                     continue

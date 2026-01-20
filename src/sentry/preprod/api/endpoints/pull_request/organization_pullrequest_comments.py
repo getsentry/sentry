@@ -78,7 +78,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                 message="No GitHub integration found for this repository",
                 details="Unable to find a GitHub integration for the specified repository",
             )
-            return Response(error_data.dict(), status=404)
+            return Response(error_data.model_dump(), status=404)
 
         try:
             general_comments_raw = self._fetch_pr_general_comments(
@@ -89,7 +89,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
             )
 
             # Parse general comments
-            general_comments = [IssueComment.parse_obj(c) for c in general_comments_raw]
+            general_comments = [IssueComment.model_validate(c) for c in general_comments_raw]
 
             # Parse and organize review comments by file path
             file_comments: dict[str, list[ReviewComment]] = {}
@@ -97,7 +97,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                 if "path" not in comment_data:
                     continue
 
-                review_comment = ReviewComment.parse_obj(comment_data)
+                review_comment = ReviewComment.model_validate(comment_data)
                 file_path = review_comment.path
 
                 if file_path not in file_comments:
@@ -123,7 +123,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                 },
             )
 
-            return Response(comments_data.dict(), status=200)
+            return Response(comments_data.model_dump(), status=200)
 
         except ApiError:
             logger.exception(
@@ -139,7 +139,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                 message="Failed to fetch pull request comments from GitHub",
                 details="A problem occurred when communicating with GitHub. Please try again later.",
             )
-            return Response(error_data.dict(), status=502)
+            return Response(error_data.model_dump(), status=502)
         except Exception:
             logger.exception(
                 "Unexpected error fetching PR comments",
@@ -153,7 +153,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                 error="internal_error",
                 message="An unexpected error occurred while fetching pull request comments",
             )
-            return Response(error_data.dict(), status=500)
+            return Response(error_data.model_dump(), status=500)
 
     def _fetch_pr_general_comments(
         self,

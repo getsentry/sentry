@@ -177,7 +177,7 @@ class SiloCacheBackedListCallable(Generic[_R]):
         metrics.incr("hybridcloud.caching.list.rpc", tags={"base_key": self.base_key})
         result = self.cb(object_id)
         if result is not None:
-            cache_value = json.dumps([item.dict() for item in result])
+            cache_value = json.dumps([item.model_dump() for item in result])
             _consume_generator(_set_cache(key, cache_value, version, self.timeout))
         return result
 

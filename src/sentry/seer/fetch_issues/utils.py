@@ -128,7 +128,7 @@ def bulk_serialize_for_seer(groups: list[Group]) -> SeerResponse:
     """
     issue_details = [as_issue_details(group) for group in groups]
     # Currently, Seer expects this structure. TODO(kddubey): should just be the issues_full list
-    issues_full = [issue.dict() for issue in issue_details if issue is not None]
+    issues_full = [issue.model_dump() for issue in issue_details if issue is not None]
     issue_ids = [issue["id"] for issue in issues_full]
     for issue in issues_full:
         issue["id"] = str(issue["id"])
@@ -184,4 +184,4 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
         id=int(serialized_event["groupID"]),
         title=serialized_event["title"],
         events=[serialized_event],
-    ).dict()
+    ).model_dump()

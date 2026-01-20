@@ -463,7 +463,7 @@ def _generate_summary(
                 "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
             )
 
-    summary_dict = issue_summary.dict()
+    summary_dict = issue_summary.model_dump()
     summary_dict["event_id"] = event.event_id
 
     cache.set(cache_key, summary_dict, timeout=int(timedelta(days=7).total_seconds()))

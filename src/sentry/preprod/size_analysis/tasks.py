@@ -498,7 +498,7 @@ def _run_size_analysis_comparison(
             type="size_analysis_comparison.json",
             headers={"Content-Type": "application/json"},
         )
-        file.putfile(BytesIO(dumps_htmlsafe(comparison_results.dict()).encode()))
+        file.putfile(BytesIO(dumps_htmlsafe(comparison_results.model_dump()).encode()))
 
         comparison.file_id = file.id
         comparison.state = PreprodArtifactSizeComparison.State.SUCCESS

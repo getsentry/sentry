@@ -118,7 +118,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
                         "organization_id": project.organization.id,
                         "project_id": project.id,
                     }
-                ).dict(),
+                ).model_dump(),
             }
         )
 
@@ -164,5 +164,5 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
                     **result,
                     "code_mapping_repos": code_mapping_repos,
                 }
-            ).dict()
+            ).model_dump()
         )

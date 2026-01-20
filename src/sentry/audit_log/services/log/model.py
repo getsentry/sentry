@@ -18,7 +18,7 @@ class UserIpEvent(RpcModel):
     region_code: str | None = None
 
     def to_json_encodable(self) -> dict[str, Any]:
-        ret = self.dict()
+        ret = self.model_dump()
         ret["last_seen"] = ret["last_seen"].isoformat()
         return ret
 
@@ -37,6 +37,6 @@ class AuditLogEvent(RpcModel):
     target_user_id: int | None = None
 
     def to_json_encodable(self) -> dict[str, Any]:
-        ret = self.dict()
+        ret = self.model_dump()
         ret["date_added"] = ret["date_added"].isoformat()
         return ret

@@ -235,4 +235,4 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                             created_date=best_artifact.date_added.isoformat(),
                         )
 
-        return Response(CheckForUpdatesApiResponse(current=current, update=update).dict())
+        return Response(CheckForUpdatesApiResponse(current=current, update=update).model_dump())
