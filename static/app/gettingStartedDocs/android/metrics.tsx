@@ -77,9 +77,9 @@ export const metrics = <
         {
           type: 'text',
           text: tct(
-            "To start using metrics, make sure your Sentry Android SDK version is [code:8.30.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
+            "To start using metrics, make sure your Sentry Android SDK version is [version] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
             {
-              code: (
+              version: (
                 <code>{getPackageVersion(params, 'sentry.java.android', '8.30.0')}</code>
               ),
               link: (
