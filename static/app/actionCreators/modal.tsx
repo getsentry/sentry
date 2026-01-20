@@ -482,3 +482,13 @@ export async function openInsightInfoModal(options: InsightInfoModalOptions) {
 
   openModal(deps => <InsightInfoModal {...deps} {...options} />);
 }
+
+export async function openAttributeBreakdownViewerModal(
+  options: import('sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal').AttributeBreakdownViewerModalOptions
+) {
+  const {default: Modal, modalCss} = await import(
+    'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal'
+  );
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
