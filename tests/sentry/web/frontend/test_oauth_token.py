@@ -1101,7 +1101,7 @@ class OAuthTokenPublicClientAuthCodeTest(TestCase):
         self.public_application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="https://example.com",
-            client_secret=None,
+            client_secret="",  # Public client
         )
         assert self.public_application.is_public is True
 
@@ -1190,7 +1190,7 @@ class OAuthTokenPublicClientAuthCodeTest(TestCase):
         )
 
         # Even if someone provides a secret for a public client,
-        # it won't match (public clients have client_secret=None)
+        # it won't match (public clients have client_secret="")
         resp = self.client.post(
             self.path,
             {
@@ -1502,7 +1502,7 @@ class OAuthTokenDeviceCodeTest(TestCase):
         public_app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="http://example.com",
-            client_secret=None,  # Public client
+            client_secret="",  # Public client
         )
         public_device_code = ApiDeviceCode.objects.create(
             application=public_app,
@@ -1575,7 +1575,7 @@ class OAuthTokenDeviceCodeTest(TestCase):
         public_app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="http://example.com",
-            client_secret=None,  # Public client
+            client_secret="",  # Public client
         )
         public_device_code = ApiDeviceCode.objects.create(
             application=public_app,
@@ -1642,7 +1642,7 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         self.public_application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="https://example.com",
-            client_secret=None,  # Public client
+            client_secret="",  # Public client
         )
 
         # Create a token for the public client

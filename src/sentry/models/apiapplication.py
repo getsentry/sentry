@@ -62,10 +62,11 @@ class ApiApplication(Model):
     __relocation_scope__ = RelocationScope.Global
 
     client_id = models.CharField(max_length=64, unique=True, default=generate_token)
-    # Nullable for public clients (RFC 6749 §2.1) - CLIs, native apps, SPAs
+    # Empty string for public clients (RFC 6749 §2.1) - CLIs, native apps, SPAs
     # Public clients cannot securely store secrets, so they use PKCE and/or
     # refresh token rotation instead of client authentication.
-    client_secret = models.TextField(null=True, blank=True, default=generate_token)
+    # Set client_secret="" explicitly when creating a public client.
+    client_secret = models.TextField(blank=True, default=generate_token)
     owner = FlexibleForeignKey("sentry.User", null=True)
     name = models.CharField(max_length=64, blank=True, default=generate_name)
     status = BoundedPositiveIntegerField(
@@ -147,11 +148,9 @@ class ApiApplication(Model):
         for authorization code flow and refresh token rotation for
         token refresh (RFC 9700 §4.14.2).
 
-        Note: We explicitly check for None rather than falsy values to ensure
-        that only clients created with client_secret=None are treated as public.
-        An empty string would be treated as a confidential client (safer default).
+        Public clients are created with client_secret="" (empty string).
         """
-        return self.client_secret is None
+        return self.client_secret == ""
 
     def is_allowed_response_type(self, value: object) -> TypeIs[Literal["code", "token"]]:
         return value in ("code", "token")

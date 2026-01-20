@@ -5,12 +5,12 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiApplicationTest(TestCase):
-    def test_is_public_with_none_secret(self) -> None:
-        """Public clients have client_secret=None."""
+    def test_is_public_with_empty_string_secret(self) -> None:
+        """Public clients have client_secret="" (empty string)."""
         app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="http://example.com",
-            client_secret=None,
+            client_secret="",
         )
         assert app.is_public is True
 
@@ -21,22 +21,7 @@ class ApiApplicationTest(TestCase):
             redirect_uris="http://example.com",
             # client_secret defaults to a generated token
         )
-        assert app.client_secret is not None
-        assert app.is_public is False
-
-    def test_is_public_with_empty_string_secret(self) -> None:
-        """Empty string secret should NOT be treated as public (safer default).
-
-        This is an edge case - in practice, client_secret should either be
-        None (public) or a generated token (confidential). But if somehow
-        an empty string is stored, it should be treated as confidential
-        to avoid accidentally granting public client privileges.
-        """
-        app = ApiApplication.objects.create(
-            owner=self.user,
-            redirect_uris="http://example.com",
-            client_secret="",
-        )
+        assert app.client_secret != ""
         assert app.is_public is False
 
     def test_is_valid_redirect_uri(self) -> None:
