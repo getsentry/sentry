@@ -240,8 +240,8 @@ function extractSeriesMetadata<T>({
   } else if (isGroupedMultiSeriesEventsStats(data)) {
     Object.keys(data).forEach(groupName => {
       widgetQuery.aggregates?.forEach(aggregate => {
-        const seriesData = data[groupName]![aggregate] as EventsStats;
-        if (seriesData?.meta) {
+        const seriesData = data[groupName]?.[aggregate] as EventsStats;
+        if (seriesData?.meta && aggregate) {
           result[aggregate] = getMetaField(seriesData.meta, aggregate);
         }
       });
