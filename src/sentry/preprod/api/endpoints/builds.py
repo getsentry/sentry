@@ -132,9 +132,9 @@ def apply_filters(
                 continue
 
             search_query = (
-                Q(app_name__icontains=search_term)
+                Q(mobile_app_info__app_name__icontains=search_term)
                 | Q(app_id__icontains=search_term)
-                | Q(build_version__icontains=search_term)
+                | Q(mobile_app_info__build_version__icontains=search_term)
                 | Q(
                     commit_comparison__head_sha__icontains=search_term,
                     commit_comparison__organization_id=organization.id,
