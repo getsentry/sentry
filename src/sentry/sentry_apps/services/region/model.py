@@ -89,6 +89,7 @@ class RpcServiceHookProjectsResult(RpcModel):
     projects: list[RpcProject] = Field(default_factory=list)
     service_hook_projects: list[RpcServiceHookProject] = Field(default_factory=list)
     error: RpcSentryAppError | None = None
+    extra_projects: list[RpcProject] = Field(default_factory=list)
 
 
 class RpcTimeSeriesPoint(RpcModel):

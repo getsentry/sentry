@@ -218,8 +218,12 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             extra_project_ids = [p for p in extra_projects_to_fetch if isinstance(p, int)]
             extra_project_slugs = [p for p in extra_projects_to_fetch if isinstance(p, str)]
             extra_projects = list(
-                Project.objects.filter(id__in=extra_project_ids).union(
-                    Project.objects.filter(slug__in=extra_project_slugs)
+                Project.objects.filter(
+                    id__in=extra_project_ids, organization_id=organization_id
+                ).union(
+                    Project.objects.filter(
+                        slug__in=extra_project_slugs, organization_id=organization_id
+                    )
                 )
             )
         return RpcServiceHookProjectsResult(
