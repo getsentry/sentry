@@ -254,6 +254,7 @@ class TestSentryAppRegionService(TestCase):
             organization_id=self.org.id,
             installation=self.rpc_installation,
             project_ids=[project2.id, project3.id],
+            existing_project_ids=[self.project.id, project2.id],
         )
 
         assert result.error is None
@@ -281,6 +282,7 @@ class TestSentryAppRegionService(TestCase):
         result = sentry_app_region_service.delete_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
+            existing_project_ids=[self.project.id, project2.id],
         )
 
         assert result.success is True
