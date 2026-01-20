@@ -139,7 +139,7 @@ function ReleaseCard({
           )}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
-          <ReleaseInfoSubheaderUpper>
+          <Flex justify="between" flex="1 1 auto" height="100%">
             <PackageContainer>
               <PackageName>
                 {versionInfo?.package && (
@@ -206,7 +206,7 @@ function ReleaseCard({
                 </Tooltip>
               )}
             </FinalizeWrapper>
-          </ReleaseInfoSubheaderUpper>
+          </Flex>
         </ReleaseInfoSubheader>
       </ReleaseInfo>
 
@@ -238,11 +238,11 @@ function ReleaseCard({
               </ExpandButtonWrapper>
             )}
             collapseButton={({onCollapse}) => (
-              <CollapseButtonWrapper>
+              <Flex justify="center" align="center" height="41px">
                 <Button priority="primary" size="xs" onClick={onCollapse}>
                   {t('Collapse')}
                 </Button>
-              </CollapseButtonWrapper>
+              </Flex>
             )}
           >
             {projectsToShow.map((project, index) => {
@@ -286,7 +286,11 @@ function ReleaseCard({
 }
 
 const StyledVersion = styled(Version)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledPanel = styled(Panel)<{reloading: number}>`
@@ -319,14 +323,6 @@ const ReleaseInfoSubheader = styled('div')`
   flex-grow: 1;
 `;
 
-const ReleaseInfoSubheaderUpper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  flex: initial;
-  flex-grow: 1;
-  height: 100%;
-`;
 const FinalizeWrapper = styled('div')`
   display: flex;
   flex-direction: row;
@@ -407,13 +403,6 @@ const ExpandButtonWrapper = styled('div')`
   }
 `;
 
-const CollapseButtonWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 41px;
-`;
-
 export const ReleaseProjectsLayout = styled('div')<{
   showReleaseAdoptionStages?: boolean;
 }>`
@@ -441,7 +430,11 @@ export const ReleaseProjectsLayout = styled('div')<{
 `;
 
 export const ReleaseProjectColumn = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 20px;
 `;
 
@@ -512,7 +505,7 @@ const HiddenProjectsMessage = styled('div')`
   height: 24px;
   line-height: 24px;
   color: ${p => p.theme.tokens.content.secondary};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     border-bottom-left-radius: ${p => p.theme.radius.md};

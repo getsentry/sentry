@@ -639,6 +639,144 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             == SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
         )
 
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_trace_metrics_feature_flag_disabled(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["aggregate"] = "count(trace.duration)"
+        data["eventTypes"] = ["trace_item_metric"]
+        data["timeWindow"] = 5
+        with (
+            outbox_runner(),
+            self.feature(
+                {
+                    "organizations:incidents": True,
+                    "organizations:performance-view": True,
+                    "organizations:tracemetrics-alerts": False,
+                    "organizations:tracemetrics-enabled": False,
+                },
+            ),
+        ):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+            assert "You do not have access to the metrics alerts feature" in str(resp.data)
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_trace_metrics_invalid_aggregate(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["aggregate"] = "count(trace.duration)"
+        data["eventTypes"] = ["trace_item_metric"]
+        data["timeWindow"] = 5
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:tracemetrics-alerts",
+                    "organizations:tracemetrics-enabled",
+                ]
+            ),
+        ):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+            assert "Invalid trace metrics aggregate" in str(resp.data["aggregate"][0])
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_trace_metrics_valid_aggregates(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
+        data1 = deepcopy(self.alert_rule_dict)
+        data1["name"] = "Trace Metrics Per Second Alert"
+        data1["dataset"] = "events_analytics_platform"
+        data1["alertType"] = "eap_metrics"
+        data1["aggregate"] = "per_second(value,metric_name_one,counter,-)"
+        data1["eventTypes"] = ["trace_item_metric"]
+        data1["timeWindow"] = 5
+
+        data2 = deepcopy(self.alert_rule_dict)
+        data2["name"] = "Trace Metrics Count Alert"
+        data2["dataset"] = "events_analytics_platform"
+        data2["alertType"] = "eap_metrics"
+        data2["aggregate"] = "count(metric.name,metric_name_two,distribution,-)"
+        data2["eventTypes"] = ["trace_item_metric"]
+        data2["timeWindow"] = 5
+
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:tracemetrics-alerts",
+                    "organizations:tracemetrics-enabled",
+                ]
+            ),
+        ):
+            with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+                resp1 = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **data1,
+                )
+
+                resp2 = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **data2,
+                )
+
+                assert urlopen.call_count == 2
+                for call_args in urlopen.call_args_list:
+                    rpc_request_body = call_args[1]["body"]
+                    createSubscriptionRequest = CreateSubscriptionRequest.FromString(
+                        rpc_request_body
+                    )
+                    assert (
+                        createSubscriptionRequest.time_series_request.meta.trace_item_type
+                        == TraceItemType.TRACE_ITEM_TYPE_METRIC
+                    )
+
+        assert "id" in resp1.data
+        alert_rule1 = AlertRule.objects.get(id=resp1.data["id"])
+        assert resp1.data == serialize(alert_rule1, self.user)
+        assert resp1.data["aggregate"] == "per_second(value,metric_name_one,counter,-)"
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule1.snuba_query_id)[0].type
+            == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
+        )
+
+        assert "id" in resp2.data
+        alert_rule2 = AlertRule.objects.get(id=resp2.data["id"])
+        assert resp2.data == serialize(alert_rule2, self.user)
+        assert resp2.data["aggregate"] == "count(metric.name,metric_name_two,distribution,-)"
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule2.snuba_query_id)[0].type
+            == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
+        )
+
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
     @patch(
@@ -1766,6 +1904,68 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert resp.data[0] == "server_weighted extrapolation mode is not supported for new alerts."
+
+    def test_owner_team_not_member_denied(self) -> None:
+        """
+        Test that members cannot assign a team they are not a member of as owner.
+        This is a regression test for an IDOR vulnerability.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert resp.data == {"owner": ["You do not have permission to assign this owner"]}
+
+    def test_owner_team_member_allowed(self) -> None:
+        """
+        Test that members CAN assign a team they are a member of as owner.
+        """
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{self.team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{self.team.id}"
+
+    def test_owner_team_admin_can_assign_any_team(self) -> None:
+        """
+        Test that users with team:admin scope CAN assign any team as owner.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        admin_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=admin_user,
+            organization=self.organization,
+            role="admin",
+            teams=[self.team],
+        )
+        self.login_as(admin_user)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{other_team.id}"
 
 
 @freeze_time()

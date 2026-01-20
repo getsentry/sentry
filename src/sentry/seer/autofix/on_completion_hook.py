@@ -5,11 +5,20 @@ from typing import TYPE_CHECKING
 
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    trigger_autofix_explorer,
+    trigger_coding_agent_handoff,
+)
+from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_utils import fetch_run_status
 from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
+from sentry.seer.models import (
+    SeerApiError,
+    SeerApiResponseValidationError,
+    SeerAutomationHandoffConfiguration,
+)
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 
@@ -217,6 +226,14 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             # We've reached the stopping point
             return
 
+        # Check if we should trigger coding agent handoff instead of continuing
+        handoff_config = cls._get_handoff_config_if_applicable(
+            stopping_point, current_step, group_id
+        )
+        if handoff_config:
+            cls._trigger_coding_agent_handoff(organization, run_id, group_id, handoff_config)
+            return
+
         # Special case: if stopping_point is open_pr and we just finished code_changes, push changes
         if (
             stopping_point == AutofixStoppingPoint.OPEN_PR
@@ -286,4 +303,104 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             logger.exception(
                 "autofix.on_completion_hook.push_changes_failed",
                 extra={"run_id": run_id, "organization_id": organization.id},
+            )
+
+    @classmethod
+    def _get_handoff_config_if_applicable(
+        cls,
+        stopping_point: AutofixStoppingPoint,
+        current_step: AutofixStep | None,
+        group_id: int,
+    ) -> SeerAutomationHandoffConfiguration | None:
+        """
+        Read project preferences and return handoff config if applicable.
+
+        Handoff is triggered when:
+        - current_step is ROOT_CAUSE
+        - stopping_point is SOLUTION, CODE_CHANGES, or OPEN_PR
+        - automation_handoff is configured with handoff_point = ROOT_CAUSE
+        """
+        # Only trigger handoff after root cause is completed
+        if current_step != AutofixStep.ROOT_CAUSE:
+            return None
+
+        # Only trigger handoff when continuing beyond root cause
+        if stopping_point not in [
+            AutofixStoppingPoint.SOLUTION,
+            AutofixStoppingPoint.CODE_CHANGES,
+            AutofixStoppingPoint.OPEN_PR,
+        ]:
+            return None
+
+        # Check project preferences
+        group = Group.objects.get(id=group_id)
+        try:
+            preference_response = get_project_seer_preferences(group.project_id)
+        except (SeerApiError, SeerApiResponseValidationError):
+            logger.exception(
+                "autofix.on_completion_hook.get_preferences_failed",
+                extra={"group_id": group_id, "project_id": group.project_id},
+            )
+            return None
+        if not preference_response or not preference_response.preference:
+            return None
+        handoff_config = preference_response.preference.automation_handoff
+        if not handoff_config:
+            return None
+
+        return handoff_config
+
+    @classmethod
+    def _trigger_coding_agent_handoff(
+        cls,
+        organization: Organization,
+        run_id: int,
+        group_id: int,
+        handoff_config: SeerAutomationHandoffConfiguration,
+    ) -> None:
+        """Trigger coding agent handoff using the configured integration."""
+        logger.info(
+            "autofix.on_completion_hook.triggering_coding_agent_handoff",
+            extra={
+                "run_id": run_id,
+                "organization_id": organization.id,
+                "group_id": group_id,
+                "integration_id": handoff_config.integration_id,
+                "target": handoff_config.target,
+            },
+        )
+
+        try:
+            group = Group.objects.get(id=group_id)
+            result = trigger_coding_agent_handoff(
+                group=group,
+                run_id=run_id,
+                integration_id=handoff_config.integration_id,
+            )
+            logger.info(
+                "autofix.on_completion_hook.coding_agent_handoff_completed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "successes": len(result.get("successes", [])),
+                    "failures": len(result.get("failures", [])),
+                },
+            )
+        except Group.DoesNotExist:
+            logger.exception(
+                "autofix.on_completion_hook.coding_agent_handoff_group_not_found",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "group_id": group_id,
+                },
+            )
+        except Exception:
+            logger.exception(
+                "autofix.on_completion_hook.coding_agent_handoff_failed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "integration_id": handoff_config.integration_id,
+                },
             )

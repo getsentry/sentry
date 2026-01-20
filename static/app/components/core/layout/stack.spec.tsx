@@ -1,8 +1,9 @@
 import React, {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Stack} from 'sentry/components/core/layout/stack';
+import {Stack, type StackProps} from 'sentry/components/core/layout/stack';
 
 describe('Stack', () => {
   it('renders children', () => {
@@ -78,6 +79,15 @@ describe('Stack', () => {
   it('allows settings native html attributes', () => {
     render(<Stack style={{color: 'red'}}>Hello</Stack>);
     expect(screen.getByText('Hello')).toHaveStyle({color: 'red'});
+  });
+
+  it('as=label props are correctly inferred', () => {
+    render(
+      <Stack as="label" htmlFor="test-id">
+        Hello World
+      </Stack>
+    );
+    expectTypeOf<StackProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('attaches ref to the underlying element', () => {

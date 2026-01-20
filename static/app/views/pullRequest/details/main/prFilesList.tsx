@@ -239,10 +239,10 @@ const DiffRow = styled('tr')`
   }
 
   &.header {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
 
     td {
-      color: ${p => p.theme.colors.blue400};
+      color: ${p => p.theme.tokens.content.accent};
       font-weight: ${p => p.theme.fontWeight.bold};
     }
   }

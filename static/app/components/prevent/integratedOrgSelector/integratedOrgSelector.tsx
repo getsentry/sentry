@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -158,7 +158,7 @@ export function IntegratedOrgSelector() {
       closeOnSelect
       trigger={triggerProps => {
         return (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             icon={<IconBuilding />}
             data-test-id="page-filter-integrated-org-selector"
             {...triggerProps}
@@ -166,7 +166,7 @@ export function IntegratedOrgSelector() {
             <TriggerLabelWrap>
               <TriggerLabel>{integratedOrgName ?? DEFAULT_ORG_LABEL}</TriggerLabel>
             </TriggerLabelWrap>
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         );
       }}
       menuWidth="280px"
@@ -182,7 +182,10 @@ const TriggerLabelWrap = styled('span')`
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

@@ -43,6 +43,7 @@ import {
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
@@ -65,13 +66,19 @@ import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/tra
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
 import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
+import {
+  useSpansSeriesQuery,
+  useSpansTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useSpansWidgetQuery';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -228,6 +235,8 @@ export const SpansConfig: DatasetConfig<
     );
   },
   getSeriesRequest,
+  useSeriesQuery: useSpansSeriesQuery,
+  useTableQuery: useSpansTableQuery,
   transformTable: transformEventsResponseToTable,
   transformSeries,
   filterAggregateParams,
@@ -237,6 +246,9 @@ export const SpansConfig: DatasetConfig<
     }
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
+    }
+    if (field === 'transaction') {
+      return renderTransactionAsLinkable;
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
@@ -480,6 +492,52 @@ function renderEventInTraceView(
   return (
     <Link to={target}>
       <Container>{getShortEventId(spanId)}</Container>
+    </Link>
+  );
+}
+
+function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBaggage) {
+  const transaction = data.transaction;
+  if (!transaction || typeof transaction !== 'string') {
+    return <Container>{emptyStringValue}</Container>;
+  }
+
+  const {organization, location, projects} = baggage;
+
+  let projectID: string | string[] | undefined;
+  const filterProjects = location?.query.project;
+
+  if (typeof filterProjects === 'string' && filterProjects !== '-1') {
+    projectID = filterProjects;
+  } else {
+    const projectMatch = projects?.find(
+      project =>
+        project.slug && [data['project.name'], data.project].includes(project.slug)
+    );
+    projectID = projectMatch ? [projectMatch.id] : undefined;
+  }
+
+  const filters = new MutableSearch('');
+
+  // Filters on the transaction summary page won't match the dashboard because transaction summary isn't on eap yet.
+  if (data[SpanFields.SPAN_OP]) {
+    filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
+  }
+  if (data[SpanFields.REQUEST_METHOD]) {
+    filters.addFilterValue('http.method', data[SpanFields.REQUEST_METHOD]);
+  }
+
+  const target = transactionSummaryRouteWithQuery({
+    organization,
+    transaction: String(transaction),
+    projectID,
+    query: location?.query,
+    additionalQuery: {query: filters.formatString()},
+  });
+
+  return (
+    <Link to={target}>
+      <Container>{transaction}</Container>
     </Link>
   );
 }

@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Access from 'sentry/components/acl/access';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -21,7 +21,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
@@ -160,12 +159,12 @@ export default function SentryAppDetailsModal(props: Props) {
     <Fragment>
       <Heading>
         <SentryAppAvatar sentryApp={sentryApp} size={50} />
-        <HeadingInfo>
+        <Stack gap="sm">
           <Name>{sentryApp.name}</Name>
           {!!features.length && <Features>{featureTags(features)}</Features>}
-        </HeadingInfo>
+        </Stack>
       </Heading>
-      <Description text={overview} />
+      <Description>{overview}</Description>
       <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
       <IntegrationFeatures {...featureProps}>
         {({disabled, disabledReason}) => (
@@ -212,24 +211,14 @@ const Heading = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const HeadingInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  gap: ${space(0.75)};
-`;
-
 const Name = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 1.4em;
 `;
 
-const Description = styled(MarkedText)`
+const Description = styled('div')`
   margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: 6px;
-  }
+  white-space: pre-wrap;
 `;
 
 const Author = styled('div')`
@@ -246,7 +235,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   align-items: center;
   flex: 1;
   grid-template-columns: max-content 1fr;
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: 0.9em;
 `;
 

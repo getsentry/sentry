@@ -11,7 +11,7 @@ from sentry import audit_log, quotas
 from sentry.api.base import BaseEndpointMixin
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.environment import Environment
@@ -132,7 +132,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 if isinstance(monitor_object, Monitor):
                     new_slug = get_random_string(length=24)
                     # we disable the monitor seat so that it can be re-used for another monitor
-                    quotas.backend.disable_seat(DataCategory.MONITOR_SEAT, monitor)
+                    quotas.backend.disable_seat(seat_object=monitor)
                     quotas.backend.update_monitor_slug(monitor.slug, new_slug, monitor.project_id)
                     monitor_object.update(slug=new_slug)
 

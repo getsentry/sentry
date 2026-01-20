@@ -7,7 +7,6 @@ import type {ContentVariant, FontSize} from 'sentry/utils/theme';
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 
 export interface BaseTextProps {
-  children: React.ReactNode;
   /**
    * Horizontal alignment of the text.
    *
@@ -82,7 +81,7 @@ export interface BaseTextProps {
    * Variant determines the style of the text.
    * @default primary
    */
-  variant?: ContentVariant;
+  variant?: ContentVariant | 'muted';
 
   /**
    * Determines where line breaks appear when wrapping the text.
@@ -100,20 +99,42 @@ export type ExclusiveTextEllipsisProps =
   | {ellipsis?: true; wrap?: never}
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
-export type TextProps<T extends 'span' | 'p' | 'label' | 'div'> = BaseTextProps & {
+interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
+  extends BaseTextProps,
+    React.DetailedHTMLProps<
+      React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+      HTMLElementTagNameMap[T]
+    > {
+  /**
+   * Our decision to make children required conflicts with the optional signature of the React.DetailedHTMLProps type.
+   * To resolve it, we move the children definition after the React.DetailedHTMLProps type,
+   * which narrows the type from optional to required as expected.
+   */
+  children: React.ReactNode;
   /**
    * The HTML element to render the text as - defaults to span.
    * @default span
    */
   as?: T;
-  ref?: React.Ref<HTMLElementTagNameMap[T] | null> | undefined;
-} & Omit<React.HTMLAttributes<HTMLElementTagNameMap[T]>, 'color'> &
+  /**
+   * Forbid color HTML attribute from being passed to the component, all usage should be variant-based.
+   */
+  color?: never;
+  /**
+   * This could have been avoided by using React.JSX.IntrinsicElements<T>, however doing so would be
+   * grosely inefficient, as it would cause type helpers like DistributedOmit to traverse the entire
+   * type HTML Attribute set of each element, slowing down our type compilation. In my test, using
+   * React.JSX.IntrinsicElements<T> caused native ts compilation to take 2x longer.
+   *
+   */
+  htmlFor?: T extends 'label' ? string : never;
+}
+
+export type TextProps<T extends 'span' | 'p' | 'label' | 'div'> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
 
 export const Text = styled(
-  <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(
-    props: TextProps<T> & ExclusiveTextEllipsisProps
-  ) => {
+  <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(props: TextProps<T>) => {
     const {children, ...rest} = props;
     const Component = props.as || 'span';
     return <Component {...(rest as any)}>{children}</Component>;
@@ -122,8 +143,8 @@ export const Text = styled(
     shouldForwardProp: p => isPropValid(p),
   }
 )`
-  ${p => rc('font-size', p.size, p.theme, v => getFontSize(v ?? 'md', p.theme))};
-  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v))};
+  ${p => rc('font-size', p.size, p.theme, v => getFontSize(v, p.theme))};
+  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
   ${p => rc('text-align', p.align, p.theme)};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
@@ -131,7 +152,8 @@ export const Text = styled(
 
   color: ${p =>
     p.variant
-      ? (p.theme.tokens.content[p.variant] ?? p.theme.tokens.content.primary)
+      ? (p.theme.tokens.content[p.variant === 'muted' ? 'secondary' : p.variant] ??
+        p.theme.tokens.content.primary)
       : p.theme.tokens.content.primary};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
@@ -179,6 +201,6 @@ export const Text = styled(
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
    */
-` as unknown as <T extends 'span' | 'p' | 'div'>(
+` as unknown as <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(
   props: TextProps<T>
 ) => React.ReactElement;

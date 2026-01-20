@@ -90,7 +90,7 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   opacity: ${p => (p.disabled ? 0.6 : 1)};
   border-radius: ${p => p.theme.radius.md};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'auto')};

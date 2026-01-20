@@ -21,6 +21,10 @@ const DISABLED_OPTIONS = ['90d'];
 export function InsightsModuleDatePageFilter() {
   const organization = useOrganization();
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   const legacyDateFilterProps: DatePageFilterProps = useMemo(() => {
     const dateFilterProps: DatePageFilterProps = {};
 
@@ -49,14 +53,13 @@ export function InsightsModuleDatePageFilter() {
         return true;
       };
       dateFilterProps.menuFooter = <UpsellFooterHook />;
+    } else {
+      dateFilterProps.maxPickableDays = maxPickableDays.maxPickableDays;
     }
 
     return dateFilterProps;
-  }, [organization]);
+  }, [organization, maxPickableDays.maxPickableDays]);
 
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const props = organization.features.includes('downsampled-page-filter')

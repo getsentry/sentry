@@ -1,6 +1,8 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -53,7 +55,7 @@ export function SuspectCommitFeedback({
   return (
     <FeedbackContainer>
       <FeedbackText>{t('Is this correct?')}</FeedbackText>
-      <ButtonGroup>
+      <Flex gap="2xs">
         <Button
           size="xs"
           icon={<IconThumb direction="up" size="sm" />}
@@ -66,7 +68,7 @@ export function SuspectCommitFeedback({
           onClick={() => handleFeedback(false)}
           aria-label={t('No, this suspect commit is incorrect')}
         />
-      </ButtonGroup>
+      </Flex>
     </FeedbackContainer>
   );
 }
@@ -97,9 +99,4 @@ const ThankYouText = styled('span')`
   line-height: 1.5;
   color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
-`;
-
-const ButtonGroup = styled('div')`
-  display: flex;
-  gap: ${space(0.25)};
 `;

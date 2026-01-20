@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -295,6 +296,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             <AlignCenter>
               <StyledTooltip
                 isHoverable
+                showUnderline
                 title={
                   <span>
                     {tct('The [webVital] performance rating of this sample.', {
@@ -307,11 +309,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                   </span>
                 }
               >
-                <TooltipHeader>
-                  {tct('[webVital] Score', {
-                    webVital: datatype.toUpperCase(),
-                  })}
-                </TooltipHeader>
+                {tct('[webVital] Score', {
+                  webVital: datatype.toUpperCase(),
+                })}
               </StyledTooltip>
             </AlignCenter>
           }
@@ -551,7 +551,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     <span>
       <Flex marginBottom="xl" gap="md">
         <CompactSelect
-          triggerProps={{prefix: t('Web Vital')}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Web Vital')} />
+          )}
           value={datatype}
           options={WEB_VITAL_DATATYPES.map(type => ({
             label: type.toUpperCase(),
@@ -679,10 +681,6 @@ const Wrapper = styled('div')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-`;
-
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;
 
 const StyledTooltip = styled(Tooltip)`

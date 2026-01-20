@@ -6,6 +6,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 def _get_valid_data(project_id, environment_name, **overrides):
@@ -24,8 +25,8 @@ def _get_valid_data(project_id, environment_name, **overrides):
         "conditionGroup": {
             "logicType": "any",
             "conditions": [
-                {"comparison": 1, "type": "eq", "condition_result": "high"},
-                {"comparison": 0, "type": "eq", "condition_result": "ok"},
+                {"comparison": 1, "type": "eq", "condition_result": DetectorPriorityLevel.HIGH},
+                {"comparison": 0, "type": "eq", "condition_result": DetectorPriorityLevel.OK},
             ],
         },
         "config": {

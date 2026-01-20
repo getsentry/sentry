@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -76,7 +78,9 @@ function SelectableContainer({
 
   const selector = (
     <CompactSelect
-      triggerProps={{size: 'xs', prefix: dropdownPrefix}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} size="xs" prefix={dropdownPrefix} />
+      )}
       value={sectionKey}
       options={sections.map(s => ({value: s.key, label: s.name}))}
       onChange={opt => setSection(opt.value)}

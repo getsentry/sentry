@@ -183,7 +183,7 @@ export function AppSizeInsightsSidebarRow({
                   width: '100%',
                   overflow: 'hidden',
                   '& > :nth-child(odd)': {
-                    backgroundColor: theme.backgroundSecondary,
+                    backgroundColor: theme.tokens.background.secondary,
                   },
                 })}
               >

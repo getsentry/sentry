@@ -34,14 +34,17 @@ export const Heading = styled(
     rc('font-size', p.size ?? getDefaultHeadingFontSize(p.as), p.theme, v => {
       return getFontSize(v, p.theme);
     })};
-  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v))};
+  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
   ${p => rc('text-align', p.align, p.theme)};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
 
   text-decoration: ${p => getTextDecoration(p)};
 
-  color: ${p => p.theme.tokens.content[p.variant ?? 'primary']};
+  color: ${p =>
+    p.theme.tokens.content[
+      p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
+    ]};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};

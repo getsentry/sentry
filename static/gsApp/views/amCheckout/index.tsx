@@ -898,7 +898,7 @@ const SidePanel = styled('aside')`
   display: flex;
   flex-direction: column;
   padding: 0 ${p => p.theme.space['2xl']};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     position: sticky;

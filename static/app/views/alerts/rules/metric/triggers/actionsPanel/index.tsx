@@ -537,7 +537,7 @@ const PanelItemSelects = styled('div')`
 `;
 
 const RuleRowContainer = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border: 1px ${p => p.theme.tokens.border.primary} solid;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   &:last-child {

@@ -177,7 +177,7 @@ const NavLink = styled(ListLink)`
   gap: ${space(1)};
 
   .active & {
-    color: ${p => p.theme.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
     margin-left: calc(-1 * (${space(1)} + var(--activeIndicatorWidth)));
   }
 
@@ -188,10 +188,10 @@ const NavLink = styled(ListLink)`
     height: ${space(3)};
     position: relative;
     top: -1px;
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 
   &:hover {
-    color: ${p => p.theme.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 `;

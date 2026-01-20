@@ -1,7 +1,9 @@
-import {createRef} from 'react';
+import {createRef, Fragment} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {TextProps} from './text';
 import {Text} from './text';
 
 describe('Text', () => {
@@ -24,6 +26,19 @@ describe('Text', () => {
   it('forwards data-test-id', () => {
     render(<Text data-test-id="test-id">Hello World</Text>);
     expect(screen.getByText('Hello World')).toHaveAttribute('data-test-id', 'test-id');
+  });
+
+  it('as=label props are correctly inferred', () => {
+    render(
+      <Fragment>
+        {/* @ts-expect-error: htmlFor is not a valid prop for Text */}
+        <Text htmlFor="test-id">Hello World</Text>
+        <Text as="label" htmlFor="test-id">
+          Hello World
+        </Text>
+      </Fragment>
+    );
+    expectTypeOf<TextProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('allows passing native HTML attributes', () => {

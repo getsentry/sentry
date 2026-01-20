@@ -14,7 +14,7 @@ export default function YAxis({theme, ...props}: Props): YAXisComponentOption {
         show: false,
       },
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         fontFamily: theme.text.family,
       },
       splitLine: {
