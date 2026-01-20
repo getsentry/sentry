@@ -24,7 +24,7 @@ describe('logs', () => {
     const configureSteps = result.configure(mockParams);
     expect(configureSteps).toHaveLength(1);
     expect(configureSteps[0].type).toBe('configure');
-    expect(configureSteps[0].content[1].code).toContain('o.EnableLogs = true;');
+    expect(configureSteps[0].content[1].code).toContain('options.EnableLogs = true;');
     expect(configureSteps[0].content[1].code).toContain(mockParams.dsn.public);
 
     // Test verify step
