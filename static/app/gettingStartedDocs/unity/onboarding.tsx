@@ -10,6 +10,8 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {t, tct} from 'sentry/locale';
 
+import {logsVerify} from './logs';
+
 const getVerifySnippet = () => `
 using Sentry; // On the top of the script
 
@@ -107,35 +109,7 @@ export const onboarding: OnboardingConfig = {
       ? ([
           {
             title: t('Logs'),
-            content: [
-              {
-                type: 'text',
-                text: t(
-                  'Once logging is enabled, you can send logs using the Debug.Log API or directly via the SDK:'
-                ),
-              },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: `using Sentry;
-using UnityEngine;
-
-// Unity's Debug.Warning (and higher severity levels) will automatically be captured
-Debug.Warning("This warning will be sent to Sentry");
-
-// Or use the SDK directly
-SentrySdk.Logger.LogInfo("A simple log message");
-SentrySdk.Logger.LogError("An error log message");`,
-              },
-              {
-                type: 'text',
-                text: tct('Check out [link:the Logs documentation] to learn more.', {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/unity/logs/" />
-                  ),
-                }),
-              },
-            ],
+            content: [logsVerify(params)],
           },
         ] satisfies OnboardingStep[])
       : []),
