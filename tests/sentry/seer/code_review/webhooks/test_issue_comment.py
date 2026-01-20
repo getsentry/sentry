@@ -56,6 +56,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         comment_body: str,
         comment_id: int | None = 123456789,
         github_org: str = "sentry-ecosystem",
+        is_pr_comment: bool = True,
     ) -> bytes:
         event = {
             "action": "created",
@@ -65,7 +66,6 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             },
             "issue": {
                 "number": 42,
-                "pull_request": {"url": f"https://api.github.com/repos/{github_org}/repo/pulls/42"},
                 "user": {
                     "id": 12345678,
                     "login": "pr-author",
@@ -85,6 +85,10 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 "login": "commenter",
             },
         }
+        if is_pr_comment:
+            event["issue"]["pull_request"] = {
+                "url": f"https://api.github.com/repos/{github_org}/repo/pulls/42"
+            }
         return orjson.dumps(event)
 
     def test_skips_when_code_review_features_are_missing(self) -> None:
@@ -118,6 +122,14 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             mock_reaction.assert_not_called()
             self.mock_seer.assert_called_once()
+
+    def test_skips_when_not_pr_comment(self) -> None:
+        """Test that processing is skipped when comment is not on a PR."""
+        with self.code_review_setup(), self.tasks():
+            event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND, is_pr_comment=False)
+            response = self._send_issue_comment_event(event)
+            assert response.status_code == 204
+            self.mock_seer.assert_not_called()
 
     def test_success_case(self) -> None:
         """Test that Seer request includes trigger metadata from the comment."""

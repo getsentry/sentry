@@ -226,7 +226,7 @@ def transform_issue_comment_to_codegen_request(
         organization=organization,
     )
     if "pull_request" in event_payload["issue"]:
-        payload["data"]["pr_id"] = event_payload["issue"]["pull_request"]["number"]
+        payload["data"]["pr_id"] = event_payload["issue"]["number"]
     else:
         # Not a PR-related event (e.g., issue_comment on regular issues)
         return None
