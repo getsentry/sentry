@@ -4,7 +4,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -142,7 +142,7 @@ export function PolicyRow({
           </Body>
           <Footer>
             {curPolicy.hasSignature ? (
-              <PolicyActions>
+              <Flex justify="between" align="center" flexGrow={1}>
                 <small>
                   {tct('You are agreeing as [email]', {
                     email: <strong>{user.email}</strong>,
@@ -164,7 +164,7 @@ export function PolicyRow({
                     {t('I Accept')}
                   </Button>
                 </ButtonBar>
-              </PolicyActions>
+              </Flex>
             ) : (
               <Button size="sm" onClick={closeModal}>
                 {t('Close')}
@@ -257,21 +257,12 @@ const PolicyTitle = styled('h6')`
   }
 `;
 
-const PolicyActions = styled('div')`
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const modalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.sm}) {
     width: 80%;
     max-width: 1200px;
   }
 `;
-export const PolicyStatusRow = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-`;
+export function PolicyStatusRow(props: FlexProps<'div'>) {
+  return <Flex align="center" height="100%" {...props} />;
+}

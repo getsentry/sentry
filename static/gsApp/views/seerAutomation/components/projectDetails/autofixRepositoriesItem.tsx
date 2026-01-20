@@ -170,7 +170,7 @@ export function AutofixRepositoriesItem({
       </Flex>
 
       {isExpanded && (
-        <Container padding="lg xl" style={{gridColumn: '1 / -1'}}>
+        <Container padding="lg xl" column="1 / -1">
           <Stack gap="lg" justify="between" paddingTop="0" paddingLeft="xl">
             <Flex align="center" justify="between">
               <Heading as="h4">

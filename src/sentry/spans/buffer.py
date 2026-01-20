@@ -81,7 +81,9 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
+from sentry.spans.buffer_logger import BufferLogger
 from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.utils import metrics, redis
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -166,6 +168,8 @@ class SpansBuffer:
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
+        self._buffer_logger = BufferLogger()
+        self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -198,6 +202,7 @@ class SpansBuffer:
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        debug_traces = set(options.get("spans.buffer.debug-traces"))
 
         result_meta = []
         is_root_span_count = 0
@@ -224,6 +229,18 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     byte_count = sum(len(span.payload) for span in subsegment)
+
+                    _, _, trace_id = project_and_trace.partition(":")
+                    if trace_id in debug_traces:
+                        try:
+                            if self._debug_trace_logger is None:
+                                self._debug_trace_logger = DebugTraceLogger(self.client)
+                            self._debug_trace_logger.log_subsegment_info(
+                                project_and_trace, parent_span_id, subsegment
+                            )
+                        except Exception:
+                            logger.exception("Failed to log debug trace info")
+
                     p.execute_command(
                         "EVALSHA",
                         add_buffer_sha,
@@ -250,7 +267,10 @@ class SpansBuffer:
             assert len(result_meta) == len(results)
 
             for (project_and_trace, parent_span_id), result in zip(result_meta, results):
-                redirect_depth, set_key, has_root_span = result
+                redirect_depth, set_key, has_root_span, evalsha_latency_ms = result
+
+                # Log individual EVALSHA latency for this trace
+                self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
 
                 shard = self.assigned_shards[
                     int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
