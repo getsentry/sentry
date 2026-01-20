@@ -48,17 +48,17 @@ function ReserveAdditionalVolume({
               }).price > 0
           )
   );
+  const [reserved, setReserved] = useState<Partial<Record<DataCategory, number>>>(
+    formData.reserved
+  );
   const reservedVolumeTotal = useMemo(() => {
-    return Object.entries(formData.reserved).reduce((acc, [category, value]) => {
+    return Object.entries(reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
         b => b.events === value
       );
       return acc + (bucket?.price ?? 0);
     }, 0);
-  }, [formData.reserved, activePlan]);
-  const [reserved, setReserved] = useState<Partial<Record<DataCategory, number>>>(
-    formData.reserved
-  );
+  }, [reserved, activePlan]);
 
   const handleReservedChange = useCallback(
     (value: number, category: DataCategory) => {
