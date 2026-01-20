@@ -193,7 +193,7 @@ function TransactionWrapper({
               onClick={() => onSelectNode(node)}
               isSelected={uniqueKey === selectedNodeKey}
               colors={colors}
-              getCompressedTimestamp={compressedBounds?.getCompressedTimestamp}
+              compressedStartByNodeId={compressedBounds?.compressedStartByNodeId}
             />
           );
         })}
@@ -208,7 +208,7 @@ const TraceListItem = memo(function TraceListItem({
   colors,
   traceBounds,
   indent,
-  getCompressedTimestamp,
+  compressedStartByNodeId,
 }: {
   colors: readonly string[];
   indent: number;
@@ -216,7 +216,7 @@ const TraceListItem = memo(function TraceListItem({
   node: AITraceSpanNode;
   onClick: () => void;
   traceBounds: TraceBounds;
-  getCompressedTimestamp?: (timestamp: number) => number;
+  compressedStartByNodeId?: Map<string, number>;
 }) {
   const hasErrors = hasError(node);
   const {icon, title, subtitle, color} = getNodeInfo(node, colors);
@@ -224,7 +224,7 @@ const TraceListItem = memo(function TraceListItem({
   const relativeTiming = calculateRelativeTiming(
     node,
     traceBounds,
-    getCompressedTimestamp
+    compressedStartByNodeId
   );
   const duration = getNodeTimeBounds(node).duration;
 
@@ -293,7 +293,7 @@ interface TraceBounds {
 }
 
 interface CompressedTimeBounds extends TraceBounds {
-  getCompressedTimestamp: (timestamp: number) => number;
+  compressedStartByNodeId: Map<string, number>;
 }
 
 const MAX_GAP_SECONDS = 30;
@@ -302,15 +302,24 @@ const COMPRESSED_GAP_SECONDS = 1;
 /**
  * Compresses large time gaps between spans to make the timeline more readable.
  * Gaps larger than MAX_GAP_SECONDS are compressed to COMPRESSED_GAP_SECONDS.
+ *
+ * This function handles nested/overlapping spans by tracking "segments" - continuous
+ * time ranges where spans are active. When a gap is detected between segments,
+ * it's compressed if larger than MAX_GAP_SECONDS.
+ *
+ * Returns a Map of node IDs to their compressed start times, which allows O(1)
+ * lookup when rendering each span's position on the timeline.
  */
 function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds {
+  const emptyResult: CompressedTimeBounds = {
+    startTime: 0,
+    endTime: 0,
+    duration: 0,
+    compressedStartByNodeId: new Map(),
+  };
+
   if (nodes.length === 0) {
-    return {
-      startTime: 0,
-      endTime: 0,
-      duration: 0,
-      getCompressedTimestamp: () => 0,
-    };
+    return emptyResult;
   }
 
   const sortedNodes = [...nodes]
@@ -318,95 +327,62 @@ function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds
     .sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
 
   if (sortedNodes.length === 0) {
-    return {
-      startTime: 0,
-      endTime: 0,
-      duration: 0,
-      getCompressedTimestamp: () => 0,
-    };
+    return emptyResult;
   }
 
-  const segments: Array<{
-    compressedStart: number;
-    realEnd: number;
-    realStart: number;
-  }> = [];
+  const compressedStartByNodeId = new Map<string, number>();
 
-  let compressedTime = 0;
-  let maxRealEndSeen = 0;
+  // Track current segment bounds - a segment is a continuous time range
+  // where at least one span is active (handles overlapping/nested spans)
+  const firstNode = sortedNodes[0]!;
+  let segmentRealStart = firstNode.startTimestamp!;
+  let segmentRealEnd = firstNode.endTimestamp!;
+  let segmentCompressedStart = 0;
 
-  for (let i = 0; i < sortedNodes.length; i++) {
+  compressedStartByNodeId.set(firstNode.id, 0);
+
+  for (let i = 1; i < sortedNodes.length; i++) {
     const node = sortedNodes[i]!;
-    const nodeStart = node.startTimestamp ?? 0;
-    const nodeEnd = node.endTimestamp ?? 0;
+    const nodeStart = node.startTimestamp!;
+    const nodeEnd = node.endTimestamp!;
 
-    if (i > 0) {
-      const gap = nodeStart - maxRealEndSeen;
+    if (nodeStart > segmentRealEnd) {
+      // Gap detected - finish current segment and start new one
+      const gap = nodeStart - segmentRealEnd;
+      const compressedGap = gap > MAX_GAP_SECONDS ? COMPRESSED_GAP_SECONDS : gap;
+      const segmentDuration = segmentRealEnd - segmentRealStart;
 
-      if (gap > MAX_GAP_SECONDS) {
-        compressedTime += COMPRESSED_GAP_SECONDS;
-      } else if (gap > 0) {
-        compressedTime += gap;
-      }
+      // Advance compressed time by segment duration + gap
+      segmentCompressedStart += segmentDuration + compressedGap;
+
+      // Start new segment
+      segmentRealStart = nodeStart;
+      segmentRealEnd = nodeEnd;
+    } else {
+      // Overlapping/nested span - extend current segment if needed
+      segmentRealEnd = Math.max(segmentRealEnd, nodeEnd);
     }
 
-    segments.push({
-      realStart: nodeStart,
-      realEnd: nodeEnd,
-      compressedStart: compressedTime,
-    });
-
-    const spanDuration = nodeEnd - nodeStart;
-    compressedTime += spanDuration;
-    maxRealEndSeen = Math.max(maxRealEndSeen, nodeEnd);
+    // Calculate this node's compressed start relative to the current segment
+    const offsetInSegment = nodeStart - segmentRealStart;
+    compressedStartByNodeId.set(node.id, segmentCompressedStart + offsetInSegment);
   }
 
-  const totalDuration = compressedTime;
-
-  const getCompressedTimestamp = (timestamp: number): number => {
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i]!;
-      if (timestamp >= segment.realStart && timestamp <= segment.realEnd) {
-        const offsetInSegment = timestamp - segment.realStart;
-        return segment.compressedStart + offsetInSegment;
-      }
-      if (i < segments.length - 1) {
-        const nextSegment = segments[i + 1]!;
-        if (timestamp > segment.realEnd && timestamp < nextSegment.realStart) {
-          const gapStart = segment.realEnd;
-          const gapEnd = nextSegment.realStart;
-          const realGapDuration = gapEnd - gapStart;
-          const compressedGapDuration =
-            nextSegment.compressedStart -
-            (segment.compressedStart + (segment.realEnd - segment.realStart));
-          const progress = (timestamp - gapStart) / realGapDuration;
-          return (
-            segment.compressedStart +
-            (segment.realEnd - segment.realStart) +
-            progress * compressedGapDuration
-          );
-        }
-      }
-    }
-
-    if (segments.length > 0 && timestamp < segments[0]!.realStart) {
-      return 0;
-    }
-    return totalDuration;
-  };
+  // Total duration is the compressed start of last segment + its duration
+  const totalDuration = segmentCompressedStart + (segmentRealEnd - segmentRealStart);
 
   return {
     startTime: 0,
     endTime: totalDuration,
     duration: totalDuration,
-    getCompressedTimestamp,
+    compressedStartByNodeId,
   };
 }
 
 function calculateRelativeTiming(
   node: AITraceSpanNode,
   traceBounds: TraceBounds,
-  getCompressedTimestamp?: (timestamp: number) => number
+  compressedStartByNodeId?: Map<string, number>
 ): {leftPercent: number; widthPercent: number} {
   if (!node.value) return {leftPercent: 0, widthPercent: 0};
 
@@ -421,12 +397,15 @@ function calculateRelativeTiming(
 
   if (traceBounds.duration === 0) return {leftPercent: 0, widthPercent: 0};
 
-  const effectiveStart = getCompressedTimestamp
-    ? getCompressedTimestamp(startTime)
-    : startTime - traceBounds.startTime;
-  const effectiveEnd = getCompressedTimestamp
-    ? getCompressedTimestamp(endTime)
-    : endTime - traceBounds.startTime;
+  // Look up the pre-computed compressed start time for this node.
+  // The span duration stays the same - only gaps between spans are compressed.
+  const compressedStart = compressedStartByNodeId?.get(node.id);
+  const effectiveStart =
+    compressedStart === undefined ? startTime - traceBounds.startTime : compressedStart;
+  const effectiveEnd =
+    compressedStart === undefined
+      ? endTime - traceBounds.startTime
+      : compressedStart + (endTime - startTime);
 
   const relativeStart = Math.max(0, effectiveStart / traceBounds.duration) * 100;
   const spanDuration = ((effectiveEnd - effectiveStart) / traceBounds.duration) * 100;

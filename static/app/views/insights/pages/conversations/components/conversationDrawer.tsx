@@ -1,7 +1,7 @@
 import {memo, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
@@ -167,31 +167,33 @@ function ConversationView({
           value={activeTab}
           onChange={key => setActiveTab(key as ConversationTab)}
         >
-          <StyledTabList>
-            <TabList.Item key="messages">{t('Messages')}</TabList.Item>
-            <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
-          </StyledTabList>
-          <StyledTabPanels>
-            <TabPanels.Item key="messages">
-              <TabContent>
+          <Container padding="xs lg">
+            <TabList>
+              <TabList.Item key="messages">{t('Messages')}</TabList.Item>
+              <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
+            </TabList>
+          </Container>
+          <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">
+            <FullWidthTabPanels>
+              <TabPanels.Item key="messages">
                 <MessagesPanel
                   nodes={nodes}
                   selectedNodeId={selectedNode?.id ?? null}
                   onSelectNode={onSelectNode}
                 />
-              </TabContent>
-            </TabPanels.Item>
-            <TabPanels.Item key="trace">
-              <TabContentPadded>
-                <AISpanList
-                  nodes={nodes}
-                  selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                  onSelectNode={onSelectNode}
-                  compressGaps
-                />
-              </TabContentPadded>
-            </TabPanels.Item>
-          </StyledTabPanels>
+              </TabPanels.Item>
+              <TabPanels.Item key="trace">
+                <Container padding="md lg">
+                  <AISpanList
+                    nodes={nodes}
+                    selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
+                    onSelectNode={onSelectNode}
+                    compressGaps
+                  />
+                </Container>
+              </TabPanels.Item>
+            </FullWidthTabPanels>
+          </Flex>
         </StyledTabs>
       </LeftPanel>
       <DetailsPanel>
@@ -229,43 +231,15 @@ const LeftPanel = styled('div')`
 `;
 
 const StyledTabs = styled(Tabs)`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
   min-height: 0;
-  overflow: hidden;
 `;
 
-const StyledTabList = styled(TabList)`
-  flex-shrink: 0;
-  padding: ${p => p.theme.space.lg};
-`;
-
-const StyledTabPanels = styled(TabPanels)`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+const FullWidthTabPanels = styled(TabPanels)`
+  width: 100%;
 
   > [role='tabpanel'] {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
+    width: 100%;
   }
-`;
-
-const TabContent = styled('div')`
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-`;
-
-const TabContentPadded = styled(TabContent)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const DetailsPanel = styled('div')`
