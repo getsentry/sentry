@@ -180,12 +180,13 @@ redis.call("expire", ingested_byte_count_key, set_timeout)
 redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time_ms = get_time_ms()
-table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_end_time_ms - zpopmin_end_time_ms})
+local ingested_count_step_latency_ms = 0
 if zpopmin_end_time_ms >= 0 then
-    local ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
+    ingested_count_step_latency_ms = ingested_count_end_time_ms - zpopmin_end_time_ms
 else
-    local ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
+    ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
 end
+table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_step_latency_ms})
 
 -- Capture end time and calculate latency in milliseconds
 local end_time_ms = get_time_ms()
