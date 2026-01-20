@@ -358,15 +358,9 @@ export function useSpansTableQuery(
   const createQueryFnTable = useCallback(
     () =>
       async (context: any): Promise<ApiResult<SpansTableResponse>> => {
-        // Query key structure: [...STARRED_SEGMENT_TABLE_QUERY_KEY, url, options]
-        // Extract [url, options] for the API call
-        const apiQueryKey = context.queryKey.slice(
-          STARRED_SEGMENT_TABLE_QUERY_KEY.length
-        ) as ApiQueryKey;
-
         const modifiedContext = {
           ...context,
-          queryKey: apiQueryKey,
+          queryKey: context.queryKey.slice(STARRED_SEGMENT_TABLE_QUERY_KEY.length), // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call,
         };
 
         if (queue) {
