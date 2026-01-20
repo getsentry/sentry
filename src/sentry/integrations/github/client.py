@@ -177,6 +177,18 @@ class GithubProxyClient(IntegrationProxyClient):
                 "permissions": permissions,
             }
         )
+
+        if integration.debug_data is None:
+            integration.debug_data = {}
+
+        integration.debug_data.update(
+            {
+                "permissions": permissions,
+                "expires_at": expires_at,
+                "last_refresh_at": datetime.utcnow().isoformat(),
+            }
+        )
+
         integration.save()
         logger.info(
             "token.refresh_end",
