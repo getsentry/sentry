@@ -16,6 +16,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     enabledConsolePlatforms: ['playstation', 'xbox'],
     consoleSdkInviteQuota: 10,
     orgRole: 'admin',
+    features: ['github-console-sdk-self-invite'],
   });
 
   beforeEach(() => {
@@ -84,6 +85,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     const orgWithoutConsoleAccess = OrganizationFixture({
       enabledConsolePlatforms: [],
       consoleSdkInviteQuota: 10,
+      features: ['github-console-sdk-self-invite'],
     });
 
     OrganizationsStore.addOrReplace(orgWithoutConsoleAccess);
@@ -97,9 +99,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     render(<ConsoleSDKInvitesSettings />, {organization: orgWithoutConsoleAccess});
 
     expect(
-      await screen.findByText(
-        /Your organization does not have any console platforms enabled/
-      )
+      await screen.findByText(/does not have any console platforms enabled/)
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'PlayStation'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Nintendo Switch'})).toBeInTheDocument();
@@ -111,6 +111,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     const orgWithExhaustedQuota = OrganizationFixture({
       enabledConsolePlatforms: ['playstation'],
       consoleSdkInviteQuota: 2,
+      features: ['github-console-sdk-self-invite'],
     });
 
     OrganizationsStore.addOrReplace(orgWithExhaustedQuota);
@@ -225,6 +226,7 @@ describe('ConsoleSDKInvitesSettings', () => {
         enabledConsolePlatforms: ['playstation'],
         consoleSdkInviteQuota: 10,
         orgRole: 'member',
+        features: ['github-console-sdk-self-invite'],
       });
 
       OrganizationsStore.addOrReplace(memberOrg);
@@ -270,6 +272,7 @@ describe('ConsoleSDKInvitesSettings', () => {
           enabledConsolePlatforms: ['playstation'],
           consoleSdkInviteQuota: 10,
           orgRole: role,
+          features: ['github-console-sdk-self-invite'],
         });
 
         OrganizationsStore.addOrReplace(org);
@@ -304,6 +307,7 @@ describe('ConsoleSDKInvitesSettings', () => {
           enabledConsolePlatforms: ['playstation'],
           consoleSdkInviteQuota: 10,
           orgRole: role,
+          features: ['github-console-sdk-self-invite'],
         });
 
         OrganizationsStore.addOrReplace(org);
